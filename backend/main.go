@@ -49,9 +49,14 @@ func main() {
 	authHandler := handlers.NewAuthHandler(cfg, db)
 	booksHandler := handlers.NewBooksHandler(cfg, db)
 	progressHandler := handlers.NewProgressHandler(db)
+	ttsHandler := handlers.NewTTSHandler()
 
 	r.POST("/api/login", authHandler.Login)
 	r.POST("/api/logout", authHandler.Logout)
+
+	r.GET("/api/tts", ttsHandler.TTS)
+	r.POST("/api/ssml", ttsHandler.SSML)
+	r.GET("/api/voices", ttsHandler.VoiceList)
 
 	api := r.Group("/api")
 	api.Use(middleware.AuthRequired(db))

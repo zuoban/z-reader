@@ -92,19 +92,31 @@ const DEFAULT_THEME: ReaderTheme = {
 
 const STORAGE_KEY = 'z-reader-theme';
 
+let cachedTheme: ReaderTheme | null = null;
+
 function subscribe(callback: () => void) {
-  window.addEventListener('storage', callback);
-  return () => window.removeEventListener('storage', callback);
+  const handler = () => {
+    cachedTheme = null;
+    callback();
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
 }
 
 function getSnapshot(): ReaderTheme {
-  if (typeof window === 'undefined') return DEFAULT_THEME;
+  if (cachedTheme) return cachedTheme;
+  if (typeof window === 'undefined') {
+    cachedTheme = DEFAULT_THEME;
+    return DEFAULT_THEME;
+  }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return { ...DEFAULT_THEME, ...JSON.parse(saved) };
+      cachedTheme = { ...DEFAULT_THEME, ...JSON.parse(saved) };
+      return cachedTheme;
     }
   } catch {}
+  cachedTheme = DEFAULT_THEME;
   return DEFAULT_THEME;
 }
 
@@ -118,6 +130,7 @@ export function useReaderTheme() {
   const setTheme = useCallback((newTheme: Partial<ReaderTheme>) => {
     const updated = { ...theme, ...newTheme };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    cachedTheme = updated;
     window.dispatchEvent(new StorageEvent('storage'));
   }, [theme]);
 

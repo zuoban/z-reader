@@ -1,0 +1,17 @@
+{
+	# API routes -> Go backend
+	handle_path /api/* {
+		reverse_proxy localhost:8080
+	}
+	
+	# All other requests -> Next.js frontend
+	handle {
+		reverse_proxy localhost:3000
+	}
+	
+	# Logging
+	log {
+		output stdout
+		format console
+	}
+}

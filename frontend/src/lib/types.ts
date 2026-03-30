@@ -26,6 +26,10 @@ export interface FoliateView {
     resume?: () => string | null | undefined;
     next?: (paused?: boolean) => string | null | undefined;
     prev?: (paused?: boolean) => string | null | undefined;
+    peekNextMultiple?: (count: number) => string[];
+    clearHighlight?: () => void;
+    setMark?: (name: string) => void;
+    getWordCount?: () => number;
     doc?: Document;
   };
   renderer?: {

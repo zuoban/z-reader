@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+AGENTS.md
+CLAUDE.md
+README.md
+
+# Development files
+.serena
+.env
+.env.example
+Makefile
+
+# Backend build artifacts
+z-reader
+backend/data.db
+data.db
+
+# Frontend build artifacts
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/dist
+
+# Uploads (user data)
+uploads/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

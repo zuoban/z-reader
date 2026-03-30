@@ -126,8 +126,8 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       // 转换为增强 SSML 并预加载
       const enhancedList = ssmlList.map(ssml => {
         const text = getTextFromSSML(ssml);
-        return text ? buildSSML(text) : null;
-      }).filter((ssml: string | null) => ssml);
+        return text ? buildSSML(text) : '';
+      }).filter((ssml: string) => ssml);
       
       // 批量预加载
       await ttsInstance.current.preloadMultiple(enhancedList);

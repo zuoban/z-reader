@@ -1,0 +1,38 @@
+services:
+  z-reader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/zuoban/z-reader:latest
+    container_name: z-reader
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    environment:
+      - APP_PASSWORD=${APP_PASSWORD:-}
+      - APP_PORT=8080
+      - UPLOAD_DIR=/app/uploads
+      - DB_PATH=/app/data/data.db
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/api/auth/verify"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Optional: Caddy with automatic HTTPS (requires domain)
+  # caddy-proxy:
+  #   image: caddy:2-alpine
+  #   container_name: caddy-proxy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy_data:/data
+  #     - caddy_config:/config

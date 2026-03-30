@@ -469,7 +469,7 @@ export default function ReadPage() {
               size="icon-sm"
               onClick={() => setShowTTS(!showTTS)}
               title="Text-to-Speech (T)"
-              className={`text-muted-foreground hover:text-foreground hover:bg-muted/30 ${showTTS ? 'bg-muted/30' : ''}`}
+              className={`transition-all duration-200 ${showTTS ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'}`}
             >
               <Headphones className="w-4 h-4" />
             </Button>
@@ -508,7 +508,7 @@ export default function ReadPage() {
         <div ref={containerRef} className="absolute inset-0" />
 
         {showTTS && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 w-80">
+          <div className="absolute bottom-2 right-3 z-30 w-64 animate-in slide-in-from-bottom-2 fade-in duration-200">
             <TTSControls
               state={ttsState}
               settings={ttsSettings}

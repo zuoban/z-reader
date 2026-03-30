@@ -21,7 +21,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, List, LogOut, ChevronLeft, Headphones } from 'lucide-react';
+import { List, LogOut, ChevronLeft } from 'lucide-react';
 
 export default function ReadPage() {
   const router = useRouter();
@@ -39,7 +39,6 @@ export default function ReadPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('Initializing...');
-  const [showTTS, setShowTTS] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -299,10 +298,6 @@ export default function ReadPage() {
       case 'Escape':
         handleBack();
         break;
-      case 't':
-      case 'T':
-        setShowTTS(prev => !prev);
-        break;
     }
   }, []);
 
@@ -489,16 +484,6 @@ export default function ReadPage() {
             <Button 
               variant="ghost" 
               size="icon-sm"
-              onClick={() => setShowTTS(!showTTS)}
-              title="Text-to-Speech (T)"
-              className={`transition-all duration-200 h-8 w-8 sm:h-9 sm:w-9 ${showTTS ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'}`}
-            >
-              <Headphones className="w-4 h-4" />
-            </Button>
-
-            <Button 
-              variant="ghost" 
-              size="icon-sm"
               onClick={logout}
               title="Sign out"
               className="text-muted-foreground hover:text-foreground hover:bg-muted/30 h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
@@ -533,53 +518,19 @@ export default function ReadPage() {
         )}
         <div ref={containerRef} className="absolute inset-0" />
 
-        {showTTS && (
-          <div className="absolute bottom-16 sm:bottom-2 right-2 sm:right-3 z-30 w-60 sm:w-64 animate-in slide-in-from-bottom-2 fade-in duration-200">
-            <TTSControls
-              state={ttsState}
-              settings={ttsSettings}
-              voices={voices}
-              onStart={startTTS}
-              onStop={stopTTS}
-              onNext={nextTTS}
-              onPrev={prevTTS}
-              onUpdateSettings={updateTTSSettings}
-              uiScheme={uiScheme}
-            />
-          </div>
-        )}
-
-        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 z-20">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePrev}
-            title="Previous page"
-            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm h-10 w-10 sm:h-12 sm:w-12"
-            style={{
-              background: `${uiScheme.buttonBg}cc`,
-              borderColor: uiScheme.cardBorder,
-              color: uiScheme.buttonText,
-            }}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNext}
-            title="Next page"
-            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm h-10 w-10 sm:h-12 sm:w-12"
-            style={{
-              background: `${uiScheme.buttonBg}cc`,
-              borderColor: uiScheme.cardBorder,
-              color: uiScheme.buttonText,
-            }}
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-        </div>
+        <TTSControls
+          state={ttsState}
+          settings={ttsSettings}
+          voices={voices}
+          onStart={startTTS}
+          onStop={stopTTS}
+          onNext={nextTTS}
+          onPrev={prevTTS}
+          onUpdateSettings={updateTTSSettings}
+          uiScheme={uiScheme}
+          onPrevPage={handlePrev}
+          onNextPage={handleNext}
+        />
       </div>
     </div>
   );

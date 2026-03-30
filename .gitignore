@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+backend/go.sum
+
+# Build outputs
+frontend/.next/
+frontend/out/
+frontend/build/
+z-reader
+
+# Database
+*.db
+data.db
+backend/data.db
+
+# Uploads
+uploads/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+
+# Cache
+.cache/
+.npm/

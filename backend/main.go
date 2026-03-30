@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,27 +13,30 @@ import (
 
 	"z-reader/backend/config"
 	"z-reader/backend/handlers"
+	"z-reader/backend/logger"
 	"z-reader/backend/middleware"
 	"z-reader/backend/storage"
 )
 
 func main() {
-	// Try loading .env from multiple locations
 	if err := godotenv.Load(); err != nil {
 		if err := godotenv.Load("../.env"); err != nil {
-			log.Println("No .env file found, using environment variables")
+			logger.Info("No .env file found, using environment variables")
 		}
 	}
 
+	logger.Init()
 	cfg := config.Load()
 
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
-		log.Fatalf("Failed to create upload directory: %v", err)
+		logger.Error("Failed to create upload directory", "error", err)
+		os.Exit(1)
 	}
 
 	db, err := storage.Open(cfg.DBPath)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		logger.Error("Failed to open database", "error", err)
+		os.Exit(1)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -86,8 +88,7 @@ func main() {
 		api.POST("/progress/:id", progressHandler.Save)
 	}
 
-	log.Printf("Server starting on port %s", cfg.AppPort)
-	log.Printf("Password configured: %v", cfg.AppPassword != "")
+	logger.Info("Server starting", "port", cfg.AppPort, "password_configured", cfg.AppPassword != "")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -100,16 +101,16 @@ func main() {
 	select {
 	case err := <-serverErr:
 		if err != nil {
-			log.Printf("Server error: %v", err)
+			logger.Error("Server error", "error", err)
 		}
 	case sig := <-quit:
-		log.Printf("Received signal: %v", sig)
+		logger.Info("Received signal", "signal", sig)
 	}
 
 	cancel()
 	wg.Wait()
 	db.Close()
-	log.Println("Server stopped")
+	logger.Info("Server stopped")
 }
 
 func startSessionCleaner(ctx context.Context, db *storage.DB) {
@@ -117,16 +118,16 @@ func startSessionCleaner(ctx context.Context, db *storage.DB) {
 	defer ticker.Stop()
 
 	db.CleanExpiredSessions()
-	log.Println("Session cleaner started")
+	logger.Info("Session cleaner started")
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Session cleaner stopped")
+			logger.Info("Session cleaner stopped")
 			return
 		case <-ticker.C:
 			if err := db.CleanExpiredSessions(); err != nil {
-				log.Printf("Failed to clean expired sessions: %v", err)
+				logger.Error("Failed to clean expired sessions", "error", err)
 			}
 		}
 	}

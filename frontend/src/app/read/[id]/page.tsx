@@ -48,6 +48,8 @@ export default function ReadPage() {
   const themeRef = useRef(theme);
   const boundDocsRef = useRef<Document[]>([]);
   const lastHighlightRef = useRef<HTMLElement | null>(null);
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
 
   const handleHighlight = useCallback((range: Range) => {
     if (lastHighlightRef.current) {
@@ -264,17 +266,17 @@ export default function ReadPage() {
     }
   }, []);
 
-  function handlePrev() {
+  const handlePrev = useCallback(() => {
     if (viewRef.current) {
       viewRef.current.prev?.();
     }
-  }
+  }, []);
 
-  function handleNext() {
+  const handleNext = useCallback(() => {
     if (viewRef.current) {
       viewRef.current.next?.();
     }
-  }
+  }, []);
 
   const keyboardHandler = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -303,6 +305,26 @@ export default function ReadPage() {
         break;
     }
   }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+    
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        handlePrev();
+      } else {
+        handleNext();
+      }
+    }
+  }, [handlePrev, handleNext]);
 
   function handleBack() {
     destroyedRef.current = true;
@@ -379,45 +401,45 @@ export default function ReadPage() {
           borderColor: uiScheme.headerBorder 
         }}
       >
-        <div className="px-4 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="px-2 sm:px-4 h-11 sm:h-12 flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Button 
               variant="ghost" 
               size="sm"
               onClick={handleBack}
               title="Return to bookshelf"
-              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+              className="gap-1 sm:gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors h-8 sm:h-9 px-1.5 sm:px-2"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="font-sans text-sm">Library</span>
+              <span className="font-sans text-xs sm:text-sm hidden sm:inline">Library</span>
             </Button>
             
-            <Separator orientation="vertical" className="h-6 bg-border/40" />
+            <Separator orientation="vertical" className="h-5 sm:h-6 bg-border/40 hidden sm:block" />
             
-            <div className="flex flex-col gap-0.5">
-              <span className="font-heading text-sm truncate max-w-[200px]" style={{ color: uiScheme.fg }}>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="font-heading text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[200px]" style={{ color: uiScheme.fg }}>
                 {metadata.title || 'Loading...'}
               </span>
               {currentChapter && (
-                <span className="font-sans text-xs truncate max-w-[200px]" style={{ color: uiScheme.mutedText }}>
+                <span className="font-sans text-[10px] sm:text-xs truncate max-w-[100px] sm:max-w-[200px] hidden sm:block" style={{ color: uiScheme.mutedText }}>
                   {currentChapter}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Progress 
                 value={percentage} 
-                className="w-20 h-1.5"
+                className="w-12 sm:w-20 h-1.5"
               />
-              <span className="font-mono text-xs tabular-nums w-7" style={{ color: uiScheme.mutedText }}>
+              <span className="font-mono text-[10px] sm:text-xs tabular-nums w-6 sm:w-7 hidden sm:block" style={{ color: uiScheme.mutedText }}>
                 {percentage}%
               </span>
             </div>
 
-            <Separator orientation="vertical" className="h-6 bg-border/40" />
+            <Separator orientation="vertical" className="h-5 sm:h-6 bg-border/40" />
 
             <Sheet>
               <SheetTrigger
@@ -434,20 +456,20 @@ export default function ReadPage() {
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-72 backdrop-blur-sm"
+                className="w-72 sm:w-80 backdrop-blur-sm p-0"
                 style={{
                   background: `${uiScheme.cardBg}f5`,
                   borderColor: uiScheme.cardBorder,
                 }}
               >
-                <SheetHeader className="pb-2">
+                <SheetHeader className="p-4 pb-2">
                   <SheetTitle className="font-heading text-lg" style={{ color: uiScheme.fg }}>
                     Table of Contents
                   </SheetTitle>
                 </SheetHeader>
-                <Separator className="my-2" style={{ background: uiScheme.cardBorder }} />
+                <Separator className="my-0" style={{ background: uiScheme.cardBorder }} />
                 <ScrollArea className="h-[calc(100vh-80px)]">
-                  <div className="space-y-1 pr-2">
+                  <div className="space-y-1 p-4 pt-2">
                     {toc.length > 0 ? (
                       toc.map((item, idx) => (
                         <TOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
@@ -469,7 +491,7 @@ export default function ReadPage() {
               size="icon-sm"
               onClick={() => setShowTTS(!showTTS)}
               title="Text-to-Speech (T)"
-              className={`transition-all duration-200 ${showTTS ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'}`}
+              className={`transition-all duration-200 h-8 w-8 sm:h-9 sm:w-9 ${showTTS ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'}`}
             >
               <Headphones className="w-4 h-4" />
             </Button>
@@ -479,7 +501,7 @@ export default function ReadPage() {
               size="icon-sm"
               onClick={logout}
               title="Sign out"
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/30 h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
             >
               <LogOut className="w-4 h-4" />
             </Button>
@@ -487,7 +509,11 @@ export default function ReadPage() {
         </div>
       </header>
 
-      <div className="flex-1 relative min-h-0">
+      <div 
+        className="flex-1 relative min-h-0"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {loading && (
           <div 
             className="absolute inset-0 flex flex-col items-center justify-center z-10" 
@@ -508,7 +534,7 @@ export default function ReadPage() {
         <div ref={containerRef} className="absolute inset-0" />
 
         {showTTS && (
-          <div className="absolute bottom-2 right-3 z-30 w-64 animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <div className="absolute bottom-16 sm:bottom-2 right-2 sm:right-3 z-30 w-60 sm:w-64 animate-in slide-in-from-bottom-2 fade-in duration-200">
             <TTSControls
               state={ttsState}
               settings={ttsSettings}
@@ -523,20 +549,20 @@ export default function ReadPage() {
           </div>
         )}
 
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 z-20">
           <Button
             variant="outline"
             size="icon"
             onClick={handlePrev}
             title="Previous page"
-            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm"
+            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm h-10 w-10 sm:h-12 sm:w-12"
             style={{
               background: `${uiScheme.buttonBg}cc`,
               borderColor: uiScheme.cardBorder,
               color: uiScheme.buttonText,
             }}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-5 h-5" />
           </Button>
           
           <Button
@@ -544,14 +570,14 @@ export default function ReadPage() {
             size="icon"
             onClick={handleNext}
             title="Next page"
-            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm"
+            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm h-10 w-10 sm:h-12 sm:w-12"
             style={{
               background: `${uiScheme.buttonBg}cc`,
               borderColor: uiScheme.cardBorder,
               color: uiScheme.buttonText,
             }}
           >
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-5 h-5" />
           </Button>
         </div>
       </div>

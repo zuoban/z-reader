@@ -25,6 +25,7 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: 'Z Reader',
   description: 'A refined online EPUB reading experience',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
 };
 
 export default function RootLayout({

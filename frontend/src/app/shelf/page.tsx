@@ -96,15 +96,15 @@ export default function ShelfPage() {
   return (
     <div className="min-h-screen warm-gradient paper-texture relative">
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-12 ink-gradient rounded-sm spine-effect flex items-center justify-center">
-              <span className="text-primary-foreground font-heading text-xs italic">Z</span>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-6 h-9 sm:w-8 sm:h-12 ink-gradient rounded-sm spine-effect flex items-center justify-center shrink-0">
+              <span className="text-primary-foreground font-heading text-[10px] sm:text-xs italic">Z</span>
             </div>
-            <h1 className="font-heading text-2xl tracking-tight">Your Library</h1>
+            <h1 className="font-heading text-lg sm:text-2xl tracking-tight truncate hidden sm:block">Your Library</h1>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="relative">
               <Input
                 type="file"
@@ -116,19 +116,19 @@ export default function ShelfPage() {
               />
               <Button 
                 variant="outline" 
-                className="gap-2 bg-card/80 border-border/60 hover:bg-accent/10 hover:border-accent/40 transition-all pointer-events-none"
+                className="gap-1.5 sm:gap-2 bg-card/80 border-border/60 hover:bg-accent/10 hover:border-accent/40 transition-all pointer-events-none h-9 sm:h-10 px-2 sm:px-4"
                 disabled={isUploading}
               >
                 {isUploading ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-foreground/30 rounded-full animate-subtle-float" 
+                    <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-foreground/30 rounded-full animate-subtle-float" 
                           style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
-                    <span className="text-sm">Adding...</span>
+                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">Adding...</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-4 h-4" />
-                    <span className="font-heading text-sm">Add Book</span>
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">Add Book</span>
                   </>
                 )}
               </Button>
@@ -137,27 +137,27 @@ export default function ShelfPage() {
             <Button 
               variant="ghost" 
               onClick={logout}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors h-9 sm:h-10 px-2 sm:px-3"
             >
-              <span className="font-sans text-sm">Leave</span>
+              <span className="font-sans text-xs sm:text-sm">Leave</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
         {books.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <div className="w-20 h-28 rounded-sm border-2 border-border/40 bg-card flex items-center justify-center mb-6 book-shadow">
-              <BookOpen className="w-8 h-8 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center py-16 sm:py-24">
+            <div className="w-16 h-22 sm:w-20 sm:h-28 rounded-sm border-2 border-border/40 bg-card flex items-center justify-center mb-4 sm:mb-6 book-shadow">
+              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50" />
             </div>
-            <p className="font-heading text-xl text-muted-foreground mb-2">Your shelf awaits</p>
-            <p className="font-sans text-sm text-muted-foreground/70">
+            <p className="font-heading text-lg sm:text-xl text-muted-foreground mb-2">Your shelf awaits</p>
+            <p className="font-sans text-xs sm:text-sm text-muted-foreground/70 text-center px-4">
               Add your first book to begin your reading journey
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6">
             {books.map((book, index) => (
               <BookCard
                 key={book.id}

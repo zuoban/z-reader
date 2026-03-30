@@ -55,7 +55,7 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-accent/15 blur-3xl" />
       </div>
 
-      <Card className="w-[380px] relative backdrop-blur-sm bg-card/95 border-border/50 shadow-xl">
+      <Card className="w-[340px] sm:w-[380px] mx-4 relative backdrop-blur-sm bg-card/95 border-border/50 shadow-xl">
         <CardHeader className="space-y-1 pb-4">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-14 ink-gradient rounded-sm spine-effect flex items-center justify-center">

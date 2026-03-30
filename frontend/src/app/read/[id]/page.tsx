@@ -4,9 +4,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
+import { FoliateView, TOCItem } from '@/lib/types';
 import { useProgress } from '@/hooks/useProgress';
 import { useReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
+import { useTTS } from '@/hooks/useTTS';
 import { ThemeSettings } from '@/components/ThemeSettings';
+import { TTSControls } from '@/components/TTSControls';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -18,13 +21,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, List, LogOut, ChevronLeft } from 'lucide-react';
-
-interface TOCItem {
-  label: string;
-  href: string;
-  subitems?: TOCItem[];
-}
+import { ArrowLeft, ArrowRight, List, LogOut, ChevronLeft, Headphones } from 'lucide-react';
 
 export default function ReadPage() {
   const router = useRouter();
@@ -42,13 +39,31 @@ export default function ReadPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('Initializing...');
+  const [showTTS, setShowTTS] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<any>(null);
+  const viewRef = useRef<FoliateView | null>(null);
   const progressRef = useRef(progress);
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
   const boundDocsRef = useRef<Document[]>([]);
+
+  const handleHighlight = useCallback((range: Range) => {
+    if (viewRef.current?.renderer) {
+      viewRef.current.renderer.scrollToAnchor?.(range, true);
+    }
+  }, []);
+
+  const {
+    state: ttsState,
+    settings: ttsSettings,
+    updateSettings: updateTTSSettings,
+    start: startTTS,
+    stop: stopTTS,
+    next: nextTTS,
+    prev: prevTTS,
+    voices,
+  } = useTTS({ viewRef, onHighlight: handleHighlight });
 
   useEffect(() => {
     progressRef.current = progress;
@@ -60,7 +75,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (viewRef.current && !loading) {
-      viewRef.current.renderer.setStyles?.(getStylesheet());
+      viewRef.current.renderer?.setStyles?.(getStylesheet());
     }
   }, [theme, loading, getStylesheet]);
 
@@ -84,7 +99,7 @@ export default function ReadPage() {
       if (view) {
         try {
           if (view.parentNode) {
-            view.parentNode.removeChild(view);
+            view.parentNode.removeChild(view as unknown as Node);
           }
           view.close?.();
         } catch {}
@@ -129,19 +144,23 @@ export default function ReadPage() {
       if (destroyedRef.current) return;
       setLoadingMsg('Creating view...');
 
-      const view = document.createElement('foliate-view') as any;
+      const view = document.createElement('foliate-view') as unknown as FoliateView;
       view.style.height = '100%';
       view.style.width = '100%';
       view.style.display = 'block';
       containerRef.current.innerHTML = '';
-      containerRef.current.appendChild(view);
+      containerRef.current.appendChild(view as unknown as Node);
       viewRef.current = view;
 
-      view.addEventListener('load', (e: CustomEvent) => {
+      view.addEventListener?.('load', (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const book = view.book;
-          setMetadata(book?.metadata || {});
+          const metadata = book?.metadata;
+          setMetadata({
+            title: metadata?.title,
+            author: typeof metadata?.author === 'string' ? metadata.author : metadata?.author?.[0],
+          });
           setToc(book?.toc || []);
           setLoading(false);
           
@@ -154,7 +173,7 @@ export default function ReadPage() {
         } catch {}
       });
 
-      view.addEventListener('relocate', (e: CustomEvent) => {
+      view.addEventListener?.('relocate', (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const { cfi, fraction, tocItem } = e.detail;
@@ -181,21 +200,21 @@ export default function ReadPage() {
       setLoadingMsg('Opening book...');
       
       const file = new File([blob], 'book.epub', { type: 'application/epub+zip' });
-      await view.open(file);
+      await view.open?.(file);
       
       if (destroyedRef.current) return;
 
-      view.renderer.setStyles?.(getStylesheet());
+      view.renderer?.setStyles?.(getStylesheet());
       
       const savedProgress = progressRef.current;
       if (savedProgress?.cfi) {
         try {
-          await view.goTo(savedProgress.cfi);
-        } catch (err) {
-          await view.renderer.next();
+          await view.goTo?.(savedProgress.cfi);
+        } catch {
+          await view.renderer?.next?.();
         }
       } else {
-        await view.renderer.next();
+        await view.renderer?.next?.();
       }
 
     } catch (err) {
@@ -208,19 +227,19 @@ export default function ReadPage() {
 
   const goTo = useCallback((href: string) => {
     if (viewRef.current) {
-      viewRef.current.goTo(href);
+      viewRef.current.goTo?.(href);
     }
   }, []);
 
   function handlePrev() {
     if (viewRef.current) {
-      viewRef.current.prev();
+      viewRef.current.prev?.();
     }
   }
 
   function handleNext() {
     if (viewRef.current) {
-      viewRef.current.next();
+      viewRef.current.next?.();
     }
   }
 
@@ -245,6 +264,10 @@ export default function ReadPage() {
       case 'Escape':
         handleBack();
         break;
+      case 't':
+      case 'T':
+        setShowTTS(prev => !prev);
+        break;
     }
   }, []);
 
@@ -263,7 +286,7 @@ export default function ReadPage() {
     if (view) {
       try {
         if (view.parentNode) {
-          view.parentNode.removeChild(view);
+          view.parentNode.removeChild(view as unknown as Node);
         }
         view.close?.();
       } catch {}
@@ -285,8 +308,10 @@ export default function ReadPage() {
         doc.removeEventListener('keydown', keyboardHandler);
       });
       boundDocsRef.current = [];
+      // 停止TTS
+      stopTTS();
     };
-  }, [keyboardHandler]);
+  }, [keyboardHandler, stopTTS]);
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -409,6 +434,16 @@ export default function ReadPage() {
             <Button 
               variant="ghost" 
               size="icon-sm"
+              onClick={() => setShowTTS(!showTTS)}
+              title="Text-to-Speech (T)"
+              className={`text-muted-foreground hover:text-foreground hover:bg-muted/30 ${showTTS ? 'bg-muted/30' : ''}`}
+            >
+              <Headphones className="w-4 h-4" />
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
               onClick={logout}
               title="Sign out"
               className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -438,6 +473,22 @@ export default function ReadPage() {
           </div>
         )}
         <div ref={containerRef} className="absolute inset-0" />
+
+        {showTTS && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 w-80">
+            <TTSControls
+              state={ttsState}
+              settings={ttsSettings}
+              voices={voices}
+              onStart={startTTS}
+              onStop={stopTTS}
+              onNext={nextTTS}
+              onPrev={prevTTS}
+              onUpdateSettings={updateTTSSettings}
+              uiScheme={uiScheme}
+            />
+          </div>
+        )}
 
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20">
           <Button

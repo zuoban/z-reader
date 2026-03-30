@@ -133,7 +133,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     if (!ssml) {
       try {
         await view.next?.();
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 500));
         
         inited = await ensureTTS();
         if (inited) {
@@ -145,7 +145,9 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       }
     }
 
-    if (!ssml) return false;
+    if (!ssml) {
+      return false;
+    }
     return speakSSML(ssml);
   }, [viewRef, ensureTTS, speakSSML]);
 
@@ -162,7 +164,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     if (!ssml) {
       try {
         await view.prev?.();
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 500));
         
         inited = await ensureTTS();
         if (inited) {

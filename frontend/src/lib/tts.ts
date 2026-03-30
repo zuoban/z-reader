@@ -162,8 +162,10 @@ export class BackendTTS {
 
       this.audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
-        if (this.state === 'playing') {
-          this.setState('stopped');
+        const wasPlaying = this.state === 'playing';
+        const wasPaused = this.state === 'paused';
+        this.setState('stopped');
+        if (wasPlaying || wasPaused) {
           this.onEnd?.();
         }
       };
@@ -175,9 +177,7 @@ export class BackendTTS {
       };
 
       this.audio.onpause = () => {
-        if (this.state === 'playing') {
-          this.setState('paused');
-        }
+        // Let the pause() method handle state change, not here
       };
 
       await this.audio.play();
@@ -190,6 +190,7 @@ export class BackendTTS {
   pause(): void {
     if (this.audio && this.state === 'playing') {
       this.audio.pause();
+      this.setState('paused');
     }
   }
 

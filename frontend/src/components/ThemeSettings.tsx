@@ -29,20 +29,24 @@ interface ThemeSettingsProps {
 export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps) {
   return (
     <Dialog>
-      <DialogTrigger>
-        <Button 
-          variant="ghost" 
-          size="icon-sm"
-          className="text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
+      <DialogTrigger
+        render={
+          <Button 
+            variant="ghost" 
+            size="icon-sm"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+          />
+        }
+      >
+        <Settings className="w-4 h-4" />
       </DialogTrigger>
       <DialogContent 
         className="max-w-sm backdrop-blur-sm"
+        closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
         style={{
           background: `${uiScheme.cardBg}f5`,
           borderColor: uiScheme.cardBorder,
+          color: uiScheme.fg,
         }}
       >
         <DialogHeader className="pb-2">

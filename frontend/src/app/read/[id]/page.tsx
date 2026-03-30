@@ -240,9 +240,28 @@ export default function ReadPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'Escape') handleBack();
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'PageUp':
+        case 'k':
+        case 'K':
+          if (!e.shiftKey && e.key !== 'PageUp') handlePrev();
+          else if (e.key === 'PageUp') handlePrev();
+          break;
+        case 'ArrowRight':
+        case 'PageDown':
+        case 'j':
+        case 'J':
+        case ' ':
+          if (e.key === ' ' && e.shiftKey) handlePrev();
+          else handleNext();
+          break;
+        case 'Escape':
+          handleBack();
+          break;
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -322,15 +341,17 @@ export default function ReadPage() {
             <Separator orientation="vertical" className="h-6 bg-border/40" />
 
             <Sheet>
-              <SheetTrigger>
-                <Button 
-                  variant="ghost" 
-                  size="icon-sm" 
-                  title="Table of Contents"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
+              <SheetTrigger
+                render={
+                  <Button 
+                    variant="ghost" 
+                    size="icon-sm" 
+                    title="Table of Contents"
+                    className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  />
+                }
+              >
+                <List className="w-4 h-4" />
               </SheetTrigger>
               <SheetContent 
                 side="left" 

@@ -108,19 +108,13 @@ export const api = {
 
   fetchBook: async (id: string): Promise<Blob> => {
     const token = getToken();
-    console.log('Fetching book:', id, 'token:', token ? 'exists' : 'missing');
     const res = await fetch(`${API_BASE}/api/books/${id}/file`, {
       headers: token ? { Authorization: token } : {},
     });
-    console.log('Fetch response:', res.status, res.statusText);
     if (!res.ok) {
-      const text = await res.text();
-      console.error('Fetch error:', text);
       throw new Error(`Failed to fetch book: ${res.status}`);
     }
-    const blob = await res.blob();
-    console.log('Blob size:', blob.size, 'type:', blob.type);
-    return blob;
+    return res.blob();
   },
 
   fetchCover: async (id: string): Promise<Blob | null> => {
@@ -135,12 +129,10 @@ export const api = {
   },
 
   getProgress: async (bookId: string): Promise<Progress> => {
-    console.log('Getting progress for book:', bookId);
     return fetchApi<Progress>(`/api/progress/${bookId}`);
   },
 
   saveProgress: async (bookId: string, cfi: string, percentage: number): Promise<Progress> => {
-    console.log('Saving progress:', { bookId, cfi, percentage });
     return fetchApi<Progress>(`/api/progress/${bookId}`, {
       method: 'POST',
       body: JSON.stringify({ cfi, percentage }),

@@ -24,7 +24,12 @@ func AuthRequired(db *storage.DB) gin.HandlerFunc {
 		}
 
 		session, err := db.GetSession(token)
-		if err != nil || session == nil {
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify token"})
+			c.Abort()
+			return
+		}
+		if session == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			c.Abort()
 			return

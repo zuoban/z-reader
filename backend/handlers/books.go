@@ -88,7 +88,11 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 
 	book, err := h.db.GetBook(id)
-	if err != nil || book == nil {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
@@ -108,7 +112,11 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	id := c.Param("id")
 
 	book, err := h.db.GetBook(id)
-	if err != nil || book == nil {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
@@ -161,7 +169,11 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	id := c.Param("id")
 
 	book, err := h.db.GetBook(id)
-	if err != nil || book == nil {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}

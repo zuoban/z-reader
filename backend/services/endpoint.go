@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -102,13 +103,16 @@ func parseJWTExp(token string) (int64, error) {
 }
 
 func callEndpointAPI() (*EndpointResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	url := "https://dev.microsofttranslator.com/apps/endpoint?api-version=1.0"
 	signature, err := buildSignature(url)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +127,7 @@ func callEndpointAPI() (*EndpointResponse, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Length", "0")
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := sharedHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

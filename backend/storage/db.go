@@ -57,15 +57,15 @@ func (db *DB) GetBook(id string) (*models.Book, error) {
 		b := tx.Bucket(BooksBucket)
 		data := b.Get([]byte(id))
 		if data == nil {
-			return nil
+			return ErrNotFound
 		}
 		return json.Unmarshal(data, &book)
 	})
 	if err != nil {
+		if err == ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
-	}
-	if book.ID == "" {
-		return nil, nil
 	}
 	return &book, nil
 }
@@ -110,15 +110,15 @@ func (db *DB) GetProgress(bookID string) (*models.Progress, error) {
 		b := tx.Bucket(ProgressBucket)
 		data := b.Get([]byte(bookID))
 		if data == nil {
-			return nil
+			return ErrNotFound
 		}
 		return json.Unmarshal(data, &progress)
 	})
 	if err != nil {
+		if err == ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
-	}
-	if progress.BookID == "" {
-		return nil, nil
 	}
 	return &progress, nil
 }
@@ -140,15 +140,15 @@ func (db *DB) GetSession(token string) (*models.Session, error) {
 		b := tx.Bucket(SessionsBucket)
 		data := b.Get([]byte(token))
 		if data == nil {
-			return nil
+			return ErrNotFound
 		}
 		return json.Unmarshal(data, &session)
 	})
 	if err != nil {
+		if err == ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
-	}
-	if session.Token == "" {
-		return nil, nil
 	}
 	return &session, nil
 }

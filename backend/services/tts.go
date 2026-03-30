@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,9 +29,12 @@ func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
 		return nil, fmt.Errorf("failed to get endpoint: %v", err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	url := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", cache.Endpoint)
 
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(ssml))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(ssml))
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +44,7 @@ func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
 	req.Header.Set("User-Agent", "okhttp/4.5.0")
 	req.Header.Set("X-Microsoft-OutputFormat", outputFormat)
 
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := sharedHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

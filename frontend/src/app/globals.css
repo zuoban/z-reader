@@ -133,14 +133,8 @@ foliate-view {
   display: block;
   height: 100%;
   width: 100%;
-  background: #1e293b;
-  color: #e2e8f0;
 }
 
 foliate-view::part(filter) {
   filter: none;
-}
-
-foliate-view iframe {
-  background: #1e293b;
 }

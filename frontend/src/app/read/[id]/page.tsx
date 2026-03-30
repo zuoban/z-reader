@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { useProgress } from '@/hooks/useProgress';
+import { useReaderTheme } from '@/hooks/useReaderTheme';
+import { ThemeSettings } from '@/components/ThemeSettings';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -30,6 +32,7 @@ export default function ReadPage() {
   const bookId = params.id as string;
   const { isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const { progress, isLoading: progressLoading, updateProgress, saveNow } = useProgress({ bookId });
+  const { theme, setTheme, getStylesheet, getContainerStyle, isLoaded: themeLoaded } = useReaderTheme();
 
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [metadata, setMetadata] = useState<{ title?: string; author?: string }>({});
@@ -43,11 +46,24 @@ export default function ReadPage() {
   const viewRef = useRef<any>(null);
   const progressRef = useRef(progress);
   const destroyedRef = useRef(false);
+  const themeRef = useRef(theme);
 
   // 保持 progress 的最新值
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
+
+  // 保持 theme 的最新值
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
+  // 应用主题变化到阅读器
+  useEffect(() => {
+    if (viewRef.current && !loading) {
+      viewRef.current.renderer.setStyles?.(getStylesheet());
+    }
+  }, [theme, loading, getStylesheet]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -56,7 +72,7 @@ export default function ReadPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || progressLoading) return;
+    if (!isAuthenticated || progressLoading || !themeLoaded) return;
     
     destroyedRef.current = false;
     initReader();
@@ -82,7 +98,7 @@ export default function ReadPage() {
         containerRef.current.innerHTML = '';
       }
     };
-  }, [isAuthenticated, bookId, progressLoading]);
+  }, [isAuthenticated, bookId, progressLoading, themeLoaded]);
 
   async function initReader() {
     if (!containerRef.current || destroyedRef.current) return;
@@ -174,18 +190,7 @@ export default function ReadPage() {
       console.log('view.open() completed, starting renderer...');
 
       // 设置样式
-      view.renderer.setStyles?.(`
-        html {
-          color-scheme: light dark;
-        }
-        @media (prefers-color-scheme: dark) {
-          a:link { color: lightblue; }
-        }
-        p, li, blockquote, dd {
-          line-height: 1.4;
-          text-align: justify;
-        }
-      `);
+      view.renderer.setStyles?.(getStylesheet());
       
       // 如果有保存的进度，跳转到该位置
       const savedProgress = progressRef.current;
@@ -330,6 +335,8 @@ export default function ReadPage() {
                 </ScrollArea>
               </SheetContent>
             </Sheet>
+
+            <ThemeSettings theme={theme} setTheme={setTheme} />
 
             <Tooltip>
               <TooltipTrigger onClick={logout} className="text-slate-300 hover:text-slate-100 text-sm px-3 py-1 rounded hover:bg-slate-800 cursor-pointer">

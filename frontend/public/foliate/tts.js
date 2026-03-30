@@ -206,6 +206,7 @@ export class TTS {
     #list
     #ranges
     #lastMark
+    #lastHighlightElement
     #serializer = new XMLSerializer()
     constructor(doc, textWalker, highlight, granularity) {
         this.doc = doc
@@ -271,8 +272,43 @@ export class TTS {
     setMark(mark) {
         const range = this.#ranges.get(mark)
         if (range) {
+            if (this.#lastHighlightElement) {
+                this.#lastHighlightElement.style.textDecoration = 'none'
+                this.#lastHighlightElement.style.backgroundColor = 'transparent'
+                this.#lastHighlightElement.style.borderRadius = '0'
+                this.#lastHighlightElement.style.transition = 'none'
+            }
+            
+            const container = range.commonAncestorContainer
+            const element = container.nodeType === Node.TEXT_NODE
+                ? container.parentElement
+                : container
+            
+            if (element) {
+                element.style.textDecoration = 'underline'
+                element.style.textDecorationColor = 'inherit'
+                element.style.textUnderlineOffset = '4px'
+                element.style.textDecorationThickness = '2px'
+                element.style.backgroundColor = 'rgba(251, 191, 36, 0.35)'
+                element.style.borderRadius = '2px'
+                element.style.transition = 'background-color 0.15s ease, text-decoration 0.15s ease'
+                this.#lastHighlightElement = element
+            }
+            
             this.#lastMark = mark
             this.highlight(range.cloneRange())
+        }
+    }
+    getWordCount() {
+        return this.#ranges?.size || 0
+    }
+    clearHighlight() {
+        if (this.#lastHighlightElement) {
+            this.#lastHighlightElement.style.textDecoration = 'none'
+            this.#lastHighlightElement.style.backgroundColor = 'transparent'
+            this.#lastHighlightElement.style.borderRadius = '0'
+            this.#lastHighlightElement.style.transition = 'none'
+            this.#lastHighlightElement = null
         }
     }
 }

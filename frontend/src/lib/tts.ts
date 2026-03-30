@@ -80,6 +80,7 @@ export class BackendTTS {
   private onStateChange: ((state: TTSState) => void) | null = null;
   private onMarkChange: ((mark: TTSMark, index: number) => void) | null = null;
   private onEnd: (() => void) | null = null;
+  private onTimeUpdate: ((currentTime: number, duration: number) => void) | null = null;
   private currentSSML: string = '';
 
   constructor() {
@@ -114,6 +115,10 @@ export class BackendTTS {
 
   onEndCallback(cb: () => void): void {
     this.onEnd = cb;
+  }
+
+  onTimeUpdateCallback(cb: (currentTime: number, duration: number) => void): void {
+    this.onTimeUpdate = cb;
   }
 
   async speak(ssml: string, marks?: TTSMark[]): Promise<void> {
@@ -178,6 +183,12 @@ export class BackendTTS {
 
       this.audio.onpause = () => {
         // Let the pause() method handle state change, not here
+      };
+
+      this.audio.ontimeupdate = () => {
+        if (this.audio && this.onTimeUpdate) {
+          this.onTimeUpdate(this.audio.currentTime, this.audio.duration || 0);
+        }
       };
 
       await this.audio.play();

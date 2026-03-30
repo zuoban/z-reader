@@ -47,8 +47,32 @@ export default function ReadPage() {
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
   const boundDocsRef = useRef<Document[]>([]);
+  const lastHighlightRef = useRef<HTMLElement | null>(null);
 
   const handleHighlight = useCallback((range: Range) => {
+    if (lastHighlightRef.current) {
+      lastHighlightRef.current.style.textDecoration = 'none';
+      lastHighlightRef.current.style.backgroundColor = 'transparent';
+      lastHighlightRef.current.style.borderRadius = '0';
+      lastHighlightRef.current.style.transition = 'none';
+    }
+
+    const container = range.commonAncestorContainer;
+    const element = container.nodeType === Node.TEXT_NODE
+      ? container.parentElement
+      : container as HTMLElement;
+    
+    if (element) {
+      element.style.textDecoration = 'underline';
+      element.style.textDecorationColor = 'inherit';
+      element.style.textUnderlineOffset = '4px';
+      element.style.textDecorationThickness = '2px';
+      element.style.backgroundColor = 'rgba(251, 191, 36, 0.35)';
+      element.style.borderRadius = '2px';
+      element.style.transition = 'background-color 0.15s ease, text-decoration 0.15s ease';
+      lastHighlightRef.current = element;
+    }
+
     if (viewRef.current?.renderer) {
       viewRef.current.renderer.scrollToAnchor?.(range, true);
     }
@@ -64,6 +88,15 @@ export default function ReadPage() {
     prev: prevTTS,
     voices,
   } = useTTS({ viewRef, onHighlight: handleHighlight });
+
+  useEffect(() => {
+    if (ttsState === 'stopped' && lastHighlightRef.current) {
+      lastHighlightRef.current.style.textDecoration = 'none';
+      lastHighlightRef.current.style.backgroundColor = 'transparent';
+      lastHighlightRef.current.style.borderRadius = '0';
+      lastHighlightRef.current = null;
+    }
+  }, [ttsState]);
 
   useEffect(() => {
     progressRef.current = progress;

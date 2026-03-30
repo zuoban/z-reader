@@ -111,12 +111,17 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     
     try {
       await ttsInstance.current.speak(enhancedSSML);
+      
+      if (viewRef.current?.tts) {
+        viewRef.current.tts.setMark?.('0');
+      }
+      
       return true;
     } catch (err) {
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [getTextFromSSML, buildSSML]);
+  }, [getTextFromSSML, buildSSML, viewRef]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
@@ -124,6 +129,8 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     }
 
     const view = viewRef.current;
+    
+    view.tts?.clearHighlight?.();
     
     let inited = await ensureTTS();
     if (!inited) return false;
@@ -155,6 +162,8 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     if (!viewRef.current) return false;
 
     const view = viewRef.current;
+    
+    view.tts?.clearHighlight?.();
     
     let inited = await ensureTTS();
     if (!inited) return false;
@@ -193,6 +202,8 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     if (!viewRef.current) return;
 
+    viewRef.current.tts?.clearHighlight?.();
+    
     const inited = await ensureTTS();
     if (!inited) return;
 
@@ -212,6 +223,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     setMarkIndex(0);
     
     if (viewRef.current?.tts) {
+      viewRef.current.tts.clearHighlight?.();
       viewRef.current.tts = undefined;
     }
   }, [viewRef]);
@@ -256,7 +268,21 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         isPlayingRef.current = false;
       }
     });
-  }, [onHighlight]);
+    ttsInstance.current.onTimeUpdateCallback((currentTime, duration) => {
+      if (viewRef.current?.tts && duration > 0) {
+        const wordCount = viewRef.current.tts.getWordCount?.() || 0;
+        if (wordCount > 0) {
+          const progress = currentTime / duration;
+          const currentIndex = Math.min(
+            Math.floor(progress * wordCount),
+            wordCount - 1
+          );
+          const markName = currentIndex.toString();
+          viewRef.current.tts.setMark?.(markName);
+        }
+      }
+    });
+  }, [onHighlight, viewRef]);
 
   useEffect(() => {
     return () => {

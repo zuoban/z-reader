@@ -48,6 +48,7 @@ export default function ReadPage() {
   const progressRef = useRef(progress);
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
+  const boundDocsRef = useRef<Document[]>([]);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -136,13 +137,20 @@ export default function ReadPage() {
       containerRef.current.appendChild(view);
       viewRef.current = view;
 
-      view.addEventListener('load', () => {
+      view.addEventListener('load', (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const book = view.book;
           setMetadata(book?.metadata || {});
           setToc(book?.toc || []);
           setLoading(false);
+          
+          // 给 iframe 的 document 绑定键盘事件，解决点击正文后快捷键失效的问题
+          const doc = e.detail?.doc;
+          if (doc) {
+            doc.addEventListener('keydown', keyboardHandler);
+            boundDocsRef.current.push(doc);
+          }
         } catch {}
       });
 
@@ -216,9 +224,39 @@ export default function ReadPage() {
     }
   }
 
+  const keyboardHandler = useCallback((e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'PageUp':
+      case 'k':
+      case 'K':
+        handlePrev();
+        break;
+      case 'ArrowRight':
+      case 'PageDown':
+      case 'j':
+      case 'J':
+      case ' ':
+        if (e.key === ' ' && e.shiftKey) handlePrev();
+        else handleNext();
+        break;
+      case 'Escape':
+        handleBack();
+        break;
+    }
+  }, []);
+
   function handleBack() {
     destroyedRef.current = true;
     saveNow();
+    
+    // 清理所有绑定的 iframe 文档的事件
+    boundDocsRef.current.forEach(doc => {
+      doc.removeEventListener('keydown', keyboardHandler);
+    });
+    boundDocsRef.current = [];
     
     const view = viewRef.current;
     viewRef.current = null;
@@ -239,33 +277,16 @@ export default function ReadPage() {
   }
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      
-      switch (e.key) {
-        case 'ArrowLeft':
-        case 'PageUp':
-        case 'k':
-        case 'K':
-          if (!e.shiftKey && e.key !== 'PageUp') handlePrev();
-          else if (e.key === 'PageUp') handlePrev();
-          break;
-        case 'ArrowRight':
-        case 'PageDown':
-        case 'j':
-        case 'J':
-        case ' ':
-          if (e.key === ' ' && e.shiftKey) handlePrev();
-          else handleNext();
-          break;
-        case 'Escape':
-          handleBack();
-          break;
-      }
+    window.addEventListener('keydown', keyboardHandler);
+    return () => {
+      window.removeEventListener('keydown', keyboardHandler);
+      // 清理所有绑定的 iframe 文档的事件
+      boundDocsRef.current.forEach(doc => {
+        doc.removeEventListener('keydown', keyboardHandler);
+      });
+      boundDocsRef.current = [];
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [keyboardHandler]);
 
   if (authLoading || !isAuthenticated) {
     return (

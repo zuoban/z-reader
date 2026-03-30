@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-backend/go.sum
 
 # Build outputs
 frontend/.next/

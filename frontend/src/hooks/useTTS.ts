@@ -249,7 +249,17 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     const inited = await ensureTTS();
     if (!inited) return;
 
-    const ssml = viewRef.current.tts?.start?.();
+    const currentRange = viewRef.current.lastLocation?.range;
+    let ssml: string | null | undefined;
+    if (currentRange) {
+      try {
+        ssml = viewRef.current.tts?.from?.(currentRange);
+      } catch {
+        ssml = viewRef.current.tts?.start?.();
+      }
+    } else {
+      ssml = viewRef.current.tts?.start?.();
+    }
     if (!ssml) return;
     
     const success = await speakSSML(ssml);

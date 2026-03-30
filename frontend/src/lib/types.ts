@@ -1,3 +1,16 @@
+export interface TOCItem {
+  label: string;
+  href: string;
+  subitems?: TOCItem[];
+}
+
+export interface LastLocation {
+  cfi: string;
+  range: Range;
+  tocItem?: TOCItem;
+  pageItem?: { label: string };
+}
+
 export interface FoliateView {
   book?: {
     metadata?: {
@@ -8,6 +21,7 @@ export interface FoliateView {
   };
   tts?: {
     start?: () => string | null | undefined;
+    from?: (range: Range) => string | null | undefined;
     first?: () => string | null | undefined;
     resume?: () => string | null | undefined;
     next?: (paused?: boolean) => string | null | undefined;
@@ -21,6 +35,7 @@ export interface FoliateView {
     prev?: () => Promise<void>;
     getContents?: () => Array<{ doc: Document; index: number }>;
   };
+  lastLocation?: LastLocation;
   initTTS?: (granularity?: string, highlight?: (range: Range) => void) => Promise<void>;
   goTo?: (target: string | number) => Promise<void>;
   prev?: () => Promise<void>;
@@ -31,10 +46,4 @@ export interface FoliateView {
   removeEventListener?: (type: string, listener: (e: CustomEvent) => void) => void;
   parentNode: Node | null;
   style: CSSStyleDeclaration;
-}
-
-export interface TOCItem {
-  label: string;
-  href: string;
-  subitems?: TOCItem[];
 }

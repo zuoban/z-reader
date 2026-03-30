@@ -301,15 +301,20 @@ export class TTS {
         return result
     }
     from(range) {
-        this.#lastMark = null
-        const [doc] = this.#list.find(range_ =>
-            range.compareBoundaryPoints(Range.END_TO_START, range_) <= 0)
+        const [doc, blockRange] = this.#list.find(range_ =>
+            range.compareBoundaryPoints(Range.END_TO_START, range_) <= 0) ?? []
+        
+        if (!doc || !blockRange) return this.start()
+        
+        const rangeAtStart = blockRange.cloneRange()
+        
         let mark
         for (const [name, range_] of this.#ranges.entries())
-            if (range.compareBoundaryPoints(Range.START_TO_START, range_) <= 0) {
+            if (rangeAtStart.compareBoundaryPoints(Range.START_TO_START, range_) <= 0) {
                 mark = name
                 break
             }
+        this.#lastMark = mark
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, mark))
     }
     setMark(mark) {

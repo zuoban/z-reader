@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { api, Book } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
+import { Plus, BookOpen } from 'lucide-react';
 import { BookCard } from '@/components/BookCard';
 
 export default function ShelfPage() {

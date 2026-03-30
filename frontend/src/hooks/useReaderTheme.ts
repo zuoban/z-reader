@@ -139,30 +139,30 @@ export function useReaderTheme() {
     const preset = PRESET_STYLES[theme.preset];
     return `
       html {
-        background: ${preset.bg};
-        color: ${preset.fg};
+        background: ${preset.bg} !important;
+        color: ${preset.fg} !important;
       }
       body {
-        background: ${preset.bg};
-        color: ${preset.fg};
-        font-size: ${theme.fontSize}px;
-        line-height: ${theme.lineHeight};
-        padding: ${theme.margin}px;
+        background: ${preset.bg} !important;
+        color: ${preset.fg} !important;
+        font-size: ${theme.fontSize}px !important;
+        line-height: ${theme.lineHeight} !important;
+        padding: ${theme.margin}px !important;
       }
       p, li, blockquote, dd {
-        line-height: ${theme.lineHeight};
+        line-height: ${theme.lineHeight} !important;
         text-align: justify;
         margin: 0.5em 0;
       }
       a:link {
-        color: ${preset.link};
+        color: ${preset.link} !important;
       }
       a:visited {
-        color: ${preset.link};
+        color: ${preset.link} !important;
         opacity: 0.7;
       }
       ::selection {
-        background: ${theme.preset === 'dark' ? '#3b82f6' : '#bfdbfe'};
+        background: ${theme.preset === 'dark' ? '#3b82f6' : '#bfdbfe'} !important;
       }
     `;
   }, [theme]);

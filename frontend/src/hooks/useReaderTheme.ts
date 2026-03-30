@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 export interface ReaderTheme {
   preset: 'light' | 'sepia' | 'green' | 'dark';
@@ -9,26 +9,77 @@ export interface ReaderTheme {
   margin: number;
 }
 
-const PRESET_STYLES = {
+export interface ThemeColors {
+  bg: string;
+  fg: string;
+  link: string;
+  headerBg: string;
+  headerBorder: string;
+  cardBg: string;
+  cardBorder: string;
+  buttonBg: string;
+  buttonHoverBg: string;
+  buttonText: string;
+  mutedText: string;
+  accentText: string;
+}
+
+const PRESET_STYLES: Record<ReaderTheme['preset'], ThemeColors> = {
   light: {
     bg: '#ffffff',
     fg: '#333333',
     link: '#0066cc',
+    headerBg: '#ffffff',
+    headerBorder: '#e5e7eb',
+    cardBg: '#f9fafb',
+    cardBorder: '#d1d5db',
+    buttonBg: '#f3f4f6',
+    buttonHoverBg: '#e5e7eb',
+    buttonText: '#374151',
+    mutedText: '#6b7280',
+    accentText: '#9ca3af',
   },
   sepia: {
     bg: '#f4ecd8',
     fg: '#5c4b37',
     link: '#8b5a2b',
+    headerBg: '#f4ecd8',
+    headerBorder: '#d4c4a8',
+    cardBg: '#ebe3d0',
+    cardBorder: '#c9b99d',
+    buttonBg: '#ebe3d0',
+    buttonHoverBg: '#d4c4a8',
+    buttonText: '#5c4b37',
+    mutedText: '#7a6a56',
+    accentText: '#9a8a74',
   },
   green: {
     bg: '#cce8cf',
     fg: '#2d4a3e',
     link: '#3d6b4f',
+    headerBg: '#cce8cf',
+    headerBorder: '#a8d8ac',
+    cardBg: '#b8d8bc',
+    cardBorder: '#98c89c',
+    buttonBg: '#b8d8bc',
+    buttonHoverBg: '#a8d8ac',
+    buttonText: '#2d4a3e',
+    mutedText: '#4a6a5e',
+    accentText: '#6a8a7e',
   },
   dark: {
     bg: '#1e293b',
     fg: '#e2e8f0',
     link: '#7dd3fc',
+    headerBg: '#1e293b',
+    headerBorder: '#334155',
+    cardBg: '#0f172a',
+    cardBorder: '#334155',
+    buttonBg: '#334155',
+    buttonHoverBg: '#475569',
+    buttonText: '#e2e8f0',
+    mutedText: '#94a3b8',
+    accentText: '#cbd5e1',
   },
 };
 
@@ -41,28 +92,34 @@ const DEFAULT_THEME: ReaderTheme = {
 
 const STORAGE_KEY = 'z-reader-theme';
 
-export function useReaderTheme() {
-  const [theme, setThemeState] = useState<ReaderTheme>(DEFAULT_THEME);
-  const [isLoaded, setIsLoaded] = useState(false);
+function subscribe(callback: () => void) {
+  window.addEventListener('storage', callback);
+  return () => window.removeEventListener('storage', callback);
+}
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as ReaderTheme;
-        setThemeState({ ...DEFAULT_THEME, ...parsed });
-      }
-    } catch {}
-    setIsLoaded(true);
-  }, []);
+function getSnapshot(): ReaderTheme {
+  if (typeof window === 'undefined') return DEFAULT_THEME;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return { ...DEFAULT_THEME, ...JSON.parse(saved) };
+    }
+  } catch {}
+  return DEFAULT_THEME;
+}
+
+function getServerSnapshot(): ReaderTheme {
+  return DEFAULT_THEME;
+}
+
+export function useReaderTheme() {
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const setTheme = useCallback((newTheme: Partial<ReaderTheme>) => {
-    setThemeState(prev => {
-      const updated = { ...prev, ...newTheme };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+    const updated = { ...theme, ...newTheme };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new StorageEvent('storage'));
+  }, [theme]);
 
   const getStylesheet = useCallback(() => {
     const preset = PRESET_STYLES[theme.preset];
@@ -104,12 +161,16 @@ export function useReaderTheme() {
     };
   }, [theme]);
 
+  const getUIScheme = useCallback(() => {
+    return PRESET_STYLES[theme.preset];
+  }, [theme]);
+
   return {
     theme,
     setTheme,
     getStylesheet,
     getContainerStyle,
+    getUIScheme,
     presets: PRESET_STYLES,
-    isLoaded,
   };
 }

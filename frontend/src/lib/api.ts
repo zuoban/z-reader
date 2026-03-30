@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { API_BASE, createAbortController } from '@/lib/config';
 
 export interface Book {
   id: string;
@@ -29,25 +29,32 @@ function removeToken(): void {
   localStorage.removeItem('token');
 }
 
-async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
   const token = getToken();
+  const { controller, timeoutId } = createAbortController(timeout);
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: token } : {}),
     ...options.headers,
   };
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || 'Request failed');
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Request failed');
+    }
+
+    return res.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return res.json();
 }
 
 export const api = {

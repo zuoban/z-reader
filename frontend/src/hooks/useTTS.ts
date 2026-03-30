@@ -3,8 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { backendTTS, TTSState, TTSSettings, TTSMark, loadTTSSettings, Voice } from '@/lib/tts';
 import { FoliateView } from '@/lib/types';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { API_BASE } from '@/lib/config';
 
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;

@@ -12,7 +12,10 @@ import (
 	"z-reader/backend/utils"
 )
 
-var forceRefreshMutex sync.Mutex
+var (
+	forceRefreshMutex sync.Mutex
+	endpointClearOnce sync.Once
+)
 
 func GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat string) ([]byte, error) {
 	ssml := utils.BuildSsml(text, voiceName, rate, pitch, style)
@@ -21,6 +24,12 @@ func GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat str
 
 func GenerateAudioFromSsml(ssml, outputFormat string) ([]byte, error) {
 	return callTTSAPI(ssml, outputFormat, false)
+}
+
+func clearEndpointCache() {
+	endpointCache.mutex.Lock()
+	endpointCache.data = nil
+	endpointCache.mutex.Unlock()
 }
 
 func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
@@ -57,9 +66,7 @@ func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
 	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		if !isRetry {
 			forceRefreshMutex.Lock()
-			endpointCache.mutex.Lock()
-			endpointCache.data = nil
-			endpointCache.mutex.Unlock()
+			clearEndpointCache()
 			forceRefreshMutex.Unlock()
 
 			return callTTSAPI(ssml, outputFormat, true)

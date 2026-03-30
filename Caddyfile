@@ -1,6 +1,6 @@
 :80 {
 	# API routes -> Go backend
-	handle_path /api/* {
+	handle /api/* {
 		reverse_proxy localhost:8080
 	}
 	

@@ -18,7 +18,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowLeft, ArrowRight, List, LogOut, ChevronLeft } from 'lucide-react';
 
 interface TOCItem {
   label: string;
@@ -49,17 +49,14 @@ export default function ReadPage() {
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
 
-  // 保持 progress 的最新值
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
 
-  // 保持 theme 的最新值
   useEffect(() => {
     themeRef.current = theme;
   }, [theme]);
 
-  // 应用主题变化到阅读器
   useEffect(() => {
     if (viewRef.current && !loading) {
       viewRef.current.renderer.setStyles?.(getStylesheet());
@@ -78,7 +75,6 @@ export default function ReadPage() {
     destroyedRef.current = false;
     initReader();
     
-    // 清理函数
     return () => {
       destroyedRef.current = true;
       const view = viewRef.current;
@@ -86,11 +82,9 @@ export default function ReadPage() {
       
       if (view) {
         try {
-          // 先移除 view 从 DOM
           if (view.parentNode) {
             view.parentNode.removeChild(view);
           }
-          // 再调用 close
           view.close?.();
         } catch {}
       }
@@ -107,7 +101,6 @@ export default function ReadPage() {
     try {
       setLoadingMsg('Loading reader...');
 
-      // 检查是否已加载
       if (!customElements.get('foliate-view')) {
         const script = document.createElement('script');
         script.src = '/foliate/view.js';
@@ -121,7 +114,6 @@ export default function ReadPage() {
         document.head.appendChild(script);
         await loadPromise;
         
-        // 等待 custom element 注册
         let retries = 0;
         while (!customElements.get('foliate-view') && retries < 50) {
           await new Promise(r => setTimeout(r, 100));
@@ -144,11 +136,9 @@ export default function ReadPage() {
       containerRef.current.appendChild(view);
       viewRef.current = view;
 
-      // 必须在 open 之前添加事件监听器
       view.addEventListener('load', () => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
-          console.log('Book loaded:', view.book);
           const book = view.book;
           setMetadata(book?.metadata || {});
           setToc(book?.toc || []);
@@ -159,7 +149,6 @@ export default function ReadPage() {
       view.addEventListener('relocate', (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
-          console.log('relocate event:', e.detail);
           const { cfi, fraction, tocItem } = e.detail;
           
           const pct = Math.round((fraction || 0) * 100);
@@ -181,38 +170,27 @@ export default function ReadPage() {
       const blob = await api.fetchBook(bookId);
       
       if (destroyedRef.current) return;
-      console.log('Book blob size:', blob.size, 'type:', blob.type);
       setLoadingMsg('Opening book...');
       
       const file = new File([blob], 'book.epub', { type: 'application/epub+zip' });
       await view.open(file);
       
       if (destroyedRef.current) return;
-      console.log('view.open() completed, starting renderer...');
 
-      // 设置样式
       view.renderer.setStyles?.(getStylesheet());
       
-      // 如果有保存的进度，跳转到该位置
       const savedProgress = progressRef.current;
       if (savedProgress?.cfi) {
-        console.log('Restoring progress to:', savedProgress.cfi);
         try {
           await view.goTo(savedProgress.cfi);
         } catch (err) {
-          console.error('Failed to restore progress:', err);
-          // 如果恢复失败，从开始位置开始
           await view.renderer.next();
         }
       } else {
-        // 启动渲染
         await view.renderer.next();
       }
-      
-      console.log('Renderer started');
 
     } catch (err) {
-      console.error('Failed to init reader:', err);
       if (!destroyedRef.current) {
         setError(err instanceof Error ? err.message : 'Failed to load book');
         setLoading(false);
@@ -239,11 +217,9 @@ export default function ReadPage() {
   }
 
   function handleBack() {
-    // 先标记为已销毁，停止所有异步操作
     destroyedRef.current = true;
     saveNow();
     
-    // 清理 view
     const view = viewRef.current;
     viewRef.current = null;
     if (view) {
@@ -255,12 +231,10 @@ export default function ReadPage() {
       } catch {}
     }
     
-    // 清理容器
     if (containerRef.current) {
       containerRef.current.innerHTML = '';
     }
     
-    // 导航回书架
     router.push('/shelf');
   }
 
@@ -277,16 +251,23 @@ export default function ReadPage() {
   if (authLoading || !isAuthenticated) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ background: uiScheme.bg }}>
-        <div className="text-lg" style={{ color: uiScheme.mutedText }}>Loading...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 border-foreground/20 rounded-full animate-subtle-float" 
+               style={{ borderRightColor: uiScheme.fg }} />
+          <p className="font-heading text-base" style={{ color: uiScheme.mutedText }}>Preparing your book...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4" style={{ background: uiScheme.bg }}>
-        <div className="text-lg text-red-400">{error}</div>
-        <Button onClick={handleBack}>Back to Shelf</Button>
+      <div className="h-screen flex flex-col items-center justify-center gap-4 p-8" style={{ background: uiScheme.bg }}>
+        <div className="w-16 h-20 rounded border border-destructive/40 flex items-center justify-center bg-destructive/10">
+          <span className="text-destructive text-3xl">!</span>
+        </div>
+        <p className="font-heading text-lg text-destructive">{error}</p>
+        <Button onClick={handleBack} className="mt-2">Return to Library</Button>
       </div>
     );
   }
@@ -294,70 +275,87 @@ export default function ReadPage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: uiScheme.bg }}>
       <header 
-        className="border-b backdrop-blur shrink-0 z-50" 
+        className="border-b shrink-0 z-50 backdrop-blur-sm transition-colors duration-300" 
         style={{ 
           background: `${uiScheme.headerBg}ee`,
           borderColor: uiScheme.headerBorder 
         }}
       >
-        <div className="px-4 h-14 flex items-center justify-between">
+        <div className="px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Tooltip>
-              <TooltipTrigger 
-                onClick={handleBack} 
-                className="text-sm px-3 py-1 rounded cursor-pointer transition-colors"
-                style={{ 
-                  color: uiScheme.buttonText,
-                  background: uiScheme.buttonBg,
-                }}
-              >
-                ← Back
-              </TooltipTrigger>
-              <TooltipContent>Return to bookshelf</TooltipContent>
-            </Tooltip>
-            <div className="text-sm">
-              <span style={{ color: uiScheme.mutedText }}>{metadata.title || 'Loading...'}</span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBack}
+              title="Return to bookshelf"
+              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="font-sans text-sm">Library</span>
+            </Button>
+            
+            <Separator orientation="vertical" className="h-6 bg-border/40" />
+            
+            <div className="flex flex-col gap-0.5">
+              <span className="font-heading text-sm truncate max-w-[200px]" style={{ color: uiScheme.fg }}>
+                {metadata.title || 'Loading...'}
+              </span>
               {currentChapter && (
-                <span style={{ color: uiScheme.accentText }} className="ml-2">• {currentChapter}</span>
+                <span className="font-sans text-xs truncate max-w-[200px]" style={{ color: uiScheme.mutedText }}>
+                  {currentChapter}
+                </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Progress value={percentage} className="w-24 h-2" />
-            <span className="text-xs w-8" style={{ color: uiScheme.mutedText }}>{percentage}%</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Progress 
+                value={percentage} 
+                className="w-20 h-1.5"
+              />
+              <span className="font-mono text-xs tabular-nums w-7" style={{ color: uiScheme.mutedText }}>
+                {percentage}%
+              </span>
+            </div>
+
+            <Separator orientation="vertical" className="h-6 bg-border/40" />
 
             <Sheet>
-              <SheetTrigger 
-                className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer"
-                style={{
-                  border: `1px solid ${uiScheme.cardBorder}`,
-                  background: uiScheme.buttonBg,
-                  color: uiScheme.buttonText,
-                }}
-              >
-                TOC
+              <SheetTrigger>
+                <Button 
+                  variant="ghost" 
+                  size="icon-sm" 
+                  title="Table of Contents"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-80"
+                className="w-72 backdrop-blur-sm"
                 style={{
-                  background: uiScheme.cardBg,
+                  background: `${uiScheme.cardBg}f5`,
                   borderColor: uiScheme.cardBorder,
                 }}
               >
-                <SheetHeader>
-                  <SheetTitle style={{ color: uiScheme.fg }}>Table of Contents</SheetTitle>
+                <SheetHeader className="pb-2">
+                  <SheetTitle className="font-heading text-lg" style={{ color: uiScheme.fg }}>
+                    Table of Contents
+                  </SheetTitle>
                 </SheetHeader>
-                <Separator className="my-4" style={{ background: uiScheme.cardBorder }} />
-                <ScrollArea className="h-[calc(100vh-100px)]">
-                  <div className="space-y-1">
+                <Separator className="my-2" style={{ background: uiScheme.cardBorder }} />
+                <ScrollArea className="h-[calc(100vh-80px)]">
+                  <div className="space-y-1 pr-2">
                     {toc.length > 0 ? (
                       toc.map((item, idx) => (
                         <TOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
                       ))
                     ) : (
-                      <div style={{ color: uiScheme.accentText }} className="text-sm">No table of contents</div>
+                      <p className="font-sans text-sm py-4" style={{ color: uiScheme.mutedText }}>
+                        No table of contents available
+                      </p>
                     )}
                   </div>
                 </ScrollArea>
@@ -366,19 +364,15 @@ export default function ReadPage() {
 
             <ThemeSettings theme={theme} setTheme={setTheme} uiScheme={uiScheme} />
 
-            <Tooltip>
-              <TooltipTrigger 
-                onClick={logout} 
-                className="text-sm px-3 py-1 rounded cursor-pointer transition-colors"
-                style={{ 
-                  color: uiScheme.buttonText,
-                  background: uiScheme.buttonBg,
-                }}
-              >
-                Logout
-              </TooltipTrigger>
-              <TooltipContent>Sign out</TooltipContent>
-            </Tooltip>
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={logout}
+              title="Sign out"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </header>
@@ -389,60 +383,80 @@ export default function ReadPage() {
             className="absolute inset-0 flex flex-col items-center justify-center z-10" 
             style={{ background: uiScheme.bg }}
           >
-            <div className="text-lg" style={{ color: uiScheme.mutedText }}>{loadingMsg}</div>
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-16 rounded border-2 border-foreground/20 flex items-center justify-center"
+                   style={{ borderColor: uiScheme.cardBorder }}>
+                <div className="w-8 h-10 border-2 rounded animate-subtle-float"
+                     style={{ borderRightColor: uiScheme.link }} />
+              </div>
+              <p className="font-heading text-base animate-ink-spread" style={{ color: uiScheme.mutedText }}>
+                {loadingMsg}
+              </p>
+            </div>
           </div>
         )}
         <div ref={containerRef} className="absolute inset-0" />
 
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-          <Tooltip>
-            <TooltipTrigger 
-              onClick={handlePrev} 
-              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer"
-              style={{
-                border: `1px solid ${uiScheme.cardBorder}`,
-                background: uiScheme.buttonBg,
-                color: uiScheme.buttonText,
-              }}
-            >
-              ←
-            </TooltipTrigger>
-            <TooltipContent>Previous page</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger 
-              onClick={handleNext} 
-              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer"
-              style={{
-                border: `1px solid ${uiScheme.cardBorder}`,
-                background: uiScheme.buttonBg,
-                color: uiScheme.buttonText,
-              }}
-            >
-              →
-            </TooltipTrigger>
-            <TooltipContent>Next page</TooltipContent>
-          </Tooltip>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handlePrev}
+            title="Previous page"
+            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm"
+            style={{
+              background: `${uiScheme.buttonBg}cc`,
+              borderColor: uiScheme.cardBorder,
+              color: uiScheme.buttonText,
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleNext}
+            title="Next page"
+            className="backdrop-blur-sm border-border/40 bg-card/60 hover:bg-card/80 hover:border-border/60 transition-all shadow-sm"
+            style={{
+              background: `${uiScheme.buttonBg}cc`,
+              borderColor: uiScheme.cardBorder,
+              color: uiScheme.buttonText,
+            }}
+          >
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-function TOCNode({ item, onGoTo, depth = 0, uiScheme }: { item: TOCItem; onGoTo: (href: string) => void; depth?: number; uiScheme: ThemeColors }) {
+function TOCNode({ item, onGoTo, depth = 0, uiScheme }: { 
+  item: TOCItem; 
+  onGoTo: (href: string) => void; 
+  depth?: number; 
+  uiScheme: ThemeColors 
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  
   return (
     <div>
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-start transition-colors"
+        className="w-full justify-start transition-all duration-200 rounded-md"
         style={{ 
-          paddingLeft: depth > 0 ? `${depth * 16 + 12}px` : '12px',
-          color: uiScheme.buttonText,
+          paddingLeft: depth > 0 ? `${depth * 12 + 10}px` : '10px',
+          color: isHovered ? uiScheme.fg : uiScheme.buttonText,
+          background: isHovered ? `${uiScheme.buttonHoverBg}60` : 'transparent',
         }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onClick={() => onGoTo(item.href)}
       >
-        {item.label}
+        <span className="font-sans text-sm truncate">{item.label}</span>
       </Button>
       {item.subitems?.map((sub, idx) => (
         <TOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />

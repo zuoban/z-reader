@@ -112,8 +112,9 @@ function getSnapshot(): ReaderTheme {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      cachedTheme = { ...DEFAULT_THEME, ...JSON.parse(saved) };
-      return cachedTheme;
+      const parsed = { ...DEFAULT_THEME, ...JSON.parse(saved) } as ReaderTheme;
+      cachedTheme = parsed;
+      return parsed;
     }
   } catch {}
   cachedTheme = DEFAULT_THEME;

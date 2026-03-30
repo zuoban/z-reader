@@ -37,37 +37,76 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center warm-gradient paper-texture">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-foreground/20 rounded-full animate-subtle-float" 
+               style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
+          <p className="font-heading text-lg text-muted-foreground">Opening your library...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-      <Card className="w-[350px]">
-        <CardHeader>
-          <CardTitle className="text-2xl">Z Reader</CardTitle>
-          <CardDescription>Enter password to access your bookshelf</CardDescription>
+    <div className="min-h-screen flex items-center justify-center warm-gradient paper-texture relative overflow-hidden">
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-20 left-10 w-32 h-32 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-48 h-48 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-accent/15 blur-3xl" />
+      </div>
+
+      <Card className="w-[380px] relative backdrop-blur-sm bg-card/95 border-border/50 shadow-xl">
+        <CardHeader className="space-y-1 pb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-14 ink-gradient rounded-sm spine-effect flex items-center justify-center">
+              <span className="text-primary-foreground font-heading text-xs italic">Z</span>
+            </div>
+            <CardTitle className="font-heading text-3xl tracking-tight">Z Reader</CardTitle>
+          </div>
+          <CardDescription className="text-muted-foreground font-sans">
+            Enter your password to unlock your personal library
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="font-heading text-sm">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
+                placeholder="Enter your library key"
                 autoFocus
+                className="h-10 bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20"
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Logging in...' : 'Login'}
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
+                {error}
+              </p>
+            )}
+            <Button 
+              type="submit" 
+              className="w-full h-10 ink-gradient text-primary-foreground font-heading tracking-wide hover:opacity-90 transition-opacity" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-primary-foreground/30 rounded-full animate-subtle-float" 
+                        style={{ borderRightColor: 'oklch(0.95 0.01 80)' }} />
+                  Unlocking...
+                </span>
+              ) : (
+                'Enter Library'
+              )}
             </Button>
           </form>
+          <div className="mt-6 pt-4 border-t border-border/40">
+            <p className="text-xs text-muted-foreground text-center font-sans">
+              Your private reading sanctuary
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -184,6 +184,24 @@ class ListIterator {
             }
         }
     }
+    peekAt(offset) {
+        const newIndex = this.#index + offset
+        if (this.#arr[newIndex]) {
+            return this.#f(this.#arr[newIndex])
+        }
+        // 尝试从迭代器获取更多
+        while (this.#arr.length <= newIndex) {
+            const { done, value } = this.#iter.next()
+            if (done) break
+            this.#arr.push(value)
+        }
+        if (this.#arr[newIndex]) {
+            return this.#f(this.#arr[newIndex])
+        }
+    }
+    peekNext() {
+        return this.peekAt(1)
+    }
     find(f) {
         const index = this.#arr.findIndex(x => f(x))
         if (index > -1) {
@@ -256,6 +274,31 @@ export class TTS {
         const [doc, range] = this.#list.next() ?? []
         if (paused && range) this.highlight(range.cloneRange())
         return this.#speak(doc)
+    }
+    peekNext() {
+        // 保存当前的 ranges，避免预加载时更新高亮位置
+        const savedRanges = this.#ranges
+        const [doc] = this.#list.peekAt(1) ?? []
+        // 恢复 ranges，保持当前段落的单词映射
+        this.#ranges = savedRanges
+        return this.#speak(doc)
+    }
+    peekNextMultiple(count) {
+        const result = []
+        const savedRanges = this.#ranges
+        
+        for (let i = 1; i <= count; i++) {
+            const [doc] = this.#list.peekAt(i) ?? []
+            if (doc) {
+                result.push(this.#speak(doc))
+            } else {
+                break
+            }
+        }
+        
+        // 恢复 ranges，保持当前段落的单词映射
+        this.#ranges = savedRanges
+        return result
     }
     from(range) {
         this.#lastMark = null

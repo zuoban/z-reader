@@ -101,6 +101,42 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       .trim();
   }, []);
 
+  // 获取后续多个段落的 SSML（不改变状态）
+  const getNextSSMLs = useCallback((count: number): string[] => {
+    if (!viewRef.current) return [];
+
+    const view = viewRef.current;
+    
+    // 使用 peekNextMultiple 获取多个下一段，不改变当前位置
+    const ssmlList = view.tts?.peekNextMultiple?.(count) ?? [];
+    
+    return ssmlList.filter((ssml: string) => ssml);
+  }, [viewRef]);
+
+  // 预加载后续段落
+  const preloadNext = useCallback(async () => {
+    if (!viewRef.current) return;
+    
+    // 只有在播放状态才预加载
+    if (state !== 'playing') return;
+    
+    try {
+      // 获取后续3个段落的 SSML
+      const ssmlList = getNextSSMLs(3);
+      
+      // 转换为增强 SSML 并预加载
+      const enhancedList = ssmlList.map(ssml => {
+        const text = getTextFromSSML(ssml);
+        return text ? buildSSML(text) : null;
+      }).filter((ssml: string | null) => ssml);
+      
+      // 批量预加载
+      await ttsInstance.current.preloadMultiple(enhancedList);
+    } catch (err) {
+      console.error('Preload error:', err);
+    }
+  }, [viewRef, state, getNextSSMLs, getTextFromSSML, buildSSML]);
+
   const speakSSML = useCallback(async (ssml: string | null | undefined): Promise<boolean> => {
     if (!ssml) return false;
     
@@ -110,6 +146,12 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     const enhancedSSML = buildSSML(text);
     
     try {
+      // 先预加载下一段（在播放前，避免影响高亮）
+      // 使用 requestAnimationFrame 确保在当前帧完成后执行
+      requestAnimationFrame(() => {
+        preloadNext();
+      });
+      
       await ttsInstance.current.speak(enhancedSSML);
       
       if (viewRef.current?.tts) {
@@ -121,7 +163,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [getTextFromSSML, buildSSML, viewRef]);
+  }, [getTextFromSSML, buildSSML, viewRef, preloadNext]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
@@ -221,6 +263,9 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     isPlayingRef.current = false;
     setCurrentMark(null);
     setMarkIndex(0);
+    
+    // 清除预加载的音频
+    ttsInstance.current.clearPreload();
     
     if (viewRef.current?.tts) {
       viewRef.current.tts.clearHighlight?.();

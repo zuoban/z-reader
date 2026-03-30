@@ -71,6 +71,12 @@ function stripSSML(ssml: string): string {
     .trim();
 }
 
+interface PreloadedAudio {
+  audioUrl: string;
+  ssml: string;
+  marks: TTSMark[];
+}
+
 export class BackendTTS {
   private audio: HTMLAudioElement | null = null;
   private settings: TTSSettings;
@@ -82,6 +88,10 @@ export class BackendTTS {
   private onEnd: (() => void) | null = null;
   private onTimeUpdate: ((currentTime: number, duration: number) => void) | null = null;
   private currentSSML: string = '';
+  
+  // Preload support - queue of preloaded audios
+  private preloadedQueue: PreloadedAudio[] = [];
+  private maxPreloadCount: number = 3;
 
   constructor() {
     this.settings = loadTTSSettings();
@@ -133,69 +143,145 @@ export class BackendTTS {
     this.stop();
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/ssml`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: token } : {}),
-        },
-        body: JSON.stringify({
-          ssml: ssml,
-          output_format: 'audio-24khz-48kbitrate-mono-mp3',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`TTS API error: ${response.status}`);
+      // 从预加载队列中查找匹配的音频
+      const preloadedIndex = this.preloadedQueue.findIndex(p => p.ssml === ssml);
+      if (preloadedIndex !== -1) {
+        const preloaded = this.preloadedQueue[preloadedIndex];
+        // 先移除已使用的预加载项及其之前的项，保存 URL 以便错误时清理
+        const urlsToRevoke = this.preloadedQueue.slice(0, preloadedIndex + 1).map(p => p.audioUrl);
+        // 移除当前项之前的所有项（它们不会再被使用）
+        for (let i = 0; i < preloadedIndex; i++) {
+          URL.revokeObjectURL(urlsToRevoke[i]);
+        }
+        this.preloadedQueue.splice(0, preloadedIndex + 1);
+        // 使用预加载的 marks
+        this.marks = preloaded.marks;
+        await this.playAudio(preloaded.audioUrl);
+        return;
       }
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      this.audio = new Audio(audioUrl);
-      this.audio.volume = this.settings.volume;
-
-      this.currentMarkIndex = 0;
-
-      this.audio.onplay = () => {
-        this.setState('playing');
-        if (this.marks.length > 0) {
-          this.onMarkChange?.(this.marks[0], 0);
-        }
-      };
-
-      this.audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        const wasPlaying = this.state === 'playing';
-        const wasPaused = this.state === 'paused';
-        this.setState('stopped');
-        if (wasPlaying || wasPaused) {
-          this.onEnd?.();
-        }
-      };
-
-      this.audio.onerror = (e) => {
-        URL.revokeObjectURL(audioUrl);
-        this.setState('stopped');
-        console.error('Audio error:', e);
-      };
-
-      this.audio.onpause = () => {
-        // Let the pause() method handle state change, not here
-      };
-
-      this.audio.ontimeupdate = () => {
-        if (this.audio && this.onTimeUpdate) {
-          this.onTimeUpdate(this.audio.currentTime, this.audio.duration || 0);
-        }
-      };
-
-      await this.audio.play();
+      const audioUrl = await this.fetchAudio(ssml);
+      await this.playAudio(audioUrl);
     } catch (error) {
       this.setState('stopped');
       throw error;
     }
+  }
+
+  private async fetchAudio(ssml: string): Promise<string> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE}/api/ssml`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: token } : {}),
+      },
+      body: JSON.stringify({
+        ssml: ssml,
+        output_format: 'audio-24khz-48kbitrate-mono-mp3',
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`TTS API error: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    return URL.createObjectURL(audioBlob);
+  }
+
+  private async playAudio(audioUrl: string): Promise<void> {
+    this.audio = new Audio(audioUrl);
+    this.audio.volume = this.settings.volume;
+
+    this.currentMarkIndex = 0;
+
+    this.audio.onplay = () => {
+      this.setState('playing');
+      if (this.marks.length > 0) {
+        this.onMarkChange?.(this.marks[0], 0);
+      }
+    };
+
+    this.audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      const wasPlaying = this.state === 'playing';
+      const wasPaused = this.state === 'paused';
+      this.setState('stopped');
+      if (wasPlaying || wasPaused) {
+        this.onEnd?.();
+      }
+    };
+
+    this.audio.onerror = (e) => {
+      URL.revokeObjectURL(audioUrl);
+      this.setState('stopped');
+      console.error('Audio error:', e);
+    };
+
+    this.audio.onpause = () => {
+      // Let the pause() method handle state change, not here
+    };
+
+    this.audio.ontimeupdate = () => {
+      if (this.audio && this.onTimeUpdate) {
+        this.onTimeUpdate(this.audio.currentTime, this.audio.duration || 0);
+      }
+    };
+
+    await this.audio.play();
+  }
+
+  // 预加载音频到队列（支持添加多个）
+  async preload(ssml: string, marks?: TTSMark[]): Promise<void> {
+    if (!ssml) return;
+    
+    // 如果队列中已经有相同的 SSML，跳过
+    if (this.preloadedQueue.some(p => p.ssml === ssml)) return;
+    
+    // 如果队列已满，跳过
+    if (this.preloadedQueue.length >= this.maxPreloadCount) return;
+    
+    try {
+      const marksArray = marks && marks.length > 0 
+        ? marks 
+        : [{ name: '0', text: stripSSML(ssml) }];
+
+      const audioUrl = await this.fetchAudio(ssml);
+      
+      this.preloadedQueue.push({
+        audioUrl,
+        ssml,
+        marks: marksArray,
+      });
+    } catch (error) {
+      console.error('Preload failed:', error);
+    }
+  }
+
+  // 批量预加载多个 SSML
+  async preloadMultiple(ssmlList: string[]): Promise<void> {
+    for (const ssml of ssmlList) {
+      await this.preload(ssml);
+    }
+  }
+
+  // 清理预加载队列
+  private cleanupPreload(): void {
+    for (const item of this.preloadedQueue) {
+      URL.revokeObjectURL(item.audioUrl);
+    }
+    this.preloadedQueue = [];
+  }
+
+  // 清除预加载（供外部调用）
+  clearPreload(): void {
+    this.cleanupPreload();
+  }
+
+  // 获取预加载队列长度
+  getPreloadQueueLength(): number {
+    return this.preloadedQueue.length;
   }
 
   pause(): void {
@@ -220,6 +306,7 @@ export class BackendTTS {
     }
     this.setState('stopped');
     this.currentMarkIndex = 0;
+    this.cleanupPreload();
   }
 
   isSpeaking(): boolean {

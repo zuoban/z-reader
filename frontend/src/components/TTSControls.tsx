@@ -177,12 +177,12 @@ export function TTSControls({
   };
 
   const formatRate = (rate: number) => {
-    if (rate === 0) return 'Normal';
+    if (rate === 0) return '正常';
     return rate > 0 ? `+${rate}%` : `${rate}%`;
   };
 
   const formatPitch = (pitch: number) => {
-    if (pitch === 0) return 'Normal';
+    if (pitch === 0) return '正常';
     return pitch > 0 ? `+${pitch}%` : `${pitch}%`;
   };
 
@@ -220,7 +220,7 @@ export function TTSControls({
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
         }}
-        title="Controls (drag to move)"
+        title="控制面板（拖动移动）"
       >
         <Volume2
           className="w-5 h-5"
@@ -256,7 +256,7 @@ export function TTSControls({
                 className="font-heading text-sm"
                 style={{ color: uiScheme.fg }}
               >
-                Controls
+                控制面板
               </span>
               <Button
                 variant="ghost"
@@ -274,7 +274,7 @@ export function TTSControls({
                 variant="outline"
                 size="icon"
                 onClick={onPrevPage}
-                title="Previous page"
+                title="上一页"
                 className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
                 style={{
                   background: `${uiScheme.buttonBg}ee`,
@@ -289,7 +289,7 @@ export function TTSControls({
                 variant="outline"
                 size="icon"
                 onClick={onNextPage}
-                title="Next page"
+                title="下一页"
                 className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
                 style={{
                   background: `${uiScheme.buttonBg}ee`,
@@ -310,7 +310,7 @@ export function TTSControls({
                   className="text-xs"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Text-to-Speech
+                  文字转语音
                 </label>
               </div>
 
@@ -320,7 +320,7 @@ export function TTSControls({
                   size="icon-sm"
                   onClick={onPrev}
                   disabled={!isActive}
-                  title="Previous sentence"
+                  title="上一句"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
                     color: isActive ? uiScheme.fg : uiScheme.mutedText,
@@ -333,7 +333,7 @@ export function TTSControls({
                   variant={isPlaying ? 'outline' : 'default'}
                   size="icon"
                   onClick={onStart}
-                  title={isPlaying ? 'Pause' : isPaused ? 'Resume' : 'Start'}
+                  title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                   className="transition-transform hover:scale-105 active:scale-95"
                   style={{
                     background: isPlaying
@@ -355,7 +355,7 @@ export function TTSControls({
                   size="icon-sm"
                   onClick={onNext}
                   disabled={!isActive}
-                  title="Next sentence"
+                  title="下一句"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
                     color: isActive ? uiScheme.fg : uiScheme.mutedText,
@@ -369,7 +369,7 @@ export function TTSControls({
                   size="icon-sm"
                   onClick={onStop}
                   disabled={!isActive}
-                  title="Stop"
+                  title="停止"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
                     color: isActive ? '#ef4444' : uiScheme.mutedText,
@@ -389,7 +389,7 @@ export function TTSControls({
                   className="text-xs w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Speed
+                  速度
                 </label>
                 <Slider
                   value={[localRate]}
@@ -412,7 +412,7 @@ export function TTSControls({
                   className="text-xs w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Pitch
+                  音调
                 </label>
                 <Slider
                   value={[localPitch]}
@@ -435,7 +435,7 @@ export function TTSControls({
                   className="text-xs w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Volume
+                  音量
                 </label>
                 <Slider
                   value={[localVolume]}
@@ -459,7 +459,7 @@ export function TTSControls({
                     className="text-xs w-8 shrink-0"
                     style={{ color: uiScheme.mutedText }}
                   >
-                    Voice
+                    语音
                   </label>
                   <Select
                     value={settings.voiceName}
@@ -473,7 +473,7 @@ export function TTSControls({
                         color: uiScheme.fg,
                       }}
                     >
-                      <SelectValue placeholder="Select voice" />
+                      <SelectValue placeholder="选择语音" />
                     </SelectTrigger>
                     <SelectContent
                       style={{
@@ -501,7 +501,7 @@ export function TTSControls({
                     className="text-xs w-8 shrink-0"
                     style={{ color: uiScheme.mutedText }}
                   >
-                    Style
+                    风格
                   </label>
                   <Select
                     value={settings.style}
@@ -515,7 +515,7 @@ export function TTSControls({
                         color: uiScheme.fg,
                       }}
                     >
-                      <SelectValue placeholder="Select style" />
+                      <SelectValue placeholder="选择风格" />
                     </SelectTrigger>
                     <SelectContent
                       style={{

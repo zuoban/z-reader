@@ -14,10 +14,10 @@ import {
 import { Settings } from 'lucide-react';
 
 const PRESETS = [
-  { key: 'light', label: 'Light', bg: '#ffffff', fg: '#333333' },
-  { key: 'sepia', label: 'Paper', bg: '#f4ecd8', fg: '#5c4b37' },
-  { key: 'green', label: 'Forest', bg: '#cce8cf', fg: '#2d4a3e' },
-  { key: 'dark', label: 'Night', bg: '#1e293b', fg: '#e2e8f0' },
+  { key: 'light', label: '明亮', bg: '#ffffff', fg: '#333333' },
+  { key: 'sepia', label: '纸张', bg: '#f4ecd8', fg: '#5c4b37' },
+  { key: 'green', label: '森林', bg: '#cce8cf', fg: '#2d4a3e' },
+  { key: 'dark', label: '夜间', bg: '#1e293b', fg: '#e2e8f0' },
 ] as const;
 
 interface ThemeSettingsProps {
@@ -51,13 +51,13 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
       >
         <DialogHeader className="pb-2">
           <DialogTitle className="font-heading text-lg" style={{ color: uiScheme.fg }}>
-            Reading Preferences
+            阅读偏好
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 pt-3">
           <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>Theme</Label>
+            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>主题</Label>
             <div className="grid grid-cols-4 gap-2">
               {PRESETS.map((p) => (
                 <button
@@ -88,7 +88,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
           <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
 
           <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>Font Size</Label>
+            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>字体大小</Label>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -148,7 +148,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
           <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
 
           <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>Line Height</Label>
+            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>行高</Label>
             <div className="flex gap-1">
               {[1.4, 1.5, 1.6, 1.8, 2.0].map((lh) => (
                 <Button
@@ -172,7 +172,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
           <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
 
           <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>Margins</Label>
+            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>页边距</Label>
             <div className="flex gap-1">
               {[20, 40, 60, 80, 100].map((m) => (
                 <Button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -23,6 +23,15 @@ import {
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
+
+const SUPPORTED_LOCALES = ['zh', 'en', 'ja', 'ko'];
+
+const LOCALE_LABELS: Record<string, string> = {
+  zh: '中文',
+  en: '英语',
+  ja: '日语',
+  ko: '韩语',
+};
 
 interface TTSControlsProps {
   state: TTSState;
@@ -55,6 +64,7 @@ export function TTSControls({
   const [localRate, setLocalRate] = useState(settings.rate);
   const [localPitch, setLocalPitch] = useState(settings.pitch);
   const [localVolume, setLocalVolume] = useState(settings.volume);
+  const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [position, setPosition] = useState({ x: 8, y: 8 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number }>({
@@ -71,6 +81,54 @@ export function TTSControls({
     setLocalVolume(settings.volume);
   }, [settings]);
 
+  const availableLocales = SUPPORTED_LOCALES.filter(locale =>
+    voices.some(v => v.Locale.startsWith(locale))
+  );
+
+  const localeVoicesMap = availableLocales.map(locale => ({
+    locale,
+    label: LOCALE_LABELS[locale] || locale,
+    voices: voices.filter(v => v.Locale.startsWith(locale)),
+  }));
+
+  useEffect(() => {
+    if (!selectedLocale && voices.length > 0) {
+      if (settings.voiceName) {
+        const currentVoice = voices.find(v => v.Name === settings.voiceName);
+        if (currentVoice) {
+          const locale = SUPPORTED_LOCALES.find(l => currentVoice.Locale.startsWith(l)) || '';
+          if (locale) {
+            setSelectedLocale(locale);
+            return;
+          }
+        }
+      }
+      if (availableLocales.length > 0) {
+        setSelectedLocale(availableLocales[0]);
+      }
+    }
+  }, [voices, settings.voiceName, selectedLocale, availableLocales]);
+
+  const currentLocaleVoices = localeVoicesMap.find(l => l.locale === selectedLocale)?.voices || [];
+  
+  const filteredVoices = selectedLocale
+    ? voices.filter(v => v.Locale.startsWith(selectedLocale))
+    : voices.filter(v => SUPPORTED_LOCALES.some(l => v.Locale.startsWith(l)));
+
+  const selectedVoice = voices.find(v => v.Name === settings.voiceName);
+  const availableStyles = selectedVoice?.StyleList || ['general'];
+
+  const handleLocaleChange = (value: string) => {
+    setSelectedLocale(value);
+    const localeVoices = voices.filter(v => v.Locale.startsWith(value));
+    if (localeVoices.length > 0) {
+      const currentVoiceInLocale = localeVoices.find(v => v.Name === settings.voiceName);
+      if (!currentVoiceInLocale) {
+        onUpdateSettings({ voiceName: localeVoices[0].Name });
+      }
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -83,7 +141,7 @@ export function TTSControls({
     };
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
     const deltaX = e.clientX - dragRef.current.startX;
@@ -97,14 +155,14 @@ export function TTSControls({
     const newY = Math.max(0, Math.min(window.innerHeight - 48, dragRef.current.startPosY - deltaY));
     
     setPosition({ x: newX, y: newY });
-  };
+  }, [isDragging]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     if (!hasDraggedRef.current) {
-      setExpanded(!expanded);
+      setExpanded(e => !e);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
@@ -115,7 +173,7 @@ export function TTSControls({
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -190,18 +248,8 @@ export function TTSControls({
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
 
-  const selectedVoice = voices.find(v => v.Name === settings.voiceName);
-  const availableStyles = selectedVoice?.StyleList || ['general'];
-
-  const filteredVoices = voices.filter(v => 
-    v.Locale.startsWith('zh') || 
-    v.Locale.startsWith('en') ||
-    v.Locale.startsWith('ja') ||
-    v.Locale.startsWith('ko')
-  );
-
   const panelWidth = 256;
-  const panelHeight = 320;
+  const panelHeight = 380;
 
   return (
     <div className="relative">
@@ -454,45 +502,87 @@ export function TTSControls({
               </div>
 
               {filteredVoices.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <label
-                    className="text-xs w-8 shrink-0"
-                    style={{ color: uiScheme.mutedText }}
-                  >
-                    语音
-                  </label>
-                  <Select
-                    value={settings.voiceName}
-                    onValueChange={handleVoiceChange}
-                  >
-                    <SelectTrigger
-                      className="flex-1 text-xs h-7"
-                      style={{
-                        background: uiScheme.buttonBg,
-                        borderColor: uiScheme.cardBorder,
-                        color: uiScheme.fg,
-                      }}
+                <>
+                  <div className="flex items-center gap-2">
+                    <label
+                      className="text-xs w-8 shrink-0"
+                      style={{ color: uiScheme.mutedText }}
                     >
-                      <SelectValue placeholder="选择语音" />
-                    </SelectTrigger>
-                    <SelectContent
-                      style={{
-                        background: uiScheme.cardBg,
-                        borderColor: uiScheme.cardBorder,
-                      }}
+                      语种
+                    </label>
+                    <Select
+                      value={selectedLocale}
+                      onValueChange={handleLocaleChange}
                     >
-                      {filteredVoices.map((voice) => (
-                        <SelectItem
-                          key={voice.Name}
-                          value={voice.Name}
-                          style={{ color: uiScheme.fg }}
-                        >
-                          {voice.DisplayName} ({voice.Locale})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                      <SelectTrigger
+                        className="flex-1 text-xs h-7"
+                        style={{
+                          background: uiScheme.buttonBg,
+                          borderColor: uiScheme.cardBorder,
+                          color: uiScheme.fg,
+                        }}
+                      >
+                        <SelectValue placeholder="选择语种" />
+                      </SelectTrigger>
+                      <SelectContent
+                        style={{
+                          background: uiScheme.cardBg,
+                          borderColor: uiScheme.cardBorder,
+                        }}
+                      >
+                        {localeVoicesMap.map((item) => (
+                          <SelectItem
+                            key={item.locale}
+                            value={item.locale}
+                            style={{ color: uiScheme.fg }}
+                          >
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <label
+                      className="text-xs w-8 shrink-0"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      语音
+                    </label>
+                    <Select
+                      value={settings.voiceName}
+                      onValueChange={handleVoiceChange}
+                    >
+                      <SelectTrigger
+                        className="flex-1 text-xs h-7"
+                        style={{
+                          background: uiScheme.buttonBg,
+                          borderColor: uiScheme.cardBorder,
+                          color: uiScheme.fg,
+                        }}
+                      >
+                        <SelectValue placeholder="选择语音" />
+                      </SelectTrigger>
+                      <SelectContent
+                        style={{
+                          background: uiScheme.cardBg,
+                          borderColor: uiScheme.cardBorder,
+                        }}
+                      >
+                        {currentLocaleVoices.map((voice) => (
+                          <SelectItem
+                            key={voice.Name}
+                            value={voice.Name}
+                            style={{ color: uiScheme.fg }}
+                          >
+                            {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               {availableStyles.length > 1 && (

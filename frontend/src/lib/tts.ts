@@ -255,18 +255,21 @@ export class BackendTTS {
     if (this.preloadedQueue.length >= this.maxPreloadCount) return;
     
     try {
-      const marksArray = marks && marks.length > 0 
-        ? marks 
+      const marksArray = marks && marks.length > 0
+        ? marks
         : [{ name: '0', text: stripSSML(ssml) }];
 
       const audioUrl = await this.fetchAudio(ssml);
-      
+
       this.preloadedQueue.push({
         audioUrl,
         ssml,
         marks: marksArray,
       });
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       console.error('Preload failed:', error);
     }
   }

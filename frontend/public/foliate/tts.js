@@ -322,8 +322,6 @@ export class TTS {
         if (range) {
             if (this.#lastHighlightElement) {
                 this.#lastHighlightElement.style.textDecoration = 'none'
-                this.#lastHighlightElement.style.backgroundColor = 'transparent'
-                this.#lastHighlightElement.style.borderRadius = '0'
                 this.#lastHighlightElement.style.transition = 'none'
             }
             
@@ -337,9 +335,7 @@ export class TTS {
                 element.style.textDecorationColor = 'inherit'
                 element.style.textUnderlineOffset = '4px'
                 element.style.textDecorationThickness = '2px'
-                element.style.backgroundColor = 'rgba(251, 191, 36, 0.35)'
-                element.style.borderRadius = '2px'
-                element.style.transition = 'background-color 0.15s ease, text-decoration 0.15s ease'
+                element.style.transition = 'text-decoration 0.15s ease'
                 this.#lastHighlightElement = element
             }
             
@@ -353,9 +349,6 @@ export class TTS {
     clearHighlight() {
         if (this.#lastHighlightElement) {
             this.#lastHighlightElement.style.textDecoration = 'none'
-            this.#lastHighlightElement.style.backgroundColor = 'transparent'
-            this.#lastHighlightElement.style.borderRadius = '0'
-            this.#lastHighlightElement.style.transition = 'none'
             this.#lastHighlightElement = null
         }
     }

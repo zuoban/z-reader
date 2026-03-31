@@ -53,8 +53,6 @@ export default function ReadPage() {
   const handleHighlight = useCallback((range: Range) => {
     if (lastHighlightRef.current) {
       lastHighlightRef.current.style.textDecoration = 'none';
-      lastHighlightRef.current.style.backgroundColor = 'transparent';
-      lastHighlightRef.current.style.borderRadius = '0';
       lastHighlightRef.current.style.transition = 'none';
     }
 
@@ -68,9 +66,7 @@ export default function ReadPage() {
       element.style.textDecorationColor = 'inherit';
       element.style.textUnderlineOffset = '4px';
       element.style.textDecorationThickness = '2px';
-      element.style.backgroundColor = 'rgba(251, 191, 36, 0.35)';
-      element.style.borderRadius = '2px';
-      element.style.transition = 'background-color 0.15s ease, text-decoration 0.15s ease';
+      element.style.transition = 'text-decoration 0.15s ease';
       lastHighlightRef.current = element;
     }
 
@@ -93,8 +89,6 @@ export default function ReadPage() {
   useEffect(() => {
     if (ttsState === 'stopped' && lastHighlightRef.current) {
       lastHighlightRef.current.style.textDecoration = 'none';
-      lastHighlightRef.current.style.backgroundColor = 'transparent';
-      lastHighlightRef.current.style.borderRadius = '0';
       lastHighlightRef.current = null;
     }
   }, [ttsState]);

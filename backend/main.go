@@ -19,14 +19,13 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		if err := godotenv.Load("../.env"); err != nil {
-			logger.Info("No .env file found, using environment variables")
-		}
-	}
+	godotenv.Load()
+	godotenv.Load("../.env")
 
 	logger.Init()
 	cfg := config.Load()
+
+	logger.Info("Server starting", "port", cfg.AppPort, "password_configured", cfg.AppPassword != "")
 
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
 		logger.Error("Failed to create upload directory", "error", err)

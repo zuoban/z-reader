@@ -1,28 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import { Playfair_Display } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorSuppressor } from '@/components/ErrorSuppressor';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
-  display: 'swap',
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-  display: 'swap',
-});
-
-const playfair = Playfair_Display({
-  variable: '--font-heading',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
 });
 
@@ -78,8 +64,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-background paper-texture">
+    <html lang="zh-CN" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-background paper-texture font-sans">
         <TooltipProvider>
           <ServiceWorkerRegistration />
           <ErrorSuppressor />

@@ -41,72 +41,62 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
   const animationDelay = `${index * 0.08}s`;
 
   return (
-    <div 
-      className="animate-book-appear" 
-      style={{ animationDelay, animationFillMode: 'backwards' }}
+    <div
+      className="opacity-0 animate-[fadeIn_0.4s_ease-out_forwards]"
+      style={{ animationDelay }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Card 
-        className={`group relative bg-card/95 border-border/30 overflow-visible cursor-pointer transition-all duration-300 ${isHovered ? 'book-shadow-hover' : 'book-shadow'}`}
+      <Card
+        className={`group relative bg-card border-border/50 overflow-hidden cursor-pointer transition-all duration-200 ${isHovered ? 'book-shadow-hover' : 'book-shadow'}`}
         onClick={onRead}
       >
-        <div className="aspect-[3/4] relative overflow-hidden rounded-t-lg">
-          <div className="absolute inset-0 spine-effect z-10" />
-          
+        <div className="aspect-[2/3] relative overflow-hidden">
           {coverUrl ? (
             <img
               src={coverUrl}
               alt={book.title}
-              className={`w-full h-full object-cover transition-transform duration-500 ${isHovered ? 'scale-[1.02]' : 'scale-100'}`}
+              className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
-              <BookOpen className="w-10 h-10 text-muted-foreground/40" />
+              <BookOpen className="w-8 h-8 text-muted-foreground/30" />
             </div>
           )}
-          
-          <div className="absolute inset-x-0 bottom-0 h-1 page-edge opacity-60" />
-          
+
           <DropdownMenu>
-            <DropdownMenuTrigger 
-              className="absolute top-2 right-2 z-20 h-6 w-6 flex items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-border/40 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-card"
+            <DropdownMenuTrigger
+              className="absolute top-2 right-2 z-20 h-7 w-7 flex items-center justify-center rounded-full bg-background/90 backdrop-blur-sm border border-border/50 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreVertical className="w-3 h-3 text-muted-foreground" />
+              <MoreVertical className="w-3.5 h-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card/95 border-border/40 backdrop-blur-sm">
+            <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRead(); }} className="gap-2">
                 <BookOpen className="w-4 h-4" />
-                <span className="font-sans text-sm">阅读</span>
+                <span>阅读</span>
               </DropdownMenuItem>
-              <Separator className="my-1 bg-border/40" />
+              <Separator />
               <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 disabled={isDeleting}
                 className="gap-2 text-destructive focus:text-destructive"
               >
                 <Trash2 className="w-4 h-4" />
-                <span className="font-sans text-sm">{isDeleting ? '移除中...' : '移除'}</span>
+                <span>{isDeleting ? '删除中' : '删除'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        
-        <CardHeader className="p-3 pb-0">
-          <CardTitle className="font-heading text-sm line-clamp-2 leading-tight tracking-tight">
+
+        <CardHeader className="p-3 space-y-1">
+          <CardTitle className="text-sm font-medium line-clamp-2 leading-snug">
             {book.title}
           </CardTitle>
-          <CardDescription className="font-sans text-xs line-clamp-1 text-muted-foreground/80 mt-1">
+          <CardDescription className="text-xs line-clamp-1">
             {book.author || '未知作者'}
           </CardDescription>
         </CardHeader>
-        
-        <CardContent className="p-3 pt-1">
-          <p className="font-mono text-xs text-muted-foreground/60 tabular-nums">
-            {formatSize(book.size)}
-          </p>
-        </CardContent>
       </Card>
     </div>
   );

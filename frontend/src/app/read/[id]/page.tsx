@@ -363,10 +363,10 @@ export default function ReadPage() {
   if (authLoading || !isAuthenticated) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ background: uiScheme.bg }}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-2 border-foreground/20 rounded-full animate-subtle-float" 
-               style={{ borderRightColor: uiScheme.fg }} />
-          <p className="font-heading text-base" style={{ color: uiScheme.mutedText }}>Preparing your book...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 rounded-full animate-spin"
+               style={{ borderColor: `${uiScheme.fg}20`, borderTopColor: uiScheme.fg }} />
+          <p className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>加载中...</p>
         </div>
       </div>
     );
@@ -375,100 +375,100 @@ export default function ReadPage() {
   if (error) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 p-8" style={{ background: uiScheme.bg }}>
-        <div className="w-16 h-20 rounded border border-destructive/40 flex items-center justify-center bg-destructive/10">
-          <span className="text-destructive text-3xl">!</span>
+        <div className="w-16 h-20 rounded border-2 border-destructive/30 flex items-center justify-center bg-destructive/5">
+          <span className="text-destructive text-2xl font-semibold">!</span>
         </div>
-        <p className="font-heading text-lg text-destructive">{error}</p>
-        <Button onClick={handleBack} className="mt-2">返回书库</Button>
+        <p className="text-base font-medium text-destructive">{error}</p>
+        <Button onClick={handleBack} variant="outline" className="mt-2">返回书库</Button>
       </div>
     );
   }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: uiScheme.bg }}>
-      <header 
-        className="border-b shrink-0 z-50 backdrop-blur-sm transition-colors duration-300" 
-        style={{ 
-          background: `${uiScheme.headerBg}ee`,
-          borderColor: uiScheme.headerBorder 
+      <header
+        className="border-b shrink-0 z-50 backdrop-blur-sm transition-colors duration-200"
+        style={{
+          background: `${uiScheme.headerBg}f0`,
+          borderColor: uiScheme.headerBorder
         }}
       >
-        <div className="px-2 sm:px-4 h-11 sm:h-12 flex items-center justify-between gap-1 sm:gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Button 
-              variant="ghost" 
+        <div className="px-4 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button
+              variant="ghost"
               size="sm"
               onClick={handleBack}
-              title="Return to bookshelf"
-              className="gap-1 sm:gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors h-8 sm:h-9 px-1.5 sm:px-2"
+              title="返回书库"
+              className="gap-2 h-9 px-3"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="font-sans text-xs sm:text-sm hidden sm:inline">书库</span>
+              <span className="text-sm hidden sm:inline">书库</span>
             </Button>
-            
-            <Separator orientation="vertical" className="h-5 sm:h-6 bg-border/40 hidden sm:block" />
-            
+
+            <Separator orientation="vertical" className="h-6 hidden sm:block" style={{ background: uiScheme.headerBorder }} />
+
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="font-heading text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[200px]" style={{ color: uiScheme.fg }}>
+              <span className="text-sm font-medium truncate max-w-[150px] sm:max-w-[300px]" style={{ color: uiScheme.fg }}>
                 {metadata.title || '加载中...'}
               </span>
               {currentChapter && (
-                <span className="font-sans text-[10px] sm:text-xs truncate max-w-[100px] sm:max-w-[200px] hidden sm:block" style={{ color: uiScheme.mutedText }}>
+                <span className="text-xs truncate max-w-[150px] sm:max-w-[300px] hidden sm:block" style={{ color: uiScheme.mutedText }}>
                   {currentChapter}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Progress 
-                value={percentage} 
-                className="w-12 sm:w-20 h-1.5"
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Progress
+                value={percentage}
+                className="w-16 sm:w-24 h-1.5"
               />
-              <span className="font-mono text-[10px] sm:text-xs tabular-nums w-6 sm:w-7 hidden sm:block" style={{ color: uiScheme.mutedText }}>
+              <span className="font-mono text-xs tabular-nums w-8 hidden sm:block" style={{ color: uiScheme.mutedText }}>
                 {percentage}%
               </span>
             </div>
 
-            <Separator orientation="vertical" className="h-5 sm:h-6 bg-border/40" />
+            <Separator orientation="vertical" className="h-6" style={{ background: uiScheme.headerBorder }} />
 
             <Sheet>
               <SheetTrigger
                 render={
-                  <Button 
-                    variant="ghost" 
-                    size="icon-sm" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     title="目录"
-                    className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    className="h-9 w-9"
                   />
                 }
               >
                 <List className="w-4 h-4" />
               </SheetTrigger>
-              <SheetContent 
-                side="left" 
-                className="w-72 sm:w-80 backdrop-blur-sm p-0"
+              <SheetContent
+                side="left"
+                className="w-80 backdrop-blur-sm p-0"
                 style={{
                   background: `${uiScheme.cardBg}f5`,
                   borderColor: uiScheme.cardBorder,
                 }}
               >
-                <SheetHeader className="p-4 pb-2">
-                  <SheetTitle className="font-heading text-lg" style={{ color: uiScheme.fg }}>
+                <SheetHeader className="p-4 pb-3">
+                  <SheetTitle className="text-lg font-semibold" style={{ color: uiScheme.fg }}>
                     目录
                   </SheetTitle>
                 </SheetHeader>
-                <Separator className="my-0" style={{ background: uiScheme.cardBorder }} />
+                <Separator style={{ background: uiScheme.cardBorder }} />
                 <ScrollArea className="h-[calc(100vh-80px)]">
-                  <div className="space-y-1 p-4 pt-2">
+                  <div className="space-y-0.5 p-4 pt-3">
                     {toc.length > 0 ? (
                       toc.map((item, idx) => (
                         <TOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
                       ))
                     ) : (
-                      <p className="font-sans text-sm py-4" style={{ color: uiScheme.mutedText }}>
-                        No table of contents available
+                      <p className="text-sm py-8 text-center" style={{ color: uiScheme.mutedText }}>
+                        暂无目录
                       </p>
                     )}
                   </div>
@@ -478,12 +478,12 @@ export default function ReadPage() {
 
             <ThemeSettings theme={theme} setTheme={setTheme} uiScheme={uiScheme} />
 
-            <Button 
-              variant="ghost" 
-              size="icon-sm"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={logout}
-              title="Sign out"
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/30 h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
+              title="退出"
+              className="h-9 w-9 hidden sm:flex"
             >
               <LogOut className="w-4 h-4" />
             </Button>
@@ -491,23 +491,23 @@ export default function ReadPage() {
         </div>
       </header>
 
-      <div 
+      <div
         className="flex-1 relative min-h-0"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {loading && (
-          <div 
-            className="absolute inset-0 flex flex-col items-center justify-center z-10" 
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center z-10"
             style={{ background: uiScheme.bg }}
           >
             <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-16 rounded border-2 border-foreground/20 flex items-center justify-center"
+              <div className="w-12 h-16 rounded border-2 flex items-center justify-center"
                    style={{ borderColor: uiScheme.cardBorder }}>
-                <div className="w-8 h-10 border-2 rounded animate-subtle-float"
-                     style={{ borderRightColor: uiScheme.link }} />
+                <div className="w-10 h-10 border-2 rounded-full animate-spin"
+                     style={{ borderColor: `${uiScheme.link}20`, borderTopColor: uiScheme.link }} />
               </div>
-              <p className="font-heading text-base animate-ink-spread" style={{ color: uiScheme.mutedText }}>
+              <p className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>
                 {loadingMsg}
               </p>
             </div>
@@ -531,30 +531,30 @@ export default function ReadPage() {
   );
 }
 
-function TOCNode({ item, onGoTo, depth = 0, uiScheme }: { 
-  item: TOCItem; 
-  onGoTo: (href: string) => void; 
-  depth?: number; 
-  uiScheme: ThemeColors 
+function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
+  item: TOCItem;
+  onGoTo: (href: string) => void;
+  depth?: number;
+  uiScheme: ThemeColors
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  
+
   return (
     <div>
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-start transition-all duration-200 rounded-md"
-        style={{ 
-          paddingLeft: depth > 0 ? `${depth * 12 + 10}px` : '10px',
+        className="w-full justify-start transition-colors duration-150 rounded h-9"
+        style={{
+          paddingLeft: depth > 0 ? `${depth * 16 + 12}px` : '12px',
           color: isHovered ? uiScheme.fg : uiScheme.buttonText,
-          background: isHovered ? `${uiScheme.buttonHoverBg}60` : 'transparent',
+          background: isHovered ? `${uiScheme.buttonHoverBg}40` : 'transparent',
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => onGoTo(item.href)}
       >
-        <span className="font-sans text-sm truncate">{item.label}</span>
+        <span className="text-sm truncate">{item.label}</span>
       </Button>
       {item.subitems?.map((sub, idx) => (
         <TOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />

@@ -74,79 +74,79 @@ export default function ShelfPage() {
     return (
       <div className="min-h-screen warm-gradient paper-texture flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-foreground/20 rounded-full animate-subtle-float" 
-               style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
-          <p className="font-heading text-lg text-muted-foreground">正在加载您的书库...</p>
+          <div className="w-10 h-10 border-2 border-foreground/20 rounded-full animate-spin"
+               style={{ borderTopColor: 'var(--foreground)' }} />
+          <p className="text-sm text-muted-foreground font-medium">加载中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen warm-gradient paper-texture relative">
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-6 h-9 sm:w-8 sm:h-12 ink-gradient rounded-sm spine-effect flex items-center justify-center shrink-0">
-              <span className="text-primary-foreground font-heading text-[10px] sm:text-xs italic">Z</span>
+    <div className="min-h-screen warm-gradient paper-texture">
+      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-10 ink-gradient rounded flex items-center justify-center">
+              <span className="text-primary-foreground font-semibold text-sm">Z</span>
             </div>
-            <h1 className="font-heading text-lg sm:text-2xl tracking-tight truncate hidden sm:block">我的书库</h1>
+            <h1 className="text-xl font-semibold tracking-tight hidden sm:block">书库</h1>
           </div>
-          
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+
+          <div className="flex items-center gap-3">
             <div className="relative">
               <Input
                 type="file"
                 accept=".epub"
                 onChange={handleUpload}
                 disabled={isUploading}
-                className="absolute inset-0 opacity-0 cursor-pointer z-20 w-full h-full"
-                title="上传 EPUB 文件到您的收藏"
+                className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                title="上传 EPUB"
               />
-              <Button 
-                variant="outline" 
-                className="gap-1.5 sm:gap-2 bg-card/80 border-border/60 hover:bg-accent/10 hover:border-accent/40 transition-all pointer-events-none h-9 sm:h-10 px-2 sm:px-4"
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 pointer-events-none"
                 disabled={isUploading}
               >
                 {isUploading ? (
                   <>
-                    <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-foreground/30 rounded-full animate-subtle-float" 
-                          style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
-                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">添加中...</span>
+                    <div className="w-4 h-4 border-2 border-foreground/20 rounded-full animate-spin"
+                         style={{ borderTopColor: 'var(--foreground)' }} />
+                    <span className="hidden sm:inline">添加中</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">添加书籍</span>
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">添加</span>
                   </>
                 )}
               </Button>
             </div>
-            
-            <Button 
-              variant="ghost" 
+
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={logout}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors h-9 sm:h-10 px-2 sm:px-3"
+              className="text-muted-foreground hover:text-foreground"
             >
-              <span className="font-sans text-xs sm:text-sm">退出</span>
+              退出
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {books.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-24">
-            <div className="w-16 h-22 sm:w-20 sm:h-28 rounded-sm border-2 border-border/40 bg-card flex items-center justify-center mb-4 sm:mb-6 book-shadow">
-              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="w-16 h-20 rounded border-2 border-border bg-card flex items-center justify-center mb-6 book-shadow">
+              <BookOpen className="w-8 h-8 text-muted-foreground/40" />
             </div>
-            <p className="font-heading text-lg sm:text-xl text-muted-foreground mb-2">您的书架正在等待</p>
-            <p className="font-sans text-xs sm:text-sm text-muted-foreground/70 text-center px-4">
-              添加您的第一本书，开始阅读之旅
-            </p>
+            <p className="text-lg font-medium text-foreground mb-2">书架空空如也</p>
+            <p className="text-sm text-muted-foreground">添加您的第一本书开始阅读</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-6">
             {books.map((book, index) => (
               <BookCard
                 key={book.id}
@@ -161,8 +161,6 @@ export default function ShelfPage() {
           </div>
         )}
       </main>
-
-      <footer className="fixed bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
     </div>
   );
 }

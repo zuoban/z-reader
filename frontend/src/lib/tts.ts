@@ -252,6 +252,9 @@ export class BackendTTS {
       this.audioCache.set(ssml, { blob, marks: this.marks });
       await this.playAudio(audioUrl);
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       this.setState('stopped');
       throw error;
     }

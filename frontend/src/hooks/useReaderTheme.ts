@@ -26,60 +26,60 @@ export interface ThemeColors {
 
 const PRESET_STYLES: Record<ReaderTheme['preset'], ThemeColors> = {
   light: {
-    bg: '#ffffff',
-    fg: '#333333',
-    link: '#0066cc',
+    bg: '#fafaf9',
+    fg: '#171717',
+    link: '#D4AF37',
     headerBg: '#ffffff',
-    headerBorder: '#e5e7eb',
-    cardBg: '#f9fafb',
-    cardBorder: '#d1d5db',
-    buttonBg: '#f3f4f6',
-    buttonHoverBg: '#e5e7eb',
-    buttonText: '#374151',
-    mutedText: '#6b7280',
-    accentText: '#9ca3af',
+    headerBorder: '#e7e5e4',
+    cardBg: '#ffffff',
+    cardBorder: '#e7e5e4',
+    buttonBg: '#fafaf9',
+    buttonHoverBg: '#f5f5f4',
+    buttonText: '#404040',
+    mutedText: '#737373',
+    accentText: '#a3a3a3',
   },
   sepia: {
-    bg: '#f4ecd8',
-    fg: '#5c4b37',
-    link: '#8b5a2b',
-    headerBg: '#f4ecd8',
-    headerBorder: '#d4c4a8',
-    cardBg: '#ebe3d0',
-    cardBorder: '#c9b99d',
-    buttonBg: '#ebe3d0',
-    buttonHoverBg: '#d4c4a8',
-    buttonText: '#5c4b37',
-    mutedText: '#7a6a56',
-    accentText: '#9a8a74',
+    bg: '#f5f1e8',
+    fg: '#3d3020',
+    link: '#b8860b',
+    headerBg: '#faf8f3',
+    headerBorder: '#e8dfc8',
+    cardBg: '#faf8f3',
+    cardBorder: '#e8dfc8',
+    buttonBg: '#f5f1e8',
+    buttonHoverBg: '#ebe5d5',
+    buttonText: '#5a4a30',
+    mutedText: '#7a6a50',
+    accentText: '#9a8a70',
   },
   green: {
-    bg: '#cce8cf',
-    fg: '#2d4a3e',
-    link: '#3d6b4f',
-    headerBg: '#cce8cf',
-    headerBorder: '#a8d8ac',
-    cardBg: '#b8d8bc',
-    cardBorder: '#98c89c',
-    buttonBg: '#b8d8bc',
-    buttonHoverBg: '#a8d8ac',
-    buttonText: '#2d4a3e',
-    mutedText: '#4a6a5e',
-    accentText: '#6a8a7e',
+    bg: '#e8f3ea',
+    fg: '#1a3a2a',
+    link: '#2d7a4f',
+    headerBg: '#f0f7f2',
+    headerBorder: '#d0e5d5',
+    cardBg: '#f0f7f2',
+    cardBorder: '#d0e5d5',
+    buttonBg: '#e8f3ea',
+    buttonHoverBg: '#dceede',
+    buttonText: '#2d4a3a',
+    mutedText: '#4a6a5a',
+    accentText: '#6a8a7a',
   },
   dark: {
-    bg: '#1e293b',
-    fg: '#e2e8f0',
-    link: '#7dd3fc',
+    bg: '#0f172a',
+    fg: '#f1f5f9',
+    link: '#fbbf24',
     headerBg: '#1e293b',
     headerBorder: '#334155',
-    cardBg: '#0f172a',
+    cardBg: '#1e293b',
     cardBorder: '#334155',
     buttonBg: '#334155',
     buttonHoverBg: '#475569',
-    buttonText: '#e2e8f0',
+    buttonText: '#cbd5e1',
     mutedText: '#94a3b8',
-    accentText: '#cbd5e1',
+    accentText: '#64748b',
   },
 };
 
@@ -149,20 +149,54 @@ export function useReaderTheme() {
         line-height: ${theme.lineHeight} !important;
         padding: ${theme.margin}px !important;
       }
-      p, li, blockquote, dd {
+      p {
         line-height: ${theme.lineHeight} !important;
         text-align: justify;
-        margin: 0.5em 0;
+        margin: 1em 0;
+        hyphens: auto;
+        word-spacing: 0.05em;
+      }
+      li {
+        line-height: ${theme.lineHeight} !important;
+        margin: 0.3em 0;
+      }
+      blockquote {
+        line-height: ${theme.lineHeight} !important;
+        margin: 1.5em 0;
+        padding-left: 1.5em;
+        border-left: 3px solid ${preset.link};
+        opacity: 0.9;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        color: ${preset.fg} !important;
+        font-weight: 600;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        line-height: 1.3;
       }
       a:link {
         color: ${preset.link} !important;
+        text-decoration: none;
+        border-bottom: 1px solid ${preset.link}40;
+        transition: border-color 0.2s;
+      }
+      a:hover {
+        border-bottom-color: ${preset.link};
       }
       a:visited {
         color: ${preset.link} !important;
-        opacity: 0.7;
+        opacity: 0.8;
       }
       ::selection {
-        background: ${theme.preset === 'dark' ? '#3b82f6' : '#bfdbfe'} !important;
+        background: ${theme.preset === 'dark' ? '#fbbf2440' : '#D4AF3730'} !important;
+        color: ${preset.fg} !important;
+      }
+      code {
+        font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+        background: ${theme.preset === 'dark' ? '#ffffff10' : '#00000008'};
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+        font-size: 0.9em;
       }
     `;
   }, [theme]);

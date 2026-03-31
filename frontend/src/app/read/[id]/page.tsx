@@ -321,28 +321,28 @@ export default function ReadPage() {
   function handleBack() {
     destroyedRef.current = true;
     saveNow();
-    
+
     // 清理所有绑定的 iframe 文档的事件
     boundDocsRef.current.forEach(doc => {
       doc.removeEventListener('keydown', keyboardHandler);
     });
     boundDocsRef.current = [];
-    
+
     const view = viewRef.current;
     viewRef.current = null;
     if (view) {
       try {
+        view.close?.();
         if (view.parentNode) {
           view.parentNode.removeChild(view as unknown as Node);
         }
-        view.close?.();
       } catch {}
     }
-    
+
     if (containerRef.current) {
       containerRef.current.innerHTML = '';
     }
-    
+
     router.push('/shelf');
   }
 

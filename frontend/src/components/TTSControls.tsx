@@ -18,8 +18,6 @@ import {
   SkipForward,
   Volume2,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
@@ -42,8 +40,6 @@ interface TTSControlsProps {
   onNext: () => void;
   onPrev: () => void;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
-  onPrevPage?: () => void;
-  onNextPage?: () => void;
   uiScheme: ThemeColors;
 }
 
@@ -56,8 +52,6 @@ export function TTSControls({
   onNext,
   onPrev,
   onUpdateSettings,
-  onPrevPage,
-  onNextPage,
   uiScheme,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
@@ -342,38 +336,6 @@ export function TTSControls({
                 style={{ color: uiScheme.mutedText }}
               >
                 <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 py-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onPrevPage}
-                title="上一页"
-                className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
-                style={{
-                  background: `${uiScheme.buttonBg}ee`,
-                  borderColor: uiScheme.cardBorder,
-                  color: uiScheme.buttonText,
-                }}
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onNextPage}
-                title="下一页"
-                className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
-                style={{
-                  background: `${uiScheme.buttonBg}ee`,
-                  borderColor: uiScheme.cardBorder,
-                  color: uiScheme.buttonText,
-                }}
-              >
-                <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
 

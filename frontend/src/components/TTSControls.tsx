@@ -278,8 +278,8 @@ export function TTSControls({
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
 
-  const panelWidth = 256;
-  const panelHeight = 380;
+  const panelWidth = window.innerWidth < 640 ? Math.min(280, window.innerWidth - 16) : 256;
+  const panelHeight = window.innerWidth < 640 ? 360 : 380;
 
   return (
     <div className="relative" style={{ pointerEvents: 'auto' }}>
@@ -295,7 +295,7 @@ export function TTSControls({
         }}
         role="button"
         tabIndex={0}
-        className="fixed z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-shadow duration-150 touch-none"
+        className="fixed z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-shadow duration-150 touch-none"
         style={{
           right: position.x,
           bottom: position.y,
@@ -309,14 +309,14 @@ export function TTSControls({
         title="控制面板（拖动移动）"
       >
         <Volume2
-          className="w-5 h-5"
+          className="w-4 h-4 sm:w-5 sm:h-5"
           style={{
             color: isActive ? uiScheme.bg : uiScheme.fg,
           }}
         />
         {isActive && (
           <div
-            className="absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse"
+            className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse"
             style={{ background: '#22c55e' }}
           />
         )}
@@ -324,24 +324,25 @@ export function TTSControls({
 
       {expanded && (
         <div
-          className="fixed z-40 w-64 animate-in slide-in-from-bottom-4 fade-in duration-200"
+          className="fixed z-40 animate-in slide-in-from-bottom-4 fade-in duration-200"
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={{
             right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
             bottom: Math.max(8, Math.min(position.y + 56, window.innerHeight - panelHeight - 8)),
+            width: panelWidth,
           }}
         >
           <div
-            className="flex flex-col gap-2 backdrop-blur-md rounded-xl border p-3 shadow-xl"
+            className="flex flex-col gap-2 backdrop-blur-md rounded-xl border p-2.5 sm:p-3 shadow-xl"
             style={{
               background: `${uiScheme.cardBg}f5`,
               borderColor: uiScheme.cardBorder,
             }}
           >
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-0.5 sm:mb-1">
               <span
-                className="font-heading text-sm"
+                className="font-heading text-xs sm:text-sm"
                 style={{ color: uiScheme.fg }}
               >
                 控制面板
@@ -350,40 +351,40 @@ export function TTSControls({
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setExpanded(false)}
-                className="transition-transform hover:scale-110 active:scale-95"
+                className="transition-transform hover:scale-110 active:scale-95 h-6 w-6 sm:h-7 sm:w-7"
                 style={{ color: uiScheme.mutedText }}
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
             </div>
 
             <div
-              className="border-t pt-2"
+              className="border-t pt-1.5 sm:pt-2"
               style={{ borderColor: uiScheme.cardBorder }}
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                 <label
-                  className="text-xs"
+                  className="text-[10px] sm:text-xs"
                   style={{ color: uiScheme.mutedText }}
                 >
                   文字转语音
                 </label>
               </div>
 
-              <div className="flex items-center justify-center gap-2 py-1">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 py-1">
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   onClick={onPrev}
                   disabled={!isActive || isPending}
                   title="上一句"
-                  className="transition-transform hover:scale-110 active:scale-95"
+                  className="transition-transform hover:scale-110 active:scale-95 h-7 w-7 sm:h-8 sm:w-8"
                   style={{
                     color: isActive && !isPending ? uiScheme.fg : uiScheme.mutedText,
                     opacity: isPending ? 0.5 : 1,
                   }}
                 >
-                  <SkipBack className="w-4 h-4" />
+                  <SkipBack className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </Button>
 
                 <Button
@@ -392,7 +393,7 @@ export function TTSControls({
                   onClick={handleStartClick}
                   disabled={isPending}
                   title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                  className="transition-transform hover:scale-105 active:scale-95"
+                  className="transition-transform hover:scale-105 active:scale-95 h-8 w-8 sm:h-9 sm:w-9"
                   style={{
                     background: isPlaying
                       ? uiScheme.buttonBg
@@ -403,9 +404,9 @@ export function TTSControls({
                   }}
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4" />
+                    <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   ) : (
-                    <Play className="w-4 h-4 ml-0.5" />
+                    <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-0.5" />
                   )}
                 </Button>
 
@@ -415,13 +416,13 @@ export function TTSControls({
                   onClick={onNext}
                   disabled={!isActive || isPending}
                   title="下一句"
-                  className="transition-transform hover:scale-110 active:scale-95"
+                  className="transition-transform hover:scale-110 active:scale-95 h-7 w-7 sm:h-8 sm:w-8"
                   style={{
                     color: isActive && !isPending ? uiScheme.fg : uiScheme.mutedText,
                     opacity: isPending ? 0.5 : 1,
                   }}
                 >
-                  <SkipForward className="w-4 h-4" />
+                  <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </Button>
 
                 <Button
@@ -430,24 +431,24 @@ export function TTSControls({
                   onClick={handleStopClick}
                   disabled={!isActive || isPending}
                   title="停止"
-                  className="transition-transform hover:scale-110 active:scale-95"
+                  className="transition-transform hover:scale-110 active:scale-95 h-7 w-7 sm:h-8 sm:w-8"
                   style={{
                     color: isActive && !isPending ? '#ef4444' : uiScheme.mutedText,
                     opacity: isPending ? 0.5 : 1,
                   }}
                 >
-                  <Square className="w-4 h-4" />
+                  <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </Button>
               </div>
             </div>
 
             <div
-              className="flex flex-col gap-2 pt-2 border-t"
+              className="flex flex-col gap-1.5 sm:gap-2 pt-1.5 sm:pt-2 border-t"
               style={{ borderColor: uiScheme.cardBorder }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <label
-                  className="text-xs w-8 shrink-0"
+                  className="text-[10px] sm:text-xs w-7 sm:w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
                   速度
@@ -461,16 +462,16 @@ export function TTSControls({
                   className="flex-1"
                 />
                 <span
-                  className="text-xs w-10 tabular-nums text-right"
+                  className="text-[10px] sm:text-xs w-9 sm:w-10 tabular-nums text-right"
                   style={{ color: uiScheme.fg }}
                 >
                   {formatRate(localRate)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <label
-                  className="text-xs w-8 shrink-0"
+                  className="text-[10px] sm:text-xs w-7 sm:w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
                   音调
@@ -484,16 +485,16 @@ export function TTSControls({
                   className="flex-1"
                 />
                 <span
-                  className="text-xs w-10 tabular-nums text-right"
+                  className="text-[10px] sm:text-xs w-9 sm:w-10 tabular-nums text-right"
                   style={{ color: uiScheme.fg }}
                 >
                   {formatPitch(localPitch)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <label
-                  className="text-xs w-8 shrink-0"
+                  className="text-[10px] sm:text-xs w-7 sm:w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
                   音量
@@ -507,7 +508,7 @@ export function TTSControls({
                   className="flex-1"
                 />
                 <span
-                  className="text-xs w-10 tabular-nums text-right"
+                  className="text-[10px] sm:text-xs w-9 sm:w-10 tabular-nums text-right"
                   style={{ color: uiScheme.fg }}
                 >
                   {Math.round(localVolume * 100)}%
@@ -516,9 +517,9 @@ export function TTSControls({
 
               {filteredVoices.length > 0 && (
                 <>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <label
-                      className="text-xs w-8 shrink-0"
+                      className="text-[10px] sm:text-xs w-7 sm:w-8 shrink-0"
                       style={{ color: uiScheme.mutedText }}
                     >
                       语种
@@ -528,7 +529,7 @@ export function TTSControls({
                       onValueChange={handleLocaleChange}
                     >
                       <SelectTrigger
-                        className="flex-1 text-xs h-7"
+                        className="flex-1 text-[10px] sm:text-xs h-6 sm:h-7"
                         style={{
                           background: uiScheme.buttonBg,
                           borderColor: uiScheme.cardBorder,
@@ -547,6 +548,7 @@ export function TTSControls({
                           <SelectItem
                             key={item.locale}
                             value={item.locale}
+                            className="text-[10px] sm:text-xs"
                             style={{ color: uiScheme.fg }}
                           >
                             {item.label}
@@ -555,10 +557,10 @@ export function TTSControls({
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
+
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <label
-                      className="text-xs w-8 shrink-0"
+                      className="text-[10px] sm:text-xs w-7 sm:w-8 shrink-0"
                       style={{ color: uiScheme.mutedText }}
                     >
                       语音
@@ -568,7 +570,7 @@ export function TTSControls({
                       onValueChange={handleVoiceChange}
                     >
                       <SelectTrigger
-                        className="flex-1 text-xs h-7"
+                        className="flex-1 text-[10px] sm:text-xs h-6 sm:h-7"
                         style={{
                           background: uiScheme.buttonBg,
                           borderColor: uiScheme.cardBorder,
@@ -587,6 +589,7 @@ export function TTSControls({
                           <SelectItem
                             key={voice.Name}
                             value={voice.Name}
+                            className="text-[10px] sm:text-xs"
                             style={{ color: uiScheme.fg }}
                           >
                             {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
@@ -599,9 +602,9 @@ export function TTSControls({
               )}
 
               {availableStyles.length > 1 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <label
-                    className="text-xs w-8 shrink-0"
+                    className="text-[10px] sm:text-xs w-7 sm:w-8 shrink-0"
                     style={{ color: uiScheme.mutedText }}
                   >
                     风格
@@ -611,7 +614,7 @@ export function TTSControls({
                     onValueChange={handleStyleChange}
                   >
                     <SelectTrigger
-                      className="flex-1 text-xs h-7"
+                      className="flex-1 text-[10px] sm:text-xs h-6 sm:h-7"
                       style={{
                         background: uiScheme.buttonBg,
                         borderColor: uiScheme.cardBorder,
@@ -630,6 +633,7 @@ export function TTSControls({
                         <SelectItem
                           key={style}
                           value={style}
+                          className="text-[10px] sm:text-xs"
                           style={{ color: uiScheme.fg }}
                         >
                           {style}

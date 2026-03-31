@@ -20,6 +20,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const ttsInstance = useRef(backendTTS);
   const isPlayingRef = useRef(false);
   const getNextAndSpeakRef = useRef<() => Promise<boolean>>(async () => false);
+  const wakeLockRef = useRef<any>(null);
 
   useEffect(() => {
     const loadVoices = async () => {
@@ -46,6 +47,27 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       ttsInstance.current.setSettings(updated);
       return updated;
     });
+  }, []);
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator && !wakeLockRef.current) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.warn('Wake Lock request failed:', err);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch (err) {
+      console.warn('Wake Lock release failed:', err);
+    }
   }, []);
 
   const handleHighlight = useCallback((range: Range) => {
@@ -234,19 +256,20 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     if (state === 'paused') {
       ttsInstance.current.resume();
+      await requestWakeLock();
       return;
     }
 
     if (!viewRef.current) return;
 
     viewRef.current.tts?.clearHighlight?.();
-    
+
     const inited = await ensureTTS();
     if (!inited) return;
 
     const currentRange = viewRef.current.lastLocation?.range;
     let ssml: string | null | undefined;
-    
+
     if (currentRange) {
       try {
         ssml = viewRef.current.tts?.from?.(currentRange);
@@ -254,33 +277,36 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         ssml = viewRef.current.tts?.start?.();
       }
     }
-    
+
     if (!ssml) {
       ssml = viewRef.current.tts?.start?.();
     }
-    
+
     if (!ssml) return;
-    
+
     const success = await speakSSML(ssml);
     if (success) {
       isPlayingRef.current = true;
+      await requestWakeLock();
     }
-  }, [state, viewRef, ensureTTS, speakSSML]);
+  }, [state, viewRef, ensureTTS, speakSSML, requestWakeLock]);
 
   const stop = useCallback(() => {
     ttsInstance.current.stop();
     isPlayingRef.current = false;
     setCurrentMark(null);
     setMarkIndex(0);
-    
+
     // 清除预加载的音频
     ttsInstance.current.clearPreload();
-    
+
     if (viewRef.current?.tts) {
       viewRef.current.tts.clearHighlight?.();
       viewRef.current.tts = undefined;
     }
-  }, [viewRef]);
+
+    releaseWakeLock();
+  }, [viewRef, releaseWakeLock]);
 
   const next = useCallback(async () => {
     ttsInstance.current.clearPreloadQueueOnly();
@@ -307,7 +333,12 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   }, [getNextAndSpeak]);
 
   useEffect(() => {
-    ttsInstance.current.onStateChangeCallback(setState);
+    ttsInstance.current.onStateChangeCallback((newState) => {
+      setState(newState);
+      if (newState === 'paused') {
+        releaseWakeLock();
+      }
+    });
     ttsInstance.current.onMarkChangeCallback((mark, index) => {
       setCurrentMark(mark);
       setMarkIndex(index);
@@ -317,11 +348,12 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     });
     ttsInstance.current.onEndCallback(async () => {
       if (!isPlayingRef.current) return;
-      
+
       const success = await getNextAndSpeakRef.current();
       if (!success) {
         setState('stopped');
         isPlayingRef.current = false;
+        releaseWakeLock();
       }
     });
     ttsInstance.current.onTimeUpdateCallback((currentTime, duration) => {
@@ -338,14 +370,15 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         }
       }
     });
-  }, [onHighlight, viewRef]);
+  }, [onHighlight, viewRef, releaseWakeLock]);
 
   useEffect(() => {
     return () => {
       isPlayingRef.current = false;
       ttsInstance.current.stop();
+      releaseWakeLock();
     };
-  }, []);
+  }, [releaseWakeLock]);
 
   return {
     state,

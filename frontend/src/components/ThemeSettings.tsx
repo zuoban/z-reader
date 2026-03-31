@@ -31,17 +31,17 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
     <Dialog>
       <DialogTrigger
         render={
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-sm"
-            className="text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors h-8 w-8 sm:h-9 sm:w-9"
           />
         }
       >
         <Settings className="w-4 h-4" />
       </DialogTrigger>
-      <DialogContent 
-        className="max-w-sm backdrop-blur-sm"
+      <DialogContent
+        className="max-w-[90vw] sm:max-w-sm backdrop-blur-sm"
         closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
         style={{
           background: `${uiScheme.cardBg}f5`,
@@ -50,20 +50,20 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
         }}
       >
         <DialogHeader className="pb-2">
-          <DialogTitle className="font-heading text-lg" style={{ color: uiScheme.fg }}>
+          <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
             阅读偏好
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 pt-3">
-          <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>主题</Label>
-            <div className="grid grid-cols-4 gap-2">
+        <div className="space-y-4 sm:space-y-5 pt-2 sm:pt-3">
+          <div className="space-y-2 sm:space-y-2.5">
+            <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>主题</Label>
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {PRESETS.map((p) => (
                 <button
                   key={p.key}
                   onClick={() => setTheme({ preset: p.key })}
-                  className="rounded-md p-2 flex flex-col items-center gap-1.5 border transition-all duration-200"
+                  className="rounded-md p-1.5 sm:p-2 flex flex-col items-center gap-1 sm:gap-1.5 border transition-all duration-200"
                   style={{
                     background: p.bg,
                     borderColor: theme.preset === p.key ? uiScheme.link : `${uiScheme.cardBorder}80`,
@@ -71,11 +71,11 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
                   }}
                 >
                   <div
-                    className="w-4 h-4 rounded-full border"
+                    className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border"
                     style={{ background: p.fg, borderColor: `${uiScheme.cardBorder}60` }}
                   />
                   <span
-                    className="font-sans text-xs"
+                    className="font-sans text-[10px] sm:text-xs"
                     style={{ color: p.fg }}
                   >
                     {p.label}
@@ -87,15 +87,15 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
 
           <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
 
-          <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>字体大小</Label>
-            <div className="flex items-center gap-2">
+          <div className="space-y-2 sm:space-y-2.5">
+            <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>字体大小</Label>
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 variant="outline"
                 size="icon-xs"
                 onClick={() => setTheme({ fontSize: Math.max(12, theme.fontSize - 2) })}
                 disabled={theme.fontSize <= 12}
-                className="border-border/40"
+                className="border-border/40 h-7 w-7 sm:h-8 sm:w-8"
                 style={{
                   borderColor: uiScheme.cardBorder,
                   background: uiScheme.buttonBg,
@@ -104,8 +104,8 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
               >
                 −
               </Button>
-              <span 
-                className="w-14 text-center font-mono text-sm tabular-nums"
+              <span
+                className="w-12 sm:w-14 text-center font-mono text-xs sm:text-sm tabular-nums"
                 style={{ color: uiScheme.fg }}
               >
                 {theme.fontSize}px
@@ -115,7 +115,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
                 size="icon-xs"
                 onClick={() => setTheme({ fontSize: Math.min(28, theme.fontSize + 2) })}
                 disabled={theme.fontSize >= 28}
-                className="border-border/40"
+                className="border-border/40 h-7 w-7 sm:h-8 sm:w-8"
                 style={{
                   borderColor: uiScheme.cardBorder,
                   background: uiScheme.buttonBg,
@@ -132,7 +132,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
                   variant="ghost"
                   size="sm"
                   onClick={() => setTheme({ fontSize: size })}
-                  className="flex-1 font-mono text-xs transition-all duration-200 rounded"
+                  className="flex-1 font-mono text-[10px] sm:text-xs transition-all duration-200 rounded h-7 sm:h-8"
                   style={{
                     background: theme.fontSize === size ? `${uiScheme.link}20` : 'transparent',
                     color: theme.fontSize === size ? uiScheme.link : uiScheme.mutedText,
@@ -147,8 +147,8 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
 
           <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
 
-          <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>行高</Label>
+          <div className="space-y-2 sm:space-y-2.5">
+            <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>行高</Label>
             <div className="flex gap-1">
               {[1.4, 1.5, 1.6, 1.8, 2.0].map((lh) => (
                 <Button
@@ -156,7 +156,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
                   variant="ghost"
                   size="sm"
                   onClick={() => setTheme({ lineHeight: lh })}
-                  className="flex-1 font-mono text-xs transition-all duration-200 rounded"
+                  className="flex-1 font-mono text-[10px] sm:text-xs transition-all duration-200 rounded h-7 sm:h-8"
                   style={{
                     background: theme.lineHeight === lh ? `${uiScheme.link}20` : 'transparent',
                     color: theme.lineHeight === lh ? uiScheme.link : uiScheme.mutedText,
@@ -170,8 +170,8 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
           </div>
           <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
 
-          <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>页边距</Label>
+          <div className="space-y-2 sm:space-y-2.5">
+            <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>页边距</Label>
             <div className="flex gap-1">
               {[20, 40, 60, 80, 100].map((m) => (
                 <Button
@@ -179,7 +179,7 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
                   variant="ghost"
                   size="sm"
                   onClick={() => setTheme({ margin: m })}
-                  className="flex-1 font-mono text-xs transition-all duration-200 rounded"
+                  className="flex-1 font-mono text-[10px] sm:text-xs transition-all duration-200 rounded h-7 sm:h-8"
                   style={{
                     background: theme.margin === m ? `${uiScheme.link}20` : 'transparent',
                     color: theme.margin === m ? uiScheme.link : uiScheme.mutedText,

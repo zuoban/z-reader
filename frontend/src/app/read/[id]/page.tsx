@@ -284,8 +284,9 @@ export default function ReadPage() {
     const touchEndY = e.changedTouches[0].clientY;
     const deltaX = touchEndX - touchStartX.current;
     const deltaY = touchEndY - touchStartY.current;
-    
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+
+    // 优化移动端翻页：降低阈值，增加垂直滑动容忍度
+    if (Math.abs(deltaX) > 30 && Math.abs(deltaX) > Math.abs(deltaY) * 0.5) {
       if (deltaX > 0) {
         handlePrev();
       } else {
@@ -369,45 +370,45 @@ export default function ReadPage() {
           borderColor: uiScheme.headerBorder
         }}
       >
-        <div className="px-4 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="px-3 sm:px-4 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleBack}
               title="返回书库"
-              className="gap-2 h-9 px-3"
+              className="gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
               <span className="text-sm hidden sm:inline">书库</span>
             </Button>
 
-            <Separator orientation="vertical" className="h-6 hidden sm:block" style={{ background: uiScheme.headerBorder }} />
+            <Separator orientation="vertical" className="h-5 sm:h-6 hidden sm:block" style={{ background: uiScheme.headerBorder }} />
 
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-sm font-medium truncate max-w-[150px] sm:max-w-[300px]" style={{ color: uiScheme.fg }}>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <span className="text-xs sm:text-sm font-medium truncate" style={{ color: uiScheme.fg }}>
                 {metadata.title || '加载中...'}
               </span>
               {currentChapter && (
-                <span className="text-xs truncate max-w-[150px] sm:max-w-[300px] hidden sm:block" style={{ color: uiScheme.mutedText }}>
+                <span className="text-[10px] sm:text-xs truncate hidden sm:block" style={{ color: uiScheme.mutedText }}>
                   {currentChapter}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Progress
                 value={percentage}
-                className="w-16 sm:w-24 h-1.5"
+                className="w-12 sm:w-24 h-1.5"
               />
-              <span className="font-mono text-xs tabular-nums w-8 hidden sm:block" style={{ color: uiScheme.mutedText }}>
+              <span className="font-mono text-[10px] sm:text-xs tabular-nums w-7 sm:w-8 hidden sm:block" style={{ color: uiScheme.mutedText }}>
                 {percentage}%
               </span>
             </div>
 
-            <Separator orientation="vertical" className="h-6" style={{ background: uiScheme.headerBorder }} />
+            <Separator orientation="vertical" className="h-5 sm:h-6" style={{ background: uiScheme.headerBorder }} />
 
             <Sheet>
               <SheetTrigger
@@ -416,7 +417,7 @@ export default function ReadPage() {
                     variant="ghost"
                     size="icon"
                     title="目录"
-                    className="h-9 w-9"
+                    className="h-8 w-8 sm:h-9 sm:w-9"
                   />
                 }
               >
@@ -424,20 +425,20 @@ export default function ReadPage() {
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-80 backdrop-blur-sm p-0"
+                className="w-[85vw] sm:w-80 max-w-sm backdrop-blur-sm p-0"
                 style={{
                   background: `${uiScheme.cardBg}f5`,
                   borderColor: uiScheme.cardBorder,
                 }}
               >
-                <SheetHeader className="p-4 pb-3">
-                  <SheetTitle className="text-lg font-semibold" style={{ color: uiScheme.fg }}>
+                <SheetHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+                  <SheetTitle className="text-base sm:text-lg font-semibold" style={{ color: uiScheme.fg }}>
                     目录
                   </SheetTitle>
                 </SheetHeader>
                 <Separator style={{ background: uiScheme.cardBorder }} />
-                <ScrollArea className="h-[calc(100vh-80px)]">
-                  <div className="space-y-0.5 p-4 pt-3">
+                <ScrollArea className="h-[calc(100vh-70px)] sm:h-[calc(100vh-80px)]">
+                  <div className="space-y-0.5 p-3 sm:p-4 pt-2 sm:pt-3">
                     {toc.length > 0 ? (
                       toc.map((item, idx) => (
                         <TOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
@@ -459,7 +460,7 @@ export default function ReadPage() {
               size="icon"
               onClick={logout}
               title="退出"
-              className="h-9 w-9 hidden sm:flex"
+              className="h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
             >
               <LogOut className="w-4 h-4" />
             </Button>
@@ -520,9 +521,10 @@ function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-start transition-colors duration-150 rounded h-9"
+        className="w-full justify-start transition-colors duration-150 rounded h-8 sm:h-9"
         style={{
-          paddingLeft: depth > 0 ? `${depth * 16 + 12}px` : '12px',
+          paddingLeft: depth > 0 ? `${depth * 12 + 8}px` : '8px',
+          paddingRight: '8px',
           color: isHovered ? uiScheme.fg : uiScheme.buttonText,
           background: isHovered ? `${uiScheme.buttonHoverBg}40` : 'transparent',
         }}
@@ -530,7 +532,7 @@ function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => onGoTo(item.href)}
       >
-        <span className="text-sm truncate">{item.label}</span>
+        <span className="text-xs sm:text-sm truncate">{item.label}</span>
       </Button>
       {item.subitems?.map((sub, idx) => (
         <TOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />

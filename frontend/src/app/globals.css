@@ -143,6 +143,37 @@ foliate-view::part(filter) {
   filter: none;
 }
 
+/* 移动端阅读优化 */
+@media (max-width: 640px) {
+  foliate-view {
+    /* 移动端增加左右内边距，避免文字贴边 */
+    padding: 0 4px;
+  }
+
+  /* 优化移动端触摸区域 */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 防止移动端双击缩放 */
+  * {
+    touch-action: pan-y;
+  }
+
+  /* 优化移动端滚动 */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 移动端字体渲染优化 */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
 @layer utilities {
   .paper-texture {
     background-image: var(--paper-texture);

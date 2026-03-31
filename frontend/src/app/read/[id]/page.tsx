@@ -528,8 +528,6 @@ export default function ReadPage() {
           onPrev={prevTTS}
           onUpdateSettings={updateTTSSettings}
           uiScheme={uiScheme}
-          onPrevPage={handlePrev}
-          onNextPage={handleNext}
         />
       </div>
     </div>

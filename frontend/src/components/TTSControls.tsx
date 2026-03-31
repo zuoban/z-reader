@@ -17,8 +17,6 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
-  ChevronLeft,
-  ChevronRight,
   X,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
@@ -34,8 +32,6 @@ interface TTSControlsProps {
   onPrev: () => void;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
-  onPrevPage: () => void;
-  onNextPage: () => void;
 }
 
 export function TTSControls({
@@ -48,8 +44,6 @@ export function TTSControls({
   onPrev,
   onUpdateSettings,
   uiScheme,
-  onPrevPage,
-  onNextPage,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [localRate, setLocalRate] = useState(settings.rate);
@@ -101,9 +95,7 @@ export function TTSControls({
 
   const handleMouseUp = () => {
     setIsDragging(false);
-    if (!hasDraggedRef.current) {
-      setExpanded(!expanded);
-    }
+    hasDraggedRef.current = false;
   };
 
   useEffect(() => {
@@ -118,6 +110,7 @@ export function TTSControls({
   }, [isDragging]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     const touch = e.touches[0];
     setIsDragging(true);
     hasDraggedRef.current = false;
@@ -130,6 +123,7 @@ export function TTSControls({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
     if (!isDragging) return;
     
     const touch = e.touches[0];
@@ -148,9 +142,14 @@ export function TTSControls({
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    hasDraggedRef.current = false;
+  };
+
+  const handleClick = () => {
     if (!hasDraggedRef.current) {
       setExpanded(!expanded);
     }
+    hasDraggedRef.current = false;
   };
 
   const handleRateChange = (value: number[]) => {
@@ -206,11 +205,12 @@ export function TTSControls({
   return (
     <div className="relative">
       <div
+        onClick={handleClick}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="fixed z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-shadow duration-150"
+        className="fixed z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-shadow duration-150 touch-none"
         style={{
           right: position.x,
           bottom: position.y,
@@ -266,38 +266,6 @@ export function TTSControls({
                 style={{ color: uiScheme.mutedText }}
               >
                 <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 py-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onPrevPage}
-                title="Previous page"
-                className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
-                style={{
-                  background: `${uiScheme.buttonBg}ee`,
-                  borderColor: uiScheme.cardBorder,
-                  color: uiScheme.buttonText,
-                }}
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onNextPage}
-                title="Next page"
-                className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
-                style={{
-                  background: `${uiScheme.buttonBg}ee`,
-                  borderColor: uiScheme.cardBorder,
-                  color: uiScheme.buttonText,
-                }}
-              >
-                <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
 

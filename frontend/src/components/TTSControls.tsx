@@ -35,10 +35,10 @@ interface TTSControlsProps {
   state: TTSState;
   settings: TTSSettings;
   voices: Voice[];
-  onStart: () => void;
+  onStart: () => void | Promise<void>;
   onStop: () => void;
-  onNext: () => void;
-  onPrev: () => void;
+  onNext: () => void | Promise<void>;
+  onPrev: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
 }
@@ -55,6 +55,7 @@ export function TTSControls({
   uiScheme,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const [localRate, setLocalRate] = useState(settings.rate);
   const [localPitch, setLocalPitch] = useState(settings.pitch);
   const [localVolume, setLocalVolume] = useState(settings.volume);
@@ -121,6 +122,23 @@ export function TTSControls({
         onUpdateSettings({ voiceName: localeVoices[0].Name });
       }
     }
+  };
+
+  const handleStartClick = async () => {
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      await onStart();
+    } finally {
+      setTimeout(() => setIsPending(false), 300);
+    }
+  };
+
+  const handleStopClick = async () => {
+    if (isPending) return;
+    setIsPending(true);
+    await onStop();
+    setTimeout(() => setIsPending(false), 300);
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -357,11 +375,12 @@ export function TTSControls({
                   variant="ghost"
                   size="icon-sm"
                   onClick={onPrev}
-                  disabled={!isActive}
+                  disabled={!isActive || isPending}
                   title="上一句"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
-                    color: isActive ? uiScheme.fg : uiScheme.mutedText,
+                    color: isActive && !isPending ? uiScheme.fg : uiScheme.mutedText,
+                    opacity: isPending ? 0.5 : 1,
                   }}
                 >
                   <SkipBack className="w-4 h-4" />
@@ -370,7 +389,8 @@ export function TTSControls({
                 <Button
                   variant={isPlaying ? 'outline' : 'default'}
                   size="icon"
-                  onClick={onStart}
+                  onClick={handleStartClick}
+                  disabled={isPending}
                   title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                   className="transition-transform hover:scale-105 active:scale-95"
                   style={{
@@ -379,6 +399,7 @@ export function TTSControls({
                       : uiScheme.link,
                     borderColor: uiScheme.cardBorder,
                     color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
+                    opacity: isPending ? 0.5 : 1,
                   }}
                 >
                   {isPlaying ? (
@@ -392,11 +413,12 @@ export function TTSControls({
                   variant="ghost"
                   size="icon-sm"
                   onClick={onNext}
-                  disabled={!isActive}
+                  disabled={!isActive || isPending}
                   title="下一句"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
-                    color: isActive ? uiScheme.fg : uiScheme.mutedText,
+                    color: isActive && !isPending ? uiScheme.fg : uiScheme.mutedText,
+                    opacity: isPending ? 0.5 : 1,
                   }}
                 >
                   <SkipForward className="w-4 h-4" />
@@ -405,12 +427,13 @@ export function TTSControls({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  onClick={onStop}
-                  disabled={!isActive}
+                  onClick={handleStopClick}
+                  disabled={!isActive || isPending}
                   title="停止"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
-                    color: isActive ? '#ef4444' : uiScheme.mutedText,
+                    color: isActive && !isPending ? '#ef4444' : uiScheme.mutedText,
+                    opacity: isPending ? 0.5 : 1,
                   }}
                 >
                   <Square className="w-4 h-4" />

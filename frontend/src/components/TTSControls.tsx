@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -18,9 +18,20 @@ import {
   SkipForward,
   Volume2,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
+
+const SUPPORTED_LOCALES = ['zh', 'en', 'ja', 'ko'];
+
+const LOCALE_LABELS: Record<string, string> = {
+  zh: '中文',
+  en: '英语',
+  ja: '日语',
+  ko: '韩语',
+};
 
 interface TTSControlsProps {
   state: TTSState;
@@ -31,6 +42,8 @@ interface TTSControlsProps {
   onNext: () => void;
   onPrev: () => void;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
+  onPrevPage?: () => void;
+  onNextPage?: () => void;
   uiScheme: ThemeColors;
 }
 
@@ -43,12 +56,15 @@ export function TTSControls({
   onNext,
   onPrev,
   onUpdateSettings,
+  onPrevPage,
+  onNextPage,
   uiScheme,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [localRate, setLocalRate] = useState(settings.rate);
   const [localPitch, setLocalPitch] = useState(settings.pitch);
   const [localVolume, setLocalVolume] = useState(settings.volume);
+  const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [position, setPosition] = useState({ x: 8, y: 8 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number }>({
@@ -65,6 +81,54 @@ export function TTSControls({
     setLocalVolume(settings.volume);
   }, [settings]);
 
+  const availableLocales = SUPPORTED_LOCALES.filter(locale =>
+    voices.some(v => v.Locale.startsWith(locale))
+  );
+
+  const localeVoicesMap = availableLocales.map(locale => ({
+    locale,
+    label: LOCALE_LABELS[locale] || locale,
+    voices: voices.filter(v => v.Locale.startsWith(locale)),
+  }));
+
+  useEffect(() => {
+    if (!selectedLocale && voices.length > 0) {
+      if (settings.voiceName) {
+        const currentVoice = voices.find(v => v.Name === settings.voiceName);
+        if (currentVoice) {
+          const locale = SUPPORTED_LOCALES.find(l => currentVoice.Locale.startsWith(l)) || '';
+          if (locale) {
+            setSelectedLocale(locale);
+            return;
+          }
+        }
+      }
+      if (availableLocales.length > 0) {
+        setSelectedLocale(availableLocales[0]);
+      }
+    }
+  }, [voices, settings.voiceName, selectedLocale, availableLocales]);
+
+  const currentLocaleVoices = localeVoicesMap.find(l => l.locale === selectedLocale)?.voices || [];
+  
+  const filteredVoices = selectedLocale
+    ? voices.filter(v => v.Locale.startsWith(selectedLocale))
+    : voices.filter(v => SUPPORTED_LOCALES.some(l => v.Locale.startsWith(l)));
+
+  const selectedVoice = voices.find(v => v.Name === settings.voiceName);
+  const availableStyles = selectedVoice?.StyleList || ['general'];
+
+  const handleLocaleChange = (value: string) => {
+    setSelectedLocale(value);
+    const localeVoices = voices.filter(v => v.Locale.startsWith(value));
+    if (localeVoices.length > 0) {
+      const currentVoiceInLocale = localeVoices.find(v => v.Name === settings.voiceName);
+      if (!currentVoiceInLocale) {
+        onUpdateSettings({ voiceName: localeVoices[0].Name });
+      }
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -77,7 +141,7 @@ export function TTSControls({
     };
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
     const deltaX = e.clientX - dragRef.current.startX;
@@ -91,12 +155,14 @@ export function TTSControls({
     const newY = Math.max(0, Math.min(window.innerHeight - 48, dragRef.current.startPosY - deltaY));
     
     setPosition({ x: newX, y: newY });
-  };
+  }, [isDragging]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-    hasDraggedRef.current = false;
-  };
+    if (!hasDraggedRef.current) {
+      setExpanded(e => !e);
+    }
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
@@ -111,7 +177,7 @@ export function TTSControls({
         window.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isDragging]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -179,12 +245,12 @@ export function TTSControls({
   };
 
   const formatRate = (rate: number) => {
-    if (rate === 0) return 'Normal';
+    if (rate === 0) return '正常';
     return rate > 0 ? `+${rate}%` : `${rate}%`;
   };
 
   const formatPitch = (pitch: number) => {
-    if (pitch === 0) return 'Normal';
+    if (pitch === 0) return '正常';
     return pitch > 0 ? `+${pitch}%` : `${pitch}%`;
   };
 
@@ -192,18 +258,8 @@ export function TTSControls({
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
 
-  const selectedVoice = voices.find(v => v.Name === settings.voiceName);
-  const availableStyles = selectedVoice?.StyleList || ['general'];
-
-  const filteredVoices = voices.filter(v => 
-    v.Locale.startsWith('zh') || 
-    v.Locale.startsWith('en') ||
-    v.Locale.startsWith('ja') ||
-    v.Locale.startsWith('ko')
-  );
-
   const panelWidth = 256;
-  const panelHeight = 320;
+  const panelHeight = 380;
 
   return (
     <div className="relative">
@@ -221,7 +277,7 @@ export function TTSControls({
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
         }}
-        title="Controls (drag to move)"
+        title="控制面板（拖动移动）"
       >
         <Volume2
           className="w-5 h-5"
@@ -257,7 +313,7 @@ export function TTSControls({
                 className="font-heading text-sm"
                 style={{ color: uiScheme.fg }}
               >
-                Controls
+                控制面板
               </span>
               <Button
                 variant="ghost"
@@ -270,6 +326,38 @@ export function TTSControls({
               </Button>
             </div>
 
+            <div className="flex items-center justify-center gap-3 py-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onPrevPage}
+                title="上一页"
+                className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
+                style={{
+                  background: `${uiScheme.buttonBg}ee`,
+                  borderColor: uiScheme.cardBorder,
+                  color: uiScheme.buttonText,
+                }}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onNextPage}
+                title="下一页"
+                className="transition-transform hover:scale-105 active:scale-95 h-10 w-10"
+                style={{
+                  background: `${uiScheme.buttonBg}ee`,
+                  borderColor: uiScheme.cardBorder,
+                  color: uiScheme.buttonText,
+                }}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+
             <div
               className="border-t pt-2"
               style={{ borderColor: uiScheme.cardBorder }}
@@ -279,7 +367,7 @@ export function TTSControls({
                   className="text-xs"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Text-to-Speech
+                  文字转语音
                 </label>
               </div>
 
@@ -289,7 +377,7 @@ export function TTSControls({
                   size="icon-sm"
                   onClick={onPrev}
                   disabled={!isActive}
-                  title="Previous sentence"
+                  title="上一句"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
                     color: isActive ? uiScheme.fg : uiScheme.mutedText,
@@ -302,7 +390,7 @@ export function TTSControls({
                   variant={isPlaying ? 'outline' : 'default'}
                   size="icon"
                   onClick={onStart}
-                  title={isPlaying ? 'Pause' : isPaused ? 'Resume' : 'Start'}
+                  title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                   className="transition-transform hover:scale-105 active:scale-95"
                   style={{
                     background: isPlaying
@@ -324,7 +412,7 @@ export function TTSControls({
                   size="icon-sm"
                   onClick={onNext}
                   disabled={!isActive}
-                  title="Next sentence"
+                  title="下一句"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
                     color: isActive ? uiScheme.fg : uiScheme.mutedText,
@@ -338,7 +426,7 @@ export function TTSControls({
                   size="icon-sm"
                   onClick={onStop}
                   disabled={!isActive}
-                  title="Stop"
+                  title="停止"
                   className="transition-transform hover:scale-110 active:scale-95"
                   style={{
                     color: isActive ? '#ef4444' : uiScheme.mutedText,
@@ -358,7 +446,7 @@ export function TTSControls({
                   className="text-xs w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Speed
+                  速度
                 </label>
                 <Slider
                   value={[localRate]}
@@ -381,7 +469,7 @@ export function TTSControls({
                   className="text-xs w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Pitch
+                  音调
                 </label>
                 <Slider
                   value={[localPitch]}
@@ -404,7 +492,7 @@ export function TTSControls({
                   className="text-xs w-8 shrink-0"
                   style={{ color: uiScheme.mutedText }}
                 >
-                  Volume
+                  音量
                 </label>
                 <Slider
                   value={[localVolume]}
@@ -423,45 +511,87 @@ export function TTSControls({
               </div>
 
               {filteredVoices.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <label
-                    className="text-xs w-8 shrink-0"
-                    style={{ color: uiScheme.mutedText }}
-                  >
-                    Voice
-                  </label>
-                  <Select
-                    value={settings.voiceName}
-                    onValueChange={handleVoiceChange}
-                  >
-                    <SelectTrigger
-                      className="flex-1 text-xs h-7"
-                      style={{
-                        background: uiScheme.buttonBg,
-                        borderColor: uiScheme.cardBorder,
-                        color: uiScheme.fg,
-                      }}
+                <>
+                  <div className="flex items-center gap-2">
+                    <label
+                      className="text-xs w-8 shrink-0"
+                      style={{ color: uiScheme.mutedText }}
                     >
-                      <SelectValue placeholder="Select voice" />
-                    </SelectTrigger>
-                    <SelectContent
-                      style={{
-                        background: uiScheme.cardBg,
-                        borderColor: uiScheme.cardBorder,
-                      }}
+                      语种
+                    </label>
+                    <Select
+                      value={selectedLocale}
+                      onValueChange={handleLocaleChange}
                     >
-                      {filteredVoices.map((voice) => (
-                        <SelectItem
-                          key={voice.Name}
-                          value={voice.Name}
-                          style={{ color: uiScheme.fg }}
-                        >
-                          {voice.DisplayName} ({voice.Locale})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                      <SelectTrigger
+                        className="flex-1 text-xs h-7"
+                        style={{
+                          background: uiScheme.buttonBg,
+                          borderColor: uiScheme.cardBorder,
+                          color: uiScheme.fg,
+                        }}
+                      >
+                        <SelectValue placeholder="选择语种" />
+                      </SelectTrigger>
+                      <SelectContent
+                        style={{
+                          background: uiScheme.cardBg,
+                          borderColor: uiScheme.cardBorder,
+                        }}
+                      >
+                        {localeVoicesMap.map((item) => (
+                          <SelectItem
+                            key={item.locale}
+                            value={item.locale}
+                            style={{ color: uiScheme.fg }}
+                          >
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <label
+                      className="text-xs w-8 shrink-0"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      语音
+                    </label>
+                    <Select
+                      value={settings.voiceName}
+                      onValueChange={handleVoiceChange}
+                    >
+                      <SelectTrigger
+                        className="flex-1 text-xs h-7"
+                        style={{
+                          background: uiScheme.buttonBg,
+                          borderColor: uiScheme.cardBorder,
+                          color: uiScheme.fg,
+                        }}
+                      >
+                        <SelectValue placeholder="选择语音" />
+                      </SelectTrigger>
+                      <SelectContent
+                        style={{
+                          background: uiScheme.cardBg,
+                          borderColor: uiScheme.cardBorder,
+                        }}
+                      >
+                        {currentLocaleVoices.map((voice) => (
+                          <SelectItem
+                            key={voice.Name}
+                            value={voice.Name}
+                            style={{ color: uiScheme.fg }}
+                          >
+                            {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               {availableStyles.length > 1 && (
@@ -470,7 +600,7 @@ export function TTSControls({
                     className="text-xs w-8 shrink-0"
                     style={{ color: uiScheme.mutedText }}
                   >
-                    Style
+                    风格
                   </label>
                   <Select
                     value={settings.style}
@@ -484,7 +614,7 @@ export function TTSControls({
                         color: uiScheme.fg,
                       }}
                     >
-                      <SelectValue placeholder="Select style" />
+                      <SelectValue placeholder="选择风格" />
                     </SelectTrigger>
                     <SelectContent
                       style={{

@@ -78,7 +78,7 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
             <DropdownMenuContent align="end" className="bg-card/95 border-border/40 backdrop-blur-sm">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRead(); }} className="gap-2">
                 <BookOpen className="w-4 h-4" />
-                <span className="font-sans text-sm">Read</span>
+                <span className="font-sans text-sm">阅读</span>
               </DropdownMenuItem>
               <Separator className="my-1 bg-border/40" />
               <DropdownMenuItem
@@ -87,7 +87,7 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
                 className="gap-2 text-destructive focus:text-destructive"
               >
                 <Trash2 className="w-4 h-4" />
-                <span className="font-sans text-sm">{isDeleting ? 'Removing...' : 'Remove'}</span>
+                <span className="font-sans text-sm">{isDeleting ? '移除中...' : '移除'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -98,7 +98,7 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
             {book.title}
           </CardTitle>
           <CardDescription className="font-sans text-xs line-clamp-1 text-muted-foreground/80 mt-1">
-            {book.author || 'Unknown Author'}
+            {book.author || '未知作者'}
           </CardDescription>
         </CardHeader>
         

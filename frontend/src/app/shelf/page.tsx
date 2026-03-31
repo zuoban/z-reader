@@ -47,7 +47,7 @@ export default function ShelfPage() {
       const book = await api.uploadBook(file);
       setBooks((prev) => [...prev, book]);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Upload failed');
+      alert(err instanceof Error ? err.message : '上传失败');
     }
     setIsUploading(false);
     e.target.value = '';
@@ -59,7 +59,7 @@ export default function ShelfPage() {
       await api.deleteBook(id);
       setBooks((prev) => prev.filter((b) => b.id !== id));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
+      alert(err instanceof Error ? err.message : '删除失败');
     }
     setDeletingId(null);
   }
@@ -76,7 +76,7 @@ export default function ShelfPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-2 border-foreground/20 rounded-full animate-subtle-float" 
                style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
-          <p className="font-heading text-lg text-muted-foreground">Loading your library...</p>
+          <p className="font-heading text-lg text-muted-foreground">正在加载您的书库...</p>
         </div>
       </div>
     );
@@ -90,7 +90,7 @@ export default function ShelfPage() {
             <div className="w-6 h-9 sm:w-8 sm:h-12 ink-gradient rounded-sm spine-effect flex items-center justify-center shrink-0">
               <span className="text-primary-foreground font-heading text-[10px] sm:text-xs italic">Z</span>
             </div>
-            <h1 className="font-heading text-lg sm:text-2xl tracking-tight truncate hidden sm:block">Your Library</h1>
+            <h1 className="font-heading text-lg sm:text-2xl tracking-tight truncate hidden sm:block">我的书库</h1>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -101,7 +101,7 @@ export default function ShelfPage() {
                 onChange={handleUpload}
                 disabled={isUploading}
                 className="absolute inset-0 opacity-0 cursor-pointer z-20 w-full h-full"
-                title="Upload an EPUB file to your collection"
+                title="上传 EPUB 文件到您的收藏"
               />
               <Button 
                 variant="outline" 
@@ -112,12 +112,12 @@ export default function ShelfPage() {
                   <>
                     <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-foreground/30 rounded-full animate-subtle-float" 
                           style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
-                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">Adding...</span>
+                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">添加中...</span>
                   </>
                 ) : (
                   <>
                     <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">Add Book</span>
+                    <span className="font-heading text-xs sm:text-sm hidden sm:inline">添加书籍</span>
                   </>
                 )}
               </Button>
@@ -128,7 +128,7 @@ export default function ShelfPage() {
               onClick={logout}
               className="text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors h-9 sm:h-10 px-2 sm:px-3"
             >
-              <span className="font-sans text-xs sm:text-sm">Leave</span>
+              <span className="font-sans text-xs sm:text-sm">退出</span>
             </Button>
           </div>
         </div>
@@ -140,9 +140,9 @@ export default function ShelfPage() {
             <div className="w-16 h-22 sm:w-20 sm:h-28 rounded-sm border-2 border-border/40 bg-card flex items-center justify-center mb-4 sm:mb-6 book-shadow">
               <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50" />
             </div>
-            <p className="font-heading text-lg sm:text-xl text-muted-foreground mb-2">Your shelf awaits</p>
+            <p className="font-heading text-lg sm:text-xl text-muted-foreground mb-2">您的书架正在等待</p>
             <p className="font-sans text-xs sm:text-sm text-muted-foreground/70 text-center px-4">
-              Add your first book to begin your reading journey
+              添加您的第一本书，开始阅读之旅
             </p>
           </div>
         ) : (

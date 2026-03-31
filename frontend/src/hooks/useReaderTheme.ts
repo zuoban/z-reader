@@ -83,7 +83,7 @@ const PRESET_STYLES: Record<ReaderTheme['preset'], ThemeColors> = {
 };
 
 const DEFAULT_THEME: ReaderTheme = {
-  preset: 'dark',
+  preset: 'light',
   fontSize: 16,
   lineHeight: 1.6,
 };

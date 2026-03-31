@@ -139,7 +139,7 @@ export class BackendTTS {
     }
   }
 
-  async speak(ssml: string, marks?: TTSMark[]): Promise<void> {
+  async speak(ssml: string, marks?: TTSMark[], isContinuous?: boolean): Promise<void> {
     this.currentSSML = ssml;
 
     if (marks && marks.length > 0) {
@@ -148,7 +148,7 @@ export class BackendTTS {
       this.marks = [{ name: '0', text: stripSSML(ssml) }];
     }
 
-    this.stop();
+    this.stopInternal(isContinuous);
 
     try {
       const preloadedIndex = this.preloadedQueue.findIndex(p => p.ssml === ssml);
@@ -221,11 +221,10 @@ export class BackendTTS {
 
     this.audio.onended = () => {
       this.releaseAudioUrl();
-      const wasPlaying = this.state === 'playing';
-      const wasPaused = this.state === 'paused';
-      this.setState('stopped');
-      if (wasPlaying || wasPaused) {
+      if (this.state === 'playing') {
         this.onEnd?.();
+      } else {
+        this.setState('stopped');
       }
     };
 
@@ -255,19 +254,21 @@ export class BackendTTS {
     if (this.preloadedQueue.length >= this.maxPreloadCount) return;
     
     try {
-      const marksArray = marks && marks.length > 0 
-        ? marks 
+      const marksArray = marks && marks.length > 0
+        ? marks
         : [{ name: '0', text: stripSSML(ssml) }];
 
       const audioUrl = await this.fetchAudio(ssml);
-      
+
       this.preloadedQueue.push({
         audioUrl,
         ssml,
         marks: marksArray,
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       console.error('Preload failed:', error);
     }
   }
@@ -308,6 +309,10 @@ export class BackendTTS {
   }
 
   stop(): void {
+    this.stopInternal(false);
+  }
+
+  private stopInternal(preservePlayingState?: boolean): void {
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
@@ -320,7 +325,9 @@ export class BackendTTS {
     }
 
     this.releaseAudioUrl();
-    this.setState('stopped');
+    if (!preservePlayingState) {
+      this.setState('stopped');
+    }
     this.currentMarkIndex = 0;
     this.cleanupPreload();
   }

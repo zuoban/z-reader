@@ -38,7 +38,7 @@ export default function ReadPage() {
   const [currentChapter, setCurrentChapter] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingMsg, setLoadingMsg] = useState('Initializing...');
+  const [loadingMsg, setLoadingMsg] = useState('初始化中...');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -52,9 +52,7 @@ export default function ReadPage() {
 
   const handleHighlight = useCallback((range: Range) => {
     if (lastHighlightRef.current) {
-      lastHighlightRef.current.style.textDecoration = 'none';
-      lastHighlightRef.current.style.backgroundColor = 'transparent';
-      lastHighlightRef.current.style.borderRadius = '0';
+      lastHighlightRef.current.style.backgroundColor = '';
       lastHighlightRef.current.style.transition = 'none';
     }
 
@@ -64,13 +62,8 @@ export default function ReadPage() {
       : container as HTMLElement;
     
     if (element) {
-      element.style.textDecoration = 'underline';
-      element.style.textDecorationColor = 'inherit';
-      element.style.textUnderlineOffset = '4px';
-      element.style.textDecorationThickness = '2px';
-      element.style.backgroundColor = 'rgba(251, 191, 36, 0.35)';
-      element.style.borderRadius = '2px';
-      element.style.transition = 'background-color 0.15s ease, text-decoration 0.15s ease';
+      element.style.backgroundColor = 'rgba(255, 235, 59, 0.4)';
+      element.style.transition = 'background-color 0.15s ease';
       lastHighlightRef.current = element;
     }
 
@@ -92,9 +85,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (ttsState === 'stopped' && lastHighlightRef.current) {
-      lastHighlightRef.current.style.textDecoration = 'none';
-      lastHighlightRef.current.style.backgroundColor = 'transparent';
-      lastHighlightRef.current.style.borderRadius = '0';
+      lastHighlightRef.current.style.backgroundColor = '';
       lastHighlightRef.current = null;
     }
   }, [ttsState]);
@@ -149,7 +140,7 @@ export default function ReadPage() {
     if (!containerRef.current || destroyedRef.current) return;
 
     try {
-      setLoadingMsg('Loading reader...');
+      setLoadingMsg('加载阅读器...');
 
       if (!customElements.get('foliate-view')) {
         const script = document.createElement('script');
@@ -176,7 +167,7 @@ export default function ReadPage() {
       }
 
       if (destroyedRef.current) return;
-      setLoadingMsg('Creating view...');
+      setLoadingMsg('创建视图...');
 
       const view = document.createElement('foliate-view') as unknown as FoliateView;
       view.style.height = '100%';
@@ -226,12 +217,12 @@ export default function ReadPage() {
       });
 
       if (destroyedRef.current) return;
-      setLoadingMsg('Fetching book...');
+      setLoadingMsg('获取书籍...');
       
       const blob = await api.fetchBook(bookId);
       
       if (destroyedRef.current) return;
-      setLoadingMsg('Opening book...');
+      setLoadingMsg('打开书籍...');
       
       try {
         const url = URL.createObjectURL(blob);
@@ -388,7 +379,7 @@ export default function ReadPage() {
           <span className="text-destructive text-3xl">!</span>
         </div>
         <p className="font-heading text-lg text-destructive">{error}</p>
-        <Button onClick={handleBack} className="mt-2">Return to Library</Button>
+        <Button onClick={handleBack} className="mt-2">返回书库</Button>
       </div>
     );
   }
@@ -412,14 +403,14 @@ export default function ReadPage() {
               className="gap-1 sm:gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors h-8 sm:h-9 px-1.5 sm:px-2"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="font-sans text-xs sm:text-sm hidden sm:inline">Library</span>
+              <span className="font-sans text-xs sm:text-sm hidden sm:inline">书库</span>
             </Button>
             
             <Separator orientation="vertical" className="h-5 sm:h-6 bg-border/40 hidden sm:block" />
             
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="font-heading text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[200px]" style={{ color: uiScheme.fg }}>
-                {metadata.title || 'Loading...'}
+                {metadata.title || '加载中...'}
               </span>
               {currentChapter && (
                 <span className="font-sans text-[10px] sm:text-xs truncate max-w-[100px] sm:max-w-[200px] hidden sm:block" style={{ color: uiScheme.mutedText }}>
@@ -448,7 +439,7 @@ export default function ReadPage() {
                   <Button 
                     variant="ghost" 
                     size="icon-sm" 
-                    title="Table of Contents"
+                    title="目录"
                     className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   />
                 }
@@ -465,7 +456,7 @@ export default function ReadPage() {
               >
                 <SheetHeader className="p-4 pb-2">
                   <SheetTitle className="font-heading text-lg" style={{ color: uiScheme.fg }}>
-                    Table of Contents
+                    目录
                   </SheetTitle>
                 </SheetHeader>
                 <Separator className="my-0" style={{ background: uiScheme.cardBorder }} />

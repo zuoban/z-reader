@@ -41,7 +41,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-2 border-foreground/20 rounded-full animate-subtle-float" 
                style={{ borderRightColor: 'oklch(0.35 0.08 30)' }} />
-          <p className="font-heading text-lg text-muted-foreground">Opening your library...</p>
+          <p className="font-heading text-lg text-muted-foreground">正在打开您的书库...</p>
         </div>
       </div>
     );
@@ -64,19 +64,19 @@ export default function LoginPage() {
             <CardTitle className="font-heading text-3xl tracking-tight">Z Reader</CardTitle>
           </div>
           <CardDescription className="text-muted-foreground font-sans">
-            Enter your password to unlock your personal library
+            输入密码以解锁您的个人书库
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="password" className="font-heading text-sm">Password</Label>
+              <Label htmlFor="password" className="font-heading text-sm">密码</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your library key"
+                placeholder="输入您的书库密钥"
                 autoFocus
                 className="h-10 bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20"
               />
@@ -95,16 +95,16 @@ export default function LoginPage() {
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-primary-foreground/30 rounded-full animate-subtle-float" 
                         style={{ borderRightColor: 'oklch(0.95 0.01 80)' }} />
-                  Unlocking...
+                  解锁中...
                 </span>
               ) : (
-                'Enter Library'
+                '进入书库'
               )}
             </Button>
           </form>
           <div className="mt-6 pt-4 border-t border-border/40">
             <p className="text-xs text-muted-foreground text-center font-sans">
-              Your private reading sanctuary
+              您的私人阅读圣地
             </p>
           </div>
         </CardContent>

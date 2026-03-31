@@ -116,25 +116,27 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const preloadNext = useCallback(async () => {
     if (!viewRef.current) return;
     
-    // 只有在播放状态才预加载
     if (state !== 'playing') return;
     
     try {
-      // 获取后续3个段落的 SSML
       const ssmlList = getNextSSMLs(3);
       
-      // 转换为增强 SSML 并预加载
       const enhancedList = ssmlList.map(ssml => {
         const text = getTextFromSSML(ssml);
         return text ? buildSSML(text) : '';
       }).filter((ssml: string) => ssml);
       
-      // 批量预加载
       await ttsInstance.current.preloadMultiple(enhancedList);
     } catch (err) {
       console.error('Preload error:', err);
     }
   }, [viewRef, state, getNextSSMLs, getTextFromSSML, buildSSML]);
+
+  useEffect(() => {
+    ttsInstance.current.onPreloadTriggerCallback(() => {
+      preloadNext();
+    });
+  }, [preloadNext]);
 
   const speakSSML = useCallback(async (ssml: string | null | undefined, isContinuous?: boolean): Promise<boolean> => {
     if (!ssml) return false;
@@ -145,10 +147,6 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     const enhancedSSML = buildSSML(text);
     
     try {
-      requestAnimationFrame(() => {
-        preloadNext();
-      });
-      
       await ttsInstance.current.speak(enhancedSSML, undefined, isContinuous);
       
       if (viewRef.current?.tts) {
@@ -160,7 +158,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [getTextFromSSML, buildSSML, viewRef, preloadNext]);
+  }, [getTextFromSSML, buildSSML, viewRef]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
@@ -285,6 +283,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   }, [viewRef]);
 
   const next = useCallback(async () => {
+    ttsInstance.current.clearPreloadQueueOnly();
     ttsInstance.current.stop();
     const success = await getNextAndSpeak();
     if (success) {
@@ -295,6 +294,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   }, [getNextAndSpeak, stop]);
 
   const prev = useCallback(async () => {
+    ttsInstance.current.clearPreloadQueueOnly();
     ttsInstance.current.stop();
     const success = await getPrevAndSpeak();
     if (success) {

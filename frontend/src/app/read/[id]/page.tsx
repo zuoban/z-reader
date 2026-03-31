@@ -46,27 +46,10 @@ export default function ReadPage() {
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
   const boundDocsRef = useRef<Document[]>([]);
-  const lastHighlightRef = useRef<HTMLElement | null>(null);
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
 
   const handleHighlight = useCallback((range: Range) => {
-    if (lastHighlightRef.current) {
-      lastHighlightRef.current.style.backgroundColor = '';
-      lastHighlightRef.current.style.transition = 'none';
-    }
-
-    const container = range.commonAncestorContainer;
-    const element = container.nodeType === Node.TEXT_NODE
-      ? container.parentElement
-      : container as HTMLElement;
-    
-    if (element) {
-      element.style.backgroundColor = 'rgba(255, 235, 59, 0.4)';
-      element.style.transition = 'background-color 0.15s ease';
-      lastHighlightRef.current = element;
-    }
-
     if (viewRef.current?.renderer) {
       viewRef.current.renderer.scrollToAnchor?.(range, true);
     }
@@ -82,13 +65,6 @@ export default function ReadPage() {
     prev: prevTTS,
     voices,
   } = useTTS({ viewRef, onHighlight: handleHighlight });
-
-  useEffect(() => {
-    if (ttsState === 'stopped' && lastHighlightRef.current) {
-      lastHighlightRef.current.style.backgroundColor = '';
-      lastHighlightRef.current = null;
-    }
-  }, [ttsState]);
 
   useEffect(() => {
     progressRef.current = progress;

@@ -224,7 +224,6 @@ export class TTS {
     #list
     #ranges
     #lastMark
-    #lastHighlightElement
     #serializer = new XMLSerializer()
     constructor(doc, textWalker, highlight, granularity) {
         this.doc = doc
@@ -320,33 +319,11 @@ export class TTS {
     setMark(mark) {
         const range = this.#ranges.get(mark)
         if (range) {
-            if (this.#lastHighlightElement) {
-                this.#lastHighlightElement.style.backgroundColor = ''
-                this.#lastHighlightElement.style.transition = 'none'
-            }
-            
-            const container = range.commonAncestorContainer
-            const element = container.nodeType === Node.TEXT_NODE
-                ? container.parentElement
-                : container
-            
-            if (element) {
-                element.style.backgroundColor = 'rgba(255, 235, 59, 0.4)'
-                element.style.transition = 'background-color 0.15s ease'
-                this.#lastHighlightElement = element
-            }
-            
             this.#lastMark = mark
             this.highlight(range.cloneRange())
         }
     }
     getWordCount() {
         return this.#ranges?.size || 0
-    }
-    clearHighlight() {
-        if (this.#lastHighlightElement) {
-            this.#lastHighlightElement.style.backgroundColor = ''
-            this.#lastHighlightElement = null
-        }
     }
 }

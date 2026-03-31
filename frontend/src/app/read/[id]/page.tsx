@@ -226,7 +226,7 @@ export default function ReadPage() {
       
       try {
         const url = URL.createObjectURL(blob);
-        await view.open?.(url);
+        await view.open?.(url as unknown as Blob | File);
         URL.revokeObjectURL(url);
       } catch (err) {
         console.error('Failed to open book:', err);

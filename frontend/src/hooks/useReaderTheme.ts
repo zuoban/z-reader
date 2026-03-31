@@ -6,6 +6,7 @@ export interface ReaderTheme {
   preset: 'light' | 'sepia' | 'green' | 'dark';
   fontSize: number;
   lineHeight: number;
+  margin: number;
 }
 
 export interface ThemeColors {
@@ -86,6 +87,7 @@ const DEFAULT_THEME: ReaderTheme = {
   preset: 'light',
   fontSize: 16,
   lineHeight: 1.6,
+  margin: 16,
 };
 
 const STORAGE_KEY = 'z-reader-theme';
@@ -145,6 +147,7 @@ export function useReaderTheme() {
         color: ${preset.fg} !important;
         font-size: ${theme.fontSize}px !important;
         line-height: ${theme.lineHeight} !important;
+        padding: ${theme.margin}px !important;
       }
       p, li, blockquote, dd {
         line-height: ${theme.lineHeight} !important;

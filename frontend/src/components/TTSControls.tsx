@@ -129,18 +129,6 @@ export function TTSControls({
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    hasDraggedRef.current = false;
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startPosX: position.x,
-      startPosY: position.y,
-    };
-  };
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
@@ -169,23 +157,37 @@ export function TTSControls({
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
-      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchend', handleTouchEndEvent);
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
         window.removeEventListener('touchmove', handleTouchMove);
-        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchend', handleTouchEndEvent);
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
     const touch = e.touches[0];
     setIsDragging(true);
     hasDraggedRef.current = false;
     dragRef.current = {
       startX: touch.clientX,
       startY: touch.clientY,
+      startPosX: position.x,
+      startPosY: position.y,
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsDragging(true);
+    hasDraggedRef.current = false;
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
       startPosX: position.x,
       startPosY: position.y,
     };
@@ -209,16 +211,22 @@ export function TTSControls({
     setPosition({ x: newX, y: newY });
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEndEvent = () => {
     setIsDragging(false);
     hasDraggedRef.current = false;
   };
 
-  const handleClick = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    setIsDragging(false);
     if (!hasDraggedRef.current) {
-      setExpanded(!expanded);
+      setExpanded(expanded => !expanded);
     }
     hasDraggedRef.current = false;
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
   };
 
   const handleRateChange = (value: number[]) => {
@@ -262,11 +270,19 @@ export function TTSControls({
   const panelHeight = 380;
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ pointerEvents: 'auto' }}>
       <div
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick(e as unknown as React.MouseEvent);
+          }
+        }}
+        role="button"
+        tabIndex={0}
         className="fixed z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-shadow duration-150 touch-none"
         style={{
           right: position.x,
@@ -276,6 +292,7 @@ export function TTSControls({
           boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.15)',
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
+          pointerEvents: 'auto',
         }}
         title="控制面板（拖动移动）"
       >
@@ -296,6 +313,8 @@ export function TTSControls({
       {expanded && (
         <div
           className="fixed z-40 w-64 animate-in slide-in-from-bottom-4 fade-in duration-200"
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           style={{
             right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
             bottom: Math.max(8, Math.min(position.y + 56, window.innerHeight - panelHeight - 8)),

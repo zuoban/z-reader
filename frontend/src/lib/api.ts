@@ -1,4 +1,4 @@
-import { API_BASE, createAbortController } from '@/lib/config';
+import { API_BASE, createAbortController, DEFAULT_TIMEOUT } from '@/lib/config';
 
 export interface Book {
   id: string;
@@ -115,24 +115,38 @@ export const api = {
 
   fetchBook: async (id: string): Promise<Blob> => {
     const token = getToken();
-    const res = await fetch(`${API_BASE}/api/books/${id}/file`, {
-      headers: token ? { Authorization: token } : {},
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch book: ${res.status}`);
+    const { controller, timeoutId } = createAbortController(DEFAULT_TIMEOUT);
+    try {
+      const res = await fetch(`${API_BASE}/api/books/${id}/file`, {
+        headers: token ? { Authorization: token } : {},
+        signal: controller.signal,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch book: ${res.status}`);
+      }
+      return res.blob();
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return res.blob();
   },
 
   fetchCover: async (id: string): Promise<Blob | null> => {
     const token = getToken();
-    const res = await fetch(`${API_BASE}/api/books/${id}/cover`, {
-      headers: token ? { Authorization: token } : {},
-    });
-    if (!res.ok) {
-      return null;
+    const { controller, timeoutId } = createAbortController(DEFAULT_TIMEOUT);
+    try {
+      const res = await fetch(`${API_BASE}/api/books/${id}/cover`, {
+        headers: token ? { Authorization: token } : {},
+        signal: controller.signal,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        return null;
+      }
+      return res.blob();
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return res.blob();
   },
 
   getProgress: async (bookId: string): Promise<Progress> => {

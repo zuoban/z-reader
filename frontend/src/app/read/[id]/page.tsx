@@ -233,8 +233,14 @@ export default function ReadPage() {
       if (destroyedRef.current) return;
       setLoadingMsg('Opening book...');
       
-      const file = new File([blob], 'book.epub', { type: 'application/epub+zip' });
-      await view.open?.(file);
+      try {
+        const url = URL.createObjectURL(blob);
+        await view.open?.(url);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Failed to open book:', err);
+        throw new Error(`Failed to open book: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
       
       if (destroyedRef.current) return;
 

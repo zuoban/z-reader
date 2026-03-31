@@ -267,6 +267,7 @@ export class BackendTTS {
         marks: marksArray,
       });
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       console.error('Preload failed:', error);
     }
   }

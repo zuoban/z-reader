@@ -168,30 +168,6 @@ export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps)
               ))}
             </div>
           </div>
-
-          <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
-
-          <div className="space-y-2.5">
-            <Label className="font-heading text-sm" style={{ color: uiScheme.fg }}>Margins</Label>
-            <div className="flex gap-1">
-              {[20, 40, 60, 80, 100].map((m) => (
-                <Button
-                  key={m}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme({ margin: m })}
-                  className="flex-1 font-mono text-xs transition-all duration-200 rounded"
-                  style={{
-                    background: theme.margin === m ? `${uiScheme.link}20` : 'transparent',
-                    color: theme.margin === m ? uiScheme.link : uiScheme.mutedText,
-                    border: theme.margin === m ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
-                  }}
-                >
-                  {m}
-                </Button>
-              ))}
-            </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

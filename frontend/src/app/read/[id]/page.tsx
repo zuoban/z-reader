@@ -52,7 +52,7 @@ export default function ReadPage() {
 
   const handleHighlight = useCallback((range: Range) => {
     if (lastHighlightRef.current) {
-      lastHighlightRef.current.style.textDecoration = 'none';
+      lastHighlightRef.current.style.backgroundColor = '';
       lastHighlightRef.current.style.transition = 'none';
     }
 
@@ -62,11 +62,8 @@ export default function ReadPage() {
       : container as HTMLElement;
     
     if (element) {
-      element.style.textDecoration = 'underline';
-      element.style.textDecorationColor = 'inherit';
-      element.style.textUnderlineOffset = '4px';
-      element.style.textDecorationThickness = '2px';
-      element.style.transition = 'text-decoration 0.15s ease';
+      element.style.backgroundColor = 'rgba(255, 235, 59, 0.4)';
+      element.style.transition = 'background-color 0.15s ease';
       lastHighlightRef.current = element;
     }
 
@@ -88,7 +85,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (ttsState === 'stopped' && lastHighlightRef.current) {
-      lastHighlightRef.current.style.textDecoration = 'none';
+      lastHighlightRef.current.style.backgroundColor = '';
       lastHighlightRef.current = null;
     }
   }, [ttsState]);

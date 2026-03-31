@@ -321,7 +321,7 @@ export class TTS {
         const range = this.#ranges.get(mark)
         if (range) {
             if (this.#lastHighlightElement) {
-                this.#lastHighlightElement.style.textDecoration = 'none'
+                this.#lastHighlightElement.style.backgroundColor = ''
                 this.#lastHighlightElement.style.transition = 'none'
             }
             
@@ -331,11 +331,8 @@ export class TTS {
                 : container
             
             if (element) {
-                element.style.textDecoration = 'underline'
-                element.style.textDecorationColor = 'inherit'
-                element.style.textUnderlineOffset = '4px'
-                element.style.textDecorationThickness = '2px'
-                element.style.transition = 'text-decoration 0.15s ease'
+                element.style.backgroundColor = 'rgba(255, 235, 59, 0.4)'
+                element.style.transition = 'background-color 0.15s ease'
                 this.#lastHighlightElement = element
             }
             
@@ -348,7 +345,7 @@ export class TTS {
     }
     clearHighlight() {
         if (this.#lastHighlightElement) {
-            this.#lastHighlightElement.style.textDecoration = 'none'
+            this.#lastHighlightElement.style.backgroundColor = ''
             this.#lastHighlightElement = null
         }
     }

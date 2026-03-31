@@ -136,7 +136,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     }
   }, [viewRef, state, getNextSSMLs, getTextFromSSML, buildSSML]);
 
-  const speakSSML = useCallback(async (ssml: string | null | undefined): Promise<boolean> => {
+  const speakSSML = useCallback(async (ssml: string | null | undefined, isContinuous?: boolean): Promise<boolean> => {
     if (!ssml) return false;
     
     const text = getTextFromSSML(ssml);
@@ -145,13 +145,11 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     const enhancedSSML = buildSSML(text);
     
     try {
-      // 先预加载下一段（在播放前，避免影响高亮）
-      // 使用 requestAnimationFrame 确保在当前帧完成后执行
       requestAnimationFrame(() => {
         preloadNext();
       });
       
-      await ttsInstance.current.speak(enhancedSSML);
+      await ttsInstance.current.speak(enhancedSSML, undefined, isContinuous);
       
       if (viewRef.current?.tts) {
         viewRef.current.tts.setMark?.('0');
@@ -196,7 +194,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     if (!ssml) {
       return false;
     }
-    return speakSSML(ssml);
+    return speakSSML(ssml, true);
   }, [viewRef, ensureTTS, speakSSML]);
 
   const getPrevAndSpeak = useCallback(async (): Promise<boolean> => {
@@ -227,7 +225,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     }
 
     if (!ssml) return false;
-    return speakSSML(ssml);
+    return speakSSML(ssml, true);
   }, [viewRef, ensureTTS, speakSSML]);
 
   const start = useCallback(async () => {

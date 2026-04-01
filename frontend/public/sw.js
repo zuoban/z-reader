@@ -1,9 +1,35 @@
-const CACHE_NAME = 'z-reader-v2';
+const CACHE_NAME = 'z-reader-v3';
 const STATIC_ASSETS = [
   '/',
+  '/login',
   '/shelf',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200 && response.type === 'basic') {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    if (request.mode === 'navigate') {
+      return caches.match('/');
+    }
+
+    return new Response('Offline', { status: 503 });
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -41,29 +67,5 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
-        }
-
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
-
-        return response;
-      }).catch(() => {
-        if (request.mode === 'navigate') {
-          return caches.match('/');
-        }
-        return new Response('Offline', { status: 503 });
-      });
-    })
-  );
+  event.respondWith(networkFirst(request));
 });

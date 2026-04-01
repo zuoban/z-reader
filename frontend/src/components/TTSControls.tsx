@@ -38,9 +38,10 @@ interface FloatingButtonProps {
   position: { x: number; y: number };
   expanded: boolean;
   onClick: (e: React.MouseEvent) => void;
-  onMouseDown: (e: React.MouseEvent) => void;
-  onTouchStart: (e: React.TouchEvent) => void;
-  onTouchEnd: (e: React.TouchEvent) => void;
+  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void;
   uiScheme: ThemeColors;
 }
 
@@ -59,20 +60,21 @@ const getActiveColorScheme = (primaryColor: string) => {
   return {
     // 主色系
     primary: hex,
-    primaryLight: `rgba(${r}, ${g}, ${b}, 0.93)`,
-    primaryDark: `rgba(${r}, ${g}, ${b}, 0.8)`,
+    primaryLight: `rgba(${r}, ${g}, ${b}, 0.9)`,
+    primarySoft: `rgba(${r}, ${g}, ${b}, 0.16)`,
+    primaryDark: `rgba(${r}, ${g}, ${b}, 0.74)`,
 
     // 光环颜色
-    glowInner: `rgba(${r}, ${g}, ${b}, 0.15)`,
-    glowOuter: `rgba(${r}, ${g}, ${b}, 0.07)`,
+    glowInner: `rgba(${r}, ${g}, ${b}, 0.2)`,
+    glowOuter: `rgba(${r}, ${g}, ${b}, 0.08)`,
 
     // 波形渐变
-    waveStart: `rgba(${r}, ${g}, ${b}, 0.44)`,
-    waveEnd: `rgba(${r}, ${g}, ${b}, 0.19)`,
+    waveStart: `rgba(${r}, ${g}, ${b}, 0.55)`,
+    waveEnd: `rgba(${r}, ${g}, ${b}, 0.2)`,
 
     // 边框
-    border: `rgba(${r}, ${g}, ${b}, 0.38)`,
-    borderHighlight: `rgba(${r}, ${g}, ${b}, 0.5)`,
+    border: `rgba(${r}, ${g}, ${b}, 0.28)`,
+    borderHighlight: `rgba(${r}, ${g}, ${b}, 0.42)`,
   };
 };
 
@@ -83,18 +85,18 @@ const SoundWaveAnimation = ({ uiScheme }: { uiScheme: ThemeColors }) => {
   return (
     <div className="absolute inset-0 flex items-center justify-center overflow-hidden motion-reduce:hidden">
       {/* 波形条 - 使用主题色渐变 */}
-      <div className="relative flex items-center gap-0.5 h-full py-2">
+      <div className="relative flex items-center gap-0.5 h-full py-3">
         {[0, 1, 2, 3, 4].map((index) => (
           <div
             key={index}
-            className="w-1 rounded-full"
+            className="w-0.5 rounded-full"
             style={{
               background: `linear-gradient(180deg, ${colors.waveStart} 0%, ${colors.waveEnd} 100%)`,
-              height: index === 2 ? 22 : index % 2 === 0 ? 14 : 18,
+              height: index === 2 ? 16 : index % 2 === 0 ? 10 : 13,
               animation: `soundWave ${550 + index * 70}ms ease-in-out infinite`,
               animationDelay: `${index * 50}ms`,
-              opacity: 0.85,
-              boxShadow: `0 0 8px ${colors.glowInner}`,
+              opacity: 0.75,
+              boxShadow: `0 0 6px ${colors.glowInner}`,
             }}
           />
         ))}
@@ -109,23 +111,22 @@ const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
 
   return (
     <>
-      {/* 外层大光环 - 柔和扩散 */}
+      {/* 外层柔光 - 降低存在感，避免按钮显得臃肿 */}
       <div
-        className="absolute rounded-2xl motion-reduce:hidden"
+        className="absolute rounded-[1.4rem] motion-reduce:hidden pointer-events-none"
         style={{
-          inset: -6,
-          background: `radial-gradient(circle, ${colors.glowOuter} 0%, transparent 70%)`,
-          boxShadow: `0 0 80px ${colors.glowOuter}, 0 0 120px ${colors.glowOuter}`,
+          inset: -5,
+          background: `radial-gradient(circle, ${colors.glowOuter} 0%, transparent 72%)`,
+          boxShadow: `0 10px 30px ${colors.glowInner}, 0 0 36px ${colors.glowOuter}`,
           animation: 'glowPulse 2.5s ease-in-out infinite',
         }}
       />
-      {/* 中层光环 - 聚焦效果 */}
       <div
-        className="absolute rounded-2xl motion-reduce:hidden"
+        className="absolute rounded-[1.4rem] motion-reduce:hidden pointer-events-none"
         style={{
-          inset: -3,
-          background: `radial-gradient(circle, ${colors.glowInner} 0%, transparent 60%)`,
-          boxShadow: `0 0 40px ${colors.glowInner}`,
+          inset: -1,
+          border: `1px solid ${colors.borderHighlight}`,
+          boxShadow: `0 0 0 1px ${colors.primarySoft}`,
           animation: 'glowPulse 2s ease-in-out infinite',
           animationDelay: '0.4s',
         }}
@@ -136,32 +137,32 @@ const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
 
 // 活动状态指示器 - 使用绿色系保持独立性
 const ActiveIndicator = ({ uiScheme }: { uiScheme: ThemeColors }) => (
-  <div className="absolute -top-1.5 -right-1.5 motion-reduce:static">
+  <div className="absolute top-1.5 right-1.5 motion-reduce:static">
     {/* 外层光环 */}
     <div
       className="absolute rounded-full motion-reduce:hidden"
       style={{
-        width: 16,
-        height: 16,
+        width: 14,
+        height: 14,
         left: -3,
         top: -3,
         background: 'radial-gradient(circle, #22c55e30 0%, transparent 70%)',
-        boxShadow: '0 0 20px #22c55e50',
+        boxShadow: '0 0 14px #22c55e45',
         animation: 'indicatorPulse 1.5s ease-in-out infinite',
       }}
     />
     {/* 主指示器 - 渐变绿色 */}
     <div
-      className="relative w-3.5 h-3.5 rounded-full motion-reduce:animate-none"
+      className="relative h-2.5 w-2.5 rounded-full motion-reduce:animate-none"
       style={{
         background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)',
         boxShadow: `
-          0 0 12px #22c55e90,
-          0 0 20px #22c55e50,
+          0 0 8px #22c55e75,
+          0 0 14px #22c55e35,
           inset 0 1px 0 rgba(255,255,255,0.4),
           inset 0 -1px 0 rgba(0,0,0,0.1)
         `,
-        border: `2px solid ${uiScheme.bg}`,
+        border: `1.5px solid ${uiScheme.bg}`,
         animation: 'indicatorPulse 1.5s ease-in-out infinite',
       }}
     />
@@ -174,9 +175,10 @@ const FloatingButton = ({
   position,
   expanded,
   onClick,
-  onMouseDown,
-  onTouchStart,
-  onTouchEnd,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   uiScheme,
 }: FloatingButtonProps) => {
   // 获取播放状态颜色方案
@@ -186,27 +188,28 @@ const FloatingButton = ({
   const getActiveStyles = () => {
     if (!isActive) {
       return {
-        background: `linear-gradient(135deg, ${uiScheme.cardBg}f8 0%, ${uiScheme.cardBg}f0 100%)`,
-        border: `2px solid ${uiScheme.cardBorder}40`,
+        background: `linear-gradient(180deg, ${uiScheme.cardBg}fa 0%, ${uiScheme.cardBg}ef 100%)`,
+        border: `1px solid ${uiScheme.cardBorder}52`,
         boxShadow: isDragging
-          ? `0 12px 40px ${uiScheme.cardBorder}30, 0 6px 20px ${uiScheme.cardBorder}20`
-          : `0 4px 20px ${uiScheme.cardBorder}20, 0 2px 10px ${uiScheme.cardBorder}10`,
+          ? `0 14px 36px ${uiScheme.cardBorder}24, 0 8px 18px ${uiScheme.cardBorder}16`
+          : `0 8px 22px ${uiScheme.cardBorder}14, 0 2px 8px ${uiScheme.cardBorder}10`,
+        backdropFilter: 'blur(18px) saturate(150%)',
       };
     }
 
-    // 播放状态 - 多层渐变，从亮到暗
+    // 播放状态 - 改为更清爽的高亮玻璃按钮，减少厚重块感
     return {
-      background: `linear-gradient(135deg,
-        ${colors.primary} 0%,
-        ${colors.primaryLight} 30%,
-        ${colors.primary} 60%,
-        ${colors.primaryDark} 100%)`,
-      border: `2px solid ${colors.border}`,
+      background: `linear-gradient(180deg,
+        rgba(255,255,255,0.96) 0%,
+        ${colors.primarySoft} 22%,
+        rgba(255,255,255,0.9) 100%)`,
+      border: `1px solid ${colors.border}`,
       boxShadow: isDragging
-        ? `0 16px 48px ${colors.glowInner}, 0 8px 24px ${colors.glowOuter},
-           inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -2px 0 ${colors.primaryDark}`
-        : `0 8px 32px ${colors.glowInner}, 0 4px 16px ${colors.glowOuter},
-           inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 ${colors.primaryDark}`,
+        ? `0 16px 36px ${colors.glowInner}, 0 8px 20px ${colors.glowOuter},
+           inset 0 1px 0 rgba(255,255,255,0.95)`
+        : `0 10px 24px ${colors.glowInner}, 0 4px 12px ${colors.glowOuter},
+           inset 0 1px 0 rgba(255,255,255,0.95)`,
+      backdropFilter: 'blur(18px) saturate(165%)',
     };
   };
 
@@ -215,9 +218,10 @@ const FloatingButton = ({
   return (
     <div
       onClick={onClick}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -235,8 +239,8 @@ const FloatingButton = ({
       style={{
         right: position.x,
         bottom: position.y,
-        width: 52,
-        height: 52,
+        width: 56,
+        height: 56,
         cursor: isDragging ? 'grabbing' : 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
@@ -248,35 +252,43 @@ const FloatingButton = ({
 
       {/* 主按钮 */}
       <div
-        className="relative w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden
+        className="relative h-12 w-12 rounded-[1.35rem] flex items-center justify-center overflow-hidden
           transition-all duration-250 ease-out
           motion-reduce:transition-none"
         style={{
           ...fabStyles,
-          transform: isDragging ? 'scale(1.08)' : undefined,
+          transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.02)' : undefined,
         }}
       >
         {/* 内部光泽层 - 播放时使用白色高光 */}
         <div
-          className="absolute inset-0 rounded-2xl"
+          className="absolute inset-0 rounded-[1.35rem]"
           style={{
             background: isActive
               ? `linear-gradient(180deg,
-                  rgba(255,255,255,0.35) 0%,
-                  rgba(255,255,255,0.15) 25%,
-                  transparent 50%)`
-              : `linear-gradient(180deg, ${uiScheme.fg}12 0%, transparent 50%)`,
-            opacity: isActive ? 1 : 0.3,
+                  rgba(255,255,255,0.9) 0%,
+                  rgba(255,255,255,0.45) 28%,
+                  transparent 60%)`
+              : `linear-gradient(180deg, rgba(255,255,255,0.72) 0%, transparent 58%)`,
+            opacity: isActive ? 1 : 0.55,
           }}
         />
 
-        {/* 底部暗色层 - 增强立体感，使用主色暗色 */}
+        {/* 底部轻微染色，保留层次但不过度压暗 */}
         <div
-          className="absolute bottom-0 left-0 right-0 h-1/3 rounded-b-2xl"
+          className="absolute bottom-0 left-0 right-0 h-1/2 rounded-b-[1.35rem]"
           style={{
             background: isActive
               ? `linear-gradient(0deg, ${colors.primaryDark}40 0%, transparent 100%)`
-              : 'transparent',
+              : `linear-gradient(0deg, ${uiScheme.cardBorder}10 0%, transparent 100%)`,
+          }}
+        />
+
+        <div
+          className="absolute inset-[1px] rounded-[calc(1.35rem-1px)] pointer-events-none"
+          style={{
+            border: `1px solid ${isActive ? colors.borderHighlight : `${uiScheme.fg}0d`}`,
+            opacity: isActive ? 1 : 0.7,
           }}
         />
 
@@ -285,12 +297,12 @@ const FloatingButton = ({
 
         {/* 图标 - 播放时使用白色 */}
         <Volume2
-          className="w-5 h-5 transition-all duration-200 ease-out relative z-10
+          className="h-4.5 w-4.5 transition-all duration-200 ease-out relative z-10
             motion-reduce:transition-none"
           style={{
-            color: isActive ? '#ffffff' : uiScheme.fg,
+            color: isActive ? colors.primary : uiScheme.fg,
             filter: isActive
-              ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.25)) drop-shadow(0 0 4px rgba(255,255,255,0.3))'
+              ? `drop-shadow(0 1px 1px rgba(255,255,255,0.45)) drop-shadow(0 0 6px ${colors.glowOuter})`
               : undefined,
           }}
         />
@@ -302,12 +314,12 @@ const FloatingButton = ({
       {/* Hover 效果层 - 播放时显示 */}
       {isActive && (
         <div
-          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100
+          className="absolute inset-0 rounded-[1.4rem] opacity-0 group-hover:opacity-100
             transition-opacity duration-300 ease-out motion-reduce:hidden pointer-events-none"
           style={{
-            background: `radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)`,
-            transform: 'scale(1.2)',
-            boxShadow: `0 0 50px ${colors.glowInner}`,
+            background: `radial-gradient(circle at 50% 35%, rgba(255,255,255,0.35) 0%, transparent 70%)`,
+            transform: 'scale(1.08)',
+            boxShadow: `0 0 28px ${colors.glowInner}`,
           }}
         />
       )}
@@ -457,7 +469,15 @@ export function TTSControls({
     startPosX: 0,
     startPosY: 0,
   });
+  const positionRef = useRef(position);
+  const isDraggingRef = useRef(false);
   const hasDraggedRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const pendingPositionRef = useRef(position);
+
+  const FAB_SIZE = 48;
+  const FAB_OFFSET = 56;
 
   const styles = useThemeStyles(uiScheme, state !== 'stopped');
   const isPlaying = state === 'playing';
@@ -479,6 +499,22 @@ export function TTSControls({
     setLocalPitch(settings.pitch);
     setLocalVolume(settings.volume);
   }, [settings]);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   const availableLocales = SUPPORTED_LOCALES.filter(locale =>
     voices.some(v => v.Locale.startsWith(locale))
@@ -545,109 +581,89 @@ export function TTSControls({
     setTimeout(() => setIsPending(false), 300);
   };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
+  const commitPosition = useCallback((nextPosition: { x: number; y: number }) => {
+    pendingPositionRef.current = nextPosition;
+    positionRef.current = nextPosition;
 
-    const deltaX = e.clientX - dragRef.current.startX;
-    const deltaY = e.clientY - dragRef.current.startY;
+    if (rafRef.current !== null) return;
 
-    // 优化拖动检测阈值
-    const threshold = prefersReducedMotion.current ? 2 : 5;
-    if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
-      hasDraggedRef.current = true;
-    }
-
-    // 使用 transform 优化性能，而非直接修改位置
-    const newX = Math.max(0, Math.min(window.innerWidth - 48, dragRef.current.startPosX - deltaX));
-    const newY = Math.max(0, Math.min(window.innerHeight - 48, dragRef.current.startPosY - deltaY));
-
-    setPosition({ x: newX, y: newY });
-  }, [isDragging]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    if (!hasDraggedRef.current) {
-      setExpanded(e => !e);
-    }
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      setPosition(pendingPositionRef.current);
+    });
   }, []);
 
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove, { passive: false });
-      window.addEventListener('touchend', handleTouchEndEvent);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-        window.removeEventListener('touchmove', handleTouchMove);
-        window.removeEventListener('touchend', handleTouchEndEvent);
-      };
+  const clampPosition = useCallback((clientX: number, clientY: number) => {
+    const deltaX = clientX - dragRef.current.startX;
+    const deltaY = clientY - dragRef.current.startY;
+    const threshold = prefersReducedMotion.current ? 2 : 5;
+
+    if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
+      hasDraggedRef.current = true;
+      suppressClickRef.current = true;
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation();
-    const touch = e.touches[0];
-    setIsDragging(true);
-    hasDraggedRef.current = false;
-    dragRef.current = {
-      startX: touch.clientX,
-      startY: touch.clientY,
-      startPosX: position.x,
-      startPosY: position.y,
+    return {
+      x: Math.max(0, Math.min(window.innerWidth - FAB_SIZE, dragRef.current.startPosX - deltaX)),
+      y: Math.max(0, Math.min(window.innerHeight - FAB_SIZE, dragRef.current.startPosY - deltaY)),
     };
-  };
+  }, []);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const stopDragging = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     e.preventDefault();
-    setIsDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+
     hasDraggedRef.current = false;
+    suppressClickRef.current = false;
+    isDraggingRef.current = true;
+    setIsDragging(true);
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      startPosX: position.x,
-      startPosY: position.y,
+      startPosX: positionRef.current.x,
+      startPosY: positionRef.current.y,
     };
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
     e.preventDefault();
-    if (!isDragging) return;
-
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - dragRef.current.startX;
-    const deltaY = touch.clientY - dragRef.current.startY;
-
-    // 优化拖动检测阈值
-    const threshold = prefersReducedMotion.current ? 2 : 5;
-    if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
-      hasDraggedRef.current = true;
-    }
-
-    const newX = Math.max(0, Math.min(window.innerWidth - 48, dragRef.current.startPosX - deltaX));
-    const newY = Math.max(0, Math.min(window.innerHeight - 48, dragRef.current.startPosY - deltaY));
-
-    setPosition({ x: newX, y: newY });
+    commitPosition(clampPosition(e.clientX, e.clientY));
   };
 
-  const handleTouchEndEvent = () => {
-    setIsDragging(false);
-    hasDraggedRef.current = false;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    setIsDragging(false);
-    if (!hasDraggedRef.current) {
-      setExpanded(expanded => !expanded);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
     }
+    stopDragging();
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    stopDragging();
     hasDraggedRef.current = false;
+    suppressClickRef.current = false;
   };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      hasDraggedRef.current = false;
+      return;
+    }
+    setExpanded((value) => !value);
   };
 
   const handleRateChange = (value: number) => {
@@ -695,9 +711,10 @@ export function TTSControls({
         position={position}
         expanded={expanded}
         onClick={handleClick}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         uiScheme={uiScheme}
       />
 
@@ -712,7 +729,7 @@ export function TTSControls({
           onTouchMove={(e) => e.stopPropagation()}
           style={{
             right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
-            bottom: Math.max(8, Math.min(position.y + 60, window.innerHeight - panelHeight - 8)),
+            bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
             width: panelWidth,
           }}
         >

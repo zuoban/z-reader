@@ -10,6 +10,10 @@ interface UseTTSOptions {
   onHighlight?: (range: Range) => void;
 }
 
+type WakeLockSentinelLike = {
+  release: () => Promise<void>;
+};
+
 export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
@@ -20,7 +24,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const ttsInstance = useRef(backendTTS);
   const isPlayingRef = useRef(false);
   const getNextAndSpeakRef = useRef<() => Promise<boolean>>(async () => false);
-  const wakeLockRef = useRef<any>(null);
+  const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
 
   useEffect(() => {
     const loadVoices = async () => {
@@ -381,10 +385,11 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   }, [onHighlight, viewRef, releaseWakeLock]);
 
   useEffect(() => {
+    const instance = ttsInstance.current;
     return () => {
       isPlayingRef.current = false;
-      ttsInstance.current.stop();
-      releaseWakeLock();
+      instance.stop();
+      void releaseWakeLock();
     };
   }, [releaseWakeLock]);
 

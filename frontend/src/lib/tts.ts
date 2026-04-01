@@ -457,7 +457,7 @@ export class BackendTTS {
   }
 
   cancelAllPreloads(): void {
-    for (const [ssml, controller] of this.preloadAbortControllers) {
+    for (const [, controller] of this.preloadAbortControllers) {
       controller.abort();
     }
     this.preloadAbortControllers.clear();

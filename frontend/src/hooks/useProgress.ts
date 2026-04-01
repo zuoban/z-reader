@@ -49,9 +49,22 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
     }, debounceDelay);
   }, [saveProgress, debounceDelay]);
 
-  useEffect(() => {
-    loadProgress();
+  const loadProgress = useCallback(async () => {
+    try {
+      const data = await api.getProgress(bookId);
+      if (data.cfi) {
+        setProgress({ cfi: data.cfi, percentage: data.percentage });
+        lastSavedRef.current = { cfi: data.cfi, percentage: data.percentage };
+      }
+    } catch (err) {
+      console.error('Failed to load progress:', err);
+    }
+    setIsLoading(false);
   }, [bookId]);
+
+  useEffect(() => {
+    void loadProgress();
+  }, [loadProgress]);
 
   // 定时保存 - 低频检查
   useEffect(() => {
@@ -100,19 +113,6 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [bookId]);
-
-  async function loadProgress() {
-    try {
-      const data = await api.getProgress(bookId);
-      if (data.cfi) {
-        setProgress({ cfi: data.cfi, percentage: data.percentage });
-        lastSavedRef.current = { cfi: data.cfi, percentage: data.percentage };
-      }
-    } catch (err) {
-      console.error('Failed to load progress:', err);
-    }
-    setIsLoading(false);
-  }
 
   function updateProgress(cfi: string, percentage: number) {
     setProgress({ cfi, percentage });

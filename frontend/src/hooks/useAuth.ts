@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, auth } from '@/lib/api';
 
 export function useAuth() {
@@ -9,11 +9,7 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  async function checkAuth() {
+  const checkAuth = useCallback(async () => {
     if (!auth.isLoggedIn()) {
       setIsAuthenticated(false);
       setIsLoading(false);
@@ -28,7 +24,15 @@ export function useAuth() {
       setIsAuthenticated(false);
     }
     setIsLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void checkAuth();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [checkAuth]);
 
   async function login(password: string) {
     await api.login(password);

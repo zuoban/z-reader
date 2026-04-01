@@ -1,8 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { api, Book } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,10 +54,13 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
       >
         <div className="aspect-[2/3] relative overflow-hidden">
           {coverUrl ? (
-            <img
+            <Image
               src={coverUrl}
               alt={book.title}
-              className="w-full h-full object-cover"
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 14vw"
+              className="object-cover"
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -95,6 +99,9 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           </CardTitle>
           <CardDescription className="text-xs line-clamp-1">
             {book.author || '未知作者'}
+          </CardDescription>
+          <CardDescription className="text-[11px] text-muted-foreground/80">
+            {formatSize(book.size)}
           </CardDescription>
         </CardHeader>
       </Card>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api, Book } from '@/lib/api';
@@ -22,20 +22,24 @@ export default function ShelfPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadBooks();
-    }
-  }, [isAuthenticated]);
-
-  async function loadBooks() {
+  const loadBooks = useCallback(async () => {
     try {
       const data = await api.listBooks();
       setBooks(data || []);
     } catch {
       setBooks([]);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void loadBooks();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isAuthenticated, loadBooks]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

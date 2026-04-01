@@ -24,21 +24,41 @@ interface ThemeSettingsProps {
   theme: ReaderTheme;
   setTheme: (theme: Partial<ReaderTheme>) => void;
   uiScheme: ThemeColors;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function ThemeSettings({ theme, setTheme, uiScheme }: ThemeSettingsProps) {
+export function ThemeSettings({
+  theme,
+  setTheme,
+  uiScheme,
+  open,
+  onOpenChange,
+}: ThemeSettingsProps) {
+  const triggerClassName = 'h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9';
+  const triggerStyle = {
+    color: open ? uiScheme.link : uiScheme.buttonText,
+    background: open ? `${uiScheme.link}10` : `${uiScheme.buttonBg}85`,
+    border: `1px solid ${open ? `${uiScheme.link}33` : `${uiScheme.cardBorder}7a`}`,
+    boxShadow: open
+      ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
+      : `inset 0 1px 0 ${uiScheme.headerBg}66`,
+  } as const;
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger
         render={
           <Button
             variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors h-8 w-8 sm:h-9 sm:w-9"
+            size="icon"
+            title="阅读设置"
+            className={triggerClassName}
+            style={triggerStyle}
           />
         }
       >
-        <Settings className="w-4 h-4" />
+        <Settings className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent
         className="max-w-[90vw] sm:max-w-sm backdrop-blur-sm"

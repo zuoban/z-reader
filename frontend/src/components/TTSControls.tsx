@@ -446,6 +446,8 @@ interface TTSControlsProps {
   onPrev: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
+  variant?: 'floating' | 'toolbar';
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function TTSControls({
@@ -458,6 +460,8 @@ export function TTSControls({
   onPrev,
   onUpdateSettings,
   uiScheme,
+  variant = 'floating',
+  onExpandedChange,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -707,32 +711,69 @@ export function TTSControls({
     return `${pitch > 0 ? '+' : ''}${pitch}%`;
   };
 
-  const panelWidth = window.innerWidth < 640 ? Math.min(280, window.innerWidth - 16) : 256;
-  const panelHeight = window.innerWidth < 640 ? 360 : 380;
+  const panelWidth = typeof window !== 'undefined' && window.innerWidth < 640
+    ? Math.min(280, window.innerWidth - 16)
+    : 256;
+  const panelHeight = typeof window !== 'undefined' && window.innerWidth < 640 ? 360 : 380;
+  const isToolbar = variant === 'toolbar';
+
+  useEffect(() => {
+    onExpandedChange?.(expanded);
+  }, [expanded, onExpandedChange]);
 
   return (
     <div className="relative" style={{ pointerEvents: 'auto' }}>
-      {/* 悬浮按钮 */}
-      <FloatingButton
-        isActive={isActive}
-        isDragging={isDragging}
-        position={position}
-        expanded={expanded}
-        onClick={handleClick}
-        onPointerDownCapture={stopInteractivePropagation}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-        uiScheme={uiScheme}
-      />
+      {isToolbar ? (
+        <Button
+          data-reader-interactive="true"
+          variant="ghost"
+          size="icon"
+          onClick={handleClick}
+          title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+          aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+          aria-expanded={expanded}
+          className="relative h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
+          style={{
+            color: isActive ? uiScheme.link : uiScheme.buttonText,
+            background: isActive
+              ? `${uiScheme.link}10`
+              : `${uiScheme.buttonBg}85`,
+            border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}7a`}`,
+            boxShadow: isActive
+              ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
+              : `inset 0 1px 0 ${uiScheme.headerBg}66`,
+          }}
+        >
+          <Volume2 className="h-4 w-4" />
+          {isActive && (
+            <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+          )}
+        </Button>
+      ) : (
+        <FloatingButton
+          isActive={isActive}
+          isDragging={isDragging}
+          position={position}
+          expanded={expanded}
+          onClick={handleClick}
+          onPointerDownCapture={stopInteractivePropagation}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          uiScheme={uiScheme}
+        />
+      )}
 
       {/* 展开面板 - 增强动画和布局 */}
       {expanded && (
         <>
           <div
             data-reader-interactive="true"
-            className="fixed inset-0 z-30"
+            className={`fixed inset-0 ${isToolbar ? 'z-40' : 'z-30'}`}
             onClick={() => setExpanded(false)}
             onPointerDown={stopInteractivePropagation}
             onTouchStart={stopInteractivePropagation}
@@ -742,8 +783,8 @@ export function TTSControls({
 
           <div
             data-reader-interactive="true"
-            className="fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
-              motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
+            className={`${isToolbar ? 'absolute right-0 top-[calc(100%+0.5rem)]' : 'fixed z-40'} z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
+              motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
             onClick={stopInteractivePropagation}
             onPointerDownCapture={stopInteractivePropagation}
             onPointerDown={stopInteractivePropagation}
@@ -751,8 +792,12 @@ export function TTSControls({
             onTouchEnd={stopInteractivePropagation}
             onTouchMove={stopInteractivePropagation}
             style={{
-              right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
-              bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
+              ...(isToolbar
+                ? {}
+                : {
+                    right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
+                    bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
+                  }),
               width: panelWidth,
             }}
           >

@@ -20,11 +20,29 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Progress } from '@/components/ui/progress';
-import { List, LogOut, ChevronLeft } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  List,
+  LogOut,
+} from 'lucide-react';
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() => import('@/components/TTSControls').then(m => ({ default: m.TTSControls })));
+
+function withOpacity(color: string, opacity: number) {
+  if (!color.startsWith('#')) return color;
+
+  const normalized = color.length === 4
+    ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+    : color;
+
+  const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
+    .toString(16)
+    .padStart(2, '0');
+
+  return `${normalized}${hexOpacity}`;
+}
 
 export default function ReadPage() {
   const router = useRouter();
@@ -39,6 +57,10 @@ export default function ReadPage() {
   const [metadata, setMetadata] = useState<{ title?: string; author?: string }>({});
   const [percentage, setPercentage] = useState(0);
   const [currentChapter, setCurrentChapter] = useState('');
+  const [tocOpen, setTocOpen] = useState(false);
+  const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
+  const [ttsToolbarOpen, setTtsToolbarOpen] = useState(false);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('初始化中...');
@@ -57,6 +79,7 @@ export default function ReadPage() {
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const touchStartedInInteractiveUI = useRef(false);
+  const headerHideTimerRef = useRef<number | null>(null);
 
   // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
   const handlePrevRef = useRef<() => void>(() => {});
@@ -96,11 +119,52 @@ export default function ReadPage() {
     updateProgressRef.current = updateProgress;
   }, [updateProgress]);
 
+  const keepHeaderExpanded = loading || tocOpen || themeSettingsOpen || ttsToolbarOpen;
+
+  const clearHeaderHideTimer = useCallback(() => {
+    if (headerHideTimerRef.current !== null) {
+      window.clearTimeout(headerHideTimerRef.current);
+      headerHideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHeaderCollapse = useCallback(() => {
+    clearHeaderHideTimer();
+
+    if (keepHeaderExpanded) {
+      setHeaderCollapsed(false);
+      return;
+    }
+
+    headerHideTimerRef.current = window.setTimeout(() => {
+      setHeaderCollapsed(true);
+    }, 2200);
+  }, [clearHeaderHideTimer, keepHeaderExpanded]);
+
+  const revealHeader = useCallback(() => {
+    setHeaderCollapsed(false);
+    scheduleHeaderCollapse();
+  }, [scheduleHeaderCollapse]);
+
   useEffect(() => {
     if (viewRef.current && !loading) {
       viewRef.current.renderer?.setStyles?.(getStylesheet());
     }
   }, [theme, loading, getStylesheet]);
+
+  useEffect(() => {
+    if (keepHeaderExpanded) {
+      clearHeaderHideTimer();
+      setHeaderCollapsed(false);
+      return;
+    }
+
+    scheduleHeaderCollapse();
+
+    return () => {
+      clearHeaderHideTimer();
+    };
+  }, [clearHeaderHideTimer, keepHeaderExpanded, scheduleHeaderCollapse]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -330,10 +394,11 @@ export default function ReadPage() {
   }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    revealHeader();
     touchStartedInInteractiveUI.current = isInteractiveTouchTarget(e.target);
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
-  }, [isInteractiveTouchTarget]);
+  }, [isInteractiveTouchTarget, revealHeader]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (touchStartedInInteractiveUI.current || isInteractiveTouchTarget(e.target)) {
@@ -355,6 +420,25 @@ export default function ReadPage() {
       }
     }
   }, [handlePrev, handleNext, isInteractiveTouchTarget]);
+
+  useEffect(() => {
+    const handleActivity = () => {
+      revealHeader();
+    };
+
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('wheel', handleActivity, { passive: true });
+    window.addEventListener('touchstart', handleActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('wheel', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+      clearHeaderHideTimer();
+    };
+  }, [clearHeaderHideTimer, revealHeader]);
 
   const handleBack = useCallback(() => {
     destroyedRef.current = true;
@@ -433,152 +517,341 @@ export default function ReadPage() {
     );
   }
 
+  const toolbarButtonClass = 'h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9';
+  const getToolbarButtonStyle = (active = false) => ({
+    color: active ? uiScheme.link : uiScheme.buttonText,
+    background: active
+      ? withOpacity(uiScheme.link, 0.1)
+      : withOpacity(uiScheme.buttonBg, 0.52),
+    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.2) : withOpacity(uiScheme.cardBorder, 0.48)}`,
+    boxShadow: active
+      ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${withOpacity(uiScheme.link, 0.08)}`
+      : `inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.4)}`,
+  });
+
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: uiScheme.bg }}>
-      <header
-        className="border-b shrink-0 z-50 backdrop-blur-sm transition-colors duration-200"
+    <div className="relative h-screen overflow-hidden" style={{ background: uiScheme.bg }}>
+      <div
+        className="pointer-events-none absolute inset-0"
         style={{
-          background: `${uiScheme.headerBg}f0`,
-          borderColor: uiScheme.headerBorder
+          background: `
+            radial-gradient(circle at top left, ${withOpacity(uiScheme.link, 0.12)} 0%, transparent 28%),
+            radial-gradient(circle at top right, ${withOpacity(uiScheme.headerBorder, 0.34)} 0%, transparent 24%),
+            linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.96)} 0%, ${uiScheme.bg} 28%, ${withOpacity(uiScheme.cardBg, 0.98)} 100%)
+          `,
         }}
-      >
-        <div className="px-3 sm:px-4 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              title="返回书库"
-              className="gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 shrink-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm hidden sm:inline">书库</span>
-            </Button>
+      />
 
-            <Separator orientation="vertical" className="h-5 sm:h-6 hidden sm:block" style={{ background: uiScheme.headerBorder }} />
+      <div className="relative flex h-full flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5">
+        <div
+          className="mx-auto flex h-full w-full max-w-[1600px] min-h-0 flex-col overflow-hidden rounded-[28px] border shadow-[0_24px_80px_-32px_rgba(15,23,42,0.45)]"
+          style={{
+            background: withOpacity(uiScheme.headerBg, 0.82),
+            borderColor: withOpacity(uiScheme.headerBorder, 0.72),
+          }}
+        >
+          <header
+            className={`shrink-0 overflow-hidden border-b px-3 transition-all duration-500 ease-out sm:px-5 ${
+              headerCollapsed ? 'py-1.5 sm:py-2' : 'py-2 sm:py-2.5'
+            }`}
+            style={{
+              maxHeight: headerCollapsed ? '3.25rem' : '7rem',
+              opacity: headerCollapsed ? 0.82 : 1,
+              backdropFilter: `blur(${headerCollapsed ? 10 : 16}px)`,
+              background: `
+                linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.72)} 100%)
+              `,
+              borderColor: withOpacity(uiScheme.headerBorder, 0.48),
+            }}
+          >
+            <div className={`flex justify-between gap-2.5 sm:gap-3 ${headerCollapsed ? 'items-center' : 'items-start'}`}>
+              <div className={`flex min-w-0 flex-1 gap-2.5 sm:gap-3 ${headerCollapsed ? 'items-center' : 'items-start'}`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  title="返回书库"
+                  className="mt-0.5 h-8 w-8 shrink-0 rounded-full p-0 sm:h-9 sm:w-9"
+                  style={getToolbarButtonStyle(false)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
 
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <span className="text-xs sm:text-sm font-medium truncate" style={{ color: uiScheme.fg }}>
-                {metadata.title || '加载中...'}
-              </span>
-              {currentChapter && (
-                <span className="text-[10px] sm:text-xs truncate hidden sm:block" style={{ color: uiScheme.mutedText }}>
-                  {currentChapter}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Progress
-                value={percentage}
-                className="w-12 sm:w-24 h-1.5"
-              />
-              <span className="font-mono text-[10px] sm:text-xs tabular-nums w-7 sm:w-8 hidden sm:block" style={{ color: uiScheme.mutedText }}>
-                {percentage}%
-              </span>
-            </div>
-
-            <Separator orientation="vertical" className="h-5 sm:h-6" style={{ background: uiScheme.headerBorder }} />
-
-            <Sheet>
-              <SheetTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="目录"
-                    className="h-8 w-8 sm:h-9 sm:w-9"
-                  />
-                }
-              >
-                <List className="w-4 h-4" />
-              </SheetTrigger>
-              <SheetContent
-                side="left"
-                className="w-[85vw] sm:w-80 max-w-sm backdrop-blur-sm p-0"
-                style={{
-                  background: `${uiScheme.cardBg}f5`,
-                  borderColor: uiScheme.cardBorder,
-                }}
-              >
-                <SheetHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
-                  <SheetTitle className="text-base sm:text-lg font-semibold" style={{ color: uiScheme.fg }}>
-                    目录
-                  </SheetTitle>
-                </SheetHeader>
-                <Separator style={{ background: uiScheme.cardBorder }} />
-                <ScrollArea className="h-[calc(100vh-70px)] sm:h-[calc(100vh-80px)]">
-                  <div className="space-y-0.5 p-3 sm:p-4 pt-2 sm:pt-3">
-                    {toc.length > 0 ? (
-                      toc.map((item, idx) => (
-                        <MemoizedTOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
-                      ))
-                    ) : (
-                      <p className="text-sm py-8 text-center" style={{ color: uiScheme.mutedText }}>
-                        暂无目录
+                <div className={`min-w-0 flex-1 ${headerCollapsed ? 'pr-2 sm:pr-3' : ''}`}>
+                  <div className={`flex gap-1.5 sm:gap-2 ${headerCollapsed ? 'items-center min-h-[2rem]' : 'items-start'}`}>
+                    <h1
+                      className={`min-w-0 truncate font-medium tracking-tight transition-all duration-500 ease-out ${
+                        headerCollapsed
+                          ? 'pointer-events-none max-w-0 overflow-hidden opacity-0'
+                          : 'flex-1 text-sm sm:text-xl'
+                      }`}
+                      style={{ color: uiScheme.fg }}
+                    >
+                      {metadata.title || '加载中...'}
+                    </h1>
+                    <div
+                      className={`min-w-0 items-center gap-1.5 transition-all duration-500 ease-out ${
+                        headerCollapsed
+                          ? 'flex flex-1 translate-y-0 opacity-100'
+                          : 'pointer-events-none hidden translate-y-1 opacity-0'
+                      }`}
+                    >
+                      <span
+                        className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
+                        style={{
+                          color: uiScheme.accentText,
+                          background: withOpacity(uiScheme.cardBorder, 0.14),
+                        }}
+                      >
+                        {percentage}%
+                      </span>
+                      <p
+                        className="min-w-0 flex-1 truncate text-[10px] sm:text-[11px]"
+                        style={{ color: uiScheme.mutedText }}
+                      >
+                        {currentChapter || '等待定位章节'}
                       </p>
-                    )}
+                    </div>
                   </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
+                  <div
+                    className={`mt-0.5 flex items-center gap-2 transition-all duration-500 ease-out ${
+                      headerCollapsed
+                        ? 'pointer-events-none max-h-0 -translate-y-1.5 overflow-hidden opacity-0'
+                        : 'max-h-8 translate-y-0 opacity-100'
+                    }`}
+                  >
+                    <span
+                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
+                      style={{
+                        color: uiScheme.accentText,
+                        background: withOpacity(uiScheme.cardBorder, 0.14),
+                      }}
+                    >
+                      {percentage}%
+                    </span>
+                    <p
+                      className="min-w-0 truncate text-[11px] sm:text-xs"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      {currentChapter || '等待定位章节'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-            <ThemeSettings theme={theme} setTheme={setTheme} uiScheme={uiScheme} />
+              <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+                <Sheet open={tocOpen} onOpenChange={setTocOpen}>
+                  <SheetTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="目录"
+                        className={toolbarButtonClass}
+                        style={getToolbarButtonStyle(tocOpen)}
+                      />
+                    }
+                  >
+                    <List className="h-4 w-4" />
+                  </SheetTrigger>
+                  <SheetContent
+                    side="left"
+                    className="w-[85vw] max-w-sm p-0 backdrop-blur-sm sm:w-80"
+                    style={{
+                      background: withOpacity(uiScheme.cardBg, 0.96),
+                      borderColor: uiScheme.cardBorder,
+                    }}
+                  >
+                    <SheetHeader className="p-4 pb-3">
+                      <SheetTitle
+                        className="text-base font-semibold sm:text-lg"
+                        style={{ color: uiScheme.fg }}
+                      >
+                        目录
+                      </SheetTitle>
+                    </SheetHeader>
+                    <Separator style={{ background: uiScheme.cardBorder }} />
+                    <ScrollArea className="h-[calc(100vh-76px)] sm:h-[calc(100vh-80px)]">
+                      <div className="space-y-0.5 p-4 pt-3">
+                        {toc.length > 0 ? (
+                          toc.map((item, idx) => (
+                            <MemoizedTOCNode
+                              key={idx}
+                              item={item}
+                              onGoTo={goTo}
+                              uiScheme={uiScheme}
+                            />
+                          ))
+                        ) : (
+                          <p
+                            className="py-8 text-center text-sm"
+                            style={{ color: uiScheme.mutedText }}
+                          >
+                            暂无目录
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </SheetContent>
+                </Sheet>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={logout}
-              title="退出"
-              className="h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
+                <Suspense fallback={null}>
+                  <TTSControls
+                    state={ttsState}
+                    settings={ttsSettings}
+                    voices={voices}
+                    onStart={startTTS}
+                    onStop={stopTTS}
+                    onNext={nextTTS}
+                    onPrev={prevTTS}
+                    onUpdateSettings={updateTTSSettings}
+                    uiScheme={uiScheme}
+                    variant="toolbar"
+                    onExpandedChange={setTtsToolbarOpen}
+                  />
+                </Suspense>
+
+                <ThemeSettings
+                  theme={theme}
+                  setTheme={setTheme}
+                  uiScheme={uiScheme}
+                  open={themeSettingsOpen}
+                  onOpenChange={setThemeSettingsOpen}
+                />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={logout}
+                  title="退出"
+                  className={`hidden sm:flex ${toolbarButtonClass}`}
+                  style={getToolbarButtonStyle(false)}
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+          </header>
+
+          <div
+            className="flex-1 min-h-0 p-2 sm:p-3"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="relative h-full overflow-hidden rounded-[24px] border"
+              style={{
+                background: `
+                  linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
+                `,
+                borderColor: withOpacity(uiScheme.cardBorder, 0.9),
+                boxShadow: `inset 0 1px 0 ${withOpacity(uiScheme.cardBorder, 0.2)}`,
+              }}
             >
-              <LogOut className="w-4 h-4" />
-            </Button>
+              {loading && (
+                <div
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+                  style={{
+                    background: `
+                      linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.92)} 0%, ${withOpacity(uiScheme.cardBg, 0.96)} 100%)
+                    `,
+                  }}
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <div
+                      className="flex h-20 w-16 items-center justify-center rounded-[20px] border"
+                      style={{
+                        background: withOpacity(uiScheme.cardBg, 0.8),
+                        borderColor: withOpacity(uiScheme.cardBorder, 0.95),
+                      }}
+                    >
+                      <div
+                        className="h-10 w-10 animate-spin rounded-full border-2"
+                        style={{
+                          borderColor: withOpacity(uiScheme.link, 0.2),
+                          borderTopColor: uiScheme.link,
+                        }}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium" style={{ color: uiScheme.fg }}>
+                        {loadingMsg}
+                      </p>
+                      <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
+                        正在准备本次阅读环境
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20"
+                style={{
+                  background: `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.88)} 0%, transparent 100%)`,
+                }}
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28"
+                style={{
+                  background: `linear-gradient(180deg, transparent 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)`,
+                }}
+              />
+
+              <div ref={containerRef} className="absolute inset-0" />
+
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden items-center pl-3 lg:flex">
+                <ReaderEdgeButton
+                  direction="prev"
+                  onClick={handlePrev}
+                  uiScheme={uiScheme}
+                />
+              </div>
+
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden items-center pr-3 lg:flex">
+                <ReaderEdgeButton
+                  direction="next"
+                  onClick={handleNext}
+                  uiScheme={uiScheme}
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </header>
-
-      <div
-        className="flex-1 relative min-h-0"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {loading && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center z-10"
-            style={{ background: uiScheme.bg }}
-          >
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-16 rounded border-2 flex items-center justify-center"
-                   style={{ borderColor: uiScheme.cardBorder }}>
-                <div className="w-10 h-10 border-2 rounded-full animate-spin"
-                     style={{ borderColor: `${uiScheme.link}20`, borderTopColor: uiScheme.link }} />
-              </div>
-              <p className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>
-                {loadingMsg}
-              </p>
-            </div>
-          </div>
-        )}
-        <div ref={containerRef} className="absolute inset-0" />
-
-        <Suspense fallback={null}>
-          <TTSControls
-            state={ttsState}
-            settings={ttsSettings}
-            voices={voices}
-            onStart={startTTS}
-            onStop={stopTTS}
-            onNext={nextTTS}
-            onPrev={prevTTS}
-            onUpdateSettings={updateTTSSettings}
-            uiScheme={uiScheme}
-          />
-        </Suspense>
       </div>
     </div>
+  );
+}
+
+function ReaderEdgeButton({
+  direction,
+  onClick,
+  uiScheme,
+}: {
+  direction: 'prev' | 'next';
+  onClick: () => void;
+  uiScheme: ThemeColors;
+}) {
+  const Icon = direction === 'prev' ? ChevronLeft : ChevronRight;
+  const label = direction === 'prev' ? '上一页' : '下一页';
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105"
+      style={{
+        color: uiScheme.buttonText,
+        background: withOpacity(uiScheme.cardBg, 0.76),
+        borderColor: withOpacity(uiScheme.cardBorder, 0.9),
+        boxShadow: `0 16px 32px ${withOpacity(uiScheme.headerBorder, 0.26)}`,
+      }}
+      aria-label={label}
+      title={label}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
   );
 }
 

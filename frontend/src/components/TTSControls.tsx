@@ -328,6 +328,8 @@ export function TTSControls({
           className="fixed z-40 animate-in slide-in-from-bottom-4 fade-in duration-200"
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
           style={{
             right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
             bottom: Math.max(8, Math.min(position.y + 56, window.innerHeight - panelHeight - 8)),

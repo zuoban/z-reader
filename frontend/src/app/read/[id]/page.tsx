@@ -79,6 +79,7 @@ export default function ReadPage() {
   const touchStartY = useRef<number>(0);
   const touchStartedInInteractiveUI = useRef(false);
   const headerHideTimerRef = useRef<number | null>(null);
+  const tocListRef = useRef<HTMLDivElement>(null);
 
   // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
   const handlePrevRef = useRef<() => void>(() => {});
@@ -437,6 +438,25 @@ export default function ReadPage() {
     };
   }, [clearHeaderHideTimer, revealHeader]);
 
+  useEffect(() => {
+    if (!tocOpen || !currentChapter) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const activeItem = tocListRef.current?.querySelector('[data-current-chapter="true"]');
+      if (activeItem instanceof HTMLElement) {
+        activeItem.scrollIntoView({
+          block: 'center',
+          inline: 'nearest',
+          behavior: 'smooth',
+        });
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [tocOpen, currentChapter]);
+
   const handleBack = useCallback(() => {
     destroyedRef.current = true;
     saveNow();
@@ -676,6 +696,7 @@ export default function ReadPage() {
                     </SheetHeader>
                     <ScrollArea className="h-[calc(100vh-84px)] sm:h-[calc(100vh-88px)]">
                       <div
+                        ref={tocListRef}
                         className="m-4 rounded-2xl border p-2.5"
                         style={{
                           background: withOpacity(uiScheme.buttonBg, 0.4),
@@ -688,6 +709,7 @@ export default function ReadPage() {
                               key={idx}
                               item={item}
                               onGoTo={goTo}
+                              currentChapter={currentChapter}
                               uiScheme={uiScheme}
                             />
                           ))
@@ -871,27 +893,40 @@ function ReaderEdgeButton({
   );
 }
 
-function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
+function TOCNode({ item, onGoTo, depth = 0, currentChapter, uiScheme }: {
   item: TOCItem;
   onGoTo: (href: string) => void;
   depth?: number;
+  currentChapter: string;
   uiScheme: ThemeColors
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const isCurrentChapter = currentChapter === item.label;
 
   return (
     <div>
       <Button
+        data-current-chapter={isCurrentChapter ? 'true' : undefined}
         variant="ghost"
         size="sm"
         className="mb-1 h-9 w-full justify-start rounded-xl border transition-all duration-150 sm:h-10"
         style={{
           paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : '12px',
           paddingRight: '12px',
-          color: isHovered ? uiScheme.fg : uiScheme.buttonText,
-          background: isHovered ? withOpacity(uiScheme.link, 0.1) : withOpacity(uiScheme.buttonBg, 0.5),
-          borderColor: isHovered ? withOpacity(uiScheme.link, 0.18) : withOpacity(uiScheme.cardBorder, 0.4),
-          boxShadow: isHovered ? `inset 0 1px 0 rgba(255,255,255,0.35)` : 'none',
+          color: isCurrentChapter || isHovered ? uiScheme.fg : uiScheme.buttonText,
+          background: isCurrentChapter
+            ? withOpacity(uiScheme.link, 0.14)
+            : isHovered
+              ? withOpacity(uiScheme.link, 0.1)
+              : withOpacity(uiScheme.buttonBg, 0.5),
+          borderColor: isCurrentChapter
+            ? withOpacity(uiScheme.link, 0.28)
+            : isHovered
+              ? withOpacity(uiScheme.link, 0.18)
+              : withOpacity(uiScheme.cardBorder, 0.4),
+          boxShadow: isCurrentChapter || isHovered
+            ? `inset 0 1px 0 rgba(255,255,255,0.35)`
+            : 'none',
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -900,7 +935,14 @@ function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
         <span className="truncate text-xs sm:text-sm">{item.label}</span>
       </Button>
       {item.subitems?.map((sub, idx) => (
-        <MemoizedTOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />
+        <MemoizedTOCNode
+          key={idx}
+          item={sub}
+          onGoTo={onGoTo}
+          depth={depth + 1}
+          currentChapter={currentChapter}
+          uiScheme={uiScheme}
+        />
       ))}
     </div>
   );
@@ -912,6 +954,7 @@ const MemoizedTOCNode = React.memo(TOCNode, (prevProps, nextProps) => {
     prevProps.item.label === nextProps.item.label &&
     prevProps.item.subitems?.length === nextProps.item.subitems?.length &&
     prevProps.depth === nextProps.depth &&
+    prevProps.currentChapter === nextProps.currentChapter &&
     prevProps.uiScheme.fg === nextProps.uiScheme.fg
   );
 });

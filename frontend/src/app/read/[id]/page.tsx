@@ -217,6 +217,7 @@ export default function ReadPage() {
         } catch (err) {
           console.error('Failed to handle relocate event:', err);
         }
+      });
 
       if (destroyedRef.current) return;
       setLoadingMsg('获取书籍...');

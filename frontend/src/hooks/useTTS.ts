@@ -168,6 +168,14 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     const enhancedSSML = buildSSML(text);
     
+    // 清理不相关的预加载
+    const nextSSMLs = getNextSSMLs(3).map(s => {
+      const t = getTextFromSSML(s);
+      return t ? buildSSML(t) : '';
+    }).filter(s => s);
+    
+    ttsInstance.current.cleanupIrrelevantPreloads([enhancedSSML, ...nextSSMLs]);
+    
     try {
       await ttsInstance.current.speak(enhancedSSML, undefined, isContinuous);
       
@@ -180,7 +188,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [getTextFromSSML, buildSSML, viewRef]);
+  }, [getTextFromSSML, buildSSML, viewRef, getNextSSMLs]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {

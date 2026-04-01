@@ -223,30 +223,35 @@ export class BackendTTS {
       this.marks = [{ name: '0', text: stripSSML(ssml) }];
     }
 
+    // 检查缓存，如果命中则无需取消任何请求
+    const cached = this.audioCache.get(ssml);
+    if (cached) {
+      this.stopInternal(isContinuous);
+      this.marks = cached.marks;
+      const audioUrl = URL.createObjectURL(cached.blob);
+      this.audioUrl = audioUrl;
+      await this.playAudio(audioUrl);
+      return;
+    }
+
+    // 检查预加载队列，如果命中则无需取消任何请求
+    const preloadedIndex = this.preloadedQueue.findIndex(p => p.ssml === ssml);
+    if (preloadedIndex !== -1) {
+      this.stopInternal(isContinuous);
+      const preloaded = this.preloadedQueue[preloadedIndex];
+      this.preloadedQueue.splice(preloadedIndex, 1);
+      this.marks = preloaded.marks;
+      this.audioCache.set(ssml, { blob: preloaded.blob, marks: preloaded.marks });
+      const audioUrl = URL.createObjectURL(preloaded.blob);
+      this.audioUrl = audioUrl;
+      await this.playAudio(audioUrl);
+      return;
+    }
+
+    // 只在需要新请求时才停止当前播放
     this.stopInternal(isContinuous);
 
     try {
-      const cached = this.audioCache.get(ssml);
-      if (cached) {
-        this.marks = cached.marks;
-        const audioUrl = URL.createObjectURL(cached.blob);
-        this.audioUrl = audioUrl;
-        await this.playAudio(audioUrl);
-        return;
-      }
-
-      const preloadedIndex = this.preloadedQueue.findIndex(p => p.ssml === ssml);
-      if (preloadedIndex !== -1) {
-        const preloaded = this.preloadedQueue[preloadedIndex];
-        this.preloadedQueue.splice(preloadedIndex, 1);
-        this.marks = preloaded.marks;
-        this.audioCache.set(ssml, { blob: preloaded.blob, marks: preloaded.marks });
-        const audioUrl = URL.createObjectURL(preloaded.blob);
-        this.audioUrl = audioUrl;
-        await this.playAudio(audioUrl);
-        return;
-      }
-
       const { blob, audioUrl } = await this.fetchAudioBlob(ssml);
       this.audioUrl = audioUrl;
       this.audioCache.set(ssml, { blob, marks: this.marks });
@@ -425,6 +430,20 @@ export class BackendTTS {
     await Promise.allSettled(promises);
   }
 
+  cleanupIrrelevantPreloads(relevantSSMLs: string[]): void {
+    const toRemove: string[] = [];
+    
+    this.preloadedQueue = this.preloadedQueue.filter(p => {
+      const isRelevant = relevantSSMLs.includes(p.ssml);
+      if (!isRelevant) {
+        toRemove.push(p.ssml);
+      }
+      return isRelevant;
+    });
+    
+    toRemove.forEach(ssml => this.cancelPreload(ssml));
+  }
+
   cancelPreload(ssml: string): void {
     const controller = this.preloadAbortControllers.get(ssml);
     if (controller) {
@@ -483,8 +502,7 @@ export class BackendTTS {
   }
 
   private stopInternal(preservePlayingState?: boolean): void {
-    this.cancelAllPreloads();
-    
+    // 只取消当前播放的请求，保留预加载请求
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;

@@ -114,7 +114,9 @@ export default function ReadPage() {
             view.parentNode.removeChild(view as unknown as Node);
           }
           view.close?.();
-        } catch {}
+        } catch (err) {
+          console.error('Failed to cleanup view on unmount:', err);
+        }
       }
       
       if (containerRef.current) {
@@ -192,7 +194,9 @@ export default function ReadPage() {
             doc.addEventListener('keydown', keyboardHandler);
             boundDocsRef.current.add(doc);
           }
-        } catch {}
+        } catch (err) {
+          console.error('Failed to handle book load event:', err);
+        }
       });
 
       view.addEventListener?.('relocate', (e: CustomEvent) => {
@@ -210,8 +214,9 @@ export default function ReadPage() {
           if (tocItem?.label) {
             setCurrentChapter(tocItem.label);
           }
-        } catch {}
-      });
+        } catch (err) {
+          console.error('Failed to handle relocate event:', err);
+        }
 
       if (destroyedRef.current) return;
       setLoadingMsg('获取书籍...');
@@ -344,7 +349,9 @@ export default function ReadPage() {
         if (view.parentNode) {
           view.parentNode.removeChild(view as unknown as Node);
         }
-      } catch {}
+      } catch (err) {
+        console.error('Failed to cleanup view during back navigation:', err);
+      }
     }
 
     if (containerRef.current) {

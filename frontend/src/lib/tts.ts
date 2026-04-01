@@ -46,7 +46,9 @@ export function loadTTSSettings(): TTSSettings {
       const parsed = JSON.parse(saved);
       return { ...DEFAULT_SETTINGS, ...parsed };
     }
-  } catch {}
+  } catch (err) {
+    console.error('Failed to load TTS settings from localStorage:', err);
+  }
   return DEFAULT_SETTINGS;
 }
 
@@ -54,7 +56,9 @@ export function saveTTSSettings(settings: TTSSettings): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(TTS_SETTINGS_KEY, JSON.stringify(settings));
-  } catch {}
+  } catch (err) {
+    console.error('Failed to save TTS settings to localStorage:', err);
+  }
 }
 
 function stripSSML(ssml: string): string {

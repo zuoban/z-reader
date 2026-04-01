@@ -70,7 +70,9 @@ export const api = {
   logout: async (): Promise<void> => {
     try {
       await fetchApi('/api/logout', { method: 'POST' });
-    } catch {}
+    } catch (err) {
+      console.error('Logout API call failed:', err);
+    }
     removeToken();
   },
 

@@ -116,7 +116,9 @@ function getSnapshot(): ReaderTheme {
       cachedTheme = parsed;
       return parsed;
     }
-  } catch {}
+  } catch (err) {
+    console.error('Failed to load theme from localStorage:', err);
+  }
   cachedTheme = DEFAULT_THEME;
   return DEFAULT_THEME;
 }

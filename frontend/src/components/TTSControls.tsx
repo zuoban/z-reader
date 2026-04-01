@@ -34,8 +34,9 @@ const LOCALE_LABELS: Record<string, string> = {
 // 提取通用样式配置
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
-    background: `${uiScheme.cardBg}f5`,
+    background: `${uiScheme.cardBg}fa`,
     borderColor: uiScheme.cardBorder,
+    backdropFilter: 'blur(16px)',
   },
   selectTrigger: {
     background: uiScheme.buttonBg,
@@ -47,8 +48,8 @@ const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
     borderColor: uiScheme.cardBorder,
   },
   fab: {
-    background: isActive ? uiScheme.link : `${uiScheme.cardBg}ee`,
-    border: `2px solid ${uiScheme.cardBorder}`,
+    background: isActive ? uiScheme.link : `${uiScheme.cardBg}f0`,
+    border: `1.5px solid ${uiScheme.cardBorder}`,
   },
 });
 
@@ -78,10 +79,10 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       min={min}
       max={max}
       step={step}
-      className="flex-1"
+      className="flex-1 [&_[role=slider]]:transition-transform [&_[role=slider]]:duration-150"
     />
     <span
-      className="text-[10px] sm:text-xs w-9 sm:w-10 tabular-nums text-right"
+      className="text-[10px] sm:text-xs w-9 sm:w-10 tabular-nums text-right font-medium"
       style={{ color: uiScheme.fg }}
     >
       {format(value)}
@@ -107,10 +108,11 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
     onClick={onClick}
     disabled={disabled}
     title={title}
-    className="transition-transform hover:scale-110 active:scale-95 h-7 w-7 sm:h-8 sm:w-8"
+    className="transition-all duration-200 hover:bg-opacity-20 hover:scale-110 active:scale-95 h-7 w-7 sm:h-8 sm:w-8 rounded-lg"
     style={{
       color: variant === 'danger' && active ? '#ef4444' : active ? uiScheme.fg : uiScheme.mutedText,
       opacity: disabled ? 0.5 : 1,
+      background: active ? `${uiScheme.link}15` : 'transparent',
     }}
   >
     {children}
@@ -383,12 +385,14 @@ export function TTSControls({
         }}
         role="button"
         tabIndex={0}
-        className="fixed z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-shadow duration-150 touch-none"
+        className="fixed z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-2xl shadow-lg flex items-center justify-center transition-all duration-200 touch-none"
         style={{
           right: position.x,
           bottom: position.y,
           ...styles.fab,
-          boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: isDragging
+            ? `0 8px 32px ${uiScheme.link}40`
+            : `0 4px 16px ${uiScheme.cardBorder}30, 0 2px 8px ${uiScheme.cardBorder}20`,
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
           pointerEvents: 'auto',
@@ -403,15 +407,18 @@ export function TTSControls({
         />
         {isActive && (
           <div
-            className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse"
-            style={{ background: '#22c55e' }}
+            className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full"
+            style={{
+              background: '#22c55e',
+              boxShadow: '0 0 8px #22c55e80',
+            }}
           />
         )}
       </div>
 
       {expanded && (
         <div
-          className="fixed z-40 animate-in slide-in-from-bottom-4 fade-in duration-200"
+          className="fixed z-40 animate-in slide-in-from-bottom-2 fade-in duration-200"
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
@@ -423,8 +430,11 @@ export function TTSControls({
           }}
         >
           <div
-            className="flex flex-col gap-2 backdrop-blur-md rounded-xl border p-2.5 sm:p-3 shadow-xl"
-            style={styles.panel}
+            className="flex flex-col gap-2 rounded-2xl border p-2.5 sm:p-3"
+            style={{
+              ...styles.panel,
+              boxShadow: `0 8px 32px ${uiScheme.cardBorder}30, 0 2px 12px ${uiScheme.cardBorder}20`,
+            }}
           >
             <div className="flex items-center justify-between mb-0.5 sm:mb-1">
               <span
@@ -437,7 +447,7 @@ export function TTSControls({
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setExpanded(false)}
-                className="transition-transform hover:scale-110 active:scale-95 h-6 w-6 sm:h-7 sm:w-7"
+                className="transition-all duration-150 hover:bg-opacity-20 hover:scale-110 active:scale-95 h-6 w-6 sm:h-7 sm:w-7 rounded-lg"
                 style={{ color: uiScheme.mutedText }}
               >
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -474,14 +484,15 @@ export function TTSControls({
                   onClick={handleStartClick}
                   disabled={isPending}
                   title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                  className="transition-transform hover:scale-105 active:scale-95 h-8 w-8 sm:h-9 sm:w-9"
+                  className="transition-all duration-200 hover:scale-105 active:scale-95 h-9 w-9 sm:h-10 sm:w-10 rounded-xl"
                   style={{
                     background: isPlaying
                       ? uiScheme.buttonBg
-                      : uiScheme.link,
-                    borderColor: uiScheme.cardBorder,
+                      : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
+                    borderColor: isPlaying ? uiScheme.cardBorder : 'transparent',
                     color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
                     opacity: isPending ? 0.5 : 1,
+                    boxShadow: !isPlaying ? `0 2px 8px ${uiScheme.link}40` : 'none',
                   }}
                 >
                   {isPlaying ? (

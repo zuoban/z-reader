@@ -2,7 +2,7 @@
   "name": "Z Reader",
   "short_name": "Z Reader",
   "description": "A refined online EPUB reading experience",
-  "start_url": "/",
+  "start_url": "/shelf",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1f2937",

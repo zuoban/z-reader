@@ -208,10 +208,10 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       try {
         await view.next?.();
         await new Promise(r => setTimeout(r, 500));
-        
+
         inited = await ensureTTS();
         if (inited) {
-          ssml = view.tts?.first?.();
+          ssml = view.tts?.start?.();
         }
       } catch (err) {
         console.error('Failed to navigate to next page:', err);
@@ -241,10 +241,10 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       try {
         await view.prev?.();
         await new Promise(r => setTimeout(r, 500));
-        
+
         inited = await ensureTTS();
         if (inited) {
-          ssml = view.tts?.first?.();
+          ssml = view.tts?.start?.();
         }
       } catch (err) {
         console.error('Failed to navigate to prev page:', err);

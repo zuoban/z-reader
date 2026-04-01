@@ -22,7 +22,6 @@ export interface FoliateView {
   tts?: {
     start?: () => string | null | undefined;
     from?: (range: Range) => string | null | undefined;
-    first?: () => string | null | undefined;
     resume?: () => string | null | undefined;
     next?: (paused?: boolean) => string | null | undefined;
     prev?: (paused?: boolean) => string | null | undefined;

@@ -276,6 +276,32 @@ foliate-view::part(filter) {
   }
 }
 
+@keyframes loginFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes loginDrift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-4deg);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0) rotate(-1deg);
+  }
+}
+
+.animate-login-float {
+  animation: loginFloat 6s ease-in-out infinite;
+}
+
+.animate-login-drift {
+  animation: loginDrift 7s ease-in-out infinite;
+}
+
 /* 尊重用户减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
   @keyframes soundWave {
@@ -296,6 +322,18 @@ foliate-view::part(filter) {
     0%, 100% {
       opacity: 1;
       transform: scale(1);
+    }
+  }
+
+  @keyframes loginFloat {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes loginDrift {
+    0%, 100% {
+      transform: translate3d(0, 0, 0) rotate(0deg);
     }
   }
 }

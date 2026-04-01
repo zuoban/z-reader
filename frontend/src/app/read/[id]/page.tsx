@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import React from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -441,7 +442,7 @@ export default function ReadPage() {
                   <div className="space-y-0.5 p-3 sm:p-4 pt-2 sm:pt-3">
                     {toc.length > 0 ? (
                       toc.map((item, idx) => (
-                        <TOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
+                        <MemoizedTOCNode key={idx} item={item} onGoTo={goTo} uiScheme={uiScheme} />
                       ))
                     ) : (
                       <p className="text-sm py-8 text-center" style={{ color: uiScheme.mutedText }}>
@@ -535,8 +536,18 @@ function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
         <span className="text-xs sm:text-sm truncate">{item.label}</span>
       </Button>
       {item.subitems?.map((sub, idx) => (
-        <TOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />
+        <MemoizedTOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />
       ))}
     </div>
   );
 }
+
+const MemoizedTOCNode = React.memo(TOCNode, (prevProps, nextProps) => {
+  return (
+    prevProps.item.href === nextProps.item.href &&
+    prevProps.item.label === nextProps.item.label &&
+    prevProps.item.subitems?.length === nextProps.item.subitems?.length &&
+    prevProps.depth === nextProps.depth &&
+    prevProps.uiScheme.fg === nextProps.uiScheme.fg
+  );
+});

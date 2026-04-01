@@ -19,8 +19,8 @@ func NewProgressHandler(db *storage.DB) *ProgressHandler {
 }
 
 type ProgressRequest struct {
-	CFI        string  `json:"cfi" binding:"required"`
-	Percentage float64 `json:"percentage" binding:"required"`
+	CFI        string  `json:"cfi"`
+	Percentage float64 `json:"percentage"`
 }
 
 func (h *ProgressHandler) Get(c *gin.Context) {
@@ -49,7 +49,17 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 
 	var req ProgressRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "cfi and percentage required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	if req.CFI == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cfi required"})
+		return
+	}
+
+	if req.Percentage < 0 || req.Percentage > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "percentage must be between 0 and 100"})
 		return
 	}
 

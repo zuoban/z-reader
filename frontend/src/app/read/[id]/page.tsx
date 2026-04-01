@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
 import React from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +10,6 @@ import { useProgress } from '@/hooks/useProgress';
 import { useReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
 import { useTTS } from '@/hooks/useTTS';
 import { ThemeSettings } from '@/components/ThemeSettings';
-import { TTSControls } from '@/components/TTSControls';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +22,9 @@ import {
 } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 import { List, LogOut, ChevronLeft } from 'lucide-react';
+
+// 延迟加载 TTS 组件，首屏不加载
+const TTSControls = lazy(() => import('@/components/TTSControls').then(m => ({ default: m.TTSControls })));
 
 export default function ReadPage() {
   const router = useRouter();
@@ -526,17 +528,19 @@ export default function ReadPage() {
         )}
         <div ref={containerRef} className="absolute inset-0" />
 
-        <TTSControls
-          state={ttsState}
-          settings={ttsSettings}
-          voices={voices}
-          onStart={startTTS}
-          onStop={stopTTS}
-          onNext={nextTTS}
-          onPrev={prevTTS}
-          onUpdateSettings={updateTTSSettings}
-          uiScheme={uiScheme}
-        />
+        <Suspense fallback={null}>
+          <TTSControls
+            state={ttsState}
+            settings={ttsSettings}
+            voices={voices}
+            onStart={startTTS}
+            onStop={stopTTS}
+            onNext={nextTTS}
+            onPrev={prevTTS}
+            onUpdateSettings={updateTTSSettings}
+            uiScheme={uiScheme}
+          />
+        </Suspense>
       </div>
     </div>
   );

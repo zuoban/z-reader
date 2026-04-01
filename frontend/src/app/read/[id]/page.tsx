@@ -98,6 +98,58 @@ export default function ReadPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
+  const goTo = useCallback((href: string) => {
+    if (viewRef.current) {
+      viewRef.current.goTo?.(href);
+    }
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    if (viewRef.current) {
+      viewRef.current.prev?.();
+    }
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (viewRef.current) {
+      viewRef.current.next?.();
+    }
+  }, []);
+
+  // 使用 effect 同步回调到 ref，供 keyboardHandler 使用
+  useEffect(() => {
+    handlePrevRef.current = handlePrev;
+  }, [handlePrev]);
+
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
+
+  // keyboardHandler 使用 ref 避免依赖变化导致频繁重建
+  const keyboardHandler = useCallback((e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'PageUp':
+      case 'k':
+      case 'K':
+        handlePrevRef.current();
+        break;
+      case 'ArrowRight':
+      case 'PageDown':
+      case 'j':
+      case 'J':
+      case ' ':
+        if (e.key === ' ' && e.shiftKey) handlePrevRef.current();
+        else handleNextRef.current();
+        break;
+      case 'Escape':
+        handleBackRef.current();
+        break;
+    }
+  }, []);
+
   const initReader = useCallback(async () => {
     if (!containerRef.current || destroyedRef.current) return;
 
@@ -160,7 +212,7 @@ export default function ReadPage() {
           });
           setToc(book?.toc || []);
           setLoading(false);
-          
+
           // 给 iframe 的 document 绑定键盘事件，解决点击正文后快捷键失效的问题
           const doc = e.detail?.doc;
           if (doc) {
@@ -176,10 +228,10 @@ export default function ReadPage() {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const { cfi, fraction, tocItem } = e.detail;
-          
+
           const pct = Math.round((fraction || 0) * 100);
           setPercentage(pct);
-          
+
           if (cfi) {
             updateProgress(cfi, pct);
           }
@@ -194,12 +246,12 @@ export default function ReadPage() {
 
       if (destroyedRef.current) return;
       setLoadingMsg('获取书籍...');
-      
+
       const blob = await api.fetchBook(bookId);
-      
+
       if (destroyedRef.current) return;
       setLoadingMsg('打开书籍...');
-      
+
       try {
         const url = URL.createObjectURL(blob);
         await view.open?.(url as unknown as Blob | File);
@@ -208,11 +260,11 @@ export default function ReadPage() {
         console.error('Failed to open book:', err);
         throw new Error(`Failed to open book: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
-      
+
       if (destroyedRef.current) return;
 
       view.renderer?.setStyles?.(getStylesheet());
-      
+
       const savedProgress = progressRef.current;
       if (savedProgress?.cfi) {
         try {
@@ -261,58 +313,6 @@ export default function ReadPage() {
       }
     };
   }, [initReader, isAuthenticated, progressLoading]);
-
-  const goTo = useCallback((href: string) => {
-    if (viewRef.current) {
-      viewRef.current.goTo?.(href);
-    }
-  }, []);
-
-  const handlePrev = useCallback(() => {
-    if (viewRef.current) {
-      viewRef.current.prev?.();
-    }
-  }, []);
-
-  const handleNext = useCallback(() => {
-    if (viewRef.current) {
-      viewRef.current.next?.();
-    }
-  }, []);
-
-  // 使用 effect 同步回调到 ref，供 keyboardHandler 使用
-  useEffect(() => {
-    handlePrevRef.current = handlePrev;
-  }, [handlePrev]);
-
-  useEffect(() => {
-    handleNextRef.current = handleNext;
-  }, [handleNext]);
-
-  // keyboardHandler 使用 ref 避免依赖变化导致频繁重建
-  const keyboardHandler = useCallback((e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-    switch (e.key) {
-      case 'ArrowLeft':
-      case 'PageUp':
-      case 'k':
-      case 'K':
-        handlePrevRef.current();
-        break;
-      case 'ArrowRight':
-      case 'PageDown':
-      case 'j':
-      case 'J':
-      case ' ':
-        if (e.key === ' ' && e.shiftKey) handlePrevRef.current();
-        else handleNextRef.current();
-        break;
-      case 'Escape':
-        handleBackRef.current();
-        break;
-    }
-  }, []);
 
   const isInteractiveTouchTarget = useCallback((target: EventTarget | null) => {
     return target instanceof Element

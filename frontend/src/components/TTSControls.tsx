@@ -287,6 +287,7 @@ export function TTSControls({
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();

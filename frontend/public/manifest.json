@@ -27,7 +27,7 @@
     {
       "name": "My Books",
       "short_name": "Books",
-      "url": "/books",
+      "url": "/shelf",
       "description": "View your book library"
     }
   ]

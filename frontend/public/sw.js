@@ -1,7 +1,7 @@
-const CACHE_NAME = 'z-reader-v1';
+const CACHE_NAME = 'z-reader-v2';
 const STATIC_ASSETS = [
   '/',
-  '/books',
+  '/shelf',
   '/manifest.json',
 ];
 

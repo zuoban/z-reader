@@ -48,6 +48,8 @@ export default function ReadPage() {
   const themeRef = useRef(theme);
   // 使用 Set 避免重复添加和内存泄漏
   const boundDocsRef = useRef<Set<Document>>(new Set());
+  // 缓存脚本加载状态，避免重复创建 script 标签
+  const scriptLoadedRef = useRef(false);
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
 
@@ -125,27 +127,37 @@ export default function ReadPage() {
     try {
       setLoadingMsg('加载阅读器...');
 
-      if (!customElements.get('foliate-view')) {
+      // 检查脚本是否已加载，避免重复创建
+      if (!customElements.get('foliate-view') && !scriptLoadedRef.current) {
+        scriptLoadedRef.current = true; // 标记为正在加载
+
         const script = document.createElement('script');
         script.src = '/foliate/view.js';
         script.type = 'module';
-        
+
         const loadPromise = new Promise<void>((resolve, reject) => {
           script.onload = () => resolve();
           script.onerror = () => reject(new Error('Failed to load foliate.js'));
         });
-        
+
         document.head.appendChild(script);
         await loadPromise;
-        
+
         let retries = 0;
         while (!customElements.get('foliate-view') && retries < 50) {
           await new Promise(r => setTimeout(r, 100));
           retries++;
         }
-        
+
         if (!customElements.get('foliate-view')) {
           throw new Error('foliate-view not registered');
+        }
+      } else {
+        // 脚本已加载或正在加载中，等待注册完成
+        let retries = 0;
+        while (!customElements.get('foliate-view') && retries < 50) {
+          await new Promise(r => setTimeout(r, 100));
+          retries++;
         }
       }
 

@@ -48,7 +48,8 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 	id := c.Param("id")
 
 	var req ProgressRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// 支持 JSON 和 form-urlencoded 格式（sendBeacon 使用 form 格式）
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}

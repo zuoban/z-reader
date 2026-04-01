@@ -6,17 +6,27 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 interface UseProgressOptions {
   bookId: string;
   autoSaveInterval?: number;
+  debounceDelay?: number;
 }
 
-export function useProgress({ bookId, autoSaveInterval = 5000 }: UseProgressOptions) {
+export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1000 }: UseProgressOptions) {
   const [progress, setProgress] = useState<{ cfi: string; percentage: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const lastSavedRef = useRef<{ cfi: string; percentage: number } | null>(null);
   const pendingSaveRef = useRef<{ cfi: string; percentage: number } | null>(null);
   const savingRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const saveProgress = useCallback(async (data: { cfi: string; percentage: number }) => {
-    if (savingRef.current) return;
+  const saveProgress = useCallback(async (data: { cfi: string; percentage: number }, force = false) => {
+    // 强制保存时忽略 1% 变化限制
+    if (!force && savingRef.current) return;
+    if (!force) {
+      // 非强制保存时，检查进度变化是否小于 1%
+      if (lastSavedRef.current && Math.abs(data.percentage - lastSavedRef.current.percentage) < 1) {
+        return;
+      }
+    }
+
     savingRef.current = true;
 
     try {
@@ -24,40 +34,72 @@ export function useProgress({ bookId, autoSaveInterval = 5000 }: UseProgressOpti
       lastSavedRef.current = data;
     } catch (err) {
       console.error('Failed to save progress:', err);
+    } finally {
+      savingRef.current = false;
     }
-    savingRef.current = false;
   }, [bookId]);
+
+  // 防抖保存 - 避免快速翻页时频繁请求
+  const debouncedSave = useCallback((data: { cfi: string; percentage: number }) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      saveProgress(data);
+    }, debounceDelay);
+  }, [saveProgress, debounceDelay]);
 
   useEffect(() => {
     loadProgress();
   }, [bookId]);
 
-  // 定时保存
+  // 定时保存 - 低频检查
   useEffect(() => {
     const interval = setInterval(() => {
       if (pendingSaveRef.current && !savingRef.current) {
-        const pending = pendingSaveRef.current;
-        // 只在进度变化超过 1% 时保存
-        if (!lastSavedRef.current || Math.abs(pending.percentage - lastSavedRef.current.percentage) >= 1) {
-          saveProgress(pending);
-        }
+        debouncedSave(pendingSaveRef.current);
       }
     }, autoSaveInterval);
 
-    return () => clearInterval(interval);
-  }, [autoSaveInterval, saveProgress]);
+    return () => {
+      clearInterval(interval);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [autoSaveInterval, debouncedSave]);
 
-  // 页面隐藏/关闭时保存
+  // 页面隐藏时立即保存（使用更低延迟）
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && pendingSaveRef.current) {
-        saveProgress(pendingSaveRef.current);
+        // 页面隐藏时直接同步保存
+        saveProgress(pendingSaveRef.current, true);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [saveProgress]);
+
+  // 页面卸载前保存
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (pendingSaveRef.current && lastSavedRef.current) {
+        const pending = pendingSaveRef.current;
+        // 如果有未保存的变化，使用 navigator.sendBeacon 后台发送
+        if (pending.cfi !== lastSavedRef.current.cfi ||
+            Math.abs(pending.percentage - lastSavedRef.current.percentage) >= 1) {
+          // 使用 form-urlencoded 格式（sendBeacon 默认格式）
+          const data = `cfi=${encodeURIComponent(pending.cfi)}&percentage=${pending.percentage}`;
+          navigator.sendBeacon?.(`/api/progress/${bookId}`, data);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [bookId]);
 
   async function loadProgress() {
     try {
@@ -78,8 +120,13 @@ export function useProgress({ bookId, autoSaveInterval = 5000 }: UseProgressOpti
   }
 
   function saveNow() {
+    // 清理防抖计时器，立即保存
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
     if (pendingSaveRef.current) {
-      saveProgress(pendingSaveRef.current);
+      saveProgress(pendingSaveRef.current, true);
     }
   }
 

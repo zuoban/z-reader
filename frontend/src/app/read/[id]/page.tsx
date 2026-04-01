@@ -50,6 +50,11 @@ export default function ReadPage() {
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
 
+  // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
+  const handlePrevRef = useRef<() => void>(() => {});
+  const handleNextRef = useRef<() => void>(() => {});
+  const handleBackRef = useRef<() => void>(() => {});
+
   const handleHighlight = useCallback((range: Range) => {
     if (viewRef.current?.renderer) {
       viewRef.current.renderer.scrollToAnchor?.(range, true);
@@ -251,26 +256,36 @@ export default function ReadPage() {
     }
   }, []);
 
+  // 使用 effect 同步回调到 ref，供 keyboardHandler 使用
+  useEffect(() => {
+    handlePrevRef.current = handlePrev;
+  }, [handlePrev]);
+
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
+
+  // keyboardHandler 使用 ref 避免依赖变化导致频繁重建
   const keyboardHandler = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    
+
     switch (e.key) {
       case 'ArrowLeft':
       case 'PageUp':
       case 'k':
       case 'K':
-        handlePrev();
+        handlePrevRef.current();
         break;
       case 'ArrowRight':
       case 'PageDown':
       case 'j':
       case 'J':
       case ' ':
-        if (e.key === ' ' && e.shiftKey) handlePrev();
-        else handleNext();
+        if (e.key === ' ' && e.shiftKey) handlePrevRef.current();
+        else handleNextRef.current();
         break;
       case 'Escape':
-        handleBack();
+        handleBackRef.current();
         break;
     }
   }, []);
@@ -296,7 +311,7 @@ export default function ReadPage() {
     }
   }, [handlePrev, handleNext]);
 
-  function handleBack() {
+  const handleBack = useCallback(() => {
     destroyedRef.current = true;
     saveNow();
 
@@ -322,7 +337,12 @@ export default function ReadPage() {
     }
 
     router.push('/shelf');
-  }
+  }, [saveNow, router, keyboardHandler]);
+
+  // 同步 handleBack 到 ref
+  useEffect(() => {
+    handleBackRef.current = handleBack;
+  }, [handleBack]);
 
   useEffect(() => {
     window.addEventListener('keydown', keyboardHandler);

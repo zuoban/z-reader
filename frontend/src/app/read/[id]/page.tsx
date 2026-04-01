@@ -53,13 +53,10 @@ export default function ReadPage() {
   const uiScheme = getUIScheme();
 
   const [toc, setToc] = useState<TOCItem[]>([]);
-  const [metadata, setMetadata] = useState<{ title?: string; author?: string }>({});
   const [percentage, setPercentage] = useState(0);
   const [currentChapter, setCurrentChapter] = useState('');
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
-  const [ttsToolbarOpen, setTtsToolbarOpen] = useState(false);
-  const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('初始化中...');
@@ -78,7 +75,6 @@ export default function ReadPage() {
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const touchStartedInInteractiveUI = useRef(false);
-  const headerHideTimerRef = useRef<number | null>(null);
   const tocListRef = useRef<HTMLDivElement>(null);
 
   // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
@@ -119,52 +115,27 @@ export default function ReadPage() {
     updateProgressRef.current = updateProgress;
   }, [updateProgress]);
 
-  const keepHeaderExpanded = loading || tocOpen || themeSettingsOpen || ttsToolbarOpen;
+  const applyRendererPreferences = useCallback((renderer?: FoliateView['renderer'] | null) => {
+    if (!renderer) return;
 
-  const clearHeaderHideTimer = useCallback(() => {
-    if (headerHideTimerRef.current !== null) {
-      window.clearTimeout(headerHideTimerRef.current);
-      headerHideTimerRef.current = null;
+    renderer.setAttribute('margin', '0');
+    renderer.setAttribute('flow', theme.flow);
+    renderer.setAttribute('gap', `${theme.gap}%`);
+    renderer.setAttribute('max-inline-size', `${theme.maxInlineSize}px`);
+
+    if (theme.animated) {
+      renderer.setAttribute('animated', '');
+    } else {
+      renderer.removeAttribute('animated');
     }
-  }, []);
-
-  const scheduleHeaderCollapse = useCallback(() => {
-    clearHeaderHideTimer();
-
-    if (keepHeaderExpanded) {
-      setHeaderCollapsed(false);
-      return;
-    }
-
-    headerHideTimerRef.current = window.setTimeout(() => {
-      setHeaderCollapsed(true);
-    }, 3600);
-  }, [clearHeaderHideTimer, keepHeaderExpanded]);
-
-  const revealHeader = useCallback(() => {
-    setHeaderCollapsed(false);
-    scheduleHeaderCollapse();
-  }, [scheduleHeaderCollapse]);
+  }, [theme.animated, theme.flow, theme.gap, theme.maxInlineSize]);
 
   useEffect(() => {
     if (viewRef.current && !loading) {
       viewRef.current.renderer?.setStyles?.(getStylesheet());
+      applyRendererPreferences(viewRef.current.renderer);
     }
-  }, [theme, loading, getStylesheet]);
-
-  useEffect(() => {
-    if (keepHeaderExpanded) {
-      clearHeaderHideTimer();
-      setHeaderCollapsed(false);
-      return;
-    }
-
-    scheduleHeaderCollapse();
-
-    return () => {
-      clearHeaderHideTimer();
-    };
-  }, [clearHeaderHideTimer, keepHeaderExpanded, scheduleHeaderCollapse]);
+  }, [applyRendererPreferences, loading, theme, getStylesheet]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -279,11 +250,6 @@ export default function ReadPage() {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const book = view.book;
-          const metadata = book?.metadata;
-          setMetadata({
-            title: metadata?.title,
-            author: typeof metadata?.author === 'string' ? metadata.author : metadata?.author?.[0],
-          });
           setToc(book?.toc || []);
           setLoading(false);
 
@@ -338,6 +304,7 @@ export default function ReadPage() {
       if (destroyedRef.current) return;
 
       view.renderer?.setStyles?.(getStylesheetRef.current());
+      applyRendererPreferences(view.renderer);
 
       const savedProgress = progressRef.current;
       if (savedProgress?.cfi) {
@@ -356,7 +323,7 @@ export default function ReadPage() {
         setLoading(false);
       }
     }
-  }, [bookId, keyboardHandler]);
+  }, [applyRendererPreferences, bookId, keyboardHandler]);
 
   useEffect(() => {
     if (!isAuthenticated || progressLoading) return;
@@ -394,11 +361,10 @@ export default function ReadPage() {
   }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    revealHeader();
     touchStartedInInteractiveUI.current = isInteractiveTouchTarget(e.target);
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
-  }, [isInteractiveTouchTarget, revealHeader]);
+  }, [isInteractiveTouchTarget]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (touchStartedInInteractiveUI.current || isInteractiveTouchTarget(e.target)) {
@@ -420,23 +386,6 @@ export default function ReadPage() {
       }
     }
   }, [handlePrev, handleNext, isInteractiveTouchTarget]);
-
-  useEffect(() => {
-    const handleActivity = () => {
-      revealHeader();
-    };
-
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('wheel', handleActivity, { passive: true });
-    window.addEventListener('touchstart', handleActivity, { passive: true });
-
-    return () => {
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('wheel', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
-      clearHeaderHideTimer();
-    };
-  }, [clearHeaderHideTimer, revealHeader]);
 
   useEffect(() => {
     if (!tocOpen || !currentChapter) return;
@@ -559,60 +508,41 @@ export default function ReadPage() {
         }}
       />
 
-      <div className="relative flex h-full flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5">
+      <div className="relative flex h-full flex-col px-1.5 py-1.5 sm:px-2 sm:py-2 lg:px-3 lg:py-3">
         <div
-          className="mx-auto flex h-full w-full max-w-[1600px] min-h-0 flex-col overflow-hidden rounded-[28px] border shadow-[0_24px_80px_-32px_rgba(15,23,42,0.45)]"
+          className="mx-auto flex h-full w-full max-w-[1760px] min-h-0 flex-col overflow-hidden rounded-[20px] border shadow-[0_24px_80px_-32px_rgba(15,23,42,0.45)]"
           style={{
-            background: withOpacity(uiScheme.headerBg, 0.82),
-            borderColor: withOpacity(uiScheme.headerBorder, 0.72),
+            background: withOpacity(uiScheme.headerBg, 0.76),
+            borderColor: withOpacity(uiScheme.headerBorder, 0.58),
           }}
         >
           <header
-            className={`shrink-0 overflow-hidden border-b px-3 transition-all duration-500 ease-out sm:px-5 ${
-              headerCollapsed ? 'py-1.5 sm:py-2' : 'py-2 sm:py-2.5'
-            }`}
+            className="shrink-0 overflow-hidden border-b px-2.5 py-1 sm:px-3 sm:py-1.5"
             style={{
-              maxHeight: headerCollapsed ? '3.25rem' : '7rem',
-              opacity: headerCollapsed ? 0.82 : 1,
-              backdropFilter: `blur(${headerCollapsed ? 10 : 16}px)`,
+              opacity: 0.94,
+              backdropFilter: 'blur(12px)',
               background: `
-                linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.72)} 100%)
+                linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.78)} 0%, ${withOpacity(uiScheme.cardBg, 0.52)} 100%)
               `,
-              borderColor: withOpacity(uiScheme.headerBorder, 0.48),
+              borderColor: withOpacity(uiScheme.headerBorder, 0.32),
             }}
           >
-            <div className={`flex justify-between gap-2.5 sm:gap-3 ${headerCollapsed ? 'items-center' : 'items-start'}`}>
-              <div className={`flex min-w-0 flex-1 gap-2.5 sm:gap-3 ${headerCollapsed ? 'items-center' : 'items-start'}`}>
+            <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleBack}
                   title="返回书库"
-                  className="mt-0.5 h-8 w-8 shrink-0 rounded-full p-0 sm:h-9 sm:w-9"
+                  className="h-8 w-8 shrink-0 rounded-full p-0"
                   style={getToolbarButtonStyle(false)}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
 
-                <div className={`min-w-0 flex-1 ${headerCollapsed ? 'pr-2 sm:pr-3' : ''}`}>
-                  <div className={`flex gap-1.5 sm:gap-2 ${headerCollapsed ? 'items-center min-h-[2rem]' : 'items-start'}`}>
-                    <h1
-                      className={`min-w-0 truncate font-medium tracking-tight transition-all duration-500 ease-out ${
-                        headerCollapsed
-                          ? 'pointer-events-none max-w-0 overflow-hidden opacity-0'
-                          : 'flex-1 text-sm sm:text-xl'
-                      }`}
-                      style={{ color: uiScheme.fg }}
-                    >
-                      {metadata.title || '加载中...'}
-                    </h1>
-                    <div
-                      className={`min-w-0 items-center gap-1.5 transition-all duration-500 ease-out ${
-                        headerCollapsed
-                          ? 'flex flex-1 translate-y-0 opacity-100'
-                          : 'pointer-events-none hidden translate-y-1 opacity-0'
-                      }`}
-                    >
+                <div className="min-w-0 flex-1 pr-1.5 sm:pr-2">
+                  <div className="flex min-h-[1.75rem] items-center gap-1.5">
+                    <div className="min-w-0 flex flex-1 items-center gap-1.5">
                       <span
                         className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
                         style={{
@@ -623,40 +553,17 @@ export default function ReadPage() {
                         {percentage}%
                       </span>
                       <p
-                        className="min-w-0 flex-1 truncate text-[10px] sm:text-[11px]"
+                        className="min-w-0 flex-1 truncate text-[10px]"
                         style={{ color: uiScheme.mutedText }}
                       >
                         {currentChapter || '等待定位章节'}
                       </p>
                     </div>
                   </div>
-                  <div
-                    className={`mt-0.5 flex items-center gap-2 transition-all duration-500 ease-out ${
-                      headerCollapsed
-                        ? 'pointer-events-none max-h-0 -translate-y-1.5 overflow-hidden opacity-0'
-                        : 'max-h-8 translate-y-0 opacity-100'
-                    }`}
-                  >
-                    <span
-                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
-                      style={{
-                        color: uiScheme.accentText,
-                        background: withOpacity(uiScheme.cardBorder, 0.14),
-                      }}
-                    >
-                      {percentage}%
-                    </span>
-                    <p
-                      className="min-w-0 truncate text-[11px] sm:text-xs"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      {currentChapter || '等待定位章节'}
-                    </p>
-                  </div>
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+              <div className="flex shrink-0 items-center gap-1">
                 <Sheet open={tocOpen} onOpenChange={setTocOpen}>
                   <SheetTrigger
                     render={
@@ -738,7 +645,6 @@ export default function ReadPage() {
                     onUpdateSettings={updateTTSSettings}
                     uiScheme={uiScheme}
                     variant="toolbar"
-                    onExpandedChange={setTtsToolbarOpen}
                   />
                 </Suspense>
 
@@ -766,12 +672,12 @@ export default function ReadPage() {
           </header>
 
           <div
-            className="flex-1 min-h-0 p-2 sm:p-3"
+            className="flex-1 min-h-0 p-0"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
             <div
-              className="relative h-full overflow-hidden rounded-[24px] border"
+              className="relative h-full overflow-hidden rounded-[14px] border"
               style={{
                 background: `
                   linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
@@ -823,19 +729,6 @@ export default function ReadPage() {
                   </div>
                 </div>
               )}
-
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20"
-                style={{
-                  background: `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.88)} 0%, transparent 100%)`,
-                }}
-              />
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28"
-                style={{
-                  background: `linear-gradient(180deg, transparent 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)`,
-                }}
-              />
 
               <div ref={containerRef} className="absolute inset-0" />
 

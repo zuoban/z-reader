@@ -146,8 +146,7 @@ foliate-view::part(filter) {
 /* 移动端阅读优化 */
 @media (max-width: 640px) {
   foliate-view {
-    /* 移动端增加左右内边距，避免文字贴边 */
-    padding: 0 4px;
+    padding: 0;
   }
 
   /* 优化移动端触摸区域 */

@@ -31,7 +31,7 @@ export interface FoliateView {
     getWordCount?: () => number;
     doc?: Document;
   };
-  renderer?: {
+  renderer?: HTMLElement & {
     scrollToAnchor?: (range: Range, highlight?: boolean) => void;
     setStyles?: (css: string) => void;
     next?: () => Promise<void>;

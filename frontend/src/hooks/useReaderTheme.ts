@@ -6,7 +6,10 @@ export interface ReaderTheme {
   preset: 'light' | 'sepia' | 'green' | 'dark';
   fontSize: number;
   lineHeight: number;
-  margin: number;
+  flow: 'paginated' | 'scrolled';
+  maxInlineSize: number;
+  gap: number;
+  animated: boolean;
 }
 
 export interface ThemeColors {
@@ -87,7 +90,10 @@ const DEFAULT_THEME: ReaderTheme = {
   preset: 'light',
   fontSize: 16,
   lineHeight: 1.6,
-  margin: 16,
+  flow: 'paginated',
+  maxInlineSize: 1200,
+  gap: 2,
+  animated: true,
 };
 
 const STORAGE_KEY = 'z-reader-theme';
@@ -149,7 +155,14 @@ export function useReaderTheme() {
         color: ${preset.fg} !important;
         font-size: ${theme.fontSize}px !important;
         line-height: ${theme.lineHeight} !important;
-        padding: ${theme.margin}px !important;
+        padding-block: 0 !important;
+        padding-inline: 0 !important;
+      }
+      body > *:first-child {
+        margin-top: 0 !important;
+      }
+      body > *:last-child {
+        margin-bottom: 0 !important;
       }
       p {
         line-height: ${theme.lineHeight} !important;
@@ -175,6 +188,13 @@ export function useReaderTheme() {
         margin-top: 1.5em;
         margin-bottom: 0.5em;
         line-height: 1.3;
+      }
+      h1:first-child, h2:first-child, h3:first-child, h4:first-child, h5:first-child, h6:first-child,
+      p:first-child, blockquote:first-child, ul:first-child, ol:first-child {
+        margin-top: 0 !important;
+      }
+      p:last-child, blockquote:last-child, ul:last-child, ol:last-child {
+        margin-bottom: 0 !important;
       }
       a:link {
         color: ${preset.link} !important;

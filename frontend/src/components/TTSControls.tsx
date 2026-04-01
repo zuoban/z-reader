@@ -343,27 +343,27 @@ const FloatingButton = ({
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
     background: isActive
-      ? `${uiScheme.cardBg}f2`
-      : `${uiScheme.cardBg}ec`,
-    borderColor: `${uiScheme.cardBorder}88`,
+      ? `${uiScheme.cardBg}f4`
+      : `${uiScheme.cardBg}f1`,
+    borderColor: `${uiScheme.cardBorder}72`,
     backdropFilter: 'blur(22px) saturate(180%)',
     boxShadow: isActive
-      ? `0 18px 48px ${uiScheme.link}12, 0 8px 24px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.42)`
-      : `0 14px 42px ${uiScheme.cardBorder}20, inset 0 1px 0 rgba(255,255,255,0.35)`,
+      ? `0 24px 60px ${uiScheme.link}10, 0 10px 28px ${uiScheme.cardBorder}14, inset 0 1px 0 rgba(255,255,255,0.42)`
+      : `0 20px 56px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.35)`,
   },
   section: {
-    background: `${uiScheme.buttonBg}66`,
-    borderColor: `${uiScheme.cardBorder}70`,
+    background: `${uiScheme.buttonBg}42`,
+    borderColor: `${uiScheme.cardBorder}4d`,
   },
   selectTrigger: {
-    background: `${uiScheme.buttonBg}85`,
-    borderColor: `${uiScheme.cardBorder}70`,
+    background: `${uiScheme.buttonBg}78`,
+    borderColor: `${uiScheme.cardBorder}55`,
     color: uiScheme.fg,
     transition: 'all 0.2s ease-out',
   },
   selectContent: {
-    background: `${uiScheme.cardBg}f2`,
-    borderColor: `${uiScheme.cardBorder}7a`,
+    background: `${uiScheme.cardBg}f4`,
+    borderColor: `${uiScheme.cardBorder}68`,
     backdropFilter: 'blur(18px)',
   },
 });
@@ -789,25 +789,45 @@ export function TTSControls({
         </DialogTrigger>
 
         <DialogContent
-          className="max-w-[90vw] sm:max-w-sm backdrop-blur-xl rounded-[24px] p-0 overflow-hidden"
+          className="max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
           closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
           style={styles.panel}
         >
-          <DialogHeader className="border-b px-5 py-4 pb-3" style={{ borderColor: `${uiScheme.cardBorder}55` }}>
-            <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
-              朗读控制
-            </DialogTitle>
-            <p className="text-xs" style={{ color: uiScheme.mutedText }}>
-              语音、速度与音色设置
-            </p>
+          <DialogHeader
+            className="border-b px-5 py-4 pb-3"
+            style={{ borderColor: `${uiScheme.cardBorder}40` }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
+                  朗读控制
+                </DialogTitle>
+                <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
+                  调整播放状态、语音参数与音色风格
+                </p>
+              </div>
+              <div
+                className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em]"
+                style={{
+                  color: uiScheme.accentText,
+                  background: `${uiScheme.buttonBg}54`,
+                  borderColor: `${uiScheme.cardBorder}40`,
+                }}
+              >
+                VOICE
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="space-y-3 p-4 sm:p-5">
-            <div className="rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
-              <div className="mb-3 flex items-center gap-2">
-                <label className="text-[11px] sm:text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+            <div className="rounded-[22px] border p-3 sm:p-4" style={styles.section}>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <label className="text-[11px] font-medium sm:text-xs" style={{ color: uiScheme.mutedText }}>
                   文字转语音
                 </label>
+                <span className="text-[11px]" style={{ color: uiScheme.accentText }}>
+                  {isPlaying ? '播放中' : isPaused ? '已暂停' : '未开始'}
+                </span>
               </div>
 
               <div className="flex items-center justify-center gap-2 sm:gap-2.5 py-1.5 sm:py-2">
@@ -846,7 +866,7 @@ export function TTSControls({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+            <div className="flex flex-col gap-2.5 rounded-[22px] border p-3 sm:p-4" style={styles.section}>
               <VoiceSlider label="速度" value={localRate} onChange={handleRateChange} min={-50} max={100} step={10} format={formatRate} uiScheme={uiScheme} />
               <VoiceSlider label="音调" value={localPitch} onChange={handlePitchChange} min={-50} max={50} step={10} format={formatPitch} uiScheme={uiScheme} />
               <VoiceSlider label="音量" value={localVolume} onChange={handleVolumeChange} min={0} max={1} step={0.1} format={(v) => `${Math.round(v * 100)}%`} uiScheme={uiScheme} />

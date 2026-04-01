@@ -46,7 +46,8 @@ export default function ReadPage() {
   const progressRef = useRef(progress);
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
-  const boundDocsRef = useRef<Document[]>([]);
+  // 使用 Set 避免重复添加和内存泄漏
+  const boundDocsRef = useRef<Set<Document>>(new Set());
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
 
@@ -175,7 +176,7 @@ export default function ReadPage() {
           const doc = e.detail?.doc;
           if (doc) {
             doc.addEventListener('keydown', keyboardHandler);
-            boundDocsRef.current.push(doc);
+            boundDocsRef.current.add(doc);
           }
         } catch {}
       });
@@ -319,7 +320,7 @@ export default function ReadPage() {
     boundDocsRef.current.forEach(doc => {
       doc.removeEventListener('keydown', keyboardHandler);
     });
-    boundDocsRef.current = [];
+    boundDocsRef.current.clear();
 
     const view = viewRef.current;
     viewRef.current = null;
@@ -352,7 +353,7 @@ export default function ReadPage() {
       boundDocsRef.current.forEach(doc => {
         doc.removeEventListener('keydown', keyboardHandler);
       });
-      boundDocsRef.current = [];
+      boundDocsRef.current.clear();
       // 停止TTS
       stopTTS();
     };

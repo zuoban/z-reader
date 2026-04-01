@@ -42,6 +42,7 @@ interface FloatingButtonProps {
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerDownCapture: (e: React.PointerEvent<HTMLDivElement>) => void;
   uiScheme: ThemeColors;
 }
 
@@ -179,6 +180,7 @@ const FloatingButton = ({
   onPointerMove,
   onPointerUp,
   onPointerCancel,
+  onPointerDownCapture,
   uiScheme,
 }: FloatingButtonProps) => {
   // 获取播放状态颜色方案
@@ -217,6 +219,8 @@ const FloatingButton = ({
 
   return (
     <div
+      data-reader-interactive="true"
+      onPointerDownCapture={onPointerDownCapture}
       onClick={onClick}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -666,6 +670,10 @@ export function TTSControls({
     setExpanded((value) => !value);
   };
 
+  const stopInteractivePropagation = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  };
+
   const handleRateChange = (value: number) => {
     setLocalRate(value);
     onUpdateSettings({ rate: value });
@@ -711,6 +719,7 @@ export function TTSControls({
         position={position}
         expanded={expanded}
         onClick={handleClick}
+        onPointerDownCapture={stopInteractivePropagation}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -720,23 +729,37 @@ export function TTSControls({
 
       {/* 展开面板 - 增强动画和布局 */}
       {expanded && (
-        <div
-          className="fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
-            motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
-          onClick={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-          style={{
-            right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
-            bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
-            width: panelWidth,
-          }}
-        >
+        <>
           <div
-            className="flex flex-col gap-2 sm:gap-2.5 rounded-2xl border p-3 sm:p-4"
-            style={styles.panel}
+            data-reader-interactive="true"
+            className="fixed inset-0 z-30"
+            onClick={() => setExpanded(false)}
+            onPointerDown={stopInteractivePropagation}
+            onTouchStart={stopInteractivePropagation}
+            onTouchEnd={stopInteractivePropagation}
+            aria-hidden="true"
+          />
+
+          <div
+            data-reader-interactive="true"
+            className="fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
+              motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
+            onClick={stopInteractivePropagation}
+            onPointerDownCapture={stopInteractivePropagation}
+            onPointerDown={stopInteractivePropagation}
+            onTouchStart={stopInteractivePropagation}
+            onTouchEnd={stopInteractivePropagation}
+            onTouchMove={stopInteractivePropagation}
+            style={{
+              right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
+              bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
+              width: panelWidth,
+            }}
           >
+            <div
+              className="flex flex-col gap-2 sm:gap-2.5 rounded-2xl border p-3 sm:p-4"
+              style={styles.panel}
+            >
             {/* 面板头部 */}
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span
@@ -890,6 +913,7 @@ export function TTSControls({
                       onValueChange={handleLocaleChange}
                     >
                       <SelectTrigger
+                        data-reader-interactive="true"
                         className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
                           transition-all duration-200 ease-out hover:border-opacity-60"
                         style={styles.selectTrigger}
@@ -897,6 +921,7 @@ export function TTSControls({
                         <SelectValue placeholder="选择语种" />
                       </SelectTrigger>
                       <SelectContent
+                        data-reader-interactive="true"
                         className="rounded-xl"
                         style={styles.selectContent}
                       >
@@ -926,6 +951,7 @@ export function TTSControls({
                       onValueChange={handleVoiceChange}
                     >
                       <SelectTrigger
+                        data-reader-interactive="true"
                         className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
                           transition-all duration-200 ease-out hover:border-opacity-60"
                         style={styles.selectTrigger}
@@ -933,6 +959,7 @@ export function TTSControls({
                         <SelectValue placeholder="选择语音" />
                       </SelectTrigger>
                       <SelectContent
+                        data-reader-interactive="true"
                         className="rounded-xl"
                         style={styles.selectContent}
                       >
@@ -966,6 +993,7 @@ export function TTSControls({
                     onValueChange={handleStyleChange}
                   >
                     <SelectTrigger
+                      data-reader-interactive="true"
                       className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
                         transition-all duration-200 ease-out hover:border-opacity-60"
                       style={styles.selectTrigger}
@@ -973,6 +1001,7 @@ export function TTSControls({
                       <SelectValue placeholder="选择风格" />
                     </SelectTrigger>
                     <SelectContent
+                      data-reader-interactive="true"
                       className="rounded-xl"
                       style={styles.selectContent}
                     >
@@ -991,8 +1020,9 @@ export function TTSControls({
                 </div>
               )}
             </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

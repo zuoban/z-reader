@@ -54,6 +54,7 @@ export default function ReadPage() {
   const scriptLoadedRef = useRef(false);
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
+  const touchStartedInInteractiveUI = useRef(false);
 
   // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
   const handlePrevRef = useRef<() => void>(() => {});
@@ -97,35 +98,7 @@ export default function ReadPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (!isAuthenticated || progressLoading) return;
-    
-    destroyedRef.current = false;
-    initReader();
-    
-    return () => {
-      destroyedRef.current = true;
-      const view = viewRef.current;
-      viewRef.current = null;
-      
-      if (view) {
-        try {
-          if (view.parentNode) {
-            view.parentNode.removeChild(view as unknown as Node);
-          }
-          view.close?.();
-        } catch (err) {
-          console.error('Failed to cleanup view on unmount:', err);
-        }
-      }
-      
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, [isAuthenticated, bookId, progressLoading]);
-
-  async function initReader() {
+  const initReader = useCallback(async () => {
     if (!containerRef.current || destroyedRef.current) return;
 
     try {
@@ -257,7 +230,37 @@ export default function ReadPage() {
         setLoading(false);
       }
     }
-  }
+  }, [bookId, getStylesheet, keyboardHandler, updateProgress]);
+
+  useEffect(() => {
+    if (!isAuthenticated || progressLoading) return;
+
+    destroyedRef.current = false;
+    const container = containerRef.current;
+    void initReader();
+
+    return () => {
+      destroyedRef.current = true;
+
+      const view = viewRef.current;
+      viewRef.current = null;
+
+      if (view) {
+        try {
+          if (view.parentNode) {
+            view.parentNode.removeChild(view as unknown as Node);
+          }
+          view.close?.();
+        } catch (err) {
+          console.error('Failed to cleanup view on unmount:', err);
+        }
+      }
+
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
+  }, [initReader, isAuthenticated, progressLoading]);
 
   const goTo = useCallback((href: string) => {
     if (viewRef.current) {
@@ -311,12 +314,23 @@ export default function ReadPage() {
     }
   }, []);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+  const isInteractiveTouchTarget = useCallback((target: EventTarget | null) => {
+    return target instanceof Element
+      && target.closest('[data-reader-interactive="true"]') !== null;
   }, []);
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartedInInteractiveUI.current = isInteractiveTouchTarget(e.target);
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, [isInteractiveTouchTarget]);
+
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartedInInteractiveUI.current || isInteractiveTouchTarget(e.target)) {
+      touchStartedInInteractiveUI.current = false;
+      return;
+    }
+
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const deltaX = touchEndX - touchStartX.current;
@@ -330,7 +344,7 @@ export default function ReadPage() {
         handleNext();
       }
     }
-  }, [handlePrev, handleNext]);
+  }, [handlePrev, handleNext, isInteractiveTouchTarget]);
 
   const handleBack = useCallback(() => {
     destroyedRef.current = true;
@@ -368,14 +382,18 @@ export default function ReadPage() {
   }, [handleBack]);
 
   useEffect(() => {
+    const boundDocs = boundDocsRef.current;
     window.addEventListener('keydown', keyboardHandler);
+
     return () => {
       window.removeEventListener('keydown', keyboardHandler);
+
       // 清理所有绑定的 iframe 文档的事件
-      boundDocsRef.current.forEach(doc => {
+      boundDocs.forEach(doc => {
         doc.removeEventListener('keydown', keyboardHandler);
       });
-      boundDocsRef.current.clear();
+      boundDocs.clear();
+
       // 停止TTS
       stopTTS();
     };

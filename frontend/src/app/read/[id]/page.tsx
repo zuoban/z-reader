@@ -12,7 +12,6 @@ import { useTTS } from '@/hooks/useTTS';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
   SheetContent,
@@ -138,7 +137,7 @@ export default function ReadPage() {
 
     headerHideTimerRef.current = window.setTimeout(() => {
       setHeaderCollapsed(true);
-    }, 2200);
+    }, 3600);
   }, [clearHeaderHideTimer, keepHeaderExpanded]);
 
   const revealHeader = useCallback(() => {
@@ -426,13 +425,11 @@ export default function ReadPage() {
       revealHeader();
     };
 
-    window.addEventListener('mousemove', handleActivity);
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('wheel', handleActivity, { passive: true });
     window.addEventListener('touchstart', handleActivity, { passive: true });
 
     return () => {
-      window.removeEventListener('mousemove', handleActivity);
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('wheel', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
@@ -656,23 +653,35 @@ export default function ReadPage() {
                   </SheetTrigger>
                   <SheetContent
                     side="left"
-                    className="w-[85vw] max-w-sm p-0 backdrop-blur-sm sm:w-80"
+                    className="w-[85vw] max-w-sm overflow-hidden rounded-r-[24px] p-0 backdrop-blur-xl sm:w-80"
                     style={{
-                      background: withOpacity(uiScheme.cardBg, 0.96),
-                      borderColor: uiScheme.cardBorder,
+                      background: withOpacity(uiScheme.cardBg, 0.95),
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.82),
+                      boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.26)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                     }}
                   >
-                    <SheetHeader className="p-4 pb-3">
+                    <SheetHeader
+                      className="border-b px-5 py-4 pb-3"
+                      style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.34) }}
+                    >
                       <SheetTitle
                         className="text-base font-semibold sm:text-lg"
                         style={{ color: uiScheme.fg }}
                       >
                         目录
                       </SheetTitle>
+                      <p className="text-xs" style={{ color: uiScheme.mutedText }}>
+                        快速跳转章节与结构
+                      </p>
                     </SheetHeader>
-                    <Separator style={{ background: uiScheme.cardBorder }} />
-                    <ScrollArea className="h-[calc(100vh-76px)] sm:h-[calc(100vh-80px)]">
-                      <div className="space-y-0.5 p-4 pt-3">
+                    <ScrollArea className="h-[calc(100vh-84px)] sm:h-[calc(100vh-88px)]">
+                      <div
+                        className="m-4 rounded-2xl border p-2.5"
+                        style={{
+                          background: withOpacity(uiScheme.buttonBg, 0.4),
+                          borderColor: withOpacity(uiScheme.cardBorder, 0.42),
+                        }}
+                      >
                         {toc.length > 0 ? (
                           toc.map((item, idx) => (
                             <MemoizedTOCNode
@@ -754,16 +763,23 @@ export default function ReadPage() {
                   className="absolute inset-0 z-20 flex flex-col items-center justify-center"
                   style={{
                     background: `
-                      linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.92)} 0%, ${withOpacity(uiScheme.cardBg, 0.96)} 100%)
+                      linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)
                     `,
                   }}
                 >
-                  <div className="flex flex-col items-center gap-4">
+                  <div
+                    className="flex min-w-[220px] flex-col items-center gap-4 rounded-[24px] border px-8 py-7 backdrop-blur-xl"
+                    style={{
+                      background: withOpacity(uiScheme.cardBg, 0.88),
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.78),
+                      boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                    }}
+                  >
                     <div
                       className="flex h-20 w-16 items-center justify-center rounded-[20px] border"
                       style={{
-                        background: withOpacity(uiScheme.cardBg, 0.8),
-                        borderColor: withOpacity(uiScheme.cardBorder, 0.95),
+                        background: withOpacity(uiScheme.buttonBg, 0.52),
+                        borderColor: withOpacity(uiScheme.cardBorder, 0.72),
                       }}
                     >
                       <div
@@ -775,11 +791,11 @@ export default function ReadPage() {
                       />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium" style={{ color: uiScheme.fg }}>
+                      <p className="text-sm font-medium tracking-tight" style={{ color: uiScheme.fg }}>
                         {loadingMsg}
                       </p>
                       <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
-                        正在准备本次阅读环境
+                        正在准备阅读环境与书籍内容
                       </p>
                     </div>
                   </div>
@@ -868,18 +884,20 @@ function TOCNode({ item, onGoTo, depth = 0, uiScheme }: {
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-start transition-colors duration-150 rounded h-8 sm:h-9"
+        className="mb-1 h-9 w-full justify-start rounded-xl border transition-all duration-150 sm:h-10"
         style={{
-          paddingLeft: depth > 0 ? `${depth * 12 + 8}px` : '8px',
-          paddingRight: '8px',
+          paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : '12px',
+          paddingRight: '12px',
           color: isHovered ? uiScheme.fg : uiScheme.buttonText,
-          background: isHovered ? `${uiScheme.buttonHoverBg}40` : 'transparent',
+          background: isHovered ? withOpacity(uiScheme.link, 0.1) : withOpacity(uiScheme.buttonBg, 0.5),
+          borderColor: isHovered ? withOpacity(uiScheme.link, 0.18) : withOpacity(uiScheme.cardBorder, 0.4),
+          boxShadow: isHovered ? `inset 0 1px 0 rgba(255,255,255,0.35)` : 'none',
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => onGoTo(item.href)}
       >
-        <span className="text-xs sm:text-sm truncate">{item.label}</span>
+        <span className="truncate text-xs sm:text-sm">{item.label}</span>
       </Button>
       {item.subitems?.map((sub, idx) => (
         <MemoizedTOCNode key={idx} item={sub} onGoTo={onGoTo} depth={depth + 1} uiScheme={uiScheme} />

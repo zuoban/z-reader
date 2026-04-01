@@ -3,7 +3,6 @@
 import { ReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +34,22 @@ export function ThemeSettings({
   open,
   onOpenChange,
 }: ThemeSettingsProps) {
+  const panelStyle = {
+    background: `${uiScheme.cardBg}f2`,
+    borderColor: `${uiScheme.cardBorder}88`,
+    color: uiScheme.fg,
+    boxShadow: `0 18px 48px ${uiScheme.cardBorder}26, inset 0 1px 0 rgba(255,255,255,0.42)`,
+  } as const;
+  const sectionStyle = {
+    background: `${uiScheme.buttonBg}66`,
+    borderColor: `${uiScheme.cardBorder}70`,
+  } as const;
+  const chipButtonStyle = (active: boolean) => ({
+    background: active ? `${uiScheme.link}18` : `${uiScheme.buttonBg}52`,
+    color: active ? uiScheme.link : uiScheme.mutedText,
+    border: `1px solid ${active ? `${uiScheme.link}40` : `${uiScheme.cardBorder}55`}`,
+    boxShadow: active ? `inset 0 1px 0 rgba(255,255,255,0.35)` : 'none',
+  });
   const triggerClassName = 'h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9';
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
@@ -61,22 +76,21 @@ export function ThemeSettings({
         <Settings className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent
-        className="max-w-[90vw] sm:max-w-sm backdrop-blur-sm"
+        className="max-w-[90vw] sm:max-w-sm backdrop-blur-xl rounded-[24px] p-0 overflow-hidden"
         closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
-        style={{
-          background: `${uiScheme.cardBg}f5`,
-          borderColor: uiScheme.cardBorder,
-          color: uiScheme.fg,
-        }}
+        style={panelStyle}
       >
-        <DialogHeader className="pb-2">
+        <DialogHeader className="border-b px-5 py-4 pb-3" style={{ borderColor: `${uiScheme.cardBorder}55` }}>
           <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
             阅读偏好
           </DialogTitle>
+          <p className="text-xs" style={{ color: uiScheme.mutedText }}>
+            调整页面氛围与排版节奏
+          </p>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-5 pt-2 sm:pt-3">
-          <div className="space-y-2 sm:space-y-2.5">
+        <div className="space-y-3 p-4 sm:p-5">
+          <div className="space-y-2 rounded-2xl border p-3 sm:p-4" style={sectionStyle}>
             <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>主题</Label>
             <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {PRESETS.map((p) => (
@@ -105,9 +119,7 @@ export function ThemeSettings({
             </div>
           </div>
 
-          <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
-
-          <div className="space-y-2 sm:space-y-2.5">
+          <div className="space-y-2 rounded-2xl border p-3 sm:p-4" style={sectionStyle}>
             <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>字体大小</Label>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
@@ -153,11 +165,7 @@ export function ThemeSettings({
                   size="sm"
                   onClick={() => setTheme({ fontSize: size })}
                   className="flex-1 font-mono text-[10px] sm:text-xs transition-all duration-200 rounded h-7 sm:h-8"
-                  style={{
-                    background: theme.fontSize === size ? `${uiScheme.link}20` : 'transparent',
-                    color: theme.fontSize === size ? uiScheme.link : uiScheme.mutedText,
-                    border: theme.fontSize === size ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
-                  }}
+                  style={chipButtonStyle(theme.fontSize === size)}
                 >
                   {size}
                 </Button>
@@ -165,9 +173,7 @@ export function ThemeSettings({
             </div>
           </div>
 
-          <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
-
-          <div className="space-y-2 sm:space-y-2.5">
+          <div className="space-y-2 rounded-2xl border p-3 sm:p-4" style={sectionStyle}>
             <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>行高</Label>
             <div className="flex gap-1">
               {[1.4, 1.5, 1.6, 1.8, 2.0].map((lh) => (
@@ -177,20 +183,14 @@ export function ThemeSettings({
                   size="sm"
                   onClick={() => setTheme({ lineHeight: lh })}
                   className="flex-1 font-mono text-[10px] sm:text-xs transition-all duration-200 rounded h-7 sm:h-8"
-                  style={{
-                    background: theme.lineHeight === lh ? `${uiScheme.link}20` : 'transparent',
-                    color: theme.lineHeight === lh ? uiScheme.link : uiScheme.mutedText,
-                    border: theme.lineHeight === lh ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
-                  }}
+                  style={chipButtonStyle(theme.lineHeight === lh)}
                 >
                   {lh}
                 </Button>
               ))}
             </div>
           </div>
-          <Separator style={{ background: `${uiScheme.cardBorder}60` }} />
-
-          <div className="space-y-2 sm:space-y-2.5">
+          <div className="space-y-2 rounded-2xl border p-3 sm:p-4" style={sectionStyle}>
             <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>页边距</Label>
             <div className="flex gap-1">
               {[20, 40, 60, 80, 100].map((m) => (
@@ -200,11 +200,7 @@ export function ThemeSettings({
                   size="sm"
                   onClick={() => setTheme({ margin: m })}
                   className="flex-1 font-mono text-[10px] sm:text-xs transition-all duration-200 rounded h-7 sm:h-8"
-                  style={{
-                    background: theme.margin === m ? `${uiScheme.link}20` : 'transparent',
-                    color: theme.margin === m ? uiScheme.link : uiScheme.mutedText,
-                    border: theme.margin === m ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
-                  }}
+                  style={chipButtonStyle(theme.margin === m)}
                 >
                   {m}
                 </Button>

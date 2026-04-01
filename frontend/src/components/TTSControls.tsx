@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import {
   Select,
@@ -335,24 +343,28 @@ const FloatingButton = ({
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
     background: isActive
-      ? `${uiScheme.cardBg}f8`
-      : `${uiScheme.cardBg}f0`,
-    borderColor: `${uiScheme.cardBorder}80`,
-    backdropFilter: 'blur(20px) saturate(180%)',
+      ? `${uiScheme.cardBg}f2`
+      : `${uiScheme.cardBg}ec`,
+    borderColor: `${uiScheme.cardBorder}88`,
+    backdropFilter: 'blur(22px) saturate(180%)',
     boxShadow: isActive
-      ? `0 8px 32px ${uiScheme.link}20, 0 2px 12px ${uiScheme.cardBorder}15`
-      : `0 4px 24px ${uiScheme.cardBorder}20`,
+      ? `0 18px 48px ${uiScheme.link}12, 0 8px 24px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.42)`
+      : `0 14px 42px ${uiScheme.cardBorder}20, inset 0 1px 0 rgba(255,255,255,0.35)`,
+  },
+  section: {
+    background: `${uiScheme.buttonBg}66`,
+    borderColor: `${uiScheme.cardBorder}70`,
   },
   selectTrigger: {
-    background: `${uiScheme.buttonBg}d0`,
-    borderColor: `${uiScheme.cardBorder}60`,
+    background: `${uiScheme.buttonBg}85`,
+    borderColor: `${uiScheme.cardBorder}70`,
     color: uiScheme.fg,
     transition: 'all 0.2s ease-out',
   },
   selectContent: {
-    background: `${uiScheme.cardBg}f5`,
-    borderColor: `${uiScheme.cardBorder}70`,
-    backdropFilter: 'blur(16px)',
+    background: `${uiScheme.cardBg}f2`,
+    borderColor: `${uiScheme.cardBorder}7a`,
+    backdropFilter: 'blur(18px)',
   },
 });
 
@@ -369,7 +381,10 @@ interface VoiceSliderProps {
 }
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
-  <div className="flex items-center gap-2 sm:gap-3 group">
+  <div className="flex items-center gap-2 sm:gap-3 group rounded-xl border px-2.5 py-2" style={{
+    background: `${uiScheme.buttonBg}42`,
+    borderColor: `${uiScheme.cardBorder}55`,
+  }}>
     <label
       className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium transition-colors duration-200"
       style={{ color: uiScheme.mutedText }}
@@ -483,6 +498,8 @@ export function TTSControls({
   const suppressClickRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const pendingPositionRef = useRef(position);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [toolbarPanelPosition, setToolbarPanelPosition] = useState({ top: 0, right: 8 });
 
   const FAB_SIZE = 48;
   const FAB_OFFSET = 56;
@@ -721,14 +738,193 @@ export function TTSControls({
     onExpandedChange?.(expanded);
   }, [expanded, onExpandedChange]);
 
+  useEffect(() => {
+    if (!isToolbar || !expanded || !triggerRef.current) return;
+
+    const updateToolbarPanelPosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      setToolbarPanelPosition({
+        top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - panelHeight - 8)),
+        right: Math.max(8, window.innerWidth - rect.right),
+      });
+    };
+
+    updateToolbarPanelPosition();
+    window.addEventListener('resize', updateToolbarPanelPosition);
+    window.addEventListener('scroll', updateToolbarPanelPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateToolbarPanelPosition);
+      window.removeEventListener('scroll', updateToolbarPanelPosition, true);
+    };
+  }, [expanded, isToolbar, panelHeight]);
+
+  if (isToolbar) {
+    return (
+      <Dialog open={expanded} onOpenChange={setExpanded}>
+        <DialogTrigger
+          render={
+            <button
+              data-reader-interactive="true"
+              type="button"
+              title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+              aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+              aria-expanded={expanded}
+              className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
+              style={{
+                color: isActive ? uiScheme.link : uiScheme.buttonText,
+                background: isActive
+                  ? `${uiScheme.link}10`
+                  : `${uiScheme.buttonBg}85`,
+                border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}7a`}`,
+                boxShadow: isActive
+                  ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
+                  : `inset 0 1px 0 ${uiScheme.headerBg}66`,
+              }}
+            />
+          }
+        >
+          <Volume2 className="h-4 w-4 shrink-0" />
+        </DialogTrigger>
+
+        <DialogContent
+          className="max-w-[90vw] sm:max-w-sm backdrop-blur-xl rounded-[24px] p-0 overflow-hidden"
+          closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
+          style={styles.panel}
+        >
+          <DialogHeader className="border-b px-5 py-4 pb-3" style={{ borderColor: `${uiScheme.cardBorder}55` }}>
+            <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
+              朗读控制
+            </DialogTitle>
+            <p className="text-xs" style={{ color: uiScheme.mutedText }}>
+              语音、速度与音色设置
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-3 p-4 sm:p-5">
+            <div className="rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+              <div className="mb-3 flex items-center gap-2">
+                <label className="text-[11px] sm:text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                  文字转语音
+                </label>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 sm:gap-2.5 py-1.5 sm:py-2">
+                <ControlButton onClick={onPrev} disabled={!isActive || isPending} title="上一句" active={isActive} uiScheme={uiScheme}>
+                  <SkipBack className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                </ControlButton>
+
+                <Button
+                  variant={isPlaying ? 'outline' : 'default'}
+                  size="icon"
+                  onClick={handleStartClick}
+                  disabled={isPending}
+                  title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                  aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
+                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 h-9 w-9 sm:h-10 sm:w-10 rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                  style={{
+                    background: isPlaying ? uiScheme.buttonBg : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
+                    borderColor: isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
+                    color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
+                    opacity: isPending ? 0.5 : 1,
+                    boxShadow: !isPlaying
+                      ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
+                      : `0 2px 8px ${uiScheme.cardBorder}15`,
+                  }}
+                >
+                  {isPlaying ? <Pause className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 ml-0.5" />}
+                </Button>
+
+                <ControlButton onClick={onNext} disabled={!isActive || isPending} title="下一句" active={isActive} uiScheme={uiScheme}>
+                  <SkipForward className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                </ControlButton>
+
+                <ControlButton onClick={handleStopClick} disabled={!isActive || isPending} title="停止" active={isActive} variant="danger" uiScheme={uiScheme}>
+                  <Square className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                </ControlButton>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+              <VoiceSlider label="速度" value={localRate} onChange={handleRateChange} min={-50} max={100} step={10} format={formatRate} uiScheme={uiScheme} />
+              <VoiceSlider label="音调" value={localPitch} onChange={handlePitchChange} min={-50} max={50} step={10} format={formatPitch} uiScheme={uiScheme} />
+              <VoiceSlider label="音量" value={localVolume} onChange={handleVolumeChange} min={0} max={1} step={0.1} format={(v) => `${Math.round(v * 100)}%`} uiScheme={uiScheme} />
+
+              {filteredVoices.length > 0 && (
+                <>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
+                      语种
+                    </label>
+                    <Select value={selectedLocale} onValueChange={handleLocaleChange}>
+                      <SelectTrigger data-reader-interactive="true" className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60" style={styles.selectTrigger}>
+                        <SelectValue placeholder="选择语种" />
+                      </SelectTrigger>
+                      <SelectContent data-reader-interactive="true" className="rounded-xl" style={styles.selectContent}>
+                        {localeVoicesMap.map((item) => (
+                          <SelectItem key={item.locale} value={item.locale} className="text-[11px] sm:text-xs rounded-lg my-0.5" style={{ color: uiScheme.fg }}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
+                      语音
+                    </label>
+                    <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
+                      <SelectTrigger data-reader-interactive="true" className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60" style={styles.selectTrigger}>
+                        <SelectValue placeholder="选择语音" />
+                      </SelectTrigger>
+                      <SelectContent data-reader-interactive="true" className="rounded-xl" style={styles.selectContent}>
+                        {currentLocaleVoices.map((voice) => (
+                          <SelectItem key={voice.Name} value={voice.Name} className="text-[11px] sm:text-xs rounded-lg my-0.5" style={{ color: uiScheme.fg }}>
+                            {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {availableStyles.length > 1 && (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
+                    风格
+                  </label>
+                  <Select value={settings.style} onValueChange={handleStyleChange}>
+                    <SelectTrigger data-reader-interactive="true" className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60" style={styles.selectTrigger}>
+                      <SelectValue placeholder="选择风格" />
+                    </SelectTrigger>
+                    <SelectContent data-reader-interactive="true" className="rounded-xl" style={styles.selectContent}>
+                      {availableStyles.map((style) => (
+                        <SelectItem key={style} value={style} className="text-[11px] sm:text-xs rounded-lg my-0.5" style={{ color: uiScheme.fg }}>
+                          {style}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <div className="relative" style={{ pointerEvents: 'auto' }}>
       {isToolbar ? (
-        <Button
+        <button
+          ref={triggerRef}
           data-reader-interactive="true"
-          variant="ghost"
-          size="icon"
           onClick={handleClick}
+          type="button"
           title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
           aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
           aria-expanded={expanded}
@@ -751,7 +947,7 @@ export function TTSControls({
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
           )}
-        </Button>
+        </button>
       ) : (
         <FloatingButton
           isActive={isActive}
@@ -770,10 +966,275 @@ export function TTSControls({
 
       {/* 展开面板 - 增强动画和布局 */}
       {expanded && (
-        <>
+        isToolbar
+          ? typeof document !== 'undefined' && createPortal(
+            <>
+              <div
+                data-reader-interactive="true"
+                className="fixed inset-0 z-40"
+                onClick={() => setExpanded(false)}
+                onPointerDown={stopInteractivePropagation}
+                onTouchStart={stopInteractivePropagation}
+                onTouchEnd={stopInteractivePropagation}
+                aria-hidden="true"
+              />
+
+              <div
+                data-reader-interactive="true"
+                className="fixed z-50 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
+                  motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
+                onClick={stopInteractivePropagation}
+                onPointerDownCapture={stopInteractivePropagation}
+                onPointerDown={stopInteractivePropagation}
+                onTouchStart={stopInteractivePropagation}
+                onTouchEnd={stopInteractivePropagation}
+                onTouchMove={stopInteractivePropagation}
+                style={{
+                  top: toolbarPanelPosition.top,
+                  right: toolbarPanelPosition.right,
+                  width: panelWidth,
+                }}
+              >
+                <div
+                  className="flex flex-col gap-3 rounded-[24px] border p-3 sm:p-4"
+                  style={styles.panel}
+                >
+                  <div className="flex items-start justify-between rounded-2xl border px-3.5 py-3" style={styles.section}>
+                    <div>
+                      <span
+                        className="font-heading text-sm font-semibold tracking-wide"
+                        style={{ color: uiScheme.fg }}
+                      >
+                        朗读控制
+                      </span>
+                      <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
+                        语音、速度与音色设置
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => setExpanded(false)}
+                      className="transition-all duration-150 ease-out hover:scale-110 active:scale-95
+                        h-7 w-7 rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                      style={{ color: uiScheme.mutedText, background: `${uiScheme.buttonBg}60` }}
+                    >
+                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+                    <div className="mb-3 flex items-center gap-2">
+                      <label className="text-[11px] sm:text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                        文字转语音
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 sm:gap-2.5 py-1.5 sm:py-2">
+                      <ControlButton
+                        onClick={onPrev}
+                        disabled={!isActive || isPending}
+                        title="上一句"
+                        active={isActive}
+                        uiScheme={uiScheme}
+                      >
+                        <SkipBack className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                      </ControlButton>
+
+                      <Button
+                        variant={isPlaying ? 'outline' : 'default'}
+                        size="icon"
+                        onClick={handleStartClick}
+                        disabled={isPending}
+                        title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                        aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
+                        className="transition-all duration-200 ease-out hover:scale-105 active:scale-95
+                          h-9 w-9 sm:h-10 sm:w-10 rounded-xl
+                          motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                        style={{
+                          background: isPlaying
+                            ? uiScheme.buttonBg
+                            : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
+                          borderColor: isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
+                          color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
+                          opacity: isPending ? 0.5 : 1,
+                          boxShadow: !isPlaying
+                            ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
+                            : `0 2px 8px ${uiScheme.cardBorder}15`,
+                        }}
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                        ) : (
+                          <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 ml-0.5" />
+                        )}
+                      </Button>
+
+                      <ControlButton
+                        onClick={onNext}
+                        disabled={!isActive || isPending}
+                        title="下一句"
+                        active={isActive}
+                        uiScheme={uiScheme}
+                      >
+                        <SkipForward className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                      </ControlButton>
+
+                      <ControlButton
+                        onClick={handleStopClick}
+                        disabled={!isActive || isPending}
+                        title="停止"
+                        active={isActive}
+                        variant="danger"
+                        uiScheme={uiScheme}
+                      >
+                        <Square className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                      </ControlButton>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+                    <VoiceSlider
+                      label="速度"
+                      value={localRate}
+                      onChange={handleRateChange}
+                      min={-50}
+                      max={100}
+                      step={10}
+                      format={formatRate}
+                      uiScheme={uiScheme}
+                    />
+
+                    <VoiceSlider
+                      label="音调"
+                      value={localPitch}
+                      onChange={handlePitchChange}
+                      min={-50}
+                      max={50}
+                      step={10}
+                      format={formatPitch}
+                      uiScheme={uiScheme}
+                    />
+
+                    <VoiceSlider
+                      label="音量"
+                      value={localVolume}
+                      onChange={handleVolumeChange}
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      format={(v) => `${Math.round(v * 100)}%`}
+                      uiScheme={uiScheme}
+                    />
+
+                    {filteredVoices.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
+                            语种
+                          </label>
+                          <Select value={selectedLocale} onValueChange={handleLocaleChange}>
+                            <SelectTrigger
+                              data-reader-interactive="true"
+                              className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60"
+                              style={styles.selectTrigger}
+                            >
+                              <SelectValue placeholder="选择语种" />
+                            </SelectTrigger>
+                            <SelectContent
+                              data-reader-interactive="true"
+                              className="rounded-xl"
+                              style={styles.selectContent}
+                            >
+                              {localeVoicesMap.map((item) => (
+                                <SelectItem
+                                  key={item.locale}
+                                  value={item.locale}
+                                  className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                                  style={{ color: uiScheme.fg }}
+                                >
+                                  {item.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
+                            语音
+                          </label>
+                          <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
+                            <SelectTrigger
+                              data-reader-interactive="true"
+                              className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60"
+                              style={styles.selectTrigger}
+                            >
+                              <SelectValue placeholder="选择语音" />
+                            </SelectTrigger>
+                            <SelectContent
+                              data-reader-interactive="true"
+                              className="rounded-xl"
+                              style={styles.selectContent}
+                            >
+                              {currentLocaleVoices.map((voice) => (
+                                <SelectItem
+                                  key={voice.Name}
+                                  value={voice.Name}
+                                  className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                                  style={{ color: uiScheme.fg }}
+                                >
+                                  {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+
+                    {availableStyles.length > 1 && (
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
+                          风格
+                        </label>
+                        <Select value={settings.style} onValueChange={handleStyleChange}>
+                          <SelectTrigger
+                            data-reader-interactive="true"
+                            className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60"
+                            style={styles.selectTrigger}
+                          >
+                            <SelectValue placeholder="选择风格" />
+                          </SelectTrigger>
+                          <SelectContent
+                            data-reader-interactive="true"
+                            className="rounded-xl"
+                            style={styles.selectContent}
+                          >
+                            {availableStyles.map((style) => (
+                              <SelectItem
+                                key={style}
+                                value={style}
+                                className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                                style={{ color: uiScheme.fg }}
+                              >
+                                {style}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>,
+            document.body
+          )
+          : <>
           <div
             data-reader-interactive="true"
-            className={`fixed inset-0 ${isToolbar ? 'z-40' : 'z-30'}`}
+            className="fixed inset-0 z-30"
             onClick={() => setExpanded(false)}
             onPointerDown={stopInteractivePropagation}
             onTouchStart={stopInteractivePropagation}
@@ -783,8 +1244,8 @@ export function TTSControls({
 
           <div
             data-reader-interactive="true"
-            className={`${isToolbar ? 'absolute right-0 top-[calc(100%+0.5rem)]' : 'fixed z-40'} z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
-              motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
+            className="fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
+              motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
             onClick={stopInteractivePropagation}
             onPointerDownCapture={stopInteractivePropagation}
             onPointerDown={stopInteractivePropagation}
@@ -792,50 +1253,42 @@ export function TTSControls({
             onTouchEnd={stopInteractivePropagation}
             onTouchMove={stopInteractivePropagation}
             style={{
-              ...(isToolbar
-                ? {}
-                : {
-                    right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
-                    bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
-                  }),
+              right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
+              bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
               width: panelWidth,
             }}
           >
             <div
-              className="flex flex-col gap-2 sm:gap-2.5 rounded-2xl border p-3 sm:p-4"
+              className="flex flex-col gap-3 rounded-[24px] border p-3 sm:p-4"
               style={styles.panel}
             >
-            {/* 面板头部 */}
-            <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-              <span
-                className="font-heading text-xs sm:text-sm font-semibold tracking-wide"
-                style={{ color: uiScheme.fg }}
-              >
-                控制面板
-              </span>
+            <div className="flex items-start justify-between rounded-2xl border px-3.5 py-3" style={styles.section}>
+              <div>
+                <span
+                  className="font-heading text-sm font-semibold tracking-wide"
+                  style={{ color: uiScheme.fg }}
+                >
+                  朗读控制
+                </span>
+                <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
+                  语音、速度与音色设置
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setExpanded(false)}
                 className="transition-all duration-150 ease-out hover:scale-110 active:scale-95
-                  h-6 w-6 sm:h-7 sm:w-7 rounded-lg
-                  motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
-                style={{ color: uiScheme.mutedText }}
+                  h-7 w-7 rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                style={{ color: uiScheme.mutedText, background: `${uiScheme.buttonBg}60` }}
               >
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
             </div>
 
-            {/* 播放控制区域 */}
-            <div
-              className="border-t pt-2 sm:pt-2.5"
-              style={{ borderColor: `${uiScheme.cardBorder}40` }}
-            >
-              <div className="flex items-center gap-2 mb-2 sm:mb-2.5">
-                <label
-                  className="text-[11px] sm:text-xs font-medium"
-                  style={{ color: uiScheme.mutedText }}
-                >
+            <div className="rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+              <div className="mb-3 flex items-center gap-2">
+                <label className="text-[11px] sm:text-xs font-medium" style={{ color: uiScheme.mutedText }}>
                   文字转语音
                 </label>
               </div>
@@ -905,10 +1358,9 @@ export function TTSControls({
               </div>
             </div>
 
-            {/* 参数调节区域 */}
             <div
-              className="flex flex-col gap-2 sm:gap-2.5 pt-2 sm:pt-2.5 border-t"
-              style={{ borderColor: `${uiScheme.cardBorder}40` }}
+              className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
+              style={styles.section}
             >
               <VoiceSlider
                 label="速度"

@@ -48,6 +48,8 @@ export default function ReadPage() {
   const progressRef = useRef(progress);
   const destroyedRef = useRef(false);
   const themeRef = useRef(theme);
+  const getStylesheetRef = useRef(getStylesheet);
+  const updateProgressRef = useRef(updateProgress);
   // 使用 Set 避免重复添加和内存泄漏
   const boundDocsRef = useRef<Set<Document>>(new Set());
   // 缓存脚本加载状态，避免重复创建 script 标签
@@ -85,6 +87,14 @@ export default function ReadPage() {
   useEffect(() => {
     themeRef.current = theme;
   }, [theme]);
+
+  useEffect(() => {
+    getStylesheetRef.current = getStylesheet;
+  }, [getStylesheet]);
+
+  useEffect(() => {
+    updateProgressRef.current = updateProgress;
+  }, [updateProgress]);
 
   useEffect(() => {
     if (viewRef.current && !loading) {
@@ -233,7 +243,7 @@ export default function ReadPage() {
           setPercentage(pct);
 
           if (cfi) {
-            updateProgress(cfi, pct);
+            updateProgressRef.current(cfi, pct);
           }
 
           if (tocItem?.label) {
@@ -263,7 +273,7 @@ export default function ReadPage() {
 
       if (destroyedRef.current) return;
 
-      view.renderer?.setStyles?.(getStylesheet());
+      view.renderer?.setStyles?.(getStylesheetRef.current());
 
       const savedProgress = progressRef.current;
       if (savedProgress?.cfi) {
@@ -282,7 +292,7 @@ export default function ReadPage() {
         setLoading(false);
       }
     }
-  }, [bookId, getStylesheet, keyboardHandler, updateProgress]);
+  }, [bookId, keyboardHandler]);
 
   useEffect(() => {
     if (!isAuthenticated || progressLoading) return;

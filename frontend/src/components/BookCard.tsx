@@ -30,18 +30,20 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
 
   useEffect(() => {
     let url: string | null = null;
+    let cancelled = false;
 
     api.fetchCover(book.id).then((blob) => {
-      if (blob) {
+      if (blob && !cancelled) {
         url = URL.createObjectURL(blob);
         setCoverUrl(url);
       }
     });
 
     return () => {
+      cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [book.cover_path, book.format, book.id]);
+  }, [book.id]);
 
   const animationDelay = `${index * 0.05}s`;
 
@@ -65,8 +67,43 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
               className="object-cover transition-transform duration-500 group-hover/card:scale-[1.02]"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-200 via-white to-stone-100">
-              <BookOpen className="h-7 w-7 text-muted-foreground/35" />
+            <div className="relative flex h-full w-full overflow-hidden shadow-[inset_-1px_0_2px_rgba(0,0,0,0.1)]">
+              <div className="relative flex w-8 flex-col items-center justify-center border-r-[3px] border-[#002FA7]/30 bg-gradient-to-r from-[#002FA7] via-[#0033B3] to-[#0039C7] shadow-[inset_-3px_0_6px_rgba(0,0,0,0.3),inset_1px_0_1px_rgba(255,255,255,0.15)]">
+                <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
+                <div className="absolute inset-y-0 right-1 w-px bg-gradient-to-b from-transparent via-black/20 to-transparent" />
+                <p className="whitespace-nowrap text-[10px] font-bold tracking-wider text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]" style={{ writingMode: 'vertical-rl' }}>
+                  {titleLabel.slice(0, 12)}
+                </p>
+              </div>
+
+              <div className="relative flex flex-1 flex-col items-center justify-center bg-white px-6 py-8 shadow-[inset_2px_2px_8px_rgba(0,47,167,0.06)]">
+                <div className="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#002FA7]/5 to-transparent" />
+                <div className="absolute bottom-0 right-0 h-12 w-full bg-gradient-to-t from-[#002FA7]/5 to-transparent" />
+                <div className="absolute right-2 top-2 h-1 w-1 rounded-full bg-[#002FA7]/20" />
+                <div className="absolute bottom-2 left-2 h-1 w-1 rounded-full bg-[#002FA7]/20" />
+
+                <div className="relative z-10 flex flex-col items-center gap-6">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-0.5 w-16 rounded-full bg-gradient-to-r from-transparent via-[#002FA7] to-transparent shadow-sm" />
+                    <div className="h-0.5 w-12 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/60 to-transparent" />
+                  </div>
+
+                  <h3 className="text-center text-sm font-bold leading-tight tracking-wide text-[#002FA7] drop-shadow-sm line-clamp-3">
+                    {titleLabel}
+                  </h3>
+
+                  {authorLabel && authorLabel !== '未知作者' && (
+                    <p className="text-center text-[10px] font-medium tracking-wide text-[#002FA7]/60">
+                      {authorLabel}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-0.5 w-12 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/60 to-transparent" />
+                    <div className="h-0.5 w-16 rounded-full bg-gradient-to-r from-transparent via-[#002FA7] to-transparent shadow-sm" />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -74,19 +111,6 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           <span className="pointer-events-none absolute right-1 top-1 z-20 rounded-[5px] border border-black/10 bg-white/55 px-1.5 py-[1px] text-[6px] font-mono font-semibold uppercase tracking-[0.14em] text-foreground/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] backdrop-blur-[1px] ring-1 ring-black/5">
             {formatLabel}
           </span>
-          <div className="paper-texture pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[28px] flex-col items-center justify-center border-r-[3px] border-l border-black/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(245,245,244,0.95)_100%)] px-[3px] py-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.7),inset_-1px_0_0_rgba(0,0,0,0.05)] backdrop-blur-[2px]">
-            <div className="flex h-full w-full flex-col items-center justify-center overflow-hidden">
-              <p
-                className="whitespace-nowrap text-[12px] font-bold leading-none tracking-[0.02em] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.42)]"
-                style={{
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'mixed',
-                }}
-              >
-                {titleLabel}
-              </p>
-            </div>
-          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -124,7 +148,7 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           </DropdownMenu>
         </div>
 
-        <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2.5 pl-[30px]">
+        <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2.5">
           <h3 className="mb-2 text-sm font-semibold leading-[1.25rem] text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.5rem' }} title={titleLabel}>
             {titleLabel}
           </h3>

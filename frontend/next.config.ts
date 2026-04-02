@@ -48,6 +48,7 @@ const LOCAL_IP = getLocalIP();
 const API_BASE = `http://${LOCAL_IP}:8080`;
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   allowedDevOrigins: [LOCAL_IP, '127.0.0.1', 'localhost'],
   output: "standalone",
   async rewrites() {

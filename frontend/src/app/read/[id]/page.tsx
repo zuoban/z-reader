@@ -817,7 +817,7 @@ function ReaderEdgeButton({
     <button
       type="button"
       onClick={onClick}
-      className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-2xl border transition-transform duration-200 hover:-translate-y-0.5"
+      className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border transition-transform duration-200 hover:-translate-y-0.5"
       style={{
         color: uiScheme.buttonText,
         background: withOpacity(uiScheme.cardBg, 0.84),

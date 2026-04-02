@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
+const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 
 interface ActiveCategoryDrag {
   bookId: string;
@@ -75,14 +76,22 @@ export default function ShelfPage() {
 
   const filteredBooks = useMemo(() => {
     if (!selectedCategoryId) return books;
+    if (selectedCategoryId === UNCATEGORIZED_FILTER_ID) {
+      return books.filter((book) => !book.category_id);
+    }
     return books.filter((b) => b.category_id === selectedCategoryId);
   }, [books, selectedCategoryId]);
 
   const bookCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: books.length };
+    const counts: Record<string, number> = {
+      all: books.length,
+      [UNCATEGORIZED_FILTER_ID]: 0,
+    };
     books.forEach((book) => {
       if (book.category_id) {
         counts[book.category_id] = (counts[book.category_id] || 0) + 1;
+      } else {
+        counts[UNCATEGORIZED_FILTER_ID] += 1;
       }
     });
     return counts;

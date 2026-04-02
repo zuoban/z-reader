@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"sort"
 	"time"
 
 	"go.etcd.io/bbolt"
@@ -35,6 +36,10 @@ func Open(path string) (*DB, error) {
 		return nil
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	if err := (&DB{db}).NormalizeCategorySortOrders(); err != nil {
 		return nil, err
 	}
 
@@ -230,7 +235,70 @@ func (db *DB) ListCategories() ([]models.Category, error) {
 			return nil
 		})
 	})
+	sort.Slice(categories, func(i, j int) bool {
+		if categories[i].SortOrder != categories[j].SortOrder {
+			return categories[i].SortOrder < categories[j].SortOrder
+		}
+		if !categories[i].CreatedAt.Equal(categories[j].CreatedAt) {
+			return categories[i].CreatedAt.Before(categories[j].CreatedAt)
+		}
+		return categories[i].Name < categories[j].Name
+	})
 	return categories, err
+}
+
+func (db *DB) NormalizeCategorySortOrders() error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(CategoriesBucket)
+		categories := []models.Category{}
+
+		if err := b.ForEach(func(_, v []byte) error {
+			var category models.Category
+			if err := json.Unmarshal(v, &category); err != nil {
+				return err
+			}
+			categories = append(categories, category)
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		if len(categories) == 0 {
+			return nil
+		}
+
+		sort.Slice(categories, func(i, j int) bool {
+			leftOrder := categories[i].SortOrder
+			rightOrder := categories[j].SortOrder
+
+			if leftOrder <= 0 {
+				leftOrder = int(^uint(0) >> 1)
+			}
+			if rightOrder <= 0 {
+				rightOrder = int(^uint(0) >> 1)
+			}
+			if leftOrder != rightOrder {
+				return leftOrder < rightOrder
+			}
+			if !categories[i].CreatedAt.Equal(categories[j].CreatedAt) {
+				return categories[i].CreatedAt.Before(categories[j].CreatedAt)
+			}
+			return categories[i].Name < categories[j].Name
+		})
+
+		for index := range categories {
+			categories[index].SortOrder = index + 1
+			data, err := json.Marshal(categories[index])
+			if err != nil {
+				return err
+			}
+			if err := b.Put([]byte(categories[index].ID), data); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (db *DB) DeleteCategory(id string) error {

@@ -113,14 +113,31 @@ export function RadialCategoryMenu({
     return Math.min(Math.max(value, min), max);
   }
 
+  const maxItemSize = targets.reduce((max, target) => Math.max(max, target.size), 68);
+  const maxRadius = targets.reduce(
+    (max, target) => Math.max(max, Math.hypot(target.dx, target.dy)),
+    BASE_RADIUS
+  );
+  const menuPadding = maxRadius + maxItemSize / 2 + 18;
+  const safeAnchorX = clampPosition(
+    anchorX,
+    menuPadding,
+    Math.max(menuPadding, viewportSize.width - menuPadding)
+  );
+  const safeAnchorY = clampPosition(
+    anchorY,
+    menuPadding,
+    Math.max(menuPadding, viewportSize.height - menuPadding)
+  );
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[60] select-none">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_16%,transparent_58%)]" />
       <div
         className="absolute rounded-full border border-black/8 bg-white/18 shadow-[0_24px_80px_-42px_rgba(15,23,42,0.36)] backdrop-blur-[2px]"
         style={{
-          left: anchorX,
-          top: anchorY,
+          left: safeAnchorX,
+          top: safeAnchorY,
           width: BASE_RADIUS * 2.7,
           height: BASE_RADIUS * 2.7,
           transform: 'translate(-50%, -50%)',
@@ -131,20 +148,10 @@ export function RadialCategoryMenu({
         const isHovered = hoveredCategoryId === target.id && !target.blocked;
         const textColor = target.isClear ? '#dc2626' : target.color;
         const itemSize = target.size;
-        const unclampedLeft = anchorX + target.dx;
-        const unclampedTop = anchorY + target.dy;
-        const left = clampPosition(
-          unclampedLeft,
-          itemSize / 2 + 12,
-          viewportSize.width - itemSize / 2 - 12
-        );
-        const top = clampPosition(
-          unclampedTop,
-          itemSize / 2 + 12,
-          viewportSize.height - itemSize / 2 - 12
-        );
-        const lineDx = left - anchorX;
-        const lineDy = top - anchorY;
+        const left = safeAnchorX + target.dx;
+        const top = safeAnchorY + target.dy;
+        const lineDx = target.dx;
+        const lineDy = target.dy;
         const lineLength = Math.max(18, Math.hypot(lineDx, lineDy) - itemSize * 0.5);
 
         return (
@@ -211,7 +218,7 @@ export function RadialCategoryMenu({
 
       <div
         className="absolute -translate-x-1/2 -translate-y-1/2"
-        style={{ left: anchorX, top: anchorY }}
+        style={{ left: safeAnchorX, top: safeAnchorY }}
       >
         <div className="absolute inset-[-28px] rounded-full bg-foreground/12 blur-2xl" />
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(24,24,27,0.92),rgba(39,39,42,0.98))] text-white shadow-[0_26px_46px_-28px_rgba(15,23,42,0.75)] backdrop-blur-xl">

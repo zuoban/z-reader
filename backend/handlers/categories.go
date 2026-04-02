@@ -49,8 +49,9 @@ func (h *CategoriesHandler) List(c *gin.Context) {
 }
 
 type categoryRequest struct {
-	Name  string `json:"name" binding:"required,max=50"`
-	Color string `json:"color" binding:"required,len=7"`
+	Name      string `json:"name" binding:"required,max=50"`
+	Color     string `json:"color" binding:"required,len=7"`
+	SortOrder *int   `json:"sort_order"`
 }
 
 func (h *CategoriesHandler) Create(c *gin.Context) {
@@ -65,10 +66,22 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 		return
 	}
 
+	categories, err := h.db.ListCategories()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list categories"})
+		return
+	}
+
+	sortOrder := len(categories) + 1
+	if req.SortOrder != nil && *req.SortOrder > 0 {
+		sortOrder = *req.SortOrder
+	}
+
 	category := &models.Category{
 		ID:        uuid.New().String(),
 		Name:      req.Name,
 		Color:     req.Color,
+		SortOrder: sortOrder,
 		CreatedAt: time.Now(),
 	}
 
@@ -81,8 +94,9 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 }
 
 type categoryUpdateRequest struct {
-	Name  *string `json:"name"`
-	Color *string `json:"color"`
+	Name      *string `json:"name"`
+	Color     *string `json:"color"`
+	SortOrder *int    `json:"sort_order"`
 }
 
 func (h *CategoriesHandler) Update(c *gin.Context) {
@@ -114,6 +128,13 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 		}
 		category.Color = *req.Color
 	}
+	if req.SortOrder != nil {
+		if *req.SortOrder <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sort order"})
+			return
+		}
+		category.SortOrder = *req.SortOrder
+	}
 
 	if err := h.db.SaveCategory(category); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save category"})
@@ -143,5 +164,3 @@ func (h *CategoriesHandler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }
-
-

@@ -2,6 +2,8 @@
 
 import { Category } from '@/lib/api';
 
+const UNCATEGORIZED_FILTER_ID = 'uncategorized';
+
 interface CategoryFilterProps {
   categories: Category[];
   selectedCategoryId: string | null;
@@ -45,6 +47,16 @@ export function CategoryFilter({
         }`}
       >
         全部 ({bookCounts.all || 0})
+      </button>
+      <button
+        onClick={() => onSelectCategory(UNCATEGORIZED_FILTER_ID)}
+        className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-all duration-200 ${
+          selectedCategoryId === UNCATEGORIZED_FILTER_ID
+            ? 'bg-foreground text-background'
+            : getCategoryClassName(false)
+        }`}
+      >
+        未分类 ({bookCounts[UNCATEGORIZED_FILTER_ID] || 0})
       </button>
       {categories.map((category) => {
         const isSelected = selectedCategoryId === category.id;

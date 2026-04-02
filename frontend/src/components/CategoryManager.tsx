@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Layers3, Pencil, Palette, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Layers3, Pencil, Palette, Plus, Trash2, X } from 'lucide-react';
 import { api, Category } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,6 +93,28 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
     } catch (err) {
       alert(err instanceof Error ? err.message : '删除失败');
       return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleMove(category: Category, direction: 'up' | 'down') {
+    const index = categories.findIndex((item) => item.id === category.id);
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const swapTarget = categories[targetIndex];
+
+    if (index === -1 || !swapTarget) return;
+
+    setLoading(true);
+    try {
+      await Promise.all([
+        api.updateCategory(category.id, { sort_order: swapTarget.sort_order }),
+        api.updateCategory(swapTarget.id, { sort_order: category.sort_order }),
+      ]);
+      await loadCategories();
+      onCategoryChange?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '排序失败');
     } finally {
       setLoading(false);
     }
@@ -237,7 +259,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold">已有分类</h3>
-                  <p className="text-xs text-muted-foreground">点击编辑或删除图标来管理分类。</p>
+                  <p className="text-xs text-muted-foreground">支持上移下移、编辑和删除分类。</p>
                 </div>
                 <div className="rounded-full border border-border/60 bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground">
                   {categories.length} 项
@@ -257,7 +279,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                       </p>
                     </div>
                   ) : (
-                    categories.map((cat) => {
+                    categories.map((cat, index) => {
                       const isEditing = editingId === cat.id;
                       return (
                         <div
@@ -278,6 +300,26 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                               {isEditing ? '当前正在编辑' : '已创建分类'}
                             </div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleMove(cat, 'up')}
+                            disabled={loading || index === 0}
+                            className="rounded-full hover:bg-muted"
+                            title="上移"
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleMove(cat, 'down')}
+                            disabled={loading || index === categories.length - 1}
+                            className="rounded-full hover:bg-muted"
+                            title="下移"
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon-sm"

@@ -41,6 +41,13 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
 }
 
+const CARD_WIDTH = 200;
+const CARD_SCALE = 0.74;
+const COVER_HEIGHT = 208;
+const INFO_HEIGHT = 140;
+const AUTHOR_HEIGHT = 28;
+const META_HEIGHT = 36;
+
 function lerp(start: number, end: number, factor: number) {
   return start + (end - start) * factor;
 }
@@ -284,8 +291,13 @@ export function BookCard({
 
   return (
     <div
-      className="opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
-      style={{ animationDelay }}
+      className="opacity-0 animate-[fadeIn_0.5s_ease-out_forwards] flex items-center justify-center"
+      style={{
+        animationDelay,
+        width: CARD_WIDTH,
+        display: 'flex',
+        justifyContent: 'center'
+      }}
     >
       <div
         className={`${
@@ -295,6 +307,7 @@ export function BookCard({
         }`}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
+        style={{ transform: `scale(${CARD_SCALE})`, transformOrigin: 'center' }}
       >
         <Card
           data-dragging={isDragging ? 'true' : undefined}
@@ -307,11 +320,12 @@ export function BookCard({
             boxShadow: dragShadow,
             opacity: dragOpacity,
             filter: `saturate(${dragSaturation}) brightness(${dragBrightness})`,
+            width: CARD_WIDTH,
           }}
-          className="group/card relative flex h-full w-full cursor-default flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] motion-reduce:transition-none"
+          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] motion-reduce:transition-none sm:rounded-[20px]"
         >
-          <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
-            <div className="pointer-events-none absolute right-3 bottom-3 z-30 inline-flex max-w-[calc(100%-1.5rem)] items-center justify-end overflow-hidden rounded-full border border-black/15 bg-black px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:text-[11px]">
+          <div className="relative overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200" style={{ height: COVER_HEIGHT }}>
+            <div className="pointer-events-none absolute right-2.5 bottom-2.5 z-30 inline-flex max-w-[calc(100%-1.25rem)] items-center justify-end overflow-hidden rounded-full border border-black/15 bg-black/88 px-2 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:right-3 sm:bottom-3 sm:max-w-[calc(100%-1.5rem)] sm:px-2.5 sm:text-[11px]">
               {infoItems.map((item, index) => (
                 <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
                   {index > 0 && <span className="mx-1 text-white/55">/</span>}
@@ -451,10 +465,10 @@ export function BookCard({
               onPointerCancel={handleDragEnd}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              className={`group/drag-handle absolute left-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+              className={`group/drag-handle absolute left-2.5 top-2.5 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-3 sm:top-3 sm:h-8 sm:w-8 ${
                 isDragging
                   ? 'opacity-100 scale-100'
-                  : 'opacity-0 scale-[0.98] group-hover/card:opacity-100 group-focus-within/card:opacity-100'
+                  : 'opacity-100 scale-100 sm:opacity-0 sm:scale-[0.98] sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100'
               } cursor-grab active:cursor-grabbing`}
               aria-label="拖动分类"
               title="拖动分类"
@@ -467,7 +481,7 @@ export function BookCard({
           </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="absolute right-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100"
+              className="absolute right-2.5 top-2.5 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:right-3 sm:top-3 sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100"
               onClick={(e) => e.stopPropagation()}
               aria-label="更多操作"
             >
@@ -503,18 +517,18 @@ export function BookCard({
             </DropdownMenuContent>
           </DropdownMenu>
           </div>
-          <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2.5">
-            <h3 className="mb-2 text-sm font-semibold leading-[1.25rem] text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.5rem' }} title={titleLabel}>
+          <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-3 sm:py-2.5" style={{ height: INFO_HEIGHT }}>
+            <h3 className="mb-2 min-h-10 text-sm font-semibold leading-[1.25rem] text-foreground sm:min-h-[2.5rem]" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={titleLabel}>
               {titleLabel}
             </h3>
-            <div className="flex items-center gap-3">
-              <div className="flex min-w-0 items-center gap-1.5 text-[13px] leading-[1.2rem] text-foreground/82">
+            <div className="flex items-center gap-3" style={{ height: AUTHOR_HEIGHT }}>
+              <div className="flex min-w-0 items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/82 sm:text-[13px] sm:leading-[1.2rem]">
                 <UserRound className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                 <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
               </div>
             </div>
-            <div className="mt-1.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[13px] leading-[1.2rem] text-foreground/82">
+            <div className="mt-2 flex flex-col gap-2 sm:mt-1.5 sm:flex-row sm:items-center sm:justify-between" style={{ height: META_HEIGHT }}>
+              <div className="flex items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/82 sm:text-[13px] sm:leading-[1.2rem]">
                 <Clock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                 {book.last_read_at ? (
                   <span className="font-medium tracking-[0.01em]">{formatRelativeTime(book.last_read_at)}</span>
@@ -529,7 +543,7 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-8 rounded-full bg-[#0f172a] px-3 text-[12px] font-medium text-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-transform duration-200 hover:scale-[1.02] hover:bg-[#1e293b]"
+                className="h-9 w-full rounded-full bg-[#0f172a] px-3 text-[12px] font-medium text-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-transform duration-200 hover:scale-[1.02] hover:bg-[#1e293b] sm:h-8 sm:w-auto"
               >
                 <BookOpen className="mr-1.5 h-3.5 w-3.5" />
                 阅读

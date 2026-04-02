@@ -457,14 +457,14 @@ export function BookCard({
               {titleLabel}
             </h3>
             <div className="flex items-center gap-3">
-              <div className="flex min-w-0 items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
-                <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+              <div className="flex min-w-0 items-center gap-1.5 text-[13px] leading-[1.2rem] text-foreground/82">
+                <UserRound className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                 <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
               </div>
             </div>
             <div className="mt-1.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
-                <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+              <div className="flex items-center gap-1.5 text-[13px] leading-[1.2rem] text-foreground/82">
+                <Clock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                 {book.last_read_at ? (
                   <span className="font-medium tracking-[0.01em]">{formatRelativeTime(book.last_read_at)}</span>
                 ) : (

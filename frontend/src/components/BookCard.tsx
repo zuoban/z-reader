@@ -68,39 +68,77 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
             />
           ) : (
             <div className="relative flex h-full w-full overflow-hidden shadow-[inset_-1px_0_2px_rgba(0,0,0,0.1)]">
-              <div className="relative flex w-8 flex-col items-center justify-center border-r-[3px] border-[#002FA7]/30 bg-gradient-to-r from-[#002FA7] via-[#0033B3] to-[#0039C7] shadow-[inset_-3px_0_6px_rgba(0,0,0,0.3),inset_1px_0_1px_rgba(255,255,255,0.15)]">
-                <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
-                <div className="absolute inset-y-0 right-1 w-px bg-gradient-to-b from-transparent via-black/20 to-transparent" />
+              {/* 书页厚度层 - 右侧边缘 */}
+              <div className="absolute inset-y-0 right-0 w-3 bg-gradient-to-l from-stone-300 via-stone-200 to-stone-100 shadow-[-2px_0_4px_rgba(0,0,0,0.08)]" />
+              {/* 书页厚度层 - 底部边缘 */}
+              <div className="absolute bottom-0 left-8 right-3 h-3 bg-gradient-to-t from-stone-300 via-stone-200 to-stone-100 shadow-[0_-2px_4px_rgba(0,0,0,0.06)]" />
+              {/* 书页纹理效果 */}
+              <div className="absolute bottom-3 left-8 right-3 h-px bg-stone-300/50" />
+              <div className="absolute bottom-5 left-8 right-3 h-px bg-stone-300/40" />
+              <div className="absolute bottom-7 left-8 right-3 h-px bg-stone-300/30" />
+              {/* 右下角立体阴影 */}
+              <div className="absolute bottom-3 right-3 w-16 h-16 bg-gradient-to-tl from-black/15 via-transparent to-transparent" />
+
+              <div className="relative flex w-8 flex-col items-center justify-center border-r-[3px] border-[#002FA7]/30 bg-gradient-to-r from-[#002FA7] via-[#0033B3] to-[#0039C7] shadow-[inset_-3px_0_6px_rgba(0,0,0,0.3),inset_1px_0_1px_rgba(255,255,255,0.15),2px_0_4px_rgba(0,0,0,0.15)]">
+                <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white/25 to-transparent" />
+                <div className="absolute inset-y-0 right-1 w-px bg-gradient-to-b from-transparent via-black/25 to-transparent" />
+                {/* 书脊高光 */}
+                <div className="absolute inset-y-0 left-1 w-0.5 bg-gradient-to-b from-white/10 via-white/30 to-white/10" />
+                {/* 书脊纹理线 */}
+                <div className="absolute inset-y-4 left-0 right-0 flex flex-col justify-evenly">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="h-px w-full bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+                  ))}
+                </div>
                 <p className="whitespace-nowrap text-[10px] font-bold tracking-wider text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]" style={{ writingMode: 'vertical-rl' }}>
                   {titleLabel.slice(0, 12)}
                 </p>
               </div>
 
-              <div className="relative flex flex-1 flex-col items-center justify-center bg-white px-6 py-8 shadow-[inset_2px_2px_8px_rgba(0,47,167,0.06)]">
-                <div className="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#002FA7]/5 to-transparent" />
-                <div className="absolute bottom-0 right-0 h-12 w-full bg-gradient-to-t from-[#002FA7]/5 to-transparent" />
-                <div className="absolute right-2 top-2 h-1 w-1 rounded-full bg-[#002FA7]/20" />
-                <div className="absolute bottom-2 left-2 h-1 w-1 rounded-full bg-[#002FA7]/20" />
+              <div className="relative flex flex-1 flex-col items-center justify-center bg-white px-6 py-8 mr-3 mb-3 shadow-[inset_2px_2px_8px_rgba(0,47,167,0.06),inset_-1px_-1px_3px_rgba(0,0,0,0.03)]">
+                {/* 封面左上角光照 */}
+                <div className="absolute left-0 top-0 h-32 w-32 bg-gradient-to-br from-white/80 via-white/20 to-transparent pointer-events-none" />
+                {/* 封面左边缘渐变 */}
+                <div className="absolute left-0 top-0 h-full w-10 bg-gradient-to-r from-[#002FA7]/8 via-[#002FA7]/3 to-transparent" />
+                {/* 封面底部渐变 */}
+                <div className="absolute bottom-0 right-0 h-16 w-full bg-gradient-to-t from-[#002FA7]/6 to-transparent" />
+                {/* 封面右上角阴影 */}
+                <div className="absolute right-0 top-0 h-20 w-20 bg-gradient-to-bl from-black/5 via-transparent to-transparent" />
+                {/* 装饰点 */}
+                <div className="absolute right-3 top-3 h-1.5 w-1.5 rounded-full bg-[#002FA7]/25 shadow-sm" />
+                <div className="absolute bottom-3 left-3 h-1.5 w-1.5 rounded-full bg-[#002FA7]/25 shadow-sm" />
 
-                <div className="relative z-10 flex flex-col items-center gap-6">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="h-0.5 w-16 rounded-full bg-gradient-to-r from-transparent via-[#002FA7] to-transparent shadow-sm" />
-                    <div className="h-0.5 w-12 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/60 to-transparent" />
+                {/* 顶部装饰边框 */}
+                <div className="absolute top-4 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#002FA7]/20 to-transparent" />
+                {/* 底部装饰边框 */}
+                <div className="absolute bottom-4 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#002FA7]/20 to-transparent" />
+
+                <div className="relative z-10 flex flex-col items-center gap-5">
+                  {/* 顶部双线条装饰 */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="h-0.5 w-20 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/80 to-transparent shadow-sm" />
+                    <div className="h-0.5 w-14 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/50 to-transparent" />
                   </div>
 
-                  <h3 className="text-center text-sm font-bold leading-tight tracking-wide text-[#002FA7] drop-shadow-sm line-clamp-3">
-                    {titleLabel}
-                  </h3>
+                  {/* 书名区域 */}
+                  <div className="relative py-2">
+                    <div className="absolute -left-2 -right-2 top-1/2 -translate-y-1/2 h-12 bg-gradient-to-r from-transparent via-[#002FA7]/5 to-transparent" />
+                    <h3 className="text-center text-sm font-bold leading-tight tracking-wide text-[#002FA7] drop-shadow-sm line-clamp-3">
+                      {titleLabel}
+                    </h3>
+                  </div>
 
+                  {/* 作者 */}
                   {authorLabel && authorLabel !== '未知作者' && (
                     <p className="text-center text-[10px] font-medium tracking-wide text-[#002FA7]/60">
                       {authorLabel}
                     </p>
                   )}
 
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="h-0.5 w-12 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/60 to-transparent" />
-                    <div className="h-0.5 w-16 rounded-full bg-gradient-to-r from-transparent via-[#002FA7] to-transparent shadow-sm" />
+                  {/* 底部双线条装饰 */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="h-0.5 w-14 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/50 to-transparent" />
+                    <div className="h-0.5 w-20 rounded-full bg-gradient-to-r from-transparent via-[#002FA7]/80 to-transparent shadow-sm" />
                   </div>
                 </div>
               </div>

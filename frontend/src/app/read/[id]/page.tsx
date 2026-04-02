@@ -521,7 +521,7 @@ export default function ReadPage() {
     );
   }
 
-  const toolbarButtonClass = 'h-8 w-8 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9';
+  const toolbarButtonClass = 'h-8 w-8 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9';
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
     background: active

@@ -151,21 +151,13 @@ export default function ShelfPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="pointer-events-none h-10 min-w-[44px] gap-2 rounded-lg border-border/70 bg-background px-0 shadow-none sm:h-11 sm:min-w-[52px] sm:px-3.5"
+                  className="pointer-events-none h-9 w-9 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none sm:h-10 sm:w-10"
                   disabled={isUploading}
                 >
                   {isUploading ? (
-                    <>
-                      <div
-                        className="h-4 w-4 animate-spin rounded-full border-2 border-foreground/20 spinner-border"
-                      />
-                      <span className="hidden sm:inline text-sm">上传中</span>
-                    </>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground/20 spinner-border" />
                   ) : (
-                    <>
-                      <Upload className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-                      <span className="hidden text-sm font-medium sm:inline">导入</span>
-                    </>
+                    <Upload className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                   )}
                 </Button>
               </div>
@@ -174,10 +166,10 @@ export default function ShelfPage() {
                 variant="outline"
                 size="sm"
                 onClick={logout}
-                className="h-10 min-w-[44px] rounded-lg border-border/70 bg-background px-0 text-foreground shadow-none hover:bg-muted sm:h-11 sm:min-w-[52px] sm:px-3.5"
+                title="退出"
+                className="h-9 w-9 shrink-0 rounded-full border-border/70 bg-background p-0 text-foreground shadow-none hover:bg-muted sm:h-10 sm:w-10"
               >
-                <LogOut className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-                <span className="hidden text-sm font-medium sm:inline">退出</span>
+                <LogOut className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
               </Button>
             </div>
           </div>

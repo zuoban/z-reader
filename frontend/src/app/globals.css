@@ -193,6 +193,42 @@ foliate-view::part(filter) {
     transform: translateY(-2px);
   }
 
+  @keyframes cardBreath {
+    0%,
+    100% {
+      transform: translateY(0) scale(1) rotateZ(0deg);
+    }
+
+    25% {
+      transform: translateY(-0.6px) scale(1.004, 1.006) rotateZ(-0.12deg);
+    }
+
+    50% {
+      transform: translateY(-1.1px) scale(1.006, 1.009) rotateZ(0.18deg);
+    }
+
+    75% {
+      transform: translateY(-0.5px) scale(1.003, 1.005) rotateZ(-0.08deg);
+    }
+  }
+
+  @keyframes paperSheen {
+    0% {
+      opacity: 0.18;
+      transform: translateY(-10%) skewX(-8deg);
+    }
+
+    45% {
+      opacity: 0.3;
+      transform: translateY(8%) skewX(-6deg);
+    }
+
+    100% {
+      opacity: 0.18;
+      transform: translateY(-10%) skewX(-8deg);
+    }
+  }
+
   .spine-effect {
     background: linear-gradient(
       90deg,

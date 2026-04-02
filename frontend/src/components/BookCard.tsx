@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { BookOpen, Clock, MoreVertical, Percent, Tag, Trash2, UserRound } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { BookOpen, Clock, MoreVertical, Tag, Trash2, UserRound } from 'lucide-react';
 import { api, Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
@@ -22,6 +22,10 @@ interface BookCardProps {
   onUpdate: () => void;
   isDeleting: boolean;
   formatSize: (bytes: number) => string;
+}
+
+function lerp(start: number, end: number, factor: number) {
+  return start + (end - start) * factor;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -53,10 +57,29 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  const tiltRef = useRef({ x: 0, y: 0 });
+  const targetTilt = useRef({ x: 0, y: 0 });
   const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
+
+  // 使用 useMemo 缓存阴影计算，避免每次渲染时重复计算
+  const { tiltMagnitude, cardShadow } = useMemo(() => {
+    const tiltMagnitude = Math.hypot(tilt.x, tilt.y);
+    const shadowX = Math.round(tilt.y * 1.3);
+    const shadowY = Math.round(14 + tiltMagnitude * 1.2);
+    const shadowBlur = Math.round(30 + tiltMagnitude * 1.8);
+    const shadowOpacity = 0.16 + Math.min(0.1, tiltMagnitude * 0.01);
+    const cardShadow = `0 ${shadowY}px ${shadowBlur}px -24px rgba(15, 23, 42, ${shadowOpacity}), ${-shadowX}px ${Math.max(6, shadowY / 2)}px ${Math.round(
+      shadowBlur * 0.55
+    )}px -34px rgba(0, 0, 0, 0.14)`;
+    return { tiltMagnitude, cardShadow };
+  }, [tilt]);
 
   useEffect(() => {
     let url: string | null = null;
@@ -96,6 +119,69 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
     };
   }, [book.id]);
 
+  function animate() {
+    const current = tiltRef.current;
+    const newX = lerp(current.x, targetTilt.current.x, 0.12);
+    const newY = lerp(current.y, targetTilt.current.y, 0.12);
+
+    tiltRef.current = { x: newX, y: newY };
+    setTilt(tiltRef.current);
+
+    // 当接近目标时停止动画，避免在边缘产生细碎抖动
+    if (Math.abs(newX - targetTilt.current.x) < 0.1 && Math.abs(newY - targetTilt.current.y) < 0.1) {
+      tiltRef.current = { x: targetTilt.current.x, y: targetTilt.current.y };
+      setTilt(tiltRef.current);
+      rafRef.current = null;
+      return;
+    }
+
+    rafRef.current = requestAnimationFrame(animate);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!cardRef.current) return;
+
+    const rect = cardRef.current.getBoundingClientRect();
+    // 将坐标归一化到 -1 到 1 范围，中心为 0
+    const nx = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1));
+    const ny = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1));
+
+    // 轻微缓动，避免鼠标慢速贴边时出现“卡边抖动”
+    const smoothX = nx * (1 - Math.abs(nx) * 0.08);
+    const smoothY = ny * (1 - Math.abs(ny) * 0.08);
+
+    // 轻量级倾斜，保留立体感但不夸张
+    const maxTilt = 3.8;
+    targetTilt.current = {
+      x: smoothY * -maxTilt,
+      y: smoothX * maxTilt,
+    };
+
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(animate);
+    }
+  }
+
+  function handlePointerLeave() {
+    setIsHovering(false);
+    targetTilt.current = { x: 0, y: 0 };
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(animate);
+    }
+  }
+
+  function handlePointerEnter() {
+    setIsHovering(true);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
   const animationDelay = `${index * 0.05}s`;
 
   return (
@@ -103,11 +189,35 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
       className="opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
       style={{ animationDelay }}
     >
-      <Card
-        className="group/card relative flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-all duration-300 hover:-translate-y-1.5 hover:border-black/15 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)]"
-        onClick={onRead}
+      <div
+        className={`${isHovering ? 'motion-safe:animate-[cardBreath_6.2s_ease-in-out_infinite] motion-reduce:animate-none' : ''}`}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
       >
-        <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
+        <Card
+          ref={cardRef}
+          onPointerMove={handlePointerMove}
+          style={{
+            transform: `perspective(1200px) translateY(-0.5px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transformStyle: 'preserve-3d',
+            willChange: 'transform',
+            boxShadow: cardShadow,
+          }}
+          className="group/card relative flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow] duration-300 ease-out hover:border-black/15 motion-reduce:transition-none"
+          onClick={onRead}
+        >
+          <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
+            <div
+              className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-200 ease-out"
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.025) 100%)',
+                opacity: 0.46 + tiltMagnitude * 0.007,
+              }}
+            />
+            <div
+              className={`${isHovering ? 'motion-safe:animate-[paperSheen_7.5s_ease-in-out_infinite] motion-reduce:animate-none' : ''} pointer-events-none absolute inset-x-0 top-0 z-20 h-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.12)_32%,rgba(255,255,255,0.22)_50%,rgba(255,255,255,0.1)_68%,transparent_100%)] mix-blend-screen`}
+            />
           {coverUrl ? (
             <Image
               src={coverUrl}
@@ -115,7 +225,7 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
               fill
               unoptimized
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 20vw, 16vw"
-              className="object-cover transition-transform duration-500 group-hover/card:scale-[1.02]"
+              className="object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.01]"
             />
           ) : (
             <div className="relative flex h-full w-full overflow-hidden shadow-[inset_-1px_0_2px_rgba(0,0,0,0.1)]">
@@ -250,35 +360,35 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-
-        <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2.5">
-          <h3 className="mb-2 text-sm font-semibold leading-[1.25rem] text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.5rem' }} title={titleLabel}>
-            {titleLabel}
-          </h3>
-          <div className="flex items-center gap-3">
-            <div className="flex min-w-0 items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
-              <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
-            </div>
           </div>
-          <div className="mt-1.5 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
-              <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              {book.last_read_at ? (
-                <span className="font-medium tracking-[0.01em]">{formatRelativeTime(book.last_read_at)}</span>
-              ) : (
-                <span className="font-medium tracking-[0.01em]">未开始</span>
+          <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2.5">
+            <h3 className="mb-2 text-sm font-semibold leading-[1.25rem] text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.5rem' }} title={titleLabel}>
+              {titleLabel}
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
+                <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
+              </div>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
+                <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                {book.last_read_at ? (
+                  <span className="font-medium tracking-[0.01em]">{formatRelativeTime(book.last_read_at)}</span>
+                ) : (
+                  <span className="font-medium tracking-[0.01em]">未开始</span>
+                )}
+              </div>
+              {progress !== null && (
+                <span className="text-[9px] font-semibold tracking-[0.02em] text-foreground/82">
+                  {progress}%
+                </span>
               )}
             </div>
-            {progress !== null && (
-              <span className="text-[9px] font-semibold tracking-[0.02em] text-foreground/82">
-                {progress}%
-              </span>
-            )}
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
       <CategorySelector
         bookId={book.id}
         currentCategoryId={book.category_id}

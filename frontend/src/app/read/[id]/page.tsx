@@ -523,16 +523,16 @@ export default function ReadPage() {
     );
   }
 
-  const toolbarButtonClass = 'h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9';
+  const toolbarButtonClass = 'h-8 w-8 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9';
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
     background: active
-      ? withOpacity(uiScheme.link, 0.1)
-      : withOpacity(uiScheme.buttonBg, 0.52),
+      ? withOpacity(uiScheme.link, 0.08)
+      : withOpacity(uiScheme.buttonBg, 0.72),
     border: `1px solid ${active ? withOpacity(uiScheme.link, 0.2) : withOpacity(uiScheme.cardBorder, 0.48)}`,
     boxShadow: active
-      ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${withOpacity(uiScheme.link, 0.08)}`
-      : `inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.4)}`,
+      ? `0 14px 24px -20px ${withOpacity(uiScheme.link, 0.45)}, inset 0 1px 0 rgba(255,255,255,0.35)`
+      : `0 14px 24px -22px ${withOpacity(uiScheme.headerBorder, 0.34)}, inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.35)}`,
   });
 
   return (
@@ -548,27 +548,27 @@ export default function ReadPage() {
         }}
       />
 
-      <div className="relative flex h-full flex-col px-1.5 py-1.5 sm:px-2 sm:py-2 lg:px-3 lg:py-3">
+      <div className="relative flex h-full flex-col px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
         <div
-          className="mx-auto flex h-full w-full max-w-[1760px] min-h-0 flex-col overflow-hidden rounded-[20px] border shadow-[0_24px_80px_-32px_rgba(15,23,42,0.45)]"
+          className="mx-auto flex h-full min-h-0 w-full max-w-[1760px] flex-col overflow-hidden rounded-[26px] border shadow-[0_36px_90px_-44px_rgba(15,23,42,0.42)]"
           style={{
-            background: withOpacity(uiScheme.headerBg, 0.76),
+            background: withOpacity(uiScheme.headerBg, 0.82),
             borderColor: withOpacity(uiScheme.headerBorder, 0.58),
           }}
         >
           <header
-            className="shrink-0 overflow-hidden border-b px-2.5 py-1 sm:px-3 sm:py-1.5"
+            className="shrink-0 overflow-hidden border-b px-3 py-2 sm:px-4 sm:py-2.5"
             style={{
-              opacity: 0.94,
-              backdropFilter: 'blur(12px)',
+              opacity: 0.98,
+              backdropFilter: 'blur(14px)',
               background: `
-                linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.78)} 0%, ${withOpacity(uiScheme.cardBg, 0.52)} 100%)
+                linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.82)} 0%, ${withOpacity(uiScheme.cardBg, 0.58)} 100%)
               `,
-              borderColor: withOpacity(uiScheme.headerBorder, 0.32),
+              borderColor: withOpacity(uiScheme.headerBorder, 0.38),
             }}
           >
-            <div className="flex items-center justify-between gap-2 sm:gap-2.5">
-              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -581,10 +581,10 @@ export default function ReadPage() {
                 </Button>
 
                 <div className="min-w-0 flex-1 pr-1.5 sm:pr-2">
-                  <div className="flex min-h-[1.75rem] items-center gap-1.5">
-                    <div className="min-w-0 flex flex-1 items-center gap-1.5">
+                  <div className="flex min-h-[2.25rem] items-center gap-2">
+                    <div className="min-w-0 flex flex-1 items-center gap-2">
                       <span
-                        className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
+                        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-mono tabular-nums tracking-[0.08em]"
                         style={{
                           color: uiScheme.accentText,
                           background: withOpacity(uiScheme.cardBorder, 0.14),
@@ -592,18 +592,26 @@ export default function ReadPage() {
                       >
                         {percentage}%
                       </span>
-                      <p
-                        className="min-w-0 flex-1 truncate text-[10px]"
-                        style={{ color: uiScheme.mutedText }}
-                      >
-                        {currentChapter || '等待定位章节'}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="truncate text-[11px] font-medium"
+                          style={{ color: uiScheme.fg }}
+                        >
+                          {currentChapter || '等待定位章节'}
+                        </p>
+                        <p
+                          className="mt-0.5 hidden truncate text-[10px] sm:block"
+                          style={{ color: uiScheme.mutedText }}
+                        >
+                          阅读进度会自动保存
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <Sheet open={tocOpen} onOpenChange={setTocOpen}>
                   <SheetTrigger
                     render={
@@ -620,15 +628,15 @@ export default function ReadPage() {
                   </SheetTrigger>
                   <SheetContent
                     side="left"
-                    className="w-[85vw] max-w-sm overflow-hidden rounded-r-[24px] p-0 backdrop-blur-xl sm:w-80"
+                    className="w-[85vw] max-w-sm overflow-hidden rounded-r-[28px] p-0 backdrop-blur-xl sm:w-80"
                     style={{
-                      background: withOpacity(uiScheme.cardBg, 0.95),
+                      background: withOpacity(uiScheme.cardBg, 0.97),
                       borderColor: withOpacity(uiScheme.cardBorder, 0.82),
-                      boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.26)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                      boxShadow: `0 28px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.34)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                     }}
                   >
                     <SheetHeader
-                      className="border-b px-5 py-4 pb-3"
+                      className="border-b px-5 py-4 pb-3.5"
                       style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.34) }}
                     >
                       <SheetTitle
@@ -644,9 +652,9 @@ export default function ReadPage() {
                     <ScrollArea className="h-[calc(100vh-84px)] sm:h-[calc(100vh-88px)]">
                       <div
                         ref={tocListRef}
-                        className="m-4 rounded-2xl border p-2.5"
+                        className="m-4 rounded-[22px] border p-3"
                         style={{
-                          background: withOpacity(uiScheme.buttonBg, 0.4),
+                          background: withOpacity(uiScheme.buttonBg, 0.44),
                           borderColor: withOpacity(uiScheme.cardBorder, 0.42),
                         }}
                       >
@@ -712,12 +720,12 @@ export default function ReadPage() {
           </header>
 
           <div
-            className="flex-1 min-h-0 p-0"
+            className="min-h-0 flex-1 p-1.5 sm:p-2"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
             <div
-              className="relative h-full overflow-hidden rounded-[14px] border"
+              className="relative h-full overflow-hidden rounded-[20px] border"
               style={{
                 background: `
                   linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
@@ -735,11 +743,11 @@ export default function ReadPage() {
                     `,
                   }}
                 >
-                  <div
-                    className="flex min-w-[220px] flex-col items-center gap-4 rounded-[24px] border px-8 py-7 backdrop-blur-xl"
-                    style={{
-                      background: withOpacity(uiScheme.cardBg, 0.88),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.78),
+                <div
+                  className="flex min-w-[220px] flex-col items-center gap-4 rounded-[26px] border px-8 py-7 backdrop-blur-xl"
+                  style={{
+                    background: withOpacity(uiScheme.cardBg, 0.88),
+                    borderColor: withOpacity(uiScheme.cardBorder, 0.78),
                       boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                     }}
                   >
@@ -772,7 +780,7 @@ export default function ReadPage() {
 
               <div ref={containerRef} className="absolute inset-0" />
 
-              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden items-center pl-3 lg:flex">
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden items-center pl-4 lg:flex">
                 <ReaderEdgeButton
                   direction="prev"
                   onClick={handlePrev}
@@ -780,7 +788,7 @@ export default function ReadPage() {
                 />
               </div>
 
-              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden items-center pr-3 lg:flex">
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden items-center pr-4 lg:flex">
                 <ReaderEdgeButton
                   direction="next"
                   onClick={handleNext}
@@ -811,12 +819,12 @@ function ReaderEdgeButton({
     <button
       type="button"
       onClick={onClick}
-      className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105"
+      className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-2xl border transition-transform duration-200 hover:-translate-y-0.5"
       style={{
         color: uiScheme.buttonText,
-        background: withOpacity(uiScheme.cardBg, 0.76),
+        background: withOpacity(uiScheme.cardBg, 0.84),
         borderColor: withOpacity(uiScheme.cardBorder, 0.9),
-        boxShadow: `0 16px 32px ${withOpacity(uiScheme.headerBorder, 0.26)}`,
+        boxShadow: `0 20px 36px -24px ${withOpacity(uiScheme.headerBorder, 0.34)}`,
       }}
       aria-label={label}
       title={label}
@@ -842,7 +850,7 @@ function TOCNode({ item, onGoTo, depth = 0, currentChapter, uiScheme }: {
         data-current-chapter={isCurrentChapter ? 'true' : undefined}
         variant="ghost"
         size="sm"
-        className="mb-1 h-9 w-full justify-start rounded-xl border transition-all duration-150 sm:h-10"
+        className="mb-1.5 h-9 w-full justify-start rounded-xl border transition-all duration-150 sm:h-10"
         style={{
           paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : '12px',
           paddingRight: '12px',
@@ -858,7 +866,7 @@ function TOCNode({ item, onGoTo, depth = 0, currentChapter, uiScheme }: {
               ? withOpacity(uiScheme.link, 0.18)
               : withOpacity(uiScheme.cardBorder, 0.4),
           boxShadow: isCurrentChapter || isHovered
-            ? `inset 0 1px 0 rgba(255,255,255,0.35)`
+            ? `0 14px 22px -20px ${withOpacity(uiScheme.link, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.35)`
             : 'none',
         }}
         onMouseEnter={() => setIsHovered(true)}

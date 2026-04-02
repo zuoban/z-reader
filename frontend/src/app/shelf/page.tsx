@@ -91,19 +91,19 @@ export default function ShelfPage() {
 
   return (
     <div className="min-h-screen warm-gradient paper-texture">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <header className="rounded-[28px] border border-border/50 bg-background/90 px-5 py-5 shadow-card-lg backdrop-blur-2xl sm:rounded-[32px] sm:px-7 sm:py-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+        <header className="border-b border-border/70 pb-5 sm:pb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/50 btn-gradient-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] sm:h-14 sm:w-14">
-                <Library className="h-5 w-5 text-foreground sm:h-6 sm:w-6" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-background shadow-[0_8px_24px_-20px_rgba(15,23,42,0.35)] sm:h-12 sm:w-12">
+                <Library className="h-5 w-5 text-muted-foreground sm:h-5 sm:w-5" />
               </div>
               <div className="min-w-0">
-                <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   我的书架
                 </h1>
                 <p className="text-xs text-muted-foreground sm:text-sm">
-                  共 {books.length} 本书 · 随时阅读
+                  共 {books.length} 本书
                 </p>
               </div>
             </div>
@@ -121,7 +121,7 @@ export default function ShelfPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="pointer-events-none h-10 min-w-[44px] gap-2 rounded-xl border-border/60 bg-background/80 px-0 shadow-card-sm backdrop-blur-sm transition-all duration-300 hover:shadow-card-md sm:h-11 sm:min-w-[52px] sm:px-3.5"
+                  className="pointer-events-none h-10 min-w-[44px] gap-2 rounded-lg border-border/70 bg-background px-0 shadow-none sm:h-11 sm:min-w-[52px] sm:px-3.5"
                   disabled={isUploading}
                 >
                   {isUploading ? (
@@ -144,7 +144,7 @@ export default function ShelfPage() {
                 variant="outline"
                 size="sm"
                 onClick={logout}
-                className="h-10 min-w-[44px] rounded-xl border-border/60 bg-background/80 px-0 text-foreground shadow-card-sm backdrop-blur-sm transition-all duration-300 hover:bg-destructive/10 hover:text-destructive hover:shadow-destructive sm:h-11 sm:min-w-[52px] sm:px-3.5"
+                className="h-10 min-w-[44px] rounded-lg border-border/70 bg-background px-0 text-foreground shadow-none hover:bg-muted sm:h-11 sm:min-w-[52px] sm:px-3.5"
               >
                 <LogOut className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                 <span className="hidden text-sm font-medium sm:inline">退出</span>
@@ -153,17 +153,17 @@ export default function ShelfPage() {
           </div>
         </header>
 
-        <main className="flex-1 py-5 sm:py-6">
+        <main className="flex-1 py-8 sm:py-10">
           {books.length === 0 ? (
-            <div className="flex min-h-[58vh] items-center justify-center">
-              <div className="w-full max-w-xl rounded-[32px] border border-border/40 bg-background/85 px-6 py-12 text-center shadow-card-lg backdrop-blur-2xl sm:rounded-[40px] sm:px-10 sm:py-16">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] border border-border/40 btn-gradient-empty shadow-[inset_0_2px_8px_rgba(255,255,255,0.6)] sm:h-24 sm:w-24 sm:rounded-[32px]">
-                  <BookOpen className="h-10 w-10 text-muted-foreground/50 sm:h-12 sm:w-12" />
+            <div className="flex min-h-[56vh] items-center justify-center">
+              <div className="w-full max-w-lg rounded-[28px] border border-border/70 bg-background px-7 py-14 text-center shadow-[0_24px_60px_-48px_rgba(15,23,42,0.45)] sm:px-12 sm:py-16">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/80 ring-1 ring-border/60">
+                  <BookOpen className="h-8 w-8 text-muted-foreground sm:h-9 sm:w-9" />
                 </div>
-                <p className="mt-8 text-2xl font-bold tracking-tight text-foreground sm:mt-10 sm:text-3xl">
+                <p className="mt-6 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   书架还是空的
                 </p>
-                <p className="mt-3 text-sm text-muted-foreground sm:mt-4 sm:text-base">
+                <p className="mt-3 text-sm text-muted-foreground sm:text-base">
                   上传你的第一本 EPUB 书籍
                 </p>
                 <div className="mt-8 flex justify-center">
@@ -176,10 +176,7 @@ export default function ShelfPage() {
                       className="absolute inset-0 z-20 cursor-pointer opacity-0"
                       title="上传 EPUB"
                     />
-                    <Button
-                      className="group h-12 w-full rounded-full px-6 text-base shadow-card-md transition-all duration-300 hover:shadow-card-lg sm:h-13 sm:w-auto sm:px-8"
-                      disabled={isUploading}
-                    >
+                    <Button className="group h-11 w-full rounded-xl px-6 text-sm sm:w-auto sm:px-8" disabled={isUploading}>
                       {isUploading ? (
                         <>
                           <div
@@ -199,8 +196,8 @@ export default function ShelfPage() {
               </div>
             </div>
           ) : (
-            <section className="rounded-[28px] border border-border/45 bg-background/80 p-4 shadow-card-lg backdrop-blur-2xl sm:rounded-[32px] sm:p-6 lg:p-7">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <section>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {books.map((book, index) => (
                   <BookCard
                     key={book.id}

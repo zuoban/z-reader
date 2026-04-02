@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -95,16 +96,21 @@ export default function ShelfPage() {
         <header className="border-b border-border/70 pb-5 sm:pb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex items-center gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-background shadow-[0_8px_24px_-20px_rgba(15,23,42,0.35)] sm:h-12 sm:w-12">
-                <Library className="h-5 w-5 text-muted-foreground sm:h-5 sm:w-5" />
-              </div>
               <div className="min-w-0">
-                <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  我的书架
-                </h1>
-                <p className="text-xs text-muted-foreground sm:text-sm">
-                  共 {books.length} 本书
-                </p>
+                <Image
+                  src="/icons/logo-wordmark.svg"
+                  alt="Z Reader"
+                  width={200}
+                  height={61}
+                  className="h-auto w-[156px] sm:w-[200px]"
+                  priority
+                />
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+                  <Library className="h-3.5 w-3.5" />
+                  <span>我的书架</span>
+                  <span className="text-border">/</span>
+                  <span>共 {books.length} 本书</span>
+                </div>
               </div>
             </div>
 

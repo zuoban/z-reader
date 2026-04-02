@@ -147,8 +147,11 @@ export function useReaderTheme() {
     const preset = PRESET_STYLES[theme.preset];
     const isDark = theme.preset === 'dark';
 
-    // 夜间模式使用更柔和的 selection 颜色
-    const selectionBg = isDark ? '#ffffff20' : '#D4AF3730';
+    // 朗读高亮复用 selection，夜间模式改用更柔和的暖金色而不是偏生硬的白色蒙层
+    const selectionBg = isDark
+      ? withOpacity(preset.link, 0.3)
+      : withOpacity(preset.link, 0.18);
+    const selectionColor = isDark ? '#f7f1df' : preset.fg;
     // 夜间模式 code 背景使用浅色透明层
     const codeBg = isDark ? '#ffffff10' : '#00000008';
 
@@ -240,9 +243,15 @@ export function useReaderTheme() {
         color: ${preset.link} !important;
         opacity: 0.8;
       }
-      ::selection {
+      ::selection,
+      *::selection {
         background: ${selectionBg} !important;
-        color: ${preset.fg} !important;
+        color: ${selectionColor} !important;
+      }
+      ::-moz-selection,
+      *::-moz-selection {
+        background: ${selectionBg} !important;
+        color: ${selectionColor} !important;
       }
       code {
         font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
@@ -274,4 +283,18 @@ export function useReaderTheme() {
     getUIScheme,
     presets: PRESET_STYLES,
   };
+}
+
+function withOpacity(color: string, opacity: number) {
+  if (!color.startsWith('#')) return color;
+
+  const normalized = color.length === 4
+    ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+    : color;
+
+  const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
+    .toString(16)
+    .padStart(2, '0');
+
+  return `${normalized}${hexOpacity}`;
 }

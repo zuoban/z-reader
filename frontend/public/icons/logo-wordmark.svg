@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
+  <defs>
+    <linearGradient id="symbolBg" x1="30" y1="24" x2="190" y2="196" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="0.55" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="symbolGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(78 58) rotate(46) scale(130 116)">
+      <stop stop-color="#FBBF24" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#FBBF24" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pageLeft" x1="52" y1="54" x2="98" y2="156" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFDF6"/>
+      <stop offset="1" stop-color="#F3EDE0"/>
+    </linearGradient>
+    <linearGradient id="pageRight" x1="96" y1="50" x2="144" y2="156" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8F2E5"/>
+      <stop offset="1" stop-color="#E8DCC4"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="76" y1="62" x2="125" y2="144" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FCD34D"/>
+      <stop offset="0.52" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+    <linearGradient id="title" x1="258" y1="72" x2="520" y2="154" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="subtitle" x1="260" y1="140" x2="476" y2="168" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B45309"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+    <filter id="symbolShadow" x="20" y="20" width="180" height="180" filterUnits="userSpaceOnUse"
+      color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#0F172A" flood-opacity=".18"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#symbolShadow)">
+    <rect x="24" y="24" width="172" height="172" rx="40" fill="url(#symbolBg)"/>
+    <rect x="24" y="24" width="172" height="172" rx="40" fill="url(#symbolGlow)"/>
+
+    <path
+      d="M50 78.5C50 72.7 54.7 68 60.5 68H85C93.1 68 100.5 71 106 76.1V150.6C100.6 146.3 93.6 143.5 86.1 143.5H60.5C54.7 143.5 50 138.8 50 133V78.5Z"
+      fill="url(#pageLeft)"/>
+    <path
+      d="M170 78.5C170 72.7 165.3 68 159.5 68H135C126.9 68 119.5 71 114 76.1V150.6C119.4 146.3 126.4 143.5 133.9 143.5H159.5C165.3 143.5 170 138.8 170 133V78.5Z"
+      fill="url(#pageRight)"/>
+
+    <path
+      d="M110 76.6C115.1 71.9 121.6 69 128.7 69H159.5C164.2 69 168 72.8 168 77.5V133C168 137.7 164.2 141.5 159.5 141.5H129.2C121.9 141.5 115.1 144.2 110 149"
+      stroke="#FFF8EC" stroke-width="2.1" stroke-linecap="round"/>
+    <path
+      d="M110 76.6C104.9 71.9 98.4 69 91.3 69H60.5C55.8 69 52 72.8 52 77.5V133C52 137.7 55.8 141.5 60.5 141.5H90.8C98.1 141.5 104.9 144.2 110 149"
+      stroke="#FFF8EC" stroke-width="2.1" stroke-linecap="round"/>
+
+    <path d="M110 77V149" stroke="#D6C3A0" stroke-width="2"/>
+
+    <path d="M64 86H84" stroke="#D8C9AE" stroke-width="3" stroke-linecap="round" opacity=".72"/>
+    <path d="M64 97H79" stroke="#D8C9AE" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+    <path d="M136 86H156" stroke="#D8C9AE" stroke-width="3" stroke-linecap="round" opacity=".72"/>
+    <path d="M141 97H156" stroke="#D8C9AE" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+
+    <path
+      d="M136 78H98L118 100H101L87 120H122L103 144H136L141 137L122 137L136 117H104L118 98H136V78Z"
+      fill="url(#ribbon)"/>
+    <path
+      d="M136 78H98L118 100H101L87 120H122L103 144H136"
+      stroke="#FEF3C7" stroke-width="2.3" stroke-linejoin="round"/>
+  </g>
+
+  <g>
+    <text x="240" y="104" fill="url(#title)" font-size="70" font-weight="700"
+      font-family="Georgia, 'Times New Roman', serif" letter-spacing="1.5">Z Reader</text>
+    <text x="244" y="148" fill="url(#subtitle)" font-size="24" font-weight="600"
+      font-family="'Avenir Next', 'Segoe UI', sans-serif" letter-spacing="6">READ DEEPER</text>
+    <path d="M244 162H514" stroke="#E2A43A" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+  </g>
+</svg>

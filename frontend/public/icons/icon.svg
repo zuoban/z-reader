@@ -1,11 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
-  <rect width="192" height="192" rx="24" fill="#1f2937"/>
-  <path d="M48 48h96v12H48z" fill="#f3f4f6"/>
-  <path d="M48 72h72v8H48z" fill="#d1d5db"/>
-  <path d="M48 88h80v8H48z" fill="#d1d5db"/>
-  <path d="M48 104h64v8H48z" fill="#d1d5db"/>
-  <path d="M48 120h72v8H48z" fill="#d1d5db"/>
-  <path d="M48 136h56v8H48z" fill="#d1d5db"/>
-  <circle cx="144" cy="144" r="24" fill="#3b82f6"/>
-  <path d="M138 144l6 6 12-12" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="18" x2="170" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="0.58" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="paperLeft" x1="46" y1="42" x2="92" y2="146" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF8EC"/>
+      <stop offset="1" stop-color="#F3E5C8"/>
+    </linearGradient>
+    <linearGradient id="paperRight" x1="100" y1="42" x2="146" y2="146" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8EED9"/>
+      <stop offset="1" stop-color="#E7D3A7"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="72" y1="48" x2="125" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FCD34D"/>
+      <stop offset="0.5" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+
+  <path
+    d="M46 59C46 51.8 51.8 46 59 46H82.5C89.9 46 97.1 48.5 102 53V143C97 139 90 136.6 82.7 136.6H59C51.8 136.6 46 130.8 46 123.6V59Z"
+    fill="url(#paperLeft)"/>
+  <path
+    d="M146 59C146 51.8 140.2 46 133 46H109.5C102.1 46 94.9 48.5 90 53V143C95 139 102 136.6 109.3 136.6H133C140.2 136.6 146 130.8 146 123.6V59Z"
+    fill="url(#paperRight)"/>
+
+  <path
+    d="M96 53V143"
+    stroke="#D7BE88"
+    stroke-width="3"
+    stroke-linecap="round"/>
+
+  <path
+    d="M78 48H122L102 74H118L86 114H109L90 144H132L113 122H95L127 82H104L122 56H78V48Z"
+    fill="url(#ribbon)"/>
+
+  <path
+    d="M78 48H122L102 74H118L86 114H109L90 144H132"
+    stroke="#FFF2C7"
+    stroke-width="3"
+    stroke-linejoin="round"
+    stroke-linecap="round"/>
 </svg>

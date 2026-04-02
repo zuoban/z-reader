@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -51,68 +52,43 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen warm-gradient paper-texture">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-24 h-40 w-40 -translate-x-1/2 rounded-full bg-accent/[0.05] blur-3xl" />
-        <div className="absolute right-12 top-1/3 h-32 w-32 rounded-full bg-foreground/[0.03] blur-3xl" />
+        <div className="absolute left-1/2 top-20 h-44 w-44 -translate-x-1/2 rounded-full bg-accent/[0.06] blur-3xl" />
+        <div className="absolute left-10 top-1/3 h-24 w-24 rounded-full bg-foreground/[0.04] blur-3xl" />
+        <div className="absolute bottom-16 right-12 h-32 w-32 rounded-full bg-accent/[0.04] blur-3xl" />
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
-        <div className="grid w-full max-w-5xl overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-[0_40px_120px_-72px_rgba(15,23,42,0.45)] lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="relative border-b border-border/70 px-7 py-10 sm:px-10 sm:py-12 lg:border-b-0 lg:border-r lg:px-12 lg:py-14">
-            <div className="flex h-full flex-col justify-between gap-10">
-              <div>
-                <div className="flex w-fit items-center gap-2 rounded-full border border-border/70 bg-muted/50 px-3.5 py-1.5 text-[11px] font-medium tracking-[0.14em] text-muted-foreground">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent/70" />
-                  Z READER
-                </div>
+        <div className="w-full max-w-[560px] rounded-[32px] border border-border/70 bg-background/95 shadow-[0_40px_120px_-72px_rgba(15,23,42,0.45)] backdrop-blur-sm">
+          <section className="border-b border-border/70 px-7 py-8 sm:px-10 sm:py-10">
+            <div className="w-fit rounded-[20px] border border-border/70 bg-background px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)]">
+              <Image
+                src="/icons/logo-wordmark.svg"
+                alt="Z Reader"
+                width={216}
+                height={66}
+                className="h-auto w-[180px] sm:w-[216px]"
+                priority
+              />
+            </div>
 
-                <div className="mt-8 max-w-md">
-                  <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                    安静地整理你的电子藏书
-                  </h1>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
-                    一个更专注的 EPUB 阅读空间，保留干净书架、顺畅阅读和私密访问。
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative max-w-[360px]">
-                <div className="absolute inset-0 rounded-[30px] bg-accent/[0.06] blur-3xl" />
-                <div className="relative rounded-[28px] border border-border/70 bg-muted/30 p-5 shadow-[0_24px_50px_-40px_rgba(15,23,42,0.35)]">
-                  <div className="rounded-[22px] border border-border/70 bg-background p-4">
-                    <div className="aspect-[0.78] rounded-[18px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,245,245,0.9))] p-4">
-                      <div className="flex h-full flex-col justify-between rounded-[14px] border border-border/50 bg-background px-4 py-5">
-                        <div>
-                          <div className="h-2.5 w-20 rounded-full bg-foreground/12" />
-                          <div className="mt-3 h-2.5 w-28 rounded-full bg-foreground/9" />
-                          <div className="mt-2 h-2.5 w-24 rounded-full bg-foreground/9" />
-                        </div>
-                        <div className="flex items-end justify-between">
-                          <div className="h-16 w-12 rounded-xl bg-accent/18" />
-                          <div className="h-10 w-10 rounded-full border border-border/60 bg-muted/60" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>私人书架</span>
-                    <span>EPUB Reader</span>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-8 max-w-lg">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                进入你的安静阅读空间
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+                保留干净书架、顺畅阅读和私密访问，把注意力留给书本本身。
+              </p>
             </div>
           </section>
 
-          <section className="relative px-7 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-14">
+          <section className="px-7 py-8 sm:px-10 sm:py-10">
             <div className="relative mx-auto w-full max-w-[400px]">
               <div className="mb-8">
-                <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground">
-                  MEMBER ACCESS
-                </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-                  进入书库
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                  输入密码
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  输入密码访问您的私人藏书
+                  使用管理员提供的访问密码进入你的私人藏书
                 </p>
               </div>
 
@@ -185,8 +161,8 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="mt-6 border-t border-border/70 pt-5 text-center">
-                <p className="text-xs text-muted-foreground">
+              <div className="mt-6 border-t border-border/70 pt-5">
+                <p className="text-center text-xs text-muted-foreground">
                   首次访问？密码由管理员提供
                 </p>
               </div>

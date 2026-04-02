@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { FoliateView, TOCItem } from '@/lib/types';
 import { useProgress } from '@/hooks/useProgress';
-import { useReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
+import { useReaderTheme, ThemeColors, PRESET_STYLES } from '@/hooks/useReaderTheme';
 import { useTTS } from '@/hooks/useTTS';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { Button } from '@/components/ui/button';
@@ -129,6 +129,30 @@ export default function ReadPage() {
       renderer.removeAttribute('animated');
     }
   }, [theme.animated, theme.flow, theme.gap, theme.maxInlineSize]);
+
+  // 清理书籍内容中的内联样式，确保主题样式生效
+  const cleanInlineStyles = useCallback((doc: Document) => {
+    if (theme.preset !== 'dark') return;
+
+    const preset = PRESET_STYLES.dark;
+    const STYLE_ID = 'z-reader-dark-overrides';
+
+    // 注入强制覆盖的 CSS 到书籍文档
+    let styleEl = doc.getElementById(STYLE_ID) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = STYLE_ID;
+      doc.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `
+      * {
+        color: ${preset.fg} !important;
+      }
+      a:link, a:visited {
+        color: ${preset.link} !important;
+      }
+    `;
+  }, [theme.preset]);
 
   useEffect(() => {
     if (viewRef.current && !loading) {
@@ -258,6 +282,8 @@ export default function ReadPage() {
           if (doc) {
             doc.addEventListener('keydown', keyboardHandler);
             boundDocsRef.current.add(doc);
+            // 清理内联样式，确保夜间模式主题生效
+            cleanInlineStyles(doc);
           }
         } catch (err) {
           console.error('Failed to handle book load event:', err);
@@ -278,6 +304,12 @@ export default function ReadPage() {
 
           if (tocItem?.label) {
             setCurrentChapter(tocItem.label);
+          }
+
+          // 翻页后清理新文档的内联样式
+          const doc = e.detail?.doc;
+          if (doc && theme.preset === 'dark') {
+            cleanInlineStyles(doc);
           }
         } catch (err) {
           console.error('Failed to handle relocate event:', err);
@@ -323,7 +355,14 @@ export default function ReadPage() {
         setLoading(false);
       }
     }
-  }, [applyRendererPreferences, bookId, keyboardHandler]);
+  }, [applyRendererPreferences, bookId, keyboardHandler, cleanInlineStyles]);
+
+  useEffect(() => {
+    // 主题变化时，重新清理所有已绑定文档的内联样式
+    boundDocsRef.current.forEach(doc => {
+      cleanInlineStyles(doc);
+    });
+  }, [cleanInlineStyles]);
 
   useEffect(() => {
     if (!isAuthenticated || progressLoading) return;

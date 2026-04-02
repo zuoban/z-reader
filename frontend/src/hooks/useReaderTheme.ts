@@ -27,7 +27,7 @@ export interface ThemeColors {
   accentText: string;
 }
 
-const PRESET_STYLES: Record<ReaderTheme['preset'], ThemeColors> = {
+export const PRESET_STYLES: Record<ReaderTheme['preset'], ThemeColors> = {
   light: {
     bg: '#fafaf9',
     fg: '#171717',
@@ -71,18 +71,18 @@ const PRESET_STYLES: Record<ReaderTheme['preset'], ThemeColors> = {
     accentText: '#6a8a7a',
   },
   dark: {
-    bg: '#0f172a',
-    fg: '#f1f5f9',
-    link: '#fbbf24',
-    headerBg: '#1e293b',
-    headerBorder: '#334155',
-    cardBg: '#1e293b',
-    cardBorder: '#334155',
-    buttonBg: '#334155',
-    buttonHoverBg: '#475569',
-    buttonText: '#cbd5e1',
-    mutedText: '#94a3b8',
-    accentText: '#64748b',
+    bg: '#121212',
+    fg: '#b0b0b0',
+    link: '#d4a843',
+    headerBg: '#1a1a1a',
+    headerBorder: '#2a2a2a',
+    cardBg: '#1a1a1a',
+    cardBorder: '#2a2a2a',
+    buttonBg: '#2a2a2a',
+    buttonHoverBg: '#3a3a3a',
+    buttonText: '#a0a0a0',
+    mutedText: '#6a6a6a',
+    accentText: '#525252',
   },
 };
 
@@ -145,6 +145,13 @@ export function useReaderTheme() {
 
   const getStylesheet = useCallback(() => {
     const preset = PRESET_STYLES[theme.preset];
+    const isDark = theme.preset === 'dark';
+
+    // 夜间模式使用更柔和的 selection 颜色
+    const selectionBg = isDark ? '#ffffff20' : '#D4AF3730';
+    // 夜间模式 code 背景使用浅色透明层
+    const codeBg = isDark ? '#ffffff10' : '#00000008';
+
     return `
       html {
         background: ${preset.bg} !important;
@@ -170,10 +177,12 @@ export function useReaderTheme() {
         margin: 1em 0;
         hyphens: auto;
         word-spacing: 0.05em;
+        color: ${preset.fg} !important;
       }
       li {
         line-height: ${theme.lineHeight} !important;
         margin: 0.3em 0;
+        color: ${preset.fg} !important;
       }
       blockquote {
         line-height: ${theme.lineHeight} !important;
@@ -181,14 +190,36 @@ export function useReaderTheme() {
         padding-left: 1.5em;
         border-left: 3px solid ${preset.link};
         opacity: 0.9;
+        color: ${preset.fg} !important;
       }
       h1, h2, h3, h4, h5, h6 {
         color: ${preset.fg} !important;
-        font-weight: 600;
-        margin-top: 1.5em;
-        margin-bottom: 0.5em;
-        line-height: 1.3;
+        font-weight: 600 !important;
+        margin-top: 1.5em !important;
+        margin-bottom: 0.5em !important;
+        line-height: 1.3 !important;
+        background: transparent !important;
       }
+      h1 *, h2 *, h3 *, h4 *, h5 *, h6 * {
+        color: ${preset.fg} !important;
+        background: transparent !important;
+      }
+      [class*="title"], [class*="heading"], [class*="chapter"], [id*="title"], [id*="heading"], [id*="chapter"] {
+        color: ${preset.fg} !important;
+        background: transparent !important;
+      }
+      .calibre, .titlepage, .chapter, .section, .heading, .title {
+        color: ${preset.fg} !important;
+        background: transparent !important;
+      }
+      /* 夜间模式：强制覆盖所有可能为深色的元素 */
+      ${isDark ? `
+      body p, body p *,
+      body div, body div *,
+      body span, body span * {
+        color: ${preset.fg} !important;
+      }
+      ` : ''}
       h1:first-child, h2:first-child, h3:first-child, h4:first-child, h5:first-child, h6:first-child,
       p:first-child, blockquote:first-child, ul:first-child, ol:first-child {
         margin-top: 0 !important;
@@ -210,12 +241,12 @@ export function useReaderTheme() {
         opacity: 0.8;
       }
       ::selection {
-        background: ${theme.preset === 'dark' ? '#fbbf2440' : '#D4AF3730'} !important;
+        background: ${selectionBg} !important;
         color: ${preset.fg} !important;
       }
       code {
         font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
-        background: ${theme.preset === 'dark' ? '#ffffff10' : '#00000008'};
+        background: ${codeBg};
         padding: 0.2em 0.4em;
         border-radius: 3px;
         font-size: 0.9em;

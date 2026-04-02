@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { BookOpen, Clock, MoreVertical, Trash2, UserRound } from 'lucide-react';
+import { BookOpen, Clock, MoreVertical, Percent, Trash2, UserRound } from 'lucide-react';
 import { api, Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import {
@@ -21,7 +21,7 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
 }
 
-function formatRelativeTime(dateString: string, isReadTime = false): string {
+function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -43,18 +43,16 @@ function formatRelativeTime(dateString: string, isReadTime = false): string {
     return `${diffYears}年前`;
   })();
 
-  return isReadTime ? `${timeStr}阅读` : timeStr;
+  return timeStr;
 }
 
 export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize }: BookCardProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
-  // 优先使用最后阅读时间，否则使用创建时间
-  const displayTime = book.last_read_at || book.created_at;
-  const isReadTime = !!book.last_read_at;
 
   useEffect(() => {
     let url: string | null = null;
@@ -70,6 +68,27 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
     return () => {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
+    };
+  }, [book.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api.getProgress(book.id)
+      .then((progress) => {
+        if (!cancelled && progress?.percentage !== undefined) {
+          setProgress(Math.round(progress.percentage));
+        }
+      })
+      .catch(() => {
+        // 404 或无进度数据时静默处理
+        if (!cancelled) {
+          setProgress(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
     };
   }, [book.id]);
 
@@ -229,9 +248,20 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
               <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
             </div>
           </div>
-          <div className="mt-1.5 flex items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
-            <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-            <span className="font-medium tracking-[0.01em]">{formatRelativeTime(displayTime, isReadTime)}</span>
+          <div className="mt-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
+              <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+              {book.last_read_at ? (
+                <span className="font-medium tracking-[0.01em]">{formatRelativeTime(book.last_read_at)}</span>
+              ) : (
+                <span className="font-medium tracking-[0.01em]">未开始</span>
+              )}
+            </div>
+            {progress !== null && (
+              <span className="text-[9px] font-semibold tracking-[0.02em] text-foreground/82">
+                {progress}%
+              </span>
+            )}
           </div>
         </div>
       </Card>

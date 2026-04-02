@@ -265,7 +265,7 @@ export function BookCard({
           onClick={onRead}
         >
           <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
-            <div className="pointer-events-none absolute left-3 bottom-3 z-30 inline-flex max-w-[calc(100%-1.5rem)] items-center overflow-hidden rounded-full border border-black/15 bg-black px-2.5 py-1 text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:text-[11px]">
+            <div className="pointer-events-none absolute right-3 bottom-3 z-30 inline-flex max-w-[calc(100%-1.5rem)] items-center justify-end overflow-hidden rounded-full border border-black/15 bg-black px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:text-[11px]">
               {infoItems.map((item, index) => (
                 <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
                   {index > 0 && <span className="mx-1 text-white/55">/</span>}

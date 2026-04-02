@@ -900,6 +900,14 @@ function _isValidExplicitDest(validRef, validName, dest) {
 const makeArr = () => [];
 const makeMap = () => new Map();
 const makeObj = () => Object.create(null);
+if (!Map.prototype.getOrInsertComputed) {
+  Map.prototype.getOrInsertComputed = function(key, fn) {
+    if (this.has(key)) return this.get(key);
+    const value = fn();
+    this.set(key, value);
+    return value;
+  };
+}
 function MathClamp(v, min, max) {
   return Math.min(Math.max(v, min), max);
 }

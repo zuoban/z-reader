@@ -491,6 +491,9 @@ function stringToBytes(str) {
   }
   return bytes;
 }
+function bytesToHex(bytes) {
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
 function string32(value) {
   return String.fromCharCode(value >> 24 & 0xff, value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff);
 }
@@ -900,6 +903,14 @@ function _isValidExplicitDest(validRef, validName, dest) {
 const makeArr = () => [];
 const makeMap = () => new Map();
 const makeObj = () => Object.create(null);
+if (!Map.prototype.getOrInsertComputed) {
+  Map.prototype.getOrInsertComputed = function(key, fn) {
+    if (this.has(key)) return this.get(key);
+    const value = fn();
+    this.set(key, value);
+    return value;
+  };
+}
 function MathClamp(v, min, max) {
   return Math.min(Math.max(v, min), max);
 }
@@ -59572,7 +59583,7 @@ class PDFDocument {
     } else {
       hashOriginal = calculateMD5(this.stream.getByteRange(0, FINGERPRINT_FIRST_BYTES), 0, FINGERPRINT_FIRST_BYTES);
     }
-    return shadow(this, "fingerprints", [hashOriginal.toHex(), hashModified?.toHex() ?? null]);
+    return shadow(this, "fingerprints", [bytesToHex(hashOriginal), hashModified ? bytesToHex(hashModified) : null]);
   }
   async #getLinearizationPage(pageIndex) {
     const {

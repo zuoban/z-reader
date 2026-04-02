@@ -373,10 +373,6 @@ foliate-view::part(filter) {
     scroll-behavior: auto !important;
   }
 
-  .motion-safe\\:animate-login-float {
-    animation: none;
-  }
-
   .animate-login-float,
   .animate-login-drift {
     animation: none;

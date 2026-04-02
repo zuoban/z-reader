@@ -421,6 +421,7 @@ interface ControlButtonProps {
 
 const ControlButton = ({ onClick, disabled, title, children, active, variant, uiScheme }: ControlButtonProps) => {
   const getButtonColor = () => {
+    if (disabled) return uiScheme.mutedText;
     if (variant === 'danger' && active) return '#ef4444';
     if (variant === 'accent' && active) return uiScheme.link;
     return active ? uiScheme.fg : uiScheme.mutedText;
@@ -433,17 +434,20 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="transition-all duration-200 ease-out hover:scale-110 active:scale-95 h-8 w-8 sm:h-9 sm:w-9 rounded-xl
+      className="transition-all duration-200 ease-out hover:scale-110 active:scale-95 h-9 w-9 sm:h-10 sm:w-10 rounded-xl
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
-        opacity: disabled ? 0.4 : 1,
-        background: active
-          ? variant === 'accent'
-            ? `${uiScheme.link}20`
-            : `${uiScheme.link}12`
-          : 'transparent',
+        background: disabled
+          ? `${uiScheme.buttonBg}50`
+          : active
+            ? variant === 'accent'
+              ? `${uiScheme.link}20`
+              : `${uiScheme.buttonBg}80`
+            : `${uiScheme.buttonBg}40`,
+        border: `1px solid ${disabled ? `${uiScheme.cardBorder}30` : `${uiScheme.cardBorder}50`}`,
         cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       {children}
@@ -789,12 +793,17 @@ export function TTSControls({
         </DialogTrigger>
 
         <DialogContent
-          className="max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
-          closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
+          className="max-h-[85dvh] max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
+          closeButtonClassName="top-3 right-3 h-8 w-8 rounded-full border shadow-sm hover:scale-105 active:scale-95 transition-all"
           style={styles.panel}
+          closeButtonStyle={{
+            borderColor: `${uiScheme.cardBorder}60`,
+            background: `${uiScheme.buttonBg}80`,
+            color: uiScheme.mutedText,
+          }}
         >
           <DialogHeader
-            className="border-b px-5 py-4 pb-3"
+            className="border-b px-5 py-4 pb-3 pr-14"
             style={{ borderColor: `${uiScheme.cardBorder}40` }}
           >
             <div className="flex items-center justify-between gap-3">
@@ -819,7 +828,7 @@ export function TTSControls({
             </div>
           </DialogHeader>
 
-          <div className="space-y-3 p-4 sm:p-5">
+          <div className="max-h-[calc(85dvh-140px)] space-y-3 overflow-y-auto p-4 sm:p-5">
             <div className="rounded-[22px] border p-3 sm:p-4" style={styles.section}>
               <div className="mb-3 flex items-center justify-between gap-2">
                 <label className="text-[11px] font-medium sm:text-xs" style={{ color: uiScheme.mutedText }}>
@@ -836,24 +845,22 @@ export function TTSControls({
                 </ControlButton>
 
                 <Button
-                  variant={isPlaying ? 'outline' : 'default'}
+                  variant="ghost"
                   size="icon"
                   onClick={handleStartClick}
                   disabled={isPending}
                   title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                   aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 h-9 w-9 sm:h-10 sm:w-10 rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 h-10 w-10 sm:h-11 sm:w-11 rounded-2xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                   style={{
-                    background: isPlaying ? uiScheme.buttonBg : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
-                    borderColor: isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
-                    color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
-                    opacity: isPending ? 0.5 : 1,
-                    boxShadow: !isPlaying
-                      ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
-                      : `0 2px 8px ${uiScheme.cardBorder}15`,
+                    color: isPending ? uiScheme.mutedText : uiScheme.link,
+                    boxShadow: !isPlaying && !isPending
+                      ? `0 0 0 1px ${uiScheme.link}40`
+                      : 'none',
                   }}
                 >
-                  {isPlaying ? <Pause className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 ml-0.5" />}
+                  {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />}
                 </Button>
 
                 <ControlButton onClick={onNext} disabled={!isActive || isPending} title="下一句" active={isActive} uiScheme={uiScheme}>
@@ -1069,24 +1076,28 @@ export function TTSControls({
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                         aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
                         className="transition-all duration-200 ease-out hover:scale-105 active:scale-95
-                          h-9 w-9 sm:h-10 sm:w-10 rounded-xl
+                          h-10 w-10 sm:h-11 sm:w-11 rounded-2xl
                           motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
                         style={{
-                          background: isPlaying
-                            ? uiScheme.buttonBg
-                            : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
-                          borderColor: isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
-                          color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
-                          opacity: isPending ? 0.5 : 1,
-                          boxShadow: !isPlaying
-                            ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
-                            : `0 2px 8px ${uiScheme.cardBorder}15`,
+                          background: isPending
+                            ? `${uiScheme.buttonBg}60`
+                            : isPlaying
+                              ? uiScheme.buttonBg
+                              : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
+                          borderColor: isPending ? `${uiScheme.cardBorder}40` : isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
+                          borderWidth: '1px',
+                          color: isPending ? uiScheme.mutedText : isPlaying ? uiScheme.buttonText : uiScheme.bg,
+                          boxShadow: isPending
+                            ? 'none'
+                            : !isPlaying
+                              ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
+                              : `0 2px 8px ${uiScheme.cardBorder}15`,
                         }}
                       >
                         {isPlaying ? (
-                          <Pause className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                          <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
                         ) : (
-                          <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 ml-0.5" />
+                          <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
                         )}
                       </Button>
 
@@ -1325,33 +1336,28 @@ export function TTSControls({
                   <SkipBack className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </ControlButton>
 
-                {/* 主播放按钮 - 增强视觉效果 */}
                 <Button
-                  variant={isPlaying ? 'outline' : 'default'}
+                  variant="ghost"
                   size="icon"
                   onClick={handleStartClick}
                   disabled={isPending}
                   title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                   aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95
-                    h-9 w-9 sm:h-10 sm:w-10 rounded-xl
-                    motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 bg-transparent! hover:bg-transparent! aria-expanded:bg-transparent! dark:hover:bg-transparent!
+                    h-10 w-10 sm:h-11 sm:w-11 rounded-2xl
+                    motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                   style={{
-                    background: isPlaying
-                      ? uiScheme.buttonBg
-                      : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
-                    borderColor: isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
-                    color: isPlaying ? uiScheme.buttonText : uiScheme.bg,
-                    opacity: isPending ? 0.5 : 1,
-                    boxShadow: !isPlaying
-                      ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
-                      : `0 2px 8px ${uiScheme.cardBorder}15`,
+                    color: isPending ? uiScheme.mutedText : uiScheme.link,
+                    boxShadow: !isPlaying && !isPending
+                      ? `0 0 0 1px ${uiScheme.link}40`
+                      : 'none',
                   }}
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                    <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 ml-0.5" />
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
                   )}
                 </Button>
 

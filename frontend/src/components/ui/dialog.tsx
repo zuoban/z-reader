@@ -44,11 +44,13 @@ function DialogContent({
   children,
   showCloseButton = true,
   closeButtonClassName,
+  closeButtonStyle,
   finalFocus = false,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
   closeButtonClassName?: string
+  closeButtonStyle?: React.CSSProperties
   finalFocus?: boolean
 }) {
   return (
@@ -72,6 +74,7 @@ function DialogContent({
                 variant="ghost"
                 className={cn("absolute top-2 right-2", closeButtonClassName)}
                 size="icon-sm"
+                style={closeButtonStyle}
               />
             }
           >

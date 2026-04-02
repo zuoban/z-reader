@@ -3,6 +3,7 @@
 import { ReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import {
   Dialog,
   DialogContent,
@@ -10,25 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Settings } from 'lucide-react';
+import { Settings, BookOpen, ScrollText, Zap, ZapOff } from 'lucide-react';
 
 const PRESETS = [
   { key: 'light', label: '明亮', bg: '#ffffff', fg: '#333333' },
   { key: 'sepia', label: '纸张', bg: '#f4ecd8', fg: '#5c4b37' },
   { key: 'green', label: '森林', bg: '#cce8cf', fg: '#2d4a3e' },
   { key: 'dark', label: '夜间', bg: '#1e293b', fg: '#e2e8f0' },
-] as const;
-const WIDTH_PRESETS = [
-  { label: '紧凑', value: 760 },
-  { label: '标准', value: 960 },
-  { label: '宽版', value: 1200 },
-  { label: '铺满', value: 1440 },
-] as const;
-const GAP_PRESETS = [
-  { label: '极小', value: 0 },
-  { label: '紧凑', value: 2 },
-  { label: '标准', value: 4 },
-  { label: '舒展', value: 6 },
 ] as const;
 
 interface ThemeSettingsProps {
@@ -47,23 +36,17 @@ export function ThemeSettings({
   onOpenChange,
 }: ThemeSettingsProps) {
   const panelStyle = {
-    background: `${uiScheme.cardBg}f4`,
-    borderColor: `${uiScheme.cardBorder}72`,
+    background: `${uiScheme.cardBg}f8`,
+    borderColor: `${uiScheme.cardBorder}50`,
     color: uiScheme.fg,
-    boxShadow: `0 24px 60px ${uiScheme.cardBorder}22, inset 0 1px 0 rgba(255,255,255,0.42)`,
+    boxShadow: `0 32px 80px ${uiScheme.cardBorder}28, 0 8px 24px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.5)`,
   } as const;
+
   const sectionStyle = {
-    background: `${uiScheme.buttonBg}42`,
-    borderColor: `${uiScheme.cardBorder}4d`,
+    background: `${uiScheme.buttonBg}38`,
+    borderColor: `${uiScheme.cardBorder}35`,
   } as const;
-  const chipButtonStyle = (active: boolean) => ({
-    background: active ? `${uiScheme.link}14` : `${uiScheme.buttonBg}40`,
-    color: active ? uiScheme.link : uiScheme.mutedText,
-    border: `1px solid ${active ? `${uiScheme.link}36` : `${uiScheme.cardBorder}44`}`,
-    boxShadow: active
-      ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 0 0 1px ${uiScheme.link}10`
-      : 'none',
-  });
+
   const triggerClassName = 'h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9';
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
@@ -73,11 +56,24 @@ export function ThemeSettings({
       ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
       : `inset 0 1px 0 ${uiScheme.headerBg}66`,
   } as const;
-  const controlButtonStyle = {
-    borderColor: uiScheme.cardBorder,
-    background: `${uiScheme.buttonBg}78`,
-    color: uiScheme.buttonText,
-  } as const;
+
+  // 滑块样式
+  const sliderTrackStyle = {
+    background: `${uiScheme.cardBorder}40`,
+  };
+  const sliderRangeStyle = {
+    background: uiScheme.link,
+  };
+  const sliderThumbStyle = {
+    borderColor: `${uiScheme.link}80`,
+    background: uiScheme.cardBg,
+    boxShadow: `0 2px 8px ${uiScheme.cardBorder}40`,
+  };
+
+  // 分段控制器样式
+  const segmentedBgStyle = {
+    background: `${uiScheme.cardBorder}30`,
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,12 +91,19 @@ export function ThemeSettings({
         <Settings className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent
-        className="max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
-        closeButtonClassName="text-current hover:bg-muted/30 hover:text-current"
-        style={panelStyle}
+        className="max-h-[85dvh] max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-sm"
+        closeButtonClassName="top-3 right-3 h-8 w-8 rounded-full border shadow-sm hover:scale-105 active:scale-95 transition-all"
+        style={{
+          ...panelStyle,
+        }}
+        closeButtonStyle={{
+          borderColor: `${uiScheme.cardBorder}60`,
+          background: `${uiScheme.buttonBg}80`,
+          color: uiScheme.mutedText,
+        }}
       >
         <DialogHeader
-          className="border-b px-5 py-4 pb-3"
+          className="border-b px-5 py-4 pb-3 pr-14"
           style={{ borderColor: `${uiScheme.cardBorder}40` }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -125,219 +128,295 @@ export function ThemeSettings({
           </div>
         </DialogHeader>
 
-        <div className="space-y-3 p-4 sm:p-5">
-          <div className="rounded-[22px] border p-3 sm:p-4" style={sectionStyle}>
-            <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="max-h-[calc(85dvh-80px)] space-y-4 overflow-y-auto p-4 sm:p-5">
+          {/* 主题选择 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
-                主题
+                阅读主题
               </Label>
-              <p className="text-[11px]" style={{ color: uiScheme.mutedText }}>
-                选择阅读底色
-              </p>
             </div>
             <div className="grid grid-cols-4 gap-2">
-              {PRESETS.map((p) => (
+              {PRESETS.map((p) => {
+                const isActive = theme.preset === p.key;
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => setTheme({ preset: p.key })}
+                    className="group relative flex flex-col items-center gap-1.5"
+                    title={p.label}
+                  >
+                    {/* 色块 */}
+                    <div
+                      className="w-full aspect-[4/3] rounded-lg border transition-all duration-200"
+                      style={{
+                        background: p.bg,
+                        borderColor: isActive ? uiScheme.link : `${uiScheme.cardBorder}40`,
+                        borderWidth: isActive ? '2px' : '1px',
+                        boxShadow: isActive
+                          ? `0 0 0 3px ${uiScheme.link}20`
+                          : `0 1px 2px ${uiScheme.cardBorder}20`,
+                      }}
+                    >
+                      {/* 选中指示器 */}
+                      {isActive && (
+                        <div className="absolute top-1.5 right-1.5">
+                          <div
+                            className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                            style={{ background: uiScheme.link }}
+                          >
+                            <svg
+                              className="w-2.5 h-2.5 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={3}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* 标签 */}
+                    <span
+                      className="text-[10px] font-medium transition-colors duration-200"
+                      style={{
+                        color: isActive ? uiScheme.link : uiScheme.mutedText,
+                      }}
+                    >
+                      {p.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="h-px" style={{ background: `${uiScheme.cardBorder}30` }} />
+
+          {/* 字体大小滑块 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+                字体大小
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.fontSize}px
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>12</span>
+              <Slider
+                value={[theme.fontSize]}
+                onValueChange={([v]) => setTheme({ fontSize: v })}
+                min={12}
+                max={28}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>28</span>
+            </div>
+            {/* 预览文字 */}
+            <p
+              className="text-center py-2 rounded-lg"
+              style={{
+                fontSize: `${theme.fontSize}px`,
+                lineHeight: theme.lineHeight,
+                color: uiScheme.mutedText,
+                background: `${uiScheme.cardBorder}20`,
+              }}
+            >
+              阅读预览文字
+            </p>
+          </div>
+
+          {/* 行高滑块 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+                行高
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.lineHeight.toFixed(1)}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>1.4</span>
+              <Slider
+                value={[theme.lineHeight]}
+                onValueChange={([v]) => setTheme({ lineHeight: v })}
+                min={1.4}
+                max={2.0}
+                step={0.1}
+                className="flex-1"
+              />
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>2.0</span>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="h-px" style={{ background: `${uiScheme.cardBorder}30` }} />
+
+          {/* 翻页/滚动 - 分段控制器 */}
+          <div className="space-y-2">
+            <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+              阅读模式
+            </Label>
+            <div
+              className="flex rounded-xl p-1"
+              style={segmentedBgStyle}
+            >
+              {(['paginated', 'scrolled'] as const).map((flow) => (
                 <button
-                  key={p.key}
-                  onClick={() => setTheme({ preset: p.key })}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2 transition-all duration-200"
+                  key={flow}
+                  onClick={() => setTheme({ flow })}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition-all duration-200"
                   style={{
-                    background: p.bg,
-                    borderColor: theme.preset === p.key ? uiScheme.link : `${uiScheme.cardBorder}72`,
-                    boxShadow: theme.preset === p.key ? `0 0 0 2px ${uiScheme.link}26` : 'none',
+                    color: theme.flow === flow ? uiScheme.fg : uiScheme.mutedText,
+                    background: theme.flow === flow ? `${uiScheme.cardBg}cc` : 'transparent',
+                    boxShadow: theme.flow === flow ? `0 1px 3px ${uiScheme.cardBorder}30` : 'none',
                   }}
                 >
-                  <div
-                    className="h-3.5 w-3.5 rounded-full border"
-                    style={{ background: p.fg, borderColor: `${uiScheme.cardBorder}60` }}
-                  />
-                  <span className="font-sans text-[10px] sm:text-xs" style={{ color: p.fg }}>
-                    {p.label}
-                  </span>
+                  {flow === 'paginated' ? (
+                    <BookOpen className="h-3.5 w-3.5" />
+                  ) : (
+                    <ScrollText className="h-3.5 w-3.5" />
+                  )}
+                  {flow === 'paginated' ? '翻页' : '滚动'}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[22px] border p-3 sm:p-4" style={sectionStyle}>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
-                  字体大小
-                </Label>
-                <span className="text-xs font-mono tabular-nums" style={{ color: uiScheme.fg }}>
-                  {theme.fontSize}px
-                </span>
-              </div>
-              <div className="mb-2 flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  onClick={() => setTheme({ fontSize: Math.max(12, theme.fontSize - 2) })}
-                  disabled={theme.fontSize <= 12}
-                  className="h-8 w-8 rounded-full border-border/40"
-                  style={controlButtonStyle}
-                >
-                  −
-                </Button>
-                <div
-                  className="flex h-8 flex-1 items-center justify-center rounded-full border text-xs"
-                  style={{
-                    borderColor: `${uiScheme.cardBorder}40`,
-                    background: `${uiScheme.buttonBg}32`,
-                    color: uiScheme.mutedText,
-                  }}
-                >
-                  当前字号
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  onClick={() => setTheme({ fontSize: Math.min(28, theme.fontSize + 2) })}
-                  disabled={theme.fontSize >= 28}
-                  className="h-8 w-8 rounded-full border-border/40"
-                  style={controlButtonStyle}
-                >
-                  +
-                </Button>
-              </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[14, 16, 18, 20, 22].map((size) => (
-                  <Button
-                    key={size}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setTheme({ fontSize: size })}
-                    className="h-8 rounded-lg font-mono text-[10px] sm:text-xs"
-                    style={chipButtonStyle(theme.fontSize === size)}
-                  >
-                    {size}
-                  </Button>
-                ))}
-              </div>
+          {/* 正文宽度滑块 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+                正文宽度
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.maxInlineSize}px
+              </span>
             </div>
-
-            <div className="rounded-[22px] border p-3 sm:p-4" style={sectionStyle}>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
-                  行高
-                </Label>
-                <span className="text-xs font-mono tabular-nums" style={{ color: uiScheme.fg }}>
-                  {theme.lineHeight}
-                </span>
-              </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[1.4, 1.5, 1.6, 1.8, 2.0].map((lh) => (
-                  <Button
-                    key={lh}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setTheme({ lineHeight: lh })}
-                    className="h-8 rounded-lg font-mono text-[10px] sm:text-xs"
-                    style={chipButtonStyle(theme.lineHeight === lh)}
-                  >
-                    {lh}
-                  </Button>
-                ))}
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>紧凑</span>
+              <Slider
+                value={[theme.maxInlineSize]}
+                onValueChange={([v]) => setTheme({ maxInlineSize: v })}
+                min={760}
+                max={1440}
+                step={80}
+                className="flex-1"
+              />
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>铺满</span>
+            </div>
+            {/* 宽度指示条 */}
+            <div className="flex justify-between px-1">
+              {[760, 960, 1200, 1440].map((w) => (
+                <div
+                  key={w}
+                  className="h-1 w-1 rounded-full"
+                  style={{
+                    background: Math.abs(theme.maxInlineSize - w) < 40
+                      ? uiScheme.link
+                      : `${uiScheme.cardBorder}60`,
+                  }}
+                />
+              ))}
             </div>
           </div>
 
-          <div className="rounded-[22px] border p-3 sm:p-4" style={sectionStyle}>
-            <div className="mb-3 flex items-center justify-between gap-2">
+          {/* 页间距滑块 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
-                布局
+                页间距
               </Label>
-              <p className="text-[11px]" style={{ color: uiScheme.mutedText }}>
-                控制正文展示方式
-              </p>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.gap === 0 ? '无' : theme.gap === 2 ? '紧凑' : theme.gap === 4 ? '标准' : '舒展'}
+              </span>
             </div>
-
-            <div className="grid gap-3">
-              <div className="grid grid-cols-2 gap-1.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme({ flow: 'paginated' })}
-                  className="h-9 rounded-xl text-xs sm:text-sm"
-                  style={chipButtonStyle(theme.flow === 'paginated')}
-                >
-                  翻页
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme({ flow: 'scrolled' })}
-                  className="h-9 rounded-xl text-xs sm:text-sm"
-                  style={chipButtonStyle(theme.flow === 'scrolled')}
-                >
-                  滚动
-                </Button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <p className="text-[11px] sm:text-xs" style={{ color: uiScheme.mutedText }}>
-                    正文宽度
-                  </p>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {WIDTH_PRESETS.map((preset) => (
-                      <Button
-                        key={preset.value}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setTheme({ maxInlineSize: preset.value })}
-                        className="h-8 rounded-lg text-[10px] sm:text-xs"
-                        style={chipButtonStyle(theme.maxInlineSize === preset.value)}
-                      >
-                        {preset.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <p className="text-[11px] sm:text-xs" style={{ color: uiScheme.mutedText }}>
-                    页间距
-                  </p>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {GAP_PRESETS.map((preset) => (
-                      <Button
-                        key={preset.value}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setTheme({ gap: preset.value })}
-                        className="h-8 rounded-lg text-[10px] sm:text-xs"
-                        style={chipButtonStyle(theme.gap === preset.value)}
-                      >
-                        {preset.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme({ animated: true })}
-                  className="h-9 rounded-xl text-xs sm:text-sm"
-                  style={chipButtonStyle(theme.animated)}
-                >
-                  动画开
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme({ animated: false })}
-                  className="h-9 rounded-xl text-xs sm:text-sm"
-                  style={chipButtonStyle(!theme.animated)}
-                >
-                  动画关
-                </Button>
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>无</span>
+              <Slider
+                value={[theme.gap]}
+                onValueChange={([v]) => setTheme({ gap: v })}
+                min={0}
+                max={6}
+                step={2}
+                className="flex-1"
+              />
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>舒展</span>
             </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="h-px" style={{ background: `${uiScheme.cardBorder}30` }} />
+
+          {/* 动画开关 */}
+          <div className="flex items-center justify-between rounded-xl border p-3" style={sectionStyle}>
+            <div className="flex items-center gap-2">
+              {theme.animated ? (
+                <Zap className="h-4 w-4" style={{ color: uiScheme.link }} />
+              ) : (
+                <ZapOff className="h-4 w-4" style={{ color: uiScheme.mutedText }} />
+              )}
+              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+                翻页动画
+              </Label>
+            </div>
+            <button
+              onClick={() => setTheme({ animated: !theme.animated })}
+              className="relative flex items-center justify-start rounded-[12px] transition-colors duration-200"
+              style={{
+                width: '48px',
+                height: '26px',
+                minWidth: '48px',
+                minHeight: '26px',
+                maxWidth: '48px',
+                maxHeight: '26px',
+                backgroundColor: theme.animated ? uiScheme.link : `${uiScheme.cardBorder}60`,
+              }}
+              aria-checked={theme.animated}
+              role="switch"
+            >
+              {/* 滑块 */}
+              <span
+                className="rounded-full bg-white shadow transition-transform duration-200"
+                style={{
+                  width: '22px',
+                  height: '22px',
+                  marginLeft: theme.animated ? '24px' : '2px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }}
+              />
+            </button>
           </div>
         </div>
       </DialogContent>

@@ -13,6 +13,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface BookCardProps {
   book: Book;
@@ -260,34 +265,6 @@ export function BookCard({
           onClick={onRead}
         >
           <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
-            <button
-              type="button"
-              draggable
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              className={`group/drag-handle absolute left-1/2 top-3 z-30 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-black/10 bg-white/88 px-2.5 py-1.5 text-[11px] font-medium text-foreground/78 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.34)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/95 ${
-                isDragging
-                  ? 'opacity-100 translate-y-0 scale-100'
-                  : 'opacity-0 translate-y-[-2px] scale-[0.98] group-hover/card:opacity-100 group-focus-within/card:opacity-100'
-              } cursor-grab active:cursor-grabbing`}
-              aria-label="拖动分类"
-              title="拖动分类"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-foreground/5">
-                <GripVertical className="h-3 w-3 text-foreground/60" />
-              </span>
-              <span
-                className={`overflow-hidden whitespace-nowrap tracking-[0.02em] transition-all duration-200 ${
-                  isDragging
-                    ? 'max-w-20 opacity-100'
-                    : 'max-w-0 opacity-0 group-hover/drag-handle:max-w-20 group-hover/drag-handle:opacity-100 group-focus-visible/drag-handle:max-w-20 group-focus-visible/drag-handle:opacity-100'
-                }`}
-              >
-                {isDragging ? '拖拽中' : '拖动分类'}
-              </span>
-            </button>
             <div className="pointer-events-none absolute left-3 bottom-3 z-30 inline-flex max-w-[calc(100%-1.5rem)] items-center overflow-hidden rounded-full border border-black/15 bg-black px-2.5 py-1 text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:text-[11px]">
               {infoItems.map((item, index) => (
                 <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
@@ -405,25 +382,50 @@ export function BookCard({
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/10" />
 
+          <Tooltip>
+            <TooltipTrigger
+              type="button"
+              draggable
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`group/drag-handle absolute left-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                isDragging
+                  ? 'opacity-100 scale-100'
+                  : 'opacity-0 scale-[0.98] group-hover/card:opacity-100 group-focus-within/card:opacity-100'
+              } cursor-grab active:cursor-grabbing`}
+              aria-label="拖动分类"
+              title="拖动分类"
+            >
+              <GripVertical className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent side="top" align="center">
+              拖动分类
+            </TooltipContent>
+          </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="absolute right-1.5 top-10 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/92 text-foreground opacity-100 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.38)] transition-colors hover:bg-white sm:opacity-0 sm:group-hover/card:opacity-100"
+              className="absolute right-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100"
               onClick={(e) => e.stopPropagation()}
+              aria-label="更多操作"
             >
-              <MoreVertical className="h-3 w-3" />
+              <MoreVertical className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="rounded-xl border-border/70 bg-popover shadow-sm"
+              sideOffset={10}
+              alignOffset={-4}
+              className="w-44 rounded-[18px] border border-border/70 bg-popover/96 p-1.5 shadow-[0_20px_40px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl"
             >
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   onRead();
                 }}
-                className="gap-2 rounded-lg transition-colors"
+                className="gap-2.5 rounded-[14px] px-2.5 py-2 transition-colors"
               >
-                <BookOpen className="h-4 w-4" />
+                <BookOpen className="h-4 w-4 text-foreground/80" />
                 <span>阅读</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -431,9 +433,9 @@ export function BookCard({
                   e.stopPropagation();
                   setCategoryDialogOpen(true);
                 }}
-                className="gap-2 rounded-lg transition-colors"
+                className="gap-2.5 rounded-[14px] px-2.5 py-2 transition-colors"
               >
-                <Tag className="h-4 w-4" />
+                <Tag className="h-4 w-4 text-foreground/80" />
                 <span>设置分类</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -442,7 +444,7 @@ export function BookCard({
                   setDeleteConfirmOpen(true);
                 }}
                 disabled={isDeleting}
-                className="gap-2 rounded-lg text-destructive transition-colors focus:text-destructive"
+                className="gap-2.5 rounded-[14px] px-2.5 py-2 text-destructive transition-colors focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
                 <span>{isDeleting ? '删除中' : '删除'}</span>

@@ -489,7 +489,7 @@ export default function ShelfPage() {
                 />
               )}
 
-              <div className="relative z-0 grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              <div className="relative z-0 grid grid-cols-[repeat(auto-fit,minmax(168px,1fr))] justify-items-center gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fit,minmax(176px,1fr))] sm:gap-x-4 sm:gap-y-5 lg:grid-cols-[repeat(auto-fit,minmax(184px,1fr))] lg:gap-x-5 lg:gap-y-6">
                 {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

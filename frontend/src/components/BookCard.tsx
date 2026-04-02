@@ -41,12 +41,13 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
 }
 
-const CARD_WIDTH = 200;
-const CARD_SCALE = 0.74;
-const COVER_HEIGHT = 208;
-const INFO_HEIGHT = 140;
-const AUTHOR_HEIGHT = 28;
-const META_HEIGHT = 36;
+const CARD_WIDTH = 218;
+const CARD_SCALE = 0.83;
+const CARD_FRAME_WIDTH = Math.round(CARD_WIDTH * CARD_SCALE);
+const COVER_HEIGHT = 228;
+const INFO_HEIGHT = 156;
+const AUTHOR_HEIGHT = 30;
+const META_HEIGHT = 42;
 
 function lerp(start: number, end: number, factor: number) {
   return start + (end - start) * factor;
@@ -291,12 +292,10 @@ export function BookCard({
 
   return (
     <div
-      className="opacity-0 animate-[fadeIn_0.5s_ease-out_forwards] flex items-center justify-center"
+      className="flex w-full items-center justify-center opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
       style={{
         animationDelay,
-        width: CARD_WIDTH,
-        display: 'flex',
-        justifyContent: 'center'
+        maxWidth: CARD_FRAME_WIDTH,
       }}
     >
       <div
@@ -325,7 +324,7 @@ export function BookCard({
           className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] motion-reduce:transition-none sm:rounded-[20px]"
         >
           <div className="relative overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200" style={{ height: COVER_HEIGHT }}>
-            <div className="pointer-events-none absolute right-2.5 bottom-2.5 z-30 inline-flex max-w-[calc(100%-1.25rem)] items-center justify-end overflow-hidden rounded-full border border-black/15 bg-black/88 px-2 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:right-3 sm:bottom-3 sm:max-w-[calc(100%-1.5rem)] sm:px-2.5 sm:text-[11px]">
+            <div className="pointer-events-none absolute right-2.5 bottom-2.5 z-30 inline-flex max-w-[calc(100%-1.25rem)] items-center justify-end overflow-hidden rounded-full border border-black/10 bg-black/82 px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white/95 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.5)] backdrop-blur-sm sm:right-3 sm:bottom-3 sm:max-w-[calc(100%-1.5rem)] sm:px-2.5 sm:text-[11px]">
               {infoItems.map((item, index) => (
                 <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
                   {index > 0 && <span className="mx-1 text-white/55">/</span>}
@@ -517,24 +516,29 @@ export function BookCard({
             </DropdownMenuContent>
           </DropdownMenu>
           </div>
-          <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-3 sm:py-2.5" style={{ height: INFO_HEIGHT }}>
-            <h3 className="mb-2 min-h-10 text-sm font-semibold leading-[1.25rem] text-foreground sm:min-h-[2.5rem]" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={titleLabel}>
+          <div className="border-t border-black/5 bg-gradient-to-b from-white via-white to-stone-50/70 px-3.5 py-3.5 sm:px-4 sm:py-3.5" style={{ height: INFO_HEIGHT }}>
+            <h3 className="mb-2.5 min-h-10 text-[14px] font-semibold leading-[1.3rem] tracking-[-0.01em] text-foreground sm:min-h-[2.6rem]" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={titleLabel}>
               {titleLabel}
             </h3>
             <div className="flex items-center gap-3" style={{ height: AUTHOR_HEIGHT }}>
-              <div className="flex min-w-0 items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/82 sm:text-[13px] sm:leading-[1.2rem]">
-                <UserRound className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+              <div className="flex min-w-0 items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/80 sm:text-[13px] sm:leading-[1.2rem]">
+                <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
                 <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
               </div>
             </div>
-            <div className="mt-2 flex flex-col gap-2 sm:mt-1.5 sm:flex-row sm:items-center sm:justify-between" style={{ height: META_HEIGHT }}>
-              <div className="flex items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/82 sm:text-[13px] sm:leading-[1.2rem]">
-                <Clock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+            <div className="mt-3 flex items-end justify-between gap-2.5 border-t border-black/5 pt-3" style={{ height: META_HEIGHT }}>
+              <div className="min-w-0">
+                <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+                  最近阅读
+                </div>
+                <div className="flex items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/82 sm:text-[13px] sm:leading-[1.2rem]">
+                <Clock className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
                 {book.last_read_at ? (
                   <span className="font-medium tracking-[0.01em]">{formatRelativeTime(book.last_read_at)}</span>
                 ) : (
                   <span className="font-medium tracking-[0.01em]">未开始</span>
                 )}
+                </div>
               </div>
               <Button
                 type="button"
@@ -543,7 +547,7 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-9 w-full rounded-full bg-[#0f172a] px-3 text-[12px] font-medium text-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-transform duration-200 hover:scale-[1.02] hover:bg-[#1e293b] sm:h-8 sm:w-auto"
+                className="h-8 shrink-0 rounded-full bg-[#0f172a] px-3.5 text-[12px] font-medium text-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-transform duration-200 hover:scale-[1.02] hover:bg-[#1e293b]"
               >
                 <BookOpen className="mr-1.5 h-3.5 w-3.5" />
                 阅读

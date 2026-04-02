@@ -91,7 +91,7 @@ export function ThemeSettings({
         <Settings className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent
-        className="max-h-[85dvh] max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-sm"
+        className="max-h-[85dvh] max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
         closeButtonClassName="top-3 right-3 h-8 w-8 rounded-full border shadow-sm hover:scale-105 active:scale-95 transition-all"
         style={{
           ...panelStyle,

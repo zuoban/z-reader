@@ -92,7 +92,7 @@ const DEFAULT_THEME: ReaderTheme = {
   lineHeight: 1.6,
   flow: 'paginated',
   maxInlineSize: 1200,
-  gap: 2,
+  gap: 5,
   animated: true,
 };
 

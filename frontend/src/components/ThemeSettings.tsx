@@ -359,7 +359,7 @@ export function ThemeSettings({
                   background: `${uiScheme.link}15`,
                 }}
               >
-                {theme.gap === 0 ? '无' : theme.gap === 2 ? '紧凑' : theme.gap === 4 ? '标准' : '舒展'}
+                {theme.gap === 0 ? '无' : theme.gap <= 3 ? '紧凑' : theme.gap <= 5 ? '标准' : theme.gap <= 7 ? '舒展' : '宽敞'}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -368,11 +368,11 @@ export function ThemeSettings({
                 value={[theme.gap]}
                 onValueChange={([v]) => setTheme({ gap: v })}
                 min={0}
-                max={6}
-                step={2}
+                max={10}
+                step={1}
                 className="flex-1"
               />
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>舒展</span>
+              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>宽敞</span>
             </div>
           </div>
 

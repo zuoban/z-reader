@@ -379,10 +379,11 @@ export default function ReadPage() {
 
       if (view) {
         try {
+          // 先调用 close 方法，再移除 DOM 元素
+          view.close?.();
           if (view.parentNode) {
             view.parentNode.removeChild(view as unknown as Node);
           }
-          view.close?.();
         } catch (err) {
           console.error('Failed to cleanup view on unmount:', err);
         }

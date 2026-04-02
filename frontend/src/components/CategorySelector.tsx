@@ -19,7 +19,11 @@ export function CategorySelector({ bookId, currentCategoryId, categories, onUpda
   async function handleSelect(categoryId: string | null) {
     setLoading(true);
     try {
-      await api.updateBook(bookId, { category_id: categoryId });
+      if (categoryId === null) {
+        await api.removeBookCategory(bookId);
+      } else {
+        await api.updateBook(bookId, { category_id: categoryId });
+      }
       onUpdate();
       onOpenChange(false);
     } catch (err) {
@@ -62,4 +66,3 @@ export function CategorySelector({ bookId, currentCategoryId, categories, onUpda
     </Dialog>
   );
 }
-

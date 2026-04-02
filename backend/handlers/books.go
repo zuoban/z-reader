@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -189,10 +190,32 @@ type epubMetadata struct {
 	Author string `xml:"creator"`
 }
 
+type optionalString struct {
+	Set   bool
+	Value *string
+}
+
+func (o *optionalString) UnmarshalJSON(data []byte) error {
+	o.Set = true
+
+	if string(data) == "null" {
+		o.Value = nil
+		return nil
+	}
+
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	o.Value = &value
+	return nil
+}
+
 type bookUpdateRequest struct {
-	Title      string  `json:"title"`
-	Author     string  `json:"author"`
-	CategoryID *string `json:"category_id"`
+	Title      optionalString `json:"title"`
+	Author     optionalString `json:"author"`
+	CategoryID optionalString `json:"category_id"`
 }
 
 func normalizeBookFormat(format string, filename string) string {
@@ -230,16 +253,40 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if req.Title != "" {
-		book.Title = req.Title
+	if req.Title.Set && req.Title.Value != nil {
+		book.Title = *req.Title.Value
 	}
-	if req.Author != "" {
-		book.Author = req.Author
+	if req.Author.Set && req.Author.Value != nil {
+		book.Author = *req.Author.Value
 	}
-	if req.CategoryID != nil {
-		book.CategoryID = req.CategoryID
+	if req.CategoryID.Set {
+		book.CategoryID = req.CategoryID.Value
 	}
 
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+
+	if err := h.db.SaveBook(book); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save book"})
+		return
+	}
+
+	c.JSON(http.StatusOK, book)
+}
+
+func (h *BooksHandler) RemoveCategory(c *gin.Context) {
+	id := c.Param("id")
+
+	book, err := h.db.GetBook(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+		return
+	}
+
+	book.CategoryID = nil
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	if err := h.db.SaveBook(book); err != nil {

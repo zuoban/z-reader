@@ -93,6 +93,7 @@ func main() {
 		api.GET("/books/:id", booksHandler.Get)
 		api.POST("/books", booksHandler.Upload)
 		api.PATCH("/books/:id", booksHandler.Update)
+		api.DELETE("/books/:id/category", booksHandler.RemoveCategory)
 		api.POST("/books/:id/cover", booksHandler.UploadCover)
 		api.DELETE("/books/:id", booksHandler.Delete)
 		api.GET("/books/:id/file", booksHandler.GetFile)

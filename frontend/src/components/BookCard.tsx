@@ -28,7 +28,14 @@ interface BookCardProps {
   onUpdate: () => void;
   isDeleting: boolean;
   isDragging?: boolean;
-  onDragStart?: (bookId: string) => void;
+  onDragStart?: (payload: {
+    bookId: string;
+    anchorX: number;
+    anchorY: number;
+    pointerX: number;
+    pointerY: number;
+  }) => void;
+  onDragMove?: (payload: { pointerX: number; pointerY: number }) => void;
   onDragEnd?: () => void;
   formatSize: (bytes: number) => string;
 }
@@ -72,6 +79,7 @@ export function BookCard({
   isDeleting,
   isDragging = false,
   onDragStart,
+  onDragMove,
   onDragEnd,
   formatSize,
 }: BookCardProps) {
@@ -82,7 +90,9 @@ export function BookCard({
   const [isHovering, setIsHovering] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLButtonElement>(null);
   const rafRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  const dragPointerIdRef = useRef<number | null>(null);
   const tiltRef = useRef({ x: 0, y: 0 });
   const targetTilt = useRef({ x: 0, y: 0 });
   const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
@@ -206,11 +216,23 @@ export function BookCard({
     setIsHovering(true);
   }
 
-  function handleDragStart(e: React.DragEvent<HTMLButtonElement>) {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', book.id);
-    e.dataTransfer.setData('application/x-z-reader-book-id', book.id);
-    onDragStart?.(book.id);
+  function handleDragStart(e: React.PointerEvent<HTMLButtonElement>) {
+    if (e.button !== 0 || !dragHandleRef.current) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    dragPointerIdRef.current = e.pointerId;
+    dragHandleRef.current.setPointerCapture(e.pointerId);
+
+    const rect = dragHandleRef.current.getBoundingClientRect();
+    onDragStart?.({
+      bookId: book.id,
+      anchorX: rect.left + rect.width / 2,
+      anchorY: rect.top + rect.height / 2,
+      pointerX: e.clientX,
+      pointerY: e.clientY,
+    });
   }
 
   function handleDragEnd() {
@@ -234,6 +256,30 @@ export function BookCard({
   const dragShadow = isDragging
     ? '0 10px 22px -20px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.45) inset'
     : cardShadow;
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    function handleGlobalPointerMove(event: PointerEvent) {
+      onDragMove?.({ pointerX: event.clientX, pointerY: event.clientY });
+    }
+
+    function handleGlobalPointerUp() {
+      if (dragPointerIdRef.current === null) return;
+      dragPointerIdRef.current = null;
+      onDragEnd?.();
+    }
+
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+    };
+  }, [isDragging, onDragEnd, onDragMove]);
 
   return (
     <div
@@ -384,10 +430,25 @@ export function BookCard({
 
           <Tooltip>
             <TooltipTrigger
+              ref={dragHandleRef}
               type="button"
-              draggable
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
+              onPointerDown={handleDragStart}
+              onPointerUp={(e) => {
+                e.stopPropagation();
+
+                if (
+                  dragPointerIdRef.current !== null &&
+                  dragHandleRef.current?.hasPointerCapture(dragPointerIdRef.current)
+                ) {
+                  dragHandleRef.current.releasePointerCapture(dragPointerIdRef.current);
+                }
+
+                if (dragPointerIdRef.current !== null) {
+                  dragPointerIdRef.current = null;
+                  onDragEnd?.();
+                }
+              }}
+              onPointerCancel={handleDragEnd}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               className={`group/drag-handle absolute left-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
@@ -401,7 +462,7 @@ export function BookCard({
               <GripVertical className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent side="top" align="center">
-              拖动分类
+              按住并滑向分类，松手完成归类
             </TooltipContent>
           </Tooltip>
           <DropdownMenu>

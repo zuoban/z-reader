@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
@@ -10,10 +10,19 @@ import { extractBookPreview } from '@/lib/book-preview';
 import { BookCard } from '@/components/BookCard';
 import { CategoryManager } from '@/components/CategoryManager';
 import { CategoryFilter } from '@/components/CategoryFilter';
+import { buildRadialCategoryTargets, RadialCategoryMenu } from '@/components/RadialCategoryMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
+
+interface ActiveCategoryDrag {
+  bookId: string;
+  anchorX: number;
+  anchorY: number;
+  pointerX: number;
+  pointerY: number;
+}
 
 export default function ShelfPage() {
   const router = useRouter();
@@ -21,10 +30,13 @@ export default function ShelfPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
-  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
+  const [activeCategoryDrag, setActiveCategoryDrag] = useState<ActiveCategoryDrag | null>(null);
+  const [radialHoverCategoryId, setRadialHoverCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const activeCategoryDragRef = useRef<ActiveCategoryDrag | null>(null);
+  const radialHoverCategoryIdRef = useRef<string | null>(null);
+  const radialTargetsRef = useRef<ReturnType<typeof buildRadialCategoryTargets>>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -78,11 +90,14 @@ export default function ShelfPage() {
 
   const handleBookDrop = useCallback(
     async (bookId: string, categoryId: string | null) => {
-      setDragOverCategoryId(null);
+      setRadialHoverCategoryId(null);
 
       const currentBook = books.find((book) => book.id === bookId);
-      if (!currentBook) return;
-      if (currentBook.category_id === categoryId) return;
+      if (!currentBook || currentBook.category_id === categoryId) {
+        setActiveCategoryDrag(null);
+        setRadialHoverCategoryId(null);
+        return;
+      }
 
       setBooks((prev) =>
         prev.map((book) =>
@@ -93,23 +108,142 @@ export default function ShelfPage() {
       );
 
       try {
-        const updatedBook = await api.updateBook(bookId, { category_id: categoryId });
+        const updatedBook = categoryId === null
+          ? await api.removeBookCategory(bookId)
+          : await api.updateBook(bookId, { category_id: categoryId });
         setBooks((prev) => prev.map((book) => (book.id === bookId ? updatedBook : book)));
       } catch (err) {
         alert(err instanceof Error ? err.message : '分类失败');
         await loadBooks();
       } finally {
-        setDraggedBookId(null);
-        setDragOverCategoryId(null);
+        setActiveCategoryDrag(null);
+        setRadialHoverCategoryId(null);
       }
     },
     [books, loadBooks]
   );
 
+  useEffect(() => {
+    activeCategoryDragRef.current = activeCategoryDrag;
+  }, [activeCategoryDrag]);
+
+  useEffect(() => {
+    radialHoverCategoryIdRef.current = radialHoverCategoryId;
+  }, [radialHoverCategoryId]);
+
   const draggedBookOriginalCategoryId = useMemo(() => {
-    if (!draggedBookId) return null;
-    return books.find((book) => book.id === draggedBookId)?.category_id ?? null;
-  }, [books, draggedBookId]);
+    if (!activeCategoryDrag) return null;
+    return books.find((book) => book.id === activeCategoryDrag.bookId)?.category_id ?? null;
+  }, [activeCategoryDrag, books]);
+
+  const radialTargets = useMemo(() => {
+    if (!activeCategoryDrag) return [];
+    return buildRadialCategoryTargets(categories, bookCounts, draggedBookOriginalCategoryId);
+  }, [activeCategoryDrag, bookCounts, categories, draggedBookOriginalCategoryId]);
+
+  useEffect(() => {
+    radialTargetsRef.current = radialTargets;
+  }, [radialTargets]);
+
+  const updateRadialHover = useCallback(
+    (pointerX: number, pointerY: number) => {
+      const currentDrag = activeCategoryDragRef.current;
+      if (!currentDrag) return;
+
+      let nextHovered: string | null = null;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      radialTargetsRef.current.forEach((target) => {
+        if (target.blocked) return;
+
+        const centerX = currentDrag.anchorX + target.dx;
+        const centerY = currentDrag.anchorY + target.dy;
+        const distance = Math.hypot(pointerX - centerX, pointerY - centerY);
+        const hitRadius = target.isClear ? target.size * 0.85 : target.size * 0.72;
+
+        if (distance <= hitRadius && distance < nearestDistance) {
+          nearestDistance = distance;
+          nextHovered = target.id;
+        }
+      });
+
+      radialHoverCategoryIdRef.current = nextHovered;
+      setRadialHoverCategoryId(nextHovered);
+    },
+    []
+  );
+
+  const handleCategoryDragStart = useCallback(
+    ({
+      bookId,
+      anchorX,
+      anchorY,
+      pointerX,
+      pointerY,
+    }: {
+      bookId: string;
+      anchorX: number;
+      anchorY: number;
+      pointerX: number;
+      pointerY: number;
+    }) => {
+      setActiveCategoryDrag({
+        bookId,
+        anchorX,
+        anchorY,
+        pointerX,
+        pointerY,
+      });
+      activeCategoryDragRef.current = {
+        bookId,
+        anchorX,
+        anchorY,
+        pointerX,
+        pointerY,
+      };
+      setRadialHoverCategoryId(null);
+      radialHoverCategoryIdRef.current = null;
+      updateRadialHover(pointerX, pointerY);
+    },
+    [updateRadialHover]
+  );
+
+  const handleCategoryDragMove = useCallback(
+    ({ pointerX, pointerY }: { pointerX: number; pointerY: number }) => {
+      setActiveCategoryDrag((prev) => {
+        if (!prev) return prev;
+
+        const next = {
+          ...prev,
+          pointerX,
+          pointerY,
+        };
+        activeCategoryDragRef.current = next;
+        return next;
+      });
+      updateRadialHover(pointerX, pointerY);
+    },
+    [updateRadialHover]
+  );
+
+  const handleCategoryDragEnd = useCallback(() => {
+    const currentDrag = activeCategoryDragRef.current;
+    if (!currentDrag) return;
+
+    const hoveredTarget = radialTargetsRef.current.find(
+      (target) => target.id === radialHoverCategoryIdRef.current
+    );
+
+    if (hoveredTarget && !hoveredTarget.blocked) {
+      void handleBookDrop(currentDrag.bookId, hoveredTarget.categoryId);
+      return;
+    }
+
+    activeCategoryDragRef.current = null;
+    radialHoverCategoryIdRef.current = null;
+    setActiveCategoryDrag(null);
+    setRadialHoverCategoryId(null);
+  }, [handleBookDrop]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -286,26 +420,31 @@ export default function ShelfPage() {
             </div>
           ) : (
             <section className="relative isolate">
-              {draggedBookId && (
+              {activeCategoryDrag && (
                 <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] bg-foreground/5 backdrop-blur-[1.5px] transition-opacity duration-200" />
               )}
 
               {categories.length > 0 && (
                 <div className="relative z-20 mb-6 space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    直接把图书卡片拖到分类上即可归类，拖到“全部”可以清空分类。
+                    点击左上角拖动按钮并滑向扇形分类，松手即可归类；点下面的标签可以筛选书架。
                   </p>
                   <CategoryFilter
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}
                     onSelectCategory={setSelectedCategoryId}
-                    onDropBook={handleBookDrop}
-                    onDragTargetChange={setDragOverCategoryId}
-                    draggedBookOriginalCategoryId={draggedBookOriginalCategoryId}
                     bookCounts={bookCounts}
-                    dragOverCategoryId={dragOverCategoryId}
                   />
                 </div>
+              )}
+
+              {activeCategoryDrag && radialTargets.length > 0 && (
+                <RadialCategoryMenu
+                  anchorX={activeCategoryDrag.anchorX}
+                  anchorY={activeCategoryDrag.anchorY}
+                  targets={radialTargets}
+                  hoveredCategoryId={radialHoverCategoryId}
+                />
               )}
 
               <div className="relative z-0 grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] justify-center gap-4 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-5 lg:gap-6 xl:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
@@ -319,15 +458,10 @@ export default function ShelfPage() {
                     onDelete={() => handleDelete(book.id)}
                     onUpdate={loadBooks}
                     isDeleting={deletingId === book.id}
-                    isDragging={draggedBookId === book.id}
-                    onDragStart={(bookId) => {
-                      setDraggedBookId(bookId);
-                      setDragOverCategoryId(null);
-                    }}
-                    onDragEnd={() => {
-                      setDraggedBookId(null);
-                      setDragOverCategoryId(null);
-                    }}
+                    isDragging={activeCategoryDrag?.bookId === book.id}
+                    onDragStart={handleCategoryDragStart}
+                    onDragMove={handleCategoryDragMove}
+                    onDragEnd={handleCategoryDragEnd}
                     formatSize={formatSize}
                   />
                 ))}

@@ -105,6 +105,12 @@ export const api = {
     });
   },
 
+  removeBookCategory: async (id: string): Promise<Book> => {
+    return fetchApi<Book>(`/api/books/${id}/category`, {
+      method: 'DELETE',
+    });
+  },
+
   uploadBook: async (file: File): Promise<Book> => {
     const token = getToken();
     const formData = new FormData();

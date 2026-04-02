@@ -212,6 +212,21 @@ foliate-view::part(filter) {
     }
   }
 
+  @keyframes dragHint {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+
+    35% {
+      transform: translateY(-1.2px) scale(1.004);
+    }
+
+    60% {
+      transform: translateY(-0.7px) scale(1.002);
+    }
+  }
+
   @keyframes paperSheen {
     0% {
       opacity: 0.18;

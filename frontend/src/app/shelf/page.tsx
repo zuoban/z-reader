@@ -21,6 +21,8 @@ export default function ShelfPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [draggedBookId, setDraggedBookId] = useState<string | null>(null);
+  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -74,6 +76,41 @@ export default function ShelfPage() {
     return counts;
   }, [books]);
 
+  const handleBookDrop = useCallback(
+    async (bookId: string, categoryId: string | null) => {
+      setDragOverCategoryId(null);
+
+      const currentBook = books.find((book) => book.id === bookId);
+      if (!currentBook) return;
+      if (currentBook.category_id === categoryId) return;
+
+      setBooks((prev) =>
+        prev.map((book) =>
+          book.id === bookId
+            ? { ...book, category_id: categoryId ?? undefined }
+            : book
+        )
+      );
+
+      try {
+        const updatedBook = await api.updateBook(bookId, { category_id: categoryId });
+        setBooks((prev) => prev.map((book) => (book.id === bookId ? updatedBook : book)));
+      } catch (err) {
+        alert(err instanceof Error ? err.message : '分类失败');
+        await loadBooks();
+      } finally {
+        setDraggedBookId(null);
+        setDragOverCategoryId(null);
+      }
+    },
+    [books, loadBooks]
+  );
+
+  const draggedBookOriginalCategoryId = useMemo(() => {
+    if (!draggedBookId) return null;
+    return books.find((book) => book.id === draggedBookId)?.category_id ?? null;
+  }, [books, draggedBookId]);
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -125,8 +162,8 @@ export default function ShelfPage() {
 
   function formatSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}K`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
   }
 
   if (isLoading || !isAuthenticated) {
@@ -248,18 +285,30 @@ export default function ShelfPage() {
               </div>
             </div>
           ) : (
-            <section>
+            <section className="relative isolate">
+              {draggedBookId && (
+                <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] bg-foreground/5 backdrop-blur-[1.5px] transition-opacity duration-200" />
+              )}
+
               {categories.length > 0 && (
-                <div className="mb-6">
+                <div className="relative z-20 mb-6 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    直接把图书卡片拖到分类上即可归类，拖到“全部”可以清空分类。
+                  </p>
                   <CategoryFilter
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}
                     onSelectCategory={setSelectedCategoryId}
+                    onDropBook={handleBookDrop}
+                    onDragTargetChange={setDragOverCategoryId}
+                    draggedBookOriginalCategoryId={draggedBookOriginalCategoryId}
                     bookCounts={bookCounts}
+                    dragOverCategoryId={dragOverCategoryId}
                   />
                 </div>
               )}
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] justify-center gap-4 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-5 lg:gap-6 xl:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+
+              <div className="relative z-0 grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] justify-center gap-4 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-5 lg:gap-6 xl:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
                 {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
@@ -270,6 +319,15 @@ export default function ShelfPage() {
                     onDelete={() => handleDelete(book.id)}
                     onUpdate={loadBooks}
                     isDeleting={deletingId === book.id}
+                    isDragging={draggedBookId === book.id}
+                    onDragStart={(bookId) => {
+                      setDraggedBookId(bookId);
+                      setDragOverCategoryId(null);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedBookId(null);
+                      setDragOverCategoryId(null);
+                    }}
                     formatSize={formatSize}
                   />
                 ))}

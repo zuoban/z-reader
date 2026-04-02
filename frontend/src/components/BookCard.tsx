@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { BookOpen, Clock, MoreVertical, Tag, Trash2, UserRound } from 'lucide-react';
+import { BookOpen, Clock, GripVertical, MoreVertical, Tag, Trash2, UserRound } from 'lucide-react';
 import { api, Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface BookCardProps {
   book: Book;
@@ -21,6 +22,9 @@ interface BookCardProps {
   onDelete: () => void;
   onUpdate: () => void;
   isDeleting: boolean;
+  isDragging?: boolean;
+  onDragStart?: (bookId: string) => void;
+  onDragEnd?: () => void;
   formatSize: (bytes: number) => string;
 }
 
@@ -53,10 +57,23 @@ function formatRelativeTime(dateString: string): string {
   return timeStr;
 }
 
-export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, isDeleting, formatSize }: BookCardProps) {
+export function BookCard({
+  book,
+  index,
+  categories,
+  onRead,
+  onDelete,
+  onUpdate,
+  isDeleting,
+  isDragging = false,
+  onDragStart,
+  onDragEnd,
+  formatSize,
+}: BookCardProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
@@ -67,6 +84,16 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
+  const category = useMemo(
+    () => categories.find((item) => item.id === book.category_id) ?? null,
+    [book.category_id, categories]
+  );
+  const infoItems = [
+    category?.name,
+    formatLabel,
+    sizeLabel,
+    progress !== null ? `${progress}%` : null,
+  ].filter(Boolean) as string[];
 
   // 使用 useMemo 缓存阴影计算，避免每次渲染时重复计算
   const { tiltMagnitude, cardShadow } = useMemo(() => {
@@ -174,6 +201,17 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
     setIsHovering(true);
   }
 
+  function handleDragStart(e: React.DragEvent<HTMLButtonElement>) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', book.id);
+    e.dataTransfer.setData('application/x-z-reader-book-id', book.id);
+    onDragStart?.(book.id);
+  }
+
+  function handleDragEnd() {
+    onDragEnd?.();
+  }
+
   useEffect(() => {
     return () => {
       if (rafRef.current) {
@@ -183,6 +221,14 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
   }, []);
 
   const animationDelay = `${index * 0.05}s`;
+  const dragScale = isDragging ? 0.94 : 1;
+  const dragOpacity = isDragging ? 0.52 : 1;
+  const dragSaturation = isDragging ? 0.88 : 1;
+  const dragBrightness = isDragging ? 0.99 : 1;
+  const dragRotateZ = isDragging ? -1.2 : 0;
+  const dragShadow = isDragging
+    ? '0 10px 22px -20px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.45) inset'
+    : cardShadow;
 
   return (
     <div
@@ -190,34 +236,85 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
       style={{ animationDelay }}
     >
       <div
-        className={`${isHovering ? 'motion-safe:animate-[cardBreath_6.2s_ease-in-out_infinite] motion-reduce:animate-none' : ''}`}
+        className={`${
+          isHovering && !isDragging
+            ? 'motion-safe:animate-[dragHint_4.8s_ease-in-out_infinite] motion-reduce:animate-none'
+            : ''
+        }`}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
       >
         <Card
+          data-dragging={isDragging ? 'true' : undefined}
           ref={cardRef}
           onPointerMove={handlePointerMove}
           style={{
-            transform: `perspective(1200px) translateY(-0.5px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transform: `perspective(1200px) translateY(-0.5px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(${dragScale}) rotateZ(${dragRotateZ}deg)`,
             transformStyle: 'preserve-3d',
             willChange: 'transform',
-            boxShadow: cardShadow,
+            boxShadow: dragShadow,
+            opacity: dragOpacity,
+            filter: `saturate(${dragSaturation}) brightness(${dragBrightness})`,
           }}
-          className="group/card relative flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow] duration-300 ease-out hover:border-black/15 motion-reduce:transition-none"
+          className="group/card relative flex h-full w-full cursor-grab flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] active:cursor-grabbing motion-reduce:transition-none"
           onClick={onRead}
         >
           <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
-            <div
-              className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-200 ease-out"
-              style={{
-                background:
-                  'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.025) 100%)',
-                opacity: 0.46 + tiltMagnitude * 0.007,
-              }}
-            />
-            <div
-              className={`${isHovering ? 'motion-safe:animate-[paperSheen_7.5s_ease-in-out_infinite] motion-reduce:animate-none' : ''} pointer-events-none absolute inset-x-0 top-0 z-20 h-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.12)_32%,rgba(255,255,255,0.22)_50%,rgba(255,255,255,0.1)_68%,transparent_100%)] mix-blend-screen`}
-            />
+            <button
+              type="button"
+              draggable
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`group/drag-handle absolute left-1/2 top-3 z-30 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-black/10 bg-white/88 px-2.5 py-1.5 text-[11px] font-medium text-foreground/78 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.34)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/95 ${
+                isDragging
+                  ? 'opacity-100 translate-y-0 scale-100'
+                  : 'opacity-0 translate-y-[-2px] scale-[0.98] group-hover/card:opacity-100 group-focus-within/card:opacity-100'
+              } cursor-grab active:cursor-grabbing`}
+              aria-label="拖动分类"
+              title="拖动分类"
+            >
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-foreground/5">
+                <GripVertical className="h-3 w-3 text-foreground/60" />
+              </span>
+              <span
+                className={`overflow-hidden whitespace-nowrap tracking-[0.02em] transition-all duration-200 ${
+                  isDragging
+                    ? 'max-w-20 opacity-100'
+                    : 'max-w-0 opacity-0 group-hover/drag-handle:max-w-20 group-hover/drag-handle:opacity-100 group-focus-visible/drag-handle:max-w-20 group-focus-visible/drag-handle:opacity-100'
+                }`}
+              >
+                {isDragging ? '拖拽中' : '拖动分类'}
+              </span>
+            </button>
+            <div className="pointer-events-none absolute left-3 bottom-3 z-30 inline-flex max-w-[calc(100%-1.5rem)] items-center overflow-hidden rounded-full border border-black/15 bg-black px-2.5 py-1 text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:text-[11px]">
+              {infoItems.map((item, index) => (
+                <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
+                  {index > 0 && <span className="mx-1 text-white/55">/</span>}
+                  {item}
+                </span>
+              ))}
+            </div>
+            <div className={`pointer-events-none absolute inset-0 z-[15] rounded-none border border-dashed border-foreground/10 transition-opacity duration-200 ${isDragging ? 'opacity-100' : 'opacity-0'}`} />
+            {!coverUrl && (
+              <>
+                <div
+                  className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-200 ease-out"
+                  style={{
+                    background: isDragging
+                      ? 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.02) 100%)'
+                      : 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.025) 100%)',
+                    opacity: (0.46 + tiltMagnitude * 0.007) * (isDragging ? 0.8 : 1),
+                  }}
+                />
+                <div
+                  className={`${
+                    isHovering && !isDragging ? 'motion-safe:animate-[paperSheen_7.5s_ease-in-out_infinite] motion-reduce:animate-none' : ''
+                  } pointer-events-none absolute inset-x-0 top-0 z-20 h-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.12)_32%,rgba(255,255,255,0.22)_50%,rgba(255,255,255,0.1)_68%,transparent_100%)] mix-blend-screen`}
+                />
+              </>
+            )}
           {coverUrl ? (
             <Image
               src={coverUrl}
@@ -307,14 +404,6 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
           )}
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/10" />
-          <span className="pointer-events-none absolute right-1 top-1 z-20 rounded-[5px] border border-black/10 bg-white/55 px-1.5 py-[1px] text-[6px] font-mono font-semibold uppercase tracking-[0.14em] text-foreground/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] backdrop-blur-[1px] ring-1 ring-black/5">
-            {formatLabel}
-          </span>
-          {sizeLabel && (
-            <span className="pointer-events-none absolute right-1 bottom-1 z-20 rounded-[5px] border border-black/10 bg-white/55 px-1.5 py-[1px] text-[6px] font-mono font-semibold uppercase tracking-[0.14em] text-foreground/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] backdrop-blur-[1px] ring-1 ring-black/5">
-              {sizeLabel}
-            </span>
-          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -350,7 +439,7 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete();
+                  setDeleteConfirmOpen(true);
                 }}
                 disabled={isDeleting}
                 className="gap-2 rounded-lg text-destructive transition-colors focus:text-destructive"
@@ -380,11 +469,6 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
                   <span className="font-medium tracking-[0.01em]">未开始</span>
                 )}
               </div>
-              {progress !== null && (
-                <span className="text-[9px] font-semibold tracking-[0.02em] text-foreground/82">
-                  {progress}%
-                </span>
-              )}
             </div>
           </div>
         </Card>
@@ -396,6 +480,18 @@ export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, 
         onUpdate={onUpdate}
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="删除图书"
+        description="确定删除这本图书吗？删除后将无法恢复。"
+        confirmLabel={isDeleting ? '删除中' : '确认删除'}
+        confirmDisabled={isDeleting}
+        onConfirm={() => {
+          onDelete();
+          setDeleteConfirmOpen(false);
+        }}
       />
     </div>
   );

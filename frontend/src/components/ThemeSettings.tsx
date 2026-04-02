@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Settings, BookOpen, ScrollText, Zap, ZapOff } from 'lucide-react';
 
 const PRESETS = [
@@ -57,27 +57,14 @@ export function ThemeSettings({
       : `inset 0 1px 0 ${uiScheme.headerBg}66`,
   } as const;
 
-  // 滑块样式
-  const sliderTrackStyle = {
-    background: `${uiScheme.cardBorder}40`,
-  };
-  const sliderRangeStyle = {
-    background: uiScheme.link,
-  };
-  const sliderThumbStyle = {
-    borderColor: `${uiScheme.link}80`,
-    background: uiScheme.cardBg,
-    boxShadow: `0 2px 8px ${uiScheme.cardBorder}40`,
-  };
-
   // 分段控制器样式
   const segmentedBgStyle = {
     background: `${uiScheme.cardBorder}30`,
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger
         render={
           <Button
             variant="ghost"
@@ -89,28 +76,25 @@ export function ThemeSettings({
         }
       >
         <Settings className="h-4 w-4" />
-      </DialogTrigger>
-      <DialogContent
-        className="max-h-[85dvh] max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
-        closeButtonClassName="top-3 right-3 h-8 w-8 rounded-full border shadow-sm hover:scale-105 active:scale-95 transition-all"
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        showCloseButton
+        finalFocus={false}
+        className="w-[92vw] max-w-[420px] overflow-hidden rounded-l-[24px] p-0 backdrop-blur-xl sm:w-[420px] sm:max-w-[420px]"
         style={{
           ...panelStyle,
         }}
-        closeButtonStyle={{
-          borderColor: `${uiScheme.cardBorder}60`,
-          background: `${uiScheme.buttonBg}80`,
-          color: uiScheme.mutedText,
-        }}
       >
-        <DialogHeader
+        <SheetHeader
           className="border-b px-5 py-4 pb-3 pr-14"
           style={{ borderColor: `${uiScheme.cardBorder}40` }}
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
+              <SheetTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
                 阅读偏好
-              </DialogTitle>
+              </SheetTitle>
               <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
                 调整页面氛围、文字密度与阅读方式
               </p>
@@ -122,13 +106,13 @@ export function ThemeSettings({
                 background: `${uiScheme.buttonBg}54`,
                 borderColor: `${uiScheme.cardBorder}40`,
               }}
-            >
-              READER
+              >
+                READER
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </SheetHeader>
 
-        <div className="max-h-[calc(85dvh-80px)] space-y-4 overflow-y-auto p-4 sm:p-5">
+        <div className="max-h-[calc(100vh-80px)] space-y-4 overflow-y-auto p-4 sm:p-5">
           {/* 主题选择 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -419,7 +403,7 @@ export function ThemeSettings({
             </button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

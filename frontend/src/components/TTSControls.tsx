@@ -3,13 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import {
   Select,
@@ -764,198 +757,20 @@ export function TTSControls({
     };
   }, [expanded, isToolbar, panelHeight]);
 
-  if (isToolbar) {
-    return (
-      <Dialog open={expanded} onOpenChange={setExpanded}>
-        <DialogTrigger
-          render={
-            <button
-              data-reader-interactive="true"
-              type="button"
-              title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-              aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-              aria-expanded={expanded}
-              className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
-              style={{
-                color: isActive ? uiScheme.link : uiScheme.buttonText,
-                background: isActive
-                  ? `${uiScheme.link}10`
-                  : `${uiScheme.buttonBg}85`,
-                border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}7a`}`,
-                boxShadow: isActive
-                  ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
-                  : `inset 0 1px 0 ${uiScheme.headerBg}66`,
-              }}
-            />
-          }
-        >
-          <Volume2 className="h-4 w-4 shrink-0" />
-        </DialogTrigger>
-
-        <DialogContent
-          className="max-h-[85dvh] max-w-[92vw] overflow-hidden rounded-[24px] p-0 backdrop-blur-xl sm:max-w-md"
-          closeButtonClassName="top-3 right-3 h-8 w-8 rounded-full border shadow-sm hover:scale-105 active:scale-95 transition-all"
-          style={styles.panel}
-          closeButtonStyle={{
-            borderColor: `${uiScheme.cardBorder}60`,
-            background: `${uiScheme.buttonBg}80`,
-            color: uiScheme.mutedText,
-          }}
-        >
-          <DialogHeader
-            className="border-b px-5 py-4 pb-3 pr-14"
-            style={{ borderColor: `${uiScheme.cardBorder}40` }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <DialogTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
-                  朗读控制
-                </DialogTitle>
-                <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
-                  调整播放状态、语音参数与音色风格
-                </p>
-              </div>
-              <div
-                className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em]"
-                style={{
-                  color: uiScheme.accentText,
-                  background: `${uiScheme.buttonBg}54`,
-                  borderColor: `${uiScheme.cardBorder}40`,
-                }}
-              >
-                VOICE
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="max-h-[calc(85dvh-140px)] space-y-3 overflow-y-auto p-4 sm:p-5">
-            <div className="rounded-[22px] border p-3 sm:p-4" style={styles.section}>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <label className="text-[11px] font-medium sm:text-xs" style={{ color: uiScheme.mutedText }}>
-                  文字转语音
-                </label>
-                <span className="text-[11px]" style={{ color: uiScheme.accentText }}>
-                  {isPlaying ? '播放中' : isPaused ? '已暂停' : '未开始'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 sm:gap-2.5 py-1.5 sm:py-2">
-                <ControlButton onClick={onPrev} disabled={!isActive || isPending} title="上一句" active={isActive} uiScheme={uiScheme}>
-                  <SkipBack className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                </ControlButton>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleStartClick}
-                  disabled={isPending}
-                  title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                  aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 h-10 w-10 sm:h-11 sm:w-11 rounded-2xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                  style={{
-                    color: isPending ? uiScheme.mutedText : uiScheme.link,
-                    boxShadow: !isPlaying && !isPending
-                      ? `0 0 0 1px ${uiScheme.link}40`
-                      : 'none',
-                  }}
-                >
-                  {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />}
-                </Button>
-
-                <ControlButton onClick={onNext} disabled={!isActive || isPending} title="下一句" active={isActive} uiScheme={uiScheme}>
-                  <SkipForward className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                </ControlButton>
-
-                <ControlButton onClick={handleStopClick} disabled={!isActive || isPending} title="停止" active={isActive} variant="danger" uiScheme={uiScheme}>
-                  <Square className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                </ControlButton>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2.5 rounded-[22px] border p-3 sm:p-4" style={styles.section}>
-              <VoiceSlider label="速度" value={localRate} onChange={handleRateChange} min={-50} max={100} step={10} format={formatRate} uiScheme={uiScheme} />
-              <VoiceSlider label="音调" value={localPitch} onChange={handlePitchChange} min={-50} max={50} step={10} format={formatPitch} uiScheme={uiScheme} />
-              <VoiceSlider label="音量" value={localVolume} onChange={handleVolumeChange} min={0} max={1} step={0.1} format={(v) => `${Math.round(v * 100)}%`} uiScheme={uiScheme} />
-
-              {filteredVoices.length > 0 && (
-                <>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
-                      语种
-                    </label>
-                    <Select value={selectedLocale} onValueChange={handleLocaleChange}>
-                      <SelectTrigger data-reader-interactive="true" className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60" style={styles.selectTrigger}>
-                        <SelectValue placeholder="选择语种" />
-                      </SelectTrigger>
-                      <SelectContent data-reader-interactive="true" className="rounded-xl" style={styles.selectContent}>
-                        {localeVoicesMap.map((item) => (
-                          <SelectItem key={item.locale} value={item.locale} className="text-[11px] sm:text-xs rounded-lg my-0.5" style={{ color: uiScheme.fg }}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
-                      语音
-                    </label>
-                    <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
-                      <SelectTrigger data-reader-interactive="true" className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60" style={styles.selectTrigger}>
-                        <SelectValue placeholder="选择语音" />
-                      </SelectTrigger>
-                      <SelectContent data-reader-interactive="true" className="rounded-xl" style={styles.selectContent}>
-                        {currentLocaleVoices.map((voice) => (
-                          <SelectItem key={voice.Name} value={voice.Name} className="text-[11px] sm:text-xs rounded-lg my-0.5" style={{ color: uiScheme.fg }}>
-                            {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-
-              {availableStyles.length > 1 && (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
-                    风格
-                  </label>
-                  <Select value={settings.style} onValueChange={handleStyleChange}>
-                    <SelectTrigger data-reader-interactive="true" className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60" style={styles.selectTrigger}>
-                      <SelectValue placeholder="选择风格" />
-                    </SelectTrigger>
-                    <SelectContent data-reader-interactive="true" className="rounded-xl" style={styles.selectContent}>
-                      {availableStyles.map((style) => (
-                        <SelectItem key={style} value={style} className="text-[11px] sm:text-xs rounded-lg my-0.5" style={{ color: uiScheme.fg }}>
-                          {style}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <div className="relative" style={{ pointerEvents: 'auto' }}>
       {isToolbar ? (
-        <button
+        <Button
           ref={triggerRef}
+          variant="ghost"
+          size="icon"
           data-reader-interactive="true"
           onClick={handleClick}
           type="button"
           title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
           aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
           aria-expanded={expanded}
-          className="relative h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
+          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
           style={{
             color: isActive ? uiScheme.link : uiScheme.buttonText,
             background: isActive
@@ -974,7 +789,7 @@ export function TTSControls({
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
           )}
-        </button>
+        </Button>
       ) : (
         <FloatingButton
           isActive={isActive}

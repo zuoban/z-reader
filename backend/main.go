@@ -79,6 +79,9 @@ func main() {
 
 	r.POST("/api/login", authHandler.Login)
 	r.POST("/api/logout", authHandler.Logout)
+	r.GET("/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
 	r.GET("/api/tts", ttsHandler.TTS)
 	r.POST("/api/ssml", ttsHandler.SSML)

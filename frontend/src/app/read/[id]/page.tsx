@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/sheet';
 import {
   ChevronLeft,
-  ChevronRight,
   List,
   LogOut,
 } from 'lucide-react';
@@ -777,58 +776,11 @@ export default function ReadPage() {
               )}
 
               <div ref={containerRef} className="absolute inset-0" />
-
-              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden items-center pl-4 lg:flex">
-                <ReaderEdgeButton
-                  direction="prev"
-                  onClick={handlePrev}
-                  uiScheme={uiScheme}
-                />
-              </div>
-
-              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden items-center pr-4 lg:flex">
-                <ReaderEdgeButton
-                  direction="next"
-                  onClick={handleNext}
-                  uiScheme={uiScheme}
-                />
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function ReaderEdgeButton({
-  direction,
-  onClick,
-  uiScheme,
-}: {
-  direction: 'prev' | 'next';
-  onClick: () => void;
-  uiScheme: ThemeColors;
-}) {
-  const Icon = direction === 'prev' ? ChevronLeft : ChevronRight;
-  const label = direction === 'prev' ? '上一页' : '下一页';
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border transition-transform duration-200 hover:-translate-y-0.5"
-      style={{
-        color: uiScheme.buttonText,
-        background: withOpacity(uiScheme.cardBg, 0.84),
-        borderColor: withOpacity(uiScheme.cardBorder, 0.9),
-        boxShadow: `0 20px 36px -24px ${withOpacity(uiScheme.headerBorder, 0.34)}`,
-      }}
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
   );
 }
 

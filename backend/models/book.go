@@ -7,6 +7,7 @@ type Book struct {
 	Title     string    `json:"title"`
 	Author    string    `json:"author"`
 	Filename  string    `json:"filename"`
+	Format    string    `json:"format"`
 	Size      int64     `json:"size"`
 	CoverPath string    `json:"cover_path,omitempty"`
 	CreatedAt time.Time `json:"created_at"`

@@ -6,9 +6,12 @@ import { useRouter } from 'next/navigation';
 import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api, Book } from '@/lib/api';
+import { extractBookPreview } from '@/lib/book-preview';
 import { BookCard } from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 
 export default function ShelfPage() {
   const router = useRouter();
@@ -51,6 +54,27 @@ export default function ShelfPage() {
     try {
       const book = await api.uploadBook(file);
       setBooks((prev) => [...prev, book]);
+
+      void (async () => {
+        try {
+          const preview = await extractBookPreview(file);
+          const updated = await api.updateBook(book.id, {
+            title: preview.title,
+            author: preview.author,
+          });
+
+          if (preview.cover) {
+            const coverFileName = file.name.replace(/\.[^.]+$/, '.png');
+            const finalBook = await api.uploadCover(book.id, preview.cover, coverFileName);
+            setBooks((prevBooks) => prevBooks.map((b) => (b.id === book.id ? finalBook : b)));
+            return;
+          }
+
+          setBooks((prevBooks) => prevBooks.map((b) => (b.id === book.id ? updated : b)));
+        } catch (previewErr) {
+          console.warn('Failed to enrich uploaded book:', previewErr);
+        }
+      })();
     } catch (err) {
       alert(err instanceof Error ? err.message : '上传失败');
     }
@@ -92,8 +116,8 @@ export default function ShelfPage() {
 
   return (
     <div className="min-h-screen warm-gradient paper-texture">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
-        <header className="border-b border-border/70 pb-5 sm:pb-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+        <header className="border-b border-border/60 pb-5 sm:pb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex items-center gap-4">
               <div className="min-w-0">
@@ -118,11 +142,11 @@ export default function ShelfPage() {
               <div className="relative min-w-0">
                 <Input
                   type="file"
-                  accept=".epub"
+                  accept={SUPPORTED_FORMATS_ACCEPT}
                   onChange={handleUpload}
                   disabled={isUploading}
                   className="absolute inset-0 z-20 cursor-pointer opacity-0"
-                  title="上传 EPUB"
+                  title="上传书籍"
                 />
                 <Button
                   variant="outline"
@@ -161,26 +185,26 @@ export default function ShelfPage() {
 
         <main className="flex-1 py-8 sm:py-10">
           {books.length === 0 ? (
-            <div className="flex min-h-[56vh] items-center justify-center">
-              <div className="w-full max-w-lg rounded-[28px] border border-border/70 bg-background px-7 py-14 text-center shadow-[0_24px_60px_-48px_rgba(15,23,42,0.45)] sm:px-12 sm:py-16">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/80 ring-1 ring-border/60">
-                  <BookOpen className="h-8 w-8 text-muted-foreground sm:h-9 sm:w-9" />
+            <div className="flex min-h-[58vh] items-center justify-center">
+              <div className="w-full max-w-xl rounded-[32px] border border-black/10 bg-white/90 px-7 py-14 text-center shadow-[0_28px_68px_-44px_rgba(15,23,42,0.42)] sm:px-12 sm:py-16">
+                <div className="mx-auto flex h-18 w-18 items-center justify-center rounded-[28px] border border-black/10 bg-gradient-to-br from-stone-100 to-white shadow-[0_12px_30px_-24px_rgba(15,23,42,0.35)]">
+                  <BookOpen className="h-9 w-9 text-muted-foreground/80 sm:h-10 sm:w-10" />
                 </div>
                 <p className="mt-6 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   书架还是空的
                 </p>
                 <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-                  上传你的第一本 EPUB 书籍
+                  上传你的第一本 EPUB、MOBI、AZW3 或 PDF
                 </p>
                 <div className="mt-8 flex justify-center">
                   <div className="relative w-full sm:w-auto">
                     <Input
                       type="file"
-                      accept=".epub"
+                      accept={SUPPORTED_FORMATS_ACCEPT}
                       onChange={handleUpload}
                       disabled={isUploading}
                       className="absolute inset-0 z-20 cursor-pointer opacity-0"
-                      title="上传 EPUB"
+                      title="上传书籍"
                     />
                     <Button className="group h-11 w-full rounded-xl px-6 text-sm sm:w-auto sm:px-8" disabled={isUploading}>
                       {isUploading ? (
@@ -203,10 +227,10 @@ export default function ShelfPage() {
             </div>
           ) : (
             <section>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              <div className="grid grid-cols-[repeat(auto-fill,168px)] justify-start gap-3 sm:grid-cols-[repeat(auto-fill,184px)] sm:gap-3.5 lg:gap-4">
                 {books.map((book, index) => (
                   <BookCard
-                    key={book.id}
+                    key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
                     book={book}
                     index={index}
                     onRead={() => router.push(`/read/${book.id}`)}

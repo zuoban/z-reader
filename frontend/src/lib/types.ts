@@ -43,7 +43,7 @@ export interface FoliateView {
   goTo?: (target: string | number) => Promise<void>;
   prev?: () => Promise<void>;
   next?: () => Promise<void>;
-  open?: (file: File | Blob) => Promise<void>;
+  open?: (file: string | File | Blob) => Promise<void>;
   close?: () => void;
   addEventListener?: (type: string, listener: (e: CustomEvent) => void) => void;
   removeEventListener?: (type: string, listener: (e: CustomEvent) => void) => void;

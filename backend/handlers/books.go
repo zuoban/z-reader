@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,9 +16,17 @@ import (
 	"github.com/google/uuid"
 
 	"z-reader/backend/config"
+	"z-reader/backend/logger"
 	"z-reader/backend/models"
 	"z-reader/backend/storage"
 )
+
+var supportedBookFormats = map[string]string{
+	".epub": "epub",
+	".mobi": "mobi",
+	".azw3": "azw3",
+	".pdf":  "pdf",
+}
 
 type BooksHandler struct {
 	cfg *config.Config
@@ -34,7 +43,27 @@ func (h *BooksHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list books"})
 		return
 	}
+	for i := range books {
+		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
+	}
 	c.JSON(http.StatusOK, books)
+}
+
+func (h *BooksHandler) Get(c *gin.Context) {
+	id := c.Param("id")
+
+	book, err := h.db.GetBook(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+		return
+	}
+
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+	c.JSON(http.StatusOK, book)
 }
 
 func (h *BooksHandler) Upload(c *gin.Context) {
@@ -44,13 +73,15 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasSuffix(strings.ToLower(file.Filename), ".epub") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "only epub files supported"})
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	format, ok := supportedBookFormats[ext]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "supported formats: EPUB, MOBI, AZW3, PDF"})
 		return
 	}
 
 	bookID := uuid.New().String()
-	filename := bookID + ".epub"
+	filename := bookID + ext
 	filepath := filepath.Join(h.cfg.UploadDir, filename)
 
 	if err := c.SaveUploadedFile(file, filepath); err != nil {
@@ -61,18 +92,25 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	book := &models.Book{
 		ID:        bookID,
 		Filename:  filename,
+		Format:    format,
 		Size:      file.Size,
 		CreatedAt: time.Now(),
 	}
 
-	meta, err := extractEPUBMetadata(filepath)
+	meta, err := extractBookMetadata(filepath, format)
 	if err == nil {
 		book.Title = meta.Title
 		book.Author = meta.Author
+	} else {
+		logger.Warn("Failed to extract book metadata",
+			slog.String("path", filepath),
+			slog.String("format", format),
+			slog.Any("error", err),
+		)
 	}
 
 	if book.Title == "" {
-		book.Title = strings.TrimSuffix(file.Filename, ".epub")
+		book.Title = strings.TrimSuffix(file.Filename, ext)
 	}
 
 	if err := h.db.SaveBook(book); err != nil {
@@ -120,6 +158,7 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
 	c.File(filepath)
@@ -128,6 +167,63 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 type epubMetadata struct {
 	Title  string `xml:"title"`
 	Author string `xml:"creator"`
+}
+
+type bookUpdateRequest struct {
+	Title  string `json:"title"`
+	Author string `json:"author"`
+}
+
+func normalizeBookFormat(format string, filename string) string {
+	if format != "" {
+		return format
+	}
+	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
+}
+
+func extractBookMetadata(path string, format string) (*epubMetadata, error) {
+	switch format {
+	case "epub":
+		return extractEPUBMetadata(path)
+	default:
+		return nil, fmt.Errorf("metadata extraction not implemented for %s", format)
+	}
+}
+
+func (h *BooksHandler) Update(c *gin.Context) {
+	id := c.Param("id")
+
+	book, err := h.db.GetBook(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+		return
+	}
+
+	var req bookUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	if req.Title != "" {
+		book.Title = req.Title
+	}
+	if req.Author != "" {
+		book.Author = req.Author
+	}
+
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+
+	if err := h.db.SaveBook(book); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save book"})
+		return
+	}
+
+	c.JSON(http.StatusOK, book)
 }
 
 func extractEPUBMetadata(path string) (*epubMetadata, error) {
@@ -177,6 +273,17 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+
+	if book.CoverPath != "" {
+		c.File(filepath.Join(h.cfg.UploadDir, book.CoverPath))
+		return
+	}
+
+	if book.Format != "epub" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "cover not found"})
+		return
+	}
 
 	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
 	coverData, err := extractEPUBCover(filepath)
@@ -187,6 +294,56 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 
 	c.Header("Content-Type", "image/jpeg")
 	c.Data(http.StatusOK, "image/jpeg", coverData)
+}
+
+func (h *BooksHandler) UploadCover(c *gin.Context) {
+	id := c.Param("id")
+
+	book, err := h.db.GetBook(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file required"})
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext == "" {
+		switch strings.ToLower(file.Header.Get("Content-Type")) {
+		case "image/jpeg":
+			ext = ".jpg"
+		case "image/png":
+			ext = ".png"
+		case "image/webp":
+			ext = ".webp"
+		default:
+			ext = ".png"
+		}
+	}
+
+	coverFilename := id + ".cover" + ext
+	coverPath := filepath.Join(h.cfg.UploadDir, coverFilename)
+	if err := c.SaveUploadedFile(file, coverPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save cover"})
+		return
+	}
+
+	book.CoverPath = coverFilename
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+	if err := h.db.SaveBook(book); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save book"})
+		return
+	}
+
+	c.JSON(http.StatusOK, book)
 }
 
 func extractEPUBCover(path string) ([]byte, error) {

@@ -319,15 +319,13 @@ export default function ReadPage() {
       if (destroyedRef.current) return;
       setLoadingMsg('获取书籍...');
 
-      const blob = await api.fetchBook(bookId);
+      const file = await api.createBookFile(bookId);
 
       if (destroyedRef.current) return;
       setLoadingMsg('打开书籍...');
 
       try {
-        const url = URL.createObjectURL(blob);
-        await view.open?.(url as unknown as Blob | File);
-        URL.revokeObjectURL(url);
+        await view.open?.(file);
       } catch (err) {
         console.error('Failed to open book:', err);
         throw new Error(`Failed to open book: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -355,7 +353,7 @@ export default function ReadPage() {
         setLoading(false);
       }
     }
-  }, [applyRendererPreferences, bookId, keyboardHandler, cleanInlineStyles]);
+  }, [applyRendererPreferences, bookId, keyboardHandler, cleanInlineStyles, theme.preset]);
 
   useEffect(() => {
     // 主题变化时，重新清理所有已绑定文档的内联样式

@@ -5,6 +5,7 @@ export interface Book {
   title: string;
   author: string;
   filename: string;
+  format: string;
   size: number;
   cover_path?: string;
   created_at: string;
@@ -84,6 +85,17 @@ export const api = {
     return fetchApi<Book[]>('/api/books');
   },
 
+  getBook: async (id: string): Promise<Book> => {
+    return fetchApi<Book>(`/api/books/${id}`);
+  },
+
+  updateBook: async (id: string, data: { title?: string; author?: string }): Promise<Book> => {
+    return fetchApi<Book>(`/api/books/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   uploadBook: async (file: File): Promise<Book> => {
     const token = getToken();
     const formData = new FormData();
@@ -131,6 +143,37 @@ export const api = {
     } finally {
       clearTimeout(timeoutId);
     }
+  },
+
+  createBookFile: async (id: string): Promise<File> => {
+    const [book, blob] = await Promise.all([
+      api.getBook(id),
+      api.fetchBook(id),
+    ]);
+
+    return new File([blob], book.filename, {
+      type: blob.type,
+      lastModified: Date.parse(book.created_at) || Date.now(),
+    });
+  },
+
+  uploadCover: async (id: string, file: Blob, filename = 'cover.png'): Promise<Book> => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('file', file, filename);
+
+    const res = await fetch(`${API_BASE}/api/books/${id}/cover`, {
+      method: 'POST',
+      headers: token ? { Authorization: token } : {},
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Cover upload failed');
+    }
+
+    return res.json();
   },
 
   fetchCover: async (id: string): Promise<Blob | null> => {

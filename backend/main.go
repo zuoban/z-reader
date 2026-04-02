@@ -89,7 +89,10 @@ func main() {
 		api.GET("/auth/verify", authHandler.Verify)
 
 		api.GET("/books", booksHandler.List)
+		api.GET("/books/:id", booksHandler.Get)
 		api.POST("/books", booksHandler.Upload)
+		api.PATCH("/books/:id", booksHandler.Update)
+		api.POST("/books/:id/cover", booksHandler.UploadCover)
 		api.DELETE("/books/:id", booksHandler.Delete)
 		api.GET("/books/:id/file", booksHandler.GetFile)
 		api.GET("/books/:id/cover", booksHandler.GetCover)

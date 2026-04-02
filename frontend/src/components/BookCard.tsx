@@ -23,6 +23,10 @@ interface BookCardProps {
 
 export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize }: BookCardProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
+  const authorLabel = book.author?.trim() || '未知作者';
+  const sizeLabel = formatSize(book.size);
+  const titleLabel = book.title?.trim() || '未命名';
 
   useEffect(() => {
     let url: string | null = null;
@@ -37,7 +41,7 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
     return () => {
       if (url) URL.revokeObjectURL(url);
     };
-  }, [book.id]);
+  }, [book.cover_path, book.format, book.id]);
 
   const animationDelay = `${index * 0.05}s`;
 
@@ -47,10 +51,10 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
       style={{ animationDelay }}
     >
       <Card
-        className="group relative cursor-pointer overflow-hidden rounded-[22px] border border-border/70 bg-background transition-all duration-300 hover:-translate-y-1 hover:border-foreground/15 hover:shadow-[0_24px_50px_-32px_rgba(15,23,42,0.35)]"
+        className="group/card relative flex h-full w-[168px] cursor-pointer flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-all duration-300 hover:-translate-y-1 hover:border-black/15 hover:shadow-[0_16px_34px_-28px_rgba(15,23,42,0.34)] sm:w-[184px]"
         onClick={onRead}
       >
-        <div className="relative aspect-[0.72] overflow-hidden border-b border-border/60 bg-muted/40">
+        <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
           {coverUrl ? (
             <Image
               src={coverUrl}
@@ -58,25 +62,38 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
               fill
               unoptimized
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 20vw, 16vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              className="object-cover transition-transform duration-500 group-hover/card:scale-[1.02]"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center bg-muted/40 px-5 text-center">
-              <BookOpen className="h-9 w-9 text-muted-foreground/50 sm:h-10 sm:w-10" />
-              <p className="mt-3 line-clamp-3 text-sm font-medium leading-6 text-foreground/80">
-                {book.title}
-              </p>
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-200 via-white to-stone-100">
+              <BookOpen className="h-7 w-7 text-muted-foreground/35" />
             </div>
           )}
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 via-black/0 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/10" />
+          <span className="pointer-events-none absolute right-1 top-1 z-20 rounded-[5px] border border-black/10 bg-white/55 px-1.5 py-[1px] text-[6px] font-mono font-semibold uppercase tracking-[0.14em] text-foreground/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] backdrop-blur-[1px] ring-1 ring-black/5">
+            {formatLabel}
+          </span>
+          <div className="paper-texture pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[28px] flex-col items-center justify-center border-r-[3px] border-l border-black/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(245,245,244,0.95)_100%)] px-[3px] py-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.7),inset_-1px_0_0_rgba(0,0,0,0.05)] backdrop-blur-[2px]">
+            <div className="flex h-full w-full flex-col items-center justify-center overflow-hidden">
+              <p
+                className="whitespace-nowrap text-[12px] font-bold leading-none tracking-[0.02em] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.42)]"
+                style={{
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'mixed',
+                }}
+              >
+                {titleLabel}
+              </p>
+            </div>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="absolute right-2.5 top-2.5 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-background/95 text-foreground opacity-100 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)] transition-colors hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100"
+              className="absolute right-1.5 top-10 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/92 text-foreground opacity-100 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.38)] transition-colors hover:bg-white sm:opacity-0 sm:group-hover/card:opacity-100"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <MoreVertical className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
@@ -107,20 +124,16 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           </DropdownMenu>
         </div>
 
-        <div className="space-y-2.5 p-4 sm:px-4 sm:pb-4 sm:pt-[18px]">
-          <div className="space-y-1.5">
-            <h3 className="line-clamp-2 text-[15px] font-semibold leading-[1.35rem] tracking-[-0.01em] text-foreground">
-              {book.title}
-            </h3>
-            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-              <UserRound className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{book.author || '未知作者'}</span>
+        <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2 pl-[30px]">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5">
+            <div className="flex min-w-0 items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
+              <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+              <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
             </div>
+            <span className="justify-self-end rounded-full bg-muted/55 px-2 py-[1px] text-[8px] font-mono tabular-nums tracking-[0.03em] text-muted-foreground/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+              {sizeLabel}
+            </span>
           </div>
-
-          <p className="text-[11px] font-mono tabular-nums tracking-[0.02em] text-muted-foreground/75">
-            {formatSize(book.size)}
-          </p>
         </div>
       </Card>
     </div>

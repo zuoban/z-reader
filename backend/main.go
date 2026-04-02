@@ -75,6 +75,7 @@ func main() {
 	booksHandler := handlers.NewBooksHandler(cfg, db)
 	progressHandler := handlers.NewProgressHandler(db)
 	ttsHandler := handlers.NewTTSHandler()
+	categoriesHandler := handlers.NewCategoriesHandler(cfg, db)
 
 	r.POST("/api/login", authHandler.Login)
 	r.POST("/api/logout", authHandler.Logout)
@@ -99,6 +100,11 @@ func main() {
 
 		api.GET("/progress/:id", progressHandler.Get)
 		api.POST("/progress/:id", progressHandler.Save)
+
+		api.GET("/categories", categoriesHandler.List)
+		api.POST("/categories", categoriesHandler.Create)
+		api.PATCH("/categories/:id", categoriesHandler.Update)
+		api.DELETE("/categories/:id", categoriesHandler.Delete)
 	}
 
 	logger.Info("Server starting", "port", cfg.AppPort, "password_configured", cfg.AppPassword != "")

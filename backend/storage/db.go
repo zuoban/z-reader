@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	BooksBucket    = []byte("books")
-	ProgressBucket = []byte("progress")
-	SessionsBucket = []byte("sessions")
+	BooksBucket      = []byte("books")
+	ProgressBucket   = []byte("progress")
+	SessionsBucket   = []byte("sessions")
+	CategoriesBucket = []byte("categories")
 )
 
 type DB struct {
@@ -26,7 +27,7 @@ func Open(path string) (*DB, error) {
 	}
 
 	err = db.Update(func(tx *bbolt.Tx) error {
-		for _, bucket := range [][]byte{BooksBucket, ProgressBucket, SessionsBucket} {
+		for _, bucket := range [][]byte{BooksBucket, ProgressBucket, SessionsBucket, CategoriesBucket} {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
 				return err
 			}
@@ -183,5 +184,91 @@ func (db *DB) CleanExpiredSessions() error {
 			}
 		}
 		return nil
+	})
+}
+
+func (db *DB) SaveCategory(category *models.Category) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(CategoriesBucket)
+		data, err := json.Marshal(category)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(category.ID), data)
+	})
+}
+
+func (db *DB) GetCategory(id string) (*models.Category, error) {
+	var category models.Category
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(CategoriesBucket)
+		data := b.Get([]byte(id))
+		if data == nil {
+			return ErrNotFound
+		}
+		return json.Unmarshal(data, &category)
+	})
+	if err != nil {
+		if err == ErrNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &category, nil
+}
+
+func (db *DB) ListCategories() ([]models.Category, error) {
+	categories := []models.Category{}
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(CategoriesBucket)
+		return b.ForEach(func(k, v []byte) error {
+			var category models.Category
+			if err := json.Unmarshal(v, &category); err != nil {
+				return err
+			}
+			categories = append(categories, category)
+			return nil
+		})
+	})
+	return categories, err
+}
+
+func (db *DB) DeleteCategory(id string) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		booksB := tx.Bucket(BooksBucket)
+		var booksToUpdate [][]byte
+
+		err := booksB.ForEach(func(k, v []byte) error {
+			var book models.Book
+			if err := json.Unmarshal(v, &book); err != nil {
+				return err
+			}
+			if book.CategoryID != nil && *book.CategoryID == id {
+				booksToUpdate = append(booksToUpdate, append([]byte(nil), k...))
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, key := range booksToUpdate {
+			data := booksB.Get(key)
+			var book models.Book
+			if err := json.Unmarshal(data, &book); err != nil {
+				return err
+			}
+			book.CategoryID = nil
+			updatedData, err := json.Marshal(book)
+			if err != nil {
+				return err
+			}
+			if err := booksB.Put(key, updatedData); err != nil {
+				return err
+			}
+		}
+
+		categoriesB := tx.Bucket(CategoriesBucket)
+		return categoriesB.Delete([]byte(id))
 	})
 }

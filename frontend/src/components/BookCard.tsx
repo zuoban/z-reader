@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { BookOpen, Clock, MoreVertical, Percent, Trash2, UserRound } from 'lucide-react';
-import { api, Book } from '@/lib/api';
+import { BookOpen, Clock, MoreVertical, Percent, Tag, Trash2, UserRound } from 'lucide-react';
+import { api, Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { CategorySelector } from '@/components/CategorySelector';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +16,10 @@ import {
 interface BookCardProps {
   book: Book;
   index: number;
+  categories: Category[];
   onRead: () => void;
   onDelete: () => void;
+  onUpdate: () => void;
   isDeleting: boolean;
   formatSize: (bytes: number) => string;
 }
@@ -46,9 +49,10 @@ function formatRelativeTime(dateString: string): string {
   return timeStr;
 }
 
-export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize }: BookCardProps) {
+export function BookCard({ book, index, categories, onRead, onDelete, onUpdate, isDeleting, formatSize }: BookCardProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
@@ -226,6 +230,16 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
+                  setCategoryDialogOpen(true);
+                }}
+                className="gap-2 rounded-lg transition-colors"
+              >
+                <Tag className="h-4 w-4" />
+                <span>设置分类</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
                   onDelete();
                 }}
                 disabled={isDeleting}
@@ -265,6 +279,14 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           </div>
         </div>
       </Card>
+      <CategorySelector
+        bookId={book.id}
+        currentCategoryId={book.category_id}
+        categories={categories}
+        onUpdate={onUpdate}
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+      />
     </div>
   );
 }

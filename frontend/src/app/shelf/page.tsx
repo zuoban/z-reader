@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Book } from '@/lib/api';
+import { api, Book, Category } from '@/lib/api';
 import { extractBookPreview } from '@/lib/book-preview';
 import { BookCard } from '@/components/BookCard';
+import { CategoryManager } from '@/components/CategoryManager';
+import { CategoryFilter } from '@/components/CategoryFilter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -17,6 +19,8 @@ export default function ShelfPage() {
   const router = useRouter();
   const { isLoading, isAuthenticated, logout } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -35,15 +39,40 @@ export default function ShelfPage() {
     }
   }, []);
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await api.listCategories();
+      setCategories(data || []);
+    } catch {
+      setCategories([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const timeoutId = window.setTimeout(() => {
       void loadBooks();
+      void loadCategories();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isAuthenticated, loadBooks]);
+  }, [isAuthenticated, loadBooks, loadCategories]);
+
+  const filteredBooks = useMemo(() => {
+    if (!selectedCategoryId) return books;
+    return books.filter((b) => b.category_id === selectedCategoryId);
+  }, [books, selectedCategoryId]);
+
+  const bookCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: books.length };
+    books.forEach((book) => {
+      if (book.category_id) {
+        counts[book.category_id] = (counts[book.category_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [books]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -139,6 +168,7 @@ export default function ShelfPage() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+              <CategoryManager onCategoryChange={loadCategories} />
               <div className="relative min-w-0">
                 <Input
                   type="file"
@@ -219,14 +249,26 @@ export default function ShelfPage() {
             </div>
           ) : (
             <section>
+              {categories.length > 0 && (
+                <div className="mb-6">
+                  <CategoryFilter
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    onSelectCategory={setSelectedCategoryId}
+                    bookCounts={bookCounts}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] justify-center gap-4 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-5 lg:gap-6 xl:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
-                {books.map((book, index) => (
+                {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
                     book={book}
                     index={index}
+                    categories={categories}
                     onRead={() => router.push(`/read/${book.id}`)}
                     onDelete={() => handleDelete(book.id)}
+                    onUpdate={loadBooks}
                     isDeleting={deletingId === book.id}
                     formatSize={formatSize}
                   />

@@ -190,8 +190,9 @@ type epubMetadata struct {
 }
 
 type bookUpdateRequest struct {
-	Title  string `json:"title"`
-	Author string `json:"author"`
+	Title      string  `json:"title"`
+	Author     string  `json:"author"`
+	CategoryID *string `json:"category_id"`
 }
 
 func normalizeBookFormat(format string, filename string) string {
@@ -234,6 +235,9 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	}
 	if req.Author != "" {
 		book.Author = req.Author
+	}
+	if req.CategoryID != nil {
+		book.CategoryID = req.CategoryID
 	}
 
 	book.Format = normalizeBookFormat(book.Format, book.Filename)

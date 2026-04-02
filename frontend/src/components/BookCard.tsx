@@ -6,6 +6,7 @@ import { BookOpen, Clock, GripVertical, MoreVertical, Tag, Trash2, UserRound } f
 import { api, Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -307,8 +308,7 @@ export function BookCard({
             opacity: dragOpacity,
             filter: `saturate(${dragSaturation}) brightness(${dragBrightness})`,
           }}
-          className="group/card relative flex h-full w-full cursor-grab flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] active:cursor-grabbing motion-reduce:transition-none"
-          onClick={onRead}
+          className="group/card relative flex h-full w-full cursor-default flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] motion-reduce:transition-none"
         >
           <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
             <div className="pointer-events-none absolute right-3 bottom-3 z-30 inline-flex max-w-[calc(100%-1.5rem)] items-center justify-end overflow-hidden rounded-full border border-black/15 bg-black px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(15,23,42,0.24)] sm:text-[11px]">
@@ -482,16 +482,6 @@ export function BookCard({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRead();
-                }}
-                className="gap-2.5 rounded-[14px] px-2.5 py-2 transition-colors"
-              >
-                <BookOpen className="h-4 w-4 text-foreground/80" />
-                <span>阅读</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
                   setCategoryDialogOpen(true);
                 }}
                 className="gap-2.5 rounded-[14px] px-2.5 py-2 transition-colors"
@@ -532,6 +522,18 @@ export function BookCard({
                   <span className="font-medium tracking-[0.01em]">未开始</span>
                 )}
               </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRead();
+                }}
+                className="h-8 rounded-full bg-[#0f172a] px-3 text-[12px] font-medium text-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-transform duration-200 hover:scale-[1.02] hover:bg-[#1e293b]"
+              >
+                <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                阅读
+              </Button>
             </div>
           </div>
         </Card>

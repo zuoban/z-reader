@@ -24,6 +24,18 @@ export function CategoryFilter({
   bookCounts,
   dragOverCategoryId,
 }: CategoryFilterProps) {
+  function isLightColor(color: string) {
+    const hex = color.replace('#', '');
+    if (hex.length !== 6) return false;
+
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return luminance > 0.68;
+  }
+
   function handleDrop(e: React.DragEvent<HTMLButtonElement>, categoryId: string | null) {
     e.preventDefault();
     const bookId = e.dataTransfer.getData('application/x-z-reader-book-id') || e.dataTransfer.getData('text/plain');
@@ -37,7 +49,7 @@ export function CategoryFilter({
     isAll: boolean = false
   ) {
     if (isSelected) {
-      return 'text-background shadow-sm';
+      return 'text-white shadow-sm';
     }
 
     if (isTarget) {
@@ -106,7 +118,9 @@ export function CategoryFilter({
           }}
           className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-all duration-200 ${
             selectedCategoryId === cat.id
-              ? 'text-background'
+              ? isLightColor(cat.color)
+                ? 'text-foreground'
+                : 'text-white'
               : blocked
                 ? 'cursor-not-allowed border border-dashed border-border/70 bg-muted/40 text-muted-foreground opacity-55'
                 : getCategoryClassName(false, isTarget)

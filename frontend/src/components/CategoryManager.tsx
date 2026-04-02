@@ -16,14 +16,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const CATEGORY_COLOR_PRESETS = [
-  { name: '桃雾', value: '#F7C7B7' },
-  { name: '樱粉', value: '#F5C2D4' },
-  { name: '芽绿', value: '#C7E4B8' },
-  { name: '草青', value: '#A8DDBE' },
-  { name: '春蓝', value: '#B9DAF5' },
-  { name: '薄荷', value: '#BEEBDD' },
-  { name: '晨紫', value: '#D9CCF7' },
-  { name: '阳米', value: '#F2E1B5' },
+  { name: '晴蓝', value: '#A4D3F2' },
+  { name: '海青', value: '#2DABC2' },
+  { name: '深海', value: '#143B5D' },
+  { name: '金黄', value: '#FDBA11' },
+  { name: '橙焰', value: '#FF8A00' },
+  { name: '珊红', value: '#E85D3F' },
+  { name: '松绿', value: '#5D9B6A' },
+  { name: '葡紫', value: '#7A64B8' },
 ] as const;
 
 interface CategoryManagerProps {

@@ -25,6 +25,21 @@ interface ActiveCategoryDrag {
   pointerY: number;
 }
 
+function getSortTimestamp(date?: string): number {
+  if (!date) return 0;
+  const timestamp = Date.parse(date);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function sortBooksByRecentRead(items: Book[]): Book[] {
+  return [...items].sort((a, b) => {
+    const readDiff = getSortTimestamp(b.last_read_at) - getSortTimestamp(a.last_read_at);
+    if (readDiff !== 0) return readDiff;
+
+    return getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
+  });
+}
+
 export default function ShelfPage() {
   const router = useRouter();
   const { isLoading, isAuthenticated, logout } = useAuth();
@@ -48,7 +63,7 @@ export default function ShelfPage() {
   const loadBooks = useCallback(async () => {
     try {
       const data = await api.listBooks();
-      setBooks(data || []);
+      setBooks(sortBooksByRecentRead(data || []));
     } catch {
       setBooks([]);
     }
@@ -109,18 +124,20 @@ export default function ShelfPage() {
       }
 
       setBooks((prev) =>
-        prev.map((book) =>
+        sortBooksByRecentRead(prev.map((book) =>
           book.id === bookId
             ? { ...book, category_id: categoryId ?? undefined }
             : book
-        )
+        ))
       );
 
       try {
         const updatedBook = categoryId === null
           ? await api.removeBookCategory(bookId)
           : await api.updateBook(bookId, { category_id: categoryId });
-        setBooks((prev) => prev.map((book) => (book.id === bookId ? updatedBook : book)));
+        setBooks((prev) =>
+          sortBooksByRecentRead(prev.map((book) => (book.id === bookId ? updatedBook : book)))
+        );
       } catch (err) {
         alert(err instanceof Error ? err.message : '分类失败');
         await loadBooks();
@@ -262,7 +279,7 @@ export default function ShelfPage() {
 
     try {
       const book = await api.uploadBook(file);
-      setBooks((prev) => [...prev, book]);
+      setBooks((prev) => sortBooksByRecentRead([...prev, book]));
 
       void (async () => {
         try {
@@ -275,11 +292,15 @@ export default function ShelfPage() {
           if (preview.cover) {
             const coverFileName = file.name.replace(/\.[^.]+$/, '.png');
             const finalBook = await api.uploadCover(book.id, preview.cover, coverFileName);
-            setBooks((prevBooks) => prevBooks.map((b) => (b.id === book.id ? finalBook : b)));
+            setBooks((prevBooks) =>
+              sortBooksByRecentRead(prevBooks.map((b) => (b.id === book.id ? finalBook : b)))
+            );
             return;
           }
 
-          setBooks((prevBooks) => prevBooks.map((b) => (b.id === book.id ? updated : b)));
+          setBooks((prevBooks) =>
+            sortBooksByRecentRead(prevBooks.map((b) => (b.id === book.id ? updated : b)))
+          );
         } catch (previewErr) {
           console.warn('Failed to enrich uploaded book:', previewErr);
         }

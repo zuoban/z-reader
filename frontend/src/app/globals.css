@@ -224,6 +224,58 @@ foliate-view::part(filter) {
   .dark .warm-gradient {
     background: linear-gradient(180deg, #0A0A0A 0%, #171717 100%);
   }
+
+  /* 书架页面阴影 */
+  .shadow-card-sm {
+    box-shadow: 0 2px 8px -4px rgba(15, 23, 42, 0.3);
+  }
+
+  .shadow-card-md {
+    box-shadow: 0 4px 16px -6px rgba(15, 23, 42, 0.4);
+  }
+
+  .shadow-card-lg {
+    box-shadow: 0 8px 32px -12px rgba(15, 23, 42, 0.3);
+  }
+
+  .shadow-card-xl {
+    box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.4);
+  }
+
+  .shadow-destructive {
+    box-shadow: 0 4px 16px -6px rgba(220, 38, 38, 0.3);
+  }
+
+  /* 毛玻璃卡片 */
+  .glass-card {
+    @apply backdrop-blur-2xl bg-background/90;
+  }
+
+  .glass-card-subtle {
+    @apply backdrop-blur-2xl bg-background/80;
+  }
+
+  .glass-card-strong {
+    @apply backdrop-blur-xl bg-popover/95;
+  }
+
+  /* 渐变按钮背景 */
+  .btn-gradient-primary {
+    @apply bg-gradient-to-br from-primary/10 to-primary/5;
+  }
+
+  .btn-gradient-empty {
+    @apply bg-gradient-to-br from-primary/8 to-primary/4;
+  }
+
+  /* 旋转动画 */
+  .rotate-plus {
+    transition: transform 0.3s ease;
+  }
+
+  .group:hover .rotate-plus {
+    transform: rotate(90deg);
+  }
 }
 
 @keyframes fadeIn {
@@ -299,6 +351,15 @@ foliate-view::part(filter) {
 
 .animate-login-drift {
   animation: loginDrift 7s ease-in-out infinite;
+}
+
+/* 加载 spinner 边框颜色 */
+.spinner-border {
+  border-top-color: var(--foreground);
+}
+
+.spinner-border-primary {
+  border-top-color: var(--primary-foreground);
 }
 
 /* 尊重用户减少动画偏好 */

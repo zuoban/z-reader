@@ -43,9 +43,24 @@ func (h *BooksHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list books"})
 		return
 	}
+
+	// 批量获取所有书籍的进度，避免 N+1 查询
+	progressMap := make(map[string]time.Time)
 	for i := range books {
 		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
+		progress, err := h.db.GetProgress(books[i].ID)
+		if err == nil && progress != nil {
+			progressMap[books[i].ID] = progress.UpdatedAt
+		}
 	}
+
+	// 设置最后阅读时间
+	for i := range books {
+		if lastReadAt, ok := progressMap[books[i].ID]; ok {
+			books[i].LastReadAt = &lastReadAt
+		}
+	}
+
 	c.JSON(http.StatusOK, books)
 }
 
@@ -63,6 +78,11 @@ func (h *BooksHandler) Get(c *gin.Context) {
 	}
 
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
+	// 获取阅读进度，设置最后阅读时间
+	progress, err := h.db.GetProgress(id)
+	if err == nil && progress != nil {
+		book.LastReadAt = &progress.UpdatedAt
+	}
 	c.JSON(http.StatusOK, book)
 }
 

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { BookOpen, MoreVertical, Trash2, UserRound } from 'lucide-react';
+import { BookOpen, Clock, MoreVertical, Trash2, UserRound } from 'lucide-react';
 import { api, Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import {
@@ -21,12 +21,40 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
 }
 
+function formatRelativeTime(dateString: string, isReadTime = false): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  const timeStr = (() => {
+    if (diffSecs < 60) return '刚刚';
+    if (diffMins < 60) return `${diffMins}分钟前`;
+    if (diffHours < 24) return `${diffHours}小时前`;
+    if (diffDays < 7) return `${diffDays}天前`;
+    if (diffWeeks < 4) return `${diffWeeks}周前`;
+    if (diffMonths < 12) return `${diffMonths}个月前`;
+    return `${diffYears}年前`;
+  })();
+
+  return isReadTime ? `${timeStr}阅读` : timeStr;
+}
+
 export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize }: BookCardProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
   const authorLabel = book.author?.trim() || '未知作者';
-  const sizeLabel = formatSize(book.size);
+  const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
+  // 优先使用最后阅读时间，否则使用创建时间
+  const displayTime = book.last_read_at || book.created_at;
+  const isReadTime = !!book.last_read_at;
 
   useEffect(() => {
     let url: string | null = null;
@@ -149,6 +177,11 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           <span className="pointer-events-none absolute right-1 top-1 z-20 rounded-[5px] border border-black/10 bg-white/55 px-1.5 py-[1px] text-[6px] font-mono font-semibold uppercase tracking-[0.14em] text-foreground/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] backdrop-blur-[1px] ring-1 ring-black/5">
             {formatLabel}
           </span>
+          {sizeLabel && (
+            <span className="pointer-events-none absolute right-1 bottom-1 z-20 rounded-[5px] border border-black/10 bg-white/55 px-1.5 py-[1px] text-[6px] font-mono font-semibold uppercase tracking-[0.14em] text-foreground/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] backdrop-blur-[1px] ring-1 ring-black/5">
+              {sizeLabel}
+            </span>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -190,14 +223,15 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           <h3 className="mb-2 text-sm font-semibold leading-[1.25rem] text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.5rem' }} title={titleLabel}>
             {titleLabel}
           </h3>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5">
+          <div className="flex items-center gap-3">
             <div className="flex min-w-0 items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
               <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/70" />
               <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
             </div>
-            <span className="justify-self-end rounded-full bg-muted/55 px-2 py-[1px] text-[8px] font-mono tabular-nums tracking-[0.03em] text-muted-foreground/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-              {sizeLabel}
-            </span>
+          </div>
+          <div className="mt-1.5 flex items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
+            <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+            <span className="font-medium tracking-[0.01em]">{formatRelativeTime(displayTime, isReadTime)}</span>
           </div>
         </div>
       </Card>

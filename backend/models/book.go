@@ -3,14 +3,15 @@ package models
 import "time"
 
 type Book struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	Author    string    `json:"author"`
-	Filename  string    `json:"filename"`
-	Format    string    `json:"format"`
-	Size      int64     `json:"size"`
-	CoverPath string    `json:"cover_path,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string     `json:"id"`
+	Title      string     `json:"title"`
+	Author     string     `json:"author"`
+	Filename   string     `json:"filename"`
+	Format     string     `json:"format"`
+	Size       int64      `json:"size"`
+	CoverPath  string     `json:"cover_path,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	LastReadAt *time.Time `json:"last_read_at,omitempty"`
 }
 
 type Progress struct {

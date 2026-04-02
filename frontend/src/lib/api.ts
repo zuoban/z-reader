@@ -9,6 +9,7 @@ export interface Book {
   size: number;
   cover_path?: string;
   created_at: string;
+  last_read_at?: string;
 }
 
 export interface Progress {

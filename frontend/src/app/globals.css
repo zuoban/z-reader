@@ -303,36 +303,21 @@ foliate-view::part(filter) {
 
 /* 尊重用户减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
-  @keyframes soundWave {
-    0%, 100% {
-      transform: scaleY(0.8);
-      opacity: 0.7;
-    }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
-  @keyframes glowPulse {
-    0%, 100% {
-      opacity: 0.5;
-      transform: scale(1);
-    }
+  .motion-safe\\:animate-login-float {
+    animation: none;
   }
 
-  @keyframes indicatorPulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes loginFloat {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-  }
-
-  @keyframes loginDrift {
-    0%, 100% {
-      transform: translate3d(0, 0, 0) rotate(0deg);
-    }
+  .animate-login-float,
+  .animate-login-drift {
+    animation: none;
   }
 }

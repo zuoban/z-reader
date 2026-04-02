@@ -227,7 +227,7 @@ export default function ShelfPage() {
             </div>
           ) : (
             <section>
-              <div className="grid grid-cols-[repeat(auto-fill,168px)] justify-start gap-3 sm:grid-cols-[repeat(auto-fill,184px)] sm:gap-3.5 lg:gap-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] justify-center gap-4 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-5 lg:gap-6 xl:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
                 {books.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

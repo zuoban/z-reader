@@ -51,7 +51,7 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
       style={{ animationDelay }}
     >
       <Card
-        className="group/card relative flex h-full w-[168px] cursor-pointer flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-all duration-300 hover:-translate-y-1 hover:border-black/15 hover:shadow-[0_16px_34px_-28px_rgba(15,23,42,0.34)] sm:w-[184px]"
+        className="group/card relative flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-all duration-300 hover:-translate-y-1.5 hover:border-black/15 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)]"
         onClick={onRead}
       >
         <div className="relative aspect-[0.78] overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200">
@@ -124,7 +124,10 @@ export function BookCard({ book, index, onRead, onDelete, isDeleting, formatSize
           </DropdownMenu>
         </div>
 
-        <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2 pl-[30px]">
+        <div className="border-t border-black/5 bg-gradient-to-b from-white to-stone-50/70 px-3 py-2.5 pl-[30px]">
+          <h3 className="mb-2 text-sm font-semibold leading-[1.25rem] text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.5rem' }} title={titleLabel}>
+            {titleLabel}
+          </h3>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5">
             <div className="flex min-w-0 items-center gap-1.5 text-[9px] leading-[1rem] text-foreground/82">
               <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/70" />

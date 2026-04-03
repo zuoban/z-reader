@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorSuppressor } from '@/components/ErrorSuppressor';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
@@ -74,6 +75,17 @@ export default function RootLayout({
           <ServiceWorkerRegistration />
           <ErrorSuppressor />
           {children}
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: 'var(--background)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+              },
+            }}
+          />
         </TooltipProvider>
       </body>
     </html>

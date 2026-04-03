@@ -110,7 +110,7 @@ export function CategoryFilter({
               <button
                 ref={isSelected ? activeItemRef : null}
                 onClick={() => onSelectCategory(item.id)}
-                className={`inline-flex h-10 items-center border-b-2 px-0.5 text-[13px] font-medium tracking-[-0.01em] transition-[color,border-color] duration-200 ${
+                className={`inline-flex h-11 items-center border-b-2 px-0.5 text-[13px] font-medium tracking-[-0.01em] transition-[color,border-color] duration-200 cursor-pointer ${
                   isSelected ? 'border-foreground' : 'border-transparent'
                 } ${getCategoryClassName(isSelected, isRoot)}`}
               >

@@ -470,11 +470,11 @@ export function BookCard({
               onPointerCancel={handleDragEnd}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              className={`group/drag-handle absolute left-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-3 sm:top-3 sm:h-8 sm:w-8 sm:hover:scale-105 ${
+              className={`group/drag-handle absolute left-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-3 sm:top-3 sm:h-11 sm:w-11 sm:hover:scale-105 cursor-grab active:cursor-grabbing ${
                 isDragging
                   ? 'opacity-100 scale-100'
                   : 'opacity-100 scale-100 sm:opacity-0 sm:scale-[0.98] sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100'
-              } cursor-grab active:cursor-grabbing`}
+              }`}
               aria-label="拖动分类"
               title="拖动分类"
             >
@@ -486,7 +486,7 @@ export function BookCard({
           </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="absolute right-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:right-3 sm:top-3 sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 sm:hover:scale-105"
+              className="absolute right-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:right-3 sm:top-3 sm:h-11 sm:w-11 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 sm:hover:scale-105 cursor-pointer"
               onClick={(e) => e.stopPropagation()}
               aria-label="更多操作"
             >

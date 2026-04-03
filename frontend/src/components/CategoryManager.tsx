@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, Layers3, Pencil, Palette, Plus, Trash2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
     const trimmedName = name.trim();
     if (!trimmedName) return;
     if (trimmedName.length > 50) {
-      alert('分类名称不能超过 50 个字符');
+      toast.error('分类名称不能超过 50 个字符');
       return;
     }
     setLoading(true);
@@ -78,7 +79,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
       onCategoryChange?.();
       resetForm();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '操作失败');
+      toast.error(err instanceof Error ? err.message : '操作失败');
     } finally {
       setLoading(false);
     }
@@ -92,7 +93,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
       onCategoryChange?.();
       return true;
     } catch (err) {
-      alert(err instanceof Error ? err.message : '删除失败');
+      toast.error(err instanceof Error ? err.message : '删除失败');
       return false;
     } finally {
       setLoading(false);
@@ -115,7 +116,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
       await loadCategories();
       onCategoryChange?.();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '排序失败');
+      toast.error(err instanceof Error ? err.message : '排序失败');
     } finally {
       setLoading(false);
     }
@@ -142,7 +143,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
             size="icon-sm"
             title="管理分类"
             aria-label="管理分类"
-            className="h-9 w-9 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none hover:bg-muted sm:h-10 sm:w-10"
+            className="h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none hover:bg-muted sm:h-11 sm:w-11 cursor-pointer"
           />
         }
       >
@@ -215,7 +216,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                             aria-pressed={selected}
                             aria-label={`选择颜色 ${preset.name}`}
                             title={preset.name}
-                            className="group relative flex h-10 items-center justify-center rounded-2xl border border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                            className="group relative flex h-10 items-center justify-center rounded-2xl border border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             style={{
                               backgroundColor: preset.value,
                               boxShadow: selected ? `0 0 0 3px ${preset.value}22` : undefined,

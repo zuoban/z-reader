@@ -331,7 +331,7 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-[28px] w-[28px] rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95";
+    "h-11 w-11 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
     background: open ? `${uiScheme.link}10` : `${uiScheme.buttonBg}88`,
@@ -600,7 +600,7 @@ export function ThemeSettings({
                     key={preset.key}
                     type="button"
                     onClick={() => setTheme({ preset: preset.key })}
-                    className="group rounded-[20px] border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 sm:rounded-[22px]"
+                    className="group rounded-[20px] border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 sm:rounded-[22px] cursor-pointer"
                     style={{
                       background: `${uiScheme.buttonBg}88`,
                       borderColor: isActive ? `${uiScheme.link}45` : `${uiScheme.cardBorder}35`,
@@ -829,7 +829,7 @@ export function ThemeSettings({
                       key={flow}
                       type="button"
                       onClick={() => setTheme({ flow })}
-                      className="rounded-[16px] px-3 py-3 text-left transition-all duration-200"
+                      className="rounded-[16px] px-3 py-3 text-left transition-all duration-200 cursor-pointer"
                       style={{
                         color: isActive ? uiScheme.fg : uiScheme.mutedText,
                         background: isActive ? `${uiScheme.cardBg}d8` : "transparent",
@@ -1172,7 +1172,7 @@ export function ThemeSettings({
               <button
                 type="button"
                 onClick={() => setTheme({ animated: !theme.animated })}
-                className="relative shrink-0 rounded-full transition-colors duration-200"
+                className="relative shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{
                   width: "54px",
                   height: "30px",
@@ -1187,6 +1187,7 @@ export function ThemeSettings({
                 }}
                 aria-checked={theme.animated}
                 role="switch"
+                aria-label="翻页动画开关"
               >
                 <span
                   className="absolute top-1 rounded-full bg-white shadow transition-all duration-200"

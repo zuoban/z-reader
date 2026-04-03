@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api, Book, Category } from '@/lib/api';
 import { extractBookPreview } from '@/lib/book-preview';
 import { BookCard } from '@/components/BookCard';
+import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryManager } from '@/components/CategoryManager';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { buildRadialCategoryTargets, RadialCategoryMenu } from '@/components/RadialCategoryMenu';
@@ -45,6 +47,7 @@ export default function ShelfPage() {
   const { isLoading, isAuthenticated, logout } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [activeCategoryDrag, setActiveCategoryDrag] = useState<ActiveCategoryDrag | null>(null);
   const [radialHoverCategoryId, setRadialHoverCategoryId] = useState<string | null>(null);
@@ -61,11 +64,14 @@ export default function ShelfPage() {
   }, [isLoading, isAuthenticated, router]);
 
   const loadBooks = useCallback(async () => {
+    setIsLoadingBooks(true);
     try {
       const data = await api.listBooks();
       setBooks(sortBooksByRecentRead(data || []));
     } catch {
       setBooks([]);
+    } finally {
+      setIsLoadingBooks(false);
     }
   }, []);
 
@@ -139,7 +145,7 @@ export default function ShelfPage() {
           sortBooksByRecentRead(prev.map((book) => (book.id === bookId ? updatedBook : book)))
         );
       } catch (err) {
-        alert(err instanceof Error ? err.message : '分类失败');
+        toast.error(err instanceof Error ? err.message : '分类失败');
         await loadBooks();
       } finally {
         setActiveCategoryDrag(null);
@@ -311,7 +317,7 @@ export default function ShelfPage() {
         }
       })();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '上传失败');
+      toast.error(err instanceof Error ? err.message : '上传失败');
     }
 
     setIsUploading(false);
@@ -324,7 +330,7 @@ export default function ShelfPage() {
       await api.deleteBook(id);
       setBooks((prev) => prev.filter((b) => b.id !== id));
     } catch (err) {
-      alert(err instanceof Error ? err.message : '删除失败');
+      toast.error(err instanceof Error ? err.message : '删除失败');
     }
     setDeletingId(null);
   }
@@ -400,7 +406,7 @@ export default function ShelfPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="pointer-events-none h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none sm:h-10 sm:w-10"
+                    className="pointer-events-none h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none sm:h-11 sm:w-11"
                     disabled={isUploading}
                   >
                     {isUploading ? (
@@ -416,7 +422,7 @@ export default function ShelfPage() {
                   size="sm"
                   onClick={logout}
                   title="退出"
-                  className="h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 text-foreground shadow-none hover:bg-muted sm:h-10 sm:w-10"
+                  className="h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 text-foreground shadow-none hover:bg-muted sm:h-11 sm:w-11 cursor-pointer"
                 >
                   <LogOut className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                 </Button>
@@ -426,7 +432,7 @@ export default function ShelfPage() {
         </header>
 
         <main className="flex-1 py-5 sm:py-10">
-          {books.length === 0 ? (
+          {!isLoadingBooks && books.length === 0 ? (
             <div className="flex min-h-[58vh] items-center justify-center">
               <div className="w-full max-w-xl rounded-[32px] border border-black/10 bg-white/90 px-5 py-12 text-center shadow-[0_28px_68px_-44px_rgba(15,23,42,0.42)] sm:px-12 sm:py-16">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] border border-black/10 bg-gradient-to-br from-stone-100 to-white shadow-[0_12px_30px_-24px_rgba(15,23,42,0.35)] sm:h-18 sm:w-18 sm:rounded-[28px]">
@@ -498,23 +504,27 @@ export default function ShelfPage() {
               )}
 
               <div className="relative z-0 grid grid-cols-[repeat(2,minmax(160px,160px))] justify-between gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,176px))] sm:justify-start sm:gap-x-4 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(184px,184px))] lg:gap-x-5 lg:gap-y-6">
-                {filteredBooks.map((book, index) => (
-                  <BookCard
-                    key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
-                    book={book}
-                    index={index}
-                    categories={categories}
-                    onRead={() => router.push(`/read/${book.id}`)}
-                    onDelete={() => handleDelete(book.id)}
-                    onUpdate={loadBooks}
-                    isDeleting={deletingId === book.id}
-                    isDragging={activeCategoryDrag?.bookId === book.id}
-                    onDragStart={handleCategoryDragStart}
-                    onDragMove={handleCategoryDragMove}
-                    onDragEnd={handleCategoryDragEnd}
-                    formatSize={formatSize}
-                  />
-                ))}
+                {isLoadingBooks ? (
+                  <BookCardSkeletonGrid count={6} />
+                ) : (
+                  filteredBooks.map((book, index) => (
+                    <BookCard
+                      key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
+                      book={book}
+                      index={index}
+                      categories={categories}
+                      onRead={() => router.push(`/read/${book.id}`)}
+                      onDelete={() => handleDelete(book.id)}
+                      onUpdate={loadBooks}
+                      isDeleting={deletingId === book.id}
+                      isDragging={activeCategoryDrag?.bookId === book.id}
+                      onDragStart={handleCategoryDragStart}
+                      onDragMove={handleCategoryDragMove}
+                      onDragEnd={handleCategoryDragEnd}
+                      formatSize={formatSize}
+                    />
+                  ))
+                )}
               </div>
             </section>
           )}

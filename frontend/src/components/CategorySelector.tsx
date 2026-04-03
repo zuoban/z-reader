@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { api, Category } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -27,7 +28,7 @@ export function CategorySelector({ bookId, currentCategoryId, categories, onUpda
       onUpdate();
       onOpenChange(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : '设置失败');
+      toast.error(err instanceof Error ? err.message : '设置失败');
     }
     setLoading(false);
   }

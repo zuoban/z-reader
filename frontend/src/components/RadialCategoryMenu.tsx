@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
 import { Category } from '@/lib/api';
 
 export interface RadialCategoryTarget {
@@ -14,16 +13,39 @@ export interface RadialCategoryTarget {
   dx: number;
   dy: number;
   size: number;
+  width: number;
+  height: number;
   isClear: boolean;
 }
 
 const MAX_LABEL_LENGTH = 5;
-const ITEM_WIDTH = 82;
-const ITEM_HEIGHT = 46;
-const ITEM_GAP = 8;
-const ITEMS_PER_ROW = 3;
-const ROW_GAP = 10;
-const ROW_VERTICAL_OFFSET = -118;
+const ITEM_WIDTH = 128;
+const ITEM_HEIGHT = 54;
+const ITEM_GAP = 10;
+const ITEMS_PER_ROW = 2;
+const ROW_GAP = 12;
+const ROW_VERTICAL_OFFSET = -128;
+const TRAY_PADDING_X = 16;
+const TRAY_PADDING_TOP = 16;
+const TRAY_PADDING_BOTTOM = 16;
+
+function hexToRgba(hex: string, alpha: number) {
+  const normalized = hex.replace('#', '');
+  const expanded = normalized.length === 3
+    ? normalized.split('').map((char) => char + char).join('')
+    : normalized;
+
+  if (!/^[\da-fA-F]{6}$/.test(expanded)) {
+    return `rgba(23, 23, 23, ${alpha})`;
+  }
+
+  const value = Number.parseInt(expanded, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function truncateLabel(label: string) {
   return label.length > MAX_LABEL_LENGTH
@@ -37,17 +59,6 @@ export function buildRadialCategoryTargets(
   originalCategoryId: string | null
 ): RadialCategoryTarget[] {
   const items = [
-    ...(originalCategoryId
-      ? [{
-          id: 'uncategorized',
-          categoryId: null,
-          label: '删除分类',
-          color: '#dc2626',
-          count: 0,
-          blocked: false,
-          isClear: true,
-        }]
-      : []),
     ...categories
       .filter((category) => category.id !== originalCategoryId)
       .map((category) => ({
@@ -59,15 +70,24 @@ export function buildRadialCategoryTargets(
         blocked: false,
         isClear: false,
       })),
+    ...(originalCategoryId
+      ? [{
+          id: 'uncategorized',
+          categoryId: null,
+          label: '未分类',
+          color: '#dc2626',
+          count: 0,
+          blocked: false,
+          isClear: true,
+        }]
+      : []),
   ];
   const rowCount = Math.ceil(items.length / ITEMS_PER_ROW);
 
   return items.map((item, index) => {
     const row = Math.floor(index / ITEMS_PER_ROW);
     const indexInRow = index % ITEMS_PER_ROW;
-    const rowStart = row * ITEMS_PER_ROW;
-    const rowItems = Math.min(ITEMS_PER_ROW, items.length - rowStart);
-    const totalWidth = rowItems * ITEM_WIDTH + Math.max(0, rowItems - 1) * ITEM_GAP;
+    const totalWidth = ITEMS_PER_ROW * ITEM_WIDTH + Math.max(0, ITEMS_PER_ROW - 1) * ITEM_GAP;
     const startX = -totalWidth / 2 + ITEM_WIDTH / 2;
     const totalHeight = rowCount * ITEM_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
     const startY = ROW_VERTICAL_OFFSET - totalHeight / 2 + ITEM_HEIGHT / 2;
@@ -77,6 +97,8 @@ export function buildRadialCategoryTargets(
       dx: startX + indexInRow * (ITEM_WIDTH + ITEM_GAP),
       dy: startY + row * (ITEM_HEIGHT + ROW_GAP),
       size: Math.max(ITEM_WIDTH, ITEM_HEIGHT),
+      width: ITEM_WIDTH,
+      height: ITEM_HEIGHT,
     };
   });
 }
@@ -140,36 +162,41 @@ export function RadialCategoryMenu({
 
   const safeAnchorX = clampPosition(
     anchorX,
-    16 - bounds.minDx,
-    Math.max(16 - bounds.minDx, viewportSize.width - 16 - bounds.maxDx)
+    TRAY_PADDING_X - bounds.minDx,
+    Math.max(TRAY_PADDING_X - bounds.minDx, viewportSize.width - TRAY_PADDING_X - bounds.maxDx)
   );
   const safeAnchorY = clampPosition(
     anchorY,
-    16 - bounds.minDy,
-    Math.max(16 - bounds.minDy, viewportSize.height - 16 - bounds.maxDy)
+    TRAY_PADDING_TOP - bounds.minDy,
+    Math.max(TRAY_PADDING_TOP - bounds.minDy, viewportSize.height - TRAY_PADDING_BOTTOM - bounds.maxDy)
   );
-  const trayLeft = safeAnchorX + bounds.minDx - 12;
-  const trayTop = safeAnchorY + bounds.minDy - 12;
-  const trayWidth = bounds.maxDx - bounds.minDx + 24;
-  const trayHeight = bounds.maxDy - bounds.minDy + 24;
+  const trayLeft = safeAnchorX + bounds.minDx - TRAY_PADDING_X;
+  const trayTop = safeAnchorY + bounds.minDy - TRAY_PADDING_TOP;
+  const trayWidth = bounds.maxDx - bounds.minDx + TRAY_PADDING_X * 2;
+  const trayHeight = bounds.maxDy - bounds.minDy + TRAY_PADDING_TOP + TRAY_PADDING_BOTTOM;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[60] select-none">
-      <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.16),rgba(255,255,255,0.08)_38%,rgba(148,163,184,0.14)_100%)] backdrop-blur-[10px]" />
       <div
-        className="absolute rounded-[26px] border border-white/55 bg-white/58 shadow-[0_20px_48px_-36px_rgba(15,23,42,0.28)] backdrop-blur-xl"
+        className="absolute overflow-hidden rounded-[28px] border border-white/40 bg-[linear-gradient(180deg,rgba(255,255,255,0.34),rgba(255,255,255,0.2))] shadow-[0_30px_90px_-44px_rgba(15,23,42,0.24)] backdrop-blur-[22px]"
         style={{
           left: trayLeft,
           top: trayTop,
           width: trayWidth,
           height: trayHeight,
         }}
-      />
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_100%,rgba(96,165,250,0.14),rgba(96,165,250,0)_34%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(255,255,255,0.28),rgba(255,255,255,0)_30%)]" />
+        <div className="absolute inset-[1px] rounded-[27px] border border-white/30" />
+      </div>
 
       {targets.map((target) => {
         const isHovered = hoveredCategoryId === target.id && !target.blocked;
         const left = safeAnchorX + target.dx;
         const top = safeAnchorY + target.dy;
+        const accentColor = target.isClear ? '#ff6b6b' : '#0a84ff';
 
         return (
           <div
@@ -178,40 +205,25 @@ export function RadialCategoryMenu({
             style={{
               left,
               top,
-              transform: `translate(-50%, -50%) translateY(${isHovered ? '-1px' : '0px'}) scale(${isHovered ? 1.03 : 1})`,
+              transform: `translate(-50%, -50%) translateY(${isHovered ? '-1px' : '0px'}) scale(${isHovered ? 1.01 : 1})`,
               opacity: target.blocked ? 0.48 : 1,
             }}
           >
             <div
-              className={`flex items-center justify-center rounded-2xl border backdrop-blur-xl transition-all duration-200 ${
-                isHovered
-                  ? 'border-foreground/16 bg-white text-foreground shadow-[0_16px_28px_-22px_rgba(15,23,42,0.24)]'
-                  : 'border-border/55 bg-white/84 text-foreground/78 shadow-[0_10px_18px_-20px_rgba(15,23,42,0.14)]'
-              } ${target.blocked ? 'border-dashed' : ''}`}
+              className="relative overflow-hidden rounded-[16px] transition-all duration-200"
               style={{
                 width: ITEM_WIDTH,
                 height: ITEM_HEIGHT,
-                color: '#171717',
+                color: isHovered ? accentColor : '#172033',
               }}
             >
-              {target.isClear ? (
-                <div className="flex items-center gap-2 text-[13px] font-semibold text-[#171717]">
-                  <Trash2 className="h-[15px] w-[15px]" />
-                  <span>删除</span>
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: '#dc2626' }}
-                  />
+              <div className="relative flex h-full w-full items-center px-4">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-semibold tracking-tight leading-none">
+                    {target.label}
+                  </div>
                 </div>
-              ) : (
-                <div className="flex items-center gap-2 px-2 text-center text-[13px] font-semibold leading-none text-[#171717]">
-                  <span className="whitespace-nowrap">{target.label}</span>
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: target.color }}
-                  />
-                </div>
-              )}
+              </div>
             </div>
           </div>
         );

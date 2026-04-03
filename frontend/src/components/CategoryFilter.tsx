@@ -6,6 +6,12 @@ import { Category } from '@/lib/api';
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const MAX_CATEGORY_LABEL_LENGTH = 6;
 
+function truncateLabel(label: string) {
+  return label.length > MAX_CATEGORY_LABEL_LENGTH
+    ? `${label.slice(0, MAX_CATEGORY_LABEL_LENGTH)}...`
+    : label;
+}
+
 interface CategoryFilterProps {
   categories: Category[];
   selectedCategoryId: string | null;
@@ -22,6 +28,7 @@ export function CategoryFilter({
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLButtonElement | null>(null);
 
   function checkScroll() {
     const el = containerRef.current;
@@ -46,6 +53,14 @@ export function CategoryFilter({
     };
   }, []);
 
+  useEffect(() => {
+    activeItemRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  }, [selectedCategoryId]);
+
   function getCategoryClassName(isSelected: boolean, isRoot: boolean) {
     if (isSelected) {
       return isRoot
@@ -54,19 +69,19 @@ export function CategoryFilter({
     }
 
     return isRoot
-      ? 'text-foreground/72 hover:text-foreground'
-      : 'text-foreground/52 hover:text-foreground/82';
+      ? 'text-foreground/76 hover:text-foreground'
+      : 'text-foreground/55 hover:text-foreground/82';
   }
 
   return (
     <div
-      className="relative -mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      className="relative overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       ref={containerRef}
       onScroll={checkScroll}
     >
-      <div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent transition-opacity duration-200 [mask-image:linear-gradient(to_right,black,transparent)] ${showLeftGradient ? 'opacity-100' : 'opacity-0'}`} />
-      <div className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent transition-opacity duration-200 [mask-image:linear-gradient(to_left,black,transparent)] ${showRightGradient ? 'opacity-100' : 'opacity-0'}`} />
-      <div className="min-w-max whitespace-nowrap">
+      <div className={`pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-r from-background via-background/90 to-transparent transition-opacity duration-200 ${showLeftGradient ? 'opacity-100' : 'opacity-0'}`} />
+      <div className={`pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-l from-background via-background/90 to-transparent transition-opacity duration-200 ${showRightGradient ? 'opacity-100' : 'opacity-0'}`} />
+      <div className="min-w-max border-b border-border/50 px-1 pr-6 pb-0.5 whitespace-nowrap">
         {[
           {
             id: null,
@@ -90,14 +105,14 @@ export function CategoryFilter({
           return (
             <span
               key={`${item.id ?? 'all'}-${index}`}
-              className={`inline-block ${index > 0 ? 'ml-3' : ''}`}
+              className={`inline-block snap-start ${index > 0 ? 'ml-4' : ''}`}
             >
               <button
+                ref={isSelected ? activeItemRef : null}
                 onClick={() => onSelectCategory(item.id)}
-                className={`inline-block whitespace-nowrap py-1 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-200 ${getCategoryClassName(isSelected, isRoot)}`}
-                style={{
-                  color: isSelected && item.color ? item.color : undefined,
-                }}
+                className={`inline-flex h-10 items-center border-b-2 px-0.5 text-[13px] font-medium tracking-[-0.01em] transition-[color,border-color] duration-200 ${
+                  isSelected ? 'border-foreground' : 'border-transparent'
+                } ${getCategoryClassName(isSelected, isRoot)}`}
               >
                 {item.label}
               </button>
@@ -108,8 +123,3 @@ export function CategoryFilter({
     </div>
   );
 }
-  function truncateLabel(label: string) {
-    return label.length > MAX_CATEGORY_LABEL_LENGTH
-      ? `${label.slice(0, MAX_CATEGORY_LABEL_LENGTH)}...`
-      : label;
-  }

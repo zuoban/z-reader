@@ -184,12 +184,17 @@ export default function ShelfPage() {
 
         const centerX = currentDrag.anchorX + target.dx;
         const centerY = currentDrag.anchorY + target.dy;
-        const distance = Math.hypot(pointerX - centerX, pointerY - centerY);
-        const hitRadius = target.isClear ? target.size * 0.85 : target.size * 0.72;
+        const halfWidth = (target.width ?? target.size) / 2;
+        const halfHeight = (target.height ?? target.size) / 2;
+        const dx = Math.abs(pointerX - centerX);
+        const dy = Math.abs(pointerY - centerY);
 
-        if (distance <= hitRadius && distance < nearestDistance) {
-          nearestDistance = distance;
-          nextHovered = target.id;
+        if (dx <= halfWidth && dy <= halfHeight) {
+          const distance = Math.hypot(dx, dy);
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nextHovered = target.id;
+          }
         }
       });
 

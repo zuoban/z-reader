@@ -79,11 +79,7 @@ func (h *BooksHandler) Get(c *gin.Context) {
 	}
 
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
-	// 获取阅读进度，设置最后阅读时间
-	progress, err := h.db.GetProgress(id)
-	if err == nil && progress != nil {
-		book.LastReadAt = &progress.UpdatedAt
-	}
+	h.hydrateLastReadAt(book)
 	c.JSON(http.StatusOK, book)
 }
 
@@ -225,6 +221,23 @@ func normalizeBookFormat(format string, filename string) string {
 	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
 }
 
+func (h *BooksHandler) hydrateLastReadAt(book *models.Book) {
+	progress, err := h.db.GetProgress(book.ID)
+	if err != nil {
+		logger.Debug("Failed to get reading progress",
+			slog.String("book_id", book.ID),
+			slog.Any("error", err),
+		)
+		book.LastReadAt = nil
+		return
+	}
+	if progress != nil {
+		book.LastReadAt = &progress.UpdatedAt
+	} else {
+		book.LastReadAt = nil
+	}
+}
+
 func extractBookMetadata(path string, format string) (*epubMetadata, error) {
 	switch format {
 	case "epub":
@@ -270,6 +283,8 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		return
 	}
 
+	h.hydrateLastReadAt(book)
+
 	c.JSON(http.StatusOK, book)
 }
 
@@ -293,6 +308,8 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save book"})
 		return
 	}
+
+	h.hydrateLastReadAt(book)
 
 	c.JSON(http.StatusOK, book)
 }
@@ -438,8 +455,12 @@ func extractEPUBCover(path string) ([]byte, error) {
 				if err != nil {
 					continue
 				}
-				defer rc.Close()
-				return io.ReadAll(rc)
+				data, err := io.ReadAll(rc)
+				rc.Close()
+				if err != nil {
+					return nil, err
+				}
+				return data, nil
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
 import type { TTSSettings, Voice } from "@/lib/tts";
 import {
   BookOpen,
+  ChevronDown,
   Palette,
   ScrollText,
   Settings,
@@ -99,9 +101,13 @@ interface ThemeSettingsProps {
 }
 
 interface SectionCardProps {
+  id: string;
   title: string;
   description: string;
   icon: ReactNode;
+  summary?: ReactNode;
+  isOpen: boolean;
+  onToggle: (id: string) => void;
   uiScheme: ThemeColors;
   children: ReactNode;
 }
@@ -146,9 +152,13 @@ function getFlowLabel(flow: ReaderTheme["flow"]) {
 }
 
 function SectionCard({
+  id,
   title,
   description,
   icon,
+  summary,
+  isOpen,
+  onToggle,
   uiScheme,
   children,
 }: SectionCardProps) {
@@ -161,11 +171,15 @@ function SectionCard({
         boxShadow: `0 18px 36px ${uiScheme.cardBorder}12, inset 0 1px 0 rgba(255,255,255,0.4)`,
       }}
     >
-      <div className="flex items-start justify-between gap-2.5 sm:gap-3">
-        <div>
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        className="flex w-full items-start justify-between gap-3 text-left"
+      >
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-xl border sm:h-9 sm:w-9 sm:rounded-2xl"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border sm:h-9 sm:w-9 sm:rounded-2xl"
               style={{
                 color: uiScheme.link,
                 background: `${uiScheme.link}10`,
@@ -190,8 +204,35 @@ function SectionCard({
             </div>
           </div>
         </div>
-      </div>
-      <div className="mt-4 space-y-3">{children}</div>
+        <div className="flex shrink-0 items-center gap-2">
+          {summary ? (
+            <div className="hidden sm:block">
+              <ValuePill uiScheme={uiScheme} muted={!isOpen}>
+                {summary}
+              </ValuePill>
+            </div>
+          ) : null}
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-full border transition-transform duration-200"
+            style={{
+              color: uiScheme.buttonText,
+              background: `${uiScheme.buttonBg}78`,
+              borderColor: `${uiScheme.cardBorder}30`,
+              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </div>
+        </div>
+      </button>
+      {summary ? (
+        <div className="mt-3 sm:hidden">
+          <ValuePill uiScheme={uiScheme} muted={!isOpen}>
+            {summary}
+          </ValuePill>
+        </div>
+      ) : null}
+      {isOpen ? <div className="mt-4 space-y-3">{children}</div> : null}
     </section>
   );
 }
@@ -275,6 +316,13 @@ export function ThemeSettings({
   open,
   onOpenChange,
 }: ThemeSettingsProps) {
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    theme: true,
+    typography: true,
+    layout: false,
+    tts: false,
+    motion: false,
+  });
   const panelStyle = {
     background: `${uiScheme.cardBg}f6`,
     borderColor: `${uiScheme.cardBorder}55`,
@@ -337,6 +385,24 @@ export function ThemeSettings({
       style: fallbackVoice.StyleList?.[0] ?? "general",
     });
   }
+
+  function toggleSection(sectionId: string) {
+    setOpenSections((current) => ({
+      ...current,
+      [sectionId]: !current[sectionId],
+    }));
+  }
+
+  const gapLabel =
+    theme.gap === 0
+      ? "无"
+      : theme.gap <= 3
+        ? "紧凑"
+        : theme.gap <= 5
+          ? "标准"
+          : theme.gap <= 7
+            ? "舒展"
+            : "宽敞";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -516,9 +582,13 @@ export function ThemeSettings({
           </section>
 
           <SectionCard
+            id="theme"
             title="阅读主题"
             description="先确定页面气氛，再微调更细的排版参数。"
             icon={<Palette className="h-4 w-4" />}
+            summary={currentPreset.label}
+            isOpen={openSections.theme}
+            onToggle={toggleSection}
             uiScheme={uiScheme}
           >
             <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
@@ -597,9 +667,13 @@ export function ThemeSettings({
           </SectionCard>
 
           <SectionCard
+            id="typography"
             title="字体与节奏"
             description="决定文字的气质，以及每一屏阅读时的密度。"
             icon={<Type className="h-4 w-4" />}
+            summary={`${FONT_FAMILY_OPTIONS[theme.fontFamily].label} · ${theme.fontSize}px`}
+            isOpen={openSections.typography}
+            onToggle={toggleSection}
             uiScheme={uiScheme}
           >
             <div
@@ -712,9 +786,13 @@ export function ThemeSettings({
           </SectionCard>
 
           <SectionCard
+            id="layout"
             title="版式布局"
             description="控制每一页的留白、宽度和翻阅方式。"
             icon={<BookOpen className="h-4 w-4" />}
+            summary={`${getFlowLabel(theme.flow)} · ${theme.maxInlineSize}px · ${gapLabel}`}
+            isOpen={openSections.layout}
+            onToggle={toggleSection}
             uiScheme={uiScheme}
           >
             <div
@@ -824,17 +902,7 @@ export function ThemeSettings({
             <SliderField
               label="页间距"
               description="翻页模式下，控制页面之间的呼吸和分隔强度。"
-              valueLabel={
-                theme.gap === 0
-                  ? "无"
-                  : theme.gap <= 3
-                    ? "紧凑"
-                    : theme.gap <= 5
-                      ? "标准"
-                      : theme.gap <= 7
-                        ? "舒展"
-                        : "宽敞"
-              }
+              valueLabel={gapLabel}
               minLabel="无"
               maxLabel="宽敞"
               value={[theme.gap]}
@@ -847,9 +915,17 @@ export function ThemeSettings({
           </SectionCard>
 
           <SectionCard
+            id="tts"
             title="朗读偏好"
             description="统一整理 TTS 的语音参数和声线选择。"
             icon={<Volume2 className="h-4 w-4" />}
+            summary={
+              availableLocales.length > 0
+                ? `${selectedVoice?.LocalName ?? "默认"} · ${Math.round(ttsSettings.volume * 100)}%`
+                : `音量 ${Math.round(ttsSettings.volume * 100)}%`
+            }
+            isOpen={openSections.tts}
+            onToggle={toggleSection}
             uiScheme={uiScheme}
           >
             <SliderField
@@ -1061,9 +1137,13 @@ export function ThemeSettings({
           </SectionCard>
 
           <SectionCard
+            id="motion"
             title="动态效果"
             description="决定翻页动画是否参与阅读反馈。"
             icon={theme.animated ? <Zap className="h-4 w-4" /> : <ZapOff className="h-4 w-4" />}
+            summary={theme.animated ? "翻页动画已开启" : "翻页动画已关闭"}
+            isOpen={openSections.motion}
+            onToggle={toggleSection}
             uiScheme={uiScheme}
           >
             <div

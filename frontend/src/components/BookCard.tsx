@@ -309,11 +309,6 @@ export function BookCard({
       }}
     >
       <div
-        className={`${
-          isHovering && !isDragging
-            ? 'motion-safe:animate-[dragHint_4.8s_ease-in-out_infinite] motion-reduce:animate-none'
-            : ''
-        }`}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerLeave}
@@ -369,7 +364,7 @@ export function BookCard({
               fill
               unoptimized
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 20vw, 16vw"
-              className="object-cover transition-transform duration-500 ease-out sm:group-hover/card:scale-[1.01]"
+              className="object-cover"
             />
           ) : (
             <div className="relative flex h-full w-full overflow-hidden shadow-[inset_-1px_0_2px_rgba(0,0,0,0.1)]">

@@ -81,6 +81,38 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     onHighlight?.(range);
   }, [viewRef, onHighlight]);
 
+  const clearReaderHighlight = useCallback(() => {
+    const view = viewRef.current;
+
+    view?.tts?.clearHighlight?.();
+
+    if (typeof window !== 'undefined') {
+      window.getSelection()?.removeAllRanges();
+    }
+
+    const docs = new Set<Document>();
+    const ttsDoc = view?.tts?.doc;
+    if (ttsDoc) {
+      docs.add(ttsDoc);
+    }
+
+    const contents = view?.renderer?.getContents?.() ?? [];
+    contents.forEach(({ doc }) => {
+      if (doc) {
+        docs.add(doc);
+      }
+    });
+
+    docs.forEach((doc) => {
+      try {
+        doc.getSelection?.()?.removeAllRanges();
+        doc.defaultView?.getSelection?.()?.removeAllRanges();
+      } catch {
+        // 某些 iframe 文档在销毁或切页瞬间可能暂时不可访问，忽略即可
+      }
+    });
+  }, [viewRef]);
+
   const buildSSML = useCallback((text: string): string => {
     const rateStr = settings.rate >= 0 ? `+${settings.rate}%` : `${settings.rate}%`;
     const pitchStr = settings.pitch >= 0 ? `+${settings.pitch}%` : `${settings.pitch}%`;
@@ -201,7 +233,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     const view = viewRef.current;
     
-    view.tts?.clearHighlight?.();
+    clearReaderHighlight();
     
     let inited = await ensureTTS();
     if (!inited) return false;
@@ -227,14 +259,14 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       return false;
     }
     return speakSSML(ssml, true);
-  }, [viewRef, ensureTTS, speakSSML]);
+  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight]);
 
   const getPrevAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) return false;
 
     const view = viewRef.current;
     
-    view.tts?.clearHighlight?.();
+    clearReaderHighlight();
     
     let inited = await ensureTTS();
     if (!inited) return false;
@@ -258,7 +290,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     if (!ssml) return false;
     return speakSSML(ssml, true);
-  }, [viewRef, ensureTTS, speakSSML]);
+  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight]);
 
   const start = useCallback(async () => {
     if (state === 'playing') {
@@ -274,7 +306,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     if (!viewRef.current) return;
 
-    viewRef.current.tts?.clearHighlight?.();
+    clearReaderHighlight();
 
     const inited = await ensureTTS();
     if (!inited) return;
@@ -301,7 +333,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       isPlayingRef.current = true;
       await requestWakeLock();
     }
-  }, [state, viewRef, ensureTTS, speakSSML, requestWakeLock]);
+  }, [state, viewRef, ensureTTS, speakSSML, requestWakeLock, clearReaderHighlight]);
 
   const stop = useCallback(() => {
     ttsInstance.current.stop();
@@ -312,13 +344,14 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     // 清除预加载的音频
     ttsInstance.current.clearPreload();
 
+    clearReaderHighlight();
+
     if (viewRef.current?.tts) {
-      viewRef.current.tts.clearHighlight?.();
       viewRef.current.tts = undefined;
     }
 
     releaseWakeLock();
-  }, [viewRef, releaseWakeLock]);
+  }, [viewRef, releaseWakeLock, clearReaderHighlight]);
 
   const next = useCallback(async () => {
     ttsInstance.current.clearPreloadQueueOnly();
@@ -363,6 +396,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
       const success = await getNextAndSpeakRef.current();
       if (!success) {
+        clearReaderHighlight();
         setState('stopped');
         isPlayingRef.current = false;
         releaseWakeLock();
@@ -382,16 +416,17 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         }
       }
     });
-  }, [onHighlight, viewRef, releaseWakeLock]);
+  }, [onHighlight, viewRef, releaseWakeLock, clearReaderHighlight]);
 
   useEffect(() => {
     const instance = ttsInstance.current;
     return () => {
       isPlayingRef.current = false;
       instance.stop();
+      clearReaderHighlight();
       void releaseWakeLock();
     };
-  }, [releaseWakeLock]);
+  }, [releaseWakeLock, clearReaderHighlight]);
 
   return {
     state,

@@ -920,7 +920,7 @@ export default function ReadPage() {
           }}
         >
           <div className="flex items-center justify-between gap-2.5 sm:gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <Button
                 variant="ghost"
                 size="sm"
@@ -931,36 +931,6 @@ export default function ReadPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-
-              <div className="min-w-0 flex-1 pr-1.5 sm:pr-2">
-                <div className="flex min-h-[2.25rem] items-center gap-2">
-                  <div className="min-w-0 flex flex-1 items-center gap-2">
-                    <span
-                      className="shrink-0 rounded-full px-2 py-1 text-[10px] font-mono tabular-nums tracking-[0.08em]"
-                      style={{
-                        color: uiScheme.accentText,
-                        background: withOpacity(uiScheme.cardBorder, 0.14),
-                      }}
-                    >
-                      {Math.round(percentage)}%
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className="truncate text-[11px] font-medium"
-                        style={{ color: uiScheme.fg }}
-                      >
-                        {currentChapter || "等待定位章节"}
-                      </p>
-                      <p
-                        className="mt-0.5 hidden truncate text-[10px] sm:block"
-                        style={{ color: uiScheme.mutedText }}
-                      >
-                        阅读进度会自动保存
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">

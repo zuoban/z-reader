@@ -1,44 +1,54 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
-import React from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
-import { FoliateView, TOCItem } from '@/lib/types';
-import { useProgress } from '@/hooks/useProgress';
-import { useReaderTheme, ThemeColors, PRESET_STYLES } from '@/hooks/useReaderTheme';
-import { useTTS } from '@/hooks/useTTS';
-import { ThemeSettings } from '@/components/ThemeSettings';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
+import React from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
+import { FoliateView, TOCItem } from "@/lib/types";
+import { useProgress } from "@/hooks/useProgress";
+import {
+  useReaderTheme,
+  ThemeColors,
+  PRESET_STYLES,
+} from "@/hooks/useReaderTheme";
+import { useTTS } from "@/hooks/useTTS";
+import { ThemeSettings } from "@/components/ThemeSettings";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import {
-  ChevronLeft,
-  List,
-  LogOut,
-} from 'lucide-react';
+} from "@/components/ui/sheet";
+import { ChevronLeft, List, LogOut } from "lucide-react";
 
 // 延迟加载 TTS 组件，首屏不加载
-const TTSControls = lazy(() => import('@/components/TTSControls').then(m => ({ default: m.TTSControls })));
+const TTSControls = lazy(() =>
+  import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
+);
 
 function withOpacity(color: string | undefined, opacity: number) {
-  if (!color) return '';
-  if (!color.startsWith('#')) return color;
+  if (!color) return "";
+  if (!color.startsWith("#")) return color;
 
-  const normalized = color.length === 4
-    ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-    : color;
+  const normalized =
+    color.length === 4
+      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+      : color;
 
   const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
     .toString(16)
-    .padStart(2, '0');
+    .padStart(2, "0");
 
   return `${normalized}${hexOpacity}`;
 }
@@ -48,20 +58,25 @@ export default function ReadPage() {
   const params = useParams();
   const bookId = params.id as string;
   const { isLoading: authLoading, isAuthenticated, logout } = useAuth();
-  const { progress, isLoading: progressLoading, updateProgress, saveNow } = useProgress({ bookId });
+  const {
+    progress,
+    isLoading: progressLoading,
+    updateProgress,
+    saveNow,
+  } = useProgress({ bookId });
   const { theme, setTheme, getStylesheet, getUIScheme } = useReaderTheme();
   const uiScheme = getUIScheme();
 
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [percentage, setPercentage] = useState(0);
-  const [currentChapter, setCurrentChapter] = useState('');
+  const [currentChapter, setCurrentChapter] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [isTouchReader, setIsTouchReader] = useState(false);
   const [showToolbar, setShowToolbar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingMsg, setLoadingMsg] = useState('初始化中...');
+  const [loadingMsg, setLoadingMsg] = useState("初始化中...");
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -73,7 +88,14 @@ export default function ReadPage() {
   // 使用 Set 避免重复添加和内存泄漏
   const boundDocsRef = useRef<Set<Document>>(new Set());
   const docTouchHandlersRef = useRef(
-    new Map<Document, { touchstart: EventListener; touchend: EventListener; click: EventListener }>()
+    new Map<
+      Document,
+      {
+        touchstart: EventListener;
+        touchend: EventListener;
+        click: EventListener;
+      }
+    >(),
   );
   // 缓存脚本加载状态，避免重复创建 script 标签
   const scriptLoadedRef = useRef(false);
@@ -110,12 +132,12 @@ export default function ReadPage() {
   }, [progress]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const hasTouch =
-      window.matchMedia('(pointer: coarse)').matches
-      || navigator.maxTouchPoints > 0
-      || 'ontouchstart' in window;
+      window.matchMedia("(pointer: coarse)").matches ||
+      navigator.maxTouchPoints > 0 ||
+      "ontouchstart" in window;
     setIsTouchReader(hasTouch);
     setShowToolbar(!hasTouch);
   }, []);
@@ -132,36 +154,40 @@ export default function ReadPage() {
     updateProgressRef.current = updateProgress;
   }, [updateProgress]);
 
-  const applyRendererPreferences = useCallback((renderer?: FoliateView['renderer'] | null) => {
-    if (!renderer) return;
+  const applyRendererPreferences = useCallback(
+    (renderer?: FoliateView["renderer"] | null) => {
+      if (!renderer) return;
 
-    renderer.setAttribute('margin', '0');
-    renderer.setAttribute('flow', theme.flow);
-    renderer.setAttribute('gap', `${theme.gap}%`);
-    renderer.setAttribute('max-inline-size', `${theme.maxInlineSize}px`);
+      renderer.setAttribute("margin", "0");
+      renderer.setAttribute("flow", theme.flow);
+      renderer.setAttribute("gap", `${theme.gap}%`);
+      renderer.setAttribute("max-inline-size", `${theme.maxInlineSize}px`);
 
-    if (theme.animated) {
-      renderer.setAttribute('animated', '');
-    } else {
-      renderer.removeAttribute('animated');
-    }
-  }, [theme.animated, theme.flow, theme.gap, theme.maxInlineSize]);
+      if (theme.animated) {
+        renderer.setAttribute("animated", "");
+      } else {
+        renderer.removeAttribute("animated");
+      }
+    },
+    [theme.animated, theme.flow, theme.gap, theme.maxInlineSize],
+  );
 
   // 清理书籍内容中的内联样式，确保主题样式生效
-  const cleanInlineStyles = useCallback((doc: Document) => {
-    if (theme.preset !== 'dark') return;
+  const cleanInlineStyles = useCallback(
+    (doc: Document) => {
+      if (theme.preset !== "dark") return;
 
-    const preset = PRESET_STYLES.dark;
-    const STYLE_ID = 'z-reader-dark-overrides';
+      const preset = PRESET_STYLES.dark;
+      const STYLE_ID = "z-reader-dark-overrides";
 
-    // 注入强制覆盖的 CSS 到书籍文档
-    let styleEl = doc.getElementById(STYLE_ID) as HTMLStyleElement | null;
-    if (!styleEl) {
-      styleEl = doc.createElement('style');
-      styleEl.id = STYLE_ID;
-      doc.head.appendChild(styleEl);
-    }
-    styleEl.textContent = `
+      // 注入强制覆盖的 CSS 到书籍文档
+      let styleEl = doc.getElementById(STYLE_ID) as HTMLStyleElement | null;
+      if (!styleEl) {
+        styleEl = doc.createElement("style");
+        styleEl.id = STYLE_ID;
+        doc.head.appendChild(styleEl);
+      }
+      styleEl.textContent = `
       * {
         color: ${preset.fg} !important;
       }
@@ -169,7 +195,9 @@ export default function ReadPage() {
         color: ${preset.link} !important;
       }
     `;
-  }, [theme.preset]);
+    },
+    [theme.preset],
+  );
 
   useEffect(() => {
     if (viewRef.current && !loading) {
@@ -180,7 +208,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -217,263 +245,309 @@ export default function ReadPage() {
 
   // keyboardHandler 使用 ref 避免依赖变化导致频繁重建
   const keyboardHandler = useCallback((e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    )
+      return;
 
     switch (e.key) {
-      case 'ArrowLeft':
-      case 'PageUp':
-      case 'k':
-      case 'K':
+      case "ArrowLeft":
+      case "PageUp":
+      case "k":
+      case "K":
         handlePrevRef.current();
         break;
-      case 'ArrowRight':
-      case 'PageDown':
-      case 'j':
-      case 'J':
-      case ' ':
-        if (e.key === ' ' && e.shiftKey) handlePrevRef.current();
+      case "ArrowRight":
+      case "PageDown":
+      case "j":
+      case "J":
+      case " ":
+        if (e.key === " " && e.shiftKey) handlePrevRef.current();
         else handleNextRef.current();
         break;
-      case 'Escape':
+      case "Escape":
         handleBackRef.current();
         break;
     }
   }, []);
 
   const isInteractiveTouchTarget = useCallback((target: EventTarget | null) => {
-    return target instanceof Element
-      && (
-        target.closest('[data-reader-interactive="true"]') !== null
-        || target.closest('a, button, input, textarea, select, summary, [role="button"]') !== null
-      );
+    return (
+      target instanceof Element &&
+      (target.closest('[data-reader-interactive="true"]') !== null ||
+        target.closest(
+          'a, button, input, textarea, select, summary, [role="button"]',
+        ) !== null)
+    );
   }, []);
 
-  const handleReaderTap = useCallback((clientY: number, viewportHeight: number) => {
-    const topZone = viewportHeight * 0.34;
-    const bottomZone = viewportHeight * 0.66;
+  const handleReaderTap = useCallback(
+    (clientY: number, viewportHeight: number) => {
+      const topZone = viewportHeight * 0.34;
+      const bottomZone = viewportHeight * 0.66;
 
-    if (clientY < topZone) {
-      setShowToolbar(false);
-      handlePrev();
-      return;
-    }
-
-    if (clientY > bottomZone) {
-      setShowToolbar(false);
-      handleNext();
-      return;
-    }
-
-    toggleToolbar();
-  }, [handleNext, handlePrev, toggleToolbar]);
-
-  const handleReaderClick = useCallback((
-    target: EventTarget | null,
-    clientY: number,
-    viewportHeight: number,
-  ) => {
-    if (Date.now() - lastTouchInteractionAtRef.current < 700) {
-      return;
-    }
-
-    if (isInteractiveTouchTarget(target)) {
-      return;
-    }
-
-    handleReaderTap(clientY, viewportHeight);
-  }, [handleReaderTap, isInteractiveTouchTarget]);
-
-  const handleReaderTouchStart = useCallback((target: EventTarget | null, touch: Touch) => {
-    touchStartedInInteractiveUI.current = isInteractiveTouchTarget(target);
-    touchStartX.current = touch.clientX;
-    touchStartY.current = touch.clientY;
-    lastTouchInteractionAtRef.current = Date.now();
-  }, [isInteractiveTouchTarget]);
-
-  const handleReaderTouchEnd = useCallback((
-    target: EventTarget | null,
-    touch: Touch,
-    viewportHeight: number,
-  ) => {
-    if (touchStartedInInteractiveUI.current || isInteractiveTouchTarget(target)) {
-      touchStartedInInteractiveUI.current = false;
-      return;
-    }
-
-    const touchEndX = touch.clientX;
-    const touchEndY = touch.clientY;
-    const deltaX = touchEndX - touchStartX.current;
-    const deltaY = touchEndY - touchStartY.current;
-
-    if (Math.abs(deltaX) > 30 && Math.abs(deltaX) > Math.abs(deltaY) * 0.5) {
-      setShowToolbar(false);
-      if (deltaX > 0) {
+      if (clientY < topZone) {
+        setShowToolbar(false);
         handlePrev();
-      } else {
+        return;
+      }
+
+      if (clientY > bottomZone) {
+        setShowToolbar(false);
         handleNext();
+        return;
       }
+
+      toggleToolbar();
+    },
+    [handleNext, handlePrev, toggleToolbar],
+  );
+
+  const handleReaderClick = useCallback(
+    (target: EventTarget | null, clientY: number, viewportHeight: number) => {
+      if (Date.now() - lastTouchInteractionAtRef.current < 700) {
+        return;
+      }
+
+      if (isInteractiveTouchTarget(target)) {
+        return;
+      }
+
+      handleReaderTap(clientY, viewportHeight);
+    },
+    [handleReaderTap, isInteractiveTouchTarget],
+  );
+
+  const handleReaderTouchStart = useCallback(
+    (target: EventTarget | null, touch: Touch) => {
+      touchStartedInInteractiveUI.current = isInteractiveTouchTarget(target);
+      touchStartX.current = touch.clientX;
+      touchStartY.current = touch.clientY;
+      lastTouchInteractionAtRef.current = Date.now();
+    },
+    [isInteractiveTouchTarget],
+  );
+
+  const handleReaderTouchEnd = useCallback(
+    (target: EventTarget | null, touch: Touch, viewportHeight: number) => {
+      if (
+        touchStartedInInteractiveUI.current ||
+        isInteractiveTouchTarget(target)
+      ) {
+        touchStartedInInteractiveUI.current = false;
+        return;
+      }
+
+      const touchEndX = touch.clientX;
+      const touchEndY = touch.clientY;
+      const deltaX = touchEndX - touchStartX.current;
+      const deltaY = touchEndY - touchStartY.current;
+
+      if (Math.abs(deltaX) > 30 && Math.abs(deltaX) > Math.abs(deltaY) * 0.5) {
+        setShowToolbar(false);
+        if (deltaX > 0) {
+          handlePrev();
+        } else {
+          handleNext();
+        }
+        touchStartedInInteractiveUI.current = false;
+        return;
+      }
+
+      if (Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12) {
+        handleReaderTap(touchEndY, viewportHeight);
+      }
+
       touchStartedInInteractiveUI.current = false;
-      return;
-    }
-
-    if (Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12) {
-      handleReaderTap(touchEndY, viewportHeight);
-    }
-
-    touchStartedInInteractiveUI.current = false;
-  }, [handleNext, handlePrev, handleReaderTap, isInteractiveTouchTarget]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    if (touch) {
-      handleReaderTouchStart(e.target, touch);
-    }
-  }, [handleReaderTouchStart]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    const touch = e.changedTouches[0];
-    if (!touch) return;
-
-    const viewportHeight = e.currentTarget.getBoundingClientRect().height;
-    handleReaderTouchEnd(e.target, touch, viewportHeight);
-  }, [handleReaderTouchEnd]);
-
-  const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const viewportHeight = e.currentTarget.getBoundingClientRect().height;
-    handleReaderClick(e.target, e.clientY, viewportHeight);
-  }, [handleReaderClick]);
-
-  const triggerGestureAction = useCallback((action: 'prev' | 'toggle' | 'next') => {
-    if (action === 'prev') {
-      setShowToolbar(false);
-      handlePrev();
-      return;
-    }
-
-    if (action === 'next') {
-      setShowToolbar(false);
-      handleNext();
-      return;
-    }
-
-    toggleToolbar();
-  }, [handleNext, handlePrev, toggleToolbar]);
-
-  const createGestureHandlers = useCallback((action: 'prev' | 'toggle' | 'next') => ({
-    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
-      if (e.pointerType === 'mouse') return;
-      e.preventDefault();
-      e.stopPropagation();
-      triggerGestureAction(action);
     },
-    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
-      if (e.pointerType === 'mouse') return;
-      e.preventDefault();
-      e.stopPropagation();
-      triggerGestureAction(action);
-    },
-    onTouchEnd: (e: React.TouchEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      triggerGestureAction(action);
-    },
-    onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      triggerGestureAction(action);
-    },
-  }), [triggerGestureAction]);
+    [handleNext, handlePrev, handleReaderTap, isInteractiveTouchTarget],
+  );
 
-  const bindReaderDocument = useCallback((doc: Document) => {
-    if (boundDocsRef.current.has(doc)) return;
-
-    const handleDocTouchStart: EventListener = (event) => {
-      const touchEvent = event as TouchEvent;
-      const touch = touchEvent.touches[0];
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.touches[0];
       if (touch) {
-        handleReaderTouchStart(touchEvent.target, touch);
+        handleReaderTouchStart(e.target, touch);
       }
-    };
+    },
+    [handleReaderTouchStart],
+  );
 
-    const handleDocTouchEnd: EventListener = (event) => {
-      const touchEvent = event as TouchEvent;
-      const touch = touchEvent.changedTouches[0];
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      const touch = e.changedTouches[0];
       if (!touch) return;
 
-      const viewportHeight = doc.defaultView?.innerHeight ?? window.innerHeight;
-      handleReaderTouchEnd(touchEvent.target, touch, viewportHeight);
-    };
+      const viewportHeight = e.currentTarget.getBoundingClientRect().height;
+      handleReaderTouchEnd(e.target, touch, viewportHeight);
+    },
+    [handleReaderTouchEnd],
+  );
 
-    const handleDocClick: EventListener = (event) => {
-      const mouseEvent = event as MouseEvent;
-      const viewportHeight = doc.defaultView?.innerHeight ?? window.innerHeight;
-      handleReaderClick(mouseEvent.target, mouseEvent.clientY, viewportHeight);
-    };
+  const handleContainerClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const viewportHeight = e.currentTarget.getBoundingClientRect().height;
+      handleReaderClick(e.target, e.clientY, viewportHeight);
+    },
+    [handleReaderClick],
+  );
 
-    doc.addEventListener('keydown', keyboardHandler);
-    doc.addEventListener('touchstart', handleDocTouchStart, { passive: true });
-    doc.addEventListener('touchend', handleDocTouchEnd, { passive: true });
-    doc.addEventListener('click', handleDocClick, { passive: true });
-    boundDocsRef.current.add(doc);
-    docTouchHandlersRef.current.set(doc, {
-      touchstart: handleDocTouchStart,
-      touchend: handleDocTouchEnd,
-      click: handleDocClick,
-    });
-  }, [handleReaderClick, handleReaderTouchEnd, handleReaderTouchStart, keyboardHandler]);
+  const triggerGestureAction = useCallback(
+    (action: "prev" | "toggle" | "next") => {
+      if (action === "prev") {
+        setShowToolbar(false);
+        handlePrev();
+        return;
+      }
+
+      if (action === "next") {
+        setShowToolbar(false);
+        handleNext();
+        return;
+      }
+
+      toggleToolbar();
+    },
+    [handleNext, handlePrev, toggleToolbar],
+  );
+
+  const createGestureHandlers = useCallback(
+    (action: "prev" | "toggle" | "next") => ({
+      onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.pointerType === "mouse") return;
+        e.preventDefault();
+        e.stopPropagation();
+        triggerGestureAction(action);
+      },
+      onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.pointerType === "mouse") return;
+        e.preventDefault();
+        e.stopPropagation();
+        triggerGestureAction(action);
+      },
+      onTouchEnd: (e: React.TouchEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerGestureAction(action);
+      },
+      onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerGestureAction(action);
+      },
+    }),
+    [triggerGestureAction],
+  );
+
+  const bindReaderDocument = useCallback(
+    (doc: Document) => {
+      if (boundDocsRef.current.has(doc)) return;
+
+      const handleDocTouchStart: EventListener = (event) => {
+        const touchEvent = event as TouchEvent;
+        const touch = touchEvent.touches[0];
+        if (touch) {
+          handleReaderTouchStart(touchEvent.target, touch);
+        }
+      };
+
+      const handleDocTouchEnd: EventListener = (event) => {
+        const touchEvent = event as TouchEvent;
+        const touch = touchEvent.changedTouches[0];
+        if (!touch) return;
+
+        const viewportHeight =
+          doc.defaultView?.innerHeight ?? window.innerHeight;
+        handleReaderTouchEnd(touchEvent.target, touch, viewportHeight);
+      };
+
+      const handleDocClick: EventListener = (event) => {
+        const mouseEvent = event as MouseEvent;
+        const viewportHeight =
+          doc.defaultView?.innerHeight ?? window.innerHeight;
+        handleReaderClick(
+          mouseEvent.target,
+          mouseEvent.clientY,
+          viewportHeight,
+        );
+      };
+
+      doc.addEventListener("keydown", keyboardHandler);
+      doc.addEventListener("touchstart", handleDocTouchStart, {
+        passive: true,
+      });
+      doc.addEventListener("touchend", handleDocTouchEnd, { passive: true });
+      doc.addEventListener("click", handleDocClick, { passive: true });
+      boundDocsRef.current.add(doc);
+      docTouchHandlersRef.current.set(doc, {
+        touchstart: handleDocTouchStart,
+        touchend: handleDocTouchEnd,
+        click: handleDocClick,
+      });
+    },
+    [
+      handleReaderClick,
+      handleReaderTouchEnd,
+      handleReaderTouchStart,
+      keyboardHandler,
+    ],
+  );
 
   const initReader = useCallback(async () => {
     if (!containerRef.current || destroyedRef.current) return;
 
     try {
-      setLoadingMsg('加载阅读器...');
+      setLoadingMsg("加载阅读器...");
 
       // 检查脚本是否已加载，避免重复创建
-      if (!customElements.get('foliate-view') && !scriptLoadedRef.current) {
+      if (!customElements.get("foliate-view") && !scriptLoadedRef.current) {
         scriptLoadedRef.current = true; // 标记为正在加载
 
-        const script = document.createElement('script');
-        script.src = '/foliate/view.js';
-        script.type = 'module';
+        const script = document.createElement("script");
+        script.src = "/foliate/view.js";
+        script.type = "module";
 
         const loadPromise = new Promise<void>((resolve, reject) => {
           script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load foliate.js'));
+          script.onerror = () => reject(new Error("Failed to load foliate.js"));
         });
 
         document.head.appendChild(script);
         await loadPromise;
 
         let retries = 0;
-        while (!customElements.get('foliate-view') && retries < 50) {
-          await new Promise(r => setTimeout(r, 100));
+        while (!customElements.get("foliate-view") && retries < 50) {
+          await new Promise((r) => setTimeout(r, 100));
           retries++;
         }
 
-        if (!customElements.get('foliate-view')) {
-          throw new Error('foliate-view not registered');
+        if (!customElements.get("foliate-view")) {
+          throw new Error("foliate-view not registered");
         }
       } else {
         // 脚本已加载或正在加载中，等待注册完成
         let retries = 0;
-        while (!customElements.get('foliate-view') && retries < 50) {
-          await new Promise(r => setTimeout(r, 100));
+        while (!customElements.get("foliate-view") && retries < 50) {
+          await new Promise((r) => setTimeout(r, 100));
           retries++;
         }
       }
 
       if (destroyedRef.current) return;
-      setLoadingMsg('创建视图...');
+      setLoadingMsg("创建视图...");
 
-      const view = document.createElement('foliate-view') as unknown as FoliateView;
-      view.style.height = '100%';
-      view.style.width = '100%';
-      view.style.display = 'block';
-      containerRef.current.innerHTML = '';
+      const view = document.createElement(
+        "foliate-view",
+      ) as unknown as FoliateView;
+      view.style.height = "100%";
+      view.style.width = "100%";
+      view.style.display = "block";
+      containerRef.current.innerHTML = "";
       containerRef.current.appendChild(view as unknown as Node);
       viewRef.current = view;
 
-      view.addEventListener?.('load', (e: CustomEvent) => {
+      view.addEventListener?.("load", (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const book = view.book;
@@ -488,11 +562,11 @@ export default function ReadPage() {
             cleanInlineStyles(doc);
           }
         } catch (err) {
-          console.error('Failed to handle book load event:', err);
+          console.error("Failed to handle book load event:", err);
         }
       });
 
-      view.addEventListener?.('relocate', (e: CustomEvent) => {
+      view.addEventListener?.("relocate", (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
           const { cfi, fraction, tocItem } = e.detail;
@@ -512,28 +586,30 @@ export default function ReadPage() {
           const doc = e.detail?.doc;
           if (doc) {
             bindReaderDocument(doc);
-            if (theme.preset === 'dark') {
+            if (theme.preset === "dark") {
               cleanInlineStyles(doc);
             }
           }
         } catch (err) {
-          console.error('Failed to handle relocate event:', err);
+          console.error("Failed to handle relocate event:", err);
         }
       });
 
       if (destroyedRef.current) return;
-      setLoadingMsg('获取书籍...');
+      setLoadingMsg("获取书籍...");
 
       const file = await api.createBookFile(bookId);
 
       if (destroyedRef.current) return;
-      setLoadingMsg('打开书籍...');
+      setLoadingMsg("打开书籍...");
 
       try {
         await view.open?.(file);
       } catch (err) {
-        console.error('Failed to open book:', err);
-        throw new Error(`Failed to open book: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        console.error("Failed to open book:", err);
+        throw new Error(
+          `Failed to open book: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
       }
 
       if (destroyedRef.current) return;
@@ -551,18 +627,23 @@ export default function ReadPage() {
       } else {
         await view.renderer?.next?.();
       }
-
     } catch (err) {
       if (!destroyedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to load book');
+        setError(err instanceof Error ? err.message : "Failed to load book");
         setLoading(false);
       }
     }
-  }, [applyRendererPreferences, bindReaderDocument, bookId, cleanInlineStyles, theme.preset]);
+  }, [
+    applyRendererPreferences,
+    bindReaderDocument,
+    bookId,
+    cleanInlineStyles,
+    theme.preset,
+  ]);
 
   useEffect(() => {
     // 主题变化时，重新清理所有已绑定文档的内联样式
-    boundDocsRef.current.forEach(doc => {
+    boundDocsRef.current.forEach((doc) => {
       cleanInlineStyles(doc);
     });
   }, [cleanInlineStyles]);
@@ -588,12 +669,12 @@ export default function ReadPage() {
             view.parentNode.removeChild(view as unknown as Node);
           }
         } catch (err) {
-          console.error('Failed to cleanup view on unmount:', err);
+          console.error("Failed to cleanup view on unmount:", err);
         }
       }
 
       if (container) {
-        container.innerHTML = '';
+        container.innerHTML = "";
       }
     };
   }, [initReader, isAuthenticated, progressLoading]);
@@ -602,12 +683,14 @@ export default function ReadPage() {
     if (!tocOpen || !currentChapter) return;
 
     const frame = window.requestAnimationFrame(() => {
-      const activeItem = tocListRef.current?.querySelector('[data-current-chapter="true"]');
+      const activeItem = tocListRef.current?.querySelector(
+        '[data-current-chapter="true"]',
+      );
       if (activeItem instanceof HTMLElement) {
         activeItem.scrollIntoView({
-          block: 'center',
-          inline: 'nearest',
-          behavior: 'smooth',
+          block: "center",
+          inline: "nearest",
+          behavior: "smooth",
         });
       }
     });
@@ -622,13 +705,13 @@ export default function ReadPage() {
     saveNow();
 
     // 清理所有绑定的 iframe 文档的事件
-    boundDocsRef.current.forEach(doc => {
-      doc.removeEventListener('keydown', keyboardHandler);
+    boundDocsRef.current.forEach((doc) => {
+      doc.removeEventListener("keydown", keyboardHandler);
       const handlers = docTouchHandlersRef.current.get(doc);
       if (handlers) {
-        doc.removeEventListener('touchstart', handlers.touchstart);
-        doc.removeEventListener('touchend', handlers.touchend);
-        doc.removeEventListener('click', handlers.click);
+        doc.removeEventListener("touchstart", handlers.touchstart);
+        doc.removeEventListener("touchend", handlers.touchend);
+        doc.removeEventListener("click", handlers.click);
       }
     });
     boundDocsRef.current.clear();
@@ -643,15 +726,15 @@ export default function ReadPage() {
           view.parentNode.removeChild(view as unknown as Node);
         }
       } catch (err) {
-        console.error('Failed to cleanup view during back navigation:', err);
+        console.error("Failed to cleanup view during back navigation:", err);
       }
     }
 
     if (containerRef.current) {
-      containerRef.current.innerHTML = '';
+      containerRef.current.innerHTML = "";
     }
 
-    router.push('/shelf');
+    router.push("/shelf");
   }, [saveNow, router, keyboardHandler]);
 
   // 同步 handleBack 到 ref
@@ -662,19 +745,19 @@ export default function ReadPage() {
   useEffect(() => {
     const boundDocs = boundDocsRef.current;
     const docTouchHandlers = docTouchHandlersRef.current;
-    window.addEventListener('keydown', keyboardHandler);
+    window.addEventListener("keydown", keyboardHandler);
 
     return () => {
-      window.removeEventListener('keydown', keyboardHandler);
+      window.removeEventListener("keydown", keyboardHandler);
 
       // 清理所有绑定的 iframe 文档的事件
-      boundDocs.forEach(doc => {
-        doc.removeEventListener('keydown', keyboardHandler);
+      boundDocs.forEach((doc) => {
+        doc.removeEventListener("keydown", keyboardHandler);
         const handlers = docTouchHandlers.get(doc);
         if (handlers) {
-          doc.removeEventListener('touchstart', handlers.touchstart);
-          doc.removeEventListener('touchend', handlers.touchend);
-          doc.removeEventListener('click', handlers.click);
+          doc.removeEventListener("touchstart", handlers.touchstart);
+          doc.removeEventListener("touchend", handlers.touchend);
+          doc.removeEventListener("click", handlers.click);
         }
       });
       boundDocs.clear();
@@ -687,11 +770,24 @@ export default function ReadPage() {
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="h-screen flex items-center justify-center" style={{ background: uiScheme.bg }}>
+      <div
+        className="h-screen flex items-center justify-center"
+        style={{ background: uiScheme.bg }}
+      >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 rounded-full animate-spin"
-               style={{ borderColor: `${uiScheme.fg}20`, borderTopColor: uiScheme.fg }} />
-          <p className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>加载中...</p>
+          <div
+            className="w-10 h-10 border-2 rounded-full animate-spin"
+            style={{
+              borderColor: `${uiScheme.fg}20`,
+              borderTopColor: uiScheme.fg,
+            }}
+          />
+          <p
+            className="text-sm font-medium"
+            style={{ color: uiScheme.mutedText }}
+          >
+            加载中...
+          </p>
         </div>
       </div>
     );
@@ -699,24 +795,39 @@ export default function ReadPage() {
 
   if (error) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 p-8" style={{ background: uiScheme.bg }}>
+      <div
+        className="h-screen flex flex-col items-center justify-center gap-4 p-8"
+        style={{ background: uiScheme.bg }}
+      >
         <div className="w-16 h-20 rounded border-2 border-destructive/30 flex items-center justify-center bg-destructive/5">
           <span className="text-destructive text-2xl font-semibold">!</span>
         </div>
         <p className="text-base font-medium text-destructive">{error}</p>
-        <Button onClick={handleBack} variant="outline" className="mt-2">返回书库</Button>
+        <Button onClick={handleBack} variant="outline" className="mt-2">
+          返回书库
+        </Button>
       </div>
     );
   }
 
-  const toolbarButtonClass = 'h-8 w-8 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9';
-  const isToolbarVisible = !isTouchReader || showToolbar || tocOpen || themeSettingsOpen;
-  const isDarkPreset = theme.preset === 'dark';
-  const gestureOverlayColor = isDarkPreset ? 'rgba(255,255,255,0.18)' : 'rgba(15,23,42,0.18)';
-  const gestureOverlayColorStrong = isDarkPreset ? 'rgba(255,255,255,0.24)' : 'rgba(15,23,42,0.24)';
-  const gestureDividerColor = isDarkPreset ? 'rgba(255,255,255,0.42)' : 'rgba(15,23,42,0.28)';
-  const gestureZoneClassName = 'relative flex-1 cursor-default border-0 bg-transparent p-0 outline-none pointer-events-auto touch-manipulation';
-  const gestureHintClassName = 'pointer-events-none inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-[15px] font-medium tracking-[0.01em] shadow-[0_12px_30px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md';
+  const toolbarButtonClass =
+    "h-8 w-8 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9";
+  const isToolbarVisible =
+    !isTouchReader || showToolbar || tocOpen || themeSettingsOpen;
+  const isDarkPreset = theme.preset === "dark";
+  const gestureOverlayColor = isDarkPreset
+    ? "rgba(255,255,255,0.18)"
+    : "rgba(15,23,42,0.18)";
+  const gestureOverlayColorStrong = isDarkPreset
+    ? "rgba(255,255,255,0.24)"
+    : "rgba(15,23,42,0.24)";
+  const gestureDividerColor = isDarkPreset
+    ? "rgba(255,255,255,0.42)"
+    : "rgba(15,23,42,0.28)";
+  const gestureZoneClassName =
+    "relative flex-1 cursor-default border-0 bg-transparent p-0 outline-none pointer-events-auto touch-manipulation";
+  const gestureHintClassName =
+    "pointer-events-none inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-[15px] font-medium tracking-[0.01em] shadow-[0_12px_30px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
     background: active
@@ -729,7 +840,10 @@ export default function ReadPage() {
   });
 
   return (
-    <div className="relative h-screen overflow-hidden" style={{ background: uiScheme.bg }}>
+    <div
+      className="relative h-screen overflow-hidden"
+      style={{ background: uiScheme.bg }}
+    >
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -741,337 +855,349 @@ export default function ReadPage() {
         }}
       />
 
-      <div className="relative flex h-full flex-col px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
-        <div
-          className="relative mx-auto flex h-full min-h-0 w-full max-w-[1760px] flex-col overflow-hidden rounded-[26px] border shadow-[0_36px_90px_-44px_rgba(15,23,42,0.42)]"
+      <div className="relative flex h-full min-h-0 flex-col">
+        <header
+          data-reader-interactive="true"
+          className={`absolute inset-x-0 top-0 z-50 overflow-hidden border-b px-3 py-2 transition-all duration-200 ease-out sm:px-4 sm:py-2.5 ${
+            isToolbarVisible
+              ? "translate-y-0 opacity-100 pointer-events-auto"
+              : "-translate-y-full opacity-0 pointer-events-none"
+          }`}
           style={{
-            background: withOpacity(uiScheme.headerBg, 0.82),
-            borderColor: withOpacity(uiScheme.headerBorder, 0.58),
+            backdropFilter: "blur(14px)",
+            background: `
+              linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.82)} 0%, ${withOpacity(uiScheme.cardBg, 0.58)} 100%)
+            `,
+            borderColor: withOpacity(uiScheme.headerBorder, 0.38),
           }}
         >
-          <header
-            data-reader-interactive="true"
-            className={`absolute inset-x-0 top-0 z-50 overflow-hidden border-b px-3 py-2 transition-all duration-200 ease-out sm:px-4 sm:py-2.5 ${
-              isToolbarVisible
-                ? 'translate-y-0 opacity-100 pointer-events-auto'
-                : '-translate-y-full opacity-0 pointer-events-none'
-            }`}
-            style={{
-              backdropFilter: 'blur(14px)',
-              background: `
-                linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.82)} 0%, ${withOpacity(uiScheme.cardBg, 0.58)} 100%)
-              `,
-              borderColor: withOpacity(uiScheme.headerBorder, 0.38),
-            }}
-          >
-            <div className="flex items-center justify-between gap-2.5 sm:gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBack}
-                  title="返回书库"
-                  className="h-8 w-8 shrink-0 rounded-full p-0"
-                  style={getToolbarButtonStyle(false)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
+          <div className="flex items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBack}
+                title="返回书库"
+                className="h-8 w-8 shrink-0 rounded-full p-0"
+                style={getToolbarButtonStyle(false)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
 
-                <div className="min-w-0 flex-1 pr-1.5 sm:pr-2">
-                  <div className="flex min-h-[2.25rem] items-center gap-2">
-                    <div className="min-w-0 flex flex-1 items-center gap-2">
-                      <span
-                        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-mono tabular-nums tracking-[0.08em]"
-                        style={{
-                          color: uiScheme.accentText,
-                          background: withOpacity(uiScheme.cardBorder, 0.14),
-                        }}
+              <div className="min-w-0 flex-1 pr-1.5 sm:pr-2">
+                <div className="flex min-h-[2.25rem] items-center gap-2">
+                  <div className="min-w-0 flex flex-1 items-center gap-2">
+                    <span
+                      className="shrink-0 rounded-full px-2 py-1 text-[10px] font-mono tabular-nums tracking-[0.08em]"
+                      style={{
+                        color: uiScheme.accentText,
+                        background: withOpacity(uiScheme.cardBorder, 0.14),
+                      }}
+                    >
+                      {percentage}%
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate text-[11px] font-medium"
+                        style={{ color: uiScheme.fg }}
                       >
-                        {percentage}%
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className="truncate text-[11px] font-medium"
-                          style={{ color: uiScheme.fg }}
-                        >
-                          {currentChapter || '等待定位章节'}
-                        </p>
-                        <p
-                          className="mt-0.5 hidden truncate text-[10px] sm:block"
-                          style={{ color: uiScheme.mutedText }}
-                        >
-                          阅读进度会自动保存
-                        </p>
-                      </div>
+                        {currentChapter || "等待定位章节"}
+                      </p>
+                      <p
+                        className="mt-0.5 hidden truncate text-[10px] sm:block"
+                        style={{ color: uiScheme.mutedText }}
+                      >
+                        阅读进度会自动保存
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex shrink-0 items-center gap-1.5">
-                <Sheet open={tocOpen} onOpenChange={setTocOpen}>
-                  <SheetTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="目录"
-                        className={toolbarButtonClass}
-                        style={getToolbarButtonStyle(tocOpen)}
-                      />
-                    }
-                  >
-                    <List className="h-4 w-4" />
-                  </SheetTrigger>
-                  <SheetContent
-                    side="left"
-                    className="w-[85vw] max-w-sm overflow-hidden rounded-r-[28px] p-0 backdrop-blur-xl sm:w-80"
-                    style={{
-                      background: withOpacity(uiScheme.cardBg, 0.97),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.82),
-                      boxShadow: `0 28px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.34)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
-                    }}
-                  >
-                    <SheetHeader
-                      className="border-b px-5 py-4 pb-3.5"
-                      style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.34) }}
-                    >
-                      <SheetTitle
-                        className="text-base font-semibold sm:text-lg"
-                        style={{ color: uiScheme.fg }}
-                      >
-                        目录
-                      </SheetTitle>
-                      <p className="text-xs" style={{ color: uiScheme.mutedText }}>
-                        快速跳转章节与结构
-                      </p>
-                    </SheetHeader>
-                    <ScrollArea className="h-[calc(100vh-84px)] sm:h-[calc(100vh-88px)]">
-                      <div
-                        ref={tocListRef}
-                        className="m-4 rounded-[22px] border p-3"
-                        style={{
-                          background: withOpacity(uiScheme.buttonBg, 0.44),
-                          borderColor: withOpacity(uiScheme.cardBorder, 0.42),
-                        }}
-                      >
-                        {toc.length > 0 ? (
-                          toc.map((item, idx) => (
-                            <MemoizedTOCNode
-                              key={idx}
-                              item={item}
-                              onGoTo={goTo}
-                              currentChapter={currentChapter}
-                              uiScheme={uiScheme}
-                            />
-                          ))
-                        ) : (
-                          <p
-                            className="py-8 text-center text-sm"
-                            style={{ color: uiScheme.mutedText }}
-                          >
-                            暂无目录
-                          </p>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </SheetContent>
-                </Sheet>
-
-                <Suspense fallback={null}>
-                  <TTSControls
-                    state={ttsState}
-                    settings={ttsSettings}
-                    voices={voices}
-                    onStart={startTTS}
-                    onStop={stopTTS}
-                    onNext={nextTTS}
-                    onPrev={prevTTS}
-                    onUpdateSettings={updateTTSSettings}
-                    uiScheme={uiScheme}
-                    variant="toolbar"
-                  />
-                </Suspense>
-
-                <ThemeSettings
-                  theme={theme}
-                  setTheme={setTheme}
-                  uiScheme={uiScheme}
-                  open={themeSettingsOpen}
-                  onOpenChange={setThemeSettingsOpen}
-                />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={logout}
-                  title="退出"
-                  className={`hidden sm:flex ${toolbarButtonClass}`}
-                  style={getToolbarButtonStyle(false)}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
 
-          </header>
-
-          <div
-            className="min-h-0 flex-1 p-1.5 sm:p-2"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onClick={handleContainerClick}
-          >
-            <div
-              className="relative h-full overflow-hidden rounded-[20px] border"
-              style={{
-                background: `
-                  linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
-                `,
-                borderColor: withOpacity(uiScheme.cardBorder, 0.9),
-                boxShadow: `inset 0 1px 0 ${withOpacity(uiScheme.cardBorder, 0.2)}`,
-              }}
-            >
-              {loading && (
-                <div
-                  className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Sheet open={tocOpen} onOpenChange={setTocOpen}>
+                <SheetTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="目录"
+                      className={toolbarButtonClass}
+                      style={getToolbarButtonStyle(tocOpen)}
+                    />
+                  }
+                >
+                  <List className="h-4 w-4" />
+                </SheetTrigger>
+                <SheetContent
+                  side="left"
+                  className="w-[85vw] max-w-sm overflow-hidden rounded-r-[28px] p-0 backdrop-blur-xl sm:w-80"
                   style={{
-                    background: `
-                      linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)
-                    `,
+                    background: withOpacity(uiScheme.cardBg, 0.97),
+                    borderColor: withOpacity(uiScheme.cardBorder, 0.82),
+                    boxShadow: `0 28px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.34)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                   }}
                 >
+                  <SheetHeader
+                    className="border-b px-5 py-4 pb-3.5"
+                    style={{
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.34),
+                    }}
+                  >
+                    <SheetTitle
+                      className="text-base font-semibold sm:text-lg"
+                      style={{ color: uiScheme.fg }}
+                    >
+                      目录
+                    </SheetTitle>
+                    <p
+                      className="text-xs"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      快速跳转章节与结构
+                    </p>
+                  </SheetHeader>
+                  <ScrollArea className="h-[calc(100vh-84px)] sm:h-[calc(100vh-88px)]">
+                    <div
+                      ref={tocListRef}
+                      className="m-4 rounded-[22px] border p-3"
+                      style={{
+                        background: withOpacity(uiScheme.buttonBg, 0.44),
+                        borderColor: withOpacity(uiScheme.cardBorder, 0.42),
+                      }}
+                    >
+                      {toc.length > 0 ? (
+                        toc.map((item, idx) => (
+                          <MemoizedTOCNode
+                            key={idx}
+                            item={item}
+                            onGoTo={goTo}
+                            currentChapter={currentChapter}
+                            uiScheme={uiScheme}
+                          />
+                        ))
+                      ) : (
+                        <p
+                          className="py-8 text-center text-sm"
+                          style={{ color: uiScheme.mutedText }}
+                        >
+                          暂无目录
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
+
+              <Suspense fallback={null}>
+                <TTSControls
+                  state={ttsState}
+                  settings={ttsSettings}
+                  voices={voices}
+                  onStart={startTTS}
+                  onStop={stopTTS}
+                  onNext={nextTTS}
+                  onPrev={prevTTS}
+                  onUpdateSettings={updateTTSSettings}
+                  uiScheme={uiScheme}
+                  variant="toolbar"
+                />
+              </Suspense>
+
+              <ThemeSettings
+                theme={theme}
+                setTheme={setTheme}
+                uiScheme={uiScheme}
+                open={themeSettingsOpen}
+                onOpenChange={setThemeSettingsOpen}
+              />
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                title="退出"
+                className={`hidden sm:flex ${toolbarButtonClass}`}
+                style={getToolbarButtonStyle(false)}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div
+          className="min-h-0 flex-1"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onClick={handleContainerClick}
+        >
+          <div
+            className="relative h-full overflow-hidden"
+            style={{
+              background: `
+                linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
+              `,
+            }}
+          >
+            {loading && (
+              <div
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+                style={{
+                  background: `
+                    linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)
+                  `,
+                }}
+              >
                 <div
                   className="flex min-w-[220px] flex-col items-center gap-4 rounded-[26px] border px-8 py-7 backdrop-blur-xl"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.88),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.78),
-                      boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                    boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                  }}
+                >
+                  <div
+                    className="flex h-20 w-16 items-center justify-center rounded-[20px] border"
+                    style={{
+                      background: withOpacity(uiScheme.buttonBg, 0.52),
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.72),
                     }}
                   >
                     <div
-                      className="flex h-20 w-16 items-center justify-center rounded-[20px] border"
+                      className="h-10 w-10 animate-spin rounded-full border-2"
                       style={{
-                        background: withOpacity(uiScheme.buttonBg, 0.52),
-                        borderColor: withOpacity(uiScheme.cardBorder, 0.72),
+                        borderColor: withOpacity(uiScheme.link, 0.2),
+                        borderTopColor: uiScheme.link,
                       }}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p
+                      className="text-sm font-medium tracking-tight"
+                      style={{ color: uiScheme.fg }}
                     >
-                      <div
-                        className="h-10 w-10 animate-spin rounded-full border-2"
-                        style={{
-                          borderColor: withOpacity(uiScheme.link, 0.2),
-                          borderTopColor: uiScheme.link,
-                        }}
-                      />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium tracking-tight" style={{ color: uiScheme.fg }}>
-                        {loadingMsg}
-                      </p>
-                      <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
-                        正在准备阅读环境与书籍内容
-                      </p>
-                    </div>
+                      {loadingMsg}
+                    </p>
+                    <p
+                      className="mt-1 text-xs"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      正在准备阅读环境与书籍内容
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              <div ref={containerRef} className="absolute inset-0" />
+            <div ref={containerRef} className="absolute inset-0" />
 
-              {(isTouchReader || !isToolbarVisible) && (
-                <div
-                  className={`absolute inset-x-0 bottom-0 z-40 flex flex-col pointer-events-auto ${
-                    isToolbarVisible ? 'top-16 sm:top-[4.5rem]' : 'top-0'
-                  }`}
-                  data-reader-interactive="true"
+            {(isTouchReader || !isToolbarVisible) && (
+              <div
+                className={`absolute inset-x-0 bottom-0 z-40 flex flex-col pointer-events-auto ${
+                  isToolbarVisible ? "top-16 sm:top-[4.5rem]" : "top-0"
+                }`}
+                data-reader-interactive="true"
+              >
+                <button
+                  type="button"
+                  aria-label="上一页"
+                  className={`${gestureZoneClassName} basis-[38%] flex items-center justify-center`}
+                  style={{
+                    background: isToolbarVisible
+                      ? `linear-gradient(180deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColor} 100%)`
+                      : "transparent",
+                    borderBottom: isToolbarVisible
+                      ? `2px dashed ${gestureDividerColor}`
+                      : "none",
+                  }}
+                  {...createGestureHandlers("prev")}
                 >
-                  <button
-                    type="button"
-                    aria-label="上一页"
-                    className={`${gestureZoneClassName} basis-[38%] flex items-center justify-center`}
-                    style={{
-                      background: isToolbarVisible
-                        ? `linear-gradient(180deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColor} 100%)`
-                        : 'transparent',
-                      borderBottom: isToolbarVisible
-                        ? `2px dashed ${gestureDividerColor}`
-                        : 'none',
-                    }}
-                    {...createGestureHandlers('prev')}
-                  >
-                    {isToolbarVisible && (
-                      <span
-                        className={gestureHintClassName}
-                        style={{
-                          color: isDarkPreset ? '#f8fafc' : '#111827',
-                          background: isDarkPreset ? 'rgba(15,23,42,0.86)' : 'rgba(255,255,255,0.9)',
-                          borderColor: isDarkPreset ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.08)',
-                        }}
-                      >
-                        上一页
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={showToolbar ? '隐藏顶部菜单' : '显示顶部菜单'}
-                    className={`${gestureZoneClassName} basis-[24%] flex items-center justify-center`}
-                    style={{
-                      background: isToolbarVisible
-                        ? `linear-gradient(180deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColorStrong} 100%)`
-                        : 'transparent',
-                      borderTop: isToolbarVisible
-                        ? `2px dashed ${gestureDividerColor}`
-                        : 'none',
-                      borderBottom: isToolbarVisible
-                        ? `2px dashed ${gestureDividerColor}`
-                        : 'none',
-                    }}
-                    {...createGestureHandlers('toggle')}
-                  >
-                    {isToolbarVisible && (
-                      <span
-                        className={gestureHintClassName}
-                        style={{
-                          color: isDarkPreset ? '#fef3c7' : '#111827',
-                          background: isDarkPreset ? 'rgba(120,53,15,0.86)' : 'rgba(255,248,220,0.94)',
-                          borderColor: isDarkPreset ? 'rgba(245,158,11,0.28)' : 'rgba(217,119,6,0.18)',
-                        }}
-                      >
-                        {showToolbar ? '隐藏菜单' : '显示菜单'}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="下一页"
-                    className={`${gestureZoneClassName} basis-[38%] flex items-center justify-center`}
-                    style={{
-                      background: isToolbarVisible
-                        ? `linear-gradient(0deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColor} 100%)`
-                        : 'transparent',
-                      borderTop: isToolbarVisible
-                        ? `2px dashed ${gestureDividerColor}`
-                        : 'none',
-                    }}
-                    {...createGestureHandlers('next')}
-                  >
-                    {isToolbarVisible && (
-                      <span
-                        className={gestureHintClassName}
-                        style={{
-                          color: isDarkPreset ? '#f8fafc' : '#111827',
-                          background: isDarkPreset ? 'rgba(15,23,42,0.86)' : 'rgba(255,255,255,0.9)',
-                          borderColor: isDarkPreset ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.08)',
-                        }}
-                      >
-                        下一页
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
+                  {isToolbarVisible && (
+                    <span
+                      className={gestureHintClassName}
+                      style={{
+                        color: isDarkPreset ? "#f8fafc" : "#111827",
+                        background: isDarkPreset
+                          ? "rgba(15,23,42,0.86)"
+                          : "rgba(255,255,255,0.9)",
+                        borderColor: isDarkPreset
+                          ? "rgba(255,255,255,0.14)"
+                          : "rgba(15,23,42,0.08)",
+                      }}
+                    >
+                      上一页
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-label={showToolbar ? "隐藏顶部菜单" : "显示顶部菜单"}
+                  className={`${gestureZoneClassName} basis-[24%] flex items-center justify-center`}
+                  style={{
+                    background: isToolbarVisible
+                      ? `linear-gradient(180deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColorStrong} 100%)`
+                      : "transparent",
+                    borderTop: isToolbarVisible
+                      ? `2px dashed ${gestureDividerColor}`
+                      : "none",
+                    borderBottom: isToolbarVisible
+                      ? `2px dashed ${gestureDividerColor}`
+                      : "none",
+                  }}
+                  {...createGestureHandlers("toggle")}
+                >
+                  {isToolbarVisible && (
+                    <span
+                      className={gestureHintClassName}
+                      style={{
+                        color: isDarkPreset ? "#fef3c7" : "#111827",
+                        background: isDarkPreset
+                          ? "rgba(120,53,15,0.86)"
+                          : "rgba(255,248,220,0.94)",
+                        borderColor: isDarkPreset
+                          ? "rgba(245,158,11,0.28)"
+                          : "rgba(217,119,6,0.18)",
+                      }}
+                    >
+                      {showToolbar ? "隐藏菜单" : "显示菜单"}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-label="下一页"
+                  className={`${gestureZoneClassName} basis-[38%] flex items-center justify-center`}
+                  style={{
+                    background: isToolbarVisible
+                      ? `linear-gradient(0deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColor} 100%)`
+                      : "transparent",
+                    borderTop: isToolbarVisible
+                      ? `2px dashed ${gestureDividerColor}`
+                      : "none",
+                  }}
+                  {...createGestureHandlers("next")}
+                >
+                  {isToolbarVisible && (
+                    <span
+                      className={gestureHintClassName}
+                      style={{
+                        color: isDarkPreset ? "#f8fafc" : "#111827",
+                        background: isDarkPreset
+                          ? "rgba(15,23,42,0.86)"
+                          : "rgba(255,255,255,0.9)",
+                        borderColor: isDarkPreset
+                          ? "rgba(255,255,255,0.14)"
+                          : "rgba(15,23,42,0.08)",
+                      }}
+                    >
+                      下一页
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1079,12 +1205,18 @@ export default function ReadPage() {
   );
 }
 
-function TOCNode({ item, onGoTo, depth = 0, currentChapter, uiScheme }: {
+function TOCNode({
+  item,
+  onGoTo,
+  depth = 0,
+  currentChapter,
+  uiScheme,
+}: {
   item: TOCItem;
   onGoTo: (href: string) => void;
   depth?: number;
   currentChapter: string;
-  uiScheme: ThemeColors
+  uiScheme: ThemeColors;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const isCurrentChapter = currentChapter === item.label;
@@ -1092,14 +1224,15 @@ function TOCNode({ item, onGoTo, depth = 0, currentChapter, uiScheme }: {
   return (
     <div>
       <Button
-        data-current-chapter={isCurrentChapter ? 'true' : undefined}
+        data-current-chapter={isCurrentChapter ? "true" : undefined}
         variant="ghost"
         size="sm"
         className="mb-1.5 h-9 w-full justify-start rounded-xl border transition-all duration-150 sm:h-10"
         style={{
-          paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : '12px',
-          paddingRight: '12px',
-          color: isCurrentChapter || isHovered ? uiScheme.fg : uiScheme.buttonText,
+          paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : "12px",
+          paddingRight: "12px",
+          color:
+            isCurrentChapter || isHovered ? uiScheme.fg : uiScheme.buttonText,
           background: isCurrentChapter
             ? withOpacity(uiScheme.link, 0.14)
             : isHovered
@@ -1110,9 +1243,10 @@ function TOCNode({ item, onGoTo, depth = 0, currentChapter, uiScheme }: {
             : isHovered
               ? withOpacity(uiScheme.link, 0.18)
               : withOpacity(uiScheme.cardBorder, 0.4),
-          boxShadow: isCurrentChapter || isHovered
-            ? `0 14px 22px -20px ${withOpacity(uiScheme.link, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.35)`
-            : 'none',
+          boxShadow:
+            isCurrentChapter || isHovered
+              ? `0 14px 22px -20px ${withOpacity(uiScheme.link, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.35)`
+              : "none",
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

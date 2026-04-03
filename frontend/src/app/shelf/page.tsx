@@ -346,9 +346,9 @@ export default function ShelfPage() {
 
   return (
     <div className="min-h-screen warm-gradient paper-texture">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-4 py-4 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
-        <header className="rounded-[28px] border border-border/60 bg-background/82 px-4 py-4 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:px-6 sm:py-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+        <header className="rounded-[24px] border border-border/60 bg-background/82 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:rounded-[28px] sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex items-start gap-4">
               <div className="min-w-0 flex-1">
                 <Image
@@ -356,10 +356,10 @@ export default function ShelfPage() {
                   alt="Z Reader"
                   width={200}
                   height={61}
-                  className="h-auto w-[150px] sm:w-[200px]"
+                  className="h-auto w-[142px] sm:w-[200px]"
                   priority
                 />
-                <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground sm:text-sm">
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:mt-3 sm:text-sm">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/80 px-2.5 py-1 text-[11px] font-medium text-foreground sm:bg-transparent sm:px-0 sm:py-0 sm:text-sm">
                     <Library className="h-3.5 w-3.5" />
                     我的书架
@@ -376,12 +376,12 @@ export default function ShelfPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 rounded-[22px] bg-muted/65 p-1.5 sm:justify-end sm:rounded-full sm:bg-transparent sm:p-0">
-              <div className="text-[11px] leading-tight text-muted-foreground sm:hidden">
-                <p className="font-medium text-foreground">移动书架</p>
-                <p>上传、分类、继续阅读</p>
+            <div className="flex items-center justify-between gap-3 rounded-[20px] border border-border/50 bg-muted/55 px-2 py-2 sm:justify-end sm:rounded-full sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+              <div className="sm:hidden">
+                <p className="text-[11px] font-medium tracking-[0.02em] text-foreground">随手整理你的书架</p>
+                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">上传、分类、继续阅读</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+              <div className="flex shrink-0 items-center gap-2 rounded-[18px] bg-background/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] sm:gap-3 sm:rounded-full sm:bg-transparent sm:p-0 sm:shadow-none">
                 <CategoryManager onCategoryChange={loadCategories} />
                 <div className="relative min-w-0">
                   <Input
@@ -395,7 +395,7 @@ export default function ShelfPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="pointer-events-none h-10 w-10 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none"
+                    className="pointer-events-none h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none sm:h-10 sm:w-10"
                     disabled={isUploading}
                   >
                     {isUploading ? (
@@ -411,7 +411,7 @@ export default function ShelfPage() {
                   size="sm"
                   onClick={logout}
                   title="退出"
-                  className="h-10 w-10 shrink-0 rounded-full border-border/70 bg-background p-0 text-foreground shadow-none hover:bg-muted"
+                  className="h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 text-foreground shadow-none hover:bg-muted sm:h-10 sm:w-10"
                 >
                   <LogOut className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                 </Button>
@@ -420,7 +420,7 @@ export default function ShelfPage() {
           </div>
         </header>
 
-        <main className="flex-1 py-6 sm:py-10">
+        <main className="flex-1 py-5 sm:py-10">
           {books.length === 0 ? (
             <div className="flex min-h-[58vh] items-center justify-center">
               <div className="w-full max-w-xl rounded-[32px] border border-black/10 bg-white/90 px-5 py-12 text-center shadow-[0_28px_68px_-44px_rgba(15,23,42,0.42)] sm:px-12 sm:py-16">
@@ -467,9 +467,12 @@ export default function ShelfPage() {
               )}
 
               {categories.length > 0 && (
-                <div className="relative z-20 mb-5 space-y-3 rounded-[26px] border border-border/55 bg-background/72 px-3 py-3 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.32)] backdrop-blur-xl sm:mb-6 sm:space-y-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
-                  <p className="px-1 text-[12px] leading-5 text-muted-foreground sm:px-0 sm:text-xs">
-                    点击左上角拖动按钮并滑向扇形分类，松手即可归类；点下面的标签可以筛选书架。
+                <div className="relative z-20 mb-4 space-y-2.5 rounded-[24px] border border-border/55 bg-background/78 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.32)] backdrop-blur-xl sm:mb-6 sm:space-y-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
+                  <div className="flex items-center gap-3 px-0.5 sm:hidden">
+                    <p className="text-[11px] font-medium text-foreground">书架筛选</p>
+                  </div>
+                  <p className="px-0.5 text-[11px] leading-4.5 text-muted-foreground sm:px-0 sm:text-xs sm:leading-5">
+                    长按左上角拖动分类，点标签筛选书架。
                   </p>
                   <CategoryFilter
                     categories={categories}
@@ -489,7 +492,7 @@ export default function ShelfPage() {
                 />
               )}
 
-              <div className="relative z-0 grid grid-cols-[repeat(auto-fit,minmax(168px,1fr))] justify-items-center gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fit,minmax(176px,1fr))] sm:gap-x-4 sm:gap-y-5 lg:grid-cols-[repeat(auto-fit,minmax(184px,1fr))] lg:gap-x-5 lg:gap-y-6">
+              <div className="relative z-0 grid grid-cols-[repeat(2,minmax(160px,160px))] justify-between gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,176px))] sm:justify-start sm:gap-x-4 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(184px,184px))] lg:gap-x-5 lg:gap-y-6">
                 {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

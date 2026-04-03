@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Category } from '@/lib/api';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
+const MAX_CATEGORY_LABEL_LENGTH = 6;
 
 interface CategoryFilterProps {
   categories: Category[];
@@ -45,74 +46,70 @@ export function CategoryFilter({
     };
   }, []);
 
-  function isLightColor(color: string) {
-    const hex = color.replace('#', '');
-    if (hex.length !== 6) return false;
-
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-
-    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.68;
-  }
-
-  function getCategoryClassName(isSelected: boolean) {
+  function getCategoryClassName(isSelected: boolean, isRoot: boolean) {
     if (isSelected) {
-      return 'text-white shadow-sm';
+      return isRoot
+        ? 'text-foreground'
+        : 'text-foreground';
     }
 
-    return 'bg-background/92 border border-border/70 hover:bg-muted hover:border-border hover:shadow-[0_8px_18px_-18px_rgba(15,23,42,0.16)]';
+    return isRoot
+      ? 'text-foreground/72 hover:text-foreground'
+      : 'text-foreground/52 hover:text-foreground/82';
   }
 
   return (
-    <div className="relative -mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" ref={containerRef} onScroll={checkScroll}>
+    <div
+      className="relative -mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      ref={containerRef}
+      onScroll={checkScroll}
+    >
       <div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent transition-opacity duration-200 [mask-image:linear-gradient(to_right,black,transparent)] ${showLeftGradient ? 'opacity-100' : 'opacity-0'}`} />
       <div className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent transition-opacity duration-200 [mask-image:linear-gradient(to_left,black,transparent)] ${showRightGradient ? 'opacity-100' : 'opacity-0'}`} />
-      <div className="flex min-w-max gap-2">
-      <button
-        onClick={() => onSelectCategory(null)}
-        className={`inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm transition-all duration-200 ${
-          selectedCategoryId === null
-            ? 'bg-foreground text-background'
-            : getCategoryClassName(false)
-        }`}
-      >
-        全部 ({bookCounts.all || 0})
-      </button>
-      <button
-        onClick={() => onSelectCategory(UNCATEGORIZED_FILTER_ID)}
-        className={`inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm transition-all duration-200 ${
-          selectedCategoryId === UNCATEGORIZED_FILTER_ID
-            ? 'bg-foreground text-background'
-            : getCategoryClassName(false)
-        }`}
-      >
-        未分类 ({bookCounts[UNCATEGORIZED_FILTER_ID] || 0})
-      </button>
-      {categories.map((category) => {
-        const isSelected = selectedCategoryId === category.id;
+      <div className="min-w-max whitespace-nowrap">
+        {[
+          {
+            id: null,
+            label: truncateLabel('全部'),
+            color: null,
+          },
+          {
+            id: UNCATEGORIZED_FILTER_ID,
+            label: truncateLabel('未分类'),
+            color: null,
+          },
+          ...categories.map((category) => ({
+            id: category.id,
+            label: truncateLabel(category.name),
+            color: category.color,
+          })),
+        ].map((item, index) => {
+          const isSelected = selectedCategoryId === item.id;
+          const isRoot = item.id === null;
 
-        return (
-          <button
-            key={category.id}
-            onClick={() => onSelectCategory(category.id)}
-            className={`inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm transition-all duration-200 ${
-              isSelected
-                ? isLightColor(category.color)
-                  ? 'text-foreground'
-                  : 'text-white'
-                : getCategoryClassName(false)
-            }`}
-            style={{
-              backgroundColor: isSelected ? category.color : undefined,
-            }}
-          >
-            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: category.color }} />
-            {category.name} ({bookCounts[category.id] || 0})
-          </button>
-        );
-      })}
+          return (
+            <span
+              key={`${item.id ?? 'all'}-${index}`}
+              className={`inline-block ${index > 0 ? 'ml-3' : ''}`}
+            >
+              <button
+                onClick={() => onSelectCategory(item.id)}
+                className={`inline-block whitespace-nowrap py-1 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-200 ${getCategoryClassName(isSelected, isRoot)}`}
+                style={{
+                  color: isSelected && item.color ? item.color : undefined,
+                }}
+              >
+                {item.label}
+              </button>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
 }
+  function truncateLabel(label: string) {
+    return label.length > MAX_CATEGORY_LABEL_LENGTH
+      ? `${label.slice(0, MAX_CATEGORY_LABEL_LENGTH)}...`
+      : label;
+  }

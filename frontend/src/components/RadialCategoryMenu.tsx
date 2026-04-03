@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { GripVertical, Sparkles, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { Category } from '@/lib/api';
 
 export interface RadialCategoryTarget {
@@ -17,14 +17,16 @@ export interface RadialCategoryTarget {
   isClear: boolean;
 }
 
-const ARC_START = 14;
-const ARC_END = 132;
-const BASE_RADIUS = 108;
-const RING_GAP = 72;
-const MAX_PER_RING = 5;
+const MAX_LABEL_LENGTH = 5;
+const ITEM_WIDTH = 86;
+const ITEM_HEIGHT = 52;
+const ITEM_GAP = 10;
+const ROW_VERTICAL_OFFSET = -112;
 
-function toRadians(degrees: number) {
-  return (degrees * Math.PI) / 180;
+function truncateLabel(label: string) {
+  return label.length > MAX_LABEL_LENGTH
+    ? `${label.slice(0, MAX_LABEL_LENGTH)}...`
+    : label;
 }
 
 export function buildRadialCategoryTargets(
@@ -49,7 +51,7 @@ export function buildRadialCategoryTargets(
       .map((category) => ({
         id: category.id,
         categoryId: category.id,
-        label: category.name,
+        label: truncateLabel(category.name),
         color: category.color,
         count: bookCounts[category.id] || 0,
         blocked: false,
@@ -57,24 +59,15 @@ export function buildRadialCategoryTargets(
       })),
   ];
 
-  return items.map((item, index) => {
-    const ring = Math.floor(index / MAX_PER_RING);
-    const indexInRing = index % MAX_PER_RING;
-    const ringCount = Math.min(MAX_PER_RING, items.length - ring * MAX_PER_RING);
-    const radius = BASE_RADIUS + ring * RING_GAP;
-    const angle =
-      ringCount === 1
-        ? (ARC_START + ARC_END) / 2
-        : ARC_START + (indexInRing / (ringCount - 1)) * (ARC_END - ARC_START) + ring * 5;
-    const radians = toRadians(angle);
+  const totalWidth = items.length * ITEM_WIDTH + Math.max(0, items.length - 1) * ITEM_GAP;
+  const startX = -totalWidth / 2 + ITEM_WIDTH / 2;
 
-    return {
-      ...item,
-      dx: Math.cos(radians) * radius,
-      dy: Math.sin(radians) * radius,
-      size: 68,
-    };
-  });
+  return items.map((item, index) => ({
+    ...item,
+    dx: startX + index * (ITEM_WIDTH + ITEM_GAP),
+    dy: ROW_VERTICAL_OFFSET,
+    size: Math.max(ITEM_WIDTH, ITEM_HEIGHT),
+  }));
 }
 
 interface RadialCategoryMenuProps {
@@ -113,46 +106,59 @@ export function RadialCategoryMenu({
     return Math.min(Math.max(value, min), max);
   }
 
-  const maxItemSize = targets.reduce((max, target) => Math.max(max, target.size), 68);
-  const maxRadius = targets.reduce(
-    (max, target) => Math.max(max, Math.hypot(target.dx, target.dy)),
-    BASE_RADIUS
-  );
-  const menuPadding = maxRadius + maxItemSize / 2 + 18;
+  const bounds = useMemo(() => {
+    if (targets.length === 0) {
+      return { minDx: 0, maxDx: 0, minDy: 0, maxDy: 0 };
+    }
+
+    return targets.reduce(
+      (acc, target) => ({
+        minDx: Math.min(acc.minDx, target.dx - ITEM_WIDTH / 2),
+        maxDx: Math.max(acc.maxDx, target.dx + ITEM_WIDTH / 2),
+        minDy: Math.min(acc.minDy, target.dy - ITEM_HEIGHT / 2),
+        maxDy: Math.max(acc.maxDy, target.dy + ITEM_HEIGHT / 2),
+      }),
+      {
+        minDx: Number.POSITIVE_INFINITY,
+        maxDx: Number.NEGATIVE_INFINITY,
+        minDy: Number.POSITIVE_INFINITY,
+        maxDy: Number.NEGATIVE_INFINITY,
+      }
+    );
+  }, [targets]);
+
   const safeAnchorX = clampPosition(
     anchorX,
-    menuPadding,
-    Math.max(menuPadding, viewportSize.width - menuPadding)
+    16 - bounds.minDx,
+    Math.max(16 - bounds.minDx, viewportSize.width - 16 - bounds.maxDx)
   );
   const safeAnchorY = clampPosition(
     anchorY,
-    menuPadding,
-    Math.max(menuPadding, viewportSize.height - menuPadding)
+    16 - bounds.minDy,
+    Math.max(16 - bounds.minDy, viewportSize.height - 16 - bounds.maxDy)
   );
+  const trayLeft = safeAnchorX + bounds.minDx - 12;
+  const trayTop = safeAnchorY + bounds.minDy - 12;
+  const trayWidth = bounds.maxDx - bounds.minDx + 24;
+  const trayHeight = bounds.maxDy - bounds.minDy + 24;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[60] select-none">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_16%,transparent_58%)]" />
+      <div className="absolute inset-0 bg-white/6 backdrop-blur-[1.5px]" />
       <div
-        className="absolute rounded-full border border-black/8 bg-white/18 shadow-[0_24px_80px_-42px_rgba(15,23,42,0.36)] backdrop-blur-[2px]"
+        className="absolute rounded-[28px] border border-white/50 bg-white/60 shadow-[0_24px_60px_-38px_rgba(15,23,42,0.35)] backdrop-blur-xl"
         style={{
-          left: safeAnchorX,
-          top: safeAnchorY,
-          width: BASE_RADIUS * 2.7,
-          height: BASE_RADIUS * 2.7,
-          transform: 'translate(-50%, -50%)',
+          left: trayLeft,
+          top: trayTop,
+          width: trayWidth,
+          height: trayHeight,
         }}
       />
 
       {targets.map((target) => {
         const isHovered = hoveredCategoryId === target.id && !target.blocked;
-        const textColor = target.isClear ? '#dc2626' : target.color;
-        const itemSize = target.size;
         const left = safeAnchorX + target.dx;
         const top = safeAnchorY + target.dy;
-        const lineDx = target.dx;
-        const lineDy = target.dy;
-        const lineLength = Math.max(18, Math.hypot(lineDx, lineDy) - itemSize * 0.5);
 
         return (
           <div
@@ -161,74 +167,36 @@ export function RadialCategoryMenu({
             style={{
               left,
               top,
-              transform: `translate(-50%, -50%) scale(${isHovered ? 1.04 : target.blocked ? 0.94 : 1})`,
+              transform: `translate(-50%, -50%) translateY(${isHovered ? '-2px' : '0px'}) scale(${isHovered ? 1.04 : 1})`,
               opacity: target.blocked ? 0.48 : 1,
             }}
           >
             <div
-              className="absolute left-1/2 top-1/2 -z-10 origin-left rounded-full"
-              style={{
-                width: lineLength,
-                height: 2,
-                background: isHovered
-                  ? `linear-gradient(90deg, rgba(255,255,255,0.15) 0%, ${target.color}75 100%)`
-                  : 'linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.16) 100%)',
-                transform: `translateY(-50%) rotate(${Math.atan2(lineDy, lineDx)}rad)`,
-              }}
-            />
-            <div
-              className={`flex items-center justify-center border text-center shadow-[0_18px_40px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl transition-all duration-200 ${
+              className={`flex items-center justify-center rounded-2xl border backdrop-blur-xl transition-all duration-200 ${
                 isHovered
-                  ? 'border-white/85 ring-4 ring-white/30'
-                  : 'border-white/55'
-              } rounded-full ${target.blocked ? 'border-dashed' : ''}`}
+                  ? 'border-foreground/20 bg-white text-foreground shadow-[0_20px_36px_-22px_rgba(15,23,42,0.32)]'
+                  : 'border-border/60 bg-white/90 text-foreground/78 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.18)]'
+              } ${target.blocked ? 'border-dashed' : ''}`}
               style={{
-                width: itemSize,
-                height: itemSize,
-                background: target.blocked
-                  ? 'rgba(255,255,255,0.75)'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(244,244,245,0.96) 100%)',
-                color: target.blocked ? '#6b7280' : textColor,
-                boxShadow: isHovered
-                  ? `0 0 0 1px ${target.color}55, 0 18px 40px -24px ${target.color}99`
-                  : undefined,
+                width: ITEM_WIDTH,
+                height: ITEM_HEIGHT,
+                color: target.isClear ? '#dc2626' : isHovered ? '#171717' : target.color,
               }}
             >
-              <div
-                className="absolute inset-[4px] rounded-full border"
-                style={{
-                  borderColor: target.isClear ? 'rgba(220,38,38,0.18)' : `${target.color}26`,
-                }}
-              />
               {target.isClear ? (
-                <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(220,38,38,0.12)] text-[#dc2626]">
+                <div className="flex items-center gap-2 text-sm font-semibold">
                   <Trash2 className="h-4 w-4" />
+                  <span>删除</span>
                 </div>
               ) : (
-                <div className="relative flex items-center justify-center px-2">
-                  <span className="max-w-[72%] text-center text-[11px] font-semibold leading-tight">
-                    {target.label}
-                  </span>
-                </div>
+                <span className="px-2 text-center text-[14px] font-semibold leading-[1.2]">
+                  {target.label}
+                </span>
               )}
             </div>
           </div>
         );
       })}
-
-      <div
-        className="absolute -translate-x-1/2 -translate-y-1/2"
-        style={{ left: safeAnchorX, top: safeAnchorY }}
-      >
-        <div className="absolute inset-[-28px] rounded-full bg-foreground/12 blur-2xl" />
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(24,24,27,0.92),rgba(39,39,42,0.98))] text-white shadow-[0_26px_46px_-28px_rgba(15,23,42,0.75)] backdrop-blur-xl">
-          <div className="absolute inset-[6px] rounded-full border border-white/10" />
-          <div className="relative flex items-center gap-1">
-            <GripVertical className="h-4 w-4 opacity-80" />
-            <Sparkles className="h-4 w-4" />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

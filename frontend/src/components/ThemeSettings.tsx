@@ -5,6 +5,7 @@ import {
   ReaderTheme,
   ThemeColors,
 } from "@/hooks/useReaderTheme";
+import type { TTSSettings, Voice } from "@/lib/tts";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -29,6 +30,13 @@ const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "classic",
   "humanist",
 ];
+const SUPPORTED_LOCALES = ["zh", "en", "ja", "ko"] as const;
+const LOCALE_LABELS: Record<(typeof SUPPORTED_LOCALES)[number], string> = {
+  zh: "中文",
+  en: "英语",
+  ja: "日语",
+  ko: "韩语",
+};
 
 function getPaddingLabel(value: number) {
   if (value <= 12) return "极窄";
@@ -56,6 +64,9 @@ interface ThemeSettingsProps {
   theme: ReaderTheme;
   setTheme: (theme: Partial<ReaderTheme>) => void;
   uiScheme: ThemeColors;
+  ttsSettings: TTSSettings;
+  voices: Voice[];
+  onUpdateTTSSettings: (settings: Partial<TTSSettings>) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -64,6 +75,9 @@ export function ThemeSettings({
   theme,
   setTheme,
   uiScheme,
+  ttsSettings,
+  voices,
+  onUpdateTTSSettings,
   open,
   onOpenChange,
 }: ThemeSettingsProps) {
@@ -94,6 +108,38 @@ export function ThemeSettings({
   const segmentedBgStyle = {
     background: `${uiScheme.cardBorder}30`,
   };
+  const availableLocales = SUPPORTED_LOCALES.filter((locale) =>
+    voices.some((voice) => voice.Locale.startsWith(locale)),
+  );
+  const localeVoicesMap = availableLocales.map((locale) => ({
+    locale,
+    label: LOCALE_LABELS[locale],
+    voices: voices.filter((voice) => voice.Locale.startsWith(locale)),
+  }));
+  const selectedVoice = voices.find((voice) => voice.Name === ttsSettings.voiceName);
+  const selectedLocale =
+    availableLocales.find((locale) => selectedVoice?.Locale.startsWith(locale)) ??
+    availableLocales[0];
+  const currentLocaleVoices =
+    localeVoicesMap.find((item) => item.locale === selectedLocale)?.voices ?? [];
+  const availableStyles = selectedVoice?.StyleList?.length
+    ? selectedVoice.StyleList
+    : ["general"];
+
+  function handleLocaleChange(locale: string) {
+    const nextVoices = voices.filter((voice) => voice.Locale.startsWith(locale));
+    const nextVoice = nextVoices.find((voice) => voice.Name === ttsSettings.voiceName);
+
+    if (nextVoice) return;
+
+    const fallbackVoice = nextVoices[0];
+    if (!fallbackVoice) return;
+
+    onUpdateTTSSettings({
+      voiceName: fallbackVoice.Name,
+      style: fallbackVoice.StyleList?.[0] ?? "general",
+    });
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -132,7 +178,7 @@ export function ThemeSettings({
                 阅读偏好
               </SheetTitle>
               <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
-                调整页面氛围、排版边距与阅读方式
+                调整页面氛围、排版边距与朗读偏好
               </p>
             </div>
             <div
@@ -649,6 +695,281 @@ export function ThemeSettings({
               >
                 宽敞
               </span>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
+
+          {/* 朗读偏好 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
+                朗读偏好
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                TTS
+              </span>
+            </div>
+
+            <div className="space-y-3 rounded-xl border p-3" style={sectionStyle}>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label
+                    className="text-xs sm:text-sm"
+                    style={{ color: uiScheme.fg }}
+                  >
+                    语速
+                  </Label>
+                  <span
+                    className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                    style={{
+                      color: uiScheme.link,
+                      background: `${uiScheme.link}15`,
+                    }}
+                  >
+                    {ttsSettings.rate === 0
+                      ? "正常"
+                      : `${ttsSettings.rate > 0 ? "+" : ""}${ttsSettings.rate}%`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="text-[10px]"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    -50
+                  </span>
+                  <Slider
+                    value={[ttsSettings.rate]}
+                    onValueChange={([value]) =>
+                      onUpdateTTSSettings({ rate: value })
+                    }
+                    min={-50}
+                    max={100}
+                    step={10}
+                    className="flex-1"
+                  />
+                  <span
+                    className="text-[10px]"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    +100
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label
+                    className="text-xs sm:text-sm"
+                    style={{ color: uiScheme.fg }}
+                  >
+                    音调
+                  </Label>
+                  <span
+                    className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                    style={{
+                      color: uiScheme.link,
+                      background: `${uiScheme.link}15`,
+                    }}
+                  >
+                    {ttsSettings.pitch === 0
+                      ? "正常"
+                      : `${ttsSettings.pitch > 0 ? "+" : ""}${ttsSettings.pitch}%`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="text-[10px]"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    -50
+                  </span>
+                  <Slider
+                    value={[ttsSettings.pitch]}
+                    onValueChange={([value]) =>
+                      onUpdateTTSSettings({ pitch: value })
+                    }
+                    min={-50}
+                    max={50}
+                    step={10}
+                    className="flex-1"
+                  />
+                  <span
+                    className="text-[10px]"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    +50
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label
+                    className="text-xs sm:text-sm"
+                    style={{ color: uiScheme.fg }}
+                  >
+                    音量
+                  </Label>
+                  <span
+                    className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                    style={{
+                      color: uiScheme.link,
+                      background: `${uiScheme.link}15`,
+                    }}
+                  >
+                    {Math.round(ttsSettings.volume * 100)}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="text-[10px]"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    0
+                  </span>
+                  <Slider
+                    value={[ttsSettings.volume]}
+                    onValueChange={([value]) =>
+                      onUpdateTTSSettings({ volume: value })
+                    }
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    className="flex-1"
+                  />
+                  <span
+                    className="text-[10px]"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    100
+                  </span>
+                </div>
+              </div>
+
+              {availableLocales.length > 0 && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label
+                      className="text-xs sm:text-sm"
+                      style={{ color: uiScheme.fg }}
+                    >
+                      语种
+                    </Label>
+                    <Select value={selectedLocale} onValueChange={handleLocaleChange}>
+                      <SelectTrigger
+                        className="h-10 rounded-xl border bg-background/70 px-3 text-sm shadow-none"
+                        style={{
+                          color: uiScheme.fg,
+                          borderColor: `${uiScheme.cardBorder}55`,
+                          background: `${uiScheme.buttonBg}78`,
+                        }}
+                      >
+                        <SelectValue placeholder="选择语种" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {localeVoicesMap.map((item) => (
+                          <SelectItem key={item.locale} value={item.locale}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      className="text-xs sm:text-sm"
+                      style={{ color: uiScheme.fg }}
+                    >
+                      声线
+                    </Label>
+                    <Select
+                      value={ttsSettings.voiceName}
+                      onValueChange={(value) =>
+                        onUpdateTTSSettings({
+                          voiceName: value,
+                          style:
+                            voices.find((voice) => voice.Name === value)?.StyleList?.[0] ??
+                            "general",
+                        })
+                      }
+                    >
+                      <SelectTrigger
+                        className="h-10 rounded-xl border bg-background/70 px-3 text-sm shadow-none"
+                        style={{
+                          color: uiScheme.fg,
+                          borderColor: `${uiScheme.cardBorder}55`,
+                          background: `${uiScheme.buttonBg}78`,
+                        }}
+                      >
+                        <SelectValue placeholder="选择声线" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentLocaleVoices.map((voice) => (
+                          <SelectItem key={voice.Name} value={voice.Name}>
+                            {voice.LocalName}
+                            {voice.Gender === "Female"
+                              ? " · 女声"
+                              : voice.Gender === "Male"
+                                ? " · 男声"
+                                : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {availableStyles.length > 1 && (
+                    <div className="space-y-2">
+                      <Label
+                        className="text-xs sm:text-sm"
+                        style={{ color: uiScheme.fg }}
+                      >
+                        风格
+                      </Label>
+                      <Select
+                        value={ttsSettings.style}
+                        onValueChange={(value) =>
+                          onUpdateTTSSettings({ style: value })
+                        }
+                      >
+                        <SelectTrigger
+                          className="h-10 rounded-xl border bg-background/70 px-3 text-sm shadow-none"
+                          style={{
+                            color: uiScheme.fg,
+                            borderColor: `${uiScheme.cardBorder}55`,
+                            background: `${uiScheme.buttonBg}78`,
+                          }}
+                        >
+                          <SelectValue placeholder="选择风格" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableStyles.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

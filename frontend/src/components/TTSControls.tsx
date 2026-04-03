@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -460,6 +459,7 @@ interface TTSControlsProps {
   uiScheme: ThemeColors;
   variant?: 'floating' | 'toolbar';
   onExpandedChange?: (expanded: boolean) => void;
+  showSettingsPanel?: boolean;
 }
 
 export function TTSControls({
@@ -474,6 +474,7 @@ export function TTSControls({
   uiScheme,
   variant = 'floating',
   onExpandedChange,
+  showSettingsPanel = true,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -495,8 +496,6 @@ export function TTSControls({
   const suppressClickRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const pendingPositionRef = useRef(position);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const [toolbarPanelPosition, setToolbarPanelPosition] = useState({ top: 0, right: 8 });
 
   const FAB_SIZE = 48;
   const FAB_OFFSET = 56;
@@ -688,6 +687,18 @@ export function TTSControls({
     setExpanded((value) => !value);
   };
 
+  const handleToolbarToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPending) return;
+
+    if (isActive) {
+      await handleStopClick();
+      return;
+    }
+
+    await handleStartClick();
+  };
+
   const stopInteractivePropagation = (e: React.SyntheticEvent) => {
     e.stopPropagation();
   };
@@ -728,51 +739,37 @@ export function TTSControls({
   const panelWidth = typeof window !== 'undefined' && window.innerWidth < 640
     ? Math.min(280, window.innerWidth - 16)
     : 256;
-  const panelHeight = typeof window !== 'undefined' && window.innerWidth < 640 ? 360 : 380;
+  const panelHeight = typeof window !== 'undefined'
+    ? window.innerWidth < 640
+      ? showSettingsPanel ? 360 : 214
+      : showSettingsPanel ? 380 : 228
+    : 380;
   const isToolbar = variant === 'toolbar';
 
   useEffect(() => {
     onExpandedChange?.(expanded);
   }, [expanded, onExpandedChange]);
 
-  useEffect(() => {
-    if (!isToolbar || !expanded || !triggerRef.current) return;
-
-    const updateToolbarPanelPosition = () => {
-      if (!triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      setToolbarPanelPosition({
-        top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - panelHeight - 8)),
-        right: Math.max(8, window.innerWidth - rect.right),
-      });
-    };
-
-    updateToolbarPanelPosition();
-    window.addEventListener('resize', updateToolbarPanelPosition);
-    window.addEventListener('scroll', updateToolbarPanelPosition, true);
-
-    return () => {
-      window.removeEventListener('resize', updateToolbarPanelPosition);
-      window.removeEventListener('scroll', updateToolbarPanelPosition, true);
-    };
-  }, [expanded, isToolbar, panelHeight]);
-
   return (
     <div className="relative" style={{ pointerEvents: 'auto' }}>
       {isToolbar ? (
         <Button
-          ref={triggerRef}
           variant="ghost"
           size="icon"
           data-reader-interactive="true"
-          onClick={handleClick}
+          onClick={handleToolbarToggle}
           type="button"
-          title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-          aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-          aria-expanded={expanded}
+          title={isActive ? '停止朗读' : '开始朗读'}
+          aria-label={isActive ? '停止朗读' : '开始朗读'}
+          aria-pressed={isActive}
+          disabled={isPending}
           className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
           style={{
-            color: isActive ? uiScheme.link : uiScheme.buttonText,
+            color: isPending
+              ? uiScheme.mutedText
+              : isActive
+                ? uiScheme.link
+                : uiScheme.buttonText,
             background: isActive
               ? `${uiScheme.link}10`
               : `${uiScheme.buttonBg}85`,
@@ -780,6 +777,7 @@ export function TTSControls({
             boxShadow: isActive
               ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
               : `inset 0 1px 0 ${uiScheme.headerBg}66`,
+            opacity: isPending ? 0.72 : 1,
           }}
         >
           <Volume2 className="h-4 w-4" />
@@ -807,277 +805,8 @@ export function TTSControls({
       )}
 
       {/* 展开面板 - 增强动画和布局 */}
-      {expanded && (
-        isToolbar
-          ? typeof document !== 'undefined' && createPortal(
-            <>
-              <div
-                data-reader-interactive="true"
-                className="fixed inset-0 z-40"
-                onClick={() => setExpanded(false)}
-                onPointerDown={stopInteractivePropagation}
-                onTouchStart={stopInteractivePropagation}
-                onTouchEnd={stopInteractivePropagation}
-                aria-hidden="true"
-              />
-
-              <div
-                data-reader-interactive="true"
-                className="fixed z-50 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
-                  motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
-                onClick={stopInteractivePropagation}
-                onPointerDownCapture={stopInteractivePropagation}
-                onPointerDown={stopInteractivePropagation}
-                onTouchStart={stopInteractivePropagation}
-                onTouchEnd={stopInteractivePropagation}
-                onTouchMove={stopInteractivePropagation}
-                style={{
-                  top: toolbarPanelPosition.top,
-                  right: toolbarPanelPosition.right,
-                  width: panelWidth,
-                }}
-              >
-                <div
-                  className="flex flex-col gap-3 rounded-[24px] border p-3 sm:p-4"
-                  style={styles.panel}
-                >
-                  <div className="flex items-start justify-between rounded-2xl border px-3.5 py-3" style={styles.section}>
-                    <div>
-                      <span
-                        className="font-heading text-sm font-semibold tracking-wide"
-                        style={{ color: uiScheme.fg }}
-                      >
-                        朗读控制
-                      </span>
-                      <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
-                        语音、速度与音色设置
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setExpanded(false)}
-                      className="transition-all duration-150 ease-out hover:scale-110 active:scale-95
-                        h-7 w-7 rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
-                      style={{ color: uiScheme.mutedText, background: `${uiScheme.buttonBg}60` }}
-                    >
-                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
-                    <div className="mb-3 flex items-center gap-2">
-                      <label className="text-[11px] sm:text-xs font-medium" style={{ color: uiScheme.mutedText }}>
-                        文字转语音
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-2 sm:gap-2.5 py-1.5 sm:py-2">
-                      <ControlButton
-                        onClick={onPrev}
-                        disabled={!isActive || isPending}
-                        title="上一句"
-                        active={isActive}
-                        uiScheme={uiScheme}
-                      >
-                        <SkipBack className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                      </ControlButton>
-
-                      <Button
-                        variant={isPlaying ? 'outline' : 'default'}
-                        size="icon"
-                        onClick={handleStartClick}
-                        disabled={isPending}
-                        title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                        className="transition-all duration-200 ease-out hover:scale-105 active:scale-95
-                          h-10 w-10 sm:h-11 sm:w-11 rounded-2xl
-                          motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
-                        style={{
-                          background: isPending
-                            ? `${uiScheme.buttonBg}60`
-                            : isPlaying
-                              ? uiScheme.buttonBg
-                              : `linear-gradient(135deg, ${uiScheme.link}, ${uiScheme.link}dd)`,
-                          borderColor: isPending ? `${uiScheme.cardBorder}40` : isPlaying ? `${uiScheme.cardBorder}60` : 'transparent',
-                          borderWidth: '1px',
-                          color: isPending ? uiScheme.mutedText : isPlaying ? uiScheme.buttonText : uiScheme.bg,
-                          boxShadow: isPending
-                            ? 'none'
-                            : !isPlaying
-                              ? `0 4px 16px ${uiScheme.link}30, 0 2px 8px ${uiScheme.link}20`
-                              : `0 2px 8px ${uiScheme.cardBorder}15`,
-                        }}
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
-                        ) : (
-                          <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
-                        )}
-                      </Button>
-
-                      <ControlButton
-                        onClick={onNext}
-                        disabled={!isActive || isPending}
-                        title="下一句"
-                        active={isActive}
-                        uiScheme={uiScheme}
-                      >
-                        <SkipForward className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                      </ControlButton>
-
-                      <ControlButton
-                        onClick={handleStopClick}
-                        disabled={!isActive || isPending}
-                        title="停止"
-                        active={isActive}
-                        variant="danger"
-                        uiScheme={uiScheme}
-                      >
-                        <Square className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                      </ControlButton>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
-                    <VoiceSlider
-                      label="速度"
-                      value={localRate}
-                      onChange={handleRateChange}
-                      min={-50}
-                      max={100}
-                      step={10}
-                      format={formatRate}
-                      uiScheme={uiScheme}
-                    />
-
-                    <VoiceSlider
-                      label="音调"
-                      value={localPitch}
-                      onChange={handlePitchChange}
-                      min={-50}
-                      max={50}
-                      step={10}
-                      format={formatPitch}
-                      uiScheme={uiScheme}
-                    />
-
-                    <VoiceSlider
-                      label="音量"
-                      value={localVolume}
-                      onChange={handleVolumeChange}
-                      min={0}
-                      max={1}
-                      step={0.1}
-                      format={(v) => `${Math.round(v * 100)}%`}
-                      uiScheme={uiScheme}
-                    />
-
-                    {filteredVoices.length > 0 && (
-                      <>
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
-                            语种
-                          </label>
-                          <Select value={selectedLocale} onValueChange={handleLocaleChange}>
-                            <SelectTrigger
-                              data-reader-interactive="true"
-                              className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60"
-                              style={styles.selectTrigger}
-                            >
-                              <SelectValue placeholder="选择语种" />
-                            </SelectTrigger>
-                            <SelectContent
-                              data-reader-interactive="true"
-                              className="rounded-xl"
-                              style={styles.selectContent}
-                            >
-                              {localeVoicesMap.map((item) => (
-                                <SelectItem
-                                  key={item.locale}
-                                  value={item.locale}
-                                  className="text-[11px] sm:text-xs rounded-lg my-0.5"
-                                  style={{ color: uiScheme.fg }}
-                                >
-                                  {item.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
-                            语音
-                          </label>
-                          <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
-                            <SelectTrigger
-                              data-reader-interactive="true"
-                              className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60"
-                              style={styles.selectTrigger}
-                            >
-                              <SelectValue placeholder="选择语音" />
-                            </SelectTrigger>
-                            <SelectContent
-                              data-reader-interactive="true"
-                              className="rounded-xl"
-                              style={styles.selectContent}
-                            >
-                              {currentLocaleVoices.map((voice) => (
-                                <SelectItem
-                                  key={voice.Name}
-                                  value={voice.Name}
-                                  className="text-[11px] sm:text-xs rounded-lg my-0.5"
-                                  style={{ color: uiScheme.fg }}
-                                >
-                                  {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </>
-                    )}
-
-                    {availableStyles.length > 1 && (
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <label className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium" style={{ color: uiScheme.mutedText }}>
-                          风格
-                        </label>
-                        <Select value={settings.style} onValueChange={handleStyleChange}>
-                          <SelectTrigger
-                            data-reader-interactive="true"
-                            className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg transition-all duration-200 ease-out hover:border-opacity-60"
-                            style={styles.selectTrigger}
-                          >
-                            <SelectValue placeholder="选择风格" />
-                          </SelectTrigger>
-                          <SelectContent
-                            data-reader-interactive="true"
-                            className="rounded-xl"
-                            style={styles.selectContent}
-                          >
-                            {availableStyles.map((style) => (
-                              <SelectItem
-                                key={style}
-                                value={style}
-                                className="text-[11px] sm:text-xs rounded-lg my-0.5"
-                                style={{ color: uiScheme.fg }}
-                              >
-                                {style}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>,
-            document.body
-          )
-          : <>
+      {!isToolbar && expanded && (
+        <>
           <div
             data-reader-interactive="true"
             className="fixed inset-0 z-30"

@@ -9,6 +9,7 @@ export interface LastLocation {
   range: Range;
   tocItem?: TOCItem;
   pageItem?: { label: string };
+  location?: { current?: number };
 }
 
 export interface FoliateView {
@@ -37,6 +38,8 @@ export interface FoliateView {
     next?: () => Promise<void>;
     prev?: () => Promise<void>;
     getContents?: () => Array<{ doc: Document; index: number }>;
+    page?: number;
+    pages?: number;
   };
   lastLocation?: LastLocation;
   initTTS?: (granularity?: string, highlight?: (range: Range) => void) => Promise<void>;

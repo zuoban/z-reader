@@ -1,23 +1,55 @@
-'use client';
+"use client";
 
-import { ReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
+import {
+  FONT_FAMILY_OPTIONS,
+  ReaderTheme,
+  ThemeColors,
+} from "@/hooks/useReaderTheme";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Settings, BookOpen, ScrollText, Zap, ZapOff } from 'lucide-react';
+} from "@/components/ui/sheet";
+import { Settings, BookOpen, ScrollText, Zap, ZapOff } from "lucide-react";
+
+const FONT_ORDER: ReaderTheme["fontFamily"][] = [
+  "editorial",
+  "classic",
+  "humanist",
+];
+
+function getPaddingLabel(value: number) {
+  if (value <= 12) return "极窄";
+  if (value <= 20) return "紧凑";
+  if (value <= 32) return "标准";
+  if (value <= 48) return "舒展";
+  return "宽松";
+}
+
+function getSpacingLabel(value: number) {
+  if (value <= 0.9) return "紧凑";
+  if (value <= 1.1) return "标准";
+  if (value <= 1.4) return "舒展";
+  return "宽松";
+}
 
 const PRESETS = [
-  { key: 'light', label: '明亮', bg: '#ffffff', fg: '#333333' },
-  { key: 'sepia', label: '纸张', bg: '#f4ecd8', fg: '#5c4b37' },
-  { key: 'green', label: '森林', bg: '#cce8cf', fg: '#2d4a3e' },
-  { key: 'dark', label: '夜间', bg: '#1e293b', fg: '#e2e8f0' },
+  { key: "light", label: "明亮", bg: "#ffffff", fg: "#333333" },
+  { key: "sepia", label: "纸张", bg: "#f4ecd8", fg: "#5c4b37" },
+  { key: "green", label: "森林", bg: "#cce8cf", fg: "#2d4a3e" },
+  { key: "dark", label: "夜间", bg: "#1e293b", fg: "#e2e8f0" },
 ] as const;
 
 interface ThemeSettingsProps {
@@ -47,7 +79,8 @@ export function ThemeSettings({
     borderColor: `${uiScheme.cardBorder}35`,
   } as const;
 
-  const triggerClassName = 'h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9';
+  const triggerClassName =
+    "h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
     background: open ? `${uiScheme.link}10` : `${uiScheme.buttonBg}85`,
@@ -92,11 +125,14 @@ export function ThemeSettings({
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <SheetTitle className="font-heading text-base sm:text-lg" style={{ color: uiScheme.fg }}>
+              <SheetTitle
+                className="font-heading text-base sm:text-lg"
+                style={{ color: uiScheme.fg }}
+              >
                 阅读偏好
               </SheetTitle>
               <p className="mt-1 text-xs" style={{ color: uiScheme.mutedText }}>
-                调整页面氛围、文字密度与阅读方式
+                调整页面氛围、排版边距与阅读方式
               </p>
             </div>
             <div
@@ -106,17 +142,20 @@ export function ThemeSettings({
                 background: `${uiScheme.buttonBg}54`,
                 borderColor: `${uiScheme.cardBorder}40`,
               }}
-              >
-                READER
-              </div>
+            >
+              READER
             </div>
-          </SheetHeader>
+          </div>
+        </SheetHeader>
 
         <div className="max-h-[calc(100vh-80px)] space-y-4 overflow-y-auto p-4 sm:p-5">
           {/* 主题选择 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
                 阅读主题
               </Label>
             </div>
@@ -135,8 +174,10 @@ export function ThemeSettings({
                       className="w-full aspect-[4/3] rounded-lg border transition-all duration-200"
                       style={{
                         background: p.bg,
-                        borderColor: isActive ? uiScheme.link : `${uiScheme.cardBorder}40`,
-                        borderWidth: isActive ? '2px' : '1px',
+                        borderColor: isActive
+                          ? uiScheme.link
+                          : `${uiScheme.cardBorder}40`,
+                        borderWidth: isActive ? "2px" : "1px",
                         boxShadow: isActive
                           ? `0 0 0 3px ${uiScheme.link}20`
                           : `0 1px 2px ${uiScheme.cardBorder}20`,
@@ -156,7 +197,11 @@ export function ThemeSettings({
                               stroke="currentColor"
                               strokeWidth={3}
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           </div>
                         </div>
@@ -178,12 +223,65 @@ export function ThemeSettings({
           </div>
 
           {/* 分隔线 */}
-          <div className="h-px" style={{ background: `${uiScheme.cardBorder}30` }} />
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
 
-          {/* 字体大小滑块 */}
+          {/* 字体设置 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
+                正文字体
+              </Label>
+            </div>
+            <Select
+              value={theme.fontFamily}
+              onValueChange={(value) =>
+                setTheme({ fontFamily: value as ReaderTheme["fontFamily"] })
+              }
+            >
+              <SelectTrigger
+                className="h-10 rounded-xl border bg-background/70 px-3 text-sm shadow-none"
+                style={{
+                  color: uiScheme.fg,
+                  borderColor: `${uiScheme.cardBorder}55`,
+                  background: `${uiScheme.buttonBg}78`,
+                }}
+              >
+                <SelectValue placeholder="选择字体" />
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_ORDER.map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {FONT_FAMILY_OPTIONS[key].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p
+              className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
+              style={{
+                color: uiScheme.mutedText,
+                background: `${uiScheme.cardBorder}20`,
+                borderColor: `${uiScheme.cardBorder}28`,
+                fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
+              }}
+            >
+              {FONT_FAMILY_OPTIONS[theme.fontFamily].description}
+            </p>
+          </div>
+
+          {/* 字号与行高 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
                 字体大小
               </Label>
               <span
@@ -197,7 +295,12 @@ export function ThemeSettings({
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>12</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                12
+              </span>
               <Slider
                 value={[theme.fontSize]}
                 onValueChange={([v]) => setTheme({ fontSize: v })}
@@ -206,26 +309,28 @@ export function ThemeSettings({
                 step={1}
                 className="flex-1"
               />
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>28</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                28
+              </span>
             </div>
-            {/* 预览文字 */}
-            <p
-              className="text-center py-2 rounded-lg"
-              style={{
-                fontSize: `${theme.fontSize}px`,
-                lineHeight: theme.lineHeight,
-                color: uiScheme.mutedText,
-                background: `${uiScheme.cardBorder}20`,
-              }}
-            >
-              阅读预览文字
-            </p>
           </div>
+
+          {/* 分隔线 */}
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
 
           {/* 行高滑块 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
                 行高
               </Label>
               <span
@@ -239,7 +344,12 @@ export function ThemeSettings({
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>1.4</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                1.4
+              </span>
               <Slider
                 value={[theme.lineHeight]}
                 onValueChange={([v]) => setTheme({ lineHeight: v })}
@@ -248,49 +358,170 @@ export function ThemeSettings({
                 step={0.1}
                 className="flex-1"
               />
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>2.0</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                2.0
+              </span>
             </div>
           </div>
 
           {/* 分隔线 */}
-          <div className="h-px" style={{ background: `${uiScheme.cardBorder}30` }} />
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
 
-          {/* 翻页/滚动 - 分段控制器 */}
-          <div className="space-y-2">
-            <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
-              阅读模式
-            </Label>
-            <div
-              className="flex rounded-xl p-1"
-              style={segmentedBgStyle}
-            >
-              {(['paginated', 'scrolled'] as const).map((flow) => (
-                <button
-                  key={flow}
-                  onClick={() => setTheme({ flow })}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition-all duration-200"
-                  style={{
-                    color: theme.flow === flow ? uiScheme.fg : uiScheme.mutedText,
-                    background: theme.flow === flow ? `${uiScheme.cardBg}cc` : 'transparent',
-                    boxShadow: theme.flow === flow ? `0 1px 3px ${uiScheme.cardBorder}30` : 'none',
-                  }}
-                >
-                  {flow === 'paginated' ? (
-                    <BookOpen className="h-3.5 w-3.5" />
-                  ) : (
-                    <ScrollText className="h-3.5 w-3.5" />
-                  )}
-                  {flow === 'paginated' ? '翻页' : '滚动'}
-                </button>
-              ))}
+          {/* 页面边距 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
+                上下边距
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.pagePaddingY}px · {getPaddingLabel(theme.pagePaddingY)}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                0
+              </span>
+              <Slider
+                value={[theme.pagePaddingY]}
+                onValueChange={([v]) => setTheme({ pagePaddingY: v })}
+                min={0}
+                max={64}
+                step={4}
+                className="flex-1"
+              />
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                64
+              </span>
             </div>
           </div>
 
-          {/* 正文宽度滑块 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
-                正文宽度
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
+                左右边距
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.pagePaddingX}px · {getPaddingLabel(theme.pagePaddingX)}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                0
+              </span>
+              <Slider
+                value={[theme.pagePaddingX]}
+                onValueChange={([v]) => setTheme({ pagePaddingX: v })}
+                min={0}
+                max={72}
+                step={4}
+                className="flex-1"
+              />
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                72
+              </span>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
+
+          {/* 段落间距 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
+                段落间距
+              </Label>
+              <span
+                className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}15`,
+                }}
+              >
+                {theme.paragraphSpacing.toFixed(1)}em ·{" "}
+                {getSpacingLabel(theme.paragraphSpacing)}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                0.8
+              </span>
+              <Slider
+                value={[theme.paragraphSpacing]}
+                onValueChange={([v]) => setTheme({ paragraphSpacing: v })}
+                min={0.8}
+                max={2.0}
+                step={0.1}
+                className="flex-1"
+              />
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                2.0
+              </span>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
+
+          {/* 版心宽度 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
+                版心宽度
               </Label>
               <span
                 className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md"
@@ -303,7 +534,12 @@ export function ThemeSettings({
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>紧凑</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                紧凑
+              </span>
               <Slider
                 value={[theme.maxInlineSize]}
                 onValueChange={([v]) => setTheme({ maxInlineSize: v })}
@@ -312,20 +548,55 @@ export function ThemeSettings({
                 step={80}
                 className="flex-1"
               />
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>铺满</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                铺满
+              </span>
             </div>
-            {/* 宽度指示条 */}
-            <div className="flex justify-between px-1">
-              {[760, 960, 1200, 1440].map((w) => (
-                <div
-                  key={w}
-                  className="h-1 w-1 rounded-full"
+          </div>
+
+          {/* 分隔线 */}
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
+
+          {/* 翻页/滚动 - 分段控制器 */}
+          <div className="space-y-2">
+            <Label
+              className="font-heading text-xs sm:text-sm"
+              style={{ color: uiScheme.fg }}
+            >
+              阅读模式
+            </Label>
+            <div className="flex rounded-xl p-1" style={segmentedBgStyle}>
+              {(["paginated", "scrolled"] as const).map((flow) => (
+                <button
+                  key={flow}
+                  onClick={() => setTheme({ flow })}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition-all duration-200"
                   style={{
-                    background: Math.abs(theme.maxInlineSize - w) < 40
-                      ? uiScheme.link
-                      : `${uiScheme.cardBorder}60`,
+                    color:
+                      theme.flow === flow ? uiScheme.fg : uiScheme.mutedText,
+                    background:
+                      theme.flow === flow
+                        ? `${uiScheme.cardBg}cc`
+                        : "transparent",
+                    boxShadow:
+                      theme.flow === flow
+                        ? `0 1px 3px ${uiScheme.cardBorder}30`
+                        : "none",
                   }}
-                />
+                >
+                  {flow === "paginated" ? (
+                    <BookOpen className="h-3.5 w-3.5" />
+                  ) : (
+                    <ScrollText className="h-3.5 w-3.5" />
+                  )}
+                  {flow === "paginated" ? "翻页" : "滚动"}
+                </button>
               ))}
             </div>
           </div>
@@ -333,7 +604,10 @@ export function ThemeSettings({
           {/* 页间距滑块 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
                 页间距
               </Label>
               <span
@@ -343,11 +617,24 @@ export function ThemeSettings({
                   background: `${uiScheme.link}15`,
                 }}
               >
-                {theme.gap === 0 ? '无' : theme.gap <= 3 ? '紧凑' : theme.gap <= 5 ? '标准' : theme.gap <= 7 ? '舒展' : '宽敞'}
+                {theme.gap === 0
+                  ? "无"
+                  : theme.gap <= 3
+                    ? "紧凑"
+                    : theme.gap <= 5
+                      ? "标准"
+                      : theme.gap <= 7
+                        ? "舒展"
+                        : "宽敞"}
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>无</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                无
+              </span>
               <Slider
                 value={[theme.gap]}
                 onValueChange={([v]) => setTheme({ gap: v })}
@@ -356,22 +643,39 @@ export function ThemeSettings({
                 step={1}
                 className="flex-1"
               />
-              <span className="text-[10px]" style={{ color: uiScheme.mutedText }}>宽敞</span>
+              <span
+                className="text-[10px]"
+                style={{ color: uiScheme.mutedText }}
+              >
+                宽敞
+              </span>
             </div>
           </div>
 
           {/* 分隔线 */}
-          <div className="h-px" style={{ background: `${uiScheme.cardBorder}30` }} />
+          <div
+            className="h-px"
+            style={{ background: `${uiScheme.cardBorder}30` }}
+          />
 
           {/* 动画开关 */}
-          <div className="flex items-center justify-between rounded-xl border p-3" style={sectionStyle}>
+          <div
+            className="flex items-center justify-between rounded-xl border p-3"
+            style={sectionStyle}
+          >
             <div className="flex items-center gap-2">
               {theme.animated ? (
                 <Zap className="h-4 w-4" style={{ color: uiScheme.link }} />
               ) : (
-                <ZapOff className="h-4 w-4" style={{ color: uiScheme.mutedText }} />
+                <ZapOff
+                  className="h-4 w-4"
+                  style={{ color: uiScheme.mutedText }}
+                />
               )}
-              <Label className="font-heading text-xs sm:text-sm" style={{ color: uiScheme.fg }}>
+              <Label
+                className="font-heading text-xs sm:text-sm"
+                style={{ color: uiScheme.fg }}
+              >
                 翻页动画
               </Label>
             </div>
@@ -379,13 +683,15 @@ export function ThemeSettings({
               onClick={() => setTheme({ animated: !theme.animated })}
               className="relative flex items-center justify-start rounded-[12px] transition-colors duration-200"
               style={{
-                width: '48px',
-                height: '26px',
-                minWidth: '48px',
-                minHeight: '26px',
-                maxWidth: '48px',
-                maxHeight: '26px',
-                backgroundColor: theme.animated ? uiScheme.link : `${uiScheme.cardBorder}60`,
+                width: "48px",
+                height: "26px",
+                minWidth: "48px",
+                minHeight: "26px",
+                maxWidth: "48px",
+                maxHeight: "26px",
+                backgroundColor: theme.animated
+                  ? uiScheme.link
+                  : `${uiScheme.cardBorder}60`,
               }}
               aria-checked={theme.animated}
               role="switch"
@@ -394,10 +700,10 @@ export function ThemeSettings({
               <span
                 className="rounded-full bg-white shadow transition-transform duration-200"
                 style={{
-                  width: '22px',
-                  height: '22px',
-                  marginLeft: theme.animated ? '24px' : '2px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  width: "22px",
+                  height: "22px",
+                  marginLeft: theme.animated ? "24px" : "2px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                 }}
               />
             </button>

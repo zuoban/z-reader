@@ -70,6 +70,7 @@ export default function ReadPage() {
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [percentage, setPercentage] = useState(0);
   const [currentChapter, setCurrentChapter] = useState("");
+  const [currentPageLabel, setCurrentPageLabel] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [isTouchReader, setIsTouchReader] = useState(false);
@@ -103,6 +104,7 @@ export default function ReadPage() {
   const touchStartY = useRef<number>(0);
   const touchStartedInInteractiveUI = useRef(false);
   const lastTouchInteractionAtRef = useRef(0);
+  const lastGestureActionAtRef = useRef(0);
   const tocListRef = useRef<HTMLDivElement>(null);
 
   // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
@@ -170,6 +172,40 @@ export default function ReadPage() {
       }
     },
     [theme.animated, theme.flow, theme.gap, theme.maxInlineSize],
+  );
+
+  const updatePageLabel = useCallback(
+    (pageItem?: { label?: string }, location?: { current?: number }) => {
+      const renderer = viewRef.current?.renderer;
+      const rawPages = renderer?.pages;
+      const rawPage = renderer?.page;
+
+      if (
+        typeof rawPages === "number" &&
+        typeof rawPage === "number" &&
+        Number.isFinite(rawPages) &&
+        Number.isFinite(rawPage) &&
+        rawPages > 2
+      ) {
+        const totalPages = Math.max(rawPages - 2, 1);
+        const currentPage = Math.min(Math.max(rawPage, 1), totalPages);
+        setCurrentPageLabel(`${currentPage} / ${totalPages}`);
+        return;
+      }
+
+      if (pageItem?.label) {
+        setCurrentPageLabel(`${pageItem.label}`);
+        return;
+      }
+
+      if (typeof location?.current === "number") {
+        setCurrentPageLabel(`位置 ${location.current}`);
+        return;
+      }
+
+      setCurrentPageLabel("");
+    },
+    [],
   );
 
   // 清理书籍内容中的内联样式，确保主题样式生效
@@ -395,6 +431,10 @@ export default function ReadPage() {
 
   const triggerGestureAction = useCallback(
     (action: "prev" | "toggle" | "next") => {
+      const now = Date.now();
+      if (now - lastGestureActionAtRef.current < 250) return;
+      lastGestureActionAtRef.current = now;
+
       if (action === "prev") {
         setShowToolbar(false);
         handlePrev();
@@ -569,18 +609,20 @@ export default function ReadPage() {
       view.addEventListener?.("relocate", (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
         try {
-          const { cfi, fraction, tocItem } = e.detail;
+          const { cfi, fraction, tocItem, pageItem, location } = e.detail;
 
-          const pct = Math.round((fraction || 0) * 100);
-          setPercentage(pct);
+          const pctRaw = Number(((fraction || 0) * 100).toFixed(2));
+          setPercentage(pctRaw);
 
           if (cfi) {
-            updateProgressRef.current(cfi, pct);
+            updateProgressRef.current(cfi, Math.round(pctRaw));
           }
 
           if (tocItem?.label) {
             setCurrentChapter(tocItem.label);
           }
+
+          updatePageLabel(pageItem, location);
 
           // 翻页后清理新文档的内联样式
           const doc = e.detail?.doc;
@@ -639,6 +681,7 @@ export default function ReadPage() {
     bookId,
     cleanInlineStyles,
     theme.preset,
+    updatePageLabel,
   ]);
 
   useEffect(() => {
@@ -812,8 +855,7 @@ export default function ReadPage() {
 
   const toolbarButtonClass =
     "h-8 w-8 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9";
-  const isToolbarVisible =
-    !isTouchReader || showToolbar || tocOpen || themeSettingsOpen;
+  const isToolbarVisible = showToolbar || tocOpen || themeSettingsOpen;
   const isDarkPreset = theme.preset === "dark";
   const gestureOverlayColor = isDarkPreset
     ? "rgba(255,255,255,0.18)"
@@ -838,6 +880,12 @@ export default function ReadPage() {
       ? `0 14px 24px -20px ${withOpacity(uiScheme.link, 0.45)}, inset 0 1px 0 rgba(255,255,255,0.35)`
       : `0 14px 24px -22px ${withOpacity(uiScheme.headerBorder, 0.34)}, inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.35)}`,
   });
+  const statusBarStyle = {
+    background: `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)`,
+    borderColor: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.22),
+    boxShadow: "none",
+    backdropFilter: "none",
+  } as const;
 
   return (
     <div
@@ -894,7 +942,7 @@ export default function ReadPage() {
                         background: withOpacity(uiScheme.cardBorder, 0.14),
                       }}
                     >
-                      {percentage}%
+                      {Math.round(percentage)}%
                     </span>
                     <div className="min-w-0 flex-1">
                       <p
@@ -1028,13 +1076,13 @@ export default function ReadPage() {
         </header>
 
         <div
-          className="min-h-0 flex-1"
+          className="flex min-h-0 flex-1 flex-col"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onClick={handleContainerClick}
         >
           <div
-            className="relative h-full overflow-hidden"
+            className="relative min-h-0 flex-1 overflow-hidden"
             style={{
               background: `
                 linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
@@ -1198,6 +1246,36 @@ export default function ReadPage() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="pointer-events-none shrink-0 px-4 pb-2 pt-0.5 sm:px-6 sm:pb-3">
+            <div
+              className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden border-t px-1 pt-1.5 text-[10px] sm:gap-4 sm:text-[11px]"
+              style={statusBarStyle}
+            >
+              <span
+                className="min-w-0 truncate text-left font-mono tabular-nums"
+                style={{
+                  color: withOpacity(uiScheme.fg, isDarkPreset ? 0.8 : 0.72),
+                }}
+              >
+                {percentage.toFixed(2)}%
+              </span>
+              <span
+                className="min-w-0 truncate text-center"
+                style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.86 : 0.74) }}
+              >
+                {currentChapter || "等待定位章节"}
+              </span>
+              <span
+                className="min-w-0 truncate text-right"
+                style={{
+                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.78 : 0.72),
+                }}
+              >
+                {currentPageLabel || "页码加载中"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

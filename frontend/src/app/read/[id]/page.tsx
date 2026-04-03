@@ -28,7 +28,8 @@ import {
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() => import('@/components/TTSControls').then(m => ({ default: m.TTSControls })));
 
-function withOpacity(color: string, opacity: number) {
+function withOpacity(color: string | undefined, opacity: number) {
+  if (!color) return '';
   if (!color.startsWith('#')) return color;
 
   const normalized = color.length === 4
@@ -56,6 +57,8 @@ export default function ReadPage() {
   const [currentChapter, setCurrentChapter] = useState('');
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
+  const [isTouchReader, setIsTouchReader] = useState(false);
+  const [showToolbar, setShowToolbar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('初始化中...');
@@ -69,11 +72,15 @@ export default function ReadPage() {
   const updateProgressRef = useRef(updateProgress);
   // 使用 Set 避免重复添加和内存泄漏
   const boundDocsRef = useRef<Set<Document>>(new Set());
+  const docTouchHandlersRef = useRef(
+    new Map<Document, { touchstart: EventListener; touchend: EventListener; click: EventListener }>()
+  );
   // 缓存脚本加载状态，避免重复创建 script 标签
   const scriptLoadedRef = useRef(false);
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const touchStartedInInteractiveUI = useRef(false);
+  const lastTouchInteractionAtRef = useRef(0);
   const tocListRef = useRef<HTMLDivElement>(null);
 
   // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
@@ -101,6 +108,17 @@ export default function ReadPage() {
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const hasTouch =
+      window.matchMedia('(pointer: coarse)').matches
+      || navigator.maxTouchPoints > 0
+      || 'ontouchstart' in window;
+    setIsTouchReader(hasTouch);
+    setShowToolbar(!hasTouch);
+  }, []);
 
   useEffect(() => {
     themeRef.current = theme;
@@ -184,6 +202,10 @@ export default function ReadPage() {
     }
   }, []);
 
+  const toggleToolbar = useCallback(() => {
+    setShowToolbar((prev) => !prev);
+  }, []);
+
   // 使用 effect 同步回调到 ref，供 keyboardHandler 使用
   useEffect(() => {
     handlePrevRef.current = handlePrev;
@@ -217,6 +239,188 @@ export default function ReadPage() {
         break;
     }
   }, []);
+
+  const isInteractiveTouchTarget = useCallback((target: EventTarget | null) => {
+    return target instanceof Element
+      && (
+        target.closest('[data-reader-interactive="true"]') !== null
+        || target.closest('a, button, input, textarea, select, summary, [role="button"]') !== null
+      );
+  }, []);
+
+  const handleReaderTap = useCallback((clientY: number, viewportHeight: number) => {
+    const topZone = viewportHeight * 0.34;
+    const bottomZone = viewportHeight * 0.66;
+
+    if (clientY < topZone) {
+      setShowToolbar(false);
+      handlePrev();
+      return;
+    }
+
+    if (clientY > bottomZone) {
+      setShowToolbar(false);
+      handleNext();
+      return;
+    }
+
+    toggleToolbar();
+  }, [handleNext, handlePrev, toggleToolbar]);
+
+  const handleReaderClick = useCallback((
+    target: EventTarget | null,
+    clientY: number,
+    viewportHeight: number,
+  ) => {
+    if (Date.now() - lastTouchInteractionAtRef.current < 700) {
+      return;
+    }
+
+    if (isInteractiveTouchTarget(target)) {
+      return;
+    }
+
+    handleReaderTap(clientY, viewportHeight);
+  }, [handleReaderTap, isInteractiveTouchTarget]);
+
+  const handleReaderTouchStart = useCallback((target: EventTarget | null, touch: Touch) => {
+    touchStartedInInteractiveUI.current = isInteractiveTouchTarget(target);
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+    lastTouchInteractionAtRef.current = Date.now();
+  }, [isInteractiveTouchTarget]);
+
+  const handleReaderTouchEnd = useCallback((
+    target: EventTarget | null,
+    touch: Touch,
+    viewportHeight: number,
+  ) => {
+    if (touchStartedInInteractiveUI.current || isInteractiveTouchTarget(target)) {
+      touchStartedInInteractiveUI.current = false;
+      return;
+    }
+
+    const touchEndX = touch.clientX;
+    const touchEndY = touch.clientY;
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+
+    if (Math.abs(deltaX) > 30 && Math.abs(deltaX) > Math.abs(deltaY) * 0.5) {
+      setShowToolbar(false);
+      if (deltaX > 0) {
+        handlePrev();
+      } else {
+        handleNext();
+      }
+      touchStartedInInteractiveUI.current = false;
+      return;
+    }
+
+    if (Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12) {
+      handleReaderTap(touchEndY, viewportHeight);
+    }
+
+    touchStartedInInteractiveUI.current = false;
+  }, [handleNext, handlePrev, handleReaderTap, isInteractiveTouchTarget]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (touch) {
+      handleReaderTouchStart(e.target, touch);
+    }
+  }, [handleReaderTouchStart]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const viewportHeight = e.currentTarget.getBoundingClientRect().height;
+    handleReaderTouchEnd(e.target, touch, viewportHeight);
+  }, [handleReaderTouchEnd]);
+
+  const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const viewportHeight = e.currentTarget.getBoundingClientRect().height;
+    handleReaderClick(e.target, e.clientY, viewportHeight);
+  }, [handleReaderClick]);
+
+  const triggerGestureAction = useCallback((action: 'prev' | 'toggle' | 'next') => {
+    if (action === 'prev') {
+      setShowToolbar(false);
+      handlePrev();
+      return;
+    }
+
+    if (action === 'next') {
+      setShowToolbar(false);
+      handleNext();
+      return;
+    }
+
+    toggleToolbar();
+  }, [handleNext, handlePrev, toggleToolbar]);
+
+  const createGestureHandlers = useCallback((action: 'prev' | 'toggle' | 'next') => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.pointerType === 'mouse') return;
+      e.preventDefault();
+      e.stopPropagation();
+      triggerGestureAction(action);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.pointerType === 'mouse') return;
+      e.preventDefault();
+      e.stopPropagation();
+      triggerGestureAction(action);
+    },
+    onTouchEnd: (e: React.TouchEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerGestureAction(action);
+    },
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerGestureAction(action);
+    },
+  }), [triggerGestureAction]);
+
+  const bindReaderDocument = useCallback((doc: Document) => {
+    if (boundDocsRef.current.has(doc)) return;
+
+    const handleDocTouchStart: EventListener = (event) => {
+      const touchEvent = event as TouchEvent;
+      const touch = touchEvent.touches[0];
+      if (touch) {
+        handleReaderTouchStart(touchEvent.target, touch);
+      }
+    };
+
+    const handleDocTouchEnd: EventListener = (event) => {
+      const touchEvent = event as TouchEvent;
+      const touch = touchEvent.changedTouches[0];
+      if (!touch) return;
+
+      const viewportHeight = doc.defaultView?.innerHeight ?? window.innerHeight;
+      handleReaderTouchEnd(touchEvent.target, touch, viewportHeight);
+    };
+
+    const handleDocClick: EventListener = (event) => {
+      const mouseEvent = event as MouseEvent;
+      const viewportHeight = doc.defaultView?.innerHeight ?? window.innerHeight;
+      handleReaderClick(mouseEvent.target, mouseEvent.clientY, viewportHeight);
+    };
+
+    doc.addEventListener('keydown', keyboardHandler);
+    doc.addEventListener('touchstart', handleDocTouchStart, { passive: true });
+    doc.addEventListener('touchend', handleDocTouchEnd, { passive: true });
+    doc.addEventListener('click', handleDocClick, { passive: true });
+    boundDocsRef.current.add(doc);
+    docTouchHandlersRef.current.set(doc, {
+      touchstart: handleDocTouchStart,
+      touchend: handleDocTouchEnd,
+      click: handleDocClick,
+    });
+  }, [handleReaderClick, handleReaderTouchEnd, handleReaderTouchStart, keyboardHandler]);
 
   const initReader = useCallback(async () => {
     if (!containerRef.current || destroyedRef.current) return;
@@ -279,8 +483,7 @@ export default function ReadPage() {
           // 给 iframe 的 document 绑定键盘事件，解决点击正文后快捷键失效的问题
           const doc = e.detail?.doc;
           if (doc) {
-            doc.addEventListener('keydown', keyboardHandler);
-            boundDocsRef.current.add(doc);
+            bindReaderDocument(doc);
             // 清理内联样式，确保夜间模式主题生效
             cleanInlineStyles(doc);
           }
@@ -307,8 +510,11 @@ export default function ReadPage() {
 
           // 翻页后清理新文档的内联样式
           const doc = e.detail?.doc;
-          if (doc && theme.preset === 'dark') {
-            cleanInlineStyles(doc);
+          if (doc) {
+            bindReaderDocument(doc);
+            if (theme.preset === 'dark') {
+              cleanInlineStyles(doc);
+            }
           }
         } catch (err) {
           console.error('Failed to handle relocate event:', err);
@@ -352,7 +558,7 @@ export default function ReadPage() {
         setLoading(false);
       }
     }
-  }, [applyRendererPreferences, bookId, keyboardHandler, cleanInlineStyles, theme.preset]);
+  }, [applyRendererPreferences, bindReaderDocument, bookId, cleanInlineStyles, theme.preset]);
 
   useEffect(() => {
     // 主题变化时，重新清理所有已绑定文档的内联样式
@@ -392,38 +598,6 @@ export default function ReadPage() {
     };
   }, [initReader, isAuthenticated, progressLoading]);
 
-  const isInteractiveTouchTarget = useCallback((target: EventTarget | null) => {
-    return target instanceof Element
-      && target.closest('[data-reader-interactive="true"]') !== null;
-  }, []);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartedInInteractiveUI.current = isInteractiveTouchTarget(e.target);
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  }, [isInteractiveTouchTarget]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartedInInteractiveUI.current || isInteractiveTouchTarget(e.target)) {
-      touchStartedInInteractiveUI.current = false;
-      return;
-    }
-
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const deltaX = touchEndX - touchStartX.current;
-    const deltaY = touchEndY - touchStartY.current;
-
-    // 优化移动端翻页：降低阈值，增加垂直滑动容忍度
-    if (Math.abs(deltaX) > 30 && Math.abs(deltaX) > Math.abs(deltaY) * 0.5) {
-      if (deltaX > 0) {
-        handlePrev();
-      } else {
-        handleNext();
-      }
-    }
-  }, [handlePrev, handleNext, isInteractiveTouchTarget]);
-
   useEffect(() => {
     if (!tocOpen || !currentChapter) return;
 
@@ -450,8 +624,15 @@ export default function ReadPage() {
     // 清理所有绑定的 iframe 文档的事件
     boundDocsRef.current.forEach(doc => {
       doc.removeEventListener('keydown', keyboardHandler);
+      const handlers = docTouchHandlersRef.current.get(doc);
+      if (handlers) {
+        doc.removeEventListener('touchstart', handlers.touchstart);
+        doc.removeEventListener('touchend', handlers.touchend);
+        doc.removeEventListener('click', handlers.click);
+      }
     });
     boundDocsRef.current.clear();
+    docTouchHandlersRef.current.clear();
 
     const view = viewRef.current;
     viewRef.current = null;
@@ -480,6 +661,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     const boundDocs = boundDocsRef.current;
+    const docTouchHandlers = docTouchHandlersRef.current;
     window.addEventListener('keydown', keyboardHandler);
 
     return () => {
@@ -488,8 +670,15 @@ export default function ReadPage() {
       // 清理所有绑定的 iframe 文档的事件
       boundDocs.forEach(doc => {
         doc.removeEventListener('keydown', keyboardHandler);
+        const handlers = docTouchHandlers.get(doc);
+        if (handlers) {
+          doc.removeEventListener('touchstart', handlers.touchstart);
+          doc.removeEventListener('touchend', handlers.touchend);
+          doc.removeEventListener('click', handlers.click);
+        }
       });
       boundDocs.clear();
+      docTouchHandlers.clear();
 
       // 停止TTS
       stopTTS();
@@ -521,6 +710,13 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass = 'h-8 w-8 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9';
+  const isToolbarVisible = !isTouchReader || showToolbar || tocOpen || themeSettingsOpen;
+  const isDarkPreset = theme.preset === 'dark';
+  const gestureOverlayColor = isDarkPreset ? 'rgba(255,255,255,0.18)' : 'rgba(15,23,42,0.18)';
+  const gestureOverlayColorStrong = isDarkPreset ? 'rgba(255,255,255,0.24)' : 'rgba(15,23,42,0.24)';
+  const gestureDividerColor = isDarkPreset ? 'rgba(255,255,255,0.42)' : 'rgba(15,23,42,0.28)';
+  const gestureZoneClassName = 'relative flex-1 cursor-default border-0 bg-transparent p-0 outline-none pointer-events-auto touch-manipulation';
+  const gestureHintClassName = 'pointer-events-none inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-[15px] font-medium tracking-[0.01em] shadow-[0_12px_30px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md';
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
     background: active
@@ -547,16 +743,20 @@ export default function ReadPage() {
 
       <div className="relative flex h-full flex-col px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
         <div
-          className="mx-auto flex h-full min-h-0 w-full max-w-[1760px] flex-col overflow-hidden rounded-[26px] border shadow-[0_36px_90px_-44px_rgba(15,23,42,0.42)]"
+          className="relative mx-auto flex h-full min-h-0 w-full max-w-[1760px] flex-col overflow-hidden rounded-[26px] border shadow-[0_36px_90px_-44px_rgba(15,23,42,0.42)]"
           style={{
             background: withOpacity(uiScheme.headerBg, 0.82),
             borderColor: withOpacity(uiScheme.headerBorder, 0.58),
           }}
         >
           <header
-            className="shrink-0 overflow-hidden border-b px-3 py-2 sm:px-4 sm:py-2.5"
+            data-reader-interactive="true"
+            className={`absolute inset-x-0 top-0 z-50 overflow-hidden border-b px-3 py-2 transition-all duration-200 ease-out sm:px-4 sm:py-2.5 ${
+              isToolbarVisible
+                ? 'translate-y-0 opacity-100 pointer-events-auto'
+                : '-translate-y-full opacity-0 pointer-events-none'
+            }`}
             style={{
-              opacity: 0.98,
               backdropFilter: 'blur(14px)',
               background: `
                 linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.82)} 0%, ${withOpacity(uiScheme.cardBg, 0.58)} 100%)
@@ -720,6 +920,7 @@ export default function ReadPage() {
             className="min-h-0 flex-1 p-1.5 sm:p-2"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            onClick={handleContainerClick}
           >
             <div
               className="relative h-full overflow-hidden rounded-[20px] border"
@@ -776,6 +977,100 @@ export default function ReadPage() {
               )}
 
               <div ref={containerRef} className="absolute inset-0" />
+
+              {(isTouchReader || !isToolbarVisible) && (
+                <div
+                  className={`absolute inset-x-0 bottom-0 z-40 flex flex-col pointer-events-auto ${
+                    isToolbarVisible ? 'top-16 sm:top-[4.5rem]' : 'top-0'
+                  }`}
+                  data-reader-interactive="true"
+                >
+                  <button
+                    type="button"
+                    aria-label="上一页"
+                    className={`${gestureZoneClassName} basis-[38%] flex items-center justify-center`}
+                    style={{
+                      background: isToolbarVisible
+                        ? `linear-gradient(180deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColor} 100%)`
+                        : 'transparent',
+                      borderBottom: isToolbarVisible
+                        ? `2px dashed ${gestureDividerColor}`
+                        : 'none',
+                    }}
+                    {...createGestureHandlers('prev')}
+                  >
+                    {isToolbarVisible && (
+                      <span
+                        className={gestureHintClassName}
+                        style={{
+                          color: isDarkPreset ? '#f8fafc' : '#111827',
+                          background: isDarkPreset ? 'rgba(15,23,42,0.86)' : 'rgba(255,255,255,0.9)',
+                          borderColor: isDarkPreset ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.08)',
+                        }}
+                      >
+                        上一页
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={showToolbar ? '隐藏顶部菜单' : '显示顶部菜单'}
+                    className={`${gestureZoneClassName} basis-[24%] flex items-center justify-center`}
+                    style={{
+                      background: isToolbarVisible
+                        ? `linear-gradient(180deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColorStrong} 100%)`
+                        : 'transparent',
+                      borderTop: isToolbarVisible
+                        ? `2px dashed ${gestureDividerColor}`
+                        : 'none',
+                      borderBottom: isToolbarVisible
+                        ? `2px dashed ${gestureDividerColor}`
+                        : 'none',
+                    }}
+                    {...createGestureHandlers('toggle')}
+                  >
+                    {isToolbarVisible && (
+                      <span
+                        className={gestureHintClassName}
+                        style={{
+                          color: isDarkPreset ? '#fef3c7' : '#111827',
+                          background: isDarkPreset ? 'rgba(120,53,15,0.86)' : 'rgba(255,248,220,0.94)',
+                          borderColor: isDarkPreset ? 'rgba(245,158,11,0.28)' : 'rgba(217,119,6,0.18)',
+                        }}
+                      >
+                        {showToolbar ? '隐藏菜单' : '显示菜单'}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="下一页"
+                    className={`${gestureZoneClassName} basis-[38%] flex items-center justify-center`}
+                    style={{
+                      background: isToolbarVisible
+                        ? `linear-gradient(0deg, ${gestureOverlayColorStrong} 0%, ${gestureOverlayColor} 100%)`
+                        : 'transparent',
+                      borderTop: isToolbarVisible
+                        ? `2px dashed ${gestureDividerColor}`
+                        : 'none',
+                    }}
+                    {...createGestureHandlers('next')}
+                  >
+                    {isToolbarVisible && (
+                      <span
+                        className={gestureHintClassName}
+                        style={{
+                          color: isDarkPreset ? '#f8fafc' : '#111827',
+                          background: isDarkPreset ? 'rgba(15,23,42,0.86)' : 'rgba(255,255,255,0.9)',
+                          borderColor: isDarkPreset ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.08)',
+                        }}
+                      >
+                        下一页
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

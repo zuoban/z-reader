@@ -30,7 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ChevronLeft, List, LogOut } from "lucide-react";
+import { ChevronLeft, List } from "lucide-react";
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() =>
@@ -57,7 +57,7 @@ export default function ReadPage() {
   const router = useRouter();
   const params = useParams();
   const bookId = params.id as string;
-  const { isLoading: authLoading, isAuthenticated, logout } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const {
     progress,
     isLoading: progressLoading,
@@ -854,7 +854,7 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "h-8 w-8 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-9 sm:w-9";
+    "h-[26px] w-[26px] rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95";
   const isToolbarVisible = showToolbar || tocOpen || themeSettingsOpen;
   const isDarkPreset = theme.preset === "dark";
   const gestureOverlayColor = isDarkPreset
@@ -872,13 +872,11 @@ export default function ReadPage() {
     "pointer-events-none inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-[15px] font-medium tracking-[0.01em] shadow-[0_12px_30px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
-    background: active
-      ? withOpacity(uiScheme.link, 0.08)
-      : withOpacity(uiScheme.buttonBg, 0.72),
-    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.2) : withOpacity(uiScheme.cardBorder, 0.48)}`,
+    background: active ? uiScheme.cardBg : uiScheme.buttonBg,
+    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.24) : withOpacity(uiScheme.cardBorder, 0.4)}`,
     boxShadow: active
-      ? `0 14px 24px -20px ${withOpacity(uiScheme.link, 0.45)}, inset 0 1px 0 rgba(255,255,255,0.35)`
-      : `0 14px 24px -22px ${withOpacity(uiScheme.headerBorder, 0.34)}, inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.35)}`,
+      ? `0 10px 20px -18px ${withOpacity(uiScheme.link, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.22)`
+      : `0 10px 20px -18px ${withOpacity(uiScheme.headerBorder, 0.28)}, inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.26)}`,
   });
   const statusBarStyle = {
     background: `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)`,
@@ -906,34 +904,32 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className={`absolute inset-x-0 top-0 z-50 overflow-hidden border-b px-3 py-2 transition-all duration-200 ease-out sm:px-4 sm:py-2.5 ${
+          className={`absolute inset-x-0 top-0 z-50 px-2 py-1 transition-all duration-200 ease-out sm:px-2.5 sm:py-1.5 ${
             isToolbarVisible
               ? "translate-y-0 opacity-100 pointer-events-auto"
               : "-translate-y-full opacity-0 pointer-events-none"
           }`}
           style={{
-            backdropFilter: "blur(14px)",
+            backdropFilter: "blur(10px)",
             background: `
-              linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.82)} 0%, ${withOpacity(uiScheme.cardBg, 0.58)} 100%)
+              linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.72)} 0%, ${withOpacity(uiScheme.cardBg, 0.42)} 100%)
             `,
-            borderColor: withOpacity(uiScheme.headerBorder, 0.38),
+            borderBottom: `1px solid ${withOpacity(uiScheme.headerBorder, 0.26)}`,
           }}
         >
-          <div className="flex items-center justify-between gap-2.5 sm:gap-3">
-            <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleBack}
                 title="返回书库"
-                className="h-8 w-8 shrink-0 rounded-full p-0"
+                className="h-[26px] w-[26px] shrink-0 rounded-full p-0"
                 style={getToolbarButtonStyle(false)}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3 w-3" />
               </Button>
-            </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
               <Sheet open={tocOpen} onOpenChange={setTocOpen}>
                 <SheetTrigger
                   render={
@@ -946,7 +942,7 @@ export default function ReadPage() {
                     />
                   }
                 >
-                  <List className="h-4 w-4" />
+                  <List className="h-3 w-3" />
                 </SheetTrigger>
                 <SheetContent
                   side="left"
@@ -1007,7 +1003,9 @@ export default function ReadPage() {
                   </ScrollArea>
                 </SheetContent>
               </Sheet>
+            </div>
 
+            <div className="flex shrink-0 items-center gap-1">
               <Suspense fallback={null}>
                 <TTSControls
                   state={ttsState}
@@ -1034,17 +1032,6 @@ export default function ReadPage() {
                 open={themeSettingsOpen}
                 onOpenChange={setThemeSettingsOpen}
               />
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={logout}
-                title="退出"
-                className={`hidden sm:flex ${toolbarButtonClass}`}
-                style={getToolbarButtonStyle(false)}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </header>
@@ -1118,7 +1105,7 @@ export default function ReadPage() {
             {(isTouchReader || !isToolbarVisible) && (
               <div
                 className={`absolute inset-x-0 bottom-0 z-40 flex flex-col pointer-events-auto ${
-                  isToolbarVisible ? "top-16 sm:top-[4.5rem]" : "top-0"
+                  isToolbarVisible ? "top-12 sm:top-[3.25rem]" : "top-0"
                 }`}
                 data-reader-interactive="true"
               >

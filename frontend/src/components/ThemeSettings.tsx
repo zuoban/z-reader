@@ -94,7 +94,7 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-8 w-8 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9";
+    "h-[26px] w-[26px] rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
     background: open ? `${uiScheme.link}10` : `${uiScheme.buttonBg}85`,

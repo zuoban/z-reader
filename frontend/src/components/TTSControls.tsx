@@ -763,28 +763,26 @@ export function TTSControls({
           aria-label={isActive ? '停止朗读' : '开始朗读'}
           aria-pressed={isActive}
           disabled={isPending}
-          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95 sm:h-9 sm:w-9"
+          className="relative inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95"
           style={{
             color: isPending
               ? uiScheme.mutedText
               : isActive
                 ? uiScheme.link
                 : uiScheme.buttonText,
-            background: isActive
-              ? `${uiScheme.link}10`
-              : `${uiScheme.buttonBg}85`,
-            border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}7a`}`,
+            background: isActive ? uiScheme.cardBg : uiScheme.buttonBg,
+            border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
             boxShadow: isActive
-              ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
-              : `inset 0 1px 0 ${uiScheme.headerBg}66`,
+              ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 20px -18px ${uiScheme.link}40`
+              : `inset 0 1px 0 ${uiScheme.headerBg}42, 0 10px 20px -18px ${uiScheme.cardBorder}26`,
             opacity: isPending ? 0.72 : 1,
           }}
         >
-          <Volume2 className="h-4 w-4" />
+          <Volume2 className="h-3 w-3" />
           {isActive && (
-            <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+            <span className="absolute right-[3px] top-[3px] flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/50" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
             </span>
           )}
         </Button>

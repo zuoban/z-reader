@@ -910,11 +910,11 @@ export default function ReadPage() {
               : "-translate-y-full opacity-0 pointer-events-none"
           }`}
           style={{
-            backdropFilter: "blur(10px)",
+            backdropFilter: "none",
             background: `
-              linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.72)} 0%, ${withOpacity(uiScheme.cardBg, 0.42)} 100%)
+              linear-gradient(180deg, ${uiScheme.headerBg} 0%, ${uiScheme.cardBg} 100%)
             `,
-            borderBottom: `1px solid ${withOpacity(uiScheme.headerBorder, 0.26)}`,
+            borderBottom: `1px solid ${uiScheme.headerBorder}`,
           }}
         >
           <div className="flex items-center justify-between gap-2 sm:gap-2.5">

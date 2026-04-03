@@ -356,7 +356,7 @@ export default function ReadPage() {
   );
 
   const handleReaderTouchStart = useCallback(
-    (target: EventTarget | null, touch: Touch) => {
+    (target: EventTarget | null, touch: React.Touch) => {
       touchStartedInInteractiveUI.current = isInteractiveTouchTarget(target);
       touchStartX.current = touch.clientX;
       touchStartY.current = touch.clientY;
@@ -366,7 +366,7 @@ export default function ReadPage() {
   );
 
   const handleReaderTouchEnd = useCallback(
-    (target: EventTarget | null, touch: Touch, viewportHeight: number) => {
+    (target: EventTarget | null, touch: React.Touch, viewportHeight: number) => {
       if (
         touchStartedInInteractiveUI.current ||
         isInteractiveTouchTarget(target)

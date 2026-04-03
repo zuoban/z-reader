@@ -18,10 +18,12 @@ export interface RadialCategoryTarget {
 }
 
 const MAX_LABEL_LENGTH = 5;
-const ITEM_WIDTH = 86;
-const ITEM_HEIGHT = 52;
-const ITEM_GAP = 10;
-const ROW_VERTICAL_OFFSET = -112;
+const ITEM_WIDTH = 82;
+const ITEM_HEIGHT = 46;
+const ITEM_GAP = 8;
+const ITEMS_PER_ROW = 3;
+const ROW_GAP = 10;
+const ROW_VERTICAL_OFFSET = -118;
 
 function truncateLabel(label: string) {
   return label.length > MAX_LABEL_LENGTH
@@ -58,16 +60,25 @@ export function buildRadialCategoryTargets(
         isClear: false,
       })),
   ];
+  const rowCount = Math.ceil(items.length / ITEMS_PER_ROW);
 
-  const totalWidth = items.length * ITEM_WIDTH + Math.max(0, items.length - 1) * ITEM_GAP;
-  const startX = -totalWidth / 2 + ITEM_WIDTH / 2;
+  return items.map((item, index) => {
+    const row = Math.floor(index / ITEMS_PER_ROW);
+    const indexInRow = index % ITEMS_PER_ROW;
+    const rowStart = row * ITEMS_PER_ROW;
+    const rowItems = Math.min(ITEMS_PER_ROW, items.length - rowStart);
+    const totalWidth = rowItems * ITEM_WIDTH + Math.max(0, rowItems - 1) * ITEM_GAP;
+    const startX = -totalWidth / 2 + ITEM_WIDTH / 2;
+    const totalHeight = rowCount * ITEM_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
+    const startY = ROW_VERTICAL_OFFSET - totalHeight / 2 + ITEM_HEIGHT / 2;
 
-  return items.map((item, index) => ({
-    ...item,
-    dx: startX + index * (ITEM_WIDTH + ITEM_GAP),
-    dy: ROW_VERTICAL_OFFSET,
-    size: Math.max(ITEM_WIDTH, ITEM_HEIGHT),
-  }));
+    return {
+      ...item,
+      dx: startX + indexInRow * (ITEM_WIDTH + ITEM_GAP),
+      dy: startY + row * (ITEM_HEIGHT + ROW_GAP),
+      size: Math.max(ITEM_WIDTH, ITEM_HEIGHT),
+    };
+  });
 }
 
 interface RadialCategoryMenuProps {
@@ -144,9 +155,9 @@ export function RadialCategoryMenu({
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[60] select-none">
-      <div className="absolute inset-0 bg-white/6 backdrop-blur-[1.5px]" />
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]" />
       <div
-        className="absolute rounded-[28px] border border-white/50 bg-white/60 shadow-[0_24px_60px_-38px_rgba(15,23,42,0.35)] backdrop-blur-xl"
+        className="absolute rounded-[26px] border border-white/55 bg-white/58 shadow-[0_20px_48px_-36px_rgba(15,23,42,0.28)] backdrop-blur-xl"
         style={{
           left: trayLeft,
           top: trayTop,
@@ -167,31 +178,39 @@ export function RadialCategoryMenu({
             style={{
               left,
               top,
-              transform: `translate(-50%, -50%) translateY(${isHovered ? '-2px' : '0px'}) scale(${isHovered ? 1.04 : 1})`,
+              transform: `translate(-50%, -50%) translateY(${isHovered ? '-1px' : '0px'}) scale(${isHovered ? 1.03 : 1})`,
               opacity: target.blocked ? 0.48 : 1,
             }}
           >
             <div
               className={`flex items-center justify-center rounded-2xl border backdrop-blur-xl transition-all duration-200 ${
                 isHovered
-                  ? 'border-foreground/20 bg-white text-foreground shadow-[0_20px_36px_-22px_rgba(15,23,42,0.32)]'
-                  : 'border-border/60 bg-white/90 text-foreground/78 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.18)]'
+                  ? 'border-foreground/16 bg-white text-foreground shadow-[0_16px_28px_-22px_rgba(15,23,42,0.24)]'
+                  : 'border-border/55 bg-white/84 text-foreground/78 shadow-[0_10px_18px_-20px_rgba(15,23,42,0.14)]'
               } ${target.blocked ? 'border-dashed' : ''}`}
               style={{
                 width: ITEM_WIDTH,
                 height: ITEM_HEIGHT,
-                color: target.isClear ? '#dc2626' : isHovered ? '#171717' : target.color,
+                color: '#171717',
               }}
             >
               {target.isClear ? (
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Trash2 className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-[#171717]">
+                  <Trash2 className="h-[15px] w-[15px]" />
                   <span>删除</span>
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: '#dc2626' }}
+                  />
                 </div>
               ) : (
-                <span className="px-2 text-center text-[14px] font-semibold leading-[1.2]">
-                  {target.label}
-                </span>
+                <div className="flex items-center gap-2 px-2 text-center text-[13px] font-semibold leading-none text-[#171717]">
+                  <span className="whitespace-nowrap">{target.label}</span>
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: target.color }}
+                  />
+                </div>
               )}
             </div>
           </div>

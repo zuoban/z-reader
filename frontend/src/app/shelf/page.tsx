@@ -434,17 +434,43 @@ export default function ShelfPage() {
         <main className="flex-1 py-5 sm:py-10">
           {!isLoadingBooks && books.length === 0 ? (
             <div className="flex min-h-[58vh] items-center justify-center">
-              <div className="w-full max-w-xl rounded-[32px] border border-black/10 bg-white/90 px-5 py-12 text-center shadow-[0_28px_68px_-44px_rgba(15,23,42,0.42)] sm:px-12 sm:py-16">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] border border-black/10 bg-gradient-to-br from-stone-100 to-white shadow-[0_12px_30px_-24px_rgba(15,23,42,0.35)] sm:h-18 sm:w-18 sm:rounded-[28px]">
-                  <BookOpen className="h-8 w-8 text-muted-foreground/80 sm:h-10 sm:w-10" />
+              <div className="w-full max-w-xl rounded-[36px] border border-black/8 bg-white/95 px-6 py-14 text-center shadow-[0_32px_80px_-48px_rgba(15,23,42,0.38),0_12px_24px_-12px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:px-14 sm:py-18">
+                {/* 装饰性背景元素 */}
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-black/5 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/5 to-transparent" />
+
+                {/* 主图标区域 - 增加层次感 */}
+                <div className="relative mx-auto mb-8 inline-flex">
+                  <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-primary/8 via-transparent to-transparent blur-xl" />
+                  <div className="relative mx-auto flex h-18 w-18 items-center justify-center rounded-[28px] border border-black/8 bg-gradient-to-br from-stone-50 via-white to-stone-100 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.32),inset_0_1px_1px_rgba(255,255,255,0.8)] sm:h-22 sm:w-22 sm:rounded-[32px]">
+                    <BookOpen className="h-9 w-9 text-muted-foreground/70 sm:h-11 sm:w-11" />
+                  </div>
                 </div>
-                <p className="mt-6 text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  书架还是空的
-                </p>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
-                  上传你的第一本 EPUB、MOBI、AZW3 或 PDF
-                </p>
-                <div className="mt-8 flex justify-center">
+
+                {/* 标题区域 */}
+                <div className="space-y-3">
+                  <p className="text-2xl font-semibold tracking-tight text-foreground sm:text-3.5xl">
+                    书架还是空的
+                  </p>
+                  <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground sm:max-w-sm sm:text-base">
+                    上传你的第一本 EPUB、MOBI、AZW3 或 PDF，开始你的阅读之旅
+                  </p>
+                </div>
+
+                {/* 支持格式标签 */}
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  {['EPUB', 'MOBI', 'AZW3', 'PDF'].map((format) => (
+                    <span
+                      key={format}
+                      className="rounded-full border border-black/8 bg-muted/40 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground sm:text-xs"
+                    >
+                      {format}
+                    </span>
+                  ))}
+                </div>
+
+                {/* 操作按钮 */}
+                <div className="mt-10 flex justify-center">
                   <div className="relative w-full sm:w-auto">
                     <Input
                       type="file"
@@ -454,18 +480,25 @@ export default function ShelfPage() {
                       className="absolute inset-0 z-20 cursor-pointer opacity-0"
                       title="上传书籍"
                     />
-                    <Button className="group h-11 w-full rounded-xl px-6 text-sm sm:w-auto sm:px-8" disabled={isUploading}>
-                      {isUploading ? (
-                        <>
-                          <div className="mr-2.5 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 spinner-border-primary" />
-                          添加中
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2.5 h-4 w-4 rotate-plus" />
-                          添加第一本书
-                        </>
-                      )}
+                    <Button
+                      className="group relative h-12 w-full overflow-hidden rounded-xl bg-foreground px-8 text-sm font-medium text-background shadow-[0_12px_32px_-16px_rgba(15,23,42,0.45)] transition-[transform,shadow] duration-300 hover:scale-[1.02] hover:shadow-[0_16px_40px_-20px_rgba(15,23,42,0.5)] active:scale-[0.98] sm:w-auto sm:px-10 cursor-pointer"
+                      disabled={isUploading}
+                    >
+                      <span className="relative z-10 flex items-center">
+                        {isUploading ? (
+                          <>
+                            <div className="mr-2.5 h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
+                            添加中...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="mr-2.5 h-4 w-4 transition-transform group-hover:scale-110" />
+                            添加第一本书
+                          </>
+                        )}
+                      </span>
+                      {/* 按钮光效 */}
+                      <div className="absolute inset-0 -z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                     </Button>
                   </div>
                 </div>
@@ -503,7 +536,7 @@ export default function ShelfPage() {
                 />
               )}
 
-              <div className="relative z-0 grid grid-cols-[repeat(2,minmax(160px,160px))] justify-between gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,176px))] sm:justify-start sm:gap-x-4 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(184px,184px))] lg:gap-x-5 lg:gap-y-6">
+              <div className="relative z-0 grid grid-cols-[repeat(2,minmax(150px,1fr))] justify-between gap-x-4 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:justify-start sm:gap-x-5 sm:gap-y-6 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-x-6 lg:gap-y-7">
                 {isLoadingBooks ? (
                   <BookCardSkeletonGrid count={6} />
                 ) : (

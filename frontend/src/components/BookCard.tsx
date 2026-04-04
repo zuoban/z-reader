@@ -327,7 +327,7 @@ export function BookCard({
             filter: `saturate(${dragSaturation}) brightness(${dragBrightness})`,
             width: cardWidth,
           }}
-          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform,opacity,filter] duration-300 ease-out hover:border-black/15 hover:shadow-[0_16px_34px_-26px_rgba(15,23,42,0.34)] motion-reduce:transition-none sm:rounded-[20px]"
+          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/20 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)] active:scale-[0.98] active:shadow-[0_8px_20px_-18px_rgba(15,23,42,0.32)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
         >
           <div className="relative overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200" style={{ height: coverHeight }}>
             <div className="pointer-events-none absolute right-2.5 bottom-2.5 z-30 inline-flex max-w-[calc(100%-1.25rem)] items-center justify-end overflow-hidden rounded-full border border-black/10 bg-black/82 px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white/95 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.5)] backdrop-blur-sm sm:right-3 sm:bottom-3 sm:max-w-[calc(100%-1.5rem)] sm:px-2.5 sm:text-[11px]">
@@ -470,7 +470,7 @@ export function BookCard({
               onPointerCancel={handleDragEnd}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              className={`group/drag-handle absolute left-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-3 sm:top-3 sm:h-11 sm:w-11 sm:hover:scale-105 cursor-grab active:cursor-grabbing ${
+              className={`group/drag-handle absolute left-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-[background-color,transform] duration-200 ease-out hover:bg-black/70 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-3 sm:top-3 sm:h-11 sm:w-11 sm:hover:scale-105 cursor-grab active:cursor-grabbing ${
                 isDragging
                   ? 'opacity-100 scale-100'
                   : 'opacity-100 scale-100 sm:opacity-0 sm:scale-[0.98] sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100'
@@ -486,7 +486,7 @@ export function BookCard({
           </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="absolute right-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-all duration-200 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:right-3 sm:top-3 sm:h-11 sm:w-11 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 sm:hover:scale-105 cursor-pointer"
+              className="absolute right-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-[background-color,transform] duration-200 hover:bg-black/70 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:right-3 sm:top-3 sm:h-11 sm:w-11 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 cursor-pointer"
               onClick={(e) => e.stopPropagation()}
               aria-label="更多操作"
             >
@@ -562,7 +562,7 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-11 w-full shrink-0 rounded-full bg-[#0f172a] px-4 text-[13px] font-medium text-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-colors duration-200 active:bg-[#1e293b] sm:h-8 sm:w-auto sm:px-3.5 sm:text-[12px] sm:hover:scale-[1.02] sm:hover:bg-[#1e293b]"
+                className="h-11 w-full shrink-0 rounded-full bg-foreground px-4 text-[13px] font-medium text-background shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-[transform,shadow] duration-200 hover:scale-[1.02] hover:shadow-[0_14px_28px_-20px_rgba(15,23,42,0.7)] active:scale-[0.96] sm:h-8 sm:w-auto sm:px-3.5 sm:text-[12px] cursor-pointer"
               >
                 <BookOpen className="mr-1.5 h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 阅读

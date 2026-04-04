@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, Layers3, Pencil, Palette, Plus, Trash2, X } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  Layers3,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +24,13 @@ import {
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Category } from '@/lib/api';
 
@@ -27,6 +44,13 @@ const CATEGORY_COLOR_PRESETS = [
   { name: '松绿', value: '#5D9B6A' },
   { name: '葡紫', value: '#7A64B8' },
 ] as const;
+
+// 暗色系颜色，需要白色图标
+const DARK_COLORS = ['#143B5D', '#2DABC2', '#5D9B6A', '#7A64B8'] as const;
+
+function getContrastColor(color: string): string {
+  return DARK_COLORS.includes(color as (typeof DARK_COLORS)[number]) ? '#fff' : '#143B5D';
+}
 
 interface CategoryManagerProps {
   onCategoryChange?: () => void;
@@ -153,213 +177,282 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
         side="right"
         showCloseButton
         finalFocus={false}
-        className="w-[100vw] max-w-[100vw] overflow-hidden rounded-none border-l border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-0 shadow-2xl backdrop-blur-xl dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98))] sm:w-[460px] sm:max-w-[460px] sm:rounded-l-[28px]"
+        className="w-[100vw] max-w-[100vw] overflow-hidden rounded-none border-l border-border/60 bg-gradient-to-br from-background via-background to-muted/30 p-0 shadow-2xl dark:from-background dark:via-background dark:to-muted/20 sm:w-[480px] sm:max-w-[480px] sm:rounded-l-[28px]"
       >
-        <div className="flex h-full min-h-0 flex-col">
-          <SheetHeader className="border-b border-border/60 bg-gradient-to-r from-muted/70 via-background to-muted/50 px-5 py-5 pr-14 sm:px-6">
-            <div className="flex items-start gap-3">
-              <div className="space-y-1.5">
-                <SheetTitle className="text-lg font-semibold tracking-tight sm:text-xl">
-                  管理分类
-                </SheetTitle>
-                <p className="max-w-[32rem] text-sm leading-6 text-muted-foreground">
-                  创建、编辑和删除分类，帮助你更清晰地整理书架内容。
-                </p>
-              </div>
+        {/* 头部区域 */}
+        <SheetHeader className="border-b border-border/50 bg-muted/30 px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
+              <Layers3 className="h-6 w-6 text-primary" />
             </div>
-          </SheetHeader>
+            <div className="flex-1 space-y-1">
+              <SheetTitle className="text-xl font-semibold tracking-tight">
+                管理分类
+              </SheetTitle>
+              <p className="text-sm text-muted-foreground">
+                创建、编辑和删除分类，整理你的书架内容
+              </p>
+            </div>
+          </div>
+        </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="grid gap-5 p-5 sm:p-6">
-              <section className="rounded-2xl border border-border/70 bg-background/90 p-4 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold">
-                      {editingId ? '编辑分类' : '新建分类'}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      输入名称并挑选一个颜色，让分类更容易辨认。
-                    </p>
-                  </div>
-                  {editingId && (
-                    <Button variant="ghost" size="sm" onClick={resetForm} className="gap-1.5">
-                      <X className="h-4 w-4" />
-                      退出编辑
-                    </Button>
-                  )}
+        {/* 主要内容区域 */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-6 p-6">
+            {/* 新建/编辑表单 */}
+            <section className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold">
+                    {editingId ? '编辑分类' : '新建分类'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    输入名称并选择颜色
+                  </p>
                 </div>
+                {editingId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetForm}
+                    className="gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                    取消
+                  </Button>
+                )}
+              </div>
 
-                <div className="space-y-4">
+              <div className="space-y-5">
+                {/* 名称输入 */}
+                <div className="space-y-2">
+                  <label htmlFor="category-name" className="text-sm font-medium">
+                    分类名称
+                  </label>
                   <Input
-                    placeholder="分类名称"
+                    id="category-name"
+                    placeholder="输入分类名称"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                     maxLength={50}
-                    className="h-10 rounded-xl bg-background/80 px-3.5"
+                    className="h-12 rounded-2xl bg-background/80 px-4 text-base transition-all focus:ring-2 focus:ring-primary/20"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {name.length}/50 字符
+                  </p>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <Palette className="h-3.5 w-3.5" />
-                      选择颜色
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-                      {CATEGORY_COLOR_PRESETS.map((preset) => {
-                        const selected = color === preset.value;
-                        return (
-                          <button
-                            key={preset.value}
-                            type="button"
-                            onClick={() => setColor(preset.value)}
-                            disabled={loading}
-                            aria-pressed={selected}
-                            aria-label={`选择颜色 ${preset.name}`}
-                            title={preset.name}
-                            className="group relative flex h-10 items-center justify-center rounded-2xl border border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            style={{
-                              backgroundColor: preset.value,
-                              boxShadow: selected ? `0 0 0 3px ${preset.value}22` : undefined,
-                            }}
-                          >
-                            <span
-                              className={`h-4 w-4 rounded-full border-2 border-white/80 bg-white/20 transition-transform ${
-                                selected ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-                              }`}
-                            />
-                            <span
-                              className={`pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-offset-2 ring-offset-background transition-opacity ${
-                                selected
-                                  ? 'ring-foreground/70 opacity-100'
-                                  : 'ring-transparent opacity-0'
-                              }`}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSave}
-                      disabled={loading || !name.trim()}
-                      className="h-10 flex-1 rounded-xl shadow-sm"
+                {/* 颜色选择 */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">选择颜色</label>
+                    <div
+                      className="flex items-center gap-2 rounded-full border border-border/60 px-3 py-1.5"
+                      style={{ backgroundColor: color + '20' }}
                     >
-                      {editingId ? (
-                        <>
-                          <Pencil className="h-4 w-4" />
-                          保存修改
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4" />
-                          创建分类
-                        </>
-                      )}
-                    </Button>
+                      <div
+                        className="h-3.5 w-3.5 rounded-full border border-white/40 shadow-sm"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="text-xs font-medium" style={{ color }}>
+                        {CATEGORY_COLOR_PRESETS.find((p) => p.value === color)?.name || color}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {CATEGORY_COLOR_PRESETS.map((preset) => {
+                      const selected = color === preset.value;
+                      return (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          onClick={() => setColor(preset.value)}
+                          disabled={loading}
+                          aria-pressed={selected}
+                          aria-label={`选择颜色 ${preset.name}`}
+                          title={preset.name}
+                          className="group relative flex h-14 items-center justify-center rounded-2xl border-2 border-transparent transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          style={{ backgroundColor: preset.value }}
+                        >
+                          <span
+                            className={`absolute inset-0 rounded-2xl border-2 transition-all duration-200 ${
+                              selected
+                                ? 'border-foreground scale-105 shadow-lg'
+                                : 'border-transparent'
+                            }`}
+                          >
+                            {selected && (
+                              <span className="absolute inset-0 flex items-center justify-center">
+                                <Check className="h-5 w-5 drop-shadow-md" style={{ color: getContrastColor(preset.value) }} />
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              </section>
 
-              <section className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold">已有分类</h3>
-                    <p className="text-xs text-muted-foreground">
-                      支持上移下移、编辑和删除分类。
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-border/60 bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground">
-                    {categories.length} 项
-                  </div>
+                {/* 提交按钮 */}
+                <Button
+                  onClick={handleSave}
+                  disabled={loading || !name.trim()}
+                  className="h-12 w-full rounded-2xl text-base font-medium shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none cursor-pointer"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      {editingId ? '保存中...' : '创建中...'}
+                    </span>
+                  ) : editingId ? (
+                    <>
+                      <Pencil className="mr-2 h-5 w-5" />
+                      保存修改
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-5 w-5" />
+                      创建分类
+                    </>
+                  )}
+                </Button>
+              </div>
+            </section>
+
+            {/* 已有分类列表 */}
+            <section className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold">已有分类</h3>
+                  <p className="text-sm text-muted-foreground">
+                    点击操作按钮进行编辑或删除
+                  </p>
                 </div>
+                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/50 px-3 py-1.5 text-sm font-medium text-muted-foreground">
+                  <Layers3 className="h-4 w-4" />
+                  {categories.length}
+                </div>
+              </div>
 
-                <ScrollArea className="max-h-[min(52vh,30rem)] pr-2">
-                  <div className="space-y-2">
-                    {categories.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-8 text-center">
-                        <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-background shadow-sm">
-                          <Layers3 className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm font-medium">暂无分类</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          先创建一个分类，再回到书架给图书归类。
-                        </p>
+              <ScrollArea className="max-h-[min(50vh,28rem)] pr-2">
+                <div className="space-y-3">
+                  {categories.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-border/60 bg-muted/20 py-12 text-center transition-all">
+                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-background shadow-sm">
+                        <Layers3 className="h-8 w-8 text-muted-foreground" />
                       </div>
-                    ) : (
-                      categories.map((cat, index) => {
+                      <p className="mb-1 text-base font-medium">暂无分类</p>
+                      <p className="max-w-[240px] text-sm text-muted-foreground">
+                        创建一个分类来整理你的书籍
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {categories.map((cat, index) => {
                         const isEditing = editingId === cat.id;
                         return (
                           <div
                             key={cat.id}
-                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-all ${
+                            className={`group relative flex items-center gap-4 rounded-2xl border-2 p-3 pr-4 transition-all duration-200 cursor-pointer ${
                               isEditing
-                                ? 'border-foreground/20 bg-muted/40 shadow-sm'
-                                : 'border-border/70 bg-background hover:border-border hover:bg-muted/20'
+                                ? 'border-primary/40 bg-primary/5 shadow-md'
+                                : 'border-border/50 bg-background hover:border-border hover:shadow-md hover:bg-muted/30'
                             }`}
                           >
+                            {/* 颜色标记 */}
                             <div
-                              className="h-10 w-10 shrink-0 rounded-2xl border border-white/30 shadow-sm"
+                              className="h-12 w-12 shrink-0 rounded-2xl border-2 border-white/30 shadow-sm transition-transform group-hover:scale-105"
                               style={{ backgroundColor: cat.color }}
                             />
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium">{cat.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {isEditing ? '当前正在编辑' : '已创建分类'}
+
+                            {/* 分类信息 */}
+                            <div className="flex-1 min-w-0">
+                              <div className="truncate text-base font-medium">{cat.name}</div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {isEditing ? (
+                                  <span className="flex items-center gap-1 text-primary">
+                                    <Pencil className="h-3 w-3" />
+                                    正在编辑
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span>创建于</span>
+                                    <span className="font-medium">{cat.sort_order}</span>
+                                  </>
+                                )}
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => handleMove(cat, 'up')}
-                              disabled={loading || index === 0}
-                              className="rounded-full hover:bg-muted"
-                              title="上移"
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => handleMove(cat, 'down')}
-                              disabled={loading || index === categories.length - 1}
-                              className="rounded-full hover:bg-muted"
-                              title="下移"
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => startEdit(cat)}
-                              disabled={loading}
-                              className="rounded-full hover:bg-muted"
-                              title="编辑分类"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => {
-                                setDeleteTarget(cat);
-                                setDeleteConfirmOpen(true);
-                              }}
-                              disabled={loading}
-                              className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              title="删除分类"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+
+                            {/* 排序按钮 */}
+                            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMove(cat, 'up');
+                                }}
+                                disabled={loading || index === 0}
+                                className="h-9 w-9 rounded-xl hover:bg-muted"
+                                title="上移"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMove(cat, 'down');
+                                }}
+                                disabled={loading || index === categories.length - 1}
+                                className="h-9 w-9 rounded-xl hover:bg-muted"
+                                title="下移"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* 操作菜单 */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                className="h-9 w-9 rounded-xl opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40 rounded-2xl p-1.5">
+                                <DropdownMenuItem
+                                  onClick={() => startEdit(cat)}
+                                  disabled={loading}
+                                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  <span>编辑</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="my-1.5" />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setDeleteTarget(cat);
+                                    setDeleteConfirmOpen(true);
+                                  }}
+                                  disabled={loading}
+                                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-destructive focus:bg-destructive/10 cursor-pointer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span>删除</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         );
-                      })
-                    )}
-                  </div>
-                </ScrollArea>
-              </section>
-            </div>
+                      })}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </section>
           </div>
         </div>
       </SheetContent>

@@ -43,3 +43,5 @@ coverage/
 .cache/
 .npm/
 .collaborator
+.gocache/
+.gomodcache/

@@ -51,6 +51,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   allowedDevOrigins: [LOCAL_IP, '127.0.0.1', 'localhost'],
   output: "standalone",
+  turbopack: {
+    root: import.meta.dirname,
+  },
   async rewrites() {
     return [
       {

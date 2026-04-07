@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import type { DragEvent } from 'react';
 import { toast } from 'sonner';
 import {
-  Check,
   Grip,
   Layers3,
   MoreHorizontal,
@@ -34,39 +33,7 @@ import {
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/lib/api';
-
-const CATEGORY_COLOR_PRESETS = [
-  { name: '晴蓝', value: '#A4D3F2' },
-  { name: '海青', value: '#2DABC2' },
-  { name: '深海', value: '#143B5D' },
-  { name: '金黄', value: '#FDBA11' },
-  { name: '橙焰', value: '#FF8A00' },
-  { name: '珊红', value: '#E85D3F' },
-  { name: '松绿', value: '#5D9B6A' },
-  { name: '葡紫', value: '#7A64B8' },
-] as const;
-
-// 暗色系颜色，需要白色图标
-const DARK_COLORS = ['#143B5D', '#2DABC2', '#5D9B6A', '#7A64B8'] as const;
-
-function getContrastColor(color: string): string {
-  return DARK_COLORS.includes(color as (typeof DARK_COLORS)[number]) ? '#fff' : '#143B5D';
-}
-
-function toAlphaColor(hex: string, alpha: number): string {
-  const normalized = hex.replace('#', '');
-  const value = normalized.length === 3
-    ? normalized.split('').map((char) => char + char).join('')
-    : normalized;
-
-  if (value.length !== 6) return hex;
-
-  const red = Number.parseInt(value.slice(0, 2), 16);
-  const green = Number.parseInt(value.slice(2, 4), 16);
-  const blue = Number.parseInt(value.slice(4, 6), 16);
-
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
+import { getCategoryColor, getContrastColor, toAlphaColor } from '@/lib/categoryColors';
 
 interface CategoryManagerProps {
   onCategoryChange?: () => void;
@@ -79,7 +46,6 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [color, setColor] = useState<string>(CATEGORY_COLOR_PRESETS[0].value);
   const [loading, setLoading] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -113,9 +79,9 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
     setLoading(true);
     try {
       if (editingId) {
-        await api.updateCategory(editingId, { name: trimmedName, color });
+        await api.updateCategory(editingId, { name: trimmedName });
       } else {
-        await api.createCategory({ name: trimmedName, color });
+        await api.createCategory({ name: trimmedName });
       }
       await loadCategories();
       onCategoryChange?.();
@@ -239,21 +205,20 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
   function startEdit(category: Category) {
     setEditingId(category.id);
     setName(category.name);
-    setColor(category.color);
   }
 
   function resetForm() {
     setEditingId(null);
     setName('');
-    setColor(CATEGORY_COLOR_PRESETS[0].value);
   }
 
-  const selectedPreset =
-    CATEGORY_COLOR_PRESETS.find((preset) => preset.value === color) ?? CATEGORY_COLOR_PRESETS[0];
   const editingCategory = categories.find((category) => category.id === editingId) ?? null;
+  // 新分类的颜色根据当前分类数量计算（新增分类将是最后一个）
+  const nextSortOrder = editingId ? editingCategory?.sort_order : categories.length + 1;
+  const previewColor = getCategoryColor(nextSortOrder ?? categories.length + 1);
   const formTitle = editingId ? '编辑分类' : '新建分类';
   const formDescription = editingId
-    ? '更新名称或颜色，让书架标签更清晰。'
+    ? '更新名称，让书架标签更清晰。'
     : '为一组书建立专属入口，稍后可以继续调整顺序。';
 
   return (
@@ -317,7 +282,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
             <section
               className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90 shadow-[0_18px_40px_rgba(23,23,23,0.08)] transition-all duration-300"
               style={{
-                backgroundImage: `linear-gradient(135deg, ${toAlphaColor(color, 0.14)}, transparent 48%)`,
+                backgroundImage: `linear-gradient(135deg, ${toAlphaColor(previewColor, 0.14)}, transparent 48%)`,
               }}
             >
               <div className="border-b border-border/50 px-5 py-4">
@@ -343,23 +308,23 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
 
                 <div
                   className="flex items-center gap-3 rounded-[1.5rem] border border-white/40 px-4 py-3 shadow-sm backdrop-blur"
-                  style={{ backgroundColor: toAlphaColor(color, 0.12) }}
+                  style={{ backgroundColor: toAlphaColor(previewColor, 0.12) }}
                 >
                   <div
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-white/40 text-sm font-semibold shadow-sm"
                     style={{
-                      backgroundColor: color,
-                      color: getContrastColor(color),
+                      backgroundColor: previewColor,
+                      color: getContrastColor(previewColor),
                     }}
                   >
-                    {(name.trim() || selectedPreset.name).slice(0, 2)}
+                    {name.trim().slice(0, 2) || '新'}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
                       {name.trim() || '未命名分类'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      色彩方案 · {selectedPreset.name}
+                      颜色将根据排序位置自动生成
                     </p>
                   </div>
                 </div>
@@ -380,73 +345,8 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                     className="h-12 rounded-2xl border-white/60 bg-background/90 px-4 text-base shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <p>建议使用简洁主题词，例如“文学”“设计”“在读”。</p>
+                    <p>建议使用简洁主题词，例如"文学""设计""在读"。</p>
                     <p>{name.length}/50</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">选择颜色</label>
-                    <div
-                      className="flex items-center gap-2 rounded-full border border-border/60 px-3 py-1.5 shadow-sm"
-                      style={{ backgroundColor: toAlphaColor(color, 0.12) }}
-                    >
-                      <div
-                        className="h-3.5 w-3.5 rounded-full border border-white/40 shadow-sm"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="text-xs font-medium" style={{ color }}>
-                        {selectedPreset.name}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {CATEGORY_COLOR_PRESETS.map((preset) => {
-                      const selected = color === preset.value;
-                      return (
-                        <button
-                          key={preset.value}
-                          type="button"
-                          onClick={() => setColor(preset.value)}
-                          disabled={loading}
-                          aria-pressed={selected}
-                          aria-label={`选择颜色 ${preset.name}`}
-                          title={preset.name}
-                          className={cn(
-                            'group relative flex h-14 items-center justify-between rounded-[1.25rem] border px-3 transition-all duration-200',
-                            'hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                            selected
-                              ? 'border-foreground/20 shadow-md'
-                              : 'border-border/60 bg-background/70'
-                          )}
-                          style={{
-                            background: `linear-gradient(135deg, ${toAlphaColor(preset.value, 0.18)}, transparent 70%)`,
-                          }}
-                        >
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="h-8 w-8 rounded-xl border border-white/40 shadow-sm"
-                              style={{ backgroundColor: preset.value }}
-                            />
-                            <span className="text-sm font-medium text-foreground">
-                              {preset.name}
-                            </span>
-                          </span>
-                          <span
-                            className={cn(
-                              'flex h-7 w-7 items-center justify-center rounded-full border transition-all duration-200',
-                              selected
-                                ? 'border-foreground/10 bg-background/80 shadow-sm'
-                                : 'border-transparent bg-transparent'
-                            )}
-                          >
-                            {selected && <Check className="h-4 w-4 text-foreground" />}
-                          </span>
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
 
@@ -507,6 +407,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                         const isEditing = editingId === cat.id;
                         const isDragging = draggingId === cat.id;
                         const isDropTarget = dropTargetId === cat.id && draggingId !== cat.id;
+                        const catColor = getCategoryColor(cat.sort_order);
                         return (
                           <div
                             key={cat.id}
@@ -521,7 +422,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                                 : 'border-border/50 bg-background/90 hover:-translate-y-0.5 hover:border-border hover:shadow-md hover:bg-muted/20'
                             }`}
                             style={{
-                              backgroundImage: `linear-gradient(135deg, ${toAlphaColor(cat.color, isEditing ? 0.16 : 0.1)}, transparent 58%)`,
+                              backgroundImage: `linear-gradient(135deg, ${toAlphaColor(catColor, isEditing ? 0.16 : 0.1)}, transparent 58%)`,
                               opacity: isDragging ? 0.48 : 1,
                               transform: isDragging ? 'scale(0.985)' : undefined,
                             }}
@@ -531,7 +432,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                             )}
                             <div
                               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-white/40 text-sm font-semibold shadow-sm transition-transform group-hover:scale-105"
-                              style={{ backgroundColor: cat.color, color: getContrastColor(cat.color) }}
+                              style={{ backgroundColor: catColor, color: getContrastColor(catColor) }}
                             >
                               {cat.name.slice(0, 2)}
                             </div>
@@ -553,7 +454,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                                   <>
                                     <span
                                       className="h-2.5 w-2.5 rounded-full"
-                                      style={{ backgroundColor: cat.color }}
+                                      style={{ backgroundColor: catColor }}
                                     />
                                     <span>排序位 {cat.sort_order}</span>
                                   </>

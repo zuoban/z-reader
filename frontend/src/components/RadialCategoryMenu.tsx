@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Category } from '@/lib/api';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 export interface RadialCategoryTarget {
   id: string;
@@ -65,7 +66,7 @@ export function buildRadialCategoryTargets(
         id: category.id,
         categoryId: category.id,
         label: truncateLabel(category.name),
-        color: category.color,
+        color: getCategoryColor(category.sort_order),
         count: bookCounts[category.id] || 0,
         blocked: false,
         isClear: false,

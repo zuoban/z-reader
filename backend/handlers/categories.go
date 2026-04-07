@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,20 +13,14 @@ import (
 )
 
 var DefaultColors = []string{
-	"#EF4444", // 红色
-	"#F59E0B", // 橙色
-	"#10B981", // 绿色
-	"#3B82F6", // 蓝色
-	"#8B5CF6", // 紫色
-	"#EC4899", // 粉色
-	"#6366F1", // 靛蓝
-	"#14B8A6", // 青色
-}
-
-var colorRegex = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
-
-func isValidColor(color string) bool {
-	return colorRegex.MatchString(color)
+	"#A4D3F2", // 晴蓝
+	"#2DABC2", // 海青
+	"#143B5D", // 深海
+	"#FDBA11", // 金黄
+	"#FF8A00", // 橙焰
+	"#E85D3F", // 珊红
+	"#5D9B6A", // 松绿
+	"#7A64B8", // 葡紫
 }
 
 type CategoriesHandler struct {
@@ -50,7 +43,6 @@ func (h *CategoriesHandler) List(c *gin.Context) {
 
 type categoryRequest struct {
 	Name      string `json:"name" binding:"required,max=50"`
-	Color     string `json:"color" binding:"required,len=7"`
 	SortOrder *int   `json:"sort_order"`
 }
 
@@ -58,11 +50,6 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	var req categoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-
-	if !isValidColor(req.Color) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid color format"})
 		return
 	}
 
@@ -77,10 +64,14 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 		sortOrder = *req.SortOrder
 	}
 
+	// 根据排序位置自动分配颜色
+	colorIndex := (sortOrder - 1) % len(DefaultColors)
+	color := DefaultColors[colorIndex]
+
 	category := &models.Category{
 		ID:        uuid.New().String(),
 		Name:      req.Name,
-		Color:     req.Color,
+		Color:     color,
 		SortOrder: sortOrder,
 		CreatedAt: time.Now(),
 	}
@@ -95,7 +86,6 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 
 type categoryUpdateRequest struct {
 	Name      *string `json:"name"`
-	Color     *string `json:"color"`
 	SortOrder *int    `json:"sort_order"`
 }
 
@@ -121,19 +111,18 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	if req.Name != nil {
 		category.Name = *req.Name
 	}
-	if req.Color != nil {
-		if !isValidColor(*req.Color) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid color format"})
-			return
-		}
-		category.Color = *req.Color
-	}
 	if req.SortOrder != nil {
 		if *req.SortOrder <= 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sort order"})
 			return
 		}
+		// 如果排序位置变化，更新颜色
+		oldSortOrder := category.SortOrder
 		category.SortOrder = *req.SortOrder
+		if oldSortOrder != *req.SortOrder {
+			colorIndex := (*req.SortOrder - 1) % len(DefaultColors)
+			category.Color = DefaultColors[colorIndex]
+		}
 	}
 
 	if err := h.db.SaveCategory(category); err != nil {

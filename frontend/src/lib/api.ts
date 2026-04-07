@@ -225,14 +225,14 @@ export const api = {
     return fetchApi<Category[]>('/api/categories');
   },
 
-  createCategory: async (data: { name: string; color: string; sort_order?: number }): Promise<Category> => {
+  createCategory: async (data: { name: string; sort_order?: number }): Promise<Category> => {
     return fetchApi<Category>('/api/categories', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  updateCategory: async (id: string, data: { name?: string; color?: string; sort_order?: number }): Promise<Category> => {
+  updateCategory: async (id: string, data: { name?: string; sort_order?: number }): Promise<Category> => {
     return fetchApi<Category>(`/api/categories/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

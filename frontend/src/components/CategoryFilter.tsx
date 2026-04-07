@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Category } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const MAX_CATEGORY_LABEL_LENGTH = 8;
@@ -84,10 +85,10 @@ export function CategoryFilter({
       count: uncategorizedBooks,
       isRoot: true,
     },
-    ...categories.map((category) => ({
+    ...categories.map((category, index) => ({
       id: category.id,
       label: category.name,
-      color: category.color,
+      color: getCategoryColor(index + 1),
       count: bookCounts[category.id] || 0,
       isRoot: false,
     })),

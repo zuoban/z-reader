@@ -240,37 +240,20 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
         side="right"
         showCloseButton
         finalFocus={false}
-        className="w-[100vw] max-w-[100vw] overflow-hidden rounded-none border-l border-border/60 bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.14),_transparent_34%),linear-gradient(180deg,_rgba(250,250,250,0.98)_0%,_rgba(245,245,245,0.96)_100%)] p-0 shadow-2xl dark:bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.10),_transparent_34%),linear-gradient(180deg,_rgba(23,23,23,0.98)_0%,_rgba(10,10,10,0.98)_100%)] sm:w-[500px] sm:max-w-[500px] sm:rounded-l-[32px]"
+        className="w-[100vw] max-w-[100vw] overflow-hidden rounded-none border-l border-border/60 bg-background p-0 shadow-2xl sm:w-[420px] sm:max-w-[420px] sm:rounded-l-2xl"
       >
-        <SheetHeader className="border-b border-border/50 bg-background/70 px-6 py-6 backdrop-blur">
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[1.25rem] bg-primary/10 shadow-sm ring-1 ring-border/40">
-                <Layers3 className="h-6 w-6 text-primary" />
+        <SheetHeader className="border-b border-border/50 bg-background px-5 py-5 backdrop-blur">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Layers3 className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex-1 space-y-1">
-                <SheetTitle className="text-xl font-semibold tracking-tight">
+              <div className="flex-1 space-y-0.5">
+                <SheetTitle className="text-lg font-semibold tracking-tight">
                   管理分类
                 </SheetTitle>
-                <p className="text-sm leading-6 text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   创建、编辑和整理分类，让书架结构更清晰。
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-[1.5rem] border border-border/60 bg-card/80 px-4 py-3 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  分类总数
-                </p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight">{categories.length}</p>
-              </div>
-              <div className="rounded-[1.5rem] border border-border/60 bg-card/80 px-4 py-3 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  当前状态
-                </p>
-                <p className="mt-2 text-sm font-medium text-foreground">
-                  {editingCategory ? `正在编辑 ${editingCategory.name}` : '准备创建新分类'}
                 </p>
               </div>
             </div>
@@ -278,18 +261,13 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="space-y-6 p-6">
-            <section
-              className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90 shadow-[0_18px_40px_rgba(23,23,23,0.08)] transition-all duration-300"
-              style={{
-                backgroundImage: `linear-gradient(135deg, ${toAlphaColor(previewColor, 0.14)}, transparent 48%)`,
-              }}
-            >
-              <div className="border-b border-border/50 px-5 py-4">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-semibold">{formTitle}</h3>
-                    <p className="text-sm leading-6 text-muted-foreground">
+          <div className="space-y-5 p-5">
+            <section className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border/50 px-4 py-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-semibold">{formTitle}</h3>
+                    <p className="text-xs text-muted-foreground">
                       {formDescription}
                     </p>
                   </div>
@@ -298,20 +276,19 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                       variant="ghost"
                       size="sm"
                       onClick={resetForm}
-                      className="gap-1.5 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
+                      className="h-7 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="mr-1 h-3 w-3" />
                       取消
                     </Button>
                   )}
                 </div>
+              </div>
 
-                <div
-                  className="flex items-center gap-3 rounded-[1.5rem] border border-white/40 px-4 py-3 shadow-sm backdrop-blur"
-                  style={{ backgroundColor: toAlphaColor(previewColor, 0.12) }}
-                >
+              <div className="space-y-4 px-4 py-4">
+                <div className="flex items-center gap-3">
                   <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-white/40 text-sm font-semibold shadow-sm"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/30 text-sm font-semibold shadow-sm"
                     style={{
                       backgroundColor: previewColor,
                       color: getContrastColor(previewColor),
@@ -319,7 +296,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                   >
                     {name.trim().slice(0, 2) || '新'}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
                       {name.trim() || '未命名分类'}
                     </p>
@@ -328,13 +305,8 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                     </p>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-5 px-5 py-5">
                 <div className="space-y-2">
-                  <label htmlFor="category-name" className="text-sm font-medium">
-                    分类名称
-                  </label>
                   <Input
                     id="category-name"
                     placeholder="输入分类名称"
@@ -342,7 +314,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                     maxLength={50}
-                    className="h-12 rounded-2xl border-white/60 bg-background/90 px-4 text-base shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
+                    className="h-10 rounded-lg border-border/60 bg-background px-3.5 text-sm shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <p>建议使用简洁主题词，例如"文学""设计""在读"。</p>
@@ -353,7 +325,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                 <Button
                   onClick={handleSave}
                   disabled={loading || !name.trim()}
-                  className="h-12 w-full rounded-2xl text-base font-medium shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none cursor-pointer"
+                  className="h-10 w-full rounded-lg text-sm font-medium shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none cursor-pointer"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
@@ -362,12 +334,12 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                     </span>
                   ) : editingId ? (
                     <>
-                      <Pencil className="mr-2 h-5 w-5" />
+                      <Pencil className="mr-2 h-4 w-4" />
                       保存修改
                     </>
                   ) : (
                     <>
-                      <Plus className="mr-2 h-5 w-5" />
+                      <Plus className="mr-2 h-4 w-4" />
                       创建分类
                     </>
                   )}
@@ -375,139 +347,136 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-border/60 bg-card/90 p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold">已有分类</h3>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    直接拖动手柄即可调整顺序，也可以继续编辑或删除。
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-semibold">已有分类</h3>
+                  <p className="text-xs text-muted-foreground">
+                    拖动手柄调整顺序，编辑或删除。
                   </p>
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/50 px-3 py-1.5 text-sm font-medium text-muted-foreground">
-                  <Layers3 className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  <Layers3 className="h-3.5 w-3.5" />
                   {categories.length}
                 </div>
               </div>
 
-              <ScrollArea className="max-h-[min(50vh,28rem)] pr-2">
-                <div className="space-y-3">
+              <ScrollArea className="max-h-[min(45vh,24rem)] pr-1">
+                <div className="space-y-2">
                   {categories.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-[1.75rem] border-2 border-dashed border-border/60 bg-[linear-gradient(180deg,rgba(245,245,245,0.6),rgba(250,250,250,0.95))] py-12 text-center transition-all dark:bg-[linear-gradient(180deg,rgba(38,38,38,0.6),rgba(23,23,23,0.95))]">
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-background shadow-sm ring-1 ring-border/50">
-                        <Layers3 className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/60 bg-muted/30 py-10 text-center">
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-background shadow-sm ring-1 ring-border/50">
+                        <Layers3 className="h-6 w-6 text-muted-foreground" />
                       </div>
-                      <p className="mb-1 text-base font-medium">暂无分类</p>
-                      <p className="max-w-[240px] text-sm text-muted-foreground">
+                      <p className="mb-1 text-sm font-medium">暂无分类</p>
+                      <p className="max-w-[200px] text-xs text-muted-foreground">
                         创建一个分类来整理你的书籍
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {categories.map((cat, index) => {
-                        const isEditing = editingId === cat.id;
-                        const isDragging = draggingId === cat.id;
-                        const isDropTarget = dropTargetId === cat.id && draggingId !== cat.id;
-                        const catColor = getCategoryColor(cat.sort_order);
-                        return (
+                    categories.map((cat, index) => {
+                      const isEditing = editingId === cat.id;
+                      const isDragging = draggingId === cat.id;
+                      const isDropTarget = dropTargetId === cat.id && draggingId !== cat.id;
+                      const catColor = getCategoryColor(cat.sort_order);
+                      return (
+                        <div
+                          key={cat.id}
+                          draggable={!loading}
+                          onDragStart={(event) => handleDragStart(event, cat.id)}
+                          onDragOver={(event) => handleDragOver(event, cat.id)}
+                          onDrop={(event) => void handleDrop(event, cat.id)}
+                          onDragEnd={handleDragEnd}
+                          className={`group relative flex items-center gap-3 rounded-lg border p-2.5 pr-2.5 transition-all duration-200 ${
+                            isEditing
+                              ? 'border-primary/30 bg-primary/5 shadow-sm'
+                              : 'border-border/60 bg-card hover:border-border hover:shadow-sm'
+                          }`}
+                          style={{
+                            opacity: isDragging ? 0.5 : 1,
+                            transform: isDragging ? 'scale(0.98)' : undefined,
+                          }}
+                        >
+                          {isDropTarget && (
+                            <div className="pointer-events-none absolute inset-x-2 -top-0.5 h-0.5 rounded-full bg-primary/70" />
+                          )}
                           <div
-                            key={cat.id}
-                            draggable={!loading}
-                            onDragStart={(event) => handleDragStart(event, cat.id)}
-                            onDragOver={(event) => handleDragOver(event, cat.id)}
-                            onDrop={(event) => void handleDrop(event, cat.id)}
-                            onDragEnd={handleDragEnd}
-                            className={`group relative flex items-center gap-4 rounded-[1.5rem] border p-3 pr-3 transition-all duration-200 ${
-                              isEditing
-                                ? 'border-primary/30 bg-primary/5 shadow-md shadow-primary/10'
-                                : 'border-border/50 bg-background/90 hover:-translate-y-0.5 hover:border-border hover:shadow-md hover:bg-muted/20'
-                            }`}
-                            style={{
-                              backgroundImage: `linear-gradient(135deg, ${toAlphaColor(catColor, isEditing ? 0.16 : 0.1)}, transparent 58%)`,
-                              opacity: isDragging ? 0.48 : 1,
-                              transform: isDragging ? 'scale(0.985)' : undefined,
-                            }}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs font-semibold shadow-sm"
+                            style={{ backgroundColor: catColor, color: getContrastColor(catColor) }}
                           >
-                            {isDropTarget && (
-                              <div className="pointer-events-none absolute inset-x-3 -top-1 h-1 rounded-full bg-primary/70 shadow-[0_0_0_4px_rgba(23,23,23,0.04)]" />
-                            )}
-                            <div
-                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-white/40 text-sm font-semibold shadow-sm transition-transform group-hover:scale-105"
-                              style={{ backgroundColor: catColor, color: getContrastColor(catColor) }}
-                            >
-                              {cat.name.slice(0, 2)}
-                            </div>
+                            {cat.name.slice(0, 2)}
+                          </div>
 
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className="truncate text-base font-medium">{cat.name}</div>
-                                <span className="rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                                  #{index + 1}
-                                </span>
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                {isEditing ? (
-                                  <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-primary">
-                                    <Pencil className="h-3 w-3" />
-                                    正在编辑
-                                  </span>
-                                ) : (
-                                  <>
-                                    <span
-                                      className="h-2.5 w-2.5 rounded-full"
-                                      style={{ backgroundColor: catColor }}
-                                    />
-                                    <span>排序位 {cat.sort_order}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="hidden items-center opacity-60 transition-opacity group-hover:opacity-100 sm:flex">
-                              <span
-                                className={cn(
-                                  'flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground',
-                                  loading ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
-                                )}
-                                title="拖动排序"
-                              >
-                                <Grip className="h-4 w-4" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="truncate text-sm font-medium">{cat.name}</div>
+                              <span className="rounded-full border border-border/40 bg-background/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                #{index + 1}
                               </span>
                             </div>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                className="flex h-9 w-9 items-center justify-center rounded-xl bg-background/70 opacity-100 transition hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40 rounded-2xl p-1.5">
-                                <DropdownMenuItem
-                                  onClick={() => startEdit(cat)}
-                                  disabled={loading}
-                                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                  <span>编辑</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="my-1.5" />
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setDeleteTarget(cat);
-                                    setDeleteConfirmOpen(true);
-                                  }}
-                                  disabled={loading}
-                                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-destructive focus:bg-destructive/10 cursor-pointer"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span>删除</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {isEditing ? (
+                                <span className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-primary">
+                                  <Pencil className="h-2.5 w-2.5" />
+                                  正在编辑
+                                </span>
+                              ) : (
+                                <>
+                                  <span
+                                    className="h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: catColor }}
+                                  />
+                                  <span>排序位 {cat.sort_order}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
+
+                          <div className="hidden items-center opacity-60 transition-opacity group-hover:opacity-100 sm:flex">
+                            <span
+                              className={cn(
+                                'flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground',
+                                loading ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
+                              )}
+                              title="拖动排序"
+                            >
+                              <Grip className="h-3.5 w-3.5" />
+                            </span>
+                          </div>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background/70 opacity-100 transition hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-36 rounded-lg p-1">
+                              <DropdownMenuItem
+                                onClick={() => startEdit(cat)}
+                                disabled={loading}
+                                className="flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span>编辑</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="my-1" />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setDeleteTarget(cat);
+                                  setDeleteConfirmOpen(true);
+                                }}
+                                disabled={loading}
+                                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-destructive focus:bg-destructive/10 cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>删除</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </ScrollArea>

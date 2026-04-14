@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -24,7 +25,7 @@ const defaultColorClasses =
 
 function getCoverClasses(className?: string) {
   return cn(
-    "absolute inset-y-0 left-0 flex size-full flex-col overflow-hidden p-[12%] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-[#00000014] after:shadow-[0_1.8px_3.6px_#0000000d,_0_10.8px_21.6px_#00000014,_inset_0_-.9px_#0000001a,_inset_0_1.8px_1.8px_#ffffff1a,_inset_3.6px_0_3.6px_#0000001a]",
+    "absolute inset-y-0 left-0 flex size-full flex-col overflow-hidden pl-[8%] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-[#00000014] after:shadow-[0_1.8px_3.6px_#0000000d,_0_10.8px_21.6px_#00000014,_inset_0_-.9px_#0000001a,_inset_0_1.8px_1.8px_#ffffff1a,_inset_3.6px_0_3.6px_#0000001a]",
     className || defaultColorClasses
   );
 }
@@ -37,16 +38,48 @@ export function PerspectiveBook({
 }: PerspectiveBookProps) {
   const coverWidth = sizeMap[size].width;
   const spineTranslation = sizeMap[size].spineTranslation;
+  const [isActive, setIsActive] = useState(false);
+
+  const handlePointerDown = useCallback(() => {
+    setIsActive(true);
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    setIsActive(false);
+  }, []);
+
+  const handlePointerDownCapture = useCallback(() => {
+    setIsActive(true);
+  }, []);
+
+  const handlePointerUpCapture = useCallback(() => {
+    setIsActive(false);
+  }, []);
 
   return (
-    <div className="z-10 h-min w-min [perspective:900px]">
+    <div
+      className="group z-10 h-min w-min [perspective:900px]"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      // 允许指针事件穿透到父级
+      style={{ touchAction: 'manipulation' }}
+    >
       <div
         style={{
           width: coverWidth,
           borderRadius: '6px 4px 4px 6px',
         }}
-        className="group relative aspect-[49/60] transition-transform duration-300 ease-out [transform:rotateY(0deg)] [transform-style:preserve-3d] group-hover:scale-[1.066] group-hover:-translate-x-1 group-hover:[transform:rotateY(-20deg)]"
+        className={cn(
+          "relative aspect-[49/60] transition-transform duration-300 ease-out [transform-style:preserve-3d]",
+          // 悬停状态（桌面端）
+          "group-hover:scale-[1.066] group-hover:-translate-x-1 group-hover:[transform:rotateY(-20deg)]",
+          // 按压状态（移动端）
+          isActive && "scale-[1.066] -translate-x-1 [transform:rotateY(-20deg)]"
+        )}
       >
+        {/* 封面 */}
         <div
           className={getCoverClasses(className)}
           style={{
@@ -62,7 +95,7 @@ export function PerspectiveBook({
                 'linear-gradient(90deg, hsla(0, 0%, 100%, 0), hsla(0, 0%, 100%, 0) 12%, hsla(0, 0%, 100%, .25) 29.25%, hsla(0, 0%, 100%, 0) 50.5%, hsla(0, 0%, 100%, 0) 75.25%, hsla(0, 0%, 100%, .25) 91%, hsla(0, 0%, 100%, 0)), linear-gradient(90deg, rgba(0, 0, 0, .03), rgba(0, 0, 0, .1) 12%, transparent 30%, rgba(0, 0, 0, .02) 50%, rgba(0, 0, 0, .2) 73.5%, rgba(0, 0, 0, .5) 75.25%, rgba(0, 0, 0, .15) 85.25%, transparent)',
             }}
           />
-          <div className="h-full pl-1">{children}</div>
+          <div className="size-full">{children}</div>
           {textured && (
             <div
               className="book-cover-texture pointer-events-none absolute inset-0 rotate-180 bg-cover bg-no-repeat mix-blend-hard-light opacity-50 brightness-110"
@@ -71,6 +104,7 @@ export function PerspectiveBook({
           )}
         </div>
 
+        {/* 书脊 */}
         <div
           className="absolute left-0 bg-[linear-gradient(90deg,#eaeaea_0%,#0000_80%),linear-gradient(#fff,#fafafa)]"
           style={{
@@ -81,6 +115,7 @@ export function PerspectiveBook({
           }}
         />
 
+        {/* 封底 */}
         <div
           className={getCoverClasses(className)}
           style={{
@@ -89,6 +124,16 @@ export function PerspectiveBook({
           }}
         />
       </div>
+
+      {/* 透明遮罩层，捕获整个卡片区域的 pointer 事件 */}
+      <div
+        className="absolute inset-0 z-20 cursor-pointer"
+        style={{ touchAction: 'manipulation' }}
+        onPointerDown={handlePointerDownCapture}
+        onPointerUp={handlePointerUpCapture}
+        onPointerLeave={handlePointerUpCapture}
+        onPointerCancel={handlePointerUpCapture}
+      />
     </div>
   );
 }

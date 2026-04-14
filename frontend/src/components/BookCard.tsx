@@ -99,28 +99,25 @@ function BookCoverFace({
 
   // 默认封面 - 白色极简风格
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[2px] bg-transparent px-5 py-5 text-slate-800">
-      {/* 封面主体 */}
-      <div className="relative z-10 flex h-full flex-col">
-        <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-slate-900">
-          {titleLabel}
-        </h3>
-        <div className="mt-auto pt-4">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-slate-400"
-          >
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-          </svg>
-        </div>
+    <div className="relative flex size-full flex-col p-4 text-slate-800">
+      <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-slate-900">
+        {titleLabel}
+      </h3>
+      <div className="mt-auto flex items-end">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-slate-400"
+        >
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
       </div>
     </div>
   );

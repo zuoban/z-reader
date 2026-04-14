@@ -25,18 +25,13 @@ import {
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
-import type { TTSSettings, Voice } from "@/lib/tts";
 import {
   BookOpen,
   ChevronDown,
-  Eye,
-  EyeOff,
   Palette,
   ScrollText,
   Settings,
-  Sparkles,
   Type,
-  Volume2,
   Zap,
   ZapOff,
 } from "lucide-react";
@@ -46,14 +41,6 @@ const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "classic",
   "humanist",
 ];
-const SUPPORTED_LOCALES = ["zh", "en", "ja", "ko"] as const;
-const LOCALE_LABELS: Record<(typeof SUPPORTED_LOCALES)[number], string> = {
-  zh: "中文",
-  en: "英语",
-  ja: "日语",
-  ko: "韩语",
-};
-
 const PRESETS = [
   {
     key: "light",
@@ -95,9 +82,6 @@ interface ThemeSettingsProps {
   theme: ReaderTheme;
   setTheme: (theme: Partial<ReaderTheme>) => void;
   uiScheme: ThemeColors;
-  ttsSettings: TTSSettings;
-  voices: Voice[];
-  onUpdateTTSSettings: (settings: Partial<TTSSettings>) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -337,9 +321,6 @@ export function ThemeSettings({
   theme,
   setTheme,
   uiScheme,
-  ttsSettings,
-  voices,
-  onUpdateTTSSettings,
   open,
   onOpenChange,
 }: ThemeSettingsProps) {
@@ -347,7 +328,6 @@ export function ThemeSettings({
     theme: true,
     typography: true,
     layout: false,
-    tts: false,
     motion: false,
   });
   const panelStyle = {
@@ -373,37 +353,7 @@ export function ThemeSettings({
     borderColor: `${uiScheme.cardBorder}35`,
     background: `${uiScheme.buttonBg}90`,
   } as const;
-
   const currentPreset = PRESETS.find((preset) => preset.key === theme.preset) ?? PRESETS[0];
-  const availableLocales = SUPPORTED_LOCALES.filter((locale) =>
-    voices.some((voice) => voice.Locale.startsWith(locale)),
-  );
-  const localeVoicesMap = availableLocales.map((locale) => ({
-    locale,
-    label: LOCALE_LABELS[locale],
-    voices: voices.filter((voice) => voice.Locale.startsWith(locale)),
-  }));
-  const selectedVoice = voices.find((voice) => voice.Name === ttsSettings.voiceName);
-  const selectedLocale =
-    availableLocales.find((locale) => selectedVoice?.Locale.startsWith(locale)) ??
-    availableLocales[0];
-  const currentLocaleVoices =
-    localeVoicesMap.find((item) => item.locale === selectedLocale)?.voices ?? [];
-
-  function handleLocaleChange(locale: string) {
-    const nextVoices = voices.filter((voice) => voice.Locale.startsWith(locale));
-    const nextVoice = nextVoices.find((voice) => voice.Name === ttsSettings.voiceName);
-
-    if (nextVoice) return;
-
-    const fallbackVoice = nextVoices[0];
-    if (!fallbackVoice) return;
-
-    onUpdateTTSSettings({
-      voiceName: fallbackVoice.Name,
-      style: fallbackVoice.StyleList?.[0] ?? "general",
-    });
-  }
 
   function toggleSection(sectionId: string) {
     setOpenSections((current) => ({
@@ -465,7 +415,7 @@ export function ThemeSettings({
                 阅读偏好
               </SheetTitle>
               <p className="mt-1 text-xs leading-relaxed" style={{ color: uiScheme.mutedText }}>
-                让主题、版式和朗读设置更贴近你的阅读习惯。
+                让主题和版式更贴近你的阅读习惯。朗读偏好已移至顶部朗读按钮。
               </p>
             </div>
             <div
@@ -906,173 +856,6 @@ export function ThemeSettings({
               step={1}
               uiScheme={uiScheme}
             />
-          </SectionCard>
-
-          <SectionCard
-            id="tts"
-            title="朗读偏好"
-            description="语速、音调和声线的快速调整。"
-            icon={<Volume2 className="h-4 w-4" />}
-            summary={
-              availableLocales.length > 0
-                ? `${selectedVoice?.LocalName ?? "默认"} · ${Math.round(ttsSettings.volume * 100)}%`
-                : `音量 ${Math.round(ttsSettings.volume * 100)}%`
-            }
-            isOpen={openSections.tts}
-            onToggle={toggleSection}
-            uiScheme={uiScheme}
-          >
-            {/* 语速 / 音调 / 音量 — 三列紧凑横排 */}
-            <div
-              className="rounded-xl border p-3.5"
-              style={{
-                background: `${uiScheme.buttonBg}80`,
-                borderColor: `${uiScheme.cardBorder}28`,
-              }}
-            >
-              <div className="grid grid-cols-3">
-                {/* 语速 */}
-                <div
-                  className="flex flex-col items-center gap-1.5 px-3 first:pl-0"
-                  style={{ borderRight: `1px solid ${uiScheme.cardBorder}20` }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-semibold tracking-wide" style={{ color: uiScheme.fg }}>语速</span>
-                  </div>
-                  <Slider
-                    value={[ttsSettings.rate]}
-                    onValueChange={([v]) => onUpdateTTSSettings({ rate: v })}
-                    min={-50}
-                    max={100}
-                    step={10}
-                    className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
-                  />
-                  <span className="text-[10px] tabular-nums" style={{ color: uiScheme.mutedText }}>
-                    {ttsSettings.rate === 0 ? "正常" : `${ttsSettings.rate > 0 ? "+" : ""}${ttsSettings.rate}`}
-                  </span>
-                </div>
-
-                {/* 音调 */}
-                <div
-                  className="flex flex-col items-center gap-1.5 px-3"
-                  style={{ borderRight: `1px solid ${uiScheme.cardBorder}20` }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-semibold tracking-wide" style={{ color: uiScheme.fg }}>音调</span>
-                  </div>
-                  <Slider
-                    value={[ttsSettings.pitch]}
-                    onValueChange={([v]) => onUpdateTTSSettings({ pitch: v })}
-                    min={-50}
-                    max={50}
-                    step={10}
-                    className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
-                  />
-                  <span className="text-[10px] tabular-nums" style={{ color: uiScheme.mutedText }}>
-                    {ttsSettings.pitch === 0 ? "正常" : `${ttsSettings.pitch > 0 ? "+" : ""}${ttsSettings.pitch}`}
-                  </span>
-                </div>
-
-                {/* 音量 */}
-                <div className="flex flex-col items-center gap-1.5 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-semibold tracking-wide" style={{ color: uiScheme.fg }}>音量</span>
-                  </div>
-                  <Slider
-                    value={[ttsSettings.volume]}
-                    onValueChange={([v]) => onUpdateTTSSettings({ volume: v })}
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
-                  />
-                  <span className="text-[10px] tabular-nums" style={{ color: uiScheme.mutedText }}>
-                    {Math.round(ttsSettings.volume * 100)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 声线选择 — 语种 + 声线二合一 */}
-            {availableLocales.length > 0 ? (
-              <div
-                className="rounded-xl border p-3.5"
-                style={{
-                  background: `${uiScheme.buttonBg}80`,
-                  borderColor: `${uiScheme.cardBorder}28`,
-                }}
-              >
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <span className="text-xs font-medium tracking-wide" style={{ color: uiScheme.fg }}>
-                    朗读声线
-                  </span>
-                  <ValuePill uiScheme={uiScheme} muted={!selectedVoice}>
-                    {selectedVoice?.LocalName ?? "默认"}
-                  </ValuePill>
-                </div>
-                {/* 语种横排选择 */}
-                <div className="flex gap-1.5 mb-2.5 flex-wrap">
-                  {localeVoicesMap.map((item) => {
-                    const isActive = selectedLocale === item.locale;
-                    return (
-                      <button
-                        key={item.locale}
-                        type="button"
-                        onClick={() => handleLocaleChange(item.locale)}
-                        className="rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide transition-all duration-200 cursor-pointer"
-                        style={{
-                          color: isActive ? uiScheme.link : uiScheme.mutedText,
-                          background: isActive ? `${uiScheme.link}10` : "transparent",
-                          borderColor: isActive ? `${uiScheme.link}40` : `${uiScheme.cardBorder}25`,
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* 声线下拉 */}
-                <Select
-                  value={ttsSettings.voiceName}
-                  onValueChange={(value) =>
-                    onUpdateTTSSettings({
-                      voiceName: value,
-                      style: voices.find((v) => v.Name === value)?.StyleList?.[0] ?? "general",
-                    })
-                  }
-                >
-                  <SelectTrigger
-                    className="h-10 rounded-xl border px-3 text-sm shadow-none"
-                    style={selectStyle}
-                  >
-                    <SelectValue placeholder="选择声线" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentLocaleVoices.map((voice) => (
-                      <SelectItem key={voice.Name} value={voice.Name}>
-                        {voice.LocalName}
-                        {voice.Gender === "Female" ? " · 女声" : voice.Gender === "Male" ? " · 男声" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div
-                className="rounded-xl border p-4"
-                style={{
-                  background: `${uiScheme.buttonBg}80`,
-                  borderColor: `${uiScheme.cardBorder}28`,
-                }}
-              >
-                <p className="text-sm font-medium" style={{ color: uiScheme.fg }}>
-                  当前没有可用系统语音
-                </p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: uiScheme.mutedText }}>
-                  请在系统设置中启用语音合成。
-                </p>
-              </div>
-            )}
           </SectionCard>
 
           <SectionCard

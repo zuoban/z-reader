@@ -537,6 +537,19 @@ export function TTSControls({
     };
   }, []);
 
+  useEffect(() => {
+    if (!expanded) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setExpanded(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [expanded]);
+
   const availableLocales = SUPPORTED_LOCALES.filter(locale =>
     voices.some(v => v.Locale.startsWith(locale))
   );
@@ -687,18 +700,6 @@ export function TTSControls({
     setExpanded((value) => !value);
   };
 
-  const handleToolbarToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isPending) return;
-
-    if (isActive) {
-      await handleStopClick();
-      return;
-    }
-
-    await handleStartClick();
-  };
-
   const stopInteractivePropagation = (e: React.SyntheticEvent) => {
     e.stopPropagation();
   };
@@ -736,46 +737,48 @@ export function TTSControls({
     return `${pitch > 0 ? '+' : ''}${pitch}%`;
   };
 
+  const isToolbar = variant === 'toolbar';
   const panelWidth = typeof window !== 'undefined' && window.innerWidth < 640
-    ? Math.min(280, window.innerWidth - 16)
-    : 256;
+    ? Math.min(320, window.innerWidth - 24)
+    : isToolbar
+      ? 320
+      : 256;
   const panelHeight = typeof window !== 'undefined'
     ? window.innerWidth < 640
       ? showSettingsPanel ? 360 : 214
       : showSettingsPanel ? 380 : 228
     : 380;
-  const isToolbar = variant === 'toolbar';
 
   useEffect(() => {
     onExpandedChange?.(expanded);
   }, [expanded, onExpandedChange]);
 
   return (
-    <div className="relative" style={{ pointerEvents: 'auto' }}>
+    <div
+      className={`relative ${isToolbar ? 'z-40' : ''}`}
+      style={{ pointerEvents: 'auto' }}
+    >
       {isToolbar ? (
         <Button
           variant="ghost"
           size="icon"
           data-reader-interactive="true"
-          onClick={handleToolbarToggle}
+          data-reader-tts-trigger="true"
+          onClick={handleClick}
           type="button"
-          title={isActive ? '停止朗读' : '开始朗读'}
-          aria-label={isActive ? '停止朗读' : '开始朗读'}
-          aria-pressed={isActive}
-          disabled={isPending}
-          className="relative inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95"
+          title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+          aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+          aria-expanded={expanded}
+          aria-haspopup="dialog"
+          className="relative z-40 inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95"
           style={{
-            color: isPending
-              ? uiScheme.mutedText
-              : isActive
-                ? uiScheme.link
-                : uiScheme.buttonText,
+            color: isActive ? uiScheme.link : uiScheme.buttonText,
             background: isActive ? uiScheme.cardBg : uiScheme.buttonBg,
             border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
             boxShadow: isActive
               ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 20px -18px ${uiScheme.link}40`
               : `inset 0 1px 0 ${uiScheme.headerBg}42, 0 10px 20px -18px ${uiScheme.cardBorder}26`,
-            opacity: isPending ? 0.72 : 1,
+            opacity: isPending ? 0.88 : 1,
           }}
         >
           <Volume2 className="h-3 w-3" />
@@ -803,7 +806,7 @@ export function TTSControls({
       )}
 
       {/* 展开面板 - 增强动画和布局 */}
-      {!isToolbar && expanded && (
+      {expanded && (
         <>
           <div
             data-reader-interactive="true"
@@ -817,8 +820,13 @@ export function TTSControls({
 
           <div
             data-reader-interactive="true"
-            className="fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
-              motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100"
+            data-reader-tts-popup="true"
+            className={isToolbar
+              ? `absolute z-50 animate-in fade-in duration-200 ease-out
+                motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100
+                right-0 top-[calc(100%+10px)]`
+              : `fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
+                motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
             onClick={stopInteractivePropagation}
             onPointerDownCapture={stopInteractivePropagation}
             onPointerDown={stopInteractivePropagation}
@@ -826,13 +834,19 @@ export function TTSControls({
             onTouchEnd={stopInteractivePropagation}
             onTouchMove={stopInteractivePropagation}
             style={{
-              right: Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
-              bottom: Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
+              right: isToolbar
+                ? undefined
+                : Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
+              bottom: isToolbar
+                ? undefined
+                : Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
               width: panelWidth,
             }}
           >
             <div
-              className="flex flex-col gap-3 rounded-[24px] border p-3 sm:p-4"
+              className={`flex flex-col gap-3 rounded-[24px] border p-3 sm:p-4 ${
+                isToolbar ? 'max-h-[min(78vh,560px)] overflow-y-auto' : ''
+              }`}
               style={styles.panel}
             >
             <div className="flex items-start justify-between rounded-2xl border px-3.5 py-3" style={styles.section}>
@@ -841,10 +855,10 @@ export function TTSControls({
                   className="font-heading text-sm font-semibold tracking-wide"
                   style={{ color: uiScheme.fg }}
                 >
-                  朗读控制
+                  {showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
                 </span>
                 <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
-                  语音、速度与音色设置
+                  {showSettingsPanel ? '播放控制、语速与声线设置' : '开始、暂停与切换段落'}
                 </p>
               </div>
               <Button
@@ -926,165 +940,167 @@ export function TTSControls({
               </div>
             </div>
 
-            <div
-              className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
-              style={styles.section}
-            >
-              <VoiceSlider
-                label="速度"
-                value={localRate}
-                onChange={handleRateChange}
-                min={-50}
-                max={100}
-                step={10}
-                format={formatRate}
-                uiScheme={uiScheme}
-              />
+            {showSettingsPanel && (
+              <div
+                className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
+                style={styles.section}
+              >
+                <VoiceSlider
+                  label="速度"
+                  value={localRate}
+                  onChange={handleRateChange}
+                  min={-50}
+                  max={100}
+                  step={10}
+                  format={formatRate}
+                  uiScheme={uiScheme}
+                />
 
-              <VoiceSlider
-                label="音调"
-                value={localPitch}
-                onChange={handlePitchChange}
-                min={-50}
-                max={50}
-                step={10}
-                format={formatPitch}
-                uiScheme={uiScheme}
-              />
+                <VoiceSlider
+                  label="音调"
+                  value={localPitch}
+                  onChange={handlePitchChange}
+                  min={-50}
+                  max={50}
+                  step={10}
+                  format={formatPitch}
+                  uiScheme={uiScheme}
+                />
 
-              <VoiceSlider
-                label="音量"
-                value={localVolume}
-                onChange={handleVolumeChange}
-                min={0}
-                max={1}
-                step={0.1}
-                format={(v) => `${Math.round(v * 100)}%`}
-                uiScheme={uiScheme}
-              />
+                <VoiceSlider
+                  label="音量"
+                  value={localVolume}
+                  onChange={handleVolumeChange}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  format={(v) => `${Math.round(v * 100)}%`}
+                  uiScheme={uiScheme}
+                />
 
-              {/* 语音选择区域 */}
-              {filteredVoices.length > 0 && (
-                <>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <label
-                      className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      语种
-                    </label>
-                    <Select
-                      value={selectedLocale}
-                      onValueChange={handleLocaleChange}
-                    >
-                      <SelectTrigger
-                        data-reader-interactive="true"
-                        className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
-                          transition-all duration-200 ease-out hover:border-opacity-60"
-                        style={styles.selectTrigger}
+                {/* 语音选择区域 */}
+                {filteredVoices.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <label
+                        className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
+                        style={{ color: uiScheme.mutedText }}
                       >
-                        <SelectValue placeholder="选择语种" />
-                      </SelectTrigger>
-                      <SelectContent
-                        data-reader-interactive="true"
-                        className="rounded-xl"
-                        style={styles.selectContent}
+                        语种
+                      </label>
+                      <Select
+                        value={selectedLocale}
+                        onValueChange={handleLocaleChange}
                       >
-                        {localeVoicesMap.map((item) => (
-                          <SelectItem
-                            key={item.locale}
-                            value={item.locale}
-                            className="text-[11px] sm:text-xs rounded-lg my-0.5"
-                            style={{ color: uiScheme.fg }}
-                          >
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <label
-                      className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      语音
-                    </label>
-                    <Select
-                      value={settings.voiceName}
-                      onValueChange={handleVoiceChange}
-                    >
-                      <SelectTrigger
-                        data-reader-interactive="true"
-                        className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
-                          transition-all duration-200 ease-out hover:border-opacity-60"
-                        style={styles.selectTrigger}
-                      >
-                        <SelectValue placeholder="选择语音" />
-                      </SelectTrigger>
-                      <SelectContent
-                        data-reader-interactive="true"
-                        className="rounded-xl"
-                        style={styles.selectContent}
-                      >
-                        {currentLocaleVoices.map((voice) => (
-                          <SelectItem
-                            key={voice.Name}
-                            value={voice.Name}
-                            className="text-[11px] sm:text-xs rounded-lg my-0.5"
-                            style={{ color: uiScheme.fg }}
-                          >
-                            {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-
-              {/* 风格选择 */}
-              {availableStyles.length > 1 && (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <label
-                    className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
-                    style={{ color: uiScheme.mutedText }}
-                  >
-                    风格
-                  </label>
-                  <Select
-                    value={settings.style}
-                    onValueChange={handleStyleChange}
-                  >
-                    <SelectTrigger
-                      data-reader-interactive="true"
-                      className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
-                        transition-all duration-200 ease-out hover:border-opacity-60"
-                      style={styles.selectTrigger}
-                    >
-                      <SelectValue placeholder="选择风格" />
-                    </SelectTrigger>
-                    <SelectContent
-                      data-reader-interactive="true"
-                      className="rounded-xl"
-                      style={styles.selectContent}
-                    >
-                      {availableStyles.map((style) => (
-                        <SelectItem
-                          key={style}
-                          value={style}
-                          className="text-[11px] sm:text-xs rounded-lg my-0.5"
-                          style={{ color: uiScheme.fg }}
+                        <SelectTrigger
+                          data-reader-interactive="true"
+                          className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
+                            transition-all duration-200 ease-out hover:border-opacity-60"
+                          style={styles.selectTrigger}
                         >
-                          {style}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+                          <SelectValue placeholder="选择语种" />
+                        </SelectTrigger>
+                        <SelectContent
+                          data-reader-interactive="true"
+                          className="rounded-xl"
+                          style={styles.selectContent}
+                        >
+                          {localeVoicesMap.map((item) => (
+                            <SelectItem
+                              key={item.locale}
+                              value={item.locale}
+                              className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                              style={{ color: uiScheme.fg }}
+                            >
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <label
+                        className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
+                        style={{ color: uiScheme.mutedText }}
+                      >
+                        语音
+                      </label>
+                      <Select
+                        value={settings.voiceName}
+                        onValueChange={handleVoiceChange}
+                      >
+                        <SelectTrigger
+                          data-reader-interactive="true"
+                          className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
+                            transition-all duration-200 ease-out hover:border-opacity-60"
+                          style={styles.selectTrigger}
+                        >
+                          <SelectValue placeholder="选择语音" />
+                        </SelectTrigger>
+                        <SelectContent
+                          data-reader-interactive="true"
+                          className="rounded-xl"
+                          style={styles.selectContent}
+                        >
+                          {currentLocaleVoices.map((voice) => (
+                            <SelectItem
+                              key={voice.Name}
+                              value={voice.Name}
+                              className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                              style={{ color: uiScheme.fg }}
+                            >
+                              {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                {/* 风格选择 */}
+                {availableStyles.length > 1 && (
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <label
+                      className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      风格
+                    </label>
+                    <Select
+                      value={settings.style}
+                      onValueChange={handleStyleChange}
+                    >
+                      <SelectTrigger
+                        data-reader-interactive="true"
+                        className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
+                          transition-all duration-200 ease-out hover:border-opacity-60"
+                        style={styles.selectTrigger}
+                      >
+                        <SelectValue placeholder="选择风格" />
+                      </SelectTrigger>
+                      <SelectContent
+                        data-reader-interactive="true"
+                        className="rounded-xl"
+                        style={styles.selectContent}
+                      >
+                        {availableStyles.map((style) => (
+                          <SelectItem
+                            key={style}
+                            value={style}
+                            className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                            style={{ color: uiScheme.fg }}
+                          >
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           </div>
         </>

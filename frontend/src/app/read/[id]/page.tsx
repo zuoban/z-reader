@@ -1018,7 +1018,6 @@ export default function ReadPage() {
                   onUpdateSettings={updateTTSSettings}
                   uiScheme={uiScheme}
                   variant="toolbar"
-                  showSettingsPanel={false}
                 />
               </Suspense>
 
@@ -1026,9 +1025,6 @@ export default function ReadPage() {
                 theme={theme}
                 setTheme={setTheme}
                 uiScheme={uiScheme}
-                ttsSettings={ttsSettings}
-                voices={voices}
-                onUpdateTTSSettings={updateTTSSettings}
                 open={themeSettingsOpen}
                 onOpenChange={setThemeSettingsOpen}
               />

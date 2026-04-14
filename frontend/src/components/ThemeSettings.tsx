@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import {
+  DEFAULT_READER_THEME,
   FONT_FAMILY_OPTIONS,
   type ReaderTheme,
   type ThemeColors,
@@ -34,6 +35,7 @@ import {
   Type,
   Zap,
   ZapOff,
+  RotateCcw,
 } from "lucide-react";
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
@@ -362,6 +364,10 @@ export function ThemeSettings({
     }));
   }
 
+  function handleResetTheme() {
+    setTheme(DEFAULT_READER_THEME);
+  }
+
   const gapLabel =
     theme.gap === 0
       ? "无"
@@ -418,15 +424,32 @@ export function ThemeSettings({
                 让主题和版式更贴近你的阅读习惯。朗读偏好已移至顶部朗读按钮。
               </p>
             </div>
-            <div
-              className="hidden shrink-0 rounded-xl border px-2.5 py-1 text-[10px] font-bold tracking-[0.22em] sm:block"
-              style={{
-                color: uiScheme.link,
-                background: `${uiScheme.link}0e`,
-                borderColor: `${uiScheme.link}30`,
-              }}
-            >
-              READER
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleResetTheme}
+                className="h-8 rounded-xl border px-2.5 text-[11px] font-medium"
+                style={{
+                  color: uiScheme.buttonText,
+                  background: `${uiScheme.buttonBg}a6`,
+                  borderColor: `${uiScheme.cardBorder}30`,
+                }}
+              >
+                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                重置默认
+              </Button>
+              <div
+                className="hidden rounded-xl border px-2.5 py-1 text-[10px] font-bold tracking-[0.22em] sm:block"
+                style={{
+                  color: uiScheme.link,
+                  background: `${uiScheme.link}0e`,
+                  borderColor: `${uiScheme.link}30`,
+                }}
+              >
+                READER
+              </div>
             </div>
           </div>
         </SheetHeader>
@@ -434,11 +457,12 @@ export function ThemeSettings({
         <div className="max-h-[calc(100vh-88px)] space-y-3 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           {/* Live Preview - 增强版 */}
           <section
-            className="overflow-hidden rounded-2xl border transition-all duration-300"
+            className="sticky top-[-20px] z-20 overflow-hidden rounded-2xl border transition-all duration-300"
             style={{
               background: uiScheme.cardBg,
               borderColor: `${uiScheme.cardBorder}30`,
               boxShadow: `0 2px 16px ${uiScheme.cardBorder}0a`,
+              backdropFilter: "blur(12px)",
             }}
           >
             {/* 顶部标签行 */}

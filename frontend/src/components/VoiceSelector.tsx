@@ -157,11 +157,12 @@ export function VoiceSelector({
       {/* 试听按钮 */}
       <Button
         variant="ghost"
-        size="icon"
+        size="sm"
         onClick={handlePreview}
         title={isPreviewing ? '停止' : '试听'}
-        className="h-8 w-8 shrink-0 rounded-lg transition-all duration-200 ease-out
-          hover:scale-105 active:scale-95 motion-reduce:transition-none self-start"
+        className="h-8 shrink-0 self-end rounded-lg px-2.5 text-[11px] sm:text-xs
+          transition-all duration-200 ease-out hover:scale-105 active:scale-95
+          motion-reduce:transition-none"
         style={{
           color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
           backgroundColor: isPreviewing ? `${uiScheme.link}15` : `${uiScheme.buttonBg}30`,
@@ -170,9 +171,15 @@ export function VoiceSelector({
         }}
       >
         {isPreviewing ? (
-          <Square className="w-3.5 h-3.5" />
+          <>
+            <Square className="mr-1.5 h-3.5 w-3.5" />
+            停止试听
+          </>
         ) : (
-          <Play className="w-3.5 h-3.5 ml-0.5" />
+          <>
+            <Play className="mr-1.5 h-3.5 w-3.5 ml-0.5" />
+            试听语音
+          </>
         )}
       </Button>
 
@@ -189,6 +196,7 @@ export function VoiceSelector({
           </SelectTrigger>
           <SelectContent
             data-reader-interactive="true"
+            data-reader-tts-owned="true"
             className="rounded-xl max-w-[220px]"
             style={styles.selectContent}
           >
@@ -222,6 +230,7 @@ export function VoiceSelector({
           </SelectTrigger>
           <SelectContent
             data-reader-interactive="true"
+            data-reader-tts-owned="true"
             className="rounded-xl max-w-[200px]"
             style={styles.selectContent}
           >

@@ -117,7 +117,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
   },
 };
 
-const DEFAULT_THEME: ReaderTheme = {
+export const DEFAULT_READER_THEME: ReaderTheme = {
   preset: "light",
   fontFamily: "editorial",
   fontSize: 16,
@@ -147,25 +147,25 @@ function subscribe(callback: () => void) {
 function getSnapshot(): ReaderTheme {
   if (cachedTheme) return cachedTheme;
   if (typeof window === "undefined") {
-    cachedTheme = DEFAULT_THEME;
-    return DEFAULT_THEME;
+    cachedTheme = DEFAULT_READER_THEME;
+    return DEFAULT_READER_THEME;
   }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      const parsed = { ...DEFAULT_THEME, ...JSON.parse(saved) } as ReaderTheme;
+      const parsed = { ...DEFAULT_READER_THEME, ...JSON.parse(saved) } as ReaderTheme;
       cachedTheme = parsed;
       return parsed;
     }
   } catch (err) {
     console.error("Failed to load theme from localStorage:", err);
   }
-  cachedTheme = DEFAULT_THEME;
-  return DEFAULT_THEME;
+  cachedTheme = DEFAULT_READER_THEME;
+  return DEFAULT_READER_THEME;
 }
 
 function getServerSnapshot(): ReaderTheme {
-  return DEFAULT_THEME;
+  return DEFAULT_READER_THEME;
 }
 
 export function useReaderTheme() {

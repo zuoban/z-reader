@@ -537,7 +537,10 @@ export function TTSControls({
 
     const handleBlur = (e: MouseEvent) => {
       const root = rootRef.current;
-      if (root && !root.contains(e.target as Node)) {
+      const target = e.target as HTMLElement | null;
+      const isOwnedPortal = target?.closest('[data-reader-tts-owned="true"]');
+
+      if (root && !root.contains(e.target as Node) && !isOwnedPortal) {
         setExpanded(false);
       }
     };
@@ -758,8 +761,6 @@ export function TTSControls({
               : `fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
                 motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
             onClick={stopInteractivePropagation}
-            onClickCapture={stopInteractivePropagation}
-            onPointerDownCapture={stopInteractivePropagation}
             onPointerDown={stopInteractivePropagation}
             onTouchStart={stopInteractivePropagation}
             onTouchEnd={stopInteractivePropagation}

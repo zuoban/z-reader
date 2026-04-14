@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -15,6 +16,9 @@ import { CategoryFilter } from '@/components/CategoryFilter';
 import { buildRadialCategoryTargets, RadialCategoryMenu } from '@/components/RadialCategoryMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+// three.js 组件按需加载，避免阻塞首屏
+const LightRays = dynamic(() => import('@/registry/spell-ui/light-rays'), { ssr: false });
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
@@ -40,6 +44,31 @@ function sortBooksByRecentRead(items: Book[]): Book[] {
 
     return getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
   });
+}
+
+function ShelfAmbientBackground() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <LightRays
+        rays={40}
+        reach={30}
+        intensity={48}
+        position={22}
+        radius="0px"
+        backgroundColor="#f5efe6"
+        raysColor={{ mode: 'multi', color1: '#e3bb70', color2: '#93b2d5' }}
+        animation={{ animate: true, speed: 8 }}
+        className="opacity-[0.9]"
+        style={{
+          inset: '-8% 0 0 -10%',
+          width: '120%',
+          height: '116%',
+        }}
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,247,230,0.6),transparent_30%),radial-gradient(circle_at_top,rgba(223,189,116,0.24),transparent_38%),radial-gradient(circle_at_right,rgba(147,178,213,0.14),transparent_34%),linear-gradient(180deg,rgba(247,242,234,0.16)_0%,rgba(247,242,234,0.05)_28%,rgba(247,242,234,0.24)_100%)]" />
+      <div className="absolute inset-0 paper-texture opacity-[0.12]" />
+    </div>
+  );
 }
 
 export default function ShelfPage() {
@@ -343,21 +372,25 @@ export default function ShelfPage() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen warm-gradient paper-texture flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="h-10 w-10 animate-spin rounded-full border-2 border-foreground/20"
-            style={{ borderTopColor: 'var(--foreground)' }}
-          />
-          <p className="text-sm text-muted-foreground font-medium">加载中...</p>
+      <div className="relative min-h-screen overflow-hidden warm-gradient paper-texture">
+        <ShelfAmbientBackground />
+        <div className="relative z-10 flex min-h-screen items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className="h-10 w-10 animate-spin rounded-full border-2 border-foreground/20"
+              style={{ borderTopColor: 'var(--foreground)' }}
+            />
+            <p className="text-sm text-muted-foreground font-medium">加载中...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen warm-gradient paper-texture">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
+    <div className="relative min-h-screen overflow-hidden warm-gradient paper-texture">
+      <ShelfAmbientBackground />
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
         <header className="rounded-[24px] border border-border/60 bg-background/82 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:rounded-[28px] sm:px-6 sm:py-5">
           <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex items-start gap-4">

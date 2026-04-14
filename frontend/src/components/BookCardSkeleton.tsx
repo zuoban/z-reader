@@ -6,12 +6,19 @@ interface BookCardSkeletonProps {
   isMobile?: boolean;
 }
 
+// 标准书籍封面宽高比（49:60），用于骨架屏预览尺寸计算
+const SPELL_BOOK_WIDTH = 150;
+const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
+
 export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
   const cardWidth = isMobile ? 160 : 182;
   const cardScale = isMobile ? 1 : 0.83;
   const cardFrameWidth = Math.round(cardWidth * cardScale);
   const coverHeight = isMobile ? 192 : 228;
   const infoHeight = isMobile ? 168 : 162;
+  const bookScale = isMobile ? 0.86 : 1;
+  const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
+  const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
 
   return (
     <div
@@ -28,8 +35,27 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
           }}
         >
           {/* Cover skeleton */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-stone-100 via-white to-stone-200" style={{ height: coverHeight }}>
-            <Skeleton className="absolute inset-0" />
+          <div
+            className="relative overflow-hidden bg-[radial-gradient(circle_at_top,#faf5eb_0%,#ede4d4_46%,#ddd0bd_100%)]"
+            style={{ height: coverHeight }}
+          >
+            <div className="pointer-events-none absolute inset-0 paper-texture opacity-45" />
+            <div className="relative flex h-full items-center justify-center px-5 py-4 sm:px-6">
+              <div
+                className="shrink-0"
+                style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
+              >
+                <div className="flex h-full w-full items-center justify-center">
+                  <div
+                    style={{ transform: `scale(${bookScale})`, transformOrigin: 'center center' }}
+                  >
+                    <div className="relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] bg-gradient-to-br from-stone-200 to-stone-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                      <Skeleton className="absolute inset-0 rounded-[4px]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Info skeleton */}

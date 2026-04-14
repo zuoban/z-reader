@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Select,
   SelectContent,
@@ -40,7 +40,6 @@ export function VoiceSelector({
   onUpdateSettings,
   uiScheme,
 }: VoiceSelectorProps) {
-  const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [isPreviewing, setIsPreviewing] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -48,15 +47,24 @@ export function VoiceSelector({
   // 构建语言选项（从可用语音中提取）
   const localeOptions = [...new Map(
     voices.map(v => {
-      const locale = v.Locale.slice(0, 2);
-      return [locale, LOCALE_LABELS[locale] || locale];
+      const l = v.Locale.slice(0, 2);
+      return [l, LOCALE_LABELS[l] || l];
     })
-  ).entries()].map(([locale, label]) => ({ locale, label }));
+  ).entries()].map(([l, label]) => ({ locale: l, label }));
 
-  // 当前选中语种下的语音列表
+  // 初始化 selectedLocale：根据已选语音的语种或第一个可用语种
+  const initialLocale = voices.length > 0
+    ? (settings.voiceName
+      ? (voices.find(v => v.Name === settings.voiceName)?.Locale.slice(0, 2) || localeOptions[0]?.locale || '')
+      : (localeOptions[0]?.locale || ''))
+    : '';
+
+  const [selectedLocale, setSelectedLocale] = useState<string>(initialLocale);
+
+  // 当前选中语种下的语音列表（无匹配时显示全部）
   const currentLocaleVoices = selectedLocale
     ? voices.filter(v => v.Locale.startsWith(selectedLocale))
-    : [];
+    : voices;
 
   // 当前选中语音支持的风格
   const selectedVoice = voices.find(v => v.Name === settings.voiceName);
@@ -181,11 +189,12 @@ export function VoiceSelector({
   const styles = {
     selectTrigger: {
       borderColor: `${uiScheme.cardBorder}50`,
-      backgroundColor: `${uiScheme.buttonBg}30`,
+      backgroundColor: `${uiScheme.buttonBg}78`,
+      color: uiScheme.fg,
     },
     selectContent: {
-      backgroundColor: uiScheme.cardBg,
-      borderColor: `${uiScheme.cardBorder}60`,
+      backgroundColor: `${uiScheme.cardBg}f4`,
+      borderColor: `${uiScheme.cardBorder}68`,
     },
   };
 
@@ -200,7 +209,7 @@ export function VoiceSelector({
               transition-all duration-200 ease-out hover:border-opacity-60"
             style={styles.selectTrigger}
           >
-            <SelectValue placeholder="选择语种" className="truncate" />
+            <SelectValue placeholder="选择语种" className="truncate" style={{ color: uiScheme.fg }} />
           </SelectTrigger>
           <SelectContent
             data-reader-interactive="true"

@@ -936,6 +936,17 @@ export function TTSControls({
                   <Square className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </ControlButton>
               </div>
+
+              <VoiceSlider
+                label="速度"
+                value={localRate}
+                onChange={handleRateChange}
+                min={-50}
+                max={100}
+                step={10}
+                format={formatRate}
+                uiScheme={uiScheme}
+              />
             </div>
 
             {showSettingsPanel && (
@@ -943,17 +954,6 @@ export function TTSControls({
                 className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
                 style={styles.section}
               >
-                <VoiceSlider
-                  label="速度"
-                  value={localRate}
-                  onChange={handleRateChange}
-                  min={-50}
-                  max={100}
-                  step={10}
-                  format={formatRate}
-                  uiScheme={uiScheme}
-                />
-
                 {/* 语音选择区域 */}
                 {filteredVoices.length > 0 && (
                   <>

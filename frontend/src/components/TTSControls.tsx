@@ -645,6 +645,10 @@ export function TTSControls({
       hasDraggedRef.current = false;
       return;
     }
+    // 仅当点击目标是 FloatingButton 本身（或其子元素但不是弹出面板内）时才切换
+    if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+      return;
+    }
     setExpanded((value) => !value);
   };
 

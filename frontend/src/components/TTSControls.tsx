@@ -779,7 +779,7 @@ export function TTSControls({
                 motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100
                 right-0 top-[calc(100%+10px)]`
               : isMobileViewport
-                ? `fixed inset-x-2 bottom-[max(8px,env(safe-area-inset-bottom))] z-40 animate-in slide-in-from-bottom-5 fade-in duration-250 ease-out
+                ? `fixed inset-x-2 top-[max(8px,env(safe-area-inset-top))] bottom-[max(8px,env(safe-area-inset-bottom))] z-40 flex items-end animate-in slide-in-from-bottom-5 fade-in duration-250 ease-out
                   motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`
               : `fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
                 motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
@@ -801,11 +801,18 @@ export function TTSControls({
                   ? `max(8px, env(safe-area-inset-bottom))`
                 : Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
               width: isMobileViewport && !isToolbar ? undefined : panelWidth,
+              maxHeight: isMobileViewport && !isToolbar
+                ? 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px)'
+                : undefined,
             }}
           >
             <div
               className={`flex flex-col gap-3 rounded-[28px] border p-3.5 sm:p-4 ${
-                isToolbar ? 'max-h-[min(78vh,560px)] overflow-y-auto' : ''
+                isToolbar
+                  ? 'max-h-[min(78vh,560px)] overflow-y-auto'
+                  : isMobileViewport
+                    ? 'max-h-full overflow-y-auto overscroll-contain'
+                    : ''
               }`}
               style={{
                 ...styles.panel,

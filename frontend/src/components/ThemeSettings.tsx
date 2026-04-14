@@ -29,6 +29,8 @@ import type { TTSSettings, Voice } from "@/lib/tts";
 import {
   BookOpen,
   ChevronDown,
+  Eye,
+  EyeOff,
   Palette,
   ScrollText,
   Settings,
@@ -38,30 +40,6 @@ import {
   Zap,
   ZapOff,
 } from "lucide-react";
-
-// ============== 设计系统常量 ==============
-const DESIGN = {
-  radius: {
-    sm: "12px",
-    md: "16px",
-    lg: "20px",
-    xl: "24px",
-    full: "9999px",
-  },
-  space: {
-    1: "4px",
-    2: "8px",
-    3: "12px",
-    4: "16px",
-    5: "20px",
-    6: "24px",
-  },
-  transition: {
-    fast: "150ms ease-out",
-    normal: "200ms ease-out",
-    slow: "300ms ease-out",
-  },
-} as const;
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "editorial",
@@ -188,28 +166,33 @@ function SectionCard({
 }: SectionCardProps) {
   return (
     <section
-      className="overflow-hidden rounded-xl border sm:rounded-xl"
+      className="overflow-hidden rounded-2xl border transition-all duration-300"
       style={{
         background: uiScheme.cardBg,
-        borderColor: `${uiScheme.cardBorder}40`,
-        boxShadow: `0 4px 12px ${uiScheme.cardBorder}08`,
+        borderColor: isOpen ? `${uiScheme.link}30` : `${uiScheme.cardBorder}30`,
+        boxShadow: isOpen
+          ? `0 4px 20px ${uiScheme.cardBorder}10, 0 0 0 1px ${uiScheme.link}08 inset`
+          : `0 2px 8px ${uiScheme.cardBorder}08`,
       }}
     >
       {/* 头部 - 可点击折叠 */}
       <button
         type="button"
         onClick={() => onToggle(id)}
-        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-opacity-50"
-        style={{ background: `${uiScheme.buttonBg}28` }}
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors duration-200 cursor-pointer"
+        style={{
+          background: isOpen ? `${uiScheme.buttonBg}18` : `${uiScheme.buttonBg}08`,
+        }}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* 图标 */}
+          {/* 图标 - 展开时带光晕 */}
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300"
             style={{
-              color: uiScheme.link,
-              background: `${uiScheme.link}12`,
-              borderColor: `${uiScheme.link}28`,
+              color: isOpen ? uiScheme.link : uiScheme.mutedText,
+              background: isOpen ? `${uiScheme.link}14` : `${uiScheme.cardBorder}12`,
+              border: `1px solid ${isOpen ? `${uiScheme.link}28` : `${uiScheme.cardBorder}20`}`,
+              boxShadow: isOpen ? `0 0 12px ${uiScheme.link}15` : "none",
             }}
           >
             {icon}
@@ -217,13 +200,13 @@ function SectionCard({
           {/* 标题和描述 */}
           <div className="min-w-0 flex-1">
             <h3
-              className="font-heading text-sm font-medium"
+              className="font-heading text-sm font-semibold tracking-wide"
               style={{ color: uiScheme.fg }}
             >
               {title}
             </h3>
             <p
-              className="text-xs truncate"
+              className="text-[11px] mt-0.5 truncate"
               style={{ color: uiScheme.mutedText }}
             >
               {description}
@@ -240,12 +223,13 @@ function SectionCard({
             </div>
           )}
           <div
-            className="flex h-7 w-7 items-center justify-center rounded-full border transition-transform duration-200"
+            className="flex h-7 w-7 items-center justify-center rounded-full border transition-all duration-300"
             style={{
-              color: uiScheme.mutedText,
-              background: uiScheme.buttonBg,
-              borderColor: `${uiScheme.cardBorder}30`,
-              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+              color: isOpen ? uiScheme.link : uiScheme.mutedText,
+              background: isOpen ? `${uiScheme.link}10` : `${uiScheme.cardBorder}10`,
+              borderColor: isOpen ? `${uiScheme.link}25` : `${uiScheme.cardBorder}20`,
+              transform: isOpen ? "rotate(180deg) scale(1.05)" : "rotate(0deg) scale(1)",
+              boxShadow: isOpen ? `0 0 8px ${uiScheme.link}12` : "none",
             }}
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -265,8 +249,10 @@ function SectionCard({
       {/* 展开内容 */}
       {isOpen && (
         <div
-          className="p-4 space-y-3"
-          style={{ borderTop: `1px solid ${uiScheme.cardBorder}20` }}
+          className="px-4 pb-4 pt-1 space-y-3"
+          style={{
+            borderTop: `1px solid ${uiScheme.cardBorder}18`,
+          }}
         >
           {children}
         </div>
@@ -278,10 +264,11 @@ function SectionCard({
 function ValuePill({ uiScheme, children, muted = false }: ValuePillProps) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-medium whitespace-nowrap"
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap tracking-wide"
       style={{
         color: muted ? uiScheme.mutedText : uiScheme.link,
-        background: muted ? `${uiScheme.cardBorder}12` : `${uiScheme.link}14`,
+        background: muted ? `${uiScheme.cardBorder}10` : `${uiScheme.link}12`,
+        border: `1px solid ${muted ? `${uiScheme.cardBorder}20` : `${uiScheme.link}25`}`,
       }}
     >
       {children}
@@ -304,20 +291,20 @@ function SliderField({
 }: SliderFieldProps) {
   return (
     <div
-      className="rounded-lg border p-3"
+      className="rounded-xl border p-3.5"
       style={{
-        background: uiScheme.buttonBg,
-        borderColor: `${uiScheme.cardBorder}30`,
+        background: `${uiScheme.buttonBg}80`,
+        borderColor: `${uiScheme.cardBorder}28`,
       }}
     >
       {/* 标签行 */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <Label className="text-xs" style={{ color: uiScheme.fg }}>
+          <Label className="text-xs font-medium tracking-wide" style={{ color: uiScheme.fg }}>
             {label}
           </Label>
           <p
-            className="text-[11px] mt-0.5"
+            className="text-[11px] mt-0.5 leading-relaxed"
             style={{ color: uiScheme.mutedText }}
           >
             {description}
@@ -327,7 +314,7 @@ function SliderField({
       </div>
       {/* 滑动条 */}
       <div className="mt-3 flex items-center gap-3">
-        <span className="text-[10px] tabular-nums shrink-0" style={{ color: uiScheme.mutedText }}>
+        <span className="text-[10px] tabular-nums shrink-0 w-5 text-right" style={{ color: uiScheme.mutedText }}>
           {minLabel}
         </span>
         <Slider
@@ -336,9 +323,9 @@ function SliderField({
           min={min}
           max={max}
           step={step}
-          className="flex-1"
+          className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary/60 [&_[role=slider]]:bg-background [&_[role=slider]]:shadow-md [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:hover:scale-110 [&_[role=slider]]:focus-visible:ring-2 [&_[role=slider]]:focus-visible:ring-primary/40"
         />
-        <span className="text-[10px] tabular-nums shrink-0" style={{ color: uiScheme.mutedText }}>
+        <span className="text-[10px] tabular-nums shrink-0 w-5" style={{ color: uiScheme.mutedText }}>
           {maxLabel}
         </span>
       </div>
@@ -364,27 +351,27 @@ export function ThemeSettings({
     motion: false,
   });
   const panelStyle = {
-    background: `${uiScheme.cardBg}f6`,
-    borderColor: `${uiScheme.cardBorder}55`,
+    background: `${uiScheme.cardBg}f8`,
+    borderColor: `${uiScheme.cardBorder}40`,
     color: uiScheme.fg,
-    boxShadow: `0 32px 80px ${uiScheme.cardBorder}28, 0 8px 24px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.42)`,
+    boxShadow: `0 32px 80px ${uiScheme.cardBorder}25, 0 8px 24px ${uiScheme.cardBorder}15, inset 0 1px 0 rgba(255,255,255,0.45)`,
   } as const;
 
   const triggerClassName =
-    "h-11 w-11 rounded-full border transition-all duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer";
+    "h-11 w-11 rounded-full border transition-all duration-200 hover:scale-[1.04] active:scale-95 cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
-    background: open ? `${uiScheme.link}10` : `${uiScheme.buttonBg}88`,
-    border: `1px solid ${open ? `${uiScheme.link}33` : `${uiScheme.cardBorder}7a`}`,
+    background: open ? `${uiScheme.link}12` : `${uiScheme.buttonBg}88`,
+    border: `1px solid ${open ? `${uiScheme.link}35` : `${uiScheme.cardBorder}7a`}`,
     boxShadow: open
-      ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}14`
+      ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}18, 0 0 16px ${uiScheme.link}10`
       : `inset 0 1px 0 ${uiScheme.headerBg}66`,
   } as const;
 
   const selectStyle = {
     color: uiScheme.fg,
-    borderColor: `${uiScheme.cardBorder}40`,
-    background: uiScheme.buttonBg,
+    borderColor: `${uiScheme.cardBorder}35`,
+    background: `${uiScheme.buttonBg}90`,
   } as const;
 
   const currentPreset = PRESETS.find((preset) => preset.key === theme.preset) ?? PRESETS[0];
@@ -402,9 +389,6 @@ export function ThemeSettings({
     availableLocales[0];
   const currentLocaleVoices =
     localeVoicesMap.find((item) => item.locale === selectedLocale)?.voices ?? [];
-  const availableStyles = selectedVoice?.StyleList?.length
-    ? selectedVoice.StyleList
-    : ["general"];
 
   function handleLocaleChange(locale: string) {
     const nextVoices = voices.filter((voice) => voice.Locale.startsWith(locale));
@@ -462,27 +446,34 @@ export function ThemeSettings({
         style={panelStyle}
       >
         <SheetHeader
-          className="border-b px-4 py-4 pb-4 pr-14 sm:px-5"
-          style={{ borderColor: `${uiScheme.cardBorder}42` }}
+          className="border-b px-4 py-4 pb-4 pr-14 sm:px-5 relative overflow-hidden"
+          style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
-          <div className="flex items-start justify-between gap-3">
+          {/* 装饰性背景渐变 */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse at 80% 50%, ${uiScheme.link}08 0%, transparent 60%)`,
+            }}
+          />
+          <div className="flex items-start justify-between gap-3 relative">
             <div>
               <SheetTitle
-                className="font-heading text-base sm:text-lg"
+                className="font-heading text-base sm:text-lg tracking-wide"
                 style={{ color: uiScheme.fg }}
               >
                 阅读偏好
               </SheetTitle>
-              <p className="mt-1 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: uiScheme.mutedText }}>
                 让主题、版式和朗读设置更贴近你的阅读习惯。
               </p>
             </div>
             <div
-              className="hidden shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] sm:block"
+              className="hidden shrink-0 rounded-xl border px-2.5 py-1 text-[10px] font-bold tracking-[0.22em] sm:block"
               style={{
-                color: uiScheme.accentText,
-                background: `${uiScheme.buttonBg}54`,
-                borderColor: `${uiScheme.cardBorder}40`,
+                color: uiScheme.link,
+                background: `${uiScheme.link}0e`,
+                borderColor: `${uiScheme.link}30`,
               }}
             >
               READER
@@ -491,75 +482,95 @@ export function ThemeSettings({
         </SheetHeader>
 
         <div className="max-h-[calc(100vh-88px)] space-y-3 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
-          {/* Live Preview - 精简版 */}
+          {/* Live Preview - 增强版 */}
           <section
-            className="overflow-hidden rounded-xl border"
+            className="overflow-hidden rounded-2xl border transition-all duration-300"
             style={{
               background: uiScheme.cardBg,
-              borderColor: `${uiScheme.cardBorder}40`,
+              borderColor: `${uiScheme.cardBorder}30`,
+              boxShadow: `0 2px 16px ${uiScheme.cardBorder}0a`,
             }}
           >
-            {/* 顶部标签 */}
+            {/* 顶部标签行 */}
             <div
-              className="flex items-center gap-2 px-3 py-2"
-              style={{ borderBottom: `1px solid ${uiScheme.cardBorder}20` }}
+              className="flex items-center gap-2.5 px-4 py-2.5 relative"
+              style={{ borderBottom: `1px solid ${uiScheme.cardBorder}15` }}
             >
-              <Sparkles className="h-3.5 w-3.5" style={{ color: uiScheme.link }} />
+              {/* 装饰性圆点 */}
+              <div className="flex gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: `${uiScheme.link}60` }} />
+                <span className="h-2 w-2 rounded-full" style={{ background: `${uiScheme.cardBorder}40` }} />
+                <span className="h-2 w-2 rounded-full" style={{ background: `${uiScheme.cardBorder}25` }} />
+              </div>
               <span
-                className="text-[10px] font-medium tracking-wider"
+                className="text-[10px] font-bold tracking-[0.2em] ml-1"
                 style={{ color: uiScheme.accentText }}
               >
-                PREVIEW
+                LIVE PREVIEW
               </span>
-              <div className="flex gap-2 ml-auto">
+              <div className="flex gap-1.5 ml-auto">
                 <span
-                  className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ background: `${uiScheme.link}14`, color: uiScheme.link }}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full tracking-wide"
+                  style={{
+                    background: `${uiScheme.link}12`,
+                    color: uiScheme.link,
+                    border: `1px solid ${uiScheme.link}25`,
+                  }}
                 >
                   {currentPreset.label}
                 </span>
                 <span
-                  className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ background: `${uiScheme.buttonBg}`, color: uiScheme.mutedText }}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full tracking-wide"
+                  style={{
+                    background: `${uiScheme.cardBorder}10`,
+                    color: uiScheme.mutedText,
+                    border: `1px solid ${uiScheme.cardBorder}20`,
+                  }}
                 >
                   {FONT_FAMILY_OPTIONS[theme.fontFamily].label}
                 </span>
               </div>
             </div>
-            {/* 预览内容 */}
+            {/* 预览内容 - 模拟书页 */}
             <div
-              className="p-4"
+              className="p-4 relative overflow-hidden"
               style={{
                 background: currentPreset.bg,
               }}
             >
-              <p
-                className="text-[10px] uppercase tracking-widest opacity-50"
-                style={{ color: currentPreset.fg }}
-              >
-                Preview
-              </p>
-              <h3
-                className="mt-2 text-base"
-                style={{
-                  fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
-                  lineHeight: 1.3,
-                  color: currentPreset.fg,
-                }}
-              >
-                文字的节奏，会决定阅读的呼吸感。
-              </h3>
-              <p
-                className="mt-2 text-sm opacity-80"
-                style={{
-                  fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
-                  fontSize: `${Math.max(theme.fontSize - 2, 13)}px`,
-                  lineHeight: theme.lineHeight,
-                  color: currentPreset.fg,
-                }}
-              >
-                这是当前设置的即时预览。调整各项参数时，右侧会同步反映变化。
-              </p>
+              {/* 书页内边距模拟线 */}
+              <div
+                className="absolute inset-x-6 top-0 bottom-0 border-l pointer-events-none"
+                style={{ borderColor: `${currentPreset.fg}08` }}
+              />
+              <div className="relative">
+                <p
+                  className="text-[9px] uppercase tracking-[0.25em] font-semibold opacity-40"
+                  style={{ color: currentPreset.fg, fontFamily: "var(--font-sans)" }}
+                >
+                  Preview
+                </p>
+                <h3
+                  className="mt-2 text-sm font-semibold leading-snug"
+                  style={{
+                    fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
+                    color: currentPreset.fg,
+                  }}
+                >
+                  文字的节奏，<br />会决定阅读的呼吸感。
+                </h3>
+                <p
+                  className="mt-2 leading-relaxed opacity-75"
+                  style={{
+                    fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
+                    fontSize: `${Math.max(theme.fontSize - 2, 12)}px`,
+                    lineHeight: theme.lineHeight,
+                    color: currentPreset.fg,
+                  }}
+                >
+                  这是当前设置的即时预览。调整各项参数时，右侧会同步反映变化。每一行文字都在告诉你它被阅读时的模样。
+                </p>
+              </div>
             </div>
           </section>
 
@@ -573,7 +584,7 @@ export function ThemeSettings({
             onToggle={toggleSection}
             uiScheme={uiScheme}
           >
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {PRESETS.map((preset) => {
                 const isActive = theme.preset === preset.key;
 
@@ -582,35 +593,55 @@ export function ThemeSettings({
                     key={preset.key}
                     type="button"
                     onClick={() => setTheme({ preset: preset.key })}
-                    className="group text-left transition-all duration-200 cursor-pointer rounded-lg border p-2"
+                    className="group text-left transition-all duration-250 cursor-pointer rounded-xl border p-2.5"
                     style={{
-                      background: isActive ? `${uiScheme.link}10` : uiScheme.buttonBg,
-                      borderColor: isActive ? uiScheme.link : `${uiScheme.cardBorder}30`,
-                      boxShadow: isActive ? `0 0 0 2px ${uiScheme.link}20` : "none",
+                      background: isActive ? `${uiScheme.link}0c` : uiScheme.buttonBg,
+                      borderColor: isActive ? `${uiScheme.link}40` : `${uiScheme.cardBorder}25`,
+                      boxShadow: isActive
+                        ? `0 0 0 2px ${uiScheme.link}18, 0 4px 12px ${uiScheme.cardBorder}08`
+                        : `0 1px 4px ${uiScheme.cardBorder}06`,
                     }}
                   >
-                    {/* 主题色预览 */}
+                    {/* 主题色预览 - 模拟书页 */}
                     <div
-                      className="h-12 rounded-md border px-2 flex items-end pb-1"
+                      className="h-14 rounded-lg px-2.5 flex flex-col justify-between py-2 relative overflow-hidden"
                       style={{
                         background: preset.bg,
-                        borderColor: preset.key === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+                        border: `1px solid ${preset.key === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"}`,
                       }}
                     >
-                      <span
-                        className="text-[10px] font-medium"
-                        style={{ color: preset.fg }}
-                      >
-                        {preset.label}
-                      </span>
+                      {/* 装饰性书页线 */}
+                      <div className="absolute inset-x-3 top-2 bottom-2 border-l opacity-40" style={{ borderColor: preset.fg }} />
+                      {/* 文字模拟 */}
+                      <div className="relative">
+                        <div className="h-1.5 rounded-sm mb-1" style={{ background: preset.fg, width: "60%", opacity: 0.7 }} />
+                        <div className="h-1.5 rounded-sm mb-0.5" style={{ background: preset.fg, width: "85%", opacity: 0.5 }} />
+                        <div className="h-1.5 rounded-sm" style={{ background: preset.fg, width: "45%", opacity: 0.35 }} />
+                      </div>
                     </div>
-                    {/* 描述 */}
-                    <p
-                      className="mt-2 text-[10px] leading-tight"
-                      style={{ color: isActive ? uiScheme.fg : uiScheme.mutedText }}
-                    >
-                      {preset.description}
-                    </p>
+                    {/* 标签和描述 */}
+                    <div className="mt-2.5">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="text-[11px] font-semibold tracking-wide"
+                          style={{ color: isActive ? uiScheme.link : uiScheme.fg }}
+                        >
+                          {preset.label}
+                        </span>
+                        {isActive && (
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: uiScheme.link, boxShadow: `0 0 4px ${uiScheme.link}` }}
+                          />
+                        )}
+                      </div>
+                      <p
+                        className="text-[10px] leading-snug mt-1"
+                        style={{ color: uiScheme.mutedText }}
+                      >
+                        {preset.description}
+                      </p>
+                    </div>
                   </button>
                 );
               })}
@@ -629,18 +660,18 @@ export function ThemeSettings({
           >
             {/* 字体选择 */}
             <div
-              className="rounded-lg border p-3"
+              className="rounded-xl border p-3.5"
               style={{
-                background: uiScheme.buttonBg,
-                borderColor: `${uiScheme.cardBorder}30`,
+                background: `${uiScheme.buttonBg}80`,
+                borderColor: `${uiScheme.cardBorder}28`,
               }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <Label className="text-xs" style={{ color: uiScheme.fg }}>
+                  <Label className="text-xs font-medium tracking-wide" style={{ color: uiScheme.fg }}>
                     正文字体
                   </Label>
-                  <p className="text-[11px] mt-0.5" style={{ color: uiScheme.mutedText }}>
+                  <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: uiScheme.mutedText }}>
                     选择更接近纸书、杂志或屏幕阅读的字形风格。
                   </p>
                 </div>
@@ -670,25 +701,41 @@ export function ThemeSettings({
               </Select>
               {/* 字体预览 */}
               <div
-                className="mt-3 rounded-lg border px-3 py-2.5"
+                className="mt-3 rounded-xl border px-3.5 py-3 relative overflow-hidden"
                 style={{
-                  background: `${uiScheme.cardBorder}10`,
-                  borderColor: `${uiScheme.cardBorder}20`,
+                  background: `${uiScheme.cardBorder}08`,
+                  borderColor: `${uiScheme.cardBorder}18`,
                 }}
               >
-                <p className="text-[10px]" style={{ color: uiScheme.mutedText }}>
-                  {FONT_FAMILY_OPTIONS[theme.fontFamily].description}
-                </p>
-                <p
-                  className="mt-1.5 text-sm"
+                {/* 装饰性背景线 */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
                   style={{
-                    fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
-                    color: uiScheme.fg,
-                    lineHeight: theme.lineHeight,
+                    backgroundImage: `repeating-linear-gradient(
+                      0deg,
+                      transparent,
+                      transparent ${Math.round(theme.lineHeight * theme.fontSize)}px,
+                      ${uiScheme.cardBorder}08 ${Math.round(theme.lineHeight * theme.fontSize)}px
+                    )`,
                   }}
-                >
-                  这是当前字体在阅读面板中的呈现效果。
-                </p>
+                />
+                <div className="relative">
+                  <p
+                    className="text-[10px] font-semibold tracking-widest uppercase opacity-50 mb-1.5"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    {FONT_FAMILY_OPTIONS[theme.fontFamily].description}
+                  </p>
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{
+                      fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
+                      color: uiScheme.fg,
+                    }}
+                  >
+                    这是当前字体在阅读面板中的呈现效果。
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -747,18 +794,18 @@ export function ThemeSettings({
           >
             {/* 阅读模式 */}
             <div
-              className="rounded-lg border p-3"
+              className="rounded-xl border p-3.5"
               style={{
-                background: uiScheme.buttonBg,
-                borderColor: `${uiScheme.cardBorder}30`,
+                background: `${uiScheme.buttonBg}80`,
+                borderColor: `${uiScheme.cardBorder}28`,
               }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <Label className="text-xs" style={{ color: uiScheme.fg }}>
+                  <Label className="text-xs font-medium tracking-wide" style={{ color: uiScheme.fg }}>
                     阅读模式
                   </Label>
-                  <p className="text-[11px] mt-0.5" style={{ color: uiScheme.mutedText }}>
+                  <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: uiScheme.mutedText }}>
                     选择更接近实体书翻页，或更连续的滚动阅读体验。
                   </p>
                 </div>
@@ -766,8 +813,8 @@ export function ThemeSettings({
               </div>
 
               <div
-                className="mt-3 grid grid-cols-2 gap-2 rounded-lg border p-1"
-                style={{ background: `${uiScheme.cardBorder}15`, borderColor: `${uiScheme.cardBorder}25` }}
+                className="mt-3 grid grid-cols-2 gap-2 rounded-xl border p-1"
+                style={{ background: `${uiScheme.cardBorder}10`, borderColor: `${uiScheme.cardBorder}20` }}
               >
                 {(["paginated", "scrolled"] as const).map((flow) => {
                   const isActive = theme.flow === flow;
@@ -777,11 +824,12 @@ export function ThemeSettings({
                       key={flow}
                       type="button"
                       onClick={() => setTheme({ flow })}
-                      className="flex items-center gap-2 rounded-md px-3 py-2.5 text-left transition-all duration-200 cursor-pointer"
+                      className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-left transition-all duration-250 cursor-pointer"
                       style={{
-                        color: isActive ? uiScheme.fg : uiScheme.mutedText,
-                        background: isActive ? uiScheme.cardBg : "transparent",
-                        boxShadow: isActive ? `0 4px 12px ${uiScheme.cardBorder}15` : "none",
+                        color: isActive ? uiScheme.link : uiScheme.mutedText,
+                        background: isActive ? `${uiScheme.link}0e` : "transparent",
+                        border: `1px solid ${isActive ? `${uiScheme.link}30` : "transparent"}`,
+                        boxShadow: isActive ? `0 2px 8px ${uiScheme.cardBorder}08` : "none",
                       }}
                     >
                       {flow === "paginated" ? (
@@ -790,10 +838,10 @@ export function ThemeSettings({
                         <ScrollText className="h-4 w-4 shrink-0" />
                       )}
                       <div>
-                        <span className="text-xs font-medium block">
+                        <span className="text-xs font-semibold block tracking-wide">
                           {flow === "paginated" ? "翻页" : "滚动"}
                         </span>
-                        <span className="text-[10px] opacity-70">
+                        <span className="text-[10px] opacity-65">
                           {flow === "paginated" ? "章节停顿" : "连续阅读"}
                         </span>
                       </div>
@@ -863,7 +911,7 @@ export function ThemeSettings({
           <SectionCard
             id="tts"
             title="朗读偏好"
-            description="统一整理 TTS 的语音参数和声线选择。"
+            description="语速、音调和声线的快速调整。"
             icon={<Volume2 className="h-4 w-4" />}
             summary={
               availableLocales.length > 0
@@ -874,203 +922,154 @@ export function ThemeSettings({
             onToggle={toggleSection}
             uiScheme={uiScheme}
           >
-            <SliderField
-              label="语速"
-              description="适合快速扫读或更稳的跟听节奏。"
-              valueLabel={
-                ttsSettings.rate === 0
-                  ? "正常"
-                  : `${ttsSettings.rate > 0 ? "+" : ""}${ttsSettings.rate}%`
-              }
-              minLabel="-50"
-              maxLabel="+100"
-              value={[ttsSettings.rate]}
-              onValueChange={([value]) => onUpdateTTSSettings({ rate: value })}
-              min={-50}
-              max={100}
-              step={10}
-              uiScheme={uiScheme}
-            />
+            {/* 语速 / 音调 / 音量 — 三列紧凑横排 */}
+            <div
+              className="rounded-xl border p-3.5"
+              style={{
+                background: `${uiScheme.buttonBg}80`,
+                borderColor: `${uiScheme.cardBorder}28`,
+              }}
+            >
+              <div className="grid grid-cols-3">
+                {/* 语速 */}
+                <div
+                  className="flex flex-col items-center gap-1.5 px-3 first:pl-0"
+                  style={{ borderRight: `1px solid ${uiScheme.cardBorder}20` }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold tracking-wide" style={{ color: uiScheme.fg }}>语速</span>
+                  </div>
+                  <Slider
+                    value={[ttsSettings.rate]}
+                    onValueChange={([v]) => onUpdateTTSSettings({ rate: v })}
+                    min={-50}
+                    max={100}
+                    step={10}
+                    className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
+                  />
+                  <span className="text-[10px] tabular-nums" style={{ color: uiScheme.mutedText }}>
+                    {ttsSettings.rate === 0 ? "正常" : `${ttsSettings.rate > 0 ? "+" : ""}${ttsSettings.rate}`}
+                  </span>
+                </div>
 
-            <SliderField
-              label="音调"
-              description="微调语音高低，让朗读更自然或更清亮。"
-              valueLabel={
-                ttsSettings.pitch === 0
-                  ? "正常"
-                  : `${ttsSettings.pitch > 0 ? "+" : ""}${ttsSettings.pitch}%`
-              }
-              minLabel="-50"
-              maxLabel="+50"
-              value={[ttsSettings.pitch]}
-              onValueChange={([value]) => onUpdateTTSSettings({ pitch: value })}
-              min={-50}
-              max={50}
-              step={10}
-              uiScheme={uiScheme}
-            />
+                {/* 音调 */}
+                <div
+                  className="flex flex-col items-center gap-1.5 px-3"
+                  style={{ borderRight: `1px solid ${uiScheme.cardBorder}20` }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold tracking-wide" style={{ color: uiScheme.fg }}>音调</span>
+                  </div>
+                  <Slider
+                    value={[ttsSettings.pitch]}
+                    onValueChange={([v]) => onUpdateTTSSettings({ pitch: v })}
+                    min={-50}
+                    max={50}
+                    step={10}
+                    className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
+                  />
+                  <span className="text-[10px] tabular-nums" style={{ color: uiScheme.mutedText }}>
+                    {ttsSettings.pitch === 0 ? "正常" : `${ttsSettings.pitch > 0 ? "+" : ""}${ttsSettings.pitch}`}
+                  </span>
+                </div>
 
-            <SliderField
-              label="音量"
-              description="单独控制朗读输出，不影响系统整体音量。"
-              valueLabel={`${Math.round(ttsSettings.volume * 100)}%`}
-              minLabel="0"
-              maxLabel="100"
-              value={[ttsSettings.volume]}
-              onValueChange={([value]) => onUpdateTTSSettings({ volume: value })}
-              min={0}
-              max={1}
-              step={0.1}
-              uiScheme={uiScheme}
-            />
+                {/* 音量 */}
+                <div className="flex flex-col items-center gap-1.5 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold tracking-wide" style={{ color: uiScheme.fg }}>音量</span>
+                  </div>
+                  <Slider
+                    value={[ttsSettings.volume]}
+                    onValueChange={([v]) => onUpdateTTSSettings({ volume: v })}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
+                  />
+                  <span className="text-[10px] tabular-nums" style={{ color: uiScheme.mutedText }}>
+                    {Math.round(ttsSettings.volume * 100)}%
+                  </span>
+                </div>
+              </div>
+            </div>
 
+            {/* 声线选择 — 语种 + 声线二合一 */}
             {availableLocales.length > 0 ? (
-              <div className="space-y-3">
-                {/* 语种选择 */}
-                <div
-                  className="rounded-lg border p-3"
-                  style={{
-                    background: uiScheme.buttonBg,
-                    borderColor: `${uiScheme.cardBorder}30`,
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <Label className="text-xs" style={{ color: uiScheme.fg }}>
-                        语种
-                      </Label>
-                      <p className="text-[11px] mt-0.5" style={{ color: uiScheme.mutedText }}>
-                        按朗读语言先筛选可用声线。
-                      </p>
-                    </div>
-                    <ValuePill uiScheme={uiScheme} muted={!selectedLocale}>
-                      {selectedLocale ? LOCALE_LABELS[selectedLocale] : "未检测到"}
-                    </ValuePill>
-                  </div>
-                  <Select value={selectedLocale} onValueChange={handleLocaleChange}>
-                    <SelectTrigger
-                      className="mt-3 h-10 rounded-xl border px-3 text-sm shadow-none"
-                      style={selectStyle}
-                    >
-                      <SelectValue placeholder="选择语种" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {localeVoicesMap.map((item) => (
-                        <SelectItem key={item.locale} value={item.locale}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div
+                className="rounded-xl border p-3.5"
+                style={{
+                  background: `${uiScheme.buttonBg}80`,
+                  borderColor: `${uiScheme.cardBorder}28`,
+                }}
+              >
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <span className="text-xs font-medium tracking-wide" style={{ color: uiScheme.fg }}>
+                    朗读声线
+                  </span>
+                  <ValuePill uiScheme={uiScheme} muted={!selectedVoice}>
+                    {selectedVoice?.LocalName ?? "默认"}
+                  </ValuePill>
                 </div>
-
-                {/* 声线选择 */}
-                <div
-                  className="rounded-lg border p-3"
-                  style={{
-                    background: uiScheme.buttonBg,
-                    borderColor: `${uiScheme.cardBorder}30`,
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <Label className="text-xs" style={{ color: uiScheme.fg }}>
-                        声线
-                      </Label>
-                      <p className="text-[11px] mt-0.5" style={{ color: uiScheme.mutedText }}>
-                        挑选更适合当前书籍内容的朗读角色。
-                      </p>
-                    </div>
-                    <ValuePill uiScheme={uiScheme} muted={!selectedVoice}>
-                      {selectedVoice?.LocalName ?? "默认"}
-                    </ValuePill>
-                  </div>
-                  <Select
-                    value={ttsSettings.voiceName}
-                    onValueChange={(value) =>
-                      onUpdateTTSSettings({
-                        voiceName: value,
-                        style:
-                          voices.find((voice) => voice.Name === value)?.StyleList?.[0] ??
-                          "general",
-                      })
-                    }
-                  >
-                    <SelectTrigger
-                      className="mt-3 h-10 rounded-xl border px-3 text-sm shadow-none"
-                      style={selectStyle}
-                    >
-                      <SelectValue placeholder="选择声线" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentLocaleVoices.map((voice) => (
-                        <SelectItem key={voice.Name} value={voice.Name}>
-                          {voice.LocalName}
-                          {voice.Gender === "Female"
-                            ? " · 女声"
-                            : voice.Gender === "Male"
-                              ? " · 男声"
-                              : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* 风格选择 */}
-                {availableStyles.length > 1 && (
-                  <div
-                    className="rounded-lg border p-3"
-                    style={{
-                      background: uiScheme.buttonBg,
-                      borderColor: `${uiScheme.cardBorder}30`,
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <Label className="text-xs" style={{ color: uiScheme.fg }}>
-                          风格
-                        </Label>
-                        <p className="text-[11px] mt-0.5" style={{ color: uiScheme.mutedText }}>
-                          部分声线支持不同语气或表达方式。
-                        </p>
-                      </div>
-                      <ValuePill uiScheme={uiScheme}>{ttsSettings.style}</ValuePill>
-                    </div>
-                    <Select
-                      value={ttsSettings.style}
-                      onValueChange={(value) => onUpdateTTSSettings({ style: value })}
-                    >
-                      <SelectTrigger
-                        className="mt-3 h-10 rounded-xl border px-3 text-sm shadow-none"
-                        style={selectStyle}
+                {/* 语种横排选择 */}
+                <div className="flex gap-1.5 mb-2.5 flex-wrap">
+                  {localeVoicesMap.map((item) => {
+                    const isActive = selectedLocale === item.locale;
+                    return (
+                      <button
+                        key={item.locale}
+                        type="button"
+                        onClick={() => handleLocaleChange(item.locale)}
+                        className="rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide transition-all duration-200 cursor-pointer"
+                        style={{
+                          color: isActive ? uiScheme.link : uiScheme.mutedText,
+                          background: isActive ? `${uiScheme.link}10` : "transparent",
+                          borderColor: isActive ? `${uiScheme.link}40` : `${uiScheme.cardBorder}25`,
+                        }}
                       >
-                        <SelectValue placeholder="选择风格" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableStyles.map((style) => (
-                          <SelectItem key={style} value={style}>
-                            {style}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* 声线下拉 */}
+                <Select
+                  value={ttsSettings.voiceName}
+                  onValueChange={(value) =>
+                    onUpdateTTSSettings({
+                      voiceName: value,
+                      style: voices.find((v) => v.Name === value)?.StyleList?.[0] ?? "general",
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    className="h-10 rounded-xl border px-3 text-sm shadow-none"
+                    style={selectStyle}
+                  >
+                    <SelectValue placeholder="选择声线" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currentLocaleVoices.map((voice) => (
+                      <SelectItem key={voice.Name} value={voice.Name}>
+                        {voice.LocalName}
+                        {voice.Gender === "Female" ? " · 女声" : voice.Gender === "Male" ? " · 男声" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : (
               <div
-                className="rounded-lg border p-4"
+                className="rounded-xl border p-4"
                 style={{
-                  background: uiScheme.buttonBg,
-                  borderColor: `${uiScheme.cardBorder}30`,
+                  background: `${uiScheme.buttonBg}80`,
+                  borderColor: `${uiScheme.cardBorder}28`,
                 }}
               >
-                <p className="text-sm" style={{ color: uiScheme.fg }}>
-                  当前还没有可用的系统语音。
+                <p className="text-sm font-medium" style={{ color: uiScheme.fg }}>
+                  当前没有可用系统语音
                 </p>
-                <p className="text-xs mt-1" style={{ color: uiScheme.mutedText }}>
-                  可以先调整语速和音量，待声线加载后再继续配置朗读语言与风格。
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: uiScheme.mutedText }}>
+                  请在系统设置中启用语音合成。
                 </p>
               </div>
             )}
@@ -1087,52 +1086,54 @@ export function ThemeSettings({
             uiScheme={uiScheme}
           >
             <div
-              className="flex items-start justify-between gap-3 rounded-lg border p-3"
+              className="flex items-start justify-between gap-3 rounded-xl border p-3.5"
               style={{
-                background: uiScheme.buttonBg,
-                borderColor: `${uiScheme.cardBorder}30`,
+                background: `${uiScheme.buttonBg}80`,
+                borderColor: `${uiScheme.cardBorder}28`,
               }}
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs" style={{ color: uiScheme.fg }}>
+                <div className="flex items-center gap-2.5">
+                  <Label className="text-xs font-medium tracking-wide" style={{ color: uiScheme.fg }}>
                     翻页动画
                   </Label>
                   <ValuePill uiScheme={uiScheme} muted={!theme.animated}>
                     {theme.animated ? "已开启" : "已关闭"}
                   </ValuePill>
                 </div>
-                <p className="text-[11px] mt-0.5" style={{ color: uiScheme.mutedText }}>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: uiScheme.mutedText }}>
                   开启后更有翻书感，关闭则更利落、适合追求瞬时响应。
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setTheme({ animated: !theme.animated })}
-                className="relative shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                className="relative shrink-0 rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{
-                  width: "48px",
+                  width: "50px",
                   height: "28px",
-                  minWidth: "48px",
+                  minWidth: "50px",
                   minHeight: "28px",
                   backgroundColor: theme.animated
                     ? uiScheme.link
-                    : `${uiScheme.cardBorder}60`,
+                    : `${uiScheme.cardBorder}50`,
                   boxShadow: theme.animated
-                    ? `0 4px 12px ${uiScheme.link}30`
-                    : "none",
+                    ? `0 4px 16px ${uiScheme.link}35, inset 0 1px 0 rgba(255,255,255,0.15)`
+                    : `inset 0 1px 2px rgba(0,0,0,0.08)`,
                 }}
                 aria-checked={theme.animated}
                 role="switch"
                 aria-label="翻页动画开关"
               >
                 <span
-                  className="absolute top-1 rounded-full bg-white shadow transition-all duration-200"
+                  className="absolute top-1 rounded-full bg-white transition-all duration-300"
                   style={{
-                    left: theme.animated ? "24px" : "4px",
+                    left: theme.animated ? "25px" : "4px",
                     width: "20px",
                     height: "20px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    boxShadow: theme.animated
+                      ? "0 2px 6px rgba(0,0,0,0.2), 0 0 8px rgba(255,255,255,0.3)"
+                      : "0 1px 3px rgba(0,0,0,0.15)",
                   }}
                 />
               </button>

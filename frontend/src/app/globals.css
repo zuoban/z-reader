@@ -467,3 +467,21 @@ foliate-view::part(filter) {
     animation: none;
   }
 }
+
+/* 阅读偏好面板 - 区域展开动画 */
+@keyframes sectionReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 阅读偏好面板 - 主题预设悬停光晕 */
+@keyframes presetGlow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}

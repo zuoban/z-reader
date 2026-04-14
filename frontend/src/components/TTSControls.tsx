@@ -4,13 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Play,
   Pause,
   Square,
@@ -20,16 +13,8 @@ import {
   X,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
+import { VoiceSelector } from '@/components/VoiceSelector';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
-
-const SUPPORTED_LOCALES = ['zh', 'en', 'ja', 'ko'];
-
-const LOCALE_LABELS: Record<string, string> = {
-  zh: '中文',
-  en: '英语',
-  ja: '日语',
-  ko: '韩语',
-};
 
 // 悬浮按钮组件 - 精致的视觉效果
 interface FloatingButtonProps {
@@ -479,7 +464,6 @@ export function TTSControls({
   const [expanded, setExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [localRate, setLocalRate] = useState(settings.rate);
-  const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [position, setPosition] = useState({ x: 8, y: 8 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number }>({
@@ -561,54 +545,6 @@ export function TTSControls({
     document.addEventListener('mousedown', handleBlur);
     return () => document.removeEventListener('mousedown', handleBlur);
   }, [expanded]);
-
-  const availableLocales = SUPPORTED_LOCALES.filter(locale =>
-    voices.some(v => v.Locale.startsWith(locale))
-  );
-
-  const localeVoicesMap = availableLocales.map(locale => ({
-    locale,
-    label: LOCALE_LABELS[locale] || locale,
-    voices: voices.filter(v => v.Locale.startsWith(locale)),
-  }));
-
-  useEffect(() => {
-    if (!selectedLocale && voices.length > 0) {
-      if (settings.voiceName) {
-        const currentVoice = voices.find(v => v.Name === settings.voiceName);
-        if (currentVoice) {
-          const locale = SUPPORTED_LOCALES.find(l => currentVoice.Locale.startsWith(l)) || '';
-          if (locale) {
-            setSelectedLocale(locale);
-            return;
-          }
-        }
-      }
-      if (availableLocales.length > 0) {
-        setSelectedLocale(availableLocales[0]);
-      }
-    }
-  }, [voices, settings.voiceName, selectedLocale, availableLocales]);
-
-  const currentLocaleVoices = localeVoicesMap.find(l => l.locale === selectedLocale)?.voices || [];
-
-  const filteredVoices = selectedLocale
-    ? voices.filter(v => v.Locale.startsWith(selectedLocale))
-    : voices.filter(v => SUPPORTED_LOCALES.some(l => v.Locale.startsWith(l)));
-
-  const selectedVoice = voices.find(v => v.Name === settings.voiceName);
-  const availableStyles = selectedVoice?.StyleList || ['general'];
-
-  const handleLocaleChange = (value: string) => {
-    setSelectedLocale(value);
-    const localeVoices = voices.filter(v => v.Locale.startsWith(value));
-    if (localeVoices.length > 0) {
-      const currentVoiceInLocale = localeVoices.find(v => v.Name === settings.voiceName);
-      if (!currentVoiceInLocale) {
-        onUpdateSettings({ voiceName: localeVoices[0].Name });
-      }
-    }
-  };
 
   const handleStartClick = async () => {
     if (isPending) return;
@@ -719,14 +655,6 @@ export function TTSControls({
   const handleRateChange = (value: number) => {
     setLocalRate(value);
     onUpdateSettings({ rate: value });
-  };
-
-  const handleVoiceChange = (value: string) => {
-    onUpdateSettings({ voiceName: value });
-  };
-
-  const handleStyleChange = (value: string) => {
-    onUpdateSettings({ style: value === "__clear__" ? undefined : value });
   };
 
   const formatRate = (rate: number) => {
@@ -954,137 +882,12 @@ export function TTSControls({
                 className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
                 style={styles.section}
               >
-                {/* 语音选择区域 */}
-                {filteredVoices.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <label
-                        className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
-                        style={{ color: uiScheme.mutedText }}
-                      >
-                        语种
-                      </label>
-                      <Select
-                        value={selectedLocale}
-                        onValueChange={handleLocaleChange}
-                      >
-                        <SelectTrigger
-                          data-reader-interactive="true"
-                          className="flex-1 min-w-0 max-w-full text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
-                            transition-all duration-200 ease-out hover:border-opacity-60"
-                          style={styles.selectTrigger}
-                        >
-                          <SelectValue placeholder="选择语种" className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent
-                          data-reader-interactive="true"
-                          className="rounded-xl max-w-[200px]"
-                          style={styles.selectContent}
-                        >
-                          {localeVoicesMap.map((item) => (
-                            <SelectItem
-                              key={item.locale}
-                              value={item.locale}
-                              className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
-                              style={{ color: uiScheme.fg }}
-                            >
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <label
-                        className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
-                        style={{ color: uiScheme.mutedText }}
-                      >
-                        语音
-                      </label>
-                      <Select
-                        value={settings.voiceName}
-                        onValueChange={handleVoiceChange}
-                      >
-                        <SelectTrigger
-                          data-reader-interactive="true"
-                          className="flex-1 min-w-0 max-w-full text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
-                            transition-all duration-200 ease-out hover:border-opacity-60"
-                          style={styles.selectTrigger}
-                        >
-                          <SelectValue placeholder="选择语音" className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent
-                          data-reader-interactive="true"
-                          className="rounded-xl max-w-[220px]"
-                          style={styles.selectContent}
-                        >
-                          {currentLocaleVoices.map((voice) => (
-                            <SelectItem
-                              key={voice.Name}
-                              value={voice.Name}
-                              className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
-                              style={{ color: uiScheme.fg }}
-                            >
-                              {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-
-                {/* 风格选择 */}
-                {availableStyles.length > 0 && (
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <label
-                      className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      风格
-                    </label>
-                    <Select
-                      value={settings.style ?? "__clear__"}
-                      onValueChange={handleStyleChange}
-                    >
-                      <SelectTrigger
-                        data-reader-interactive="true"
-                        className="flex-1 min-w-0 max-w-full text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
-                          transition-all duration-200 ease-out hover:border-opacity-60"
-                        style={styles.selectTrigger}
-                      >
-                        <SelectValue
-                          placeholder="选择风格"
-                          className="truncate"
-                        />
-                      </SelectTrigger>
-                      <SelectContent
-                        data-reader-interactive="true"
-                        className="rounded-xl max-w-[200px]"
-                        style={styles.selectContent}
-                      >
-                        <SelectItem
-                          value="__clear__"
-                          className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
-                          style={{ color: uiScheme.mutedText }}
-                        >
-                          不指定
-                        </SelectItem>
-                        {availableStyles.map((style) => (
-                          <SelectItem
-                            key={style}
-                            value={style}
-                            className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
-                            style={{ color: uiScheme.fg }}
-                          >
-                            {style}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <VoiceSelector
+                  settings={settings}
+                  voices={voices}
+                  onUpdateSettings={onUpdateSettings}
+                  uiScheme={uiScheme}
+                />
               </div>
             )}
             </div>

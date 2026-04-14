@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -16,8 +15,6 @@ import { CategoryFilter } from '@/components/CategoryFilter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-// three.js 组件按需加载，避免阻塞首屏
-const LightRays = dynamic(() => import('@/registry/spell-ui/light-rays'), { ssr: false });
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
@@ -39,26 +36,7 @@ function sortBooksByRecentRead(items: Book[]): Book[] {
 
 function ShelfAmbientBackground() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <LightRays
-        rays={40}
-        reach={30}
-        intensity={48}
-        position={22}
-        radius="0px"
-        backgroundColor="#f5efe6"
-        raysColor={{ mode: 'multi', color1: '#e3bb70', color2: '#93b2d5' }}
-        animation={{ animate: true, speed: 8 }}
-        className="opacity-[0.9]"
-        style={{
-          inset: '-8% 0 0 -10%',
-          width: '120%',
-          height: '116%',
-        }}
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,247,230,0.6),transparent_30%),radial-gradient(circle_at_top,rgba(223,189,116,0.24),transparent_38%),radial-gradient(circle_at_right,rgba(147,178,213,0.14),transparent_34%),linear-gradient(180deg,rgba(247,242,234,0.16)_0%,rgba(247,242,234,0.05)_28%,rgba(247,242,234,0.24)_100%)]" />
-      <div className="absolute inset-0 paper-texture opacity-[0.12]" />
-    </div>
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden shelf-ambient-bg" />
   );
 }
 
@@ -194,7 +172,7 @@ export default function ShelfPage() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="relative min-h-screen overflow-hidden warm-gradient paper-texture">
+      <div className="relative min-h-screen overflow-hidden warm-gradient">
         <ShelfAmbientBackground />
         <div className="relative z-10 flex min-h-screen items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -210,7 +188,7 @@ export default function ShelfPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden warm-gradient paper-texture">
+    <div className="relative min-h-screen overflow-hidden warm-gradient">
       <ShelfAmbientBackground />
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
         <header className="rounded-[24px] border border-border/60 bg-background/82 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:rounded-[28px] sm:px-6 sm:py-5">

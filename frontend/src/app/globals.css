@@ -282,6 +282,38 @@ foliate-view::part(filter) {
     background: linear-gradient(180deg, #0A0A0A 0%, #171717 100%);
   }
 
+  /* 书架页氛围背景 — 纯 CSS radial gradient，替代 three.js LightRays WebGL 渲染 */
+  .shelf-ambient-bg {
+    background:
+      /* 纸纹叠加在最顶层 */
+      var(--paper-texture),
+      /* 右上角光斑 — 暖黄调，向下渐隐 */
+      radial-gradient(ellipse 55% 45% at 88% 4%, rgba(243, 210, 130, 0.28) 0%, rgba(230, 195, 100, 0.12) 40%, transparent 70%),
+      /* 左侧纵向光束 — 暖金色，向右渐隐 */
+      radial-gradient(ellipse 30% 80% at 8% 15%, rgba(227, 187, 112, 0.22) 0%, rgba(210, 175, 95, 0.08) 45%, transparent 75%),
+      /* 右上蓝紫补色光斑 — 增加色彩层次，向左下渐隐 */
+      radial-gradient(ellipse 38% 30% at 92% 8%, rgba(160, 185, 225, 0.18) 0%, rgba(145, 170, 210, 0.07) 45%, transparent 70%),
+      /* 中心偏上柔和光晕 */
+      radial-gradient(ellipse 60% 40% at 45% 10%, rgba(255, 250, 240, 0.12) 0%, transparent 60%),
+      /* 底部屋顶反光 — 极淡暖色，从下向上渐隐 */
+      radial-gradient(ellipse 80% 25% at 50% 100%, rgba(250, 240, 225, 0.14) 0%, transparent 70%),
+      /* 主背景渐变 */
+      linear-gradient(175deg, #fffdf9 0%, #faf6ee 18%, #f5efe6 55%, #f2ece0 100%);
+    background-color: transparent;
+    opacity: 1;
+  }
+
+  .dark .shelf-ambient-bg {
+    background:
+      var(--paper-texture),
+      radial-gradient(ellipse 55% 45% at 88% 4%, rgba(180, 155, 90, 0.2) 0%, rgba(160, 140, 80, 0.08) 40%, transparent 70%),
+      radial-gradient(ellipse 30% 80% at 8% 15%, rgba(140, 120, 70, 0.15) 0%, rgba(120, 105, 60, 0.05) 45%, transparent 75%),
+      radial-gradient(ellipse 38% 30% at 92% 8%, rgba(100, 120, 180, 0.15) 0%, rgba(90, 110, 170, 0.06) 45%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 45% 10%, rgba(80, 80, 90, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 25% at 50% 100%, rgba(50, 45, 40, 0.18) 0%, transparent 70%),
+      linear-gradient(175deg, #111115 0%, #0e0e12 18%, #0a0a0f 55%, #08080c 100%);
+  }
+
   /* 书架页面阴影 */
   .shadow-card-sm {
     box-shadow: 0 2px 8px -4px rgba(15, 23, 42, 0.3);

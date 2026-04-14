@@ -88,16 +88,12 @@ function formatRelativeTime(dateString: string): string {
 }
 
 interface BookCoverFaceProps {
-  authorLabel: string;
   coverUrl: string | null;
-  formatLabel: string;
   titleLabel: string;
 }
 
 function BookCoverFace({
-  authorLabel,
   coverUrl,
-  formatLabel,
   titleLabel,
 }: BookCoverFaceProps) {
   if (coverUrl) {
@@ -116,27 +112,29 @@ function BookCoverFace({
     );
   }
 
+  // 默认封面 - 白色极简风格
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(160deg,#fffdf7_0%,#f4ecde_54%,#eadfcb_100%)] px-4 py-4 text-slate-800">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(214,190,154,0.4),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(92,117,146,0.16),transparent_34%)]" />
-      <div className="pointer-events-none absolute inset-x-4 top-4 h-px bg-[linear-gradient(90deg,transparent,rgba(71,85,105,0.28),transparent)]" />
-      <div className="pointer-events-none absolute inset-x-4 bottom-4 h-px bg-[linear-gradient(90deg,transparent,rgba(71,85,105,0.2),transparent)]" />
-      <div className="pointer-events-none absolute right-3 top-3 h-16 w-16 rounded-full bg-white/30 blur-2xl" />
+    <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[2px] bg-transparent px-5 py-5 text-slate-800">
+      {/* 封面主体 */}
       <div className="relative z-10 flex h-full flex-col">
-        <div className="inline-flex w-fit rounded-full border border-slate-700/10 bg-white/75 px-2.5 py-1 text-[9px] font-semibold tracking-[0.22em] text-slate-600 backdrop-blur-sm">
-          {formatLabel}
-        </div>
-        <div className="mt-5 flex-1">
-          <div className="mb-3 h-1 w-10 rounded-full bg-slate-700/70" />
-          <h3 className="line-clamp-4 text-[15px] font-semibold leading-[1.25] tracking-[-0.02em] text-slate-900">
-            {titleLabel}
-          </h3>
-        </div>
-        <div className="space-y-2">
-          <div className="h-px w-full bg-slate-900/10" />
-          <p className="line-clamp-2 text-[11px] font-medium tracking-[0.08em] text-slate-600 uppercase">
-            {authorLabel}
-          </p>
+        <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-slate-900">
+          {titleLabel}
+        </h3>
+        <div className="mt-auto pt-4">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-slate-400"
+          >
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          </svg>
         </div>
       </div>
     </div>
@@ -331,9 +329,7 @@ export function BookCard({
                   >
                     <PerspectiveBook size="sm" textured={!coverUrl}>
                       <BookCoverFace
-                        authorLabel={authorLabel}
                         coverUrl={coverUrl}
-                        formatLabel={formatLabel}
                         titleLabel={titleLabel}
                       />
                     </PerspectiveBook>

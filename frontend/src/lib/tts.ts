@@ -6,8 +6,6 @@ export type TTSState = 'stopped' | 'playing' | 'paused';
 
 export interface TTSSettings {
   rate: number;
-  pitch: number;
-  volume: number;
   voiceName: string;
   style?: string;
 }
@@ -32,8 +30,6 @@ const TTS_SETTINGS_KEY = 'z-reader-tts-settings';
 
 const DEFAULT_SETTINGS: TTSSettings = {
   rate: 0,
-  pitch: 0,
-  volume: 1,
   voiceName: 'zh-CN-XiaoxiaoMultilingualNeural',
   style: 'general',
 };
@@ -304,7 +300,6 @@ export class BackendTTS {
 
   private async playAudio(audioUrl: string): Promise<void> {
     this.audio = new Audio(audioUrl);
-    this.audio.volume = this.settings.volume;
 
     this.currentMarkIndex = 0;
 

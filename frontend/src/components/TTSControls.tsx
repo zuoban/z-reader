@@ -479,8 +479,6 @@ export function TTSControls({
   const [expanded, setExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [localRate, setLocalRate] = useState(settings.rate);
-  const [localPitch, setLocalPitch] = useState(settings.pitch);
-  const [localVolume, setLocalVolume] = useState(settings.volume);
   const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [position, setPosition] = useState({ x: 8, y: 8 });
   const [isDragging, setIsDragging] = useState(false);
@@ -518,8 +516,6 @@ export function TTSControls({
 
   useEffect(() => {
     setLocalRate(settings.rate);
-    setLocalPitch(settings.pitch);
-    setLocalVolume(settings.volume);
   }, [settings]);
 
   useEffect(() => {
@@ -725,16 +721,6 @@ export function TTSControls({
     onUpdateSettings({ rate: value });
   };
 
-  const handlePitchChange = (value: number) => {
-    setLocalPitch(value);
-    onUpdateSettings({ pitch: value });
-  };
-
-  const handleVolumeChange = (value: number) => {
-    setLocalVolume(value);
-    onUpdateSettings({ volume: value });
-  };
-
   const handleVoiceChange = (value: string) => {
     onUpdateSettings({ voiceName: value });
   };
@@ -746,11 +732,6 @@ export function TTSControls({
   const formatRate = (rate: number) => {
     if (rate === 0) return '正常';
     return `${rate > 0 ? '+' : ''}${rate}%`;
-  };
-
-  const formatPitch = (pitch: number) => {
-    if (pitch === 0) return '正常';
-    return `${pitch > 0 ? '+' : ''}${pitch}%`;
   };
 
   const isToolbar = variant === 'toolbar';
@@ -970,28 +951,6 @@ export function TTSControls({
                   max={100}
                   step={10}
                   format={formatRate}
-                  uiScheme={uiScheme}
-                />
-
-                <VoiceSlider
-                  label="音调"
-                  value={localPitch}
-                  onChange={handlePitchChange}
-                  min={-50}
-                  max={50}
-                  step={10}
-                  format={formatPitch}
-                  uiScheme={uiScheme}
-                />
-
-                <VoiceSlider
-                  label="音量"
-                  value={localVolume}
-                  onChange={handleVolumeChange}
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  format={(v) => `${Math.round(v * 100)}%`}
                   uiScheme={uiScheme}
                 />
 

@@ -153,7 +153,11 @@ export function VoiceSelector({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      className="flex flex-col gap-3"
+      onPointerDownCapture={e => e.stopPropagation()}
+      onClickCapture={e => e.stopPropagation()}
+    >
       {/* 试听按钮 */}
       <Button
         variant="ghost"

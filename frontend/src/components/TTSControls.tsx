@@ -881,6 +881,8 @@ export function TTSControls({
               <div
                 className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
                 style={styles.section}
+                onPointerDownCapture={e => e.stopPropagation()}
+                onClickCapture={e => e.stopPropagation()}
               >
                 <VoiceSelector
                   settings={settings}

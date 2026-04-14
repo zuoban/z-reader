@@ -754,6 +754,7 @@ export function TTSControls({
               : `fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
                 motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
             onClick={stopInteractivePropagation}
+            onClickCapture={stopInteractivePropagation}
             onPointerDownCapture={stopInteractivePropagation}
             onPointerDown={stopInteractivePropagation}
             onTouchStart={stopInteractivePropagation}
@@ -881,8 +882,6 @@ export function TTSControls({
               <div
                 className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
                 style={styles.section}
-                onPointerDownCapture={e => e.stopPropagation()}
-                onClickCapture={e => e.stopPropagation()}
               >
                 <VoiceSelector
                   settings={settings}

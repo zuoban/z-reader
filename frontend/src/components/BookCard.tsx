@@ -98,7 +98,7 @@ function BookCoverFace({
 }: BookCoverFaceProps) {
   if (coverUrl) {
     return (
-      <div className="relative h-full w-full bg-[#f3ece3]">
+      <div className="relative h-full w-full bg-white">
         <Image
           src={coverUrl}
           alt={titleLabel}
@@ -304,11 +304,9 @@ export function BookCard({
           className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/20 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)] active:scale-[0.98] active:shadow-[0_8px_20px_-18px_rgba(15,23,42,0.32)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
         >
           <div
-            className="relative overflow-hidden bg-[radial-gradient(circle_at_top,#faf5eb_0%,#ede4d4_46%,#ddd0bd_100%)]"
+            className="relative overflow-hidden bg-[#faf7f2]"
             style={{ height: coverHeight }}
           >
-            <div className="pointer-events-none absolute inset-0 paper-texture opacity-45" />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0)_36%,rgba(15,23,42,0.08)_100%)]" />
             <div className="pointer-events-none absolute right-2.5 bottom-2.5 z-30 inline-flex max-w-[calc(100%-1.25rem)] items-center justify-end overflow-hidden rounded-full border border-black/10 bg-black/82 px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white/95 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.5)] backdrop-blur-sm sm:right-3 sm:bottom-3 sm:max-w-[calc(100%-1.5rem)] sm:px-2.5 sm:text-[11px]">
               {infoItems.map((item, index) => (
                 <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">

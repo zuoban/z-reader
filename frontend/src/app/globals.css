@@ -282,7 +282,7 @@ foliate-view::part(filter) {
     background: linear-gradient(180deg, #0A0A0A 0%, #171717 100%);
   }
 
-  /* 书架页氛围背景 — 纯 CSS radial gradient，替代 three.js LightRays WebGL 渲染 */
+  /* 书架页氛围背景 — 纯 CSS radial gradient */
   .shelf-ambient-bg {
     background:
       /* 纸纹叠加在最顶层 */

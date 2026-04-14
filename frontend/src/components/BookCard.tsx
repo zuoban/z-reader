@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// three.js 组件按需加载，避免阻塞首屏
+// 书本预览组件按需加载，避免阻塞首屏
 const PerspectiveBook = dynamic(
   () => import('@/registry/spell-ui/perspective-book').then((m) => ({ default: m.PerspectiveBook })),
   { ssr: false }

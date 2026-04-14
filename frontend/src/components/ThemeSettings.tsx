@@ -338,14 +338,14 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-11 w-11 rounded-full border transition-all duration-200 hover:scale-[1.04] active:scale-95 cursor-pointer";
+    "h-[26px] w-[26px] rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
-    background: open ? `${uiScheme.link}12` : `${uiScheme.buttonBg}88`,
-    border: `1px solid ${open ? `${uiScheme.link}35` : `${uiScheme.cardBorder}7a`}`,
+    background: open ? uiScheme.cardBg : uiScheme.buttonBg,
+    border: `1px solid ${open ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
     boxShadow: open
-      ? `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 1px ${uiScheme.link}18, 0 0 16px ${uiScheme.link}10`
-      : `inset 0 1px 0 ${uiScheme.headerBg}66`,
+      ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 20px -18px ${uiScheme.link}40`
+      : `inset 0 1px 0 ${uiScheme.headerBg}42, 0 10px 20px -18px ${uiScheme.cardBorder}26`,
   } as const;
 
   const selectStyle = {
@@ -386,7 +386,7 @@ export function ThemeSettings({
           />
         }
       >
-        <Settings className="h-4 w-4" />
+        <Settings className="h-3 w-3" />
       </SheetTrigger>
       <SheetContent
         side="right"

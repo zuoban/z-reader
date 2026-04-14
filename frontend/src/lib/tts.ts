@@ -9,7 +9,7 @@ export interface TTSSettings {
   pitch: number;
   volume: number;
   voiceName: string;
-  style: string;
+  style?: string;
 }
 
 export interface TTSMark {

@@ -116,9 +116,10 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const buildSSML = useCallback((text: string): string => {
     const rateStr = settings.rate >= 0 ? `+${settings.rate}%` : `${settings.rate}%`;
     const pitchStr = settings.pitch >= 0 ? `+${settings.pitch}%` : `${settings.pitch}%`;
-    
+    const styleAttr = settings.style ? ` style="${settings.style}"` : '';
+
     return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-  <voice name="${settings.voiceName}">
+  <voice name="${settings.voiceName}"${styleAttr}>
     <prosody rate="${rateStr}" pitch="${pitchStr}">
       ${text}
     </prosody>

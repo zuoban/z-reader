@@ -496,6 +496,7 @@ export function TTSControls({
   const suppressClickRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const pendingPositionRef = useRef(position);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const FAB_SIZE = 48;
   const FAB_OFFSET = 56;
@@ -548,6 +549,21 @@ export function TTSControls({
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
+  }, [expanded]);
+
+  // 失去焦点自动隐藏
+  useEffect(() => {
+    if (!expanded) return;
+
+    const handleBlur = (e: MouseEvent) => {
+      const root = rootRef.current;
+      if (root && !root.contains(e.target as Node)) {
+        setExpanded(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleBlur);
+    return () => document.removeEventListener('mousedown', handleBlur);
   }, [expanded]);
 
   const availableLocales = SUPPORTED_LOCALES.filter(locale =>
@@ -724,7 +740,7 @@ export function TTSControls({
   };
 
   const handleStyleChange = (value: string) => {
-    onUpdateSettings({ style: value });
+    onUpdateSettings({ style: value === "__clear__" ? undefined : value });
   };
 
   const formatRate = (rate: number) => {
@@ -755,6 +771,7 @@ export function TTSControls({
 
   return (
     <div
+      ref={rootRef}
       className={`relative ${isToolbar ? 'z-40' : ''}`}
       style={{ pointerEvents: 'auto' }}
     >
@@ -994,22 +1011,22 @@ export function TTSControls({
                       >
                         <SelectTrigger
                           data-reader-interactive="true"
-                          className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
+                          className="flex-1 min-w-0 max-w-full text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
                             transition-all duration-200 ease-out hover:border-opacity-60"
                           style={styles.selectTrigger}
                         >
-                          <SelectValue placeholder="选择语种" />
+                          <SelectValue placeholder="选择语种" className="truncate" />
                         </SelectTrigger>
                         <SelectContent
                           data-reader-interactive="true"
-                          className="rounded-xl"
+                          className="rounded-xl max-w-[200px]"
                           style={styles.selectContent}
                         >
                           {localeVoicesMap.map((item) => (
                             <SelectItem
                               key={item.locale}
                               value={item.locale}
-                              className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                              className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
                               style={{ color: uiScheme.fg }}
                             >
                               {item.label}
@@ -1032,22 +1049,22 @@ export function TTSControls({
                       >
                         <SelectTrigger
                           data-reader-interactive="true"
-                          className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
+                          className="flex-1 min-w-0 max-w-full text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
                             transition-all duration-200 ease-out hover:border-opacity-60"
                           style={styles.selectTrigger}
                         >
-                          <SelectValue placeholder="选择语音" />
+                          <SelectValue placeholder="选择语音" className="truncate" />
                         </SelectTrigger>
                         <SelectContent
                           data-reader-interactive="true"
-                          className="rounded-xl"
+                          className="rounded-xl max-w-[220px]"
                           style={styles.selectContent}
                         >
                           {currentLocaleVoices.map((voice) => (
                             <SelectItem
                               key={voice.Name}
                               value={voice.Name}
-                              className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                              className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
                               style={{ color: uiScheme.fg }}
                             >
                               {voice.LocalName} ({voice.Gender === 'Female' ? '女' : voice.Gender === 'Male' ? '男' : ''})
@@ -1060,7 +1077,7 @@ export function TTSControls({
                 )}
 
                 {/* 风格选择 */}
-                {availableStyles.length > 1 && (
+                {availableStyles.length > 0 && (
                   <div className="flex items-center gap-2 sm:gap-3">
                     <label
                       className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium"
@@ -1069,27 +1086,37 @@ export function TTSControls({
                       风格
                     </label>
                     <Select
-                      value={settings.style}
+                      value={settings.style ?? "__clear__"}
                       onValueChange={handleStyleChange}
                     >
                       <SelectTrigger
                         data-reader-interactive="true"
-                        className="flex-1 text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
+                        className="flex-1 min-w-0 max-w-full text-[11px] sm:text-xs h-7 sm:h-8 rounded-lg
                           transition-all duration-200 ease-out hover:border-opacity-60"
                         style={styles.selectTrigger}
                       >
-                        <SelectValue placeholder="选择风格" />
+                        <SelectValue
+                          placeholder="选择风格"
+                          className="truncate"
+                        />
                       </SelectTrigger>
                       <SelectContent
                         data-reader-interactive="true"
-                        className="rounded-xl"
+                        className="rounded-xl max-w-[200px]"
                         style={styles.selectContent}
                       >
+                        <SelectItem
+                          value="__clear__"
+                          className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
+                          style={{ color: uiScheme.mutedText }}
+                        >
+                          不指定
+                        </SelectItem>
                         {availableStyles.map((style) => (
                           <SelectItem
                             key={style}
                             value={style}
-                            className="text-[11px] sm:text-xs rounded-lg my-0.5"
+                            className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
                             style={{ color: uiScheme.fg }}
                           >
                             {style}

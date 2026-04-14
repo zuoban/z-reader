@@ -99,7 +99,7 @@ function BookCoverFace({
 
   // 默认封面 - 白色极简风格
   return (
-    <div className="relative flex size-full flex-col p-4 text-slate-800">
+    <div className="relative flex size-full flex-col bg-zinc-50 p-4 text-slate-800">
       <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-slate-900">
         {titleLabel}
       </h3>
@@ -217,21 +217,13 @@ export function BookCard({
           style={{
             width: cardWidth,
           }}
-          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/20 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)] active:scale-[0.98] active:shadow-[0_8px_20px_-18px_rgba(15,23,42,0.32)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
+          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/20 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)] active:scale-[0.98] active:shadow-[0_8px_20px_-18px_rgba(15,23,42,0.32)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
         >
           <div
-            className="relative overflow-hidden bg-[#faf7f2]"
+            className="relative overflow-hidden"
             style={{ height: coverHeight }}
           >
-            <div className="pointer-events-none absolute right-2.5 bottom-2.5 z-30 inline-flex max-w-[calc(100%-1.25rem)] items-center justify-end overflow-hidden rounded-full border border-black/10 bg-black/82 px-2.5 py-1 text-right text-[10px] font-medium leading-none tracking-[0.01em] text-white/95 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.5)] backdrop-blur-sm sm:right-3 sm:bottom-3 sm:max-w-[calc(100%-1.5rem)] sm:px-2.5 sm:text-[11px]">
-              {infoItems.map((item, index) => (
-                <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
-                  {index > 0 && <span className="mx-1 text-white/55">/</span>}
-                  {item}
-                </span>
-              ))}
-            </div>
-            <div className="relative z-10 flex h-full items-center justify-center px-5 py-4 sm:px-6">
+            <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
                 className="shrink-0"
                 style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
@@ -284,7 +276,7 @@ export function BookCard({
             </button>
           </div>
           <div
-            className="flex flex-col justify-between border-t border-black/5 bg-gradient-to-b from-white via-white to-stone-50/70 px-3 py-3 sm:px-4 sm:py-3.5"
+            className="flex flex-col justify-between border-t border-black/5 bg-white px-3 py-3 sm:px-4 sm:py-3.5"
             style={{ height: infoHeight }}
           >
             <div className="space-y-2 sm:space-y-2.5">
@@ -295,6 +287,16 @@ export function BookCard({
               >
                 {titleLabel}
               </h3>
+              {infoItems.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 text-[10px] font-medium leading-none tracking-[0.01em] text-foreground/70 sm:text-[11px]">
+                  {infoItems.map((item, index) => (
+                    <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
+                      {index > 0 && <span className="mx-0.5 text-foreground/40">/</span>}
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex min-w-0 items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/78 sm:text-[13px] sm:leading-[1.2rem]">
                 <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
                 <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>

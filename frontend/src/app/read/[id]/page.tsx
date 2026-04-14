@@ -879,10 +879,9 @@ export default function ReadPage() {
       : `0 10px 20px -18px ${withOpacity(uiScheme.headerBorder, 0.28)}, inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.26)}`,
   });
   const statusBarStyle = {
-    background: `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)`,
-    borderColor: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.22),
+    background: "transparent",
+    borderTop: "none",
     boxShadow: "none",
-    backdropFilter: "none",
   } as const;
 
   return (
@@ -1207,27 +1206,38 @@ export default function ReadPage() {
 
           <div className="pointer-events-none shrink-0 px-4 pb-2 pt-0.5 sm:px-6 sm:pb-3">
             <div
-              className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden border-t px-1 pt-1.5 text-[10px] sm:gap-4 sm:text-[11px]"
+              className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden px-1 pt-1.5 text-[10px] sm:gap-4 sm:text-[11px]"
               style={statusBarStyle}
             >
               <span
                 className="min-w-0 truncate text-left font-mono tabular-nums"
                 style={{
-                  color: withOpacity(uiScheme.fg, isDarkPreset ? 0.8 : 0.72),
+                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.6 : 0.56),
+                  textShadow: isDarkPreset
+                    ? `0 1px 6px rgba(0,0,0,0.5)`
+                    : `0 1px 6px rgba(255,255,255,0.9)`,
                 }}
               >
                 {percentage.toFixed(2)}%
               </span>
               <span
                 className="min-w-0 truncate text-center"
-                style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.86 : 0.74) }}
+                style={{
+                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.68 : 0.62),
+                  textShadow: isDarkPreset
+                    ? `0 1px 6px rgba(0,0,0,0.5)`
+                    : `0 1px 6px rgba(255,255,255,0.9)`,
+                }}
               >
                 {currentChapter || "等待定位章节"}
               </span>
               <span
                 className="min-w-0 truncate text-right"
                 style={{
-                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.78 : 0.72),
+                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.54 : 0.5),
+                  textShadow: isDarkPreset
+                    ? `0 1px 6px rgba(0,0,0,0.5)`
+                    : `0 1px 6px rgba(255,255,255,0.9)`,
                 }}
               >
                 {currentPageLabel || "页码加载中"}

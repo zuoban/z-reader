@@ -358,12 +358,12 @@ interface VoiceSliderProps {
 }
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
-  <div className="flex items-center gap-2 sm:gap-3 group rounded-xl border px-2.5 py-2" style={{
+  <div className="group flex items-center gap-2.5 rounded-2xl border px-3 py-2.5 sm:gap-3 sm:rounded-xl sm:px-2.5 sm:py-2" style={{
     background: `${uiScheme.buttonBg}42`,
     borderColor: `${uiScheme.cardBorder}55`,
   }}>
     <label
-      className="text-[11px] sm:text-xs w-7 sm:w-8 shrink-0 font-medium transition-colors duration-200"
+      className="w-8 shrink-0 text-[11px] font-medium transition-colors duration-200 sm:w-8 sm:text-xs"
       style={{ color: uiScheme.mutedText }}
     >
       {label}
@@ -377,7 +377,7 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       className="flex-1 [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-110 [&_[role=slider]]:active:scale-95"
     />
     <span
-      className="text-[11px] sm:text-xs w-10 sm:w-12 tabular-nums text-right font-semibold tracking-tight transition-colors duration-200"
+      className="w-12 tabular-nums text-right text-[11px] font-semibold tracking-tight transition-colors duration-200 sm:w-12 sm:text-xs"
       style={{ color: uiScheme.fg }}
     >
       {format(value)}
@@ -411,7 +411,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="transition-all duration-200 ease-out hover:scale-110 active:scale-95 h-9 w-9 sm:h-10 sm:w-10 rounded-xl
+      className="h-10 w-10 rounded-2xl transition-all duration-200 ease-out hover:scale-110 active:scale-95 sm:h-10 sm:w-10 sm:rounded-xl
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
@@ -487,6 +487,25 @@ export function TTSControls({
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
+  const mobileStatusLabel = isPending
+    ? '处理中'
+    : isPlaying
+      ? '正在朗读'
+      : isPaused
+        ? '已暂停'
+        : '待开始';
+  const mobileStatusTone = isPending
+    ? `${uiScheme.buttonBg}a8`
+    : isPlaying
+      ? `${uiScheme.link}18`
+      : isPaused
+        ? `${uiScheme.buttonBg}8c`
+        : `${uiScheme.buttonBg}6c`;
+  const mobileStatusText = isPending
+    ? uiScheme.fg
+    : isPlaying
+      ? uiScheme.link
+      : uiScheme.mutedText;
 
   // 检测用户是否偏好减少动画
   const prefersReducedMotion = useRef(false);
@@ -670,14 +689,15 @@ export function TTSControls({
   };
 
   const isToolbar = variant === 'toolbar';
-  const panelWidth = typeof window !== 'undefined' && window.innerWidth < 640
-    ? Math.min(320, window.innerWidth - 24)
+  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 640;
+  const panelWidth = isMobileViewport
+    ? Math.min(360, window.innerWidth - 16)
     : isToolbar
       ? 320
       : 256;
   const panelHeight = typeof window !== 'undefined'
-    ? window.innerWidth < 640
-      ? showSettingsPanel ? 360 : 214
+    ? isMobileViewport
+      ? showSettingsPanel ? 434 : 286
       : showSettingsPanel ? 380 : 228
     : 380;
 
@@ -743,7 +763,7 @@ export function TTSControls({
         <>
           <div
             data-reader-interactive="true"
-            className="fixed inset-0 z-30"
+            className={`fixed inset-0 z-30 ${isMobileViewport ? 'bg-black/16 backdrop-blur-[2px]' : ''}`}
             onClick={() => setExpanded(false)}
             onPointerDown={stopInteractivePropagation}
             onTouchStart={stopInteractivePropagation}
@@ -758,6 +778,9 @@ export function TTSControls({
               ? `absolute z-50 animate-in fade-in duration-200 ease-out
                 motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100
                 right-0 top-[calc(100%+10px)]`
+              : isMobileViewport
+                ? `fixed inset-x-2 bottom-[max(8px,env(safe-area-inset-bottom))] z-40 animate-in slide-in-from-bottom-5 fade-in duration-250 ease-out
+                  motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`
               : `fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
                 motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
             onClick={stopInteractivePropagation}
@@ -766,54 +789,81 @@ export function TTSControls({
             onTouchEnd={stopInteractivePropagation}
             onTouchMove={stopInteractivePropagation}
             style={{
+              left: isMobileViewport && !isToolbar ? 8 : undefined,
               right: isToolbar
                 ? undefined
+                : isMobileViewport
+                  ? 8
                 : Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
               bottom: isToolbar
                 ? undefined
+                : isMobileViewport
+                  ? `max(8px, env(safe-area-inset-bottom))`
                 : Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
-              width: panelWidth,
+              width: isMobileViewport && !isToolbar ? undefined : panelWidth,
             }}
           >
             <div
-              className={`flex flex-col gap-3 rounded-[24px] border p-3 sm:p-4 ${
+              className={`flex flex-col gap-3 rounded-[28px] border p-3.5 sm:p-4 ${
                 isToolbar ? 'max-h-[min(78vh,560px)] overflow-y-auto' : ''
               }`}
-              style={styles.panel}
+              style={{
+                ...styles.panel,
+                paddingBottom: isMobileViewport ? 'calc(14px + env(safe-area-inset-bottom))' : undefined,
+              }}
             >
-            <div className="flex items-start justify-between rounded-2xl border px-3.5 py-3" style={styles.section}>
+            {isMobileViewport && !isToolbar && (
+              <div className="mx-auto -mt-0.5 mb-0.5 h-1.5 w-11 rounded-full bg-black/10" aria-hidden="true" />
+            )}
+            <div
+              className="flex items-start justify-between rounded-[22px] border px-4 py-3.5 sm:rounded-2xl sm:px-3.5 sm:py-3"
+              style={styles.section}
+            >
               <div>
                 <span
-                  className="font-heading text-sm font-semibold tracking-wide"
+                  className="font-heading text-[15px] font-semibold tracking-wide sm:text-sm"
                   style={{ color: uiScheme.fg }}
                 >
                   {showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
                 </span>
-                <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
+                <p className="mt-1 text-[11px] leading-5 sm:leading-normal" style={{ color: uiScheme.mutedText }}>
                   {showSettingsPanel ? '播放控制、语速与声线设置' : '开始、暂停与切换段落'}
                 </p>
+                {isMobileViewport && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.03em]"
+                      style={{
+                        background: mobileStatusTone,
+                        color: mobileStatusText,
+                      }}
+                    >
+                      {mobileStatusLabel}
+                    </span>
+                  </div>
+                )}
               </div>
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setExpanded(false)}
                 className="transition-all duration-150 ease-out hover:scale-110 active:scale-95
-                  h-7 w-7 rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                  h-8 w-8 rounded-2xl sm:h-7 sm:w-7 sm:rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
                 style={{ color: uiScheme.mutedText, background: `${uiScheme.buttonBg}60` }}
               >
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
             </div>
 
-            <div className="rounded-2xl border p-3 sm:p-3.5" style={styles.section}>
+            <div className="rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-3.5" style={styles.section}>
               <div className="mb-3 flex items-center gap-2">
-                <label className="text-[11px] sm:text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                <label className="text-[11px] font-medium uppercase tracking-[0.08em] sm:text-xs sm:tracking-normal" style={{ color: uiScheme.mutedText }}>
                   文字转语音
                 </label>
               </div>
 
               {/* 播放按钮组 - 优化布局和交互 */}
-              <div className="flex items-center justify-center gap-2 sm:gap-2.5 py-1.5 sm:py-2">
+              <div className="flex items-center justify-center gap-2.5 py-2 sm:gap-2.5 sm:py-2">
                 <ControlButton
                   onClick={onPrev}
                   disabled={!isActive || isPending}
@@ -832,7 +882,7 @@ export function TTSControls({
                   title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                   aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
                   className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 bg-transparent! hover:bg-transparent! aria-expanded:bg-transparent! dark:hover:bg-transparent!
-                    h-10 w-10 sm:h-11 sm:w-11 rounded-2xl
+                    h-12 w-12 sm:h-11 sm:w-11 rounded-[20px] sm:rounded-2xl
                     motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                   style={{
@@ -843,9 +893,9 @@ export function TTSControls({
                   }}
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Pause className="w-5 h-5 sm:w-5 sm:h-5" />
                   ) : (
-                    <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
+                    <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />
                   )}
                 </Button>
 
@@ -885,7 +935,7 @@ export function TTSControls({
 
             {showSettingsPanel && (
               <div
-                className="flex flex-col gap-2.5 rounded-2xl border p-3 sm:p-3.5"
+                className="flex flex-col gap-2.5 rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-3.5"
                 style={styles.section}
               >
                 <VoiceSelector

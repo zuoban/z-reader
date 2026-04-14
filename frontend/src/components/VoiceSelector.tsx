@@ -160,7 +160,7 @@ export function VoiceSelector({
         size="sm"
         onClick={handlePreview}
         title={isPreviewing ? '停止' : '试听'}
-        className="h-8 shrink-0 self-end rounded-lg px-2.5 text-[11px] sm:text-xs
+        className="h-9 shrink-0 self-end rounded-2xl px-3 text-[12px] sm:h-8 sm:rounded-lg sm:px-2.5 sm:text-xs
           transition-all duration-200 ease-out hover:scale-105 active:scale-95
           motion-reduce:transition-none"
         style={{
@@ -188,7 +188,7 @@ export function VoiceSelector({
         <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
           <SelectTrigger
             data-reader-interactive="true"
-            className="flex-1 min-w-0 text-[11px] sm:text-xs h-8 rounded-lg
+            className="h-10 min-w-0 flex-1 rounded-2xl px-3 text-[12px] sm:h-8 sm:rounded-lg sm:text-xs
               transition-all duration-200 ease-out hover:border-opacity-60"
             style={styles.selectTrigger}
           >
@@ -197,14 +197,14 @@ export function VoiceSelector({
           <SelectContent
             data-reader-interactive="true"
             data-reader-tts-owned="true"
-            className="rounded-xl max-w-[220px]"
+            className="max-w-[240px] rounded-2xl sm:max-w-[220px] sm:rounded-xl"
             style={styles.selectContent}
           >
             {zhVoices.map((voice) => (
               <SelectItem
                 key={voice.Name}
                 value={voice.Name}
-                className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
+                className="my-0.5 truncate rounded-xl px-2.5 py-2 text-[12px] sm:rounded-lg sm:text-xs"
                 style={{ color: uiScheme.fg }}
               >
                 {voice.LocalName} ({GENDER_LABELS[voice.Gender] || ''})
@@ -222,7 +222,7 @@ export function VoiceSelector({
         >
           <SelectTrigger
             data-reader-interactive="true"
-            className="flex-1 min-w-0 text-[11px] sm:text-xs h-8 rounded-lg
+            className="h-10 min-w-0 flex-1 rounded-2xl px-3 text-[12px] sm:h-8 sm:rounded-lg sm:text-xs
               transition-all duration-200 ease-out hover:border-opacity-60"
             style={styles.selectTrigger}
           >
@@ -231,12 +231,12 @@ export function VoiceSelector({
           <SelectContent
             data-reader-interactive="true"
             data-reader-tts-owned="true"
-            className="rounded-xl max-w-[200px]"
+            className="max-w-[220px] rounded-2xl sm:max-w-[200px] sm:rounded-xl"
             style={styles.selectContent}
           >
             <SelectItem
               value="__clear__"
-              className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
+              className="my-0.5 truncate rounded-xl px-2.5 py-2 text-[12px] sm:rounded-lg sm:text-xs"
               style={{ color: uiScheme.mutedText }}
             >
               不指定
@@ -245,7 +245,7 @@ export function VoiceSelector({
               <SelectItem
                 key={style}
                 value={style}
-                className="text-[11px] sm:text-xs rounded-lg my-0.5 truncate"
+                className="my-0.5 truncate rounded-xl px-2.5 py-2 text-[12px] sm:rounded-lg sm:text-xs"
                 style={{ color: uiScheme.fg }}
               >
                 {style}

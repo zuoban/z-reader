@@ -3,17 +3,19 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Clock, Tag, Trash2, UserRound } from 'lucide-react';
+import { BookOpen, Clock, MoreHorizontal, Tag, Trash2, UserRound } from 'lucide-react';
 import { api, Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // 书本预览组件按需加载，避免阻塞首屏
@@ -34,10 +36,10 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
 }
 
-const MOBILE_CARD_WIDTH = 160;
+const MOBILE_CARD_WIDTH = 172;
 const MOBILE_CARD_SCALE = 1;
-const MOBILE_COVER_HEIGHT = 192;
-const MOBILE_INFO_HEIGHT = 168;
+const MOBILE_COVER_HEIGHT = 200;
+const MOBILE_INFO_HEIGHT = 184;
 
 const DESKTOP_CARD_WIDTH = 218;
 const DESKTOP_CARD_SCALE = 0.83;
@@ -143,16 +145,23 @@ export function BookCard({
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
+  const progressValue = progress !== null ? Math.max(0, Math.min(progress, 100)) : null;
+  const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
+  const readButtonLabel = progressValue !== null ? '继续阅读' : '开始阅读';
   const category = useMemo(
     () => categories.find((item) => item.id === book.category_id) ?? null,
     [book.category_id, categories]
   );
-  const infoItems = [
+  const desktopInfoItems = [
     category?.name,
     formatLabel,
     sizeLabel,
-    progress !== null ? `${progress}%` : null,
+    progressValue !== null ? `${progressValue}%` : null,
   ].filter(Boolean) as string[];
+  const mobileInfoItems = [
+    category?.name ?? '未分类',
+    sizeLabel ? `${formatLabel} · ${sizeLabel}` : formatLabel,
+  ];
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
   const cardFrameWidth = Math.round(cardWidth * cardScale);
@@ -161,8 +170,6 @@ export function BookCard({
   const bookScale = isMobile ? 0.86 : 1;
   const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
   const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
-  const cardShadow =
-    '0 14px 30px -24px rgba(15, 23, 42, 0.34), 0 10px 18px -22px rgba(15, 23, 42, 0.18)';
 
   useEffect(() => {
     let url: string | null = null;
@@ -209,20 +216,26 @@ export function BookCard({
       className="flex items-center justify-start opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
       style={{
         animationDelay,
-        width: cardFrameWidth,
+        width: isMobile ? '100%' : cardFrameWidth,
       }}
     >
       <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
         <Card
           style={{
-            width: cardWidth,
+            width: isMobile ? '100%' : cardWidth,
           }}
-          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/20 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.38)] active:scale-[0.98] active:shadow-[0_8px_20px_-18px_rgba(15,23,42,0.32)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
+          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[22px] border border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,247,242,0.96)_100%)] shadow-[0_24px_44px_-34px_rgba(15,23,42,0.38),0_10px_24px_-20px_rgba(15,23,42,0.22)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/15 hover:shadow-[0_28px_52px_-34px_rgba(15,23,42,0.42)] active:scale-[0.985] active:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
         >
           <div
-            className="relative overflow-hidden"
+            className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.96),rgba(245,239,231,0.92)_42%,rgba(234,228,221,0.82)_100%)]"
             style={{ height: coverHeight }}
           >
+            {isMobile && (
+              <>
+                <div className="pointer-events-none absolute inset-x-4 top-0 h-14 rounded-b-[26px] bg-white/35 blur-2xl" />
+                <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+              </>
+            )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
                 className="shrink-0"
@@ -244,80 +257,100 @@ export function BookCard({
             </div>
 
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/10" />
-
-            <Tooltip>
-              <TooltipTrigger
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCategoryDialogOpen(true);
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="absolute left-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-[background-color,transform] duration-200 ease-out hover:bg-black/70 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-3 sm:top-3 sm:h-11 sm:w-11 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 cursor-pointer"
-                aria-label="设置分类"
-                title="设置分类"
-              >
-                <Tag className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-              </TooltipTrigger>
-              <TooltipContent side="top" align="center">
-                点击设置分类
-              </TooltipContent>
-            </Tooltip>
-            <button
-              type="button"
-              onClick={() => setDeleteConfirmOpen(true)}
-              onMouseDown={(e) => e.stopPropagation()}
-              disabled={isDeleting}
-              className="absolute right-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.55)] backdrop-blur-md transition-[background-color,transform] duration-200 hover:bg-black/70 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:right-3 sm:top-3 sm:h-11 sm:w-11 sm:opacity-0 sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 cursor-pointer disabled:pointer-events-none disabled:opacity-40"
-              aria-label="删除图书"
-              title="删除图书"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
           </div>
           <div
-            className="flex flex-col justify-between border-t border-black/5 bg-white px-3 py-3 sm:px-4 sm:py-3.5"
-            style={{ height: infoHeight }}
+            className="flex flex-col justify-between border-t border-black/5 bg-gradient-to-b from-white via-white to-stone-50/55 px-3.5 py-3.5 sm:px-4 sm:py-3.5"
+            style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
           >
-            <div className="space-y-2 sm:space-y-2.5">
-              <h3
-                className="min-h-[2.8rem] text-[15px] font-semibold leading-[1.35rem] tracking-[-0.01em] text-foreground sm:min-h-[2.6rem] sm:text-[14px] sm:leading-[1.3rem]"
-                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                title={titleLabel}
-              >
-                {titleLabel}
-              </h3>
-              {infoItems.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1 text-[10px] font-medium leading-none tracking-[0.01em] text-foreground/70 sm:text-[11px]">
-                  {infoItems.map((item, index) => (
-                    <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
-                      {index > 0 && <span className="mx-0.5 text-foreground/40">/</span>}
-                      {item}
+            <div className="space-y-2.5 sm:space-y-2.5">
+              <div className="relative pr-6 sm:pr-5">
+                <h3
+                  className="min-h-[2.8rem] min-w-0 text-[14px] font-semibold leading-[1.3rem] tracking-[-0.015em] text-foreground sm:min-h-[2.6rem] sm:text-[14px] sm:leading-[1.3rem]"
+                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                  title={titleLabel}
+                >
+                  {titleLabel}
+                </h3>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="absolute right-[-6px] top-[-5px] flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-foreground/48 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:text-foreground/72 active:scale-95 sm:right-[-4px] sm:top-[-4px] sm:h-6.5 sm:w-6.5 sm:rounded-lg sm:bg-transparent sm:text-foreground/34 sm:opacity-0 sm:shadow-none sm:group-hover/card:opacity-100 sm:group-focus-within/card:opacity-100 sm:hover:border-black/6 sm:hover:bg-background/88 sm:hover:text-foreground/72 sm:hover:shadow-[0_10px_18px_-16px_rgba(15,23,42,0.28)] cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className="w-40 rounded-2xl border border-black/8 bg-white/96 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+                  >
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCategoryDialogOpen(true);
+                      }}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-foreground/88 transition-colors hover:bg-stone-100 focus:bg-stone-100 cursor-pointer"
+                    >
+                      <Tag className="h-3.5 w-3.5 text-foreground/62" />
+                      <span>设置分类</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1.5 bg-black/6" />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmOpen(true);
+                      }}
+                      disabled={isDeleting}
+                      variant="destructive"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/7 focus:bg-destructive/7 cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>{isDeleting ? '删除中' : '删除图书'}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              {isMobile ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {mobileInfoItems.map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex max-w-full items-center rounded-full border border-black/7 bg-stone-100/80 px-2.5 py-1 text-[10px] font-medium leading-none tracking-[0.02em] text-foreground/74"
+                    >
+                      <span className="truncate">{item}</span>
                     </span>
                   ))}
+                  {progressValue !== null && (
+                    <span className="inline-flex items-center rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold leading-none tracking-[0.02em] text-background">
+                      已读 {progressValue}%
+                    </span>
+                  )}
                 </div>
+              ) : (
+                desktopInfoItems.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-medium leading-none tracking-[0.01em] text-foreground/70 sm:text-[11px]">
+                    {desktopInfoItems.map((item, index) => (
+                      <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
+                        {index > 0 && <span className="mx-0.5 text-foreground/40">/</span>}
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                )
               )}
-              <div className="flex min-w-0 items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/78 sm:text-[13px] sm:leading-[1.2rem]">
-                <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
-                <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
+              <div className="flex min-w-0 items-center justify-between gap-2 text-[12px] leading-[1.15rem] text-foreground/78 sm:text-[13px] sm:leading-[1.2rem]">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
+                  <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground/80 sm:text-[12px]">
+                  <Clock className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
+                  <span className="max-w-[4.6rem] truncate font-medium tracking-[0.01em] sm:max-w-none">
+                    {lastReadLabel}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-2.5 border-t border-black/5 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-                  最近阅读
-                </div>
-                <div className="flex items-center gap-1.5 text-[12px] leading-[1.15rem] text-foreground/82 sm:text-[13px] sm:leading-[1.2rem]">
-                  <Clock className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
-                  {book.last_read_at ? (
-                    <span className="line-clamp-1 font-medium tracking-[0.01em]">
-                      {formatRelativeTime(book.last_read_at)}
-                    </span>
-                  ) : (
-                    <span className="line-clamp-1 font-medium tracking-[0.01em]">未开始</span>
-                  )}
-                </div>
-              </div>
               <Button
                 type="button"
                 size="sm"
@@ -325,10 +358,10 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-11 w-full shrink-0 rounded-full bg-foreground px-4 text-[13px] font-medium text-background shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-[transform,shadow] duration-200 hover:scale-[1.02] hover:shadow-[0_14px_28px_-20px_rgba(15,23,42,0.7)] active:scale-[0.96] sm:h-8 sm:w-auto sm:px-3.5 sm:text-[12px] cursor-pointer"
+                className="h-10 w-full shrink-0 rounded-full bg-foreground px-4 text-[12px] font-medium text-background shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-[transform,shadow,background-color,border-color] duration-200 hover:scale-[1.02] hover:shadow-[0_14px_28px_-20px_rgba(15,23,42,0.7)] active:scale-[0.96] sm:h-9 sm:w-full sm:rounded-[14px] sm:border sm:border-black/8 sm:bg-[linear-gradient(180deg,rgba(17,24,39,0.96)_0%,rgba(31,41,55,1)_100%)] sm:px-4 sm:text-[12px] sm:font-semibold sm:tracking-[0.01em] sm:shadow-[0_16px_28px_-20px_rgba(15,23,42,0.55),inset_0_1px_0_rgba(255,255,255,0.18)] sm:hover:translate-y-[-1px] sm:hover:scale-100 sm:hover:bg-[linear-gradient(180deg,rgba(15,23,42,1)_0%,rgba(17,24,39,1)_100%)] sm:hover:shadow-[0_18px_34px_-20px_rgba(15,23,42,0.62),inset_0_1px_0_rgba(255,255,255,0.22)] sm:active:translate-y-0 sm:active:scale-[0.98] cursor-pointer"
               >
-                <BookOpen className="mr-1.5 h-4 w-4 sm:h-3.5 sm:w-3.5" />
-                阅读
+                <BookOpen className="mr-1.5 h-4 w-4 sm:mr-1.5 sm:h-3.5 sm:w-3.5 sm:opacity-90" />
+                {readButtonLabel}
               </Button>
             </div>
           </div>

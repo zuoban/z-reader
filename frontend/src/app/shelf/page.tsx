@@ -356,11 +356,11 @@ export default function ShelfPage() {
                 </div>
               )}
 
-              <div className="relative z-0 grid grid-cols-[repeat(2,minmax(150px,1fr))] justify-between gap-x-4 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:justify-start sm:gap-x-5 sm:gap-y-6 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-x-6 lg:gap-y-7">
-                {isLoadingBooks ? (
-                  <BookCardSkeletonGrid count={6} />
-                ) : (
-                  filteredBooks.map((book, index) => (
+              {isLoadingBooks ? (
+                <BookCardSkeletonGrid count={6} />
+              ) : (
+                <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:gap-x-5 sm:gap-y-6 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-x-6 lg:gap-y-7">
+                  {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
                       book={book}
@@ -373,9 +373,9 @@ export default function ShelfPage() {
                       isDeleting={deletingId === book.id}
                       formatSize={formatSize}
                     />
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </main>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BookCardSkeletonProps {
   isMobile?: boolean;
@@ -11,10 +12,10 @@ const SPELL_BOOK_WIDTH = 150;
 const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
 
 // 与 BookCard 保持一致的卡片尺寸
-const MOBILE_CARD_WIDTH = 160;
+const MOBILE_CARD_WIDTH = 172;
 const MOBILE_CARD_SCALE = 1;
-const MOBILE_COVER_HEIGHT = 192;
-const MOBILE_INFO_HEIGHT = 168;
+const MOBILE_COVER_HEIGHT = 200;
+const MOBILE_INFO_HEIGHT = 184;
 
 const DESKTOP_CARD_WIDTH = 218;
 const DESKTOP_CARD_SCALE = 0.83;
@@ -33,23 +34,29 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
   return (
     <div
-      className="flex items-center justify-start"
+      className="flex w-full items-center justify-start"
       style={{
-        width: cardFrameWidth,
+        width: isMobile ? '100%' : cardFrameWidth,
       }}
     >
       <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
         <div
-          className="relative flex cursor-default flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white/92 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)] sm:rounded-[20px]"
+          className="relative flex cursor-default flex-col overflow-hidden rounded-[22px] border border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,247,242,0.96)_100%)] shadow-[0_24px_44px_-34px_rgba(15,23,42,0.38),0_10px_24px_-20px_rgba(15,23,42,0.22)] sm:rounded-[20px]"
           style={{
-            width: cardWidth,
+            width: isMobile ? '100%' : cardWidth,
           }}
         >
           {/* Cover skeleton */}
           <div
-            className="relative overflow-hidden bg-[#faf7f2]"
+            className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.96),rgba(245,239,231,0.92)_42%,rgba(234,228,221,0.82)_100%)]"
             style={{ height: coverHeight }}
           >
+            {isMobile && (
+              <>
+                <div className="pointer-events-none absolute inset-x-4 top-0 h-14 rounded-b-[26px] bg-white/35 blur-2xl" />
+                <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+              </>
+            )}
             <div className="relative flex h-full items-center justify-center px-5 py-4 sm:px-6">
               <div
                 className="shrink-0"
@@ -70,29 +77,37 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col justify-between border-t border-black/5 bg-gradient-to-b from-white via-white to-stone-50/70 px-3 py-3 sm:px-4 sm:py-3.5"
-            style={{ height: infoHeight }}
+            className="flex flex-col justify-between border-t border-black/5 bg-gradient-to-b from-white via-white to-stone-50/55 px-3.5 py-3.5 sm:px-4 sm:py-3.5"
+            style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
           >
-            <div className="space-y-2 sm:space-y-2.5">
+            <div className="space-y-2.5 sm:space-y-2.5">
               {/* Title skeleton */}
-              <Skeleton className="h-[2.8rem] w-full rounded-md sm:h-[2.6rem]" />
+              <div className="flex items-start gap-2">
+                <Skeleton className="h-[2.8rem] min-w-0 flex-1 rounded-md sm:h-[2.6rem]" />
+                <Skeleton className="h-8 w-8 shrink-0 rounded-xl sm:h-7 sm:w-7 sm:rounded-lg" />
+              </div>
+
+              {/* Meta chips skeleton */}
+              <div className="flex gap-1.5">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-[4.5rem] rounded-full" />
+              </div>
 
               {/* Author skeleton */}
-              <div className="flex min-w-0 items-center gap-1.5">
-                <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
-                <Skeleton className="h-[15px] w-24 rounded-md" />
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
+                  <Skeleton className="h-[15px] w-24 rounded-md" />
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Skeleton className="h-[13px] w-[13px] rounded-full" />
+                  <Skeleton className="h-[13px] w-12 rounded-md" />
+                </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-2.5 border-t border-black/5 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
-              <div className="min-w-0 flex-1">
-                <Skeleton className="mb-1 h-3 w-16 rounded-md" />
-                <div className="flex items-center gap-1.5">
-                  <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
-                  <Skeleton className="h-[15px] w-20 rounded-md" />
-                </div>
-              </div>
-              <Skeleton className="h-11 w-full rounded-full sm:h-8 sm:w-20" />
+              <Skeleton className="h-10 w-full rounded-full sm:h-9 sm:w-full sm:rounded-[14px]" />
             </div>
           </div>
         </div>
@@ -102,10 +117,12 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 }
 
 export function BookCardSkeletonGrid({ count = 6 }: { count?: number }) {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="relative z-0 grid grid-cols-[repeat(2,minmax(150px,1fr))] justify-between gap-x-4 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:justify-start sm:gap-x-5 sm:gap-y-6 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-x-6 lg:gap-y-7">
+    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:gap-x-5 sm:gap-y-6 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-x-6 lg:gap-y-7">
       {Array.from({ length: count }).map((_, index) => (
-        <BookCardSkeleton key={index} />
+        <BookCardSkeleton key={index} isMobile={isMobile} />
       ))}
     </div>
   );

@@ -388,6 +388,7 @@ export default function ShelfPage() {
                       book={book}
                       index={index}
                       categories={categories}
+                      bookCounts={bookCounts}
                       onRead={() => router.push(`/read/${book.id}`)}
                       onDelete={() => handleDelete(book.id)}
                       onUpdate={loadBooks}

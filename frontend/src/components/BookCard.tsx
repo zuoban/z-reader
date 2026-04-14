@@ -26,6 +26,7 @@ interface BookCardProps {
   book: Book;
   index: number;
   categories: Category[];
+  bookCounts: Record<string, number>;
   onRead: () => void;
   onDelete: () => void;
   onUpdate: () => void;
@@ -129,6 +130,7 @@ export function BookCard({
   book,
   index,
   categories,
+  bookCounts,
   onRead,
   onDelete,
   onUpdate,
@@ -337,6 +339,7 @@ export function BookCard({
         bookId={book.id}
         currentCategoryId={book.category_id}
         categories={categories}
+        bookCounts={bookCounts}
         onUpdate={onUpdate}
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}

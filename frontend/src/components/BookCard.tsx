@@ -341,7 +341,8 @@ export function BookCard({
                     <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
                     <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                   </div>
-                  <span className="inline-flex max-w-[4.8rem] shrink-0 items-center rounded-full border border-black/6 bg-background/70 px-2 py-1 text-[10.5px] font-semibold leading-none tracking-normal text-foreground/66 dark:border-white/5 dark:bg-muted/35 sm:max-w-[5.4rem]">
+                  <span className="inline-flex max-w-[5.2rem] shrink-0 items-center gap-1 px-1 py-0.5 text-[11px] font-medium leading-5 tracking-normal text-muted-foreground sm:max-w-[5.6rem]">
+                    <Tag className="h-3 w-3 shrink-0 text-muted-foreground/70" />
                     <span className="truncate">{categoryLabel}</span>
                   </span>
                 </div>
@@ -367,9 +368,9 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-10 w-full shrink-0 rounded-full border border-black/8 bg-background/76 px-4 text-[12px] font-medium text-foreground/82 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.28)] transition-[transform,shadow,background-color,border-color,color] duration-200 hover:border-black/14 hover:bg-muted/65 hover:text-foreground hover:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.32)] active:scale-[0.98] dark:border-white/8 dark:bg-muted/35 sm:h-9 sm:w-full sm:rounded-[14px] sm:px-4 sm:text-[12px] sm:font-semibold sm:tracking-[0.01em] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
+                className="h-10 w-full shrink-0 rounded-[10px] border border-black/7 bg-muted/42 px-4 text-[12px] font-semibold tracking-normal text-foreground/78 shadow-none transition-[transform,background-color,border-color,color] duration-200 hover:border-black/12 hover:bg-muted/62 hover:text-foreground active:scale-[0.98] dark:border-white/8 dark:bg-muted/28 dark:hover:bg-muted/40 sm:h-9 sm:w-full sm:rounded-[10px] sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
               >
-                <BookOpen className="mr-1.5 h-4 w-4 text-foreground/68 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
+                <BookOpen className="mr-1.5 h-4 w-4 text-foreground/58 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
                 {readButtonLabel}
               </Button>
             </div>

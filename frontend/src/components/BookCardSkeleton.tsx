@@ -87,27 +87,33 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                 <Skeleton className="h-8 w-8 shrink-0 rounded-xl sm:h-7 sm:w-7 sm:rounded-lg" />
               </div>
 
-              {/* Meta chips skeleton */}
-              <div className="flex gap-1.5">
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-[4.5rem] rounded-full" />
-              </div>
-
               {/* Author skeleton */}
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
                   <Skeleton className="h-[15px] w-24 rounded-md" />
                 </div>
+                <div className="flex shrink-0 items-center gap-1 px-1 py-0.5">
+                  <Skeleton className="h-3 w-3 rounded-full" />
+                  <Skeleton className="h-[13px] w-12 rounded-md" />
+                </div>
+              </div>
+
+              {/* Progress skeleton */}
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1">
+                  <Skeleton className="h-[13px] w-[13px] rounded-full" />
+                  <Skeleton className="h-[13px] w-9 rounded-md" />
+                </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <Skeleton className="h-[13px] w-[13px] rounded-full" />
-                  <Skeleton className="h-[13px] w-12 rounded-md" />
+                  <Skeleton className="h-[13px] w-10 rounded-md" />
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-2.5 border-t border-black/5 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
-              <Skeleton className="h-10 w-full rounded-full sm:h-9 sm:w-full sm:rounded-[14px]" />
+              <Skeleton className="h-10 w-full rounded-[10px] sm:h-9 sm:w-full sm:rounded-[10px]" />
             </div>
           </div>
         </div>

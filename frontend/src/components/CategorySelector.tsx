@@ -40,12 +40,12 @@ export function CategorySelector({ bookId, currentCategoryId, categories, bookCo
         <DialogHeader>
           <DialogTitle>设置分类</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <button
             onClick={() => handleSelect(null)}
             disabled={loading}
-            className={`w-full rounded-lg border p-3 text-left text-sm transition-colors ${
-              !currentCategoryId ? 'border-foreground bg-muted' : 'border-border hover:bg-muted'
+            className={`w-full rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50 ${
+              !currentCategoryId ? 'border-foreground bg-muted' : 'border-border/70 hover:bg-muted'
             }`}
           >
             无分类
@@ -55,8 +55,8 @@ export function CategorySelector({ bookId, currentCategoryId, categories, bookCo
               key={cat.id}
               onClick={() => handleSelect(cat.id)}
               disabled={loading}
-              className={`flex w-full items-center justify-between rounded-lg border p-3 text-left text-sm transition-colors ${
-                currentCategoryId === cat.id ? 'border-foreground bg-muted' : 'border-border hover:bg-muted'
+              className={`flex w-full items-center justify-between rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50 ${
+                currentCategoryId === cat.id ? 'border-foreground bg-muted' : 'border-border/70 hover:bg-muted'
               }`}
             >
               <div className="flex items-center gap-2">

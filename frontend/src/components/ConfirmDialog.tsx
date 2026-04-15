@@ -39,20 +39,17 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-sm rounded-2xl border border-border/60 bg-popover p-5 shadow-2xl"
+        className="max-w-sm"
         showCloseButton={false}
       >
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
-          <DialogDescription className="text-sm leading-6 text-muted-foreground">
-            {description}
-          </DialogDescription>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="-mx-5 -mb-5 rounded-b-2xl border-t border-border/60 bg-muted/40 px-5 py-4">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="rounded-xl"
           >
             {cancelLabel}
           </Button>
@@ -60,7 +57,6 @@ export function ConfirmDialog({
             variant={confirmVariant}
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className="rounded-xl"
           >
             {confirmLabel}
           </Button>

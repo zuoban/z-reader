@@ -731,11 +731,11 @@ export function TTSControls({
         finalFocus={false}
         data-reader-interactive="true"
         data-reader-tts-popup="true"
-        className="w-[100vw] max-w-[460px] overflow-hidden rounded-none p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px] sm:rounded-l-[28px]"
+        className="max-w-[460px] p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px]"
         style={styles.panel}
       >
         <SheetHeader
-          className="relative overflow-hidden border-b px-4 py-4 pb-4 pr-14 sm:px-5"
+          className="relative overflow-hidden sm:px-5"
           style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
           <div

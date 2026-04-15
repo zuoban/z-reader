@@ -398,11 +398,11 @@ export function ThemeSettings({
         side="right"
         showCloseButton
         finalFocus={false}
-        className="w-[100vw] max-w-[460px] overflow-hidden rounded-none p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px] sm:rounded-l-[28px]"
+        className="max-w-[460px] p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px]"
         style={panelStyle}
       >
         <SheetHeader
-          className="border-b px-4 py-4 pb-4 pr-14 sm:px-5 relative overflow-hidden"
+          className="relative overflow-hidden sm:px-5"
           style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
           {/* 装饰性背景渐变 */}

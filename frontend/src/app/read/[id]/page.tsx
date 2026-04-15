@@ -945,7 +945,7 @@ export default function ReadPage() {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="w-[85vw] max-w-sm overflow-hidden rounded-r-[28px] p-0 backdrop-blur-xl sm:w-80"
+                  className="max-w-sm p-0 backdrop-blur-xl sm:w-80"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.97),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.82),
@@ -953,7 +953,7 @@ export default function ReadPage() {
                   }}
                 >
                   <SheetHeader
-                    className="border-b px-5 py-4 pb-3.5"
+                    className="pb-3.5"
                     style={{
                       borderColor: withOpacity(uiScheme.cardBorder, 0.34),
                     }}

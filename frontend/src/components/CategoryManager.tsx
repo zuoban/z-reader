@@ -256,9 +256,9 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
         side="right"
         showCloseButton
         finalFocus={false}
-        className="w-[100vw] max-w-[100vw] overflow-hidden rounded-none border-l border-border/60 bg-background p-0 shadow-2xl sm:w-[420px] sm:max-w-[420px] sm:rounded-l-2xl"
+        className="bg-background p-0 sm:w-[420px] sm:max-w-[420px]"
       >
-        <SheetHeader className="border-b border-border/50 bg-background px-5 py-5 backdrop-blur">
+        <SheetHeader className="border-border/50 bg-background py-5 backdrop-blur">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">

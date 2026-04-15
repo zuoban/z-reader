@@ -225,6 +225,20 @@ export class BackendTTS {
     this.settings = loadTTSSettings();
   }
 
+  private getOrCreateAudio(): HTMLAudioElement {
+    if (!this.audio) {
+      this.audio = new Audio();
+      this.audio.preload = 'auto';
+      this.audio.autoplay = false;
+      this.audio.playsInline = true;
+      this.audio.setAttribute('playsinline', 'true');
+      this.audio.setAttribute('webkit-playsinline', 'true');
+      this.audio.crossOrigin = 'anonymous';
+    }
+
+    return this.audio;
+  }
+
   setSettings(settings: Partial<TTSSettings>): void {
     this.settings = { ...this.settings, ...settings };
     saveTTSSettings(this.settings);
@@ -352,22 +366,24 @@ export class BackendTTS {
   }
 
   private async playAudio(audioUrl: string): Promise<void> {
-    this.audio = new Audio(audioUrl);
-    this.audio.preload = 'auto';
-    this.audio.autoplay = false;
-    this.audio.setAttribute('playsinline', 'true');
-    this.audio.setAttribute('webkit-playsinline', 'true');
+    const audio = this.getOrCreateAudio();
+
+    this.suppressPauseEvent = true;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = audioUrl;
+    audio.load();
 
     this.currentMarkIndex = 0;
 
-    this.audio.onplay = () => {
+    audio.onplay = () => {
       this.setState('playing');
       if (this.marks.length > 0) {
         this.onMarkChange?.(this.marks[0], 0);
       }
     };
 
-    this.audio.onended = () => {
+    audio.onended = () => {
       this.releaseAudioUrl();
       this.preloadTriggered = false;
       if (this.state === 'playing') {
@@ -377,14 +393,14 @@ export class BackendTTS {
       }
     };
 
-    this.audio.onerror = () => {
+    audio.onerror = () => {
       this.releaseAudioUrl();
       this.preloadTriggered = false;
       this.setState('stopped');
       console.error('Audio error');
     };
 
-    this.audio.onpause = () => {
+    audio.onpause = () => {
       if (this.suppressPauseEvent) {
         this.suppressPauseEvent = false;
         return;
@@ -394,20 +410,20 @@ export class BackendTTS {
       }
     };
 
-    this.audio.ontimeupdate = () => {
-      if (this.audio && this.onTimeUpdate) {
-        const duration = this.audio.duration || 0;
-        this.onTimeUpdate(this.audio.currentTime, duration);
+    audio.ontimeupdate = () => {
+      if (this.onTimeUpdate) {
+        const duration = audio.duration || 0;
+        this.onTimeUpdate(audio.currentTime, duration);
         
         if (!this.preloadTriggered && duration > 0 && 
-            this.audio.currentTime >= duration * this.preloadProgressThreshold) {
+            audio.currentTime >= duration * this.preloadProgressThreshold) {
           this.preloadTriggered = true;
           this.onPreloadTrigger?.();
         }
       }
     };
 
-    await this.audio.play();
+    await audio.play();
   }
 
   async preload(ssml: string, marks?: TTSMark[]): Promise<void> {
@@ -576,7 +592,8 @@ export class BackendTTS {
       this.suppressPauseEvent = true;
       this.audio.pause();
       this.audio.currentTime = 0;
-      this.audio = null;
+      this.audio.removeAttribute('src');
+      this.audio.load();
     }
 
     this.releaseAudioUrl();

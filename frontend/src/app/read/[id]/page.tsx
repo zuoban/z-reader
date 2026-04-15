@@ -944,11 +944,14 @@ export default function ReadPage() {
   const overlayContainer = pageRef.current;
   const headerSafeAreaPaddingTop = "calc(env(safe-area-inset-top, 0px) + 0.25rem)";
   const readerOverlayTop = "calc(env(safe-area-inset-top, 0px) + 3.5rem)";
+  const readerViewportInsetTop = "env(safe-area-inset-top, 0px)";
+  const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
+  const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)";
 
   return (
     <div
       ref={pageRef}
-      className="relative h-screen overflow-hidden"
+      className="fixed inset-0 overflow-hidden overscroll-none"
       style={{ background: uiScheme.bg }}
     >
       <div
@@ -1138,8 +1141,12 @@ export default function ReadPage() {
           >
             {loading && (
               <div
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+                className="absolute z-20 flex flex-col items-center justify-center"
                 style={{
+                  top: readerViewportInsetTop,
+                  right: 0,
+                  bottom: statusBarReservedSpace,
+                  left: 0,
                   background: `
                     linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)
                   `,
@@ -1186,16 +1193,24 @@ export default function ReadPage() {
               </div>
             )}
 
-            <div ref={containerRef} className="absolute inset-0" />
+            <div
+              ref={containerRef}
+              className="absolute"
+              style={{
+                top: readerViewportInsetTop,
+                right: 0,
+                bottom: statusBarReservedSpace,
+                left: 0,
+              }}
+            />
 
             {(isTouchReader || !isToolbarVisible) && (
               <div
-                className={`absolute inset-x-0 bottom-0 z-40 flex flex-col pointer-events-auto ${
-                  isToolbarVisible ? "" : "top-0"
-                }`}
+                className="absolute inset-x-0 z-40 flex flex-col pointer-events-auto"
                 data-reader-interactive="true"
                 style={{
-                  top: isToolbarVisible ? readerOverlayTop : "0px",
+                  top: isToolbarVisible ? readerOverlayTop : readerViewportInsetTop,
+                  bottom: statusBarReservedSpace,
                 }}
               >
                 <button
@@ -1300,7 +1315,10 @@ export default function ReadPage() {
             {isTouchReader && resumePromptVisible && (
               <div
                 data-reader-interactive="true"
-                className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:hidden"
+                className="pointer-events-none absolute inset-x-0 z-40 flex justify-center px-4 sm:hidden"
+                style={{
+                  bottom: "calc(env(safe-area-inset-bottom, 0px) + 3.25rem)",
+                }}
               >
                 <div
                   className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl px-4 py-3 backdrop-blur-xl"
@@ -1348,7 +1366,12 @@ export default function ReadPage() {
             )}
           </div>
 
-          <div className="pointer-events-none shrink-0 px-4 pb-2 pt-0.5 sm:px-6 sm:pb-3">
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-4 pt-0.5 sm:px-6"
+            style={{
+              paddingBottom: statusBarSafeAreaPaddingBottom,
+            }}
+          >
             <div
               className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden px-1 pt-1.5 text-[10px] sm:gap-4 sm:text-[11px]"
               style={statusBarStyle}

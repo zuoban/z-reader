@@ -49,12 +49,45 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const isLikelyIOSRef = useRef(false);
   const currentMarkRef = useRef<TTSMark | null>(null);
   const hasShownResumeToastRef = useRef(false);
+  const startRef = useRef<() => Promise<void>>(async () => {});
+  const stopRef = useRef<() => void>(() => {});
+  const nextRef = useRef<() => Promise<void>>(async () => {});
+  const prevRef = useRef<() => Promise<void>>(async () => {});
 
   const logTTS = useCallback((event: string, detail?: Record<string, unknown>) => {
     if (process.env.NODE_ENV === 'production') return;
 
     const payload = detail ? ` ${JSON.stringify(detail)}` : '';
     console.info(`[tts] ${event}${payload}`);
+  }, []);
+
+  const normalizeMetadataText = useCallback((value: unknown): string => {
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => normalizeMetadataText(item))
+        .filter(Boolean)
+        .join(' / ');
+    }
+
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      return (
+        normalizeMetadataText(record.name) ||
+        normalizeMetadataText(record.value) ||
+        normalizeMetadataText(record.label) ||
+        normalizeMetadataText(record.text)
+      );
+    }
+
+    return '';
   }, []);
 
   const loadVoices = useCallback(async () => {
@@ -507,8 +540,85 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   }, [getPrevAndSpeak]);
 
   useEffect(() => {
+    startRef.current = start;
+  }, [start]);
+
+  useEffect(() => {
+    stopRef.current = stop;
+  }, [stop]);
+
+  useEffect(() => {
+    nextRef.current = next;
+  }, [next]);
+
+  useEffect(() => {
+    prevRef.current = prev;
+  }, [prev]);
+
+  useEffect(() => {
     getNextAndSpeakRef.current = getNextAndSpeak;
   }, [getNextAndSpeak]);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) {
+      return;
+    }
+
+    const mediaSession = navigator.mediaSession;
+    const metadata = viewRef.current?.book?.metadata;
+    const title =
+      normalizeMetadataText(metadata?.title) ||
+      currentMark?.text?.slice(0, 32) ||
+      'Z Reader 朗读';
+    const artist = normalizeMetadataText(metadata?.author) || 'Z Reader';
+
+    if (typeof MediaMetadata !== 'undefined') {
+      mediaSession.metadata = new MediaMetadata({
+        title,
+        artist,
+        album: 'Z Reader',
+      });
+    }
+
+    mediaSession.playbackState =
+      state === 'playing' ? 'playing' : state === 'paused' ? 'paused' : 'none';
+
+    const assignAction = (
+      action: MediaSessionAction,
+      handler: MediaSessionActionHandler | null,
+    ) => {
+      try {
+        mediaSession.setActionHandler(action, handler);
+      } catch {
+        // 某些移动浏览器只支持部分 action，忽略不支持的即可
+      }
+    };
+
+    assignAction('play', () => {
+      void startRef.current();
+    });
+    assignAction('pause', () => {
+      ttsInstance.current.pause();
+    });
+    assignAction('stop', () => {
+      stopRef.current();
+    });
+    assignAction('previoustrack', () => {
+      void prevRef.current();
+    });
+    assignAction('nexttrack', () => {
+      void nextRef.current();
+    });
+
+    return () => {
+      assignAction('play', null);
+      assignAction('pause', null);
+      assignAction('stop', null);
+      assignAction('previoustrack', null);
+      assignAction('nexttrack', null);
+      mediaSession.playbackState = 'none';
+    };
+  }, [currentMark?.text, normalizeMetadataText, state, viewRef]);
 
   const attemptResumeAfterInterruption = useCallback(async () => {
     if (resumeInFlightRef.current) return;

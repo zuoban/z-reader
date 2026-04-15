@@ -242,16 +242,16 @@ export default function ShelfPage() {
               </Button>
             </div>
           </div>
-          <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-muted-foreground sm:mt-4 sm:text-sm">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-[11px] font-medium text-foreground sm:text-sm">
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] leading-5 text-muted-foreground sm:mt-4 sm:text-[13px]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-[12px] font-semibold leading-5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.48)] sm:text-[13px]">
               <Library className="h-3.5 w-3.5" />
               我的书架
             </span>
-            <span>共 {books.length} 本书</span>
+            <span className="font-medium tabular-nums">共 {books.length} 本书</span>
             {filteredBooks.length !== books.length && (
               <>
                 <span className="text-border">/</span>
-                <span>当前 {filteredBooks.length} 本</span>
+                <span className="font-medium tabular-nums">当前 {filteredBooks.length} 本</span>
               </>
             )}
           </div>
@@ -275,10 +275,10 @@ export default function ShelfPage() {
 
                 {/* 标题区域 */}
                 <div className="space-y-3">
-                  <p className="text-2xl font-semibold tracking-tight text-foreground sm:text-3.5xl">
+                  <p className="text-[26px] font-semibold leading-tight text-foreground sm:text-[34px]">
                     书架还是空的
                   </p>
-                  <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground sm:max-w-sm sm:text-base">
+                  <p className="mx-auto max-w-xs text-[15px] leading-7 text-muted-foreground sm:max-w-sm sm:text-base sm:leading-7">
                     上传你的第一本 EPUB、MOBI、AZW3 或 PDF，开始你的阅读之旅
                   </p>
                 </div>
@@ -288,7 +288,7 @@ export default function ShelfPage() {
                   {['EPUB', 'MOBI', 'AZW3', 'PDF'].map((format) => (
                     <span
                       key={format}
-                      className="rounded-full border border-black/8 dark:border-white/8 bg-muted/40 dark:bg-muted/30 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground sm:text-xs"
+                      className="rounded-full border border-black/8 dark:border-white/8 bg-muted/40 dark:bg-muted/30 px-3 py-1 text-[11px] font-semibold leading-5 text-muted-foreground sm:text-xs"
                     >
                       {format}
                     </span>

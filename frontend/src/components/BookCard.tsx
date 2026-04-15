@@ -111,7 +111,7 @@ function BookCoverFace({
   // 默认封面 - 白色极简风格
   return (
     <div className="relative flex size-full flex-col bg-muted p-4 text-foreground">
-      <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
+      <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.45] tracking-normal text-foreground">
         {titleLabel}
       </h3>
       <div className="mt-auto flex items-end">
@@ -272,7 +272,7 @@ export function BookCard({
             <div className="space-y-2.5 sm:space-y-2.5">
               <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-h-[2.8rem] min-w-0 text-[14px] font-semibold leading-[1.3rem] tracking-[-0.015em] text-foreground sm:min-h-[2.6rem] sm:text-[14px] sm:leading-[1.3rem]"
+                  className="min-h-[3rem] min-w-0 text-[15px] font-semibold leading-[1.45] tracking-normal text-foreground sm:min-h-[2.7rem] sm:text-[14.5px]"
                   style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                   title={titleLabel}
                 >
@@ -335,24 +335,24 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="space-y-1.5 text-[12px] leading-[1.15rem] text-foreground/78 sm:text-[13px] sm:leading-[1.2rem]">
+              <div className="space-y-1.5 text-[12.5px] leading-5 text-foreground/76 sm:text-[13px]">
                 <div className="flex min-w-0 items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
-                    <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
+                    <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                   </div>
-                  <span className="inline-flex max-w-[4.8rem] shrink-0 items-center rounded-full border border-black/6 bg-background/70 px-2 py-1 text-[10px] font-medium leading-none tracking-[0.02em] text-foreground/64 dark:border-white/5 dark:bg-muted/35 sm:max-w-[5.4rem]">
+                  <span className="inline-flex max-w-[4.8rem] shrink-0 items-center rounded-full border border-black/6 bg-background/70 px-2 py-1 text-[10.5px] font-semibold leading-none tracking-normal text-foreground/66 dark:border-white/5 dark:bg-muted/35 sm:max-w-[5.4rem]">
                     <span className="truncate">{categoryLabel}</span>
                   </span>
                 </div>
-                <div className="flex min-w-0 items-center justify-between gap-2 text-[11px] text-muted-foreground/80 sm:text-[12px]">
+                <div className="flex min-w-0 items-center justify-between gap-2 text-[11.5px] leading-5 text-muted-foreground/82 sm:text-[12px]">
                   <span className="inline-flex min-w-0 items-center gap-1">
                     <BookOpen className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
-                    <span className="font-medium tracking-[0.01em]">{progressLabel}</span>
+                    <span className="font-medium tracking-normal tabular-nums">{progressLabel}</span>
                   </span>
                   <span className="inline-flex min-w-0 shrink-0 items-center gap-1">
                     <Clock className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
-                    <span className="max-w-[4.6rem] truncate font-medium tracking-[0.01em] sm:max-w-none">
+                    <span className="max-w-[4.6rem] truncate font-medium tracking-normal tabular-nums sm:max-w-none">
                       {lastReadLabel}
                     </span>
                   </span>

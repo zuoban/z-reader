@@ -659,16 +659,24 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "h-10 w-10 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95";
+    "h-7 w-7 rounded-full border bg-transparent! transition-all duration-200 hover:-translate-y-0.5 hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
-    background: active ? uiScheme.cardBg : uiScheme.buttonBg,
-    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.24) : withOpacity(uiScheme.cardBorder, 0.4)}`,
+    background: "transparent",
+    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.18) : "transparent"}`,
     boxShadow: active
-      ? `0 10px 20px -18px ${withOpacity(uiScheme.link, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.22)`
-      : `0 10px 20px -18px ${withOpacity(uiScheme.headerBorder, 0.28)}, inset 0 1px 0 ${withOpacity(uiScheme.headerBg, 0.26)}`,
+      ? `0 8px 18px -20px ${withOpacity(uiScheme.link, 0.22)}`
+      : "none",
+    backdropFilter: "none",
+    opacity: active ? 1 : 0.84,
   });
+  const toolbarClusterStyle = {
+    background: "transparent",
+    border: "1px solid transparent",
+    boxShadow: "none",
+    backdropFilter: "none",
+  } as const;
   const statusBarStyle = {
     background: "transparent",
     borderTop: "none",
@@ -681,7 +689,7 @@ export default function ReadPage() {
   };
   const overlayContainer = pageRef.current;
   const headerSafeAreaPaddingTop = "calc(env(safe-area-inset-top, 0px) + 0.25rem)";
-  const readerViewportInsetTop = "env(safe-area-inset-top, 0px)";
+  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.75rem)";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
   const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)";
 
@@ -705,27 +713,26 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className="absolute inset-x-0 top-0 z-50 px-2 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)] transition-all duration-200 ease-out pointer-events-auto sm:px-2.5 sm:pb-1.5 sm:pt-[calc(env(safe-area-inset-top,0px)+0.375rem)]"
+          className="pointer-events-none absolute inset-x-0 top-0 z-50 px-2.5 pb-0.75 pt-[calc(env(safe-area-inset-top,0px)+0.15rem)] transition-all duration-200 ease-out sm:px-3 sm:pb-1 sm:pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]"
           style={{
-            backdropFilter: "none",
-            background: `
-              linear-gradient(180deg, ${uiScheme.headerBg} 0%, ${uiScheme.cardBg} 100%)
-            `,
-            borderBottom: `1px solid ${uiScheme.headerBorder}`,
+            background: "transparent",
             paddingTop: headerSafeAreaPaddingTop,
           }}
         >
-          <div className="flex items-center justify-between gap-2 sm:gap-2.5">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            <div
+              className="pointer-events-auto flex items-center gap-0.5 rounded-full px-0.5 py-0.5"
+              style={toolbarClusterStyle}
+            >
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleBack}
                 title="返回书库"
-                className="h-10 w-10 shrink-0 rounded-full p-0"
+                className="h-7 w-7 shrink-0 rounded-full p-0"
                 style={getToolbarButtonStyle(false)}
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
 
               <Sheet open={tocOpen} onOpenChange={setTocOpen}>
@@ -753,7 +760,7 @@ export default function ReadPage() {
                   }}
                 >
                   <SheetHeader
-                    className="pb-3.5"
+                    className="pb-3.5 pt-[calc(env(safe-area-inset-top,0px)+0.875rem)]"
                     style={{
                       borderColor: withOpacity(uiScheme.cardBorder, 0.34),
                     }}
@@ -771,7 +778,7 @@ export default function ReadPage() {
                       快速跳转章节与结构
                     </p>
                   </SheetHeader>
-                  <ScrollArea className="h-[calc(100vh-84px)] sm:h-[calc(100vh-88px)]">
+                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-112px)] sm:h-[calc(100vh-88px)]">
                     <div
                       ref={tocListRef}
                       className="m-4 rounded-[22px] border p-3"
@@ -804,7 +811,10 @@ export default function ReadPage() {
               </Sheet>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1">
+            <div
+              className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full px-0.5 py-0.5"
+              style={toolbarClusterStyle}
+            >
               {isFullscreenSupported && (
                 <Button
                   data-reader-interactive="true"
@@ -814,7 +824,7 @@ export default function ReadPage() {
                   title={isFullscreen ? "退出全屏" : "进入全屏"}
                   aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
                   className={toolbarButtonClass}
-                  style={getToolbarButtonStyle(isFullscreen)}
+                  style={getToolbarButtonStyle(false)}
                 >
                   {isFullscreen ? (
                     <Shrink className="h-4 w-4" />
@@ -871,7 +881,7 @@ export default function ReadPage() {
               <div
                 className="absolute z-20 flex flex-col items-center justify-center"
                 style={{
-                  top: readerViewportInsetTop,
+                  top: readerContentInsetTop,
                   right: 0,
                   bottom: statusBarReservedSpace,
                   left: 0,
@@ -925,7 +935,7 @@ export default function ReadPage() {
               ref={containerRef}
               className="absolute"
               style={{
-                top: readerViewportInsetTop,
+                top: readerContentInsetTop,
                 right: 0,
                 bottom: statusBarReservedSpace,
                 left: 0,

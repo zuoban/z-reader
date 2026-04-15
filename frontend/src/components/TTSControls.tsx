@@ -709,22 +709,23 @@ export function TTSControls({
             aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
             aria-expanded={expanded}
             aria-haspopup="dialog"
-            className="relative z-40 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95"
+            className="relative z-40 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle transition-all duration-200 hover:scale-[1.03] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
             style={{
               color: isActive ? uiScheme.link : uiScheme.buttonText,
-              background: isActive ? uiScheme.cardBg : uiScheme.buttonBg,
-              border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
+              background: 'transparent',
+              border: `1px solid ${isActive ? `${uiScheme.link}2e` : 'transparent'}`,
               boxShadow: isActive
-                ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 20px -18px ${uiScheme.link}40`
-                : `inset 0 1px 0 ${uiScheme.headerBg}42, 0 10px 20px -18px ${uiScheme.cardBorder}26`,
-              opacity: isPending ? 0.88 : 1,
+                ? `0 8px 18px -20px ${uiScheme.link}2e`
+                : 'none',
+              backdropFilter: 'none',
+              opacity: isPending ? 0.7 : isActive ? 1 : 0.84,
             }}
           >
-            <Volume2 className="h-5 w-5" />
+            <Volume2 className="h-4 w-4" />
             {isActive && (
-              <span className="absolute right-1.5 top-1.5 flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/50" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="absolute right-1 top-1 flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/35" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500/90" />
               </span>
             )}
           </Button>

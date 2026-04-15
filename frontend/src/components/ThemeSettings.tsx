@@ -296,11 +296,16 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-11 w-11 rounded-full border transition-colors duration-200 active:scale-95 cursor-pointer";
+    "h-7 w-7 rounded-full border transition-all duration-200 hover:opacity-100 active:scale-95 cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
-    background: open ? uiScheme.cardBg : uiScheme.buttonBg,
-    border: `1px solid ${open ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
+    background: "transparent",
+    border: `1px solid ${open ? `${uiScheme.link}2e` : "transparent"}`,
+    boxShadow: open
+      ? `0 8px 18px -20px ${uiScheme.link}2e`
+      : "none",
+    backdropFilter: "none",
+    opacity: open ? 1 : 0.84,
   } as const;
 
   const selectStyle = {

@@ -854,7 +854,7 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "h-[26px] w-[26px] rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95";
+    "h-10 w-10 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95";
   const isToolbarVisible = showToolbar || tocOpen || themeSettingsOpen;
   const isDarkPreset = theme.preset === "dark";
   const gestureOverlayColor = isDarkPreset
@@ -923,10 +923,10 @@ export default function ReadPage() {
                 size="sm"
                 onClick={handleBack}
                 title="返回书库"
-                className="h-[26px] w-[26px] shrink-0 rounded-full p-0"
+                className="h-10 w-10 shrink-0 rounded-full p-0"
                 style={getToolbarButtonStyle(false)}
               >
-                <ChevronLeft className="h-3 w-3" />
+                <ChevronLeft className="h-5 w-5" />
               </Button>
 
               <Sheet open={tocOpen} onOpenChange={setTocOpen}>
@@ -941,7 +941,7 @@ export default function ReadPage() {
                     />
                   }
                 >
-                  <List className="h-3 w-3" />
+                  <List className="h-4 w-4" />
                 </SheetTrigger>
                 <SheetContent
                   side="left"

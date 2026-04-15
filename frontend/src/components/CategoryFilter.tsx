@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { getCategoryColor } from '@/lib/categoryColors';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
-const MAX_CATEGORY_LABEL_LENGTH = 8;
+const MAX_CATEGORY_LABEL_LENGTH = 12;
 
 function truncateLabel(label: string) {
   return label.length > MAX_CATEGORY_LABEL_LENGTH
@@ -118,7 +118,11 @@ export function CategoryFilter({
         ref={containerRef}
         onScroll={checkScroll}
       >
-        <div className="flex min-w-max items-center gap-1.5 px-2 pb-3 pt-1">
+        <div
+          role="tablist"
+          aria-label="书籍分类筛选"
+          className="flex min-w-max items-center gap-1.5 px-2 pb-3 pt-1"
+        >
           {filterItems.map((item, index) => {
             const isSelected = selectedCategoryId === item.id;
 
@@ -127,6 +131,8 @@ export function CategoryFilter({
                 key={item.id ?? 'all'}
                 ref={isSelected ? activeItemRef : null}
                 onClick={() => onSelectCategory(item.id)}
+                role="tab"
+                aria-selected={isSelected}
                 className={cn(
                   'group relative flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200 cursor-pointer',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

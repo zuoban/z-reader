@@ -49,17 +49,17 @@
 }
 
 :root {
-  --background: #FFFFFF;
+  --background: #FDFBF7;
   --foreground: #171717;
-  --card: #FAFAFA;
+  --card: #FAFAF5;
   --card-foreground: #171717;
-  --popover: #FFFFFF;
+  --popover: #FAFAF5;
   --popover-foreground: #171717;
   --primary: #171717;
   --primary-foreground: #FFFFFF;
-  --secondary: #F5F5F5;
+  --secondary: #F5F3ED;
   --secondary-foreground: #171717;
-  --muted: #F5F5F5;
+  --muted: #F5F3ED;
   --muted-foreground: #737373;
   --accent: #D4AF37;
   --accent-foreground: #171717;
@@ -86,17 +86,17 @@
 }
 
 .dark {
-  --background: #0A0A0A;
+  --background: #0F0E0C;
   --foreground: #FAFAFA;
-  --card: #171717;
+  --card: #1A1917;
   --card-foreground: #FAFAFA;
-  --popover: #171717;
+  --popover: #1A1917;
   --popover-foreground: #FAFAFA;
   --primary: #FAFAFA;
   --primary-foreground: #0A0A0A;
-  --secondary: #262626;
+  --secondary: #262522;
   --secondary-foreground: #FAFAFA;
-  --muted: #262626;
+  --muted: #262522;
   --muted-foreground: #A3A3A3;
   --accent: #D4AF37;
   --accent-foreground: #0A0A0A;
@@ -199,175 +199,7 @@ foliate-view::part(filter) {
     transform: translateY(-2px);
   }
 
-  @keyframes cardBreath {
-    0%,
-    100% {
-      transform: translateY(0) scale(1) rotateZ(0deg);
-    }
-
-    25% {
-      transform: translateY(-0.6px) scale(1.004, 1.006) rotateZ(-0.12deg);
-    }
-
-    50% {
-      transform: translateY(-1.1px) scale(1.006, 1.009) rotateZ(0.18deg);
-    }
-
-    75% {
-      transform: translateY(-0.5px) scale(1.003, 1.005) rotateZ(-0.08deg);
-    }
-  }
-
-  @keyframes dragHint {
-    0%,
-    100% {
-      transform: translateY(0) scale(1);
-    }
-
-    35% {
-      transform: translateY(-1.2px) scale(1.004);
-    }
-
-    60% {
-      transform: translateY(-0.7px) scale(1.002);
-    }
-  }
-
-  @keyframes paperSheen {
-    0% {
-      opacity: 0.18;
-      transform: translateY(-10%) skewX(-8deg);
-    }
-
-    45% {
-      opacity: 0.3;
-      transform: translateY(8%) skewX(-6deg);
-    }
-
-    100% {
-      opacity: 0.18;
-      transform: translateY(-10%) skewX(-8deg);
-    }
-  }
-
-  .spine-effect {
-    background: linear-gradient(
-      90deg,
-      rgba(0,0,0,0.1) 0%,
-      transparent 5%,
-      transparent 95%,
-      rgba(0,0,0,0.05) 100%
-    );
-  }
-
-  .page-edge {
-    background: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.02) 2px,
-      rgba(0,0,0,0.02) 3px
-    );
-  }
-
-  .ink-gradient {
-    background: linear-gradient(135deg, #171717 0%, #404040 100%);
-  }
-
-  .warm-gradient {
-    background: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%);
-  }
-
-  .dark .warm-gradient {
-    background: linear-gradient(180deg, #0A0A0A 0%, #171717 100%);
-  }
-
-  /* 书架页氛围背景 — 纯 CSS radial gradient */
-  .shelf-ambient-bg {
-    background:
-      /* 纸纹叠加在最顶层 */
-      var(--paper-texture),
-      /* 右上角光斑 — 暖黄调，向下渐隐 */
-      radial-gradient(ellipse 55% 45% at 88% 4%, rgba(243, 210, 130, 0.28) 0%, rgba(230, 195, 100, 0.12) 40%, transparent 70%),
-      /* 左侧纵向光束 — 暖金色，向右渐隐 */
-      radial-gradient(ellipse 30% 80% at 8% 15%, rgba(227, 187, 112, 0.22) 0%, rgba(210, 175, 95, 0.08) 45%, transparent 75%),
-      /* 右上蓝紫补色光斑 — 增加色彩层次，向左下渐隐 */
-      radial-gradient(ellipse 38% 30% at 92% 8%, rgba(160, 185, 225, 0.18) 0%, rgba(145, 170, 210, 0.07) 45%, transparent 70%),
-      /* 中心偏上柔和光晕 */
-      radial-gradient(ellipse 60% 40% at 45% 10%, rgba(255, 250, 240, 0.12) 0%, transparent 60%),
-      /* 底部屋顶反光 — 极淡暖色，从下向上渐隐 */
-      radial-gradient(ellipse 80% 25% at 50% 100%, rgba(250, 240, 225, 0.14) 0%, transparent 70%),
-      /* 主背景渐变 */
-      linear-gradient(175deg, #fffdf9 0%, #faf6ee 18%, #f5efe6 55%, #f2ece0 100%);
-    background-color: transparent;
-    opacity: 1;
-  }
-
-  .dark .shelf-ambient-bg {
-    background:
-      var(--paper-texture),
-      radial-gradient(ellipse 55% 45% at 88% 4%, rgba(180, 155, 90, 0.2) 0%, rgba(160, 140, 80, 0.08) 40%, transparent 70%),
-      radial-gradient(ellipse 30% 80% at 8% 15%, rgba(140, 120, 70, 0.15) 0%, rgba(120, 105, 60, 0.05) 45%, transparent 75%),
-      radial-gradient(ellipse 38% 30% at 92% 8%, rgba(100, 120, 180, 0.15) 0%, rgba(90, 110, 170, 0.06) 45%, transparent 70%),
-      radial-gradient(ellipse 60% 40% at 45% 10%, rgba(80, 80, 90, 0.12) 0%, transparent 60%),
-      radial-gradient(ellipse 80% 25% at 50% 100%, rgba(50, 45, 40, 0.18) 0%, transparent 70%),
-      linear-gradient(175deg, #111115 0%, #0e0e12 18%, #0a0a0f 55%, #08080c 100%);
-  }
-
-  /* 书架页面阴影 */
-  .shadow-card-sm {
-    box-shadow: 0 2px 8px -4px rgba(15, 23, 42, 0.3);
-  }
-
-  .shadow-card-md {
-    box-shadow: 0 4px 16px -6px rgba(15, 23, 42, 0.4);
-  }
-
-  .shadow-card-lg {
-    box-shadow: 0 8px 32px -12px rgba(15, 23, 42, 0.3);
-  }
-
-  .shadow-card-xl {
-    box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.4);
-  }
-
-  .shadow-destructive {
-    box-shadow: 0 4px 16px -6px rgba(220, 38, 38, 0.3);
-  }
-
-  /* 毛玻璃卡片 */
-  .glass-card {
-    @apply backdrop-blur-2xl bg-background/90;
-  }
-
-  .glass-card-subtle {
-    @apply backdrop-blur-2xl bg-background/80;
-  }
-
-  .glass-card-strong {
-    @apply backdrop-blur-xl bg-popover/95;
-  }
-
-  /* 渐变按钮背景 */
-  .btn-gradient-primary {
-    @apply bg-gradient-to-br from-primary/10 to-primary/5;
-  }
-
-  .btn-gradient-empty {
-    @apply bg-gradient-to-br from-primary/8 to-primary/4;
-  }
-
-  /* 旋转动画 */
-  .rotate-plus {
-    transition: transform 0.3s ease;
-  }
-
-  .group:hover .rotate-plus {
-    transform: rotate(90deg);
-  }
-}
-
-@keyframes fadeIn {
+  @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -484,4 +316,5 @@ foliate-view::part(filter) {
 @keyframes presetGlow {
   0%, 100% { opacity: 0; }
   50% { opacity: 1; }
+}
 }

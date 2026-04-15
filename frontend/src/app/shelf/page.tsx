@@ -267,7 +267,7 @@ export default function ShelfPage() {
         <main className="flex-1 py-5 sm:py-10">
           {!isLoadingBooks && books.length === 0 ? (
             <div className="flex min-h-[58vh] items-center justify-center">
-              <div className="w-full max-w-xl rounded-[36px] border border-black/8 bg-white/95 px-6 py-14 text-center shadow-[0_32px_80px_-48px_rgba(15,23,42,0.38),0_12px_24px_-12px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:px-14 sm:py-18">
+              <div className="w-full max-w-xl rounded-[36px] border border-black/8 bg-white/95 dark:bg-neutral-900/95 dark:border-white/10 px-6 py-14 text-center shadow-[0_32px_80px_-48px_rgba(15,23,42,0.38),0_12px_24px_-12px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:px-14 sm:py-18">
                 {/* 装饰性背景元素 */}
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-black/5 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/5 to-transparent" />
@@ -275,7 +275,7 @@ export default function ShelfPage() {
                 {/* 主图标区域 - 增加层次感 */}
                 <div className="relative mx-auto mb-8 inline-flex">
                   <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-primary/8 via-transparent to-transparent blur-xl" />
-                  <div className="relative mx-auto flex h-18 w-18 items-center justify-center rounded-[28px] border border-black/8 bg-gradient-to-br from-stone-50 via-white to-stone-100 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.32),inset_0_1px_1px_rgba(255,255,255,0.8)] sm:h-22 sm:w-22 sm:rounded-[32px]">
+                  <div className="relative mx-auto flex h-18 w-18 items-center justify-center rounded-[28px] border border-black/8 dark:border-white/10 bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-neutral-800 dark:via-neutral-900 dark:to-neutral-800 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.32),inset_0_1px_1px_rgba(255,255,255,0.8)] sm:h-22 sm:w-22 sm:rounded-[32px]">
                     <BookOpen className="h-9 w-9 text-muted-foreground/70 sm:h-11 sm:w-11" />
                   </div>
                 </div>
@@ -295,7 +295,7 @@ export default function ShelfPage() {
                   {['EPUB', 'MOBI', 'AZW3', 'PDF'].map((format) => (
                     <span
                       key={format}
-                      className="rounded-full border border-black/8 bg-muted/40 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground sm:text-xs"
+                      className="rounded-full border border-black/8 dark:border-white/8 bg-muted/40 dark:bg-muted/30 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground sm:text-xs"
                     >
                       {format}
                     </span>

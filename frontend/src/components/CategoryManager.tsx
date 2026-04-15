@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import type { DragEvent } from 'react';
 import { toast } from 'sonner';
 import {
+  ChevronUp,
+  ChevronDown,
   Grip,
   Layers3,
   MoreHorizontal,
@@ -34,12 +36,14 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/lib/api';
 import { getCategoryColor, getContrastColor, toAlphaColor } from '@/lib/categoryColors';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CategoryManagerProps {
   onCategoryChange?: () => void;
 }
 
 export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -202,6 +206,18 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
     setDropTargetId(null);
   }
 
+  async function handleReorder(categoryId: string, targetIndex: number) {
+    const sourceIndex = categories.findIndex((cat) => cat.id === categoryId);
+    if (sourceIndex === -1 || targetIndex < 0 || targetIndex >= categories.length) return;
+    const previousCategories = categories;
+    const nextCategories = [...categories];
+    const [moved] = nextCategories.splice(sourceIndex, 1);
+    nextCategories.splice(targetIndex, 0, moved);
+    const reordered = nextCategories.map((cat, idx) => ({ ...cat, sort_order: idx + 1 }));
+    setCategories(reordered);
+    await persistCategoryOrder(previousCategories, reordered);
+  }
+
   function startEdit(category: Category) {
     setEditingId(category.id);
     setName(category.name);
@@ -352,7 +368,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-semibold">已有分类</h3>
                   <p className="text-xs text-muted-foreground">
-                    拖动手柄调整顺序，编辑或删除。
+                    {isMobile ? '使用箭头调整顺序，编辑或删除。' : '拖动手柄调整顺序，编辑或删除。'}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
@@ -432,7 +448,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                             </div>
                           </div>
 
-                          <div className="hidden items-center opacity-60 transition-opacity group-hover:opacity-100 sm:flex">
+                          <div className="hidden sm:flex items-center opacity-60 transition-opacity group-hover:opacity-100">
                             <span
                               className={cn(
                                 'flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground',
@@ -442,6 +458,26 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                             >
                               <Grip className="h-3.5 w-3.5" />
                             </span>
+                          </div>
+
+                          {/* 移动端上下箭头排序 */}
+                          <div className="flex flex-col gap-0.5 sm:hidden">
+                            <button
+                              type="button"
+                              disabled={loading || index === 0}
+                              onClick={() => void handleReorder(cat.id, index - 1)}
+                              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground disabled:opacity-30 cursor-pointer"
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={loading || index === categories.length - 1}
+                              onClick={() => void handleReorder(cat.id, index + 1)}
+                              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground disabled:opacity-30 cursor-pointer"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </button>
                           </div>
 
                           <DropdownMenu>

@@ -192,7 +192,7 @@ function SectionCard({
               {title}
             </h3>
             <p
-              className="text-[11px] mt-0.5 truncate"
+              className="text-xs mt-0.5 truncate"
               style={{ color: uiScheme.mutedText }}
             >
               {description}
@@ -300,7 +300,7 @@ function SliderField({
       </div>
       {/* 滑动条 */}
       <div className="mt-3 flex items-center gap-3">
-        <span className="text-[10px] tabular-nums shrink-0 w-5 text-right" style={{ color: uiScheme.mutedText }}>
+        <span className="text-xs tabular-nums shrink-0 w-5 text-right" style={{ color: uiScheme.mutedText }}>
           {minLabel}
         </span>
         <Slider
@@ -311,7 +311,7 @@ function SliderField({
           step={step}
           className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary/60 [&_[role=slider]]:bg-background [&_[role=slider]]:shadow-md [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:hover:scale-110 [&_[role=slider]]:focus-visible:ring-2 [&_[role=slider]]:focus-visible:ring-primary/40"
         />
-        <span className="text-[10px] tabular-nums shrink-0 w-5" style={{ color: uiScheme.mutedText }}>
+        <span className="text-xs tabular-nums shrink-0 w-5" style={{ color: uiScheme.mutedText }}>
           {maxLabel}
         </span>
       </div>
@@ -340,7 +340,7 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-[26px] w-[26px] rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 cursor-pointer";
+    "h-11 w-11 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
     background: open ? uiScheme.cardBg : uiScheme.buttonBg,
@@ -392,7 +392,7 @@ export function ThemeSettings({
           />
         }
       >
-        <Settings className="h-3 w-3" />
+        <Settings className="h-5 w-5" />
       </SheetTrigger>
       <SheetContent
         side="right"
@@ -441,7 +441,7 @@ export function ThemeSettings({
                 重置默认
               </Button>
               <div
-                className="hidden rounded-xl border px-2.5 py-1 text-[10px] font-bold tracking-[0.22em] sm:block"
+                className="hidden rounded-xl border px-2.5 py-1 text-xs font-bold tracking-[0.22em] sm:block"
                 style={{
                   color: uiScheme.link,
                   background: `${uiScheme.link}0e`,
@@ -477,14 +477,14 @@ export function ThemeSettings({
                 <span className="h-2 w-2 rounded-full" style={{ background: `${uiScheme.cardBorder}25` }} />
               </div>
               <span
-                className="text-[10px] font-bold tracking-[0.2em] ml-1"
+                className="text-xs font-bold tracking-[0.2em] ml-1"
                 style={{ color: uiScheme.accentText }}
               >
                 LIVE PREVIEW
               </span>
               <div className="flex gap-1.5 ml-auto">
                 <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full tracking-wide"
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full tracking-wide"
                   style={{
                     background: `${uiScheme.link}12`,
                     color: uiScheme.link,
@@ -494,7 +494,7 @@ export function ThemeSettings({
                   {currentPreset.label}
                 </span>
                 <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full tracking-wide"
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full tracking-wide"
                   style={{
                     background: `${uiScheme.cardBorder}10`,
                     color: uiScheme.mutedText,
@@ -519,7 +519,7 @@ export function ThemeSettings({
               />
               <div className="relative">
                 <p
-                  className="text-[9px] uppercase tracking-[0.25em] font-semibold opacity-40"
+                  className="text-xs uppercase tracking-[0.25em] font-semibold opacity-40"
                   style={{ color: currentPreset.fg, fontFamily: "var(--font-sans)" }}
                 >
                   Preview
@@ -610,7 +610,7 @@ export function ThemeSettings({
                         )}
                       </div>
                       <p
-                        className="text-[10px] leading-snug mt-1"
+                        className="text-xs leading-snug mt-1"
                         style={{ color: uiScheme.mutedText }}
                       >
                         {preset.description}
@@ -695,7 +695,7 @@ export function ThemeSettings({
                 />
                 <div className="relative">
                   <p
-                    className="text-[10px] font-semibold tracking-widest uppercase opacity-50 mb-1.5"
+                    className="text-xs font-semibold tracking-widest uppercase opacity-50 mb-1.5"
                     style={{ color: uiScheme.mutedText }}
                   >
                     {FONT_FAMILY_OPTIONS[theme.fontFamily].description}
@@ -815,7 +815,7 @@ export function ThemeSettings({
                         <span className="text-xs font-semibold block tracking-wide">
                           {flow === "paginated" ? "翻页" : "滚动"}
                         </span>
-                        <span className="text-[10px] opacity-65">
+                        <span className="text-xs opacity-65">
                           {flow === "paginated" ? "章节停顿" : "连续阅读"}
                         </span>
                       </div>
@@ -915,7 +915,7 @@ export function ThemeSettings({
               <button
                 type="button"
                 onClick={() => setTheme({ animated: !theme.animated })}
-                className="relative shrink-0 rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                className="relative shrink-0 rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
                 style={{
                   width: "50px",
                   height: "28px",

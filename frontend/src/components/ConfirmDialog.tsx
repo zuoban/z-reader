@@ -52,7 +52,6 @@ export function ConfirmDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={confirmDisabled}
             className="rounded-xl"
           >
             {cancelLabel}

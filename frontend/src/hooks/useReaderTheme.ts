@@ -29,17 +29,17 @@ export const FONT_FAMILY_OPTIONS: Record<
   editorial: {
     label: "杂志衬线",
     description: "更有书页感，适合长篇阅读",
-    stack: '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
+    stack: '"Noto Serif SC", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
   },
   classic: {
     label: "经典衬线",
     description: "更接近传统纸书的气质",
-    stack: 'Georgia, "Times New Roman", Times, serif',
+    stack: '"Noto Serif SC", Georgia, "Times New Roman", Times, serif',
   },
   humanist: {
     label: "人文无衬线",
     description: "更现代，适合屏幕阅读",
-    stack: '"Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif',
+    stack: '"Noto Sans SC", "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif',
   },
 };
 
@@ -177,6 +177,7 @@ export function useReaderTheme() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       cachedTheme = updated;
       window.dispatchEvent(new StorageEvent("storage"));
+      window.dispatchEvent(new CustomEvent("z-reader-theme-change"));
     },
     [theme],
   );

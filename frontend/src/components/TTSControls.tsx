@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import {
   Play,
@@ -10,7 +16,6 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
-  X,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import { VoiceSelector } from '@/components/VoiceSelector';
@@ -480,8 +485,7 @@ export function TTSControls({
   const pendingPositionRef = useRef(position);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const FAB_SIZE = 48;
-  const FAB_OFFSET = 56;
+  const FAB_SIZE = 56;
 
   const styles = useThemeStyles(uiScheme, state !== 'stopped');
   const isPlaying = state === 'playing';
@@ -536,37 +540,6 @@ export function TTSControls({
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!expanded) return;
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setExpanded(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [expanded]);
-
-  // 失去焦点自动隐藏
-  useEffect(() => {
-    if (!expanded) return;
-
-    const handleBlur = (e: MouseEvent) => {
-      const root = rootRef.current;
-      const target = e.target as HTMLElement | null;
-      const isOwnedPortal = target?.closest('[data-reader-tts-owned="true"]');
-
-      if (root && !root.contains(e.target as Node) && !isOwnedPortal) {
-        setExpanded(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleBlur);
-    return () => document.removeEventListener('mousedown', handleBlur);
-  }, [expanded]);
 
   const handleStartClick = async () => {
     if (isPending) return;
@@ -689,274 +662,208 @@ export function TTSControls({
   };
 
   const isToolbar = variant === 'toolbar';
-  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 640;
-  const panelWidth = isMobileViewport
-    ? Math.min(360, window.innerWidth - 16)
-    : isToolbar
-      ? 320
-      : 256;
-  const panelHeight = typeof window !== 'undefined'
-    ? isMobileViewport
-      ? showSettingsPanel ? 434 : 286
-      : showSettingsPanel ? 380 : 228
-    : 380;
 
   useEffect(() => {
     onExpandedChange?.(expanded);
   }, [expanded, onExpandedChange]);
 
   return (
-    <div
-      ref={rootRef}
-      className={`relative ${isToolbar ? 'z-40' : ''}`}
-      style={{ pointerEvents: 'auto' }}
-    >
-      {isToolbar ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          data-reader-interactive="true"
-          data-reader-tts-trigger="true"
-          onClick={handleClick}
-          type="button"
-          title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-          aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-          aria-expanded={expanded}
-          aria-haspopup="dialog"
-          className="relative z-40 inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95"
-          style={{
-            color: isActive ? uiScheme.link : uiScheme.buttonText,
-            background: isActive ? uiScheme.cardBg : uiScheme.buttonBg,
-            border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
-            boxShadow: isActive
-              ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 20px -18px ${uiScheme.link}40`
-              : `inset 0 1px 0 ${uiScheme.headerBg}42, 0 10px 20px -18px ${uiScheme.cardBorder}26`,
-            opacity: isPending ? 0.88 : 1,
-          }}
-        >
-          <Volume2 className="h-3 w-3" />
-          {isActive && (
-            <span className="absolute right-[3px] top-[3px] flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </span>
-          )}
-        </Button>
-      ) : (
-        <FloatingButton
-          isActive={isActive}
-          isDragging={isDragging}
-          position={position}
-          expanded={expanded}
-          onClick={handleClick}
-          onPointerDownCapture={stopInteractivePropagation}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-          uiScheme={uiScheme}
-        />
-      )}
-
-      {/* 展开面板 - 增强动画和布局 */}
-      {expanded && (
-        <>
-          <div
+    <Sheet open={expanded} onOpenChange={setExpanded}>
+      <div
+        ref={rootRef}
+        className={`relative ${isToolbar ? 'z-40' : ''}`}
+        style={{ pointerEvents: 'auto' }}
+      >
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
+        </div>
+        {isToolbar ? (
+          <Button
+            variant="ghost"
+            size="icon"
             data-reader-interactive="true"
-            className={`fixed inset-0 z-30 ${isMobileViewport ? 'bg-black/16 backdrop-blur-[2px]' : ''}`}
-            onClick={() => setExpanded(false)}
-            onPointerDown={stopInteractivePropagation}
-            onTouchStart={stopInteractivePropagation}
-            onTouchEnd={stopInteractivePropagation}
-            aria-hidden="true"
-          />
-
-          <div
-            data-reader-interactive="true"
-            data-reader-tts-popup="true"
-            className={isToolbar
-              ? `absolute z-50 animate-in fade-in duration-200 ease-out
-                motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100
-                right-0 top-[calc(100%+10px)]`
-              : isMobileViewport
-                ? `fixed inset-x-2 top-[max(8px,env(safe-area-inset-top))] bottom-[max(8px,env(safe-area-inset-bottom))] z-40 flex items-end animate-in slide-in-from-bottom-5 fade-in duration-250 ease-out
-                  motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`
-              : `fixed z-40 animate-in slide-in-from-bottom-3 fade-in duration-250 ease-out
-                motion-reduce:animate-in motion-reduce:fade-in motion-reduce:duration-100`}
-            onClick={stopInteractivePropagation}
-            onPointerDown={stopInteractivePropagation}
-            onTouchStart={stopInteractivePropagation}
-            onTouchEnd={stopInteractivePropagation}
-            onTouchMove={stopInteractivePropagation}
+            data-reader-tts-trigger="true"
+            onClick={handleClick}
+            type="button"
+            title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+            aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+            aria-expanded={expanded}
+            aria-haspopup="dialog"
+            className="relative z-40 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all duration-200 hover:scale-[1.03] active:scale-95"
             style={{
-              left: isMobileViewport && !isToolbar ? 8 : undefined,
-              right: isToolbar
-                ? undefined
-                : isMobileViewport
-                  ? 8
-                : Math.max(8, Math.min(position.x, window.innerWidth - panelWidth - 8)),
-              bottom: isToolbar
-                ? undefined
-                : isMobileViewport
-                  ? `max(8px, env(safe-area-inset-bottom))`
-                : Math.max(8, Math.min(position.y + FAB_OFFSET, window.innerHeight - panelHeight - 8)),
-              width: isMobileViewport && !isToolbar ? undefined : panelWidth,
-              maxHeight: isMobileViewport && !isToolbar
-                ? 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px)'
-                : undefined,
+              color: isActive ? uiScheme.link : uiScheme.buttonText,
+              background: isActive ? uiScheme.cardBg : uiScheme.buttonBg,
+              border: `1px solid ${isActive ? `${uiScheme.link}33` : `${uiScheme.cardBorder}66`}`,
+              boxShadow: isActive
+                ? `inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 20px -18px ${uiScheme.link}40`
+                : `inset 0 1px 0 ${uiScheme.headerBg}42, 0 10px 20px -18px ${uiScheme.cardBorder}26`,
+              opacity: isPending ? 0.88 : 1,
             }}
           >
-            <div
-              className={`flex flex-col gap-3 rounded-[28px] border p-3.5 sm:p-4 ${
-                isToolbar
-                  ? 'max-h-[min(78vh,560px)] overflow-y-auto'
-                  : isMobileViewport
-                    ? 'max-h-full overflow-y-auto overscroll-contain'
-                    : ''
-              }`}
-              style={{
-                ...styles.panel,
-                paddingBottom: isMobileViewport ? 'calc(14px + env(safe-area-inset-bottom))' : undefined,
-              }}
-            >
-            {isMobileViewport && !isToolbar && (
-              <div className="mx-auto -mt-0.5 mb-0.5 h-1.5 w-11 rounded-full bg-black/10" aria-hidden="true" />
+            <Volume2 className="h-5 w-5" />
+            {isActive && (
+              <span className="absolute right-1.5 top-1.5 flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/50" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </span>
             )}
-            <div
-              className="flex items-start justify-between rounded-[22px] border px-4 py-3.5 sm:rounded-2xl sm:px-3.5 sm:py-3"
-              style={styles.section}
-            >
-              <div>
-                <span
-                  className="font-heading text-[15px] font-semibold tracking-wide sm:text-sm"
-                  style={{ color: uiScheme.fg }}
-                >
-                  {showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
-                </span>
-                <p className="mt-1 text-[11px] leading-5 sm:leading-normal" style={{ color: uiScheme.mutedText }}>
-                  {showSettingsPanel ? '播放控制、语速与声线设置' : '开始、暂停与切换段落'}
-                </p>
-                {isMobileViewport && (
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span
-                      className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.03em]"
-                      style={{
-                        background: mobileStatusTone,
-                        color: mobileStatusText,
-                      }}
-                    >
-                      {mobileStatusLabel}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => setExpanded(false)}
-                className="transition-all duration-150 ease-out hover:scale-110 active:scale-95
-                  h-8 w-8 rounded-2xl sm:h-7 sm:w-7 sm:rounded-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
-                style={{ color: uiScheme.mutedText, background: `${uiScheme.buttonBg}60` }}
+          </Button>
+        ) : (
+          <FloatingButton
+            isActive={isActive}
+            isDragging={isDragging}
+            position={position}
+            expanded={expanded}
+            onClick={handleClick}
+            onPointerDownCapture={stopInteractivePropagation}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            uiScheme={uiScheme}
+          />
+        )}
+      </div>
+
+      <SheetContent
+        side="right"
+        showCloseButton
+        finalFocus={false}
+        data-reader-interactive="true"
+        data-reader-tts-popup="true"
+        className="w-[100vw] max-w-[460px] overflow-hidden rounded-none p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px] sm:rounded-l-[28px]"
+        style={styles.panel}
+      >
+        <SheetHeader
+          className="relative overflow-hidden border-b px-4 py-4 pb-4 pr-14 sm:px-5"
+          style={{ borderColor: `${uiScheme.cardBorder}30` }}
+        >
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at 80% 50%, ${uiScheme.link}08 0%, transparent 60%)`,
+            }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <SheetTitle
+                className="font-heading text-base tracking-wide sm:text-lg"
+                style={{ color: uiScheme.fg }}
               >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Button>
+                {showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
+              </SheetTitle>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: uiScheme.mutedText }}>
+                {showSettingsPanel ? '播放控制、语速与声线设置' : '开始、暂停与切换段落'}
+              </p>
             </div>
-
-            <div className="rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-3.5" style={styles.section}>
-              <div className="mb-3 flex items-center gap-2">
-                <label className="text-[11px] font-medium uppercase tracking-[0.08em] sm:text-xs sm:tracking-normal" style={{ color: uiScheme.mutedText }}>
-                  文字转语音
-                </label>
-              </div>
-
-              {/* 播放按钮组 - 优化布局和交互 */}
-              <div className="flex items-center justify-center gap-2.5 py-2 sm:gap-2.5 sm:py-2">
-                <ControlButton
-                  onClick={onPrev}
-                  disabled={!isActive || isPending}
-                  title="上一句"
-                  active={isActive}
-                  uiScheme={uiScheme}
-                >
-                  <SkipBack className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                </ControlButton>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleStartClick}
-                  disabled={isPending}
-                  title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                  aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                  className="transition-all duration-200 ease-out hover:scale-105 active:scale-95 bg-transparent! hover:bg-transparent! aria-expanded:bg-transparent! dark:hover:bg-transparent!
-                    h-12 w-12 sm:h-11 sm:w-11 rounded-[20px] sm:rounded-2xl
-                    motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                  style={{
-                    color: isPending ? uiScheme.mutedText : uiScheme.link,
-                    boxShadow: !isPlaying && !isPending
-                      ? `0 0 0 1px ${uiScheme.link}40`
-                      : 'none',
-                  }}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-5 h-5 sm:w-5 sm:h-5" />
-                  ) : (
-                    <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />
-                  )}
-                </Button>
-
-                <ControlButton
-                  onClick={onNext}
-                  disabled={!isActive || isPending}
-                  title="下一句"
-                  active={isActive}
-                  uiScheme={uiScheme}
-                >
-                  <SkipForward className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                </ControlButton>
-
-                <ControlButton
-                  onClick={handleStopClick}
-                  disabled={!isActive || isPending}
-                  title="停止"
-                  active={isActive}
-                  variant="danger"
-                  uiScheme={uiScheme}
-                >
-                  <Square className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                </ControlButton>
-              </div>
-
-              <VoiceSlider
-                label="速度"
-                value={localRate}
-                onChange={handleRateChange}
-                min={-50}
-                max={100}
-                step={10}
-                format={formatRate}
-                uiScheme={uiScheme}
-              />
-            </div>
-
-            {showSettingsPanel && (
-              <div
-                className="flex flex-col gap-2.5 rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-3.5"
-                style={styles.section}
+            <div className="flex shrink-0 items-center gap-2 pr-1">
+              <span
+                className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.03em] sm:text-xs"
+                style={{
+                  background: mobileStatusTone,
+                  borderColor: `${uiScheme.cardBorder}30`,
+                  color: mobileStatusText,
+                }}
               >
-                <VoiceSelector
-                  settings={settings}
-                  voices={voices}
-                  onUpdateSettings={onUpdateSettings}
-                  uiScheme={uiScheme}
-                />
-              </div>
-            )}
+                {mobileStatusLabel}
+              </span>
             </div>
           </div>
-        </>
-      )}
-    </div>
+        </SheetHeader>
+
+        <div className="max-h-[calc(100vh-88px)] space-y-3 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+          <section className="rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-4" style={styles.section}>
+            <div className="mb-3 flex items-center gap-2">
+              <label
+                className="text-[11px] font-medium uppercase tracking-[0.08em] sm:text-xs sm:tracking-normal"
+                style={{ color: uiScheme.mutedText }}
+              >
+                文字转语音
+              </label>
+            </div>
+
+            <div className="flex items-center justify-center gap-2.5 py-2 sm:gap-3 sm:py-3">
+              <ControlButton
+                onClick={onPrev}
+                disabled={!isActive || isPending}
+                title="上一句"
+                active={isActive}
+                uiScheme={uiScheme}
+              >
+                <SkipBack className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+              </ControlButton>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleStartClick}
+                disabled={isPending}
+                title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
+                className="h-12 w-12 rounded-[20px] bg-transparent! transition-all duration-200 ease-out hover:scale-105 hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! sm:h-11 sm:w-11 sm:rounded-2xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                style={{
+                  color: isPending ? uiScheme.mutedText : uiScheme.link,
+                  boxShadow: !isPlaying && !isPending
+                    ? `0 0 0 1px ${uiScheme.link}40`
+                    : 'none',
+                }}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5 sm:h-5 sm:w-5" />
+                ) : (
+                  <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />
+                )}
+              </Button>
+
+              <ControlButton
+                onClick={onNext}
+                disabled={!isActive || isPending}
+                title="下一句"
+                active={isActive}
+                uiScheme={uiScheme}
+              >
+                <SkipForward className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+              </ControlButton>
+
+              <ControlButton
+                onClick={handleStopClick}
+                disabled={!isActive || isPending}
+                title="停止"
+                active={isActive}
+                variant="danger"
+                uiScheme={uiScheme}
+              >
+                <Square className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+              </ControlButton>
+            </div>
+
+            <VoiceSlider
+              label="速度"
+              value={localRate}
+              onChange={handleRateChange}
+              min={-50}
+              max={100}
+              step={10}
+              format={formatRate}
+              uiScheme={uiScheme}
+            />
+          </section>
+
+          {showSettingsPanel && (
+            <section
+              className="flex flex-col gap-2.5 rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-4"
+              style={styles.section}
+            >
+              <VoiceSelector
+                settings={settings}
+                voices={voices}
+                onUpdateSettings={onUpdateSettings}
+                uiScheme={uiScheme}
+              />
+            </section>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

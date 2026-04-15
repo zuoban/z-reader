@@ -28,6 +28,7 @@ interface VoiceSelectorProps {
   onReloadVoices?: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
+  overlayContainer?: HTMLElement | null;
 }
 
 export function VoiceSelector({
@@ -38,6 +39,7 @@ export function VoiceSelector({
   onReloadVoices,
   onUpdateSettings,
   uiScheme,
+  overlayContainer,
 }: VoiceSelectorProps) {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -241,6 +243,7 @@ export function VoiceSelector({
               <SelectValue placeholder="选择语音" className="truncate" />
             </SelectTrigger>
             <SelectContent
+              container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
               className="max-w-[300px] rounded-xl"
@@ -279,6 +282,7 @@ export function VoiceSelector({
               <SelectValue placeholder="选择风格" className="truncate" />
             </SelectTrigger>
             <SelectContent
+              container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
               className="max-w-[260px] rounded-xl"

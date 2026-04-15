@@ -50,14 +50,16 @@ function SheetContent({
   side = "right",
   showCloseButton = true,
   finalFocus = false,
+  container,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
   finalFocus?: boolean
+  container?: SheetPrimitive.Portal.Props["container"]
 }) {
   return (
-    <SheetPortal>
+    <SheetPortal container={container}>
       <SheetOverlay />
       <SheetPrimitive.Popup
         data-slot="sheet-content"

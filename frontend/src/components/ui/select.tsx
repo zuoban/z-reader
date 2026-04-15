@@ -10,6 +10,8 @@ const Select = SelectPrimitive.Root;
 
 const SelectGroup = SelectPrimitive.Group;
 
+const SelectPortal = SelectPrimitive.Portal;
+
 const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
@@ -69,9 +71,11 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = 'popper', ...props }, ref) => (
-  <SelectPrimitive.Portal>
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+    container?: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Portal>['container'];
+  }
+>(({ className, children, position = 'popper', container, ...props }, ref) => (
+  <SelectPortal container={container}>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -95,7 +99,7 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
+  </SelectPortal>
 ));
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
@@ -148,6 +152,7 @@ SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 export {
   Select,
   SelectGroup,
+  SelectPortal,
   SelectValue,
   SelectTrigger,
   SelectContent,

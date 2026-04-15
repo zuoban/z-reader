@@ -462,6 +462,7 @@ interface TTSControlsProps {
   resumePromptVisible?: boolean;
   resumePromptMessage?: string;
   onResume?: () => void | Promise<void>;
+  overlayContainer?: HTMLElement | null;
 }
 
 export function TTSControls({
@@ -483,6 +484,7 @@ export function TTSControls({
   resumePromptVisible = false,
   resumePromptMessage = '朗读被系统中断，轻触即可继续。',
   onResume,
+  overlayContainer,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -747,6 +749,7 @@ export function TTSControls({
         side="right"
         showCloseButton
         finalFocus={false}
+        container={overlayContainer}
         data-reader-interactive="true"
         data-reader-tts-popup="true"
         className="max-w-[460px] p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px]"
@@ -946,6 +949,7 @@ export function TTSControls({
                 onReloadVoices={onReloadVoices}
                 onUpdateSettings={onUpdateSettings}
                 uiScheme={uiScheme}
+                overlayContainer={overlayContainer}
               />
             </section>
           )}

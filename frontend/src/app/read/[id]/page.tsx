@@ -941,6 +941,9 @@ export default function ReadPage() {
     border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
+  const overlayContainer = pageRef.current;
+  const headerSafeAreaPaddingTop = "calc(env(safe-area-inset-top, 0px) + 0.25rem)";
+  const readerOverlayTop = "calc(env(safe-area-inset-top, 0px) + 3.5rem)";
 
   return (
     <div
@@ -962,7 +965,7 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className={`absolute inset-x-0 top-0 z-50 px-2 py-1 transition-all duration-200 ease-out sm:px-2.5 sm:py-1.5 ${
+          className={`absolute inset-x-0 top-0 z-50 px-2 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)] transition-all duration-200 ease-out sm:px-2.5 sm:pb-1.5 sm:pt-[calc(env(safe-area-inset-top,0px)+0.375rem)] ${
             isToolbarVisible
               ? "translate-y-0 opacity-100 pointer-events-auto"
               : "-translate-y-full opacity-0 pointer-events-none"
@@ -973,6 +976,7 @@ export default function ReadPage() {
               linear-gradient(180deg, ${uiScheme.headerBg} 0%, ${uiScheme.cardBg} 100%)
             `,
             borderBottom: `1px solid ${uiScheme.headerBorder}`,
+            paddingTop: headerSafeAreaPaddingTop,
           }}
         >
           <div className="flex items-center justify-between gap-2 sm:gap-2.5">
@@ -1004,6 +1008,7 @@ export default function ReadPage() {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
+                  container={overlayContainer}
                   className="max-w-sm p-0 backdrop-blur-xl sm:w-80"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.97),
@@ -1101,6 +1106,7 @@ export default function ReadPage() {
                   resumePromptVisible={resumePromptVisible}
                   resumePromptMessage={resumePromptMessage}
                   onResume={resumeTTS}
+                  overlayContainer={overlayContainer}
                 />
               </Suspense>
 
@@ -1110,6 +1116,7 @@ export default function ReadPage() {
                 uiScheme={uiScheme}
                 open={themeSettingsOpen}
                 onOpenChange={setThemeSettingsOpen}
+                overlayContainer={overlayContainer}
               />
             </div>
           </div>
@@ -1184,9 +1191,12 @@ export default function ReadPage() {
             {(isTouchReader || !isToolbarVisible) && (
               <div
                 className={`absolute inset-x-0 bottom-0 z-40 flex flex-col pointer-events-auto ${
-                  isToolbarVisible ? "top-12 sm:top-[3.25rem]" : "top-0"
+                  isToolbarVisible ? "" : "top-0"
                 }`}
                 data-reader-interactive="true"
+                style={{
+                  top: isToolbarVisible ? readerOverlayTop : "0px",
+                }}
               >
                 <button
                   type="button"

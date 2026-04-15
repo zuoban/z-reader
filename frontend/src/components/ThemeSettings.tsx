@@ -81,6 +81,7 @@ interface ThemeSettingsProps {
   uiScheme: ThemeColors;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  overlayContainer?: HTMLElement | null;
 }
 
 interface SectionCardProps {
@@ -279,6 +280,7 @@ export function ThemeSettings({
   uiScheme,
   open,
   onOpenChange,
+  overlayContainer,
 }: ThemeSettingsProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     theme: true,
@@ -353,6 +355,7 @@ export function ThemeSettings({
         side="right"
         showCloseButton
         finalFocus={false}
+        container={overlayContainer}
         className="max-w-[420px] p-0 sm:w-[420px] sm:max-w-[420px]"
         style={panelStyle}
       >
@@ -539,7 +542,7 @@ export function ThemeSettings({
                 >
                   <SelectValue placeholder="选择字体" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent container={overlayContainer}>
                   {FONT_ORDER.map((key) => (
                     <SelectItem key={key} value={key}>
                       {FONT_FAMILY_OPTIONS[key].label}

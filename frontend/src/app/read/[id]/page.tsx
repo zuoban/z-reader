@@ -127,6 +127,9 @@ export default function ReadPage() {
     next: nextTTS,
     prev: prevTTS,
     voices,
+    voicesLoading,
+    voicesError,
+    reloadVoices,
   } = useTTS({ viewRef, onHighlight: handleHighlight });
 
   useEffect(() => {
@@ -1010,6 +1013,9 @@ export default function ReadPage() {
                   state={ttsState}
                   settings={ttsSettings}
                   voices={voices}
+                  voicesLoading={voicesLoading}
+                  voicesError={voicesError}
+                  onReloadVoices={reloadVoices}
                   onStart={startTTS}
                   onStop={stopTTS}
                   onNext={nextTTS}

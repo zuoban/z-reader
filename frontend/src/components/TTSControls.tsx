@@ -446,6 +446,9 @@ interface TTSControlsProps {
   state: TTSState;
   settings: TTSSettings;
   voices: Voice[];
+  voicesLoading?: boolean;
+  voicesError?: string | null;
+  onReloadVoices?: () => void | Promise<void>;
   onStart: () => void | Promise<void>;
   onStop: () => void;
   onNext: () => void | Promise<void>;
@@ -461,6 +464,9 @@ export function TTSControls({
   state,
   settings,
   voices,
+  voicesLoading = false,
+  voicesError = null,
+  onReloadVoices,
   onStart,
   onStop,
   onNext,
@@ -870,6 +876,9 @@ export function TTSControls({
               <VoiceSelector
                 settings={settings}
                 voices={voices}
+                voicesLoading={voicesLoading}
+                voicesError={voicesError}
+                onReloadVoices={onReloadVoices}
                 onUpdateSettings={onUpdateSettings}
                 uiScheme={uiScheme}
               />

@@ -26,6 +26,36 @@ export interface Voice {
   StyleList?: string[];
 }
 
+export const FALLBACK_ZH_VOICES: Voice[] = [
+  {
+    Name: 'zh-CN-XiaoxiaoMultilingualNeural',
+    DisplayName: 'Xiaoxiao Multilingual',
+    LocalName: '晓晓 多语种',
+    ShortName: 'zh-CN-XiaoxiaoMultilingualNeural',
+    Gender: 'Female',
+    Locale: 'zh-CN',
+    StyleList: ['general', 'assistant', 'chat', 'customerservice', 'newscast'],
+  },
+  {
+    Name: 'zh-CN-XiaoyiNeural',
+    DisplayName: 'Xiaoyi',
+    LocalName: '晓伊',
+    ShortName: 'zh-CN-XiaoyiNeural',
+    Gender: 'Female',
+    Locale: 'zh-CN',
+    StyleList: ['general', 'assistant', 'chat'],
+  },
+  {
+    Name: 'zh-CN-YunxiNeural',
+    DisplayName: 'Yunxi',
+    LocalName: '云希',
+    ShortName: 'zh-CN-YunxiNeural',
+    Gender: 'Male',
+    Locale: 'zh-CN',
+    StyleList: ['general', 'assistant', 'chat', 'newscast'],
+  },
+];
+
 const TTS_SETTINGS_KEY = 'z-reader-tts-settings';
 
 const DEFAULT_SETTINGS: TTSSettings = {
@@ -55,6 +85,28 @@ export function saveTTSSettings(settings: TTSSettings): void {
   } catch (err) {
     console.error('Failed to save TTS settings to localStorage:', err);
   }
+}
+
+export function mergeVoicesWithFallback(voices: Voice[], preferredVoiceName?: string): Voice[] {
+  const merged = new Map<string, Voice>();
+
+  for (const voice of [...voices, ...FALLBACK_ZH_VOICES]) {
+    merged.set(voice.Name, voice);
+  }
+
+  if (preferredVoiceName && !merged.has(preferredVoiceName)) {
+    merged.set(preferredVoiceName, {
+      Name: preferredVoiceName,
+      DisplayName: preferredVoiceName,
+      LocalName: preferredVoiceName,
+      ShortName: preferredVoiceName,
+      Gender: '',
+      Locale: preferredVoiceName.startsWith('zh-') ? 'zh-CN' : '',
+      StyleList: ['general'],
+    });
+  }
+
+  return Array.from(merged.values());
 }
 
 function stripSSML(ssml: string): string {

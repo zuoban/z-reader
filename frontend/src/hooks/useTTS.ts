@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { backendTTS, TTSState, TTSSettings, TTSMark, loadTTSSettings, Voice } from '@/lib/tts';
+import {
+  backendTTS,
+  TTSState,
+  TTSSettings,
+  TTSMark,
+  loadTTSSettings,
+  mergeVoicesWithFallback,
+  Voice,
+} from '@/lib/tts';
 import { FoliateView } from '@/lib/types';
-import { API_BASE } from '@/lib/config';
+import { API_BASE, createAbortController } from '@/lib/config';
 
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
@@ -19,31 +27,65 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
   const [currentMark, setCurrentMark] = useState<TTSMark | null>(null);
   const [markIndex, setMarkIndex] = useState<number>(0);
-  const [voices, setVoices] = useState<Voice[]>([]);
+  const [voices, setVoices] = useState<Voice[]>(() =>
+    mergeVoicesWithFallback([], loadTTSSettings().voiceName)
+  );
+  const [voicesLoading, setVoicesLoading] = useState(false);
+  const [voicesError, setVoicesError] = useState<string | null>(null);
   
   const ttsInstance = useRef(backendTTS);
   const isPlayingRef = useRef(false);
   const getNextAndSpeakRef = useRef<() => Promise<boolean>>(async () => false);
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
 
-  useEffect(() => {
-    const loadVoices = async () => {
+  const loadVoices = useCallback(async () => {
+    setVoicesLoading(true);
+    setVoicesError(null);
+
+    const token = localStorage.getItem('token');
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const { controller, timeoutId } = createAbortController(12000);
+
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE}/api/voices`, {
           headers: token ? { Authorization: token } : {},
+          signal: controller.signal,
         });
-        if (response.ok) {
-          const data = await response.json();
-          setVoices(data || []);
-        }
-      } catch (err) {
-        console.error('Failed to load voices:', err);
-      }
-    };
 
-    loadVoices();
-  }, []);
+        if (!response.ok) {
+          throw new Error(`voice_list_${response.status}`);
+        }
+
+        const data = await response.json();
+        setVoices(mergeVoicesWithFallback(data || [], settings.voiceName));
+        setVoicesError(null);
+        setVoicesLoading(false);
+        return;
+      } catch (err) {
+        const isLastAttempt = attempt === 2;
+        if (isLastAttempt) {
+          console.error('Failed to load voices:', err);
+          setVoices((prev) => mergeVoicesWithFallback(prev, settings.voiceName));
+          setVoicesError('声音列表加载失败，已切换到内置声线。');
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    setVoicesLoading(false);
+  }, [settings.voiceName]);
+
+  useEffect(() => {
+    void loadVoices();
+  }, [loadVoices]);
+
+  useEffect(() => {
+    setVoices((prev) => mergeVoicesWithFallback(prev, settings.voiceName));
+  }, [settings.voiceName]);
 
   const updateSettings = useCallback((newSettings: Partial<TTSSettings>) => {
     setSettings(prev => {
@@ -437,6 +479,9 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     next,
     prev,
     voices,
+    voicesLoading,
+    voicesError,
+    reloadVoices: loadVoices,
     currentMark,
     markIndex,
   };

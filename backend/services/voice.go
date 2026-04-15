@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -23,6 +24,36 @@ var voiceCache struct {
 	data      []Voice
 	cacheTime int64
 	mutex     sync.RWMutex
+}
+
+var fallbackVoices = []Voice{
+	{
+		Name:        "zh-CN-XiaoxiaoMultilingualNeural",
+		DisplayName: "Xiaoxiao Multilingual",
+		LocalName:   "晓晓 多语种",
+		ShortName:   "zh-CN-XiaoxiaoMultilingualNeural",
+		Gender:      "Female",
+		Locale:      "zh-CN",
+		StyleList:   []string{"general", "assistant", "chat", "customerservice", "newscast"},
+	},
+	{
+		Name:        "zh-CN-XiaoyiNeural",
+		DisplayName: "Xiaoyi",
+		LocalName:   "晓伊",
+		ShortName:   "zh-CN-XiaoyiNeural",
+		Gender:      "Female",
+		Locale:      "zh-CN",
+		StyleList:   []string{"general", "assistant", "chat"},
+	},
+	{
+		Name:        "zh-CN-YunxiNeural",
+		DisplayName: "Yunxi",
+		LocalName:   "云希",
+		ShortName:   "zh-CN-YunxiNeural",
+		Gender:      "Male",
+		Locale:      "zh-CN",
+		StyleList:   []string{"general", "assistant", "chat", "newscast"},
+	},
 }
 
 func GetVoiceList() ([]Voice, error) {
@@ -49,7 +80,10 @@ func refreshVoiceCache() ([]Voice, error) {
 
 	voices, err := callVoiceListAPI()
 	if err != nil {
-		return nil, err
+		if len(voiceCache.data) > 0 {
+			return voiceCache.data, nil
+		}
+		return fallbackVoices, nil
 	}
 
 	voiceCache.data = voices
@@ -80,7 +114,7 @@ func callVoiceListAPI() ([]Voice, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, err
+		return nil, fmt.Errorf("voice list API returned status %d", resp.StatusCode)
 	}
 
 	var voices []Voice

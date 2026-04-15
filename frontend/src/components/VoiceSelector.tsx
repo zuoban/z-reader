@@ -23,6 +23,9 @@ const GENDER_LABELS: Record<string, string> = {
 interface VoiceSelectorProps {
   settings: TTSSettings;
   voices: Voice[];
+  voicesLoading?: boolean;
+  voicesError?: string | null;
+  onReloadVoices?: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
 }
@@ -30,6 +33,9 @@ interface VoiceSelectorProps {
 export function VoiceSelector({
   settings,
   voices,
+  voicesLoading = false,
+  voicesError = null,
+  onReloadVoices,
   onUpdateSettings,
   uiScheme,
 }: VoiceSelectorProps) {
@@ -161,31 +167,64 @@ export function VoiceSelector({
             声线设置
           </h3>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handlePreview}
-          title={isPreviewing ? '停止' : '试听'}
-          className="h-9 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+        <div className="flex items-center gap-2">
+          {onReloadVoices && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void onReloadVoices()}
+              disabled={voicesLoading}
+              title={voicesLoading ? '正在加载声音列表' : '重新加载声音列表'}
+              className="h-9 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+              style={{
+                color: uiScheme.mutedText,
+                backgroundColor: `${uiScheme.buttonBg}26`,
+                borderColor: `${uiScheme.cardBorder}24`,
+              }}
+            >
+              {voicesLoading ? '加载中...' : '重载声线'}
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePreview}
+            title={isPreviewing ? '停止' : '试听'}
+            className="h-9 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+            style={{
+              color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
+              backgroundColor: isPreviewing ? `${uiScheme.link}14` : `${uiScheme.buttonBg}34`,
+              borderColor: isPreviewing ? `${uiScheme.link}3d` : `${uiScheme.cardBorder}28`,
+            }}
+          >
+            {isPreviewing ? (
+              <>
+                <Square className="h-3.5 w-3.5" />
+                停止试听
+              </>
+            ) : (
+              <>
+                <Play className="ml-0.5 h-3.5 w-3.5" />
+                试听语音
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {(voicesLoading || voicesError) && (
+        <div
+          className="rounded-xl border px-3 py-2 text-sm"
           style={{
-            color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
-            backgroundColor: isPreviewing ? `${uiScheme.link}14` : `${uiScheme.buttonBg}34`,
-            borderColor: isPreviewing ? `${uiScheme.link}3d` : `${uiScheme.cardBorder}28`,
+            color: voicesError ? uiScheme.link : uiScheme.mutedText,
+            backgroundColor: `${uiScheme.buttonBg}24`,
+            borderColor: `${uiScheme.cardBorder}24`,
           }}
         >
-          {isPreviewing ? (
-            <>
-              <Square className="h-3.5 w-3.5" />
-              停止试听
-            </>
-          ) : (
-            <>
-              <Play className="ml-0.5 h-3.5 w-3.5" />
-              试听语音
-            </>
-          )}
-        </Button>
-      </div>
+          {voicesLoading ? '正在加载声音列表...' : voicesError}
+        </div>
+      )}
 
       {/* 语音选择 */}
       {zhVoices.length > 0 && (

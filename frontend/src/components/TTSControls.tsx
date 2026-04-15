@@ -334,8 +334,9 @@ const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
       : `0 20px 56px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.35)`,
   },
   section: {
-    background: `${uiScheme.buttonBg}42`,
-    borderColor: `${uiScheme.cardBorder}4d`,
+    background: `${uiScheme.cardBg}78`,
+    borderColor: `${uiScheme.cardBorder}34`,
+    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.34)`,
   },
   selectTrigger: {
     background: `${uiScheme.buttonBg}78`,
@@ -363,12 +364,16 @@ interface VoiceSliderProps {
 }
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
-  <div className="group flex items-center gap-2.5 rounded-2xl border px-3 py-2.5 sm:gap-3 sm:rounded-xl sm:px-2.5 sm:py-2" style={{
-    background: `${uiScheme.buttonBg}42`,
-    borderColor: `${uiScheme.cardBorder}55`,
-  }}>
+  <div
+    className="group flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3"
+    style={{
+      background: `${uiScheme.buttonBg}52`,
+      borderColor: `${uiScheme.cardBorder}36`,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28)`,
+    }}
+  >
     <label
-      className="w-8 shrink-0 text-[11px] font-medium transition-colors duration-200 sm:w-8 sm:text-xs"
+      className="w-10 shrink-0 text-sm font-semibold transition-colors duration-200"
       style={{ color: uiScheme.mutedText }}
     >
       {label}
@@ -379,10 +384,10 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       min={min}
       max={max}
       step={step}
-      className="flex-1 [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-110 [&_[role=slider]]:active:scale-95"
+      className="flex-1 [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-105 [&_[role=slider]]:active:scale-95"
     />
     <span
-      className="w-12 tabular-nums text-right text-[11px] font-semibold tracking-tight transition-colors duration-200 sm:w-12 sm:text-xs"
+      className="w-16 tabular-nums text-right text-sm font-semibold tracking-tight transition-colors duration-200"
       style={{ color: uiScheme.fg }}
     >
       {format(value)}
@@ -416,7 +421,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-10 w-10 rounded-2xl transition-all duration-200 ease-out hover:scale-110 active:scale-95 sm:h-10 sm:w-10 sm:rounded-xl
+      className="h-11 w-11 rounded-lg transition-all duration-200 ease-out hover:scale-[1.03] active:scale-95
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
@@ -427,7 +432,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
               ? `${uiScheme.link}20`
               : `${uiScheme.buttonBg}80`
             : `${uiScheme.buttonBg}40`,
-        border: `1px solid ${disabled ? `${uiScheme.cardBorder}30` : `${uiScheme.cardBorder}50`}`,
+        border: `1px solid ${disabled ? `${uiScheme.cardBorder}28` : `${uiScheme.cardBorder}36`}`,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
       }}
@@ -735,7 +740,7 @@ export function TTSControls({
         style={styles.panel}
       >
         <SheetHeader
-          className="relative overflow-hidden sm:px-5"
+          className="relative overflow-hidden sm:pl-5 sm:pr-16"
           style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
           <div
@@ -744,21 +749,21 @@ export function TTSControls({
               background: `radial-gradient(ellipse at 80% 50%, ${uiScheme.link}08 0%, transparent 60%)`,
             }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative flex items-start justify-between gap-4">
             <div>
               <SheetTitle
-                className="font-heading text-base tracking-wide sm:text-lg"
+                className="font-heading text-xl tracking-normal sm:text-2xl"
                 style={{ color: uiScheme.fg }}
               >
                 {showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
               </SheetTitle>
-              <p className="mt-1 text-xs leading-relaxed" style={{ color: uiScheme.mutedText }}>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: uiScheme.mutedText }}>
                 {showSettingsPanel ? '播放控制、语速与声线设置' : '开始、暂停与切换段落'}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-2 pr-1">
+            <div className="flex shrink-0 items-center gap-2">
               <span
-                className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.03em] sm:text-xs"
+                className="inline-flex min-h-9 items-center rounded-full border px-3.5 text-sm font-semibold"
                 style={{
                   background: mobileStatusTone,
                   borderColor: `${uiScheme.cardBorder}30`,
@@ -771,18 +776,24 @@ export function TTSControls({
           </div>
         </SheetHeader>
 
-        <div className="max-h-[calc(100vh-88px)] space-y-3 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
-          <section className="rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-4" style={styles.section}>
-            <div className="mb-3 flex items-center gap-2">
+        <div className="max-h-[calc(100vh-88px)] space-y-4 overflow-y-auto px-4 py-5 sm:px-5">
+          <section className="rounded-2xl border p-4" style={styles.section}>
+            <div className="mb-4 flex items-center gap-2">
               <label
-                className="text-[11px] font-medium uppercase tracking-[0.08em] sm:text-xs sm:tracking-normal"
+                className="text-base font-semibold"
                 style={{ color: uiScheme.mutedText }}
               >
                 文字转语音
               </label>
             </div>
 
-            <div className="flex items-center justify-center gap-2.5 py-2 sm:gap-3 sm:py-3">
+            <div
+              className="mb-4 flex items-center justify-center gap-3 rounded-2xl border px-3 py-3"
+              style={{
+                background: `${uiScheme.buttonBg}3f`,
+                borderColor: `${uiScheme.cardBorder}24`,
+              }}
+            >
               <ControlButton
                 onClick={onPrev}
                 disabled={!isActive || isPending}
@@ -800,12 +811,14 @@ export function TTSControls({
                 disabled={isPending}
                 title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                 aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                className="h-12 w-12 rounded-[20px] bg-transparent! transition-all duration-200 ease-out hover:scale-105 hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! sm:h-11 sm:w-11 sm:rounded-2xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                className="h-14 w-14 rounded-xl bg-transparent! transition-all duration-200 ease-out hover:scale-[1.03] hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                 style={{
                   color: isPending ? uiScheme.mutedText : uiScheme.link,
-                  boxShadow: !isPlaying && !isPending
-                    ? `0 0 0 1px ${uiScheme.link}40`
-                    : 'none',
+                  background: isPending ? `${uiScheme.buttonBg}60` : `${uiScheme.link}12`,
+                  border: `1px solid ${isPending ? `${uiScheme.cardBorder}30` : `${uiScheme.link}42`}`,
+                  boxShadow: isPending
+                    ? 'none'
+                    : `0 10px 22px -18px ${uiScheme.link}88, inset 0 1px 0 rgba(255,255,255,0.42)`,
                 }}
               >
                 {isPlaying ? (
@@ -851,7 +864,7 @@ export function TTSControls({
 
           {showSettingsPanel && (
             <section
-              className="flex flex-col gap-2.5 rounded-[22px] border p-3.5 sm:rounded-2xl sm:p-4"
+              className="flex flex-col gap-3 rounded-2xl border p-4"
               style={styles.section}
             >
               <VoiceSelector

@@ -1,0 +1,54 @@
+'use client';
+
+import type { ChangeEvent, ComponentProps, ReactNode } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+interface FileUploadActionProps {
+  accept: string;
+  disabled?: boolean;
+  title: string;
+  children: ReactNode;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  wrapperClassName?: string;
+  buttonClassName?: string;
+  buttonVariant?: ComponentProps<typeof Button>['variant'];
+  buttonSize?: ComponentProps<typeof Button>['size'];
+}
+
+export function FileUploadAction({
+  accept,
+  disabled = false,
+  title,
+  children,
+  onChange,
+  wrapperClassName,
+  buttonClassName,
+  buttonVariant = 'default',
+  buttonSize = 'default',
+}: FileUploadActionProps) {
+  return (
+    <div className={cn('relative min-w-0', wrapperClassName)}>
+      <Input
+        type="file"
+        accept={accept}
+        onChange={onChange}
+        disabled={disabled}
+        className="absolute inset-0 z-20 h-full cursor-pointer opacity-0"
+        title={title}
+        aria-label={title}
+      />
+      <Button
+        variant={buttonVariant}
+        size={buttonSize}
+        className={cn('pointer-events-none', buttonClassName)}
+        disabled={disabled}
+        aria-hidden="true"
+        tabIndex={-1}
+      >
+        {children}
+      </Button>
+    </div>
+  );
+}

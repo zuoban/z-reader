@@ -319,6 +319,10 @@ export function ThemeSettings({
     setTheme(DEFAULT_READER_THEME);
   }
 
+  const isDefaultTheme = (
+    Object.keys(DEFAULT_READER_THEME) as Array<keyof ReaderTheme>
+  ).every((key) => theme[key] === DEFAULT_READER_THEME[key]);
+
   const gapLabel =
     theme.gap === 0
       ? "无"
@@ -353,7 +357,7 @@ export function ThemeSettings({
         style={panelStyle}
       >
         <SheetHeader
-          className="sm:px-5"
+          className="sm:pl-5 sm:pr-16"
           style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -371,14 +375,16 @@ export function ThemeSettings({
                 variant="ghost"
                 size="sm"
                 onClick={handleResetTheme}
-                className="h-8 rounded-md border px-2.5 text-[11px] font-medium cursor-pointer"
+                disabled={isDefaultTheme}
+                title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
+                className="h-8 gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-none transition-colors disabled:cursor-default disabled:opacity-45"
                 style={{
                   color: uiScheme.buttonText,
-                  background: `${uiScheme.buttonBg}a6`,
-                  borderColor: `${uiScheme.cardBorder}30`,
+                  background: `${uiScheme.buttonBg}72`,
+                  borderColor: `${uiScheme.cardBorder}26`,
                 }}
               >
-                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                <RotateCcw className="h-3.5 w-3.5" />
                 重置默认
               </Button>
             </div>

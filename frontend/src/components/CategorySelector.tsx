@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { api, Category } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface CategorySelectorProps {
   bookId: string;
@@ -15,7 +16,15 @@ interface CategorySelectorProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CategorySelector({ bookId, currentCategoryId, categories, bookCounts, onUpdate, open, onOpenChange }: CategorySelectorProps) {
+export function CategorySelector({
+  bookId,
+  currentCategoryId,
+  categories,
+  bookCounts,
+  onUpdate,
+  open,
+  onOpenChange,
+}: CategorySelectorProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleSelect(categoryId: string | null) {
@@ -44,9 +53,12 @@ export function CategorySelector({ bookId, currentCategoryId, categories, bookCo
           <button
             onClick={() => handleSelect(null)}
             disabled={loading}
-            className={`w-full rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50 ${
-              !currentCategoryId ? 'border-foreground bg-muted' : 'border-border/70 hover:bg-muted'
-            }`}
+            className={cn(
+              'w-full cursor-pointer rounded-lg border p-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
+              !currentCategoryId
+                ? 'border-foreground/20 bg-muted text-foreground'
+                : 'border-border/70 bg-background hover:bg-muted/70'
+            )}
           >
             无分类
           </button>
@@ -55,13 +67,16 @@ export function CategorySelector({ bookId, currentCategoryId, categories, bookCo
               key={cat.id}
               onClick={() => handleSelect(cat.id)}
               disabled={loading}
-              className={`flex w-full items-center justify-between rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50 ${
-                currentCategoryId === cat.id ? 'border-foreground bg-muted' : 'border-border/70 hover:bg-muted'
-              }`}
+              className={cn(
+                'flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
+                currentCategoryId === cat.id
+                  ? 'border-foreground/20 bg-muted text-foreground'
+                  : 'border-border/70 bg-background hover:bg-muted/70'
+              )}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <div className="h-3 w-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                {cat.name}
+                <span className="truncate font-medium">{cat.name}</span>
               </div>
               <span className="rounded-full bg-muted-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
                 {bookCounts[cat.id] || 0}

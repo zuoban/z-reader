@@ -138,13 +138,14 @@ export function VoiceSelector({
       console.error('Preview error:', err);
       stopPreview();
     }
-  }, [isPreviewing, settings, buildSSML, stopPreview]);
+  }, [isPreviewing, buildSSML, stopPreview]);
 
   const styles = {
     selectTrigger: {
-      borderColor: `${uiScheme.cardBorder}50`,
-      backgroundColor: `${uiScheme.buttonBg}78`,
+      borderColor: `${uiScheme.cardBorder}36`,
+      backgroundColor: `${uiScheme.buttonBg}54`,
       color: uiScheme.fg,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28)`,
     },
     selectContent: {
       backgroundColor: `${uiScheme.cardBg}f4`,
@@ -153,106 +154,117 @@ export function VoiceSelector({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* 试听按钮 */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handlePreview}
-        title={isPreviewing ? '停止' : '试听'}
-        className="h-9 shrink-0 self-end rounded-2xl px-3 text-[12px] sm:h-8 sm:rounded-lg sm:px-2.5 sm:text-xs
-          transition-all duration-200 ease-out hover:scale-105 active:scale-95
-          motion-reduce:transition-none"
-        style={{
-          color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
-          backgroundColor: isPreviewing ? `${uiScheme.link}15` : `${uiScheme.buttonBg}30`,
-          borderColor: isPreviewing ? `${uiScheme.link}40` : 'transparent',
-          borderWidth: '1px',
-        }}
-      >
-        {isPreviewing ? (
-          <>
-            <Square className="mr-1.5 h-3.5 w-3.5" />
-            停止试听
-          </>
-        ) : (
-          <>
-            <Play className="mr-1.5 h-3.5 w-3.5 ml-0.5" />
-            试听语音
-          </>
-        )}
-      </Button>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold" style={{ color: uiScheme.mutedText }}>
+            声线设置
+          </h3>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handlePreview}
+          title={isPreviewing ? '停止' : '试听'}
+          className="h-9 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+          style={{
+            color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
+            backgroundColor: isPreviewing ? `${uiScheme.link}14` : `${uiScheme.buttonBg}34`,
+            borderColor: isPreviewing ? `${uiScheme.link}3d` : `${uiScheme.cardBorder}28`,
+          }}
+        >
+          {isPreviewing ? (
+            <>
+              <Square className="h-3.5 w-3.5" />
+              停止试听
+            </>
+          ) : (
+            <>
+              <Play className="ml-0.5 h-3.5 w-3.5" />
+              试听语音
+            </>
+          )}
+        </Button>
+      </div>
 
       {/* 语音选择 */}
       {zhVoices.length > 0 && (
-        <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
-          <SelectTrigger
-            data-reader-interactive="true"
-            className="h-10 min-w-0 flex-1 rounded-2xl px-3 text-[12px] sm:h-8 sm:rounded-lg sm:text-xs
-              transition-all duration-200 ease-out hover:border-opacity-60"
-            style={styles.selectTrigger}
-          >
-            <SelectValue placeholder="选择语音" className="truncate" />
-          </SelectTrigger>
-          <SelectContent
-            data-reader-interactive="true"
-            data-reader-tts-owned="true"
-            className="max-w-[240px] rounded-2xl sm:max-w-[220px] sm:rounded-xl"
-            style={styles.selectContent}
-          >
-            {zhVoices.map((voice) => (
-              <SelectItem
-                key={voice.Name}
-                value={voice.Name}
-                className="my-0.5 truncate rounded-xl px-2.5 py-2 text-[12px] sm:rounded-lg sm:text-xs"
-                style={{ color: uiScheme.fg }}
-              >
-                {voice.LocalName} ({GENDER_LABELS[voice.Gender] || ''})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <label className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>
+            语音
+          </label>
+          <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
+            <SelectTrigger
+              data-reader-interactive="true"
+              className="h-12 min-w-0 flex-1 rounded-xl px-4 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
+              style={styles.selectTrigger}
+            >
+              <SelectValue placeholder="选择语音" className="truncate" />
+            </SelectTrigger>
+            <SelectContent
+              data-reader-interactive="true"
+              data-reader-tts-owned="true"
+              className="max-w-[300px] rounded-xl"
+              style={styles.selectContent}
+            >
+              {zhVoices.map((voice) => (
+                <SelectItem
+                  key={voice.Name}
+                  value={voice.Name}
+                  className="my-0.5 truncate rounded-lg px-3 py-2.5 text-sm"
+                  style={{ color: uiScheme.fg }}
+                >
+                  {voice.LocalName} ({GENDER_LABELS[voice.Gender] || ''})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
 
       {/* 风格选择 */}
       {availableStyles.length > 0 && (
-        <Select
-          value={settings.style ?? '__clear__'}
-          onValueChange={handleStyleChange}
-        >
-          <SelectTrigger
-            data-reader-interactive="true"
-            className="h-10 min-w-0 flex-1 rounded-2xl px-3 text-[12px] sm:h-8 sm:rounded-lg sm:text-xs
-              transition-all duration-200 ease-out hover:border-opacity-60"
-            style={styles.selectTrigger}
+        <div className="space-y-2">
+          <label className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>
+            风格
+          </label>
+          <Select
+            value={settings.style ?? '__clear__'}
+            onValueChange={handleStyleChange}
           >
-            <SelectValue placeholder="选择风格" className="truncate" />
-          </SelectTrigger>
-          <SelectContent
-            data-reader-interactive="true"
-            data-reader-tts-owned="true"
-            className="max-w-[220px] rounded-2xl sm:max-w-[200px] sm:rounded-xl"
-            style={styles.selectContent}
-          >
-            <SelectItem
-              value="__clear__"
-              className="my-0.5 truncate rounded-xl px-2.5 py-2 text-[12px] sm:rounded-lg sm:text-xs"
-              style={{ color: uiScheme.mutedText }}
+            <SelectTrigger
+              data-reader-interactive="true"
+              className="h-12 min-w-0 flex-1 rounded-xl px-4 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
+              style={styles.selectTrigger}
             >
-              不指定
-            </SelectItem>
-            {availableStyles.map((style) => (
+              <SelectValue placeholder="选择风格" className="truncate" />
+            </SelectTrigger>
+            <SelectContent
+              data-reader-interactive="true"
+              data-reader-tts-owned="true"
+              className="max-w-[260px] rounded-xl"
+              style={styles.selectContent}
+            >
               <SelectItem
-                key={style}
-                value={style}
-                className="my-0.5 truncate rounded-xl px-2.5 py-2 text-[12px] sm:rounded-lg sm:text-xs"
-                style={{ color: uiScheme.fg }}
+                value="__clear__"
+                className="my-0.5 truncate rounded-lg px-3 py-2.5 text-sm"
+                style={{ color: uiScheme.mutedText }}
               >
-                {style}
+                不指定
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {availableStyles.map((style) => (
+                <SelectItem
+                  key={style}
+                  value={style}
+                  className="my-0.5 truncate rounded-lg px-3 py-2.5 text-sm"
+                  style={{ color: uiScheme.fg }}
+                >
+                  {style}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
     </div>
   );

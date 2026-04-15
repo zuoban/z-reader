@@ -713,10 +713,8 @@ export function TTSControls({
             style={{
               color: isActive ? uiScheme.link : uiScheme.buttonText,
               background: 'transparent',
-              border: `1px solid ${isActive ? `${uiScheme.link}2e` : 'transparent'}`,
-              boxShadow: isActive
-                ? `0 8px 18px -20px ${uiScheme.link}2e`
-                : 'none',
+              border: '1px solid transparent',
+              boxShadow: 'none',
               backdropFilter: 'none',
               opacity: isPending ? 0.7 : isActive ? 1 : 0.84,
             }}

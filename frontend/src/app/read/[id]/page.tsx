@@ -688,7 +688,7 @@ export default function ReadPage() {
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
   const overlayContainer = pageRef.current;
-  const headerSafeAreaPaddingTop = "calc(env(safe-area-inset-top, 0px) + 0.25rem)";
+  const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.75rem)";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
   const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)";
@@ -713,7 +713,7 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className="pointer-events-none absolute inset-x-0 top-0 z-50 px-2.5 pb-0.75 pt-[calc(env(safe-area-inset-top,0px)+0.15rem)] transition-all duration-200 ease-out sm:px-3 sm:pb-1 sm:pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]"
+          className="pointer-events-none absolute inset-x-0 top-0 z-50 px-2.5 pb-0.5 transition-all duration-200 ease-out sm:px-3 sm:pb-0.75"
           style={{
             background: "transparent",
             paddingTop: headerSafeAreaPaddingTop,
@@ -752,7 +752,7 @@ export default function ReadPage() {
                 <SheetContent
                   side="left"
                   container={overlayContainer}
-                  className="max-w-sm p-0 backdrop-blur-xl sm:w-80"
+                  className="max-w-sm p-0 backdrop-blur-xl [&_[data-slot=sheet-close]]:top-[calc(env(safe-area-inset-top,0px)+1rem)] sm:w-80 sm:[&_[data-slot=sheet-close]]:top-3"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.97),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.82),
@@ -760,7 +760,7 @@ export default function ReadPage() {
                   }}
                 >
                   <SheetHeader
-                    className="pb-3.5 pt-[calc(env(safe-area-inset-top,0px)+0.875rem)]"
+                    className="pb-3.5 pt-[calc(env(safe-area-inset-top,0px)+1.5rem)]"
                     style={{
                       borderColor: withOpacity(uiScheme.cardBorder, 0.34),
                     }}
@@ -778,7 +778,7 @@ export default function ReadPage() {
                       快速跳转章节与结构
                     </p>
                   </SheetHeader>
-                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-112px)] sm:h-[calc(100vh-88px)]">
+                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-126px)] sm:h-[calc(100vh-88px)]">
                     <div
                       ref={tocListRef}
                       className="m-4 rounded-[22px] border p-3"

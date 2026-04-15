@@ -385,11 +385,11 @@ export function ThemeSettings({
                 onClick={handleResetTheme}
                 disabled={isDefaultTheme}
                 title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
-                className="h-8 gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-none transition-colors disabled:cursor-default disabled:opacity-45"
+                className="h-8 gap-1.5 rounded-md border bg-transparent! px-2.5 text-xs font-medium shadow-none transition-colors hover:bg-transparent! active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! disabled:cursor-default disabled:opacity-45"
                 style={{
                   color: uiScheme.buttonText,
-                  background: `${uiScheme.buttonBg}72`,
-                  borderColor: `${uiScheme.cardBorder}26`,
+                  background: "transparent",
+                  borderColor: "transparent",
                 }}
               >
                 <RotateCcw className="h-3.5 w-3.5" />

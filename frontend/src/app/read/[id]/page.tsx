@@ -30,7 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ChevronLeft, List } from "lucide-react";
+import { ChevronLeft, Expand, List, Shrink } from "lucide-react";
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() =>
@@ -75,10 +75,13 @@ export default function ReadPage() {
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [isTouchReader, setIsTouchReader] = useState(false);
   const [showToolbar, setShowToolbar] = useState(false);
+  const [isFullscreenSupported, setIsFullscreenSupported] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState("初始化中...");
 
+  const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
   const progressRef = useRef(progress);
@@ -145,6 +148,22 @@ export default function ReadPage() {
       "ontouchstart" in window;
     setIsTouchReader(hasTouch);
     setShowToolbar(!hasTouch);
+    setIsFullscreenSupported(typeof document.fullscreenEnabled === "boolean");
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === pageRef.current);
+    };
+
+    handleFullscreenChange();
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -273,6 +292,22 @@ export default function ReadPage() {
     setShowToolbar((prev) => !prev);
   }, []);
 
+  const toggleFullscreen = useCallback(async () => {
+    if (!pageRef.current || !document.fullscreenEnabled) return;
+
+    try {
+      if (document.fullscreenElement === pageRef.current) {
+        await document.exitFullscreen();
+        return;
+      }
+
+      await pageRef.current.requestFullscreen();
+      setShowToolbar(true);
+    } catch (err) {
+      console.error("Failed to toggle fullscreen:", err);
+    }
+  }, []);
+
   // 使用 effect 同步回调到 ref，供 keyboardHandler 使用
   useEffect(() => {
     handlePrevRef.current = handlePrev;
@@ -306,10 +341,18 @@ export default function ReadPage() {
         else handleNextRef.current();
         break;
       case "Escape":
+        if (document.fullscreenElement === pageRef.current) {
+          void document.exitFullscreen();
+          break;
+        }
         handleBackRef.current();
         break;
+      case "f":
+      case "F":
+        void toggleFullscreen();
+        break;
     }
-  }, []);
+  }, [toggleFullscreen]);
 
   const isInteractiveTouchTarget = useCallback((target: EventTarget | null) => {
     return (
@@ -750,6 +793,10 @@ export default function ReadPage() {
     destroyedRef.current = true;
     saveNow();
 
+    if (document.fullscreenElement === pageRef.current) {
+      void document.exitFullscreen();
+    }
+
     // 清理所有绑定的 iframe 文档的事件
     boundDocsRef.current.forEach((doc) => {
       doc.removeEventListener("keydown", keyboardHandler);
@@ -889,6 +936,7 @@ export default function ReadPage() {
 
   return (
     <div
+      ref={pageRef}
       className="relative h-screen overflow-hidden"
       style={{ background: uiScheme.bg }}
     >
@@ -1008,6 +1056,25 @@ export default function ReadPage() {
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
+              {isFullscreenSupported && (
+                <Button
+                  data-reader-interactive="true"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void toggleFullscreen()}
+                  title={isFullscreen ? "退出全屏" : "进入全屏"}
+                  aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
+                  className={toolbarButtonClass}
+                  style={getToolbarButtonStyle(isFullscreen)}
+                >
+                  {isFullscreen ? (
+                    <Shrink className="h-4 w-4" />
+                  ) : (
+                    <Expand className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+
               <Suspense fallback={null}>
                 <TTSControls
                   state={ttsState}

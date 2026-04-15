@@ -212,7 +212,8 @@ export class BackendTTS {
   
   private audioCache: LRUCache<CachedAudio> = new LRUCache(10);
   private preloadTriggered: boolean = false;
-  private preloadProgressThreshold: number = 0.5;
+  private preloadProgressThreshold: number = 0.28;
+  private suppressPauseEvent = false;
 
   private onPreloadTrigger: (() => void) | null = null;
   
@@ -352,6 +353,10 @@ export class BackendTTS {
 
   private async playAudio(audioUrl: string): Promise<void> {
     this.audio = new Audio(audioUrl);
+    this.audio.preload = 'auto';
+    this.audio.autoplay = false;
+    this.audio.setAttribute('playsinline', 'true');
+    this.audio.setAttribute('webkit-playsinline', 'true');
 
     this.currentMarkIndex = 0;
 
@@ -380,6 +385,13 @@ export class BackendTTS {
     };
 
     this.audio.onpause = () => {
+      if (this.suppressPauseEvent) {
+        this.suppressPauseEvent = false;
+        return;
+      }
+      if (this.state === 'playing') {
+        this.setState('paused');
+      }
     };
 
     this.audio.ontimeupdate = () => {
@@ -536,14 +548,15 @@ export class BackendTTS {
 
   pause(): void {
     if (this.audio && this.state === 'playing') {
+      this.suppressPauseEvent = true;
       this.audio.pause();
       this.setState('paused');
     }
   }
 
-  resume(): void {
+  async resume(): Promise<void> {
     if (this.audio && this.state === 'paused') {
-      this.audio.play();
+      await this.audio.play();
       this.setState('playing');
     }
   }
@@ -560,6 +573,7 @@ export class BackendTTS {
     }
 
     if (this.audio) {
+      this.suppressPauseEvent = true;
       this.audio.pause();
       this.audio.currentTime = 0;
       this.audio = null;

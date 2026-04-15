@@ -30,7 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ChevronLeft, Expand, List, Shrink } from "lucide-react";
+import { AlertCircle, ChevronLeft, Expand, List, Shrink } from "lucide-react";
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() =>
@@ -133,6 +133,9 @@ export default function ReadPage() {
     voicesLoading,
     voicesError,
     reloadVoices,
+    resumePromptVisible,
+    resumePromptMessage,
+    resume: resumeTTS,
   } = useTTS({ viewRef, onHighlight: handleHighlight });
 
   useEffect(() => {
@@ -933,6 +936,11 @@ export default function ReadPage() {
     borderTop: "none",
     boxShadow: "none",
   } as const;
+  const mobileResumeCardStyle = {
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.9 : 0.94),
+    border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
+    boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
+  };
 
   return (
     <div
@@ -1090,6 +1098,9 @@ export default function ReadPage() {
                   onUpdateSettings={updateTTSSettings}
                   uiScheme={uiScheme}
                   variant="toolbar"
+                  resumePromptVisible={resumePromptVisible}
+                  resumePromptMessage={resumePromptMessage}
+                  onResume={resumeTTS}
                 />
               </Suspense>
 
@@ -1273,6 +1284,56 @@ export default function ReadPage() {
                     </span>
                   )}
                 </button>
+              </div>
+            )}
+
+            {isTouchReader && resumePromptVisible && (
+              <div
+                data-reader-interactive="true"
+                className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:hidden"
+              >
+                <div
+                  className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl px-4 py-3 backdrop-blur-xl"
+                  style={mobileResumeCardStyle}
+                >
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      background: withOpacity(uiScheme.link, 0.14),
+                      color: uiScheme.link,
+                    }}
+                  >
+                    <AlertCircle className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: uiScheme.fg }}
+                    >
+                      朗读已暂停
+                    </p>
+                    <p
+                      className="mt-0.5 line-clamp-2 text-xs leading-5"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      {resumePromptMessage}
+                    </p>
+                  </div>
+                  <Button
+                    data-reader-interactive="true"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void resumeTTS()}
+                    className="h-10 shrink-0 rounded-xl px-3.5 text-sm font-semibold"
+                    style={{
+                      color: uiScheme.link,
+                      background: withOpacity(uiScheme.buttonBg, 0.72),
+                      border: `1px solid ${withOpacity(uiScheme.link, 0.18)}`,
+                    }}
+                  >
+                    继续
+                  </Button>
+                </div>
               </div>
             )}
           </div>

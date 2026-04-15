@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import {
+  AlertCircle,
   Play,
   Pause,
   Square,
@@ -458,6 +459,9 @@ interface TTSControlsProps {
   variant?: 'floating' | 'toolbar';
   onExpandedChange?: (expanded: boolean) => void;
   showSettingsPanel?: boolean;
+  resumePromptVisible?: boolean;
+  resumePromptMessage?: string;
+  onResume?: () => void | Promise<void>;
 }
 
 export function TTSControls({
@@ -476,6 +480,9 @@ export function TTSControls({
   variant = 'floating',
   onExpandedChange,
   showSettingsPanel = true,
+  resumePromptVisible = false,
+  resumePromptMessage = '朗读被系统中断，轻触即可继续。',
+  onResume,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -783,6 +790,64 @@ export function TTSControls({
         </SheetHeader>
 
         <div className="max-h-[calc(100vh-88px)] space-y-4 overflow-y-auto px-4 py-5 sm:px-5">
+          {resumePromptVisible && (
+            <section
+              className="rounded-2xl border px-4 py-3.5"
+              style={{
+                background: `${uiScheme.link}12`,
+                borderColor: `${uiScheme.link}36`,
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.3)`,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: `${uiScheme.link}18`,
+                    color: uiScheme.link,
+                  }}
+                >
+                  <AlertCircle className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: uiScheme.fg }}
+                  >
+                    继续朗读
+                  </p>
+                  <p
+                    className="mt-1 text-sm leading-6"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    {resumePromptMessage}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => void onResume?.()}
+                      className="h-10 rounded-xl px-4 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                      style={{
+                        color: uiScheme.link,
+                        background: `${uiScheme.cardBg}e8`,
+                        border: `1px solid ${uiScheme.link}30`,
+                      }}
+                    >
+                      继续朗读
+                    </Button>
+                    <span
+                      className="text-xs"
+                      style={{ color: uiScheme.mutedText }}
+                    >
+                      移动端回到前台后，轻触一次通常就能恢复
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           <section className="rounded-2xl border p-4" style={styles.section}>
             <div className="mb-4 flex items-center gap-2">
               <label

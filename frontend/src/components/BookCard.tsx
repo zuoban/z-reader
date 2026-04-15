@@ -3,7 +3,16 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Clock, MoreHorizontal, Tag, Trash2, UserRound } from 'lucide-react';
+import {
+  BookOpen,
+  Clock,
+  FileText,
+  HardDrive,
+  MoreHorizontal,
+  Tag,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
 import { api, Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
@@ -147,21 +156,13 @@ export function BookCard({
   const titleLabel = book.title?.trim() || '未命名';
   const progressValue = progress !== null ? Math.max(0, Math.min(progress, 100)) : null;
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
+  const progressLabel = progressValue !== null ? `${progressValue}%` : '未开始';
   const readButtonLabel = progressValue !== null ? '继续阅读' : '开始阅读';
   const category = useMemo(
     () => categories.find((item) => item.id === book.category_id) ?? null,
     [book.category_id, categories]
   );
-  const desktopInfoItems = [
-    category?.name,
-    formatLabel,
-    sizeLabel,
-    progressValue !== null ? `${progressValue}%` : null,
-  ].filter(Boolean) as string[];
-  const mobileInfoItems = [
-    category?.name ?? '未分类',
-    sizeLabel ? `${formatLabel} · ${sizeLabel}` : formatLabel,
-  ];
+  const categoryLabel = category?.name ?? '未分类';
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
   const cardFrameWidth = Math.round(cardWidth * cardScale);
@@ -219,7 +220,13 @@ export function BookCard({
         width: isMobile ? '100%' : cardFrameWidth,
       }}
     >
-      <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
+      <div
+        style={{
+          transform: `scale(${cardScale})`,
+          transformOrigin: 'center',
+          width: isMobile ? '100%' : cardWidth,
+        }}
+      >
         <Card
           style={{
             width: isMobile ? '100%' : cardWidth,
@@ -281,8 +288,27 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={8}
-                    className="w-40 rounded-2xl border border-black/8 bg-white/96 dark:bg-popover/95 dark:border-white/10 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+                    className="w-48 rounded-2xl border border-black/8 bg-white/96 dark:bg-popover/95 dark:border-white/10 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
                   >
+                    <div className="space-y-1 rounded-xl px-3 py-2.5 text-[12px] text-foreground/72">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 text-foreground/52" />
+                          格式
+                        </span>
+                        <span className="font-medium text-foreground/88">{formatLabel}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2">
+                          <HardDrive className="h-3.5 w-3.5 text-foreground/52" />
+                          大小
+                        </span>
+                        <span className="font-medium text-foreground/88">
+                          {sizeLabel || '未知'}
+                        </span>
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator className="my-1.5 bg-black/6" />
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
@@ -309,43 +335,26 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {isMobile ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {mobileInfoItems.map((item) => (
-                    <span
-                      key={item}
-                      className="inline-flex max-w-full items-center rounded-full border border-black/7 bg-muted/80 dark:bg-muted/50 dark:border-white/5 px-2.5 py-1 text-[10px] font-medium leading-none tracking-[0.02em] text-foreground/74"
-                    >
-                      <span className="truncate">{item}</span>
-                    </span>
-                  ))}
-                  {progressValue !== null && (
-                    <span className="inline-flex items-center rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold leading-none tracking-[0.02em] text-background">
-                      已读 {progressValue}%
-                    </span>
-                  )}
-                </div>
-              ) : (
-                desktopInfoItems.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-medium leading-none tracking-[0.01em] text-foreground/70 sm:text-[11px]">
-                    {desktopInfoItems.map((item, index) => (
-                      <span key={`${item}-${index}`} className="inline-flex items-center whitespace-nowrap">
-                        {index > 0 && <span className="mx-0.5 text-foreground/40">/</span>}
-                        {item}
-                      </span>
-                    ))}
+              <div className="space-y-1.5 text-[12px] leading-[1.15rem] text-foreground/78 sm:text-[13px] sm:leading-[1.2rem]">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
+                    <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
                   </div>
-                )
-              )}
-              <div className="flex min-w-0 items-center justify-between gap-2 text-[12px] leading-[1.15rem] text-foreground/78 sm:text-[13px] sm:leading-[1.2rem]">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
-                  <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
+                  <span className="inline-flex max-w-[4.8rem] shrink-0 items-center rounded-full border border-black/7 bg-muted/80 px-2 py-1 text-[10px] font-medium leading-none tracking-[0.02em] text-foreground/74 dark:border-white/5 dark:bg-muted/50 sm:max-w-[5.4rem]">
+                    <span className="truncate">{categoryLabel}</span>
+                  </span>
                 </div>
-                <div className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground/80 sm:text-[12px]">
-                  <Clock className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
-                  <span className="max-w-[4.6rem] truncate font-medium tracking-[0.01em] sm:max-w-none">
-                    {lastReadLabel}
+                <div className="flex min-w-0 items-center justify-between gap-2 text-[11px] text-muted-foreground/80 sm:text-[12px]">
+                  <span className="inline-flex min-w-0 items-center gap-1">
+                    <BookOpen className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
+                    <span className="font-medium tracking-[0.01em]">{progressLabel}</span>
+                  </span>
+                  <span className="inline-flex min-w-0 shrink-0 items-center gap-1">
+                    <Clock className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
+                    <span className="max-w-[4.6rem] truncate font-medium tracking-[0.01em] sm:max-w-none">
+                      {lastReadLabel}
+                    </span>
                   </span>
                 </div>
               </div>

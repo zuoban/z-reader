@@ -341,12 +341,6 @@ export default function ShelfPage() {
             <section className="relative isolate">
               {categories.length > 0 && (
                 <div className="relative z-20 mb-4 space-y-2.5 rounded-[24px] border border-border/55 bg-background/78 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.32)] backdrop-blur-xl sm:mb-6 sm:space-y-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
-                  <div className="flex items-center gap-3 px-0.5 sm:hidden">
-                    <p className="text-[11px] font-medium text-foreground">书架筛选</p>
-                  </div>
-                  <p className="px-0.5 text-[11px] leading-4.5 text-muted-foreground sm:px-0 sm:text-xs sm:leading-5">
-                    点击左上角标签设置分类，点筛选标签筛选书架。
-                  </p>
                   <CategoryFilter
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}

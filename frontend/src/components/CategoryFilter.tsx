@@ -99,7 +99,7 @@ export function CategoryFilter({
       {/* 左侧渐变指示器 */}
       <div
         className={cn(
-          'pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-background via-background/95 to-transparent transition-opacity duration-300',
+          'pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-8 bg-gradient-to-r from-background via-background/90 to-transparent transition-opacity duration-300',
           showLeftGradient ? 'opacity-100' : 'opacity-0'
         )}
       />
@@ -107,7 +107,7 @@ export function CategoryFilter({
       {/* 右侧渐变指示器 */}
       <div
         className={cn(
-          'pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-background via-background/95 to-transparent transition-opacity duration-300',
+          'pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-8 bg-gradient-to-l from-background via-background/90 to-transparent transition-opacity duration-300',
           showRightGradient ? 'opacity-100' : 'opacity-0'
         )}
       />
@@ -121,9 +121,9 @@ export function CategoryFilter({
         <div
           role="tablist"
           aria-label="书籍分类筛选"
-          className="flex min-w-max items-center gap-1.5 px-2 pb-3 pt-1"
+          className="flex min-w-max items-center gap-2 px-1 py-1"
         >
-          {filterItems.map((item, index) => {
+          {filterItems.map((item) => {
             const isSelected = selectedCategoryId === item.id;
 
             return (
@@ -134,11 +134,11 @@ export function CategoryFilter({
                 role="tab"
                 aria-selected={isSelected}
                 className={cn(
-                  'group relative flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200 cursor-pointer',
+                  'group relative flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition-all duration-200 cursor-pointer',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                   isSelected
-                    ? 'bg-foreground text-background shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                    ? 'border border-foreground/14 bg-background/92 text-foreground shadow-[0_10px_22px_-20px_rgba(15,23,42,0.35)]'
+                    : 'border border-border/45 bg-background/58 text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground'
                 )}
               >
                 {/* 颜色指示点 */}
@@ -163,7 +163,7 @@ export function CategoryFilter({
                     className={cn(
                       'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-xs font-medium transition-colors',
                       isSelected
-                        ? 'bg-background/20 text-background'
+                        ? 'bg-muted text-foreground/70'
                         : 'bg-muted text-muted-foreground group-hover:bg-muted-foreground/10'
                     )}
                   >

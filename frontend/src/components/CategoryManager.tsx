@@ -35,7 +35,7 @@ import {
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/lib/api';
-import { getCategoryColor, getContrastColor, toAlphaColor } from '@/lib/categoryColors';
+import { getCategoryColor, getContrastColor } from '@/lib/categoryColors';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CategoryManagerProps {
@@ -246,7 +246,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
             size="icon-sm"
             title="管理分类"
             aria-label="管理分类"
-            className="h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none hover:bg-muted sm:h-11 sm:w-11 cursor-pointer"
+            className="h-10 w-10 shrink-0 rounded-full border-border/60 bg-background/86 p-0 shadow-none hover:bg-background sm:h-11 sm:w-11 cursor-pointer"
           />
         }
       >
@@ -333,7 +333,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                     className="h-10 rounded-lg border-border/60 bg-background px-3.5 text-sm shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <p>建议使用简洁主题词，例如"文学""设计""在读"。</p>
+                    <p>建议使用简洁主题词，例如「文学」「设计」「在读」。</p>
                     <p>{name.length}/50</p>
                   </div>
                 </div>

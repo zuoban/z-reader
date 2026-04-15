@@ -341,7 +341,7 @@ export function BookCard({
                     <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
                     <span className="line-clamp-1 font-medium tracking-[0.01em]">{authorLabel}</span>
                   </div>
-                  <span className="inline-flex max-w-[4.8rem] shrink-0 items-center rounded-full border border-black/7 bg-muted/80 px-2 py-1 text-[10px] font-medium leading-none tracking-[0.02em] text-foreground/74 dark:border-white/5 dark:bg-muted/50 sm:max-w-[5.4rem]">
+                  <span className="inline-flex max-w-[4.8rem] shrink-0 items-center rounded-full border border-black/6 bg-background/70 px-2 py-1 text-[10px] font-medium leading-none tracking-[0.02em] text-foreground/64 dark:border-white/5 dark:bg-muted/35 sm:max-w-[5.4rem]">
                     <span className="truncate">{categoryLabel}</span>
                   </span>
                 </div>
@@ -367,9 +367,9 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-10 w-full shrink-0 rounded-full bg-foreground px-4 text-[12px] font-medium text-background shadow-[0_10px_22px_-18px_rgba(15,23,42,0.65)] transition-[transform,shadow,background-color,border-color] duration-200 hover:scale-[1.02] hover:shadow-[0_14px_28px_-20px_rgba(15,23,42,0.7)] active:scale-[0.96] sm:h-9 sm:w-full sm:rounded-[14px] sm:border sm:border-black/8 sm:bg-[linear-gradient(180deg,rgba(17,24,39,0.96)_0%,rgba(31,41,55,1)_100%)] sm:px-4 sm:text-[12px] sm:font-semibold sm:tracking-[0.01em] sm:shadow-[0_16px_28px_-20px_rgba(15,23,42,0.55),inset_0_1px_0_rgba(255,255,255,0.18)] sm:hover:translate-y-[-1px] sm:hover:scale-100 sm:hover:bg-[linear-gradient(180deg,rgba(15,23,42,1)_0%,rgba(17,24,39,1)_100%)] sm:hover:shadow-[0_18px_34px_-20px_rgba(15,23,42,0.62),inset_0_1px_0_rgba(255,255,255,0.22)] sm:active:translate-y-0 sm:active:scale-[0.98] cursor-pointer"
+                className="h-10 w-full shrink-0 rounded-full border border-black/8 bg-background/76 px-4 text-[12px] font-medium text-foreground/82 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.28)] transition-[transform,shadow,background-color,border-color,color] duration-200 hover:border-black/14 hover:bg-muted/65 hover:text-foreground hover:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.32)] active:scale-[0.98] dark:border-white/8 dark:bg-muted/35 sm:h-9 sm:w-full sm:rounded-[14px] sm:px-4 sm:text-[12px] sm:font-semibold sm:tracking-[0.01em] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
               >
-                <BookOpen className="mr-1.5 h-4 w-4 sm:mr-1.5 sm:h-3.5 sm:w-3.5 sm:opacity-90" />
+                <BookOpen className="mr-1.5 h-4 w-4 text-foreground/68 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
                 {readButtonLabel}
               </Button>
             </div>

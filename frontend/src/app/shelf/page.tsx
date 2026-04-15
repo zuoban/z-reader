@@ -191,76 +191,69 @@ export default function ShelfPage() {
     <div className="relative min-h-screen overflow-hidden warm-gradient">
       <ShelfAmbientBackground />
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-3 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
-        <header className="rounded-[24px] border border-border/60 bg-background/82 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:rounded-[28px] sm:px-6 sm:py-5">
-          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 flex items-start gap-4">
+        <header className="rounded-[24px] border border-border/55 bg-background/82 px-4 py-4 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:rounded-[28px] sm:px-6 sm:py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0 flex items-center gap-4">
               <div className="min-w-0 flex-1">
                 <Image
                   src="/icons/logo-wordmark.svg"
                   alt="Z Reader"
                   width={200}
                   height={61}
-                  className="h-auto w-[142px] sm:w-[200px]"
+                  className="h-auto w-[132px] sm:w-[200px]"
                   priority
                 />
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:mt-3 sm:text-sm">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/80 px-2.5 py-1 text-[11px] font-medium text-foreground sm:bg-transparent sm:px-0 sm:py-0 sm:text-sm">
-                    <Library className="h-3.5 w-3.5" />
-                    我的书架
-                  </span>
-                  <span className="hidden text-border sm:inline">/</span>
-                  <span>共 {books.length} 本书</span>
-                  {filteredBooks.length !== books.length && (
-                    <>
-                      <span className="hidden text-border sm:inline">/</span>
-                      <span>当前 {filteredBooks.length} 本</span>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-[20px] border border-border/50 bg-muted/55 px-2 py-2 sm:justify-end sm:rounded-full sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
-              <div className="sm:hidden">
-                <p className="text-[11px] font-medium tracking-[0.02em] text-foreground">随手整理你的书架</p>
-                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">上传、分类、继续阅读</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 rounded-[18px] bg-background/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] sm:gap-3 sm:rounded-full sm:bg-transparent sm:p-0 sm:shadow-none">
-                <CategoryManager onCategoryChange={loadCategories} />
-                <div className="relative min-w-0">
-                  <Input
-                    type="file"
-                    accept={SUPPORTED_FORMATS_ACCEPT}
-                    onChange={handleUpload}
-                    disabled={isUploading}
-                    className="absolute inset-0 z-20 cursor-pointer opacity-0"
-                    title="上传书籍"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="pointer-events-none h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 shadow-none sm:h-11 sm:w-11"
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground/20 spinner-border" />
-                    ) : (
-                      <Upload className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                    )}
-                  </Button>
-                </div>
-
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-muted/45 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+              <CategoryManager onCategoryChange={loadCategories} />
+              <div className="relative min-w-0">
+                <Input
+                  type="file"
+                  accept={SUPPORTED_FORMATS_ACCEPT}
+                  onChange={handleUpload}
+                  disabled={isUploading}
+                  className="absolute inset-0 z-20 cursor-pointer opacity-0"
+                  title="上传书籍"
+                />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={logout}
-                  title="退出"
-                  className="h-11 w-11 shrink-0 rounded-full border-border/70 bg-background p-0 text-foreground shadow-none hover:bg-muted sm:h-11 sm:w-11 cursor-pointer"
+                  className="pointer-events-none h-10 w-10 shrink-0 rounded-full border-border/60 bg-background/86 p-0 shadow-none sm:h-11 sm:w-11"
+                  disabled={isUploading}
                 >
-                  <LogOut className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                  {isUploading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground/20 spinner-border" />
+                  ) : (
+                    <Upload className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                  )}
                 </Button>
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={logout}
+                title="退出"
+                className="h-10 w-10 shrink-0 rounded-full border-border/60 bg-background/86 p-0 text-foreground shadow-none hover:bg-background sm:h-11 sm:w-11 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+              </Button>
             </div>
+          </div>
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-muted-foreground sm:mt-4 sm:text-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-[11px] font-medium text-foreground sm:text-sm">
+              <Library className="h-3.5 w-3.5" />
+              我的书架
+            </span>
+            <span>共 {books.length} 本书</span>
+            {filteredBooks.length !== books.length && (
+              <>
+                <span className="text-border">/</span>
+                <span>当前 {filteredBooks.length} 本</span>
+              </>
+            )}
           </div>
         </header>
 
@@ -340,7 +333,7 @@ export default function ShelfPage() {
           ) : (
             <section className="relative isolate">
               {categories.length > 0 && (
-                <div className="relative z-20 mb-4 space-y-2.5 rounded-[24px] border border-border/55 bg-background/78 px-3.5 py-3.5 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.32)] backdrop-blur-xl sm:mb-6 sm:space-y-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
+                <div className="relative z-20 mb-4 sm:mb-6">
                   <CategoryFilter
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}

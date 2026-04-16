@@ -48,6 +48,7 @@ interface TTSQueueSegment {
   source: 'current' | 'lookahead';
   ssml: string;
   enhancedSSML: string;
+  fallbackSSML: string;
   text: string;
   state: TTSQueueSegmentState;
   createdAt: number;
@@ -296,12 +297,14 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     if (!text || isSkippableTTSText(text)) return null;
 
     const enhancedSSML = buildSSML(ssml);
+    const fallbackSSML = buildSSML(text);
     return {
       id: createTTSQueueSegmentId(enhancedSSML, index),
       index,
       source,
       ssml,
       enhancedSSML,
+      fallbackSSML,
       text,
       state: source === 'current' ? 'idle' : 'queued',
       createdAt: Date.now(),
@@ -420,6 +423,44 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     });
   }, [preloadNext]);
 
+  const attemptSpeakSegment = useCallback(async (
+    segment: TTSQueueSegment,
+    isContinuous?: boolean,
+  ): Promise<boolean> => {
+    const attempts = [
+      { ssml: segment.enhancedSSML, kind: 'primary', delayMs: 0 },
+      { ssml: segment.enhancedSSML, kind: 'retry', delayMs: 350 },
+      { ssml: segment.fallbackSSML, kind: 'fallback-text', delayMs: 0 },
+    ] as const;
+
+    for (const attempt of attempts) {
+      if (attempt.delayMs > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, attempt.delayMs));
+      }
+
+      try {
+        logTTS('segment-speak-attempt', {
+          segment: segment.id,
+          kind: attempt.kind,
+          continuous: Boolean(isContinuous),
+        });
+        await ttsInstance.current.speak(attempt.ssml, undefined, isContinuous);
+        if (attempt.kind === 'fallback-text') {
+          logTTS('segment-fallback-success', { segment: segment.id });
+        }
+        return true;
+      } catch (err) {
+        logTTS('segment-speak-failed', {
+          segment: segment.id,
+          kind: attempt.kind,
+          message: err instanceof Error ? err.message : 'unknown',
+        });
+      }
+    }
+
+    return false;
+  }, [logTTS]);
+
   const speakSSML = useCallback(async (ssml: string | null | undefined, isContinuous?: boolean): Promise<boolean> => {
     if (!isSpeakableSSML(ssml)) return false;
 
@@ -431,8 +472,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     updateQueueSegmentState(currentSegment.id, 'loading');
     ttsInstance.current.cleanupIrrelevantPreloads(getRelevantQueueSSMLs());
     
-    try {
-      await ttsInstance.current.speak(currentSegment.enhancedSSML, undefined, isContinuous);
+    const didSpeak = await attemptSpeakSegment(currentSegment, isContinuous);
+    if (didSpeak) {
       updateQueueSegmentState(currentSegment.id, 'playing');
       retryContinuationRef.current = false;
       setResumePromptVisible(false);
@@ -444,14 +485,22 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       void preloadNext();
       
       return true;
-    } catch (err) {
-      updateQueueSegmentState(currentSegment.id, 'failed');
-      console.error('TTS speak error:', err);
-      return false;
     }
+
+    updateQueueSegmentState(currentSegment.id, 'failed');
+    logTTS('segment-failed', {
+      segment: currentSegment.id,
+      continuous: Boolean(isContinuous),
+    });
+    if (!isContinuous) {
+      toast.error('当前片段朗读失败，已尝试重试和纯文本降级。');
+    }
+    return false;
   }, [
+    attemptSpeakSegment,
     getRelevantQueueSSMLs,
     isSpeakableSSML,
+    logTTS,
     preloadNext,
     rebuildSpeechQueue,
     updateQueueSegmentState,
@@ -497,7 +546,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         continue;
       }
 
-      return speakSSML(ssml, true);
+      const success = await speakSSML(ssml, true);
+      if (success) {
+        return true;
+      }
+
+      logTTS('skip-failed-segment', { direction: 'next', attempt });
     }
 
     return false;
@@ -538,7 +592,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         continue;
       }
 
-      return speakSSML(ssml, true);
+      const success = await speakSSML(ssml, true);
+      if (success) {
+        return true;
+      }
+
+      logTTS('skip-failed-segment', { direction: 'prev', attempt });
     }
 
     return false;

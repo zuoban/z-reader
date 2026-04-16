@@ -25,11 +25,11 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition-all duration-200 cursor-pointer',
-          'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'group relative flex h-8 items-center gap-1.5 whitespace-nowrap rounded-none px-1 text-sm font-medium transition-all duration-200 cursor-pointer',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           open
-            ? 'border-foreground/14 bg-background/92 text-foreground shadow-[0_10px_22px_-20px_rgba(15,23,42,0.35)]'
-            : 'border-border/45 bg-background/58 text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
         )}
         onClick={(e) => e.stopPropagation()}
       >

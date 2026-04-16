@@ -237,11 +237,11 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
       <SheetTrigger
         render={
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon-sm"
             title="管理分类"
             aria-label="管理分类"
-            className="h-10 w-10 shrink-0 rounded-full border-border/60 bg-background/86 p-0 shadow-none hover:bg-background sm:h-11 sm:w-11 cursor-pointer"
+            className="h-8 w-8 shrink-0 rounded-none border-transparent bg-transparent p-0 text-foreground shadow-none hover:bg-transparent hover:opacity-70 sm:h-9 sm:w-9 cursor-pointer"
           />
         }
       >

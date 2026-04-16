@@ -149,6 +149,49 @@ export function getTextFromSSML(ssml: string): string {
   return text || stripSSML(ssml);
 }
 
+function getSignificantLines(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function isTableLikeTTSText(text: string): boolean {
+  const lines = getSignificantLines(text);
+  if (lines.length < 2) return false;
+
+  const tableLines = lines.filter((line) => {
+    const pipeCount = (line.match(/\|/g) ?? []).length;
+    const tabCount = (line.match(/\t/g) ?? []).length;
+    const multiSpaceColumns = (line.match(/\S\s{2,}\S/g) ?? []).length;
+    return pipeCount >= 2 || tabCount >= 2 || multiSpaceColumns >= 2;
+  });
+
+  return tableLines.length >= 2 && tableLines.length / lines.length >= 0.5;
+}
+
+function isCodeLikeTTSText(text: string): boolean {
+  const lines = getSignificantLines(text);
+  if (lines.length < 2) return false;
+
+  const codeLinePatterns = [
+    /^\s*(import|export|const|let|var|function|class|interface|type|return)\b/,
+    /^\s*(if|else|for|while|switch|case|try|catch|finally)\b/,
+    /^\s*(public|private|protected|static|async|await)\b/,
+    /^\s*[{}[\]();,]+$/,
+    /=>|===|!==|&&|\|\||<\/?[a-z][\w:-]*[^>]*>/i,
+    /^\s*["']?[\w-]+["']?\s*:\s*["'{[\d]/,
+  ];
+
+  const codeLines = lines.filter((line) => {
+    const symbolCount = (line.match(/[{}[\]();=<>/&|:]/g) ?? []).length;
+    const symbolRatio = symbolCount / Math.max(line.length, 1);
+    return codeLinePatterns.some((pattern) => pattern.test(line)) || symbolRatio > 0.24;
+  });
+
+  return codeLines.length >= 2 && codeLines.length / lines.length >= 0.5;
+}
+
 export function isSkippableTTSText(text: string): boolean {
   const normalized = text
     .replace(/\s+/g, ' ')
@@ -163,8 +206,18 @@ export function isSkippableTTSText(text: string): boolean {
   if (/^[\p{P}\p{S}]+$/u.test(compact) && compact.length <= 8) return true;
   if (/^\.{3,}$/.test(compact) || /^…+$/.test(compact)) return true;
   if (/^[·•*-]\d{1,4}$/.test(compact)) return true;
+  if (isTableLikeTTSText(text)) return true;
+  if (isCodeLikeTTSText(text)) return true;
 
   return false;
+}
+
+function normalizeTextNodeForTTS(text: string): string {
+  return text
+    .replace(/[\u00a0\u200b-\u200d\ufeff]/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\r?\n\s*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n');
 }
 
 function getBreakTimeForCharacter(character: string): string | null {
@@ -176,28 +229,56 @@ function getBreakTimeForCharacter(character: string): string | null {
   return null;
 }
 
+function createBreakElement(doc: XMLDocument, time: string): Element {
+  const breakElement = doc.createElementNS(
+    'http://www.w3.org/2001/10/synthesis',
+    'break',
+  );
+  breakElement.setAttribute('time', time);
+  return breakElement;
+}
+
 function appendTextWithBreaks(doc: XMLDocument, fragment: DocumentFragment, text: string): void {
+  const normalized = normalizeTextNodeForTTS(text);
   let buffer = '';
+  let charactersSinceBreak = 0;
 
-  for (const character of text) {
-    buffer += character;
-    const breakTime = getBreakTimeForCharacter(character);
-    if (!breakTime) continue;
-
+  const flushBuffer = () => {
+    if (!buffer) return;
     fragment.appendChild(doc.createTextNode(buffer));
     buffer = '';
+  };
 
-    const breakElement = doc.createElementNS(
-      'http://www.w3.org/2001/10/synthesis',
-      'break',
-    );
-    breakElement.setAttribute('time', breakTime);
-    fragment.appendChild(breakElement);
+  const appendBreak = (time: string) => {
+    flushBuffer();
+    fragment.appendChild(createBreakElement(doc, time));
+    charactersSinceBreak = 0;
+  };
+
+  for (const character of normalized) {
+    if (character === '\n') {
+      buffer += ' ';
+      appendBreak('360ms');
+      continue;
+    }
+
+    buffer += character;
+    if (!/\s/.test(character)) {
+      charactersSinceBreak += 1;
+    }
+
+    const breakTime = getBreakTimeForCharacter(character);
+    if (breakTime) {
+      appendBreak(breakTime);
+      continue;
+    }
+
+    if (charactersSinceBreak >= 90 && /[\s，,、；;：:]/.test(character)) {
+      appendBreak('180ms');
+    }
   }
 
-  if (buffer) {
-    fragment.appendChild(doc.createTextNode(buffer));
-  }
+  flushBuffer();
 }
 
 function shouldEnhanceTextNode(node: Node): boolean {

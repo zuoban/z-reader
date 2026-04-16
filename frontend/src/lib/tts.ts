@@ -216,11 +216,28 @@ interface PreloadedAudio {
   ssml: string;
   marks: TTSMark[];
   timestamp: number;
+  audio: HTMLAudioElement;
+  audioUrl: string;
+  ready: boolean;
 }
 
 interface CachedAudio {
   blob: Blob;
   marks: TTSMark[];
+}
+
+interface PreloadTask {
+  ssml: string;
+  marks?: TTSMark[];
+  resolve: () => void;
+}
+
+type TTSMetricDetail = Record<string, string | number | boolean | null | undefined>;
+
+interface AdaptivePreloadConfig {
+  progressThreshold: number;
+  remainingSeconds: number;
+  reason: string;
 }
 
 class LRUCache<T> {
@@ -296,15 +313,34 @@ export class BackendTTS {
   
   private preloadedQueue: PreloadedAudio[] = [];
   private maxPreloadCount: number = 3;
+  private maxPreloadConcurrency: number = 1;
+  private activePreloadCount: number = 0;
+  private pendingPreloadTasks: PreloadTask[] = [];
+  private queuedPreloadKeys: Set<string> = new Set();
   private preloadAbortControllers: Map<string, AbortController> = new Map();
   
   private audioCache: LRUCache<CachedAudio> = new LRUCache(10);
   private preloadTriggered: boolean = false;
   private preloadProgressThreshold: number = 0.28;
   private preloadRemainingSeconds: number = 12;
+  private synthesisLatencySamples: number[] = [];
+  private maxSynthesisLatencySamples: number = 8;
+  private consecutivePreloadMisses: number = 0;
   private suppressPauseEvent = false;
 
   private onPreloadTrigger: (() => void) | null = null;
+
+  private logMetric(event: string, detail?: TTSMetricDetail): void {
+    if (process.env.NODE_ENV === 'production') return;
+
+    const queueDetail = {
+      preloaded: this.preloadedQueue.length,
+      queued: this.pendingPreloadTasks.length,
+      activePreloads: this.activePreloadCount,
+    };
+    const payload = { ...queueDetail, ...detail };
+    console.info(`[tts-metric] ${event}`, payload);
+  }
   
   onPreloadTriggerCallback(cb: () => void): void {
     this.onPreloadTrigger = cb;
@@ -368,6 +404,91 @@ export class BackendTTS {
     }
   }
 
+  private createPreparedAudio(audioUrl: string): HTMLAudioElement {
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+    audio.autoplay = false;
+    audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
+    audio.crossOrigin = 'anonymous';
+    audio.load();
+    return audio;
+  }
+
+  private releasePreloadedAudio(preloaded: PreloadedAudio): void {
+    preloaded.audio.pause();
+    preloaded.audio.removeAttribute('src');
+    preloaded.audio.load();
+    URL.revokeObjectURL(preloaded.audioUrl);
+  }
+
+  private trimPreloadQueue(): void {
+    while (this.preloadedQueue.length > this.maxPreloadCount) {
+      const removed = this.preloadedQueue.shift();
+      if (removed) {
+        this.releasePreloadedAudio(removed);
+      }
+    }
+  }
+
+  private releaseAllPreloadedAudio(): void {
+    this.preloadedQueue.forEach((preloaded) => {
+      this.releasePreloadedAudio(preloaded);
+    });
+    this.preloadedQueue = [];
+  }
+
+  private recordSynthesisLatency(latencyMs: number): void {
+    if (!Number.isFinite(latencyMs) || latencyMs <= 0) return;
+
+    this.synthesisLatencySamples.push(latencyMs);
+    if (this.synthesisLatencySamples.length > this.maxSynthesisLatencySamples) {
+      this.synthesisLatencySamples.shift();
+    }
+  }
+
+  private getAverageSynthesisLatency(): number {
+    if (this.synthesisLatencySamples.length === 0) return 0;
+
+    const total = this.synthesisLatencySamples.reduce((sum, value) => sum + value, 0);
+    return total / this.synthesisLatencySamples.length;
+  }
+
+  private getAdaptivePreloadConfig(duration: number): AdaptivePreloadConfig {
+    const averageLatency = this.getAverageSynthesisLatency();
+    let progressThreshold = this.preloadProgressThreshold;
+    let remainingSeconds = this.preloadRemainingSeconds;
+    let reason = 'default';
+
+    if (averageLatency > 5000) {
+      progressThreshold = 0.12;
+      remainingSeconds = 20;
+      reason = 'slow-synthesis';
+    } else if (averageLatency > 2500) {
+      progressThreshold = 0.2;
+      remainingSeconds = 15;
+      reason = 'moderate-synthesis';
+    } else if (averageLatency > 0 && averageLatency < 1000 && this.consecutivePreloadMisses === 0) {
+      progressThreshold = 0.42;
+      remainingSeconds = 8;
+      reason = 'fast-synthesis';
+    }
+
+    if (this.consecutivePreloadMisses >= 2) {
+      progressThreshold = Math.min(progressThreshold, 0.16);
+      remainingSeconds = Math.max(remainingSeconds, 18);
+      reason = 'preload-misses';
+    }
+
+    if (duration > 0 && duration <= 18) {
+      progressThreshold = 0.05;
+      remainingSeconds = Math.max(1, duration - 1);
+      reason = 'short-audio';
+    }
+
+    return { progressThreshold, remainingSeconds, reason };
+  }
+
   async speak(ssml: string, marks?: TTSMark[], isContinuous?: boolean): Promise<void> {
     this.currentSSML = ssml;
     this.preloadTriggered = false;
@@ -381,6 +502,12 @@ export class BackendTTS {
     // 检查缓存，如果命中则无需取消任何请求
     const cached = this.audioCache.get(ssml);
     if (cached) {
+      this.logMetric('speak.cache-hit', {
+        source: 'memory',
+        bytes: cached.blob.size,
+        continuous: Boolean(isContinuous),
+      });
+      this.consecutivePreloadMisses = 0;
       this.stopInternal(isContinuous);
       this.marks = cached.marks;
       const audioUrl = URL.createObjectURL(cached.blob);
@@ -395,26 +522,53 @@ export class BackendTTS {
       this.stopInternal(isContinuous);
       const preloaded = this.preloadedQueue[preloadedIndex];
       this.preloadedQueue.splice(preloadedIndex, 1);
+      this.logMetric('speak.preload-hit', {
+        bytes: preloaded.blob.size,
+        ready: preloaded.ready,
+        ageMs: Date.now() - preloaded.timestamp,
+        continuous: Boolean(isContinuous),
+      });
+      this.consecutivePreloadMisses = 0;
       this.marks = preloaded.marks;
       this.audioCache.set(ssml, { blob: preloaded.blob, marks: preloaded.marks });
-      const audioUrl = URL.createObjectURL(preloaded.blob);
-      this.audioUrl = audioUrl;
-      await this.playAudio(audioUrl);
+      this.audioUrl = preloaded.audioUrl;
+      await this.playAudio(preloaded.audioUrl, preloaded.audio);
       return;
     }
 
     // 只在需要新请求时才停止当前播放
+    this.logMetric('speak.network-start', {
+      continuous: Boolean(isContinuous),
+      ssmlBytes: ssml.length,
+    });
+    if (isContinuous) {
+      this.consecutivePreloadMisses += 1;
+    }
+    this.cancelAllPreloads();
     this.stopInternal(isContinuous);
 
     try {
+      const start = performance.now();
       const { blob, audioUrl } = await this.fetchAudioBlob(ssml);
+      const latencyMs = Math.round(performance.now() - start);
+      this.recordSynthesisLatency(latencyMs);
+      this.logMetric('speak.network-complete', {
+        bytes: blob.size,
+        latencyMs,
+        averageLatencyMs: Math.round(this.getAverageSynthesisLatency()),
+        preloadMisses: this.consecutivePreloadMisses,
+      });
       this.audioUrl = audioUrl;
       this.audioCache.set(ssml, { blob, marks: this.marks });
       await this.playAudio(audioUrl);
     } catch (error) {
       if (isAbortLikeError(error)) {
+        this.logMetric('speak.network-abort');
         return;
       }
+      this.logMetric('speak.network-error', {
+        message: error instanceof Error ? error.message : String(error),
+      });
       this.setState('stopped');
       throw error;
     }
@@ -453,14 +607,17 @@ export class BackendTTS {
     }
   }
 
-  private async playAudio(audioUrl: string): Promise<void> {
-    const audio = this.getOrCreateAudio();
+  private async playAudio(audioUrl: string, preparedAudio?: HTMLAudioElement): Promise<void> {
+    const audio = preparedAudio ?? this.getOrCreateAudio();
+    this.audio = audio;
 
     this.suppressPauseEvent = true;
     audio.pause();
     audio.currentTime = 0;
-    audio.src = audioUrl;
-    audio.load();
+    if (audio.src !== audioUrl) {
+      audio.src = audioUrl;
+      audio.load();
+    }
 
     this.currentMarkIndex = 0;
 
@@ -503,11 +660,22 @@ export class BackendTTS {
         const duration = audio.duration || 0;
         this.onTimeUpdate(audio.currentTime, duration);
         
+        const adaptiveConfig = this.getAdaptivePreloadConfig(duration);
         const remainingSeconds = duration - audio.currentTime;
         if (!this.preloadTriggered && duration > 0 &&
-            (audio.currentTime >= duration * this.preloadProgressThreshold ||
-              remainingSeconds <= this.preloadRemainingSeconds)) {
+            (audio.currentTime >= duration * adaptiveConfig.progressThreshold ||
+              remainingSeconds <= adaptiveConfig.remainingSeconds)) {
           this.preloadTriggered = true;
+          this.logMetric('preload.triggered', {
+            reason: adaptiveConfig.reason,
+            currentTime: Math.round(audio.currentTime * 10) / 10,
+            duration: Math.round(duration * 10) / 10,
+            remainingSeconds: Math.round(remainingSeconds * 10) / 10,
+            progressThreshold: adaptiveConfig.progressThreshold,
+            triggerRemainingSeconds: adaptiveConfig.remainingSeconds,
+            averageLatencyMs: Math.round(this.getAverageSynthesisLatency()),
+            preloadMisses: this.consecutivePreloadMisses,
+          });
           this.onPreloadTrigger?.();
         }
       }
@@ -522,15 +690,48 @@ export class BackendTTS {
     if (this.audioCache.has(ssml)) return;
     
     if (this.preloadedQueue.some(p => p.ssml === ssml)) return;
-    
-    this.cancelPreload(ssml);
-    
-    if (this.preloadedQueue.length >= this.maxPreloadCount) {
-      this.preloadedQueue.shift();
+    if (this.queuedPreloadKeys.has(ssml) || this.preloadAbortControllers.has(ssml)) return;
+
+    return new Promise((resolve) => {
+      this.queuedPreloadKeys.add(ssml);
+      this.pendingPreloadTasks.push({ ssml, marks, resolve });
+      this.logMetric('preload.enqueued', {
+        ssmlBytes: ssml.length,
+      });
+      this.pumpPreloadQueue();
+    });
+  }
+
+  private pumpPreloadQueue(): void {
+    while (
+      this.activePreloadCount < this.maxPreloadConcurrency &&
+      this.pendingPreloadTasks.length > 0
+    ) {
+      const task = this.pendingPreloadTasks.shift();
+      if (!task) return;
+
+      this.queuedPreloadKeys.delete(task.ssml);
+      this.activePreloadCount += 1;
+      this.logMetric('preload.started', {
+        ssmlBytes: task.ssml.length,
+      });
+      void this.runPreloadTask(task).finally(() => {
+        this.activePreloadCount = Math.max(0, this.activePreloadCount - 1);
+        task.resolve();
+        this.pumpPreloadQueue();
+      });
     }
-    
+  }
+
+  private async runPreloadTask(task: PreloadTask): Promise<void> {
+    const { ssml, marks } = task;
+
+    if (this.audioCache.has(ssml)) return;
+    if (this.preloadedQueue.some(p => p.ssml === ssml)) return;
+
     const controller = new AbortController();
     this.preloadAbortControllers.set(ssml, controller);
+    const start = performance.now();
     
     try {
       const marksArray = marks && marks.length > 0
@@ -538,17 +739,45 @@ export class BackendTTS {
         : [{ name: '0', text: stripSSML(ssml) }];
 
       const blob = await this.fetchAudioBlobWithController(ssml, controller);
-
-      this.preloadedQueue.push({
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = this.createPreparedAudio(audioUrl);
+      const preloaded: PreloadedAudio = {
         blob,
         ssml,
         marks: marksArray,
         timestamp: Date.now(),
+        audio,
+        audioUrl,
+        ready: false,
+      };
+
+      const markReady = () => {
+        preloaded.ready = true;
+      };
+
+      audio.oncanplaythrough = markReady;
+      audio.onloadeddata = markReady;
+
+      this.preloadedQueue.push(preloaded);
+      this.trimPreloadQueue();
+      const latencyMs = Math.round(performance.now() - start);
+      this.recordSynthesisLatency(latencyMs);
+      this.logMetric('preload.complete', {
+        bytes: blob.size,
+        latencyMs,
+        averageLatencyMs: Math.round(this.getAverageSynthesisLatency()),
       });
     } catch (error) {
       if (isAbortLikeError(error)) {
+        this.logMetric('preload.abort', {
+          latencyMs: Math.round(performance.now() - start),
+        });
         return;
       }
+      this.logMetric('preload.error', {
+        latencyMs: Math.round(performance.now() - start),
+        message: error instanceof Error ? error.message : String(error),
+      });
       console.error('Preload failed:', error);
     } finally {
       this.preloadAbortControllers.delete(ssml);
@@ -606,11 +835,33 @@ export class BackendTTS {
       const isRelevant = relevantSSMLs.includes(p.ssml);
       if (!isRelevant) {
         toRemove.push(p.ssml);
+        this.releasePreloadedAudio(p);
       }
       return isRelevant;
     });
     
     toRemove.forEach(ssml => this.cancelPreload(ssml));
+    if (toRemove.length > 0) {
+      this.logMetric('preload.cleanup-ready', {
+        removed: toRemove.length,
+      });
+    }
+
+    let removedPending = 0;
+    this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
+      const isRelevant = relevantSSMLs.includes(task.ssml);
+      if (!isRelevant) {
+        this.queuedPreloadKeys.delete(task.ssml);
+        task.resolve();
+        removedPending += 1;
+      }
+      return isRelevant;
+    });
+    if (removedPending > 0) {
+      this.logMetric('preload.cleanup-pending', {
+        removed: removedPending,
+      });
+    }
   }
 
   cancelPreload(ssml: string): void {
@@ -619,6 +870,13 @@ export class BackendTTS {
       controller.abort();
       this.preloadAbortControllers.delete(ssml);
     }
+
+    this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
+      if (task.ssml !== ssml) return true;
+      this.queuedPreloadKeys.delete(task.ssml);
+      task.resolve();
+      return false;
+    });
   }
 
   cancelAllPreloads(): void {
@@ -626,16 +884,20 @@ export class BackendTTS {
       controller.abort();
     }
     this.preloadAbortControllers.clear();
+    this.pendingPreloadTasks.forEach((task) => {
+      this.queuedPreloadKeys.delete(task.ssml);
+      task.resolve();
+    });
+    this.pendingPreloadTasks = [];
   }
 
   clearPreloadQueue(): void {
     this.cancelAllPreloads();
-    this.preloadedQueue = [];
+    this.releaseAllPreloadedAudio();
   }
 
   private cleanupPreload(): void {
-    this.cancelAllPreloads();
-    this.preloadedQueue = [];
+    this.clearPreloadQueue();
     this.audioCache.clear();
   }
 
@@ -645,7 +907,7 @@ export class BackendTTS {
 
   clearPreloadQueueOnly(): void {
     this.cancelAllPreloads();
-    this.preloadedQueue = [];
+    this.releaseAllPreloadedAudio();
   }
 
   getPreloadQueueLength(): number {

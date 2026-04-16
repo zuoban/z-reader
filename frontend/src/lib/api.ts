@@ -1,4 +1,9 @@
-import { API_BASE, createAbortController, DEFAULT_TIMEOUT } from '@/lib/config';
+import {
+  API_BASE,
+  createAbortController,
+  DEFAULT_TIMEOUT,
+  normalizeRequestError,
+} from '@/lib/config';
 
 export interface Book {
   id: string;
@@ -63,6 +68,8 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
     }
 
     return res.json();
+  } catch (error) {
+    throw normalizeRequestError(error);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -156,6 +163,8 @@ export const api = {
         throw new Error(`Failed to fetch book: ${res.status}`);
       }
       return res.blob();
+    } catch (error) {
+      throw normalizeRequestError(error, '加载书籍超时，请稍后重试');
     } finally {
       clearTimeout(timeoutId);
     }
@@ -205,6 +214,11 @@ export const api = {
         return null;
       }
       return res.blob();
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        return null;
+      }
+      throw normalizeRequestError(error, '加载封面超时，请稍后重试');
     } finally {
       clearTimeout(timeoutId);
     }

@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { API_BASE, createAbortController, DEFAULT_TIMEOUT } from '@/lib/config';
+import {
+  API_BASE,
+  createAbortController,
+  DEFAULT_TIMEOUT,
+  normalizeRequestError,
+} from '@/lib/config';
 
 interface UseApiOptions<T> {
   onSuccess?: (data: T) => void;
@@ -53,7 +58,7 @@ export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
       defaultOptions?.onSuccess?.(result);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = normalizeRequestError(err);
       setError(error);
       defaultOptions?.onError?.(error);
       return null;
@@ -109,7 +114,7 @@ export function useApiMutation<T, P = void>(defaultOptions?: UseApiOptions<T>) {
       defaultOptions?.onSuccess?.(result);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = normalizeRequestError(err);
       setError(error);
       defaultOptions?.onError?.(error);
       return null;

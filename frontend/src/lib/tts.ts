@@ -1,6 +1,6 @@
 'use client';
 
-import { API_BASE, createAbortController } from '@/lib/config';
+import { API_BASE, createAbortController, isAbortLikeError } from '@/lib/config';
 
 export type TTSState = 'stopped' | 'playing' | 'paused';
 
@@ -323,7 +323,7 @@ export class BackendTTS {
       this.audioCache.set(ssml, { blob, marks: this.marks });
       await this.playAudio(audioUrl);
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isAbortLikeError(error)) {
         return;
       }
       this.setState('stopped');
@@ -455,7 +455,7 @@ export class BackendTTS {
         timestamp: Date.now(),
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isAbortLikeError(error)) {
         return;
       }
       console.error('Preload failed:', error);
@@ -487,7 +487,7 @@ export class BackendTTS {
 
       return await response.blob();
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isAbortLikeError(error)) {
         throw error;
       }
       throw new Error(`TTS fetch error: ${error}`);

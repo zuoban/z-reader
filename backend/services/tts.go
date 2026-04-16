@@ -19,11 +19,11 @@ var (
 
 func GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat string) ([]byte, error) {
 	ssml := utils.BuildSsml(text, voiceName, rate, pitch, style)
-	return callTTSAPI(ssml, outputFormat, false)
+	return callTTSAPIWithCache(ssml, outputFormat)
 }
 
 func GenerateAudioFromSsml(ssml, outputFormat string) ([]byte, error) {
-	return callTTSAPI(ssml, outputFormat, false)
+	return callTTSAPIWithCache(ssml, outputFormat)
 }
 
 func clearEndpointCache() {

@@ -119,8 +119,96 @@ function stripSSML(ssml: string): string {
     .replace(/<\/?lang[^>]*>/gi, '')
     .replace(/<\/?voice[^>]*>/gi, '')
     .replace(/<\/?prosody[^>]*>/gi, '')
+    .replace(/<\/?mstts:[^>]*>/gi, '')
+    .replace(/<\/?bookmark[^>]*>/gi, '')
     .replace(/<[^>]+>/g, '')
     .trim();
+}
+
+function inferLocaleFromVoice(voiceName: string): string {
+  const match = voiceName.match(/^([a-z]{2,3}-[A-Z]{2})-/);
+  return match?.[1] ?? 'zh-CN';
+}
+
+function createParserErrorFreeDocument(source: string): XMLDocument | null {
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+    return null;
+  }
+
+  const doc = new DOMParser().parseFromString(source, 'application/xml');
+  if (doc.querySelector('parsererror')) {
+    return null;
+  }
+
+  return doc;
+}
+
+export function getTextFromSSML(ssml: string): string {
+  const doc = createParserErrorFreeDocument(ssml);
+  const text = doc?.documentElement?.textContent?.trim();
+  return text || stripSSML(ssml);
+}
+
+export function buildAzureSSML(content: string, settings: TTSSettings): string {
+  const rateStr = settings.rate >= 0 ? `+${settings.rate}%` : `${settings.rate}%`;
+  const originalDoc = createParserErrorFreeDocument(content);
+  const originalRoot = originalDoc?.documentElement;
+  const originalIsSpeak = originalRoot?.localName.toLowerCase() === 'speak';
+  const lang =
+    originalRoot?.getAttribute('xml:lang') ||
+    originalRoot?.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang') ||
+    originalRoot?.getAttribute('lang') ||
+    inferLocaleFromVoice(settings.voiceName);
+
+  const doc = document.implementation.createDocument(
+    'http://www.w3.org/2001/10/synthesis',
+    'speak',
+  );
+  const speak = doc.documentElement;
+  speak.setAttribute('version', '1.0');
+  speak.setAttribute('xmlns', 'http://www.w3.org/2001/10/synthesis');
+  speak.setAttribute('xmlns:mstts', 'http://www.w3.org/2001/mstts');
+  speak.setAttribute('xml:lang', lang);
+
+  const voice = doc.createElementNS('http://www.w3.org/2001/10/synthesis', 'voice');
+  voice.setAttribute('name', settings.voiceName);
+  speak.appendChild(voice);
+
+  const speechContainer = settings.style
+    ? doc.createElementNS('http://www.w3.org/2001/mstts', 'mstts:express-as')
+    : voice;
+
+  if (settings.style && speechContainer instanceof Element) {
+    speechContainer.setAttribute('style', settings.style);
+    speechContainer.setAttribute('styledegree', '1.0');
+    voice.appendChild(speechContainer);
+  }
+
+  const prosody = doc.createElementNS('http://www.w3.org/2001/10/synthesis', 'prosody');
+  prosody.setAttribute('rate', rateStr);
+  speechContainer.appendChild(prosody);
+
+  if (originalDoc && originalRoot) {
+    const sourceNodes = originalIsSpeak ? originalRoot.childNodes : originalDoc.childNodes;
+    Array.from(sourceNodes).forEach((node) => {
+      prosody.appendChild(doc.importNode(node, true));
+    });
+    Array.from(prosody.getElementsByTagName('mark')).forEach((mark) => {
+      const name = mark.getAttribute('name');
+      if (!name) return;
+
+      const bookmark = doc.createElementNS(
+        'http://www.w3.org/2001/10/synthesis',
+        'bookmark',
+      );
+      bookmark.setAttribute('mark', name);
+      mark.replaceWith(bookmark);
+    });
+  } else {
+    prosody.appendChild(doc.createTextNode(content));
+  }
+
+  return new XMLSerializer().serializeToString(doc);
 }
 
 interface PreloadedAudio {
@@ -213,6 +301,7 @@ export class BackendTTS {
   private audioCache: LRUCache<CachedAudio> = new LRUCache(10);
   private preloadTriggered: boolean = false;
   private preloadProgressThreshold: number = 0.28;
+  private preloadRemainingSeconds: number = 12;
   private suppressPauseEvent = false;
 
   private onPreloadTrigger: (() => void) | null = null;
@@ -414,8 +503,10 @@ export class BackendTTS {
         const duration = audio.duration || 0;
         this.onTimeUpdate(audio.currentTime, duration);
         
-        if (!this.preloadTriggered && duration > 0 && 
-            audio.currentTime >= duration * this.preloadProgressThreshold) {
+        const remainingSeconds = duration - audio.currentTime;
+        if (!this.preloadTriggered && duration > 0 &&
+            (audio.currentTime >= duration * this.preloadProgressThreshold ||
+              remainingSeconds <= this.preloadRemainingSeconds)) {
           this.preloadTriggered = true;
           this.onPreloadTrigger?.();
         }

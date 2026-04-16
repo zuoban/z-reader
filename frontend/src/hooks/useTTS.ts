@@ -7,6 +7,8 @@ import {
   TTSState,
   TTSSettings,
   TTSMark,
+  buildAzureSSML,
+  getTextFromSSML,
   loadTTSSettings,
 } from '@/lib/tts';
 import { FoliateView } from '@/lib/types';
@@ -160,17 +162,8 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     });
   }, [viewRef]);
 
-  const buildSSML = useCallback((text: string): string => {
-    const rateStr = settings.rate >= 0 ? `+${settings.rate}%` : `${settings.rate}%`;
-    const styleAttr = settings.style ? ` style="${settings.style}"` : '';
-
-    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-  <voice name="${settings.voiceName}"${styleAttr}>
-    <prosody rate="${rateStr}">
-      ${text}
-    </prosody>
-  </voice>
-</speak>`;
+  const buildSSML = useCallback((content: string): string => {
+    return buildAzureSSML(content, settings);
   }, [settings]);
 
   const ensureTTS = useCallback(async () => {
@@ -193,18 +186,6 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     }
   }, [viewRef, handleHighlight]);
 
-  const getTextFromSSML = useCallback((ssml: string): string => {
-    return ssml
-      .replace(/<\/?speak[^>]*>/gi, '')
-      .replace(/<\/?mark[^>]*>/gi, '')
-      .replace(/<\/?voice[^>]*>/gi, '')
-      .replace(/<\/?prosody[^>]*>/gi, '')
-      .replace(/<\/?emphasis[^>]*>/gi, '')
-      .replace(/<\/?break[^>]*>/gi, ' ')
-      .replace(/<[^>]+>/g, '')
-      .trim();
-  }, []);
-
   // 获取后续多个段落的 SSML（不改变状态）
   const getNextSSMLs = useCallback((count: number): string[] => {
     if (!viewRef.current) return [];
@@ -221,21 +202,21 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const preloadNext = useCallback(async () => {
     if (!viewRef.current) return;
     
-    if (state !== 'playing') return;
+    if (!ttsInstance.current.isSpeaking()) return;
     
     try {
       const ssmlList = getNextSSMLs(3);
       
       const enhancedList = ssmlList.map(ssml => {
         const text = getTextFromSSML(ssml);
-        return text ? buildSSML(text) : '';
+        return text ? buildSSML(ssml) : '';
       }).filter((ssml: string) => ssml);
       
       await ttsInstance.current.preloadMultiple(enhancedList);
     } catch (err) {
       console.error('Preload error:', err);
     }
-  }, [viewRef, state, getNextSSMLs, getTextFromSSML, buildSSML]);
+  }, [viewRef, getNextSSMLs, buildSSML]);
 
   useEffect(() => {
     ttsInstance.current.onPreloadTriggerCallback(() => {
@@ -249,12 +230,12 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     const text = getTextFromSSML(ssml);
     if (!text) return false;
 
-    const enhancedSSML = buildSSML(text);
+    const enhancedSSML = buildSSML(ssml);
     
     // 清理不相关的预加载
     const nextSSMLs = getNextSSMLs(3).map(s => {
       const t = getTextFromSSML(s);
-      return t ? buildSSML(t) : '';
+      return t ? buildSSML(s) : '';
     }).filter(s => s);
     
     ttsInstance.current.cleanupIrrelevantPreloads([enhancedSSML, ...nextSSMLs]);

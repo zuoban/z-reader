@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TTSSettings, Voice } from '@/lib/tts';
+import { buildAzureSSML, TTSSettings, Voice } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 
@@ -60,17 +60,8 @@ export function VoiceSelector({
     onUpdateSettings({ style: value === '__clear__' ? undefined : value });
   }, [onUpdateSettings]);
 
-  // 构建 SSML
   const buildSSML = useCallback((text: string): string => {
-    const rateStr = settings.rate >= 0 ? `+${settings.rate}%` : `${settings.rate}%`;
-    const styleAttr = settings.style ? ` style="${settings.style}"` : '';
-    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-  <voice name="${settings.voiceName}"${styleAttr}>
-    <prosody rate="${rateStr}">
-      ${text}
-    </prosody>
-  </voice>
-</speak>`;
+    return buildAzureSSML(text, settings);
   }, [settings]);
 
   // 停止试听

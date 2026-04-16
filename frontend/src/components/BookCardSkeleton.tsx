@@ -48,16 +48,16 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
         >
           {/* Cover skeleton */}
           <div
-            className="relative overflow-hidden bg-stone-50 dark:bg-neutral-800"
+            className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-stone-50 to-zinc-100 dark:from-neutral-800/60 dark:via-neutral-900/80 dark:to-neutral-950"
             style={{ height: coverHeight }}
           >
             {isMobile && (
               <>
-                <div className="pointer-events-none absolute inset-x-4 top-0 h-14 rounded-b-[26px] bg-white/35 dark:bg-white/10 blur-2xl" />
-                <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-3 top-0 h-16 rounded-b-[32px] bg-white/40 dark:bg-white/8 blur-3xl" />
+                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-black/8 to-transparent dark:via-white/5" />
               </>
             )}
-            <div className="relative flex h-full items-center justify-center px-5 py-4 sm:px-6">
+            <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
                 className="shrink-0"
                 style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
@@ -66,7 +66,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                   <div
                     style={{ transform: `scale(${bookScale})`, transformOrigin: 'center center' }}
                   >
-                    <div className="relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] bg-gradient-to-br from-stone-200 to-stone-100 dark:from-neutral-700 dark:to-neutral-800 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                    <div className="relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] bg-muted shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
                       <Skeleton className="absolute inset-0 rounded-[4px]" />
                     </div>
                   </div>
@@ -82,9 +82,9 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
           >
             <div className="space-y-2.5 sm:space-y-2.5">
               {/* Title skeleton */}
-              <div className="flex items-start gap-2">
-                <Skeleton className="h-[2.8rem] min-w-0 flex-1 rounded-md sm:h-[2.6rem]" />
-                <Skeleton className="h-8 w-8 shrink-0 rounded-xl sm:h-7 sm:w-7 sm:rounded-lg" />
+              <div className="relative pr-6 sm:pr-5">
+                <Skeleton className="min-h-[3rem] min-w-0 rounded-md sm:min-h-[2.7rem]" />
+                <Skeleton className="absolute right-[-6px] top-[-5px] h-7 w-7 rounded-lg sm:right-[-4px] sm:top-[-4px] sm:h-6.5 sm:w-6.5 sm:rounded-lg" />
               </div>
 
               {/* Author skeleton */}

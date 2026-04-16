@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
+import { BookOpen, Library, LogOut, Moon, Plus, Sun, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
+import { useShelfTheme } from '@/hooks/useShelfTheme';
 import { Category } from '@/lib/api';
 import { AppScreen, BrandMark, LoadingSpinner } from '@/components/AppShell';
 import { BookCard } from '@/components/BookCard';
@@ -92,7 +93,9 @@ function CategoryDropdown({
             {bookCounts.all}
           </span>
         </DropdownMenuItem>
-        {categories.map((category, index) => (
+        {categories
+          .filter((category) => (bookCounts[category.id] || 0) > 0)
+          .map((category, index) => (
           <DropdownMenuItem
             key={category.id}
             onClick={() => {
@@ -124,6 +127,7 @@ function CategoryDropdown({
 export default function ShelfPage() {
   const router = useRouter();
   const { isLoading, isAuthenticated, logout } = useAuth();
+  const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
     categories,
@@ -169,11 +173,9 @@ export default function ShelfPage() {
     >
       <header className="rounded-[24px] border border-border/55 bg-background/82 px-4 py-4 shadow-[0_18px_40px_-36px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:rounded-[28px] sm:px-6 sm:py-5">
         <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0 flex items-center gap-4">
-            <div className="min-w-0 flex-1">
-              <BrandMark size="lg" className="hidden sm:block" priority />
-              <BrandMark size="sm" className="sm:hidden" priority />
-            </div>
+          <div className="min-w-0 flex-1">
+            <BrandMark size="lg" className="hidden sm:block" priority />
+            <BrandMark size="sm" className="sm:hidden" priority />
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-muted/45 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
@@ -197,6 +199,20 @@ export default function ShelfPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={toggleTheme}
+              title={isDark ? '切换亮色模式' : '切换暗色模式'}
+              className="h-10 w-10 shrink-0 rounded-full border-border/60 bg-background/86 p-0 text-foreground shadow-none hover:bg-background sm:h-11 sm:w-11 cursor-pointer"
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+              ) : (
+                <Moon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={logout}
               title="退出"
               className="h-10 w-10 shrink-0 rounded-full border-border/60 bg-background/86 p-0 text-foreground shadow-none hover:bg-background sm:h-11 sm:w-11 cursor-pointer"
@@ -205,12 +221,25 @@ export default function ShelfPage() {
             </Button>
           </div>
         </div>
-        <div className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] leading-5 text-muted-foreground sm:mt-4 sm:text-[13px]">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-[12px] font-semibold leading-5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.48)] sm:text-[13px]">
-            <Library className="h-3.5 w-3.5" />
-            我的书架
-          </span>
-          <span className="font-medium tabular-nums">共 {books.length} 本书</span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5 text-[12px] leading-5 text-muted-foreground sm:mt-4 sm:text-[13px]">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-[12px] font-semibold leading-5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.48)] sm:text-[13px]">
+              <Library className="h-3.5 w-3.5" />
+              我的书架
+            </span>
+            <span className="font-medium tabular-nums">共 {books.length} 本书</span>
+          </div>
+          {categories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <SortSelector value={sortBy} onChange={setSortBy} />
+              <CategoryDropdown
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onSelectCategory={setSelectedCategoryId}
+                bookCounts={bookCounts}
+              />
+            </div>
+          )}
         </div>
       </header>
 
@@ -246,18 +275,6 @@ export default function ShelfPage() {
           />
         ) : (
           <section className="relative isolate">
-            {categories.length > 0 && (
-              <div className="relative z-20 mb-4 flex flex-wrap items-center justify-end gap-3 sm:mb-6">
-                <SortSelector value={sortBy} onChange={setSortBy} />
-                <CategoryDropdown
-                  categories={categories}
-                  selectedCategoryId={selectedCategoryId}
-                  onSelectCategory={setSelectedCategoryId}
-                  bookCounts={bookCounts}
-                />
-              </div>
-            )}
-
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (

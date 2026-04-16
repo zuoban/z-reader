@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ShelfTheme {
   isDark: boolean;
@@ -19,7 +19,16 @@ function readShelfTheme(): ShelfTheme {
   return { isDark: false };
 }
 
-export function useShelfTheme(): ShelfTheme {
+function writeShelfTheme(isDark: boolean) {
+  try {
+    localStorage.setItem('z-reader-theme', JSON.stringify({ preset: isDark ? 'dark' : 'light' }));
+    window.dispatchEvent(new Event('z-reader-theme-change'));
+  } catch {
+    // ignore
+  }
+}
+
+export function useShelfTheme(): ShelfTheme & { toggleTheme: () => void } {
   const [theme, setTheme] = useState<ShelfTheme>(readShelfTheme);
 
   useEffect(() => {
@@ -35,5 +44,10 @@ export function useShelfTheme(): ShelfTheme {
     };
   }, []);
 
-  return theme;
+  const toggleTheme = useCallback(() => {
+    writeShelfTheme(!theme.isDark);
+    setTheme({ isDark: !theme.isDark });
+  }, [theme.isDark]);
+
+  return { ...theme, toggleTheme };
 }

@@ -234,13 +234,13 @@ export function BookCard({
           className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[22px] border border-black/8 bg-white dark:bg-neutral-900 dark:border-white/10 shadow-[0_24px_44px_-34px_rgba(15,23,42,0.38),0_10px_24px_-20px_rgba(15,23,42,0.22)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/15 dark:hover:border-white/20 hover:shadow-[0_28px_52px_-34px_rgba(15,23,42,0.42)] active:scale-[0.985] active:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
         >
           <div
-            className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.96),rgba(245,239,231,0.92)_42%,rgba(234,228,221,0.82)_100%)] dark:bg-neutral-800"
+            className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-stone-50 to-zinc-100 dark:from-neutral-800/60 dark:via-neutral-900/80 dark:to-neutral-950"
             style={{ height: coverHeight }}
           >
             {isMobile && (
               <>
-                <div className="pointer-events-none absolute inset-x-4 top-0 h-14 rounded-b-[26px] bg-white/35 dark:bg-white/10 blur-2xl" />
-                <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-3 top-0 h-16 rounded-b-[32px] bg-white/40 dark:bg-white/8 blur-3xl" />
+                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-black/8 to-transparent dark:via-white/5" />
               </>
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">

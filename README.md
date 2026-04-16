@@ -82,8 +82,11 @@ cp .env.example .env
 | `DB_PATH` | 数据库路径 | ./data.db |
 | `ALLOWED_ORIGINS` | 允许访问后端的前端来源（逗号分隔） | http://localhost:3000,http://localhost:8080 |
 | `NEXT_SERVER_API_URL` | Next.js 开发/SSR 代理到后端时使用的地址 | http://127.0.0.1:8080 |
-| `AZURE_TTS_KEY` | Azure TTS 密钥 | - |
-| `AZURE_TTS_REGION` | Azure 区域 | eastasia |
+| `TTS_CACHE_DIR` | TTS 磁盘缓存目录 | ./data/tts-cache |
+| `TTS_CACHE_MAX_BYTES` | TTS 缓存最大字节数 | 67108864 |
+| `TTS_CACHE_MAX_ITEMS` | TTS 缓存最大条目数 | 128 |
+| `TTS_CACHE_TTL_SECONDS` | TTS 缓存保留秒数 | 86400 |
+| `TTS_MAX_CONCURRENCY` | TTS 真实合成请求最大并发数 | 3 |
 
 ### 2. 启动后端
 
@@ -112,9 +115,10 @@ Z Reader 支持高质量的 Azure TTS 语音朗读功能：
 - **多语言支持** - 中文、英文、日语等多种语言
 - **语音选择** - 多种神经网络语音可选
 - **语速调节** - 自定义朗读速度
-- **音调控制** - 调整语音音调高低
+- **朗读缓存** - 内存与磁盘缓存复用已合成音频
+- **断点恢复** - 刷新或回到书籍后可从上次朗读位置继续
 
-> 需配置 Azure Cognitive Services 密钥才能使用 TTS 功能。
+> TTS 合成结果会按 SSML 与音频格式缓存，重复朗读同一段内容时会优先复用本地缓存。
 
 ## 项目结构
 

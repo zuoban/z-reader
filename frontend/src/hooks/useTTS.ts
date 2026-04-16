@@ -21,9 +21,24 @@ import { useWakeLock } from '@/hooks/useWakeLock';
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
   onHighlight?: (range: Range) => void;
+  bookId?: string;
 }
 
-export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
+interface TTSSessionSnapshot {
+  cfi: string;
+  markName?: string;
+  markText?: string;
+  timestamp: number;
+  settings: TTSSettings;
+}
+
+const TTS_SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+
+function getTTSSessionKey(bookId?: string): string | null {
+  return bookId ? `z-reader-tts-session:${bookId}` : null;
+}
+
+export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
   const [currentMark, setCurrentMark] = useState<TTSMark | null>(null);
@@ -49,6 +64,63 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const dismissResumePrompt = useCallback(() => {
     toast.dismiss('tts-resume-hint');
   }, []);
+
+  const loadTTSSession = useCallback((): TTSSessionSnapshot | null => {
+    if (typeof window === 'undefined') return null;
+
+    const key = getTTSSessionKey(bookId);
+    if (!key) return null;
+
+    try {
+      const saved = localStorage.getItem(key);
+      if (!saved) return null;
+
+      const parsed = JSON.parse(saved) as TTSSessionSnapshot;
+      if (!parsed.cfi || Date.now() - parsed.timestamp > TTS_SESSION_TTL) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, [bookId]);
+
+  const saveTTSSession = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const key = getTTSSessionKey(bookId);
+    const cfi = viewRef.current?.lastLocation?.cfi;
+    if (!key || !cfi) return;
+
+    const mark = currentMarkRef.current;
+    const snapshot: TTSSessionSnapshot = {
+      cfi,
+      markName: mark?.name,
+      markText: mark?.text,
+      timestamp: Date.now(),
+      settings: ttsInstance.current.getSettings(),
+    };
+
+    try {
+      localStorage.setItem(key, JSON.stringify(snapshot));
+    } catch {
+      // localStorage may be unavailable in private browsing or under quota pressure.
+    }
+  }, [bookId, viewRef]);
+
+  const clearTTSSession = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const key = getTTSSessionKey(bookId);
+    if (!key) return;
+
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore storage cleanup failures.
+    }
+  }, [bookId]);
 
   const logTTS = useCallback((event: string, detail?: Record<string, unknown>) => {
     if (process.env.NODE_ENV === 'production') return;
@@ -256,7 +328,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [getTextFromSSML, buildSSML, viewRef, getNextSSMLs, preloadNext]);
+  }, [buildSSML, viewRef, getNextSSMLs, preloadNext]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
@@ -358,6 +430,18 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
 
     if (!viewRef.current) return;
 
+    const savedSession = loadTTSSession();
+    if (savedSession?.cfi && viewRef.current.goTo) {
+      try {
+        await viewRef.current.goTo(savedSession.cfi);
+        await new Promise((resolve) => window.setTimeout(resolve, 160));
+      } catch (err) {
+        logTTS('restore-session-failed', {
+          message: err instanceof Error ? err.message : 'unknown',
+        });
+      }
+    }
+
     clearReaderHighlight();
 
     const inited = await ensureTTS();
@@ -392,6 +476,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     clearReaderHighlight,
     dismissResumePrompt,
     ensureTTS,
+    loadTTSSession,
     logTTS,
     requestWakeLock,
     speakSSML,
@@ -403,6 +488,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const stop = useCallback(() => {
     shouldResumeOnForegroundRef.current = false;
     retryContinuationRef.current = false;
+    clearTTSSession();
     setResumePromptVisible(false);
     dismissResumePrompt();
     ttsInstance.current.stop();
@@ -420,7 +506,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     }
 
     releaseWakeLock();
-  }, [viewRef, releaseWakeLock, clearReaderHighlight, dismissResumePrompt]);
+  }, [viewRef, releaseWakeLock, clearReaderHighlight, dismissResumePrompt, clearTTSSession]);
 
   const next = useCallback(async () => {
     ttsInstance.current.clearPreloadQueueOnly();
@@ -544,8 +630,10 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         shouldResumeOnForegroundRef.current = true;
         setResumePromptVisible(false);
         dismissResumePrompt();
+        saveTTSSession();
       }
       if (newState === 'paused') {
+        saveTTSSession();
         releaseWakeLock();
       }
       if (newState === 'stopped') {
@@ -557,6 +645,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       setCurrentMark(mark);
       setMarkIndex(index);
       currentMarkRef.current = mark;
+      saveTTSSession();
       if (mark.range && onHighlight) {
         onHighlight(mark.range);
       }
@@ -581,6 +670,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         stateRef.current = 'stopped';
         isPlayingRef.current = false;
         shouldResumeOnForegroundRef.current = false;
+        clearTTSSession();
         releaseWakeLock();
       }
       retryContinuationRef.current = false;
@@ -599,7 +689,16 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         }
       }
     });
-  }, [clearReaderHighlight, dismissResumePrompt, logTTS, onHighlight, releaseWakeLock, viewRef]);
+  }, [
+    clearReaderHighlight,
+    clearTTSSession,
+    dismissResumePrompt,
+    logTTS,
+    onHighlight,
+    releaseWakeLock,
+    saveTTSSession,
+    viewRef,
+  ]);
 
   useTTSForegroundResume({
     stateRef,

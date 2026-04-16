@@ -45,3 +45,4 @@ coverage/
 .collaborator
 .gocache/
 .gomodcache/
+backend/data/tts-cache

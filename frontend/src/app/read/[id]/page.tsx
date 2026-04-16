@@ -111,7 +111,7 @@ export default function ReadPage() {
     resumePromptVisible,
     resumePromptMessage,
     resume: resumeTTS,
-  } = useTTS({ viewRef, onHighlight: handleHighlight });
+  } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
 
   useEffect(() => {
     progressRef.current = progress;

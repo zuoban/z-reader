@@ -1,16 +1,12 @@
 package services
 
 import (
-	"container/list"
 	"testing"
 	"time"
 )
 
 func TestTTSAudioCacheCopiesData(t *testing.T) {
-	cache := &ttsAudioCache{
-		items: make(map[string]*list.Element),
-		order: list.New(),
-	}
+	cache := newTTSAudioCache(ttsCacheConfig{})
 
 	original := []byte{1, 2, 3}
 	cache.set("a", original)
@@ -35,10 +31,7 @@ func TestTTSAudioCacheCopiesData(t *testing.T) {
 }
 
 func TestTTSAudioCacheExpiresEntries(t *testing.T) {
-	cache := &ttsAudioCache{
-		items: make(map[string]*list.Element),
-		order: list.New(),
-	}
+	cache := newTTSAudioCache(ttsCacheConfig{})
 
 	cache.set("a", []byte{1})
 	el := cache.items["a"]

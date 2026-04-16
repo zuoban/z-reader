@@ -6,8 +6,32 @@ import { api, Book, Category } from '@/lib/api';
 import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
+const STORAGE_KEY = 'z-reader-shelf-sort';
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
+
+function readShelfSort(): SortOption {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (['recent_read', 'title', 'recent_added', 'author'].includes(parsed)) {
+        return parsed as SortOption;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return 'recent_read';
+}
+
+function writeShelfSort(sortBy: SortOption) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ sortBy }));
+  } catch {
+    // ignore
+  }
+}
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'recent_read', label: '最近阅读' },
@@ -53,7 +77,12 @@ export function useShelfData(isAuthenticated: boolean) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>('recent_read');
+  const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
+
+  const setSortBy = useCallback((option: SortOption) => {
+    setSortByState(option);
+    writeShelfSort(option);
+  }, []);
 
   const loadBooks = useCallback(async () => {
     setIsLoadingBooks(true);

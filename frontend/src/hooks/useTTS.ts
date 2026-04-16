@@ -33,10 +33,39 @@ interface TTSSessionSnapshot {
   settings: TTSSettings;
 }
 
+type TTSQueueSegmentState =
+  | 'idle'
+  | 'queued'
+  | 'loading'
+  | 'ready'
+  | 'playing'
+  | 'failed'
+  | 'skipped';
+
+interface TTSQueueSegment {
+  id: string;
+  index: number;
+  source: 'current' | 'lookahead';
+  ssml: string;
+  enhancedSSML: string;
+  text: string;
+  state: TTSQueueSegmentState;
+  createdAt: number;
+}
+
 const TTS_SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
 function getTTSSessionKey(bookId?: string): string | null {
   return bookId ? `z-reader-tts-session:${bookId}` : null;
+}
+
+function createTTSQueueSegmentId(ssml: string, index: number): string {
+  let hash = 0;
+  for (let i = 0; i < ssml.length; i += 1) {
+    hash = Math.imul(31, hash) + ssml.charCodeAt(i);
+    hash |= 0;
+  }
+  return `${index}:${Math.abs(hash).toString(36)}`;
 }
 
 export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
@@ -52,6 +81,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const isPlayingRef = useRef(false);
   const getNextAndSpeakRef = useRef<() => Promise<boolean>>(async () => false);
   const stateRef = useRef<TTSState>('stopped');
+  const queueRef = useRef<TTSQueueSegment[]>([]);
+  const activeSegmentIdRef = useRef<string | null>(null);
   const shouldResumeOnForegroundRef = useRef(false);
   const resumeInFlightRef = useRef(false);
   const retryContinuationRef = useRef(false);
@@ -246,6 +277,37 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return Boolean(text && !isSkippableTTSText(text));
   }, []);
 
+  const updateQueueSegmentState = useCallback((
+    segmentId: string,
+    nextState: TTSQueueSegmentState,
+  ) => {
+    queueRef.current = queueRef.current.map((segment) => {
+      if (segment.id !== segmentId) return segment;
+      return { ...segment, state: nextState };
+    });
+  }, []);
+
+  const createQueueSegment = useCallback((
+    ssml: string,
+    index: number,
+    source: TTSQueueSegment['source'],
+  ): TTSQueueSegment | null => {
+    const text = getTextFromSSML(ssml);
+    if (!text || isSkippableTTSText(text)) return null;
+
+    const enhancedSSML = buildSSML(ssml);
+    return {
+      id: createTTSQueueSegmentId(enhancedSSML, index),
+      index,
+      source,
+      ssml,
+      enhancedSSML,
+      text,
+      state: source === 'current' ? 'idle' : 'queued',
+      createdAt: Date.now(),
+    };
+  }, [buildSSML]);
+
   const ensureTTS = useCallback(async () => {
     if (!viewRef.current) return false;
 
@@ -278,6 +340,39 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return ssmlList.filter((ssml: string) => ssml);
   }, [viewRef]);
 
+  const rebuildSpeechQueue = useCallback((currentSSML?: string): TTSQueueSegment[] => {
+    const rawSegments = [
+      ...(currentSSML ? [{ ssml: currentSSML, source: 'current' as const }] : []),
+      ...getNextSSMLs(3).map((ssml) => ({ ssml, source: 'lookahead' as const })),
+    ];
+
+    const seen = new Set<string>();
+    const queue: TTSQueueSegment[] = [];
+
+    rawSegments.forEach((rawSegment) => {
+      const segment = createQueueSegment(rawSegment.ssml, queue.length, rawSegment.source);
+      if (!segment || seen.has(segment.enhancedSSML)) return;
+
+      seen.add(segment.enhancedSSML);
+      queue.push(segment);
+    });
+
+    queueRef.current = queue;
+    logTTS('queue-rebuilt', {
+      size: queue.length,
+      current: queue[0]?.id ?? null,
+      lookahead: Math.max(queue.length - 1, 0),
+    });
+
+    return queue;
+  }, [createQueueSegment, getNextSSMLs, logTTS]);
+
+  const getRelevantQueueSSMLs = useCallback((): string[] => {
+    return queueRef.current
+      .filter((segment) => segment.state !== 'failed' && segment.state !== 'skipped')
+      .map((segment) => segment.enhancedSSML);
+  }, []);
+
   // 预加载后续段落
   const preloadNext = useCallback(async () => {
     if (!viewRef.current) return;
@@ -285,18 +380,39 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     if (!ttsInstance.current.isSpeaking()) return;
     
     try {
-      const ssmlList = getNextSSMLs(3);
+      if (queueRef.current.length <= 1) {
+        rebuildSpeechQueue();
+      }
       
-      const enhancedList = ssmlList.map(ssml => {
-        const text = getTextFromSSML(ssml);
-        return text && !isSkippableTTSText(text) ? buildSSML(ssml) : '';
-      }).filter((ssml: string) => ssml);
+      const preloadSegments = queueRef.current
+        .filter((segment) => segment.source === 'lookahead' && segment.state === 'queued')
+        .slice(0, 3);
+
+      preloadSegments.forEach((segment) => {
+        updateQueueSegmentState(segment.id, 'loading');
+      });
       
-      await ttsInstance.current.preloadMultiple(enhancedList);
+      await ttsInstance.current.preloadMultiple(
+        preloadSegments.map((segment) => segment.enhancedSSML),
+      );
+
+      preloadSegments.forEach((segment) => {
+        updateQueueSegmentState(segment.id, 'ready');
+      });
+
+      if (preloadSegments.length > 0) {
+        logTTS('queue-preloaded', {
+          count: preloadSegments.length,
+          ready: queueRef.current.filter((segment) => segment.state === 'ready').length,
+        });
+      }
     } catch (err) {
+      queueRef.current
+        .filter((segment) => segment.source === 'lookahead' && segment.state === 'loading')
+        .forEach((segment) => updateQueueSegmentState(segment.id, 'failed'));
       console.error('Preload error:', err);
     }
-  }, [viewRef, getNextSSMLs, buildSSML]);
+  }, [viewRef, rebuildSpeechQueue, updateQueueSegmentState, logTTS]);
 
   useEffect(() => {
     ttsInstance.current.onPreloadTriggerCallback(() => {
@@ -307,18 +423,17 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const speakSSML = useCallback(async (ssml: string | null | undefined, isContinuous?: boolean): Promise<boolean> => {
     if (!isSpeakableSSML(ssml)) return false;
 
-    const enhancedSSML = buildSSML(ssml);
+    const queue = rebuildSpeechQueue(ssml);
+    const currentSegment = queue[0];
+    if (!currentSegment) return false;
     
-    // 清理不相关的预加载
-    const nextSSMLs = getNextSSMLs(3).map(s => {
-      const t = getTextFromSSML(s);
-      return t && !isSkippableTTSText(t) ? buildSSML(s) : '';
-    }).filter(s => s);
-    
-    ttsInstance.current.cleanupIrrelevantPreloads([enhancedSSML, ...nextSSMLs]);
+    activeSegmentIdRef.current = currentSegment.id;
+    updateQueueSegmentState(currentSegment.id, 'loading');
+    ttsInstance.current.cleanupIrrelevantPreloads(getRelevantQueueSSMLs());
     
     try {
-      await ttsInstance.current.speak(enhancedSSML, undefined, isContinuous);
+      await ttsInstance.current.speak(currentSegment.enhancedSSML, undefined, isContinuous);
+      updateQueueSegmentState(currentSegment.id, 'playing');
       retryContinuationRef.current = false;
       setResumePromptVisible(false);
       
@@ -330,10 +445,18 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       
       return true;
     } catch (err) {
+      updateQueueSegmentState(currentSegment.id, 'failed');
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [buildSSML, viewRef, getNextSSMLs, preloadNext, isSpeakableSSML]);
+  }, [
+    getRelevantQueueSSMLs,
+    isSpeakableSSML,
+    preloadNext,
+    rebuildSpeechQueue,
+    updateQueueSegmentState,
+    viewRef,
+  ]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
@@ -524,6 +647,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     isPlayingRef.current = false;
     setCurrentMark(null);
     setMarkIndex(0);
+    queueRef.current = [];
+    activeSegmentIdRef.current = null;
 
     // 清除预加载的音频
     ttsInstance.current.clearPreload();
@@ -538,6 +663,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   }, [viewRef, releaseWakeLock, clearReaderHighlight, dismissResumePrompt, clearTTSSession]);
 
   const next = useCallback(async () => {
+    queueRef.current = [];
+    activeSegmentIdRef.current = null;
     ttsInstance.current.clearPreloadQueueOnly();
     ttsInstance.current.stop();
     const success = await getNextAndSpeak();
@@ -549,6 +676,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   }, [getNextAndSpeak, stop]);
 
   const prev = useCallback(async () => {
+    queueRef.current = [];
+    activeSegmentIdRef.current = null;
     ttsInstance.current.clearPreloadQueueOnly();
     ttsInstance.current.stop();
     const success = await getPrevAndSpeak();

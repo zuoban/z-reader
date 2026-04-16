@@ -710,28 +710,6 @@ export default function ReadPage() {
                 </Button>
               )}
 
-              <Suspense fallback={null}>
-                <TTSControls
-                  state={ttsState}
-                  settings={ttsSettings}
-                  voices={voices}
-                  voicesLoading={voicesLoading}
-                  voicesError={voicesError}
-                  onReloadVoices={reloadVoices}
-                  onStart={startTTS}
-                  onStop={stopTTS}
-                  onNext={nextTTS}
-                  onPrev={prevTTS}
-                  onUpdateSettings={updateTTSSettings}
-                  uiScheme={uiScheme}
-                  variant="toolbar"
-                  resumePromptVisible={resumePromptVisible}
-                  resumePromptMessage={resumePromptMessage}
-                  onResume={resumeTTS}
-                  overlayContainer={overlayContainer}
-                />
-              </Suspense>
-
               <ThemeSettings
                 theme={theme}
                 setTheme={setTheme}
@@ -743,6 +721,27 @@ export default function ReadPage() {
             </div>
           </div>
         </header>
+
+        <Suspense fallback={null}>
+          <TTSControls
+            state={ttsState}
+            settings={ttsSettings}
+            voices={voices}
+            voicesLoading={voicesLoading}
+            voicesError={voicesError}
+            onReloadVoices={reloadVoices}
+            onStart={startTTS}
+            onStop={stopTTS}
+            onNext={nextTTS}
+            onPrev={prevTTS}
+            onUpdateSettings={updateTTSSettings}
+            uiScheme={uiScheme}
+            resumePromptVisible={resumePromptVisible}
+            resumePromptMessage={resumePromptMessage}
+            onResume={resumeTTS}
+            overlayContainer={overlayContainer}
+          />
+        </Suspense>
 
         <div className="flex min-h-0 flex-1 flex-col">
           <div

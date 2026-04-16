@@ -151,22 +151,22 @@ export function VoiceSelector({
   const styles = {
     selectTrigger: {
       borderColor: `${uiScheme.cardBorder}36`,
-      backgroundColor: `${uiScheme.buttonBg}54`,
+      background: 'transparent',
       color: uiScheme.fg,
-      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28)`,
+      boxShadow: 'none',
     },
     selectContent: {
-      backgroundColor: `${uiScheme.cardBg}f4`,
+      backgroundColor: `${uiScheme.cardBg}f6`,
       borderColor: `${uiScheme.cardBorder}68`,
     },
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold" style={{ color: uiScheme.mutedText }}>
-            声线设置
+          <h3 className="text-sm font-semibold" style={{ color: uiScheme.mutedText }}>
+            声线
           </h3>
         </div>
         <div className="flex items-center gap-2">
@@ -177,14 +177,14 @@ export function VoiceSelector({
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
               title={voicesLoading ? '正在加载声音列表' : '重新加载声音列表'}
-              className="h-9 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+              className="h-7.5 shrink-0 rounded-lg border px-2.5 text-xs font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
               style={{
                 color: uiScheme.mutedText,
-                backgroundColor: `${uiScheme.buttonBg}26`,
-                borderColor: `${uiScheme.cardBorder}24`,
+                background: 'transparent',
+                border: 'none',
               }}
             >
-              {voicesLoading ? '加载中...' : '重载声线'}
+              {voicesLoading ? '加载中' : '重载'}
             </Button>
           )}
 
@@ -193,22 +193,22 @@ export function VoiceSelector({
             size="sm"
             onClick={handlePreview}
             title={isPreviewing ? '停止' : '试听'}
-            className="h-9 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+            className="h-7.5 shrink-0 rounded-lg border px-2.5 text-xs font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
             style={{
               color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
-              backgroundColor: isPreviewing ? `${uiScheme.link}14` : `${uiScheme.buttonBg}34`,
-              borderColor: isPreviewing ? `${uiScheme.link}3d` : `${uiScheme.cardBorder}28`,
+              background: 'transparent',
+              border: 'none',
             }}
           >
             {isPreviewing ? (
               <>
                 <Square className="h-3.5 w-3.5" />
-                停止试听
+                停止
               </>
             ) : (
               <>
                 <Play className="ml-0.5 h-3.5 w-3.5" />
-                试听语音
+                试听
               </>
             )}
           </Button>
@@ -217,10 +217,10 @@ export function VoiceSelector({
 
       {(voicesLoading || voicesError) && (
         <div
-          className="rounded-xl border px-3 py-2 text-sm"
+          className="rounded-2xl border px-3 py-1.5 text-xs"
           style={{
             color: voicesError ? uiScheme.link : uiScheme.mutedText,
-            backgroundColor: `${uiScheme.buttonBg}24`,
+            background: 'transparent',
             borderColor: `${uiScheme.cardBorder}24`,
           }}
         >
@@ -230,14 +230,14 @@ export function VoiceSelector({
 
       {/* 语音选择 */}
       {zhVoices.length > 0 && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: uiScheme.mutedText }}>
             语音
           </label>
           <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-12 min-w-0 flex-1 rounded-xl px-4 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
+              className="h-9 min-w-0 flex-1 rounded-xl px-3 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
               style={styles.selectTrigger}
             >
               <SelectValue placeholder="选择语音" className="truncate" />
@@ -246,7 +246,7 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[300px] rounded-xl"
+              className="max-w-[300px] rounded-2xl"
               style={styles.selectContent}
             >
               {zhVoices.map((voice) => (
@@ -266,8 +266,8 @@ export function VoiceSelector({
 
       {/* 风格选择 */}
       {availableStyles.length > 0 && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: uiScheme.mutedText }}>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: uiScheme.mutedText }}>
             风格
           </label>
           <Select
@@ -276,7 +276,7 @@ export function VoiceSelector({
           >
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-12 min-w-0 flex-1 rounded-xl px-4 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
+              className="h-9 min-w-0 flex-1 rounded-xl px-3 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
               style={styles.selectTrigger}
             >
               <SelectValue placeholder="选择风格" className="truncate" />

@@ -2,17 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import {
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
   Play,
   Pause,
+  SlidersHorizontal,
   Square,
   SkipBack,
   SkipForward,
@@ -77,14 +74,14 @@ const SoundWaveAnimation = ({ uiScheme }: { uiScheme: ThemeColors }) => {
   return (
     <div className="absolute inset-0 flex items-center justify-center overflow-hidden motion-reduce:hidden">
       {/* 波形条 - 使用主题色渐变 */}
-      <div className="relative flex items-center gap-0.5 h-full py-3">
+      <div className="relative flex items-center gap-0.5 h-full py-2.5">
         {[0, 1, 2, 3, 4].map((index) => (
           <div
             key={index}
             className="w-0.5 rounded-full"
             style={{
               background: `linear-gradient(180deg, ${colors.waveStart} 0%, ${colors.waveEnd} 100%)`,
-              height: index === 2 ? 16 : index % 2 === 0 ? 10 : 13,
+              height: index === 2 ? 14 : index % 2 === 0 ? 9 : 11,
               animation: `soundWave ${550 + index * 70}ms ease-in-out infinite`,
               animationDelay: `${index * 50}ms`,
               opacity: 0.75,
@@ -105,7 +102,7 @@ const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
     <>
       {/* 外层柔光 - 降低存在感，避免按钮显得臃肿 */}
       <div
-        className="absolute rounded-[1.4rem] motion-reduce:hidden pointer-events-none"
+        className="absolute rounded-full motion-reduce:hidden pointer-events-none"
         style={{
           inset: -5,
           background: `radial-gradient(circle, ${colors.glowOuter} 0%, transparent 72%)`,
@@ -114,7 +111,7 @@ const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
         }}
       />
       <div
-        className="absolute rounded-[1.4rem] motion-reduce:hidden pointer-events-none"
+        className="absolute rounded-full motion-reduce:hidden pointer-events-none"
         style={{
           inset: -1,
           border: `1px solid ${colors.borderHighlight}`,
@@ -134,8 +131,8 @@ const ActiveIndicator = ({ uiScheme }: { uiScheme: ThemeColors }) => (
     <div
       className="absolute rounded-full motion-reduce:hidden"
       style={{
-        width: 14,
-        height: 14,
+        width: 12,
+        height: 12,
         left: -3,
         top: -3,
         background: 'radial-gradient(circle, #22c55e30 0%, transparent 70%)',
@@ -145,7 +142,7 @@ const ActiveIndicator = ({ uiScheme }: { uiScheme: ThemeColors }) => (
     />
     {/* 主指示器 - 渐变绿色 */}
     <div
-      className="relative h-2.5 w-2.5 rounded-full motion-reduce:animate-none"
+      className="relative h-2 w-2 rounded-full motion-reduce:animate-none"
       style={{
         background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)',
         boxShadow: `
@@ -227,15 +224,15 @@ const FloatingButton = ({
       tabIndex={0}
       aria-label={isActive ? 'TTS 控制面板（正在播放）' : 'TTS 控制面板'}
       aria-expanded={expanded}
-      className="fixed z-40 flex items-center justify-center touch-none
+      className="fixed z-[60] flex items-center justify-center touch-none
         transition-all duration-250 ease-out
         motion-reduce:transition-none
         group"
       style={{
-        right: position.x,
-        bottom: position.y,
-        width: 56,
-        height: 56,
+        right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
+        bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y}px)`,
+        width: 52,
+        height: 52,
         cursor: isDragging ? 'grabbing' : 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
@@ -247,7 +244,7 @@ const FloatingButton = ({
 
       {/* 主按钮 */}
       <div
-        className="relative h-12 w-12 rounded-[1.35rem] flex items-center justify-center overflow-hidden
+        className="relative h-11 w-11 rounded-full flex items-center justify-center overflow-hidden
           transition-all duration-250 ease-out
           motion-reduce:transition-none"
         style={{
@@ -257,7 +254,7 @@ const FloatingButton = ({
       >
         {/* 内部光泽层 - 播放时使用白色高光 */}
         <div
-          className="absolute inset-0 rounded-[1.35rem]"
+          className="absolute inset-0 rounded-full"
           style={{
             background: isActive
               ? `linear-gradient(180deg,
@@ -271,7 +268,7 @@ const FloatingButton = ({
 
         {/* 底部轻微染色，保留层次但不过度压暗 */}
         <div
-          className="absolute bottom-0 left-0 right-0 h-1/2 rounded-b-[1.35rem]"
+          className="absolute bottom-0 left-0 right-0 h-1/2 rounded-b-full"
           style={{
             background: isActive
               ? `linear-gradient(0deg, ${colors.primaryDark}40 0%, transparent 100%)`
@@ -280,7 +277,7 @@ const FloatingButton = ({
         />
 
         <div
-          className="absolute inset-[1px] rounded-[calc(1.35rem-1px)] pointer-events-none"
+          className="absolute inset-[1px] rounded-full pointer-events-none"
           style={{
             border: `1px solid ${isActive ? colors.borderHighlight : `${uiScheme.fg}0d`}`,
             opacity: isActive ? 1 : 0.7,
@@ -292,7 +289,7 @@ const FloatingButton = ({
 
         {/* 图标 - 播放时使用白色 */}
         <Volume2
-          className="h-4.5 w-4.5 transition-all duration-200 ease-out relative z-10
+          className="h-4 w-4 transition-all duration-200 ease-out relative z-10
             motion-reduce:transition-none"
           style={{
             color: isActive ? colors.primary : uiScheme.fg,
@@ -309,7 +306,7 @@ const FloatingButton = ({
       {/* Hover 效果层 - 播放时显示 */}
       {isActive && (
         <div
-          className="absolute inset-0 rounded-[1.4rem] opacity-0 group-hover:opacity-100
+          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100
             transition-opacity duration-300 ease-out motion-reduce:hidden pointer-events-none"
           style={{
             background: `radial-gradient(circle at 50% 35%, rgba(255,255,255,0.35) 0%, transparent 70%)`,
@@ -325,19 +322,17 @@ const FloatingButton = ({
 // 提取通用样式配置 - 增强 glassmorphism 效果
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
-    background: isActive
-      ? `${uiScheme.cardBg}f4`
-      : `${uiScheme.cardBg}f1`,
+    background: `${uiScheme.cardBg}f0`,
     borderColor: `${uiScheme.cardBorder}72`,
     backdropFilter: 'blur(22px) saturate(180%)',
     boxShadow: isActive
-      ? `0 24px 60px ${uiScheme.link}10, 0 10px 28px ${uiScheme.cardBorder}14, inset 0 1px 0 rgba(255,255,255,0.42)`
-      : `0 20px 56px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.35)`,
+      ? `0 26px 64px ${uiScheme.link}12, 0 12px 30px ${uiScheme.cardBorder}16, inset 0 1px 0 rgba(255,255,255,0.48)`
+      : `0 22px 58px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.38)`,
   },
   section: {
-    background: `${uiScheme.cardBg}78`,
-    borderColor: `${uiScheme.cardBorder}34`,
-    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.34)`,
+    background: 'transparent',
+    borderColor: `${uiScheme.cardBorder}36`,
+    boxShadow: 'none',
   },
   selectTrigger: {
     background: `${uiScheme.buttonBg}78`,
@@ -366,15 +361,15 @@ interface VoiceSliderProps {
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
   <div
-    className="group flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3"
+    className="group flex min-h-10 items-center gap-3 rounded-2xl border px-3 py-2"
     style={{
-      background: `${uiScheme.buttonBg}52`,
-      borderColor: `${uiScheme.cardBorder}36`,
-      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28)`,
+      background: 'transparent',
+      borderColor: `${uiScheme.cardBorder}34`,
+      boxShadow: 'none',
     }}
   >
     <label
-      className="w-10 shrink-0 text-sm font-semibold transition-colors duration-200"
+      className="w-10 shrink-0 text-xs font-semibold uppercase tracking-[0.14em] transition-colors duration-200"
       style={{ color: uiScheme.mutedText }}
     >
       {label}
@@ -388,8 +383,12 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       className="flex-1 [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-105 [&_[role=slider]]:active:scale-95"
     />
     <span
-      className="w-16 tabular-nums text-right text-sm font-semibold tracking-tight transition-colors duration-200"
-      style={{ color: uiScheme.fg }}
+      className="w-16 rounded-full px-2 py-1 text-right text-xs font-semibold tabular-nums tracking-tight transition-colors duration-200"
+      style={{
+        color: uiScheme.fg,
+        background: 'transparent',
+        boxShadow: 'none',
+      }}
     >
       {format(value)}
     </span>
@@ -422,18 +421,17 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-11 w-11 rounded-lg transition-all duration-200 ease-out hover:scale-[1.03] active:scale-95
+      className="h-10 w-10 rounded-2xl transition-all duration-200 ease-out hover:scale-[1.03] active:scale-95
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
-        background: disabled
-          ? `${uiScheme.buttonBg}50`
+        background: 'transparent',
+        border: 'none',
+        boxShadow: disabled
+          ? 'none'
           : active
-            ? variant === 'accent'
-              ? `${uiScheme.link}20`
-              : `${uiScheme.buttonBg}80`
-            : `${uiScheme.buttonBg}40`,
-        border: `1px solid ${disabled ? `${uiScheme.cardBorder}28` : `${uiScheme.cardBorder}36`}`,
+            ? `0 10px 20px -18px ${uiScheme.cardBorder}66, inset 0 1px 0 rgba(255,255,255,0.38)`
+            : `inset 0 1px 0 rgba(255,255,255,0.2)`,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
       }}
@@ -487,9 +485,10 @@ export function TTSControls({
   overlayContainer,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [localRate, setLocalRate] = useState(settings.rate);
-  const [position, setPosition] = useState({ x: 8, y: 8 });
+  const [position, setPosition] = useState({ x: 22, y: 12 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number }>({
     startX: 0,
@@ -505,32 +504,12 @@ export function TTSControls({
   const pendingPositionRef = useRef(position);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const FAB_SIZE = 56;
+  const FAB_SIZE = 52;
 
   const styles = useThemeStyles(uiScheme, state !== 'stopped');
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
-  const mobileStatusLabel = isPending
-    ? '处理中'
-    : isPlaying
-      ? '正在朗读'
-      : isPaused
-        ? '已暂停'
-        : '待开始';
-  const mobileStatusTone = isPending
-    ? `${uiScheme.buttonBg}a8`
-    : isPlaying
-      ? `${uiScheme.link}18`
-      : isPaused
-        ? `${uiScheme.buttonBg}8c`
-        : `${uiScheme.buttonBg}6c`;
-  const mobileStatusText = isPending
-    ? uiScheme.fg
-    : isPlaying
-      ? uiScheme.link
-      : uiScheme.mutedText;
-
   // 检测用户是否偏好减少动画
   const prefersReducedMotion = useRef(false);
   useEffect(() => {
@@ -687,8 +666,48 @@ export function TTSControls({
     onExpandedChange?.(expanded);
   }, [expanded, onExpandedChange]);
 
+  useEffect(() => {
+    if (!expanded) {
+      setDetailsExpanded(false);
+    }
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setExpanded(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expanded]);
+
+  const floatingPopupStyle = {
+    right: `calc(env(safe-area-inset-right, 0px) + ${Math.max(position.x - 4, 10)}px)`,
+    bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 14}px)`,
+    width: 'min(364px, calc(100vw - 28px))',
+    maxHeight: 'min(62vh, 680px)',
+  } as const;
+
+  const toolbarPopupStyle = {
+    width: 'min(364px, calc(100vw - 24px))',
+    maxHeight: 'min(64vh, 680px)',
+  } as const;
+
   return (
-    <Sheet open={expanded} onOpenChange={setExpanded}>
+    <>
+      {expanded && (
+        <button
+          type="button"
+          aria-label="关闭朗读控制弹层"
+          className="fixed inset-0 z-[59] cursor-default bg-transparent"
+          onClick={() => setExpanded(false)}
+        />
+      )}
+
       <div
         ref={rootRef}
         className={`relative ${isToolbar ? 'z-40' : ''}`}
@@ -709,21 +728,33 @@ export function TTSControls({
             aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
             aria-expanded={expanded}
             aria-haspopup="dialog"
-            className="relative z-40 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle transition-all duration-200 hover:scale-[1.03] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
+            className="relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle transition-all duration-200 hover:scale-[1.04] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
             style={{
-              color: isActive ? uiScheme.link : uiScheme.buttonText,
-              background: 'transparent',
-              border: '1px solid transparent',
-              boxShadow: 'none',
-              backdropFilter: 'none',
-              opacity: isPending ? 0.7 : isActive ? 1 : 0.84,
+              color: isActive ? '#ffffff' : uiScheme.fg,
+              background: isActive
+                ? `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.55) 0%, ${uiScheme.link} 46%, ${uiScheme.link}dd 100%)`
+                : `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.82) 0%, ${uiScheme.cardBg} 48%, ${uiScheme.cardBg}f2 100%)`,
+              border: `1px solid ${isActive ? `${uiScheme.link}55` : `${uiScheme.cardBorder}58`}`,
+              boxShadow: isActive
+                ? `0 12px 24px -12px ${uiScheme.link}aa, 0 0 0 1px ${uiScheme.link}1f, inset 0 1px 0 rgba(255,255,255,0.5)`
+                : `0 10px 20px -14px ${uiScheme.cardBorder}66, inset 0 1px 0 rgba(255,255,255,0.72)`,
+              backdropFilter: 'blur(14px) saturate(150%)',
+              opacity: isPending ? 0.72 : 1,
             }}
           >
-            <Volume2 className="h-4 w-4" />
+            <span
+              className="pointer-events-none absolute inset-[1px] rounded-full"
+              style={{
+                background: isActive
+                  ? 'linear-gradient(180deg, rgba(255,255,255,0.34) 0%, transparent 58%)'
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.58) 0%, transparent 62%)',
+              }}
+            />
+            <Volume2 className="relative z-10 h-4.5 w-4.5" />
             {isActive && (
-              <span className="absolute right-1 top-1 flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/35" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500/90" />
+              <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/45" />
+                <span className="relative inline-flex h-2 w-2 rounded-full border border-white/70 bg-emerald-500" />
               </span>
             )}
           </Button>
@@ -742,218 +773,234 @@ export function TTSControls({
             uiScheme={uiScheme}
           />
         )}
-      </div>
 
-      <SheetContent
-        side="right"
-        showCloseButton
-        finalFocus={false}
-        container={overlayContainer}
-        data-reader-interactive="true"
-        data-reader-tts-popup="true"
-        className="max-w-[460px] p-0 backdrop-blur-xl sm:w-[460px] sm:max-w-[460px]"
-        style={styles.panel}
-      >
-        <SheetHeader
-          className="relative overflow-hidden sm:pl-5 sm:pr-16"
-          style={{ borderColor: `${uiScheme.cardBorder}30` }}
-        >
+        {expanded && (
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: `radial-gradient(ellipse at 80% 50%, ${uiScheme.link}08 0%, transparent 60%)`,
-            }}
-          />
-          <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <SheetTitle
-                className="font-heading text-xl tracking-normal sm:text-2xl"
-                style={{ color: uiScheme.fg }}
-              >
-                {showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
-              </SheetTitle>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: uiScheme.mutedText }}>
-                {showSettingsPanel ? '播放控制、语速与声线设置' : '开始、暂停与切换段落'}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span
-                className="inline-flex min-h-9 items-center rounded-full border px-3.5 text-sm font-semibold"
-                style={{
-                  background: mobileStatusTone,
-                  borderColor: `${uiScheme.cardBorder}30`,
-                  color: mobileStatusText,
-                }}
-              >
-                {mobileStatusLabel}
-              </span>
-            </div>
-          </div>
-        </SheetHeader>
-
-        <div className="max-h-[calc(100vh-88px)] space-y-4 overflow-y-auto px-4 py-5 sm:px-5">
-          {resumePromptVisible && (
-            <section
-              className="rounded-2xl border px-4 py-3.5"
-              style={{
-                background: `${uiScheme.link}12`,
-                borderColor: `${uiScheme.link}36`,
-                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.3)`,
-              }}
+            data-reader-interactive="true"
+            data-reader-tts-popup="true"
+            role="dialog"
+            aria-modal="false"
+            aria-label={showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
+            className={
+              isToolbar
+                ? 'absolute bottom-full right-0 z-[70] mb-3 origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200'
+                : 'fixed z-[70] origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-200'
+            }
+            style={isToolbar ? toolbarPopupStyle : floatingPopupStyle}
+            onClick={stopInteractivePropagation}
+          >
+            <div
+              className="relative overflow-hidden rounded-[28px] border p-0 shadow-2xl backdrop-blur-xl transition-transform duration-200 ease-out motion-reduce:transition-none"
+              style={styles.panel}
             >
-              <div className="flex items-start gap-3">
+              {!isToolbar && (
                 <div
-                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                  className="pointer-events-none absolute bottom-[-8px] right-5 h-4 w-4 rotate-45 border-r border-b"
                   style={{
-                    background: `${uiScheme.link}18`,
-                    color: uiScheme.link,
+                    background: `${uiScheme.cardBg}f4`,
+                    borderColor: `${uiScheme.cardBorder}72`,
+                    boxShadow: `8px 8px 18px -16px ${uiScheme.cardBorder}40`,
                   }}
+                />
+              )}
+
+              <div className="relative px-4 pt-2.5 sm:px-4">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className="absolute right-3 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-[1.04] active:scale-95"
+                  style={{
+                    color: uiScheme.mutedText,
+                    background: `${uiScheme.buttonBg}66`,
+                    borderColor: `${uiScheme.cardBorder}32`,
+                  }}
+                  aria-label="关闭朗读控制"
+                  title="关闭"
                 >
-                  <AlertCircle className="h-4.5 w-4.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: uiScheme.fg }}
+                  <span className="text-base leading-none">×</span>
+                </button>
+              </div>
+
+              <div className="space-y-2 overflow-y-auto px-4 py-2.5" style={{ maxHeight: 'inherit' }}>
+                {resumePromptVisible && (
+                  <section
+                    className="rounded-[20px] border px-3 py-2.5"
+                    style={{
+                      background: 'transparent',
+                      borderColor: `${uiScheme.link}36`,
+                      boxShadow: 'none',
+                    }}
                   >
-                    继续朗读
-                  </p>
-                  <p
-                    className="mt-1 text-sm leading-6"
-                    style={{ color: uiScheme.mutedText }}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          background: `${uiScheme.link}18`,
+                          color: uiScheme.link,
+                        }}
+                      >
+                        <AlertCircle className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
+                          继续朗读
+                        </p>
+                        <p className="mt-1 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
+                          {resumePromptMessage}
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => void onResume?.()}
+                            className="h-8 rounded-xl px-3 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                            style={{
+                              color: uiScheme.link,
+                              background: 'transparent',
+                              border: 'none',
+                            }}
+                          >
+                            继续朗读
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                <section className="rounded-[22px] border p-3" style={styles.section}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: uiScheme.mutedText }}>
+                        快捷控制
+                      </label>
+                      <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
+                        播放与速度
+                      </p>
+                    </div>
+                    {showSettingsPanel && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDetailsExpanded((value) => !value)}
+                        className="h-8 rounded-full px-2.5 text-[11px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                        style={{
+                          color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
+                          background: 'transparent',
+                          border: 'none',
+                          boxShadow: 'none',
+                        }}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                        更多设置
+                        {detailsExpanded ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  <div
+                    className="mb-2 flex items-center justify-center gap-2 rounded-[20px] border px-2 py-2"
+                    style={{
+                      background: 'transparent',
+                      borderColor: `${uiScheme.cardBorder}24`,
+                      boxShadow: 'none',
+                    }}
                   >
-                    {resumePromptMessage}
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
+                    <ControlButton
+                      onClick={onPrev}
+                      disabled={!isActive || isPending}
+                      title="上一句"
+                      active={isActive}
+                      uiScheme={uiScheme}
+                    >
+                      <SkipBack className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    </ControlButton>
+
                     <Button
-                      type="button"
                       variant="ghost"
-                      onClick={() => void onResume?.()}
-                      className="h-10 rounded-xl px-4 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                      size="icon"
+                      onClick={handleStartClick}
+                      disabled={isPending}
+                      title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                      aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
+                      className="h-12 w-12 rounded-[1rem] bg-transparent! transition-all duration-200 ease-out hover:scale-[1.03] hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                       style={{
-                        color: uiScheme.link,
-                        background: `${uiScheme.cardBg}e8`,
-                        border: `1px solid ${uiScheme.link}30`,
+                        color: isPending ? uiScheme.mutedText : uiScheme.link,
+                        background: 'transparent',
+                        border: 'none',
+                        boxShadow: isPending
+                          ? 'none'
+                          : `0 16px 28px -22px ${uiScheme.link}aa, 0 8px 20px -18px ${uiScheme.link}88, inset 0 1px 0 rgba(255,255,255,0.42)`,
                       }}
                     >
-                      继续朗读
+                      {isPlaying ? (
+                        <Pause className="h-5 w-5 sm:h-5 sm:w-5" />
+                      ) : (
+                        <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />
+                      )}
                     </Button>
-                    <span
-                      className="text-xs"
-                      style={{ color: uiScheme.mutedText }}
+
+                    <ControlButton
+                      onClick={onNext}
+                      disabled={!isActive || isPending}
+                      title="下一句"
+                      active={isActive}
+                      uiScheme={uiScheme}
                     >
-                      移动端回到前台后，轻触一次通常就能恢复
-                    </span>
+                      <SkipForward className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    </ControlButton>
+
+                    <ControlButton
+                      onClick={handleStopClick}
+                      disabled={!isActive || isPending}
+                      title="停止"
+                      active={isActive}
+                      variant="danger"
+                      uiScheme={uiScheme}
+                    >
+                      <Square className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    </ControlButton>
                   </div>
-                </div>
-              </div>
-            </section>
-          )}
 
-          <section className="rounded-2xl border p-4" style={styles.section}>
-            <div className="mb-4 flex items-center gap-2">
-              <label
-                className="text-base font-semibold"
-                style={{ color: uiScheme.mutedText }}
-              >
-                文字转语音
-              </label>
-            </div>
+                  <VoiceSlider
+                    label="语速"
+                    value={localRate}
+                    onChange={handleRateChange}
+                    min={-50}
+                    max={100}
+                    step={10}
+                    format={formatRate}
+                    uiScheme={uiScheme}
+                  />
+                </section>
 
-            <div
-              className="mb-4 flex items-center justify-center gap-3 rounded-2xl border px-3 py-3"
-              style={{
-                background: `${uiScheme.buttonBg}3f`,
-                borderColor: `${uiScheme.cardBorder}24`,
-              }}
-            >
-              <ControlButton
-                onClick={onPrev}
-                disabled={!isActive || isPending}
-                title="上一句"
-                active={isActive}
-                uiScheme={uiScheme}
-              >
-                <SkipBack className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-              </ControlButton>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleStartClick}
-                disabled={isPending}
-                title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                className="h-14 w-14 rounded-xl bg-transparent! transition-all duration-200 ease-out hover:scale-[1.03] hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                style={{
-                  color: isPending ? uiScheme.mutedText : uiScheme.link,
-                  background: isPending ? `${uiScheme.buttonBg}60` : `${uiScheme.link}12`,
-                  border: `1px solid ${isPending ? `${uiScheme.cardBorder}30` : `${uiScheme.link}42`}`,
-                  boxShadow: isPending
-                    ? 'none'
-                    : `0 10px 22px -18px ${uiScheme.link}88, inset 0 1px 0 rgba(255,255,255,0.42)`,
-                }}
-              >
-                {isPlaying ? (
-                  <Pause className="h-5 w-5 sm:h-5 sm:w-5" />
-                ) : (
-                  <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />
+                {showSettingsPanel && detailsExpanded && (
+                  <section
+                    className="flex flex-col gap-2 rounded-[22px] border p-3 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 duration-200"
+                    style={styles.section}
+                  >
+                    <VoiceSelector
+                      settings={settings}
+                      voices={voices}
+                      voicesLoading={voicesLoading}
+                      voicesError={voicesError}
+                      onReloadVoices={onReloadVoices}
+                      onUpdateSettings={onUpdateSettings}
+                      uiScheme={uiScheme}
+                      overlayContainer={overlayContainer}
+                    />
+                  </section>
                 )}
-              </Button>
-
-              <ControlButton
-                onClick={onNext}
-                disabled={!isActive || isPending}
-                title="下一句"
-                active={isActive}
-                uiScheme={uiScheme}
-              >
-                <SkipForward className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-              </ControlButton>
-
-              <ControlButton
-                onClick={handleStopClick}
-                disabled={!isActive || isPending}
-                title="停止"
-                active={isActive}
-                variant="danger"
-                uiScheme={uiScheme}
-              >
-                <Square className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-              </ControlButton>
+              </div>
             </div>
-
-            <VoiceSlider
-              label="速度"
-              value={localRate}
-              onChange={handleRateChange}
-              min={-50}
-              max={100}
-              step={10}
-              format={formatRate}
-              uiScheme={uiScheme}
-            />
-          </section>
-
-          {showSettingsPanel && (
-            <section
-              className="flex flex-col gap-3 rounded-2xl border p-4"
-              style={styles.section}
-            >
-              <VoiceSelector
-                settings={settings}
-                voices={voices}
-                voicesLoading={voicesLoading}
-                voicesError={voicesError}
-                onReloadVoices={onReloadVoices}
-                onUpdateSettings={onUpdateSettings}
-                uiScheme={uiScheme}
-                overlayContainer={overlayContainer}
-              />
-            </section>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

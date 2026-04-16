@@ -111,6 +111,10 @@ export default function ReadPage() {
     resumePromptVisible,
     resumePromptMessage,
     ttsStatus,
+    sleepTimer,
+    setSleepTimerForMinutes,
+    setSleepTimerForSegment,
+    clearSleepTimer,
     resume: resumeTTS,
   } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
 
@@ -740,6 +744,10 @@ export default function ReadPage() {
             resumePromptVisible={resumePromptVisible}
             resumePromptMessage={resumePromptMessage}
             ttsStatus={ttsStatus}
+            sleepTimer={sleepTimer}
+            onSleepTimerMinutes={setSleepTimerForMinutes}
+            onSleepTimerSegment={setSleepTimerForSegment}
+            onClearSleepTimer={clearSleepTimer}
             onResume={resumeTTS}
             overlayContainer={overlayContainer}
           />

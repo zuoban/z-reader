@@ -60,6 +60,15 @@ interface TTSVisibleStatus {
   tone?: 'idle' | 'active' | 'warning' | 'error';
 }
 
+type TTSSleepTimerMode = 'off' | 'segment' | 'minutes';
+
+interface TTSSleepTimer {
+  mode: TTSSleepTimerMode;
+  minutes?: number;
+  endsAt?: number;
+  label: string;
+}
+
 const TTS_SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
 function getTTSSessionKey(bookId?: string): string | null {
@@ -86,6 +95,12 @@ function formatRemainingTime(seconds: number): string {
   return restSeconds > 0 ? `剩余 ${minutes} 分 ${restSeconds} 秒` : `剩余 ${minutes} 分`;
 }
 
+function formatSleepTimerRemaining(endsAt: number): string {
+  const remainingSeconds = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+  if (remainingSeconds <= 0) return '即将停止';
+  return formatRemainingTime(remainingSeconds);
+}
+
 export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
@@ -98,6 +113,10 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     detail: '选择开始后从当前位置朗读',
     tone: 'idle',
   });
+  const [sleepTimer, setSleepTimer] = useState<TTSSleepTimer>({
+    mode: 'off',
+    label: '未设置',
+  });
   const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(settings.voiceName);
   
   const ttsInstance = useRef(backendTTS);
@@ -107,6 +126,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const queueRef = useRef<TTSQueueSegment[]>([]);
   const activeSegmentIdRef = useRef<string | null>(null);
   const lastStatusTimeUpdateRef = useRef(0);
+  const sleepTimerRef = useRef<TTSSleepTimer>({ mode: 'off', label: '未设置' });
+  const sleepTimerTimeoutRef = useRef<number | null>(null);
   const shouldResumeOnForegroundRef = useRef(false);
   const resumeInFlightRef = useRef(false);
   const retryContinuationRef = useRef(false);
@@ -188,6 +209,62 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const updateVisibleStatus = useCallback((status: TTSVisibleStatus) => {
     setTTSStatus(status);
   }, []);
+
+  const clearSleepTimerTimeout = useCallback(() => {
+    if (sleepTimerTimeoutRef.current !== null) {
+      window.clearTimeout(sleepTimerTimeoutRef.current);
+      sleepTimerTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearSleepTimer = useCallback(() => {
+    clearSleepTimerTimeout();
+    const nextTimer: TTSSleepTimer = { mode: 'off', label: '未设置' };
+    sleepTimerRef.current = nextTimer;
+    setSleepTimer(nextTimer);
+  }, [clearSleepTimerTimeout]);
+
+  const setSleepTimerForSegment = useCallback(() => {
+    clearSleepTimerTimeout();
+    const nextTimer: TTSSleepTimer = {
+      mode: 'segment',
+      label: '读完当前段停止',
+    };
+    sleepTimerRef.current = nextTimer;
+    setSleepTimer(nextTimer);
+    updateVisibleStatus({
+      headline: '已设置睡眠定时',
+      detail: '读完当前段后停止朗读',
+      tone: 'active',
+    });
+  }, [clearSleepTimerTimeout, updateVisibleStatus]);
+
+  const setSleepTimerForMinutes = useCallback((minutes: number) => {
+    clearSleepTimerTimeout();
+    const endsAt = Date.now() + minutes * 60 * 1000;
+    const nextTimer: TTSSleepTimer = {
+      mode: 'minutes',
+      minutes,
+      endsAt,
+      label: `${minutes} 分钟后停止`,
+    };
+    sleepTimerRef.current = nextTimer;
+    setSleepTimer(nextTimer);
+    sleepTimerTimeoutRef.current = window.setTimeout(() => {
+      updateVisibleStatus({
+        headline: '睡眠定时已结束',
+        detail: '已自动停止朗读',
+        tone: 'idle',
+      });
+      clearSleepTimer();
+      stopRef.current();
+    }, Math.max(0, endsAt - Date.now()));
+    updateVisibleStatus({
+      headline: '已设置睡眠定时',
+      detail: `${minutes} 分钟后自动停止`,
+      tone: 'active',
+    });
+  }, [clearSleepTimer, clearSleepTimerTimeout, updateVisibleStatus]);
 
   const normalizeMetadataText = useCallback((value: unknown): string => {
     if (typeof value === 'string') {
@@ -770,6 +847,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     shouldResumeOnForegroundRef.current = false;
     retryContinuationRef.current = false;
     lastStatusTimeUpdateRef.current = 0;
+    clearSleepTimer();
     clearTTSSession();
     setResumePromptVisible(false);
     dismissResumePrompt();
@@ -790,7 +868,14 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     }
 
     releaseWakeLock();
-  }, [viewRef, releaseWakeLock, clearReaderHighlight, dismissResumePrompt, clearTTSSession]);
+  }, [
+    viewRef,
+    releaseWakeLock,
+    clearReaderHighlight,
+    dismissResumePrompt,
+    clearTTSSession,
+    clearSleepTimer,
+  ]);
 
   const next = useCallback(async () => {
     queueRef.current = [];
@@ -956,6 +1041,13 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     ttsInstance.current.onEndCallback(async () => {
       if (!isPlayingRef.current) return;
 
+      if (sleepTimerRef.current.mode === 'segment') {
+        logTTS('sleep-timer-segment-complete');
+        clearSleepTimer();
+        stopRef.current();
+        return;
+      }
+
       const success = await getNextAndSpeakRef.current();
       if (!success && !retryContinuationRef.current) {
         logTTS('continuation-retry');
@@ -984,9 +1076,16 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         lastStatusTimeUpdateRef.current = now;
         const readyCount = queueRef.current.filter((segment) => segment.state === 'ready').length;
         const remainingSeconds = Math.max(duration - currentTime, 0);
+        const timer = sleepTimerRef.current;
+        const timerDetail =
+          timer.mode === 'minutes' && timer.endsAt
+            ? ` · 定时${formatSleepTimerRemaining(timer.endsAt)}`
+            : timer.mode === 'segment'
+              ? ' · 本段后停止'
+              : '';
         updateVisibleStatus({
           headline: '正在朗读',
-          detail: `${formatRemainingTime(remainingSeconds)} · ${readyCount} 段已准备`,
+          detail: `${formatRemainingTime(remainingSeconds)} · ${readyCount} 段已准备${timerDetail}`,
           tone: 'active',
         });
       }
@@ -1006,6 +1105,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     });
   }, [
     clearReaderHighlight,
+    clearSleepTimer,
     clearTTSSession,
     dismissResumePrompt,
     logTTS,
@@ -1031,11 +1131,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return () => {
       shouldResumeOnForegroundRef.current = false;
       isPlayingRef.current = false;
+      clearSleepTimerTimeout();
       instance.stop();
       clearReaderHighlight();
       void releaseWakeLock();
     };
-  }, [releaseWakeLock, clearReaderHighlight]);
+  }, [releaseWakeLock, clearReaderHighlight, clearSleepTimerTimeout]);
 
   return {
     state,
@@ -1052,6 +1153,10 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     currentMark,
     markIndex,
     ttsStatus,
+    sleepTimer,
+    setSleepTimerForMinutes,
+    setSleepTimerForSegment,
+    clearSleepTimer,
     resumePromptVisible,
     resumePromptMessage,
     resume: start,

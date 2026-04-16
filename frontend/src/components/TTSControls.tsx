@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Clock,
   GripVertical,
   Play,
   Pause,
@@ -455,6 +456,15 @@ interface TTSControlsProps {
     detail?: string;
     tone?: 'idle' | 'active' | 'warning' | 'error';
   };
+  sleepTimer?: {
+    mode: 'off' | 'segment' | 'minutes';
+    minutes?: number;
+    endsAt?: number;
+    label: string;
+  };
+  onSleepTimerMinutes?: (minutes: number) => void;
+  onSleepTimerSegment?: () => void;
+  onClearSleepTimer?: () => void;
 }
 
 export function TTSControls({
@@ -478,6 +488,10 @@ export function TTSControls({
   onResume,
   overlayContainer,
   ttsStatus,
+  sleepTimer,
+  onSleepTimerMinutes,
+  onSleepTimerSegment,
+  onClearSleepTimer,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -662,6 +676,7 @@ export function TTSControls({
         : statusTone === 'active'
           ? uiScheme.link
           : uiScheme.mutedText;
+  const sleepTimerActive = sleepTimer?.mode && sleepTimer.mode !== 'off';
 
   useEffect(() => {
     onExpandedChange?.(expanded);
@@ -751,6 +766,43 @@ export function TTSControls({
     maxHeight: 'min(64vh, 680px)',
   } as const;
 
+  const floatingStatusStyle = {
+    right: `calc(env(safe-area-inset-right, 0px) + ${position.x + 42}px)`,
+    bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
+    width: `min(500px, calc(100vw - ${position.x + 66}px))`,
+  } as const;
+
+  const statusContent = ttsStatus ? (
+    <div
+      className="rounded-[16px] border px-3 py-2"
+      style={{
+        background: 'transparent',
+        borderColor: `${statusColor}30`,
+        color: uiScheme.fg,
+      }}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{
+            background: statusColor,
+            boxShadow: `0 0 10px ${statusColor}66`,
+          }}
+        />
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold" style={{ color: uiScheme.fg }}>
+            {ttsStatus.headline}
+          </p>
+          {ttsStatus.detail && (
+            <p className="mt-0.5 line-clamp-2 text-[11px] leading-4" style={{ color: uiScheme.mutedText }}>
+              {ttsStatus.detail}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       {expanded && (
@@ -823,7 +875,7 @@ export function TTSControls({
                 className="fixed z-[71] inline-flex h-8 touch-none select-none items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-transform duration-200 hover:scale-[1.03] active:scale-95"
                 style={{
                   right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
-                  bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 18}px)`,
+                  bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
                   color: isDragging ? uiScheme.link : uiScheme.mutedText,
                   background: 'transparent',
                   border: 'none',
@@ -835,6 +887,15 @@ export function TTSControls({
               >
                 <GripVertical className="h-3.5 w-3.5" />
               </button>
+            )}
+            {expanded && ttsStatus && !detailsExpanded && (
+              <div
+                data-reader-interactive="true"
+                className="fixed z-[71] transition-transform duration-200 ease-out motion-reduce:transition-none"
+                style={floatingStatusStyle}
+              >
+                {statusContent}
+              </div>
             )}
             <FloatingButton
               isActive={isActive}
@@ -964,36 +1025,80 @@ export function TTSControls({
                     )}
                   </div>
 
-                  {ttsStatus && (
-                    <div
-                      className="mb-2 rounded-[16px] border px-3 py-2"
-                      style={{
-                        background: 'transparent',
-                        borderColor: `${statusColor}30`,
-                        color: uiScheme.fg,
-                      }}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span
-                          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{
-                            background: statusColor,
-                            boxShadow: `0 0 10px ${statusColor}66`,
-                          }}
+                  {isToolbar && ttsStatus && <div className="mb-2">{statusContent}</div>}
+
+                  <div
+                    className="mb-2 rounded-[16px] border px-3 py-2"
+                    style={{
+                      background: 'transparent',
+                      borderColor: sleepTimerActive ? `${uiScheme.link}32` : `${uiScheme.cardBorder}24`,
+                      color: uiScheme.fg,
+                    }}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Clock
+                          className="h-3.5 w-3.5 shrink-0"
+                          style={{ color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText }}
                         />
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold" style={{ color: uiScheme.fg }}>
-                            {ttsStatus.headline}
-                          </p>
-                          {ttsStatus.detail && (
-                            <p className="mt-0.5 line-clamp-2 text-[11px] leading-4" style={{ color: uiScheme.mutedText }}>
-                              {ttsStatus.detail}
-                            </p>
-                          )}
-                        </div>
+                        <p className="truncate text-xs font-semibold" style={{ color: uiScheme.fg }}>
+                          睡眠定时
+                        </p>
                       </div>
+                      <p className="truncate text-[11px]" style={{ color: uiScheme.mutedText }}>
+                        {sleepTimerActive ? sleepTimer?.label : '未设置'}
+                      </p>
                     </div>
-                  )}
+
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[15, 30, 60].map((minutes) => {
+                        const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
+                        return (
+                          <Button
+                            key={minutes}
+                            type="button"
+                            variant="ghost"
+                            onClick={() => onSleepTimerMinutes?.(minutes)}
+                            className="h-7 rounded-lg px-2 text-[11px] font-semibold"
+                            style={{
+                              color: active ? uiScheme.link : uiScheme.mutedText,
+                              background: active ? `${uiScheme.link}14` : 'transparent',
+                              border: 'none',
+                            }}
+                          >
+                            {minutes}分
+                          </Button>
+                        );
+                      })}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onSleepTimerSegment?.()}
+                        className="h-7 rounded-lg px-2 text-[11px] font-semibold"
+                        style={{
+                          color: sleepTimer?.mode === 'segment' ? uiScheme.link : uiScheme.mutedText,
+                          background: sleepTimer?.mode === 'segment' ? `${uiScheme.link}14` : 'transparent',
+                          border: 'none',
+                        }}
+                      >
+                        本段
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onClearSleepTimer?.()}
+                        disabled={!sleepTimerActive}
+                        className="h-7 rounded-lg px-2 text-[11px] font-semibold"
+                        style={{
+                          color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}70`,
+                          background: 'transparent',
+                          border: 'none',
+                        }}
+                      >
+                        取消
+                      </Button>
+                    </div>
+                  </div>
 
                   <div
                     className="mb-2 flex items-center justify-center gap-2 rounded-[20px] border px-2 py-2"

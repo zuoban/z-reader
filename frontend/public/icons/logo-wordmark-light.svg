@@ -1,26 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
   <defs>
-    <!-- Background gradient for symbol -->
+    <!-- Background gradient for symbol (LIGHT MODE) -->
     <radialGradient id="bgRadial" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#1e2a3a"/>
-      <stop offset="60%" stop-color="#121c2e"/>
-      <stop offset="100%" stop-color="#0a0e1a"/>
+      <stop offset="0%" stop-color="#f8f6f0"/>
+      <stop offset="60%" stop-color="#f0ece4"/>
+      <stop offset="100%" stop-color="#e8e0d4"/>
     </radialGradient>
 
     <!-- Ambient glow -->
     <radialGradient id="ambientGlow" cx="50%" cy="48%" r="45%">
-      <stop offset="0%" stop-color="#2a3a5a" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#2a3a5a" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#d4c4a0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#d4c4a0" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Cover gradients -->
+    <!-- Cover gradients (LIGHT MODE) -->
     <linearGradient id="coverLeft" x1="28" y1="30" x2="110" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2d3436"/>
-      <stop offset="100%" stop-color="#1e272e"/>
+      <stop offset="0%" stop-color="#4a5568"/>
+      <stop offset="100%" stop-color="#374151"/>
     </linearGradient>
     <linearGradient id="coverRight" x1="110" y1="30" x2="192" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#252c30"/>
-      <stop offset="100%" stop-color="#1a2228"/>
+      <stop offset="0%" stop-color="#445060"/>
+      <stop offset="100%" stop-color="#334050"/>
     </linearGradient>
 
     <!-- Page gradients -->
@@ -35,16 +35,16 @@
 
     <!-- Spine gradient -->
     <linearGradient id="spine" x1="108" y1="30" x2="112" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d4af37"/>
-      <stop offset="50%" stop-color="#c9a84c"/>
-      <stop offset="100%" stop-color="#b8942e"/>
+      <stop offset="0%" stop-color="#c9a84c"/>
+      <stop offset="50%" stop-color="#b8942e"/>
+      <stop offset="100%" stop-color="#a08020"/>
     </linearGradient>
 
     <!-- Gold accent -->
     <linearGradient id="goldAccent" x1="0" y1="0" x2="220" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d4af37"/>
-      <stop offset="50%" stop-color="#f4e4a6"/>
-      <stop offset="100%" stop-color="#d4af37"/>
+      <stop offset="0%" stop-color="#c9a84c"/>
+      <stop offset="50%" stop-color="#e8c860"/>
+      <stop offset="100%" stop-color="#c9a84c"/>
     </linearGradient>
 
     <!-- Text gradients -->
@@ -67,15 +67,15 @@
       <stop offset="100%" stop-color="#c4b8a8"/>
     </linearGradient>
 
-    <!-- Title gradient -->
+    <!-- Title gradient (LIGHT MODE - dark text) -->
     <linearGradient id="titleGrad" x1="240" y1="72" x2="520" y2="154" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f5eedd"/>
-      <stop offset="100%" stop-color="#e8dcc8"/>
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#334155"/>
     </linearGradient>
 
     <!-- Filters -->
     <filter id="dropShadow" x="-8%" y="-8%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#1e293b" flood-opacity="0.15"/>
     </filter>
     <filter id="softGlow">
       <feGaussianBlur stdDeviation="1" result="blur"/>
@@ -99,17 +99,9 @@
   <!-- Ambient glow -->
   <ellipse cx="110" cy="110" rx="75" ry="65" fill="url(#ambientGlow)"/>
 
-  <!-- Subtle star/dot pattern -->
-  <circle cx="30" cy="28" r="0.8" fill="#ffffff" opacity="0.15"/>
-  <circle cx="185" cy="22" r="0.7" fill="#ffffff" opacity="0.12"/>
-  <circle cx="195" cy="55" r="0.9" fill="#ffffff" opacity="0.1"/>
-  <circle cx="25" cy="60" r="0.7" fill="#ffffff" opacity="0.12"/>
-  <circle cx="35" cy="155" r="0.8" fill="#ffffff" opacity="0.1"/>
-  <circle cx="190" cy="160" r="0.7" fill="#ffffff" opacity="0.12"/>
-
   <!-- Subtle concentric rings -->
-  <circle cx="110" cy="110" r="60" stroke="#4a6a8a" stroke-width="0.4" opacity="0.08"/>
-  <circle cx="110" cy="110" r="46" stroke="#4a6a8a" stroke-width="0.4" opacity="0.06"/>
+  <circle cx="110" cy="110" r="60" stroke="#c4b898" stroke-width="0.4" opacity="0.15"/>
+  <circle cx="110" cy="110" r="46" stroke="#c4b898" stroke-width="0.4" opacity="0.12"/>
 
   <!-- ==================== BOOK COVER ==================== -->
 
@@ -122,8 +114,8 @@
   </g>
 
   <!-- Cover gold border -->
-  <path d="M26 36C26 31 30 28.5 37 28.5H81C94.4 28.5 110.5 35.4 110.5 48" stroke="url(#goldAccent)" stroke-width="1" opacity="0.5"/>
-  <path d="M194 36C194 31 190 28.5 183 28.5H139C125.6 28.5 109.5 35.4 109.5 48" stroke="url(#goldAccent)" stroke-width="1" opacity="0.5"/>
+  <path d="M26 36C26 31 30 28.5 37 28.5H81C94.4 28.5 110.5 35.4 110.5 48" stroke="url(#goldAccent)" stroke-width="1" opacity="0.6"/>
+  <path d="M194 36C194 31 190 28.5 183 28.5H139C125.6 28.5 109.5 35.4 109.5 48" stroke="url(#goldAccent)" stroke-width="1" opacity="0.6"/>
 
   <!-- ==================== BOOK PAGES ==================== -->
 
@@ -230,18 +222,18 @@
   <!-- ==================== BRAND TEXT ==================== -->
 
   <!-- Divider line -->
-  <line x1="240" y1="156" x2="520" y2="156" stroke="url(#goldAccent)" stroke-width="0.5" stroke-linecap="round" opacity="0.4"/>
+  <line x1="240" y1="156" x2="520" y2="156" stroke="#c9a84c" stroke-width="0.5" stroke-linecap="round" opacity="0.4"/>
   <circle cx="240" cy="156" r="2" fill="#c9a84c" opacity="0.4"/>
   <circle cx="520" cy="156" r="2" fill="#c9a84c" opacity="0.4"/>
 
-  <!-- Brand text -->
+  <!-- Brand text (LIGHT MODE - dark text) -->
   <text x="380" y="110" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="600" fill="url(#titleGrad)" letter-spacing="2">
-    <tspan fill="#f4e4a6" font-weight="700">Z</tspan>
-    <tspan fill="#f5eedd" font-weight="400"> Reader</tspan>
+    <tspan fill="#c9a84c" font-weight="700">Z</tspan>
+    <tspan fill="#1e293b" font-weight="400"> Reader</tspan>
   </text>
 
   <!-- Tagline -->
-  <text x="380" y="140" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#8a7e6b" letter-spacing="3" opacity="0.6">
+  <text x="380" y="140" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#6b7280" letter-spacing="3" opacity="0.6">
     READ WITH CLARITY
   </text>
 </svg>

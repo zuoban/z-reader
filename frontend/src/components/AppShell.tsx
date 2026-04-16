@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { useShelfTheme } from '@/hooks/useShelfTheme';
 
 interface AppScreenProps {
   children: ReactNode;
@@ -69,9 +70,11 @@ export function BrandMark({
   className,
   priority = false,
 }: BrandMarkProps) {
+  const { isDark } = useShelfTheme();
+
   const logo = (
     <Image
-      src="/icons/logo-wordmark.svg"
+      src={isDark ? '/icons/logo-wordmark.svg' : '/icons/logo-wordmark-light.svg'}
       alt="Z Reader"
       width={216}
       height={66}

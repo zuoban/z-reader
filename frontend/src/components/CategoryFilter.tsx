@@ -85,13 +85,15 @@ export function CategoryFilter({
       count: uncategorizedBooks,
       isRoot: true,
     },
-    ...categories.map((category, index) => ({
-      id: category.id,
-      label: category.name,
-      color: getCategoryColor(index + 1),
-      count: bookCounts[category.id] || 0,
-      isRoot: false,
-    })),
+    ...categories
+      .map((category, index) => ({
+        id: category.id,
+        label: category.name,
+        color: getCategoryColor(index + 1),
+        count: bookCounts[category.id] || 0,
+        isRoot: false,
+      }))
+      .filter((item) => item.count > 0),
   ];
 
   return (

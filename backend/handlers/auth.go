@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +58,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	token := c.GetHeader("Authorization")
+	token := strings.TrimSpace(c.GetHeader("Authorization"))
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token required"})
+		return
+	}
+
+	token = strings.TrimPrefix(token, "Bearer ")
+	token = strings.TrimSpace(token)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "token required"})
 		return

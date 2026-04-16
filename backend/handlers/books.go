@@ -45,19 +45,21 @@ func (h *BooksHandler) List(c *gin.Context) {
 		return
 	}
 
-	// 批量获取所有书籍的进度，避免 N+1 查询
-	progressMap := make(map[string]time.Time)
+	bookIDs := make([]string, 0, len(books))
 	for i := range books {
 		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-		progress, err := h.db.GetProgress(books[i].ID)
-		if err == nil && progress != nil {
-			progressMap[books[i].ID] = progress.UpdatedAt
-		}
+		bookIDs = append(bookIDs, books[i].ID)
 	}
 
-	// 设置最后阅读时间
+	progressMap, err := h.db.ListProgressByBookIDs(bookIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list reading progress"})
+		return
+	}
+
 	for i := range books {
-		if lastReadAt, ok := progressMap[books[i].ID]; ok {
+		if progress, ok := progressMap[books[i].ID]; ok {
+			lastReadAt := progress.UpdatedAt
 			books[i].LastReadAt = &lastReadAt
 		}
 	}

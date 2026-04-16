@@ -19,6 +19,7 @@ import {
   ThemeColors,
   PRESET_STYLES,
 } from "@/hooks/useReaderTheme";
+import { useReaderControls } from "@/hooks/useReaderControls";
 import { useTTS } from "@/hooks/useTTS";
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
@@ -73,9 +74,6 @@ export default function ReadPage() {
   const [currentPageLabel, setCurrentPageLabel] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
-  const [isTouchReader, setIsTouchReader] = useState(false);
-  const [isFullscreenSupported, setIsFullscreenSupported] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState("初始化中...");
@@ -88,17 +86,9 @@ export default function ReadPage() {
   const themeRef = useRef(theme);
   const getStylesheetRef = useRef(getStylesheet);
   const updateProgressRef = useRef(updateProgress);
-  // 使用 Set 避免重复添加和内存泄漏
-  const boundDocsRef = useRef<Set<Document>>(new Set());
-  const docTouchHandlersRef = useRef(new Map<Document, Record<string, never>>());
   // 缓存脚本加载状态，避免重复创建 script 标签
   const scriptLoadedRef = useRef(false);
   const tocListRef = useRef<HTMLDivElement>(null);
-
-  // 使用 ref 存储回调函数，避免 keyboardHandler 依赖变化导致频繁重建
-  const handlePrevRef = useRef<() => void>(() => {});
-  const handleNextRef = useRef<() => void>(() => {});
-  const handleBackRef = useRef<() => void>(() => {});
 
   const handleHighlight = useCallback((range: Range) => {
     if (viewRef.current?.renderer) {
@@ -126,32 +116,6 @@ export default function ReadPage() {
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const hasTouch =
-      window.matchMedia("(pointer: coarse)").matches ||
-      navigator.maxTouchPoints > 0 ||
-      "ontouchstart" in window;
-    setIsTouchReader(hasTouch);
-    setIsFullscreenSupported(typeof document.fullscreenEnabled === "boolean");
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === pageRef.current);
-    };
-
-    handleFullscreenChange();
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
 
   useEffect(() => {
     themeRef.current = theme;
@@ -275,77 +239,47 @@ export default function ReadPage() {
     }
   }, []);
 
-  const toggleFullscreen = useCallback(async () => {
-    if (!pageRef.current || !document.fullscreenEnabled) return;
+  const handleBack = useCallback(() => {
+    destroyedRef.current = true;
+    saveNow();
 
-    try {
-      if (document.fullscreenElement === pageRef.current) {
-        await document.exitFullscreen();
-        return;
-      }
-
-      await pageRef.current.requestFullscreen();
-    } catch (err) {
-      console.error("Failed to toggle fullscreen:", err);
+    if (document.fullscreenElement === pageRef.current) {
+      void document.exitFullscreen();
     }
-  }, []);
 
-  // 使用 effect 同步回调到 ref，供 keyboardHandler 使用
-  useEffect(() => {
-    handlePrevRef.current = handlePrev;
-  }, [handlePrev]);
-
-  useEffect(() => {
-    handleNextRef.current = handleNext;
-  }, [handleNext]);
-
-  // keyboardHandler 使用 ref 避免依赖变化导致频繁重建
-  const keyboardHandler = useCallback((e: KeyboardEvent) => {
-    if (
-      e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement
-    )
-      return;
-
-    switch (e.key) {
-      case "ArrowLeft":
-      case "PageUp":
-      case "k":
-      case "K":
-        handlePrevRef.current();
-        break;
-      case "ArrowRight":
-      case "PageDown":
-      case "j":
-      case "J":
-      case " ":
-        if (e.key === " " && e.shiftKey) handlePrevRef.current();
-        else handleNextRef.current();
-        break;
-      case "Escape":
-        if (document.fullscreenElement === pageRef.current) {
-          void document.exitFullscreen();
-          break;
+    const view = viewRef.current;
+    viewRef.current = null;
+    if (view) {
+      try {
+        view.close?.();
+        if (view.parentNode) {
+          view.parentNode.removeChild(view as unknown as Node);
         }
-        handleBackRef.current();
-        break;
-      case "f":
-      case "F":
-        void toggleFullscreen();
-        break;
+      } catch (err) {
+        console.error("Failed to cleanup view during back navigation:", err);
+      }
     }
-  }, [toggleFullscreen]);
 
-  const bindReaderDocument = useCallback(
-    (doc: Document) => {
-      if (boundDocsRef.current.has(doc)) return;
+    if (containerRef.current) {
+      containerRef.current.innerHTML = "";
+    }
 
-      doc.addEventListener("keydown", keyboardHandler);
-      boundDocsRef.current.add(doc);
-      docTouchHandlersRef.current.set(doc, {});
-    },
-    [keyboardHandler],
-  );
+    router.push("/shelf");
+  }, [saveNow, router]);
+
+  const {
+    isTouchReader,
+    isFullscreenSupported,
+    isFullscreen,
+    toggleFullscreen,
+    bindReaderDocument,
+  } = useReaderControls({
+    pageRef,
+    onPrev: handlePrev,
+    onNext: handleNext,
+    onBack: handleBack,
+    onStopTTS: stopTTS,
+  });
 
   const initReader = useCallback(async () => {
     if (!containerRef.current || destroyedRef.current) return;
@@ -499,10 +433,12 @@ export default function ReadPage() {
 
   useEffect(() => {
     // 主题变化时，重新清理所有已绑定文档的内联样式
-    boundDocsRef.current.forEach((doc) => {
+    const contents = viewRef.current?.renderer?.getContents?.() ?? [];
+    contents.forEach(({ doc }) => {
+      if (!doc) return;
       cleanInlineStyles(doc);
     });
-  }, [cleanInlineStyles]);
+  }, [cleanInlineStyles, loading]);
 
   useEffect(() => {
     if (!isAuthenticated || progressLoading) return;
@@ -555,66 +491,6 @@ export default function ReadPage() {
       window.cancelAnimationFrame(frame);
     };
   }, [tocOpen, currentChapter]);
-
-  const handleBack = useCallback(() => {
-    destroyedRef.current = true;
-    saveNow();
-
-    if (document.fullscreenElement === pageRef.current) {
-      void document.exitFullscreen();
-    }
-
-    // 清理所有绑定的 iframe 文档的事件
-    boundDocsRef.current.forEach((doc) => {
-      doc.removeEventListener("keydown", keyboardHandler);
-    });
-    boundDocsRef.current.clear();
-    docTouchHandlersRef.current.clear();
-
-    const view = viewRef.current;
-    viewRef.current = null;
-    if (view) {
-      try {
-        view.close?.();
-        if (view.parentNode) {
-          view.parentNode.removeChild(view as unknown as Node);
-        }
-      } catch (err) {
-        console.error("Failed to cleanup view during back navigation:", err);
-      }
-    }
-
-    if (containerRef.current) {
-      containerRef.current.innerHTML = "";
-    }
-
-    router.push("/shelf");
-  }, [saveNow, router, keyboardHandler]);
-
-  // 同步 handleBack 到 ref
-  useEffect(() => {
-    handleBackRef.current = handleBack;
-  }, [handleBack]);
-
-  useEffect(() => {
-    const boundDocs = boundDocsRef.current;
-    const docTouchHandlers = docTouchHandlersRef.current;
-    window.addEventListener("keydown", keyboardHandler);
-
-    return () => {
-      window.removeEventListener("keydown", keyboardHandler);
-
-      // 清理所有绑定的 iframe 文档的事件
-      boundDocs.forEach((doc) => {
-        doc.removeEventListener("keydown", keyboardHandler);
-      });
-      boundDocs.clear();
-      docTouchHandlers.clear();
-
-      // 停止TTS
-      stopTTS();
-    };
-  }, [keyboardHandler, stopTTS]);
 
   if (authLoading || !isAuthenticated) {
     return (

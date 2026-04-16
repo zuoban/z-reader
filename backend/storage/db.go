@@ -129,6 +129,32 @@ func (db *DB) GetProgress(bookID string) (*models.Progress, error) {
 	return &progress, nil
 }
 
+func (db *DB) ListProgressByBookIDs(bookIDs []string) (map[string]models.Progress, error) {
+	progressMap := make(map[string]models.Progress, len(bookIDs))
+	if len(bookIDs) == 0 {
+		return progressMap, nil
+	}
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(ProgressBucket)
+		for _, bookID := range bookIDs {
+			data := b.Get([]byte(bookID))
+			if data == nil {
+				continue
+			}
+
+			var progress models.Progress
+			if err := json.Unmarshal(data, &progress); err != nil {
+				return err
+			}
+			progressMap[bookID] = progress
+		}
+		return nil
+	})
+
+	return progressMap, err
+}
+
 func (db *DB) SaveSession(session *models.Session) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
@@ -155,6 +181,9 @@ func (db *DB) GetSession(token string) (*models.Session, error) {
 			return nil, nil
 		}
 		return nil, err
+	}
+	if time.Now().After(session.ExpiresAt) {
+		return nil, nil
 	}
 	return &session, nil
 }

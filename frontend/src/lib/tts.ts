@@ -230,7 +230,6 @@ export class BackendTTS {
       this.audio = new Audio();
       this.audio.preload = 'auto';
       this.audio.autoplay = false;
-      this.audio.playsInline = true;
       this.audio.setAttribute('playsinline', 'true');
       this.audio.setAttribute('webkit-playsinline', 'true');
       this.audio.crossOrigin = 'anonymous';

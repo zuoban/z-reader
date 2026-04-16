@@ -80,6 +80,8 @@ cp .env.example .env
 | `APP_PORT` | 后端端口 | 8080 |
 | `UPLOAD_DIR` | 图书存储目录 | ./uploads |
 | `DB_PATH` | 数据库路径 | ./data.db |
+| `ALLOWED_ORIGINS` | 允许访问后端的前端来源（逗号分隔） | http://localhost:3000,http://localhost:8080 |
+| `NEXT_SERVER_API_URL` | Next.js 开发/SSR 代理到后端时使用的地址 | http://127.0.0.1:8080 |
 | `AZURE_TTS_KEY` | Azure TTS 密钥 | - |
 | `AZURE_TTS_REGION` | Azure 区域 | eastasia |
 

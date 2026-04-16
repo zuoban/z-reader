@@ -79,15 +79,14 @@ func getAllowedOrigins() []string {
 
 	// 默认允许本地开发和局域网访问
 	localIP := getLocalIP()
-	return []string{
+	return uniqueStrings([]string{
 		"http://localhost:3000",
 		"http://localhost:8080",
 		"http://127.0.0.1:3000",
 		"http://127.0.0.1:8080",
 		"http://" + localIP + ":3000",
 		"http://" + localIP + ":8080",
-		"http://" + localIP, // 不带端口，匹配所有
-	}
+	})
 }
 
 func Load() *Config {
@@ -116,33 +115,24 @@ func getEnvSlice(key string, defaultValue []string) []string {
 
 func splitCSV(s string) []string {
 	var result []string
-	for _, v := range splitBy(s, ",") {
-		result = append(result, v)
-	}
-	return result
-}
-
-func splitBy(s, sep string) []string {
-	var result []string
-	for {
-		i := findSeparator(s, sep)
-		if i < 0 {
-			if s != "" {
-				result = append(result, s)
-			}
-			break
-		}
-		result = append(result, s[:i])
-		s = s[i+len(sep):]
-	}
-	return result
-}
-
-func findSeparator(s, sep string) int {
-	for i := 0; i <= len(s)-len(sep); i++ {
-		if s[i:i+len(sep)] == sep {
-			return i
+	for _, v := range strings.Split(s, ",") {
+		trimmed := strings.TrimSpace(v)
+		if trimmed != "" {
+			result = append(result, trimmed)
 		}
 	}
-	return -1
+	return uniqueStrings(result)
+}
+
+func uniqueStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }

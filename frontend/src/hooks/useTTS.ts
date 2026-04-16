@@ -8,51 +8,45 @@ import {
   TTSSettings,
   TTSMark,
   loadTTSSettings,
-  mergeVoicesWithFallback,
-  Voice,
 } from '@/lib/tts';
 import { FoliateView } from '@/lib/types';
-import { API_BASE, createAbortController } from '@/lib/config';
+import { useTTSForegroundResume } from '@/hooks/useTTSForegroundResume';
+import { useTTSMediaSession } from '@/hooks/useTTSMediaSession';
+import { useTTSResumePrompt } from '@/hooks/useTTSResumePrompt';
+import { useTTSVoices } from '@/hooks/useTTSVoices';
+import { useWakeLock } from '@/hooks/useWakeLock';
 
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
   onHighlight?: (range: Range) => void;
 }
 
-type WakeLockSentinelLike = {
-  release: () => Promise<void>;
-};
-
-const TTS_RESUME_TOAST_ID = 'tts-resume-hint';
-
 export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
   const [currentMark, setCurrentMark] = useState<TTSMark | null>(null);
   const [markIndex, setMarkIndex] = useState<number>(0);
-  const [voices, setVoices] = useState<Voice[]>(() =>
-    mergeVoicesWithFallback([], loadTTSSettings().voiceName)
-  );
-  const [voicesLoading, setVoicesLoading] = useState(false);
-  const [voicesError, setVoicesError] = useState<string | null>(null);
   const [resumePromptVisible, setResumePromptVisible] = useState(false);
   const [resumePromptMessage, setResumePromptMessage] = useState('朗读被系统中断，轻触即可继续。');
+  const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(settings.voiceName);
   
   const ttsInstance = useRef(backendTTS);
   const isPlayingRef = useRef(false);
   const getNextAndSpeakRef = useRef<() => Promise<boolean>>(async () => false);
-  const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
   const stateRef = useRef<TTSState>('stopped');
   const shouldResumeOnForegroundRef = useRef(false);
   const resumeInFlightRef = useRef(false);
   const retryContinuationRef = useRef(false);
   const isLikelyIOSRef = useRef(false);
   const currentMarkRef = useRef<TTSMark | null>(null);
-  const hasShownResumeToastRef = useRef(false);
   const startRef = useRef<() => Promise<void>>(async () => {});
   const stopRef = useRef<() => void>(() => {});
   const nextRef = useRef<() => Promise<void>>(async () => {});
   const prevRef = useRef<() => Promise<void>>(async () => {});
+  const { requestWakeLock, releaseWakeLock } = useWakeLock();
+  const dismissResumePrompt = useCallback(() => {
+    toast.dismiss('tts-resume-hint');
+  }, []);
 
   const logTTS = useCallback((event: string, detail?: Record<string, unknown>) => {
     if (process.env.NODE_ENV === 'production') return;
@@ -90,55 +84,6 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     return '';
   }, []);
 
-  const loadVoices = useCallback(async () => {
-    setVoicesLoading(true);
-    setVoicesError(null);
-
-    const token = localStorage.getItem('token');
-
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const { controller, timeoutId } = createAbortController(12000);
-
-      try {
-        const response = await fetch(`${API_BASE}/api/voices`, {
-          headers: token ? { Authorization: token } : {},
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`voice_list_${response.status}`);
-        }
-
-        const data = await response.json();
-        setVoices(mergeVoicesWithFallback(data || [], settings.voiceName));
-        setVoicesError(null);
-        setVoicesLoading(false);
-        return;
-      } catch (err) {
-        const isLastAttempt = attempt === 2;
-        if (isLastAttempt) {
-          console.error('Failed to load voices:', err);
-          setVoices((prev) => mergeVoicesWithFallback(prev, settings.voiceName));
-          setVoicesError('声音列表加载失败，已切换到内置声线。');
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
-        }
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    }
-
-    setVoicesLoading(false);
-  }, [settings.voiceName]);
-
-  useEffect(() => {
-    void loadVoices();
-  }, [loadVoices]);
-
-  useEffect(() => {
-    setVoices((prev) => mergeVoicesWithFallback(prev, settings.voiceName));
-  }, [settings.voiceName]);
-
   useEffect(() => {
     if (typeof navigator === 'undefined') return;
 
@@ -154,27 +99,6 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       ttsInstance.current.setSettings(updated);
       return updated;
     });
-  }, []);
-
-  const requestWakeLock = useCallback(async () => {
-    try {
-      if ('wakeLock' in navigator && !wakeLockRef.current) {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-      }
-    } catch (err) {
-      console.warn('Wake Lock request failed:', err);
-    }
-  }, []);
-
-  const releaseWakeLock = useCallback(async () => {
-    try {
-      if (wakeLockRef.current) {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-      }
-    } catch (err) {
-      console.warn('Wake Lock release failed:', err);
-    }
   }, []);
 
   useEffect(() => {
@@ -432,8 +356,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         await ttsInstance.current.resume();
         shouldResumeOnForegroundRef.current = true;
         setResumePromptVisible(false);
-        toast.dismiss(TTS_RESUME_TOAST_ID);
-        hasShownResumeToastRef.current = false;
+        dismissResumePrompt();
         logTTS('manual-resume-success');
         syncHighlightAfterResume();
         await requestWakeLock();
@@ -481,12 +404,12 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       isPlayingRef.current = true;
       shouldResumeOnForegroundRef.current = true;
       setResumePromptVisible(false);
-      toast.dismiss(TTS_RESUME_TOAST_ID);
-      hasShownResumeToastRef.current = false;
+      dismissResumePrompt();
       await requestWakeLock();
     }
   }, [
     clearReaderHighlight,
+    dismissResumePrompt,
     ensureTTS,
     logTTS,
     requestWakeLock,
@@ -500,8 +423,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     shouldResumeOnForegroundRef.current = false;
     retryContinuationRef.current = false;
     setResumePromptVisible(false);
-    toast.dismiss(TTS_RESUME_TOAST_ID);
-    hasShownResumeToastRef.current = false;
+    dismissResumePrompt();
     ttsInstance.current.stop();
     isPlayingRef.current = false;
     setCurrentMark(null);
@@ -517,7 +439,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     }
 
     releaseWakeLock();
-  }, [viewRef, releaseWakeLock, clearReaderHighlight]);
+  }, [viewRef, releaseWakeLock, clearReaderHighlight, dismissResumePrompt]);
 
   const next = useCallback(async () => {
     ttsInstance.current.clearPreloadQueueOnly();
@@ -559,66 +481,19 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
     getNextAndSpeakRef.current = getNextAndSpeak;
   }, [getNextAndSpeak]);
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) {
-      return;
-    }
-
-    const mediaSession = navigator.mediaSession;
-    const metadata = viewRef.current?.book?.metadata;
-    const title =
-      normalizeMetadataText(metadata?.title) ||
-      currentMark?.text?.slice(0, 32) ||
-      'Z Reader 朗读';
-    const artist = normalizeMetadataText(metadata?.author) || 'Z Reader';
-
-    if (typeof MediaMetadata !== 'undefined') {
-      mediaSession.metadata = new MediaMetadata({
-        title,
-        artist,
-        album: 'Z Reader',
-      });
-    }
-
-    mediaSession.playbackState =
-      state === 'playing' ? 'playing' : state === 'paused' ? 'paused' : 'none';
-
-    const assignAction = (
-      action: MediaSessionAction,
-      handler: MediaSessionActionHandler | null,
-    ) => {
-      try {
-        mediaSession.setActionHandler(action, handler);
-      } catch {
-        // 某些移动浏览器只支持部分 action，忽略不支持的即可
-      }
-    };
-
-    assignAction('play', () => {
-      void startRef.current();
-    });
-    assignAction('pause', () => {
+  useTTSMediaSession({
+    viewRef,
+    state,
+    currentMark,
+    normalizeMetadataText,
+    onPause: () => {
       ttsInstance.current.pause();
-    });
-    assignAction('stop', () => {
-      stopRef.current();
-    });
-    assignAction('previoustrack', () => {
-      void prevRef.current();
-    });
-    assignAction('nexttrack', () => {
-      void nextRef.current();
-    });
-
-    return () => {
-      assignAction('play', null);
-      assignAction('pause', null);
-      assignAction('stop', null);
-      assignAction('previoustrack', null);
-      assignAction('nexttrack', null);
-      mediaSession.playbackState = 'none';
-    };
-  }, [currentMark?.text, normalizeMetadataText, state, viewRef]);
+    },
+    startRef,
+    stopRef,
+    nextRef,
+    prevRef,
+  });
 
   const attemptResumeAfterInterruption = useCallback(async () => {
     if (resumeInFlightRef.current) return;
@@ -644,8 +519,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         await requestWakeLock();
       }
       setResumePromptVisible(false);
-      toast.dismiss(TTS_RESUME_TOAST_ID);
-      hasShownResumeToastRef.current = false;
+      dismissResumePrompt();
       logTTS('resume-success', {
         state: stateRef.current,
       });
@@ -668,7 +542,17 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         resumeInFlightRef.current = false;
       }, 400);
     }
-  }, [logTTS, requestWakeLock, syncHighlightAfterResume]);
+  }, [dismissResumePrompt, logTTS, requestWakeLock, syncHighlightAfterResume]);
+
+  useTTSResumePrompt({
+    resumePromptVisible,
+    resumePromptMessage,
+    isLikelyIOS: isLikelyIOSRef.current,
+    shouldResumeOnForegroundRef,
+    onResumeAttempt: () => {
+      void attemptResumeAfterInterruption();
+    },
+  });
 
   useEffect(() => {
     ttsInstance.current.onStateChangeCallback((newState) => {
@@ -678,8 +562,7 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
       if (newState === 'playing') {
         shouldResumeOnForegroundRef.current = true;
         setResumePromptVisible(false);
-        toast.dismiss(TTS_RESUME_TOAST_ID);
-        hasShownResumeToastRef.current = false;
+        dismissResumePrompt();
       }
       if (newState === 'paused') {
         releaseWakeLock();
@@ -735,75 +618,17 @@ export function useTTS({ viewRef, onHighlight }: UseTTSOptions) {
         }
       }
     });
-  }, [clearReaderHighlight, logTTS, onHighlight, releaseWakeLock, viewRef]);
+  }, [clearReaderHighlight, dismissResumePrompt, logTTS, onHighlight, releaseWakeLock, viewRef]);
 
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-
-    const handleVisibilityChange = () => {
-      logTTS('visibility-change', {
-        state: document.visibilityState,
-        ttsState: stateRef.current,
-      });
-      if (document.visibilityState === 'visible') {
-        void attemptResumeAfterInterruption();
-        return;
-      }
-
-      if (stateRef.current === 'playing') {
-        shouldResumeOnForegroundRef.current = true;
-      }
-      void releaseWakeLock();
-    };
-
-    const handleWindowFocus = () => {
+  useTTSForegroundResume({
+    stateRef,
+    shouldResumeOnForegroundRef,
+    logTTS,
+    attemptResumeAfterInterruption: () => {
       void attemptResumeAfterInterruption();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleWindowFocus);
-    window.addEventListener('pageshow', handleWindowFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleWindowFocus);
-      window.removeEventListener('pageshow', handleWindowFocus);
-    };
-  }, [attemptResumeAfterInterruption, logTTS, releaseWakeLock]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-
-    const handleGestureResume = () => {
-      if (!resumePromptVisible || !shouldResumeOnForegroundRef.current) return;
-      void attemptResumeAfterInterruption();
-    };
-
-    document.addEventListener('touchend', handleGestureResume, { passive: true });
-    document.addEventListener('pointerup', handleGestureResume, { passive: true });
-
-    return () => {
-      document.removeEventListener('touchend', handleGestureResume);
-      document.removeEventListener('pointerup', handleGestureResume);
-    };
-  }, [attemptResumeAfterInterruption, logTTS, resumePromptVisible]);
-
-  useEffect(() => {
-    if (!resumePromptVisible) {
-      toast.dismiss(TTS_RESUME_TOAST_ID);
-      hasShownResumeToastRef.current = false;
-      return;
-    }
-
-    if (hasShownResumeToastRef.current) return;
-
-    toast.message(isLikelyIOSRef.current ? '轻触页面后可继续朗读' : '朗读已暂停，可一键恢复', {
-      id: TTS_RESUME_TOAST_ID,
-      description: resumePromptMessage,
-      duration: 3200,
-    });
-    hasShownResumeToastRef.current = true;
-  }, [resumePromptMessage, resumePromptVisible]);
+    },
+    releaseWakeLock,
+  });
 
   useEffect(() => {
     const instance = ttsInstance.current;

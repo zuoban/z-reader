@@ -1,20 +1,125 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Library, LogOut, Plus, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
+import { Category } from '@/lib/api';
 import { AppScreen, BrandMark, LoadingSpinner } from '@/components/AppShell';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryManager } from '@/components/CategoryManager';
-import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
+import { SortSelector } from '@/components/SortSelector';
 import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
+
+function CategoryDropdown({
+  categories,
+  selectedCategoryId,
+  onSelectCategory,
+  bookCounts,
+}: {
+  categories: Category[];
+  selectedCategoryId: string | null;
+  onSelectCategory: (id: string | null) => void;
+  bookCounts: Record<string, number>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const selectedCategory = selectedCategoryId
+    ? categories.find((c) => c.id === selectedCategoryId)
+    : null;
+
+  const getDisplayText = () => {
+    if (!selectedCategoryId) return '全部';
+    if (selectedCategory) return selectedCategory.name;
+    return '未分类';
+  };
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger
+        className={cn(
+          'group relative flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition-all duration-200 cursor-pointer',
+          'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          open
+            ? 'border-foreground/14 bg-background/92 text-foreground shadow-[0_10px_22px_-20px_rgba(15,23,42,0.35)]'
+            : 'border-border/45 bg-background/58 text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground'
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span
+          className={cn(
+            'h-2 w-2 rounded-full bg-muted-foreground/60 transition-colors',
+            open && 'bg-foreground'
+          )}
+        />
+        <span className={cn(open && 'font-semibold')}>{getDisplayText()}</span>
+        <ChevronDown
+          className={cn(
+            'h-3.5 w-3.5 opacity-60 transition-transform duration-200',
+            open && 'rotate-180'
+          )}
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[180px] p-1">
+        <DropdownMenuItem
+          onClick={() => {
+            onSelectCategory(null);
+            setOpen(false);
+          }}
+          className={cn(
+            'cursor-pointer rounded-md px-3 py-1.5 text-sm transition-colors',
+            selectedCategoryId === null
+              ? 'bg-muted/80 font-semibold text-foreground'
+              : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+          )}
+        >
+          <span className="flex-1">全部</span>
+          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+            {bookCounts.all}
+          </span>
+        </DropdownMenuItem>
+        {categories.map((category, index) => (
+          <DropdownMenuItem
+            key={category.id}
+            onClick={() => {
+              onSelectCategory(category.id);
+              setOpen(false);
+            }}
+            className={cn(
+              'cursor-pointer rounded-md px-3 py-1.5 text-sm transition-colors',
+              selectedCategoryId === category.id
+                ? 'bg-muted/80 font-semibold text-foreground'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            )}
+          >
+            <span
+              className="mr-2 h-2 w-2 rounded-full"
+              style={{ backgroundColor: category.color }}
+            />
+            <span className="flex-1">{category.name}</span>
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+              {bookCounts[category.id] || 0}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export default function ShelfPage() {
   const router = useRouter();
@@ -34,6 +139,8 @@ export default function ShelfPage() {
     handleUpload,
     handleDelete,
     formatFileSize,
+    sortBy,
+    setSortBy,
   } = useShelfData(isAuthenticated);
 
   useEffect(() => {
@@ -140,8 +247,9 @@ export default function ShelfPage() {
         ) : (
           <section className="relative isolate">
             {categories.length > 0 && (
-              <div className="relative z-20 mb-4 sm:mb-6">
-                <CategoryFilter
+              <div className="relative z-20 mb-4 flex flex-wrap items-center justify-end gap-3 sm:mb-6">
+                <SortSelector value={sortBy} onChange={setSortBy} />
+                <CategoryDropdown
                   categories={categories}
                   selectedCategoryId={selectedCategoryId}
                   onSelectCategory={setSelectedCategoryId}

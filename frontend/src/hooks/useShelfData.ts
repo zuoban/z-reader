@@ -7,18 +7,36 @@ import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 
+export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
+
+export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'recent_read', label: '最近阅读' },
+  { value: 'title', label: '书名' },
+  { value: 'recent_added', label: '最近添加' },
+  { value: 'author', label: '作者' },
+];
+
 function getSortTimestamp(date?: string): number {
   if (!date) return 0;
   const timestamp = Date.parse(date);
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function sortBooksByRecentRead(items: Book[]): Book[] {
+function sortBooks(items: Book[], sortBy: SortOption): Book[] {
   return [...items].sort((a, b) => {
-    const readDiff = getSortTimestamp(b.last_read_at) - getSortTimestamp(a.last_read_at);
-    if (readDiff !== 0) return readDiff;
-
-    return getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
+    switch (sortBy) {
+      case 'recent_read':
+        return getSortTimestamp(b.last_read_at) - getSortTimestamp(a.last_read_at) ||
+               getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
+      case 'title':
+        return a.title.localeCompare(b.title, 'zh-CN');
+      case 'recent_added':
+        return getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
+      case 'author':
+        return (a.author || '').localeCompare(b.author || '', 'zh-CN');
+      default:
+        return 0;
+    }
   });
 }
 
@@ -35,18 +53,19 @@ export function useShelfData(isAuthenticated: boolean) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('recent_read');
 
   const loadBooks = useCallback(async () => {
     setIsLoadingBooks(true);
     try {
       const data = await api.listBooks();
-      setBooks(sortBooksByRecentRead(data || []));
+      setBooks(sortBooks(data || [], sortBy));
     } catch {
       setBooks([]);
     } finally {
       setIsLoadingBooks(false);
     }
-  }, []);
+  }, [sortBy]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -69,12 +88,13 @@ export function useShelfData(isAuthenticated: boolean) {
   }, [isAuthenticated, loadBooks, loadCategories]);
 
   const filteredBooks = useMemo(() => {
-    if (!selectedCategoryId) return books;
+    const sorted = sortBooks(books, sortBy);
+    if (!selectedCategoryId) return sorted;
     if (selectedCategoryId === UNCATEGORIZED_FILTER_ID) {
-      return books.filter((book) => !book.category_id);
+      return sorted.filter((book) => !book.category_id);
     }
-    return books.filter((book) => book.category_id === selectedCategoryId);
-  }, [books, selectedCategoryId]);
+    return sorted.filter((book) => book.category_id === selectedCategoryId);
+  }, [books, selectedCategoryId, sortBy]);
 
   const bookCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -99,7 +119,7 @@ export function useShelfData(isAuthenticated: boolean) {
 
     try {
       const book = await api.uploadBook(file);
-      setBooks((prev) => sortBooksByRecentRead([...prev, book]));
+      setBooks((prev) => sortBooks([...prev, book], sortBy));
 
       void (async () => {
         try {
@@ -113,13 +133,13 @@ export function useShelfData(isAuthenticated: boolean) {
             const coverFileName = file.name.replace(/\.[^.]+$/, '.png');
             const finalBook = await api.uploadCover(book.id, preview.cover, coverFileName);
             setBooks((prevBooks) =>
-              sortBooksByRecentRead(prevBooks.map((item) => (item.id === book.id ? finalBook : item)))
+              sortBooks(prevBooks.map((item) => (item.id === book.id ? finalBook : item)), sortBy)
             );
             return;
           }
 
           setBooks((prevBooks) =>
-            sortBooksByRecentRead(prevBooks.map((item) => (item.id === book.id ? updated : item)))
+            sortBooks(prevBooks.map((item) => (item.id === book.id ? updated : item)), sortBy)
           );
         } catch (previewErr) {
           console.warn('Failed to enrich uploaded book:', previewErr);
@@ -131,7 +151,7 @@ export function useShelfData(isAuthenticated: boolean) {
       setIsUploading(false);
       e.target.value = '';
     }
-  }, []);
+  }, [sortBy]);
 
   const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id);
@@ -160,6 +180,8 @@ export function useShelfData(isAuthenticated: boolean) {
     handleUpload,
     handleDelete,
     formatFileSize,
+    sortBy,
+    setSortBy,
     uncategorizedFilterId: UNCATEGORIZED_FILTER_ID,
   };
 }

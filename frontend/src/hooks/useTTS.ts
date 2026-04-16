@@ -54,6 +54,12 @@ interface TTSQueueSegment {
   createdAt: number;
 }
 
+interface TTSVisibleStatus {
+  headline: string;
+  detail?: string;
+  tone?: 'idle' | 'active' | 'warning' | 'error';
+}
+
 const TTS_SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
 function getTTSSessionKey(bookId?: string): string | null {
@@ -69,6 +75,17 @@ function createTTSQueueSegmentId(ssml: string, index: number): string {
   return `${index}:${Math.abs(hash).toString(36)}`;
 }
 
+function formatRemainingTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '即将结束';
+
+  const rounded = Math.ceil(seconds);
+  if (rounded < 60) return `剩余 ${rounded} 秒`;
+
+  const minutes = Math.floor(rounded / 60);
+  const restSeconds = rounded % 60;
+  return restSeconds > 0 ? `剩余 ${minutes} 分 ${restSeconds} 秒` : `剩余 ${minutes} 分`;
+}
+
 export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
@@ -76,6 +93,11 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const [markIndex, setMarkIndex] = useState<number>(0);
   const [resumePromptVisible, setResumePromptVisible] = useState(false);
   const [resumePromptMessage, setResumePromptMessage] = useState('朗读被系统中断，轻触即可继续。');
+  const [ttsStatus, setTTSStatus] = useState<TTSVisibleStatus>({
+    headline: '准备朗读',
+    detail: '选择开始后从当前位置朗读',
+    tone: 'idle',
+  });
   const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(settings.voiceName);
   
   const ttsInstance = useRef(backendTTS);
@@ -84,6 +106,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const stateRef = useRef<TTSState>('stopped');
   const queueRef = useRef<TTSQueueSegment[]>([]);
   const activeSegmentIdRef = useRef<string | null>(null);
+  const lastStatusTimeUpdateRef = useRef(0);
   const shouldResumeOnForegroundRef = useRef(false);
   const resumeInFlightRef = useRef(false);
   const retryContinuationRef = useRef(false);
@@ -160,6 +183,10 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
     const payload = detail ? ` ${JSON.stringify(detail)}` : '';
     console.info(`[tts] ${event}${payload}`);
+  }, []);
+
+  const updateVisibleStatus = useCallback((status: TTSVisibleStatus) => {
+    setTTSStatus(status);
   }, []);
 
   const normalizeMetadataText = useCallback((value: unknown): string => {
@@ -394,6 +421,14 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       preloadSegments.forEach((segment) => {
         updateQueueSegmentState(segment.id, 'loading');
       });
+
+      if (preloadSegments.length > 0) {
+        updateVisibleStatus({
+          headline: '正在准备下一段',
+          detail: `预加载 ${preloadSegments.length} 段，朗读会更连贯`,
+          tone: 'active',
+        });
+      }
       
       await ttsInstance.current.preloadMultiple(
         preloadSegments.map((segment) => segment.enhancedSSML),
@@ -404,18 +439,29 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       });
 
       if (preloadSegments.length > 0) {
+        const readyCount = queueRef.current.filter((segment) => segment.state === 'ready').length;
+        updateVisibleStatus({
+          headline: '下一段已准备好',
+          detail: `队列中 ${readyCount} 段可无缝衔接`,
+          tone: 'active',
+        });
         logTTS('queue-preloaded', {
           count: preloadSegments.length,
-          ready: queueRef.current.filter((segment) => segment.state === 'ready').length,
+          ready: readyCount,
         });
       }
     } catch (err) {
       queueRef.current
         .filter((segment) => segment.source === 'lookahead' && segment.state === 'loading')
         .forEach((segment) => updateQueueSegmentState(segment.id, 'failed'));
+      updateVisibleStatus({
+        headline: '下一段预加载失败',
+        detail: '当前朗读不受影响，会在需要时重新合成',
+        tone: 'warning',
+      });
       console.error('Preload error:', err);
     }
-  }, [viewRef, rebuildSpeechQueue, updateQueueSegmentState, logTTS]);
+  }, [viewRef, rebuildSpeechQueue, updateQueueSegmentState, logTTS, updateVisibleStatus]);
 
   useEffect(() => {
     ttsInstance.current.onPreloadTriggerCallback(() => {
@@ -439,6 +485,19 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       }
 
       try {
+        updateVisibleStatus({
+          headline:
+            attempt.kind === 'primary'
+              ? '正在合成当前段'
+              : attempt.kind === 'retry'
+                ? '合成失败，正在重试'
+                : '正在使用纯文本降级',
+          detail:
+            attempt.kind === 'fallback-text'
+              ? '保留文字内容，移除复杂 SSML 后重试'
+              : '请稍候，音频准备好后会自动播放',
+          tone: attempt.kind === 'retry' ? 'warning' : 'active',
+        });
         logTTS('segment-speak-attempt', {
           segment: segment.id,
           kind: attempt.kind,
@@ -446,6 +505,11 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         });
         await ttsInstance.current.speak(attempt.ssml, undefined, isContinuous);
         if (attempt.kind === 'fallback-text') {
+          updateVisibleStatus({
+            headline: '已降级播放',
+            detail: '当前段使用纯文本合成',
+            tone: 'warning',
+          });
           logTTS('segment-fallback-success', { segment: segment.id });
         }
         return true;
@@ -459,7 +523,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     }
 
     return false;
-  }, [logTTS]);
+  }, [logTTS, updateVisibleStatus]);
 
   const speakSSML = useCallback(async (ssml: string | null | undefined, isContinuous?: boolean): Promise<boolean> => {
     if (!isSpeakableSSML(ssml)) return false;
@@ -492,6 +556,11 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       segment: currentSegment.id,
       continuous: Boolean(isContinuous),
     });
+    updateVisibleStatus({
+      headline: isContinuous ? '已跳过异常片段' : '当前片段朗读失败',
+      detail: isContinuous ? '正在尝试继续朗读下一段' : '已尝试重试和纯文本降级',
+      tone: isContinuous ? 'warning' : 'error',
+    });
     if (!isContinuous) {
       toast.error('当前片段朗读失败，已尝试重试和纯文本降级。');
     }
@@ -504,6 +573,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     preloadNext,
     rebuildSpeechQueue,
     updateQueueSegmentState,
+    updateVisibleStatus,
     viewRef,
   ]);
 
@@ -699,6 +769,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const stop = useCallback(() => {
     shouldResumeOnForegroundRef.current = false;
     retryContinuationRef.current = false;
+    lastStatusTimeUpdateRef.current = 0;
     clearTTSSession();
     setResumePromptVisible(false);
     dismissResumePrompt();
@@ -847,15 +918,30 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         shouldResumeOnForegroundRef.current = true;
         setResumePromptVisible(false);
         dismissResumePrompt();
+        updateVisibleStatus({
+          headline: '正在朗读',
+          detail: '下一段会在后台自动准备',
+          tone: 'active',
+        });
         saveTTSSession();
       }
       if (newState === 'paused') {
+        updateVisibleStatus({
+          headline: '朗读已暂停',
+          detail: '点击继续可从当前位置恢复',
+          tone: 'warning',
+        });
         saveTTSSession();
         releaseWakeLock();
       }
       if (newState === 'stopped') {
         shouldResumeOnForegroundRef.current = false;
         setResumePromptVisible(false);
+        updateVisibleStatus({
+          headline: '朗读已停止',
+          detail: '可以从当前位置重新开始',
+          tone: 'idle',
+        });
       }
     });
     ttsInstance.current.onMarkChangeCallback((mark, index) => {
@@ -893,6 +979,18 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       retryContinuationRef.current = false;
     });
     ttsInstance.current.onTimeUpdateCallback((currentTime, duration) => {
+      const now = Date.now();
+      if (duration > 0 && now - lastStatusTimeUpdateRef.current > 1800) {
+        lastStatusTimeUpdateRef.current = now;
+        const readyCount = queueRef.current.filter((segment) => segment.state === 'ready').length;
+        const remainingSeconds = Math.max(duration - currentTime, 0);
+        updateVisibleStatus({
+          headline: '正在朗读',
+          detail: `${formatRemainingTime(remainingSeconds)} · ${readyCount} 段已准备`,
+          tone: 'active',
+        });
+      }
+
       if (viewRef.current?.tts && duration > 0) {
         const wordCount = viewRef.current.tts.getWordCount?.() || 0;
         if (wordCount > 0) {
@@ -914,6 +1012,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     onHighlight,
     releaseWakeLock,
     saveTTSSession,
+    updateVisibleStatus,
     viewRef,
   ]);
 
@@ -952,6 +1051,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     reloadVoices: loadVoices,
     currentMark,
     markIndex,
+    ttsStatus,
     resumePromptVisible,
     resumePromptMessage,
     resume: start,

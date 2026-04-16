@@ -110,6 +110,7 @@ export default function ReadPage() {
     reloadVoices,
     resumePromptVisible,
     resumePromptMessage,
+    ttsStatus,
     resume: resumeTTS,
   } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
 
@@ -738,6 +739,7 @@ export default function ReadPage() {
             uiScheme={uiScheme}
             resumePromptVisible={resumePromptVisible}
             resumePromptMessage={resumePromptMessage}
+            ttsStatus={ttsStatus}
             onResume={resumeTTS}
             overlayContainer={overlayContainer}
           />

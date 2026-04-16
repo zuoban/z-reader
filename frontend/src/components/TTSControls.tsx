@@ -450,6 +450,11 @@ interface TTSControlsProps {
   resumePromptMessage?: string;
   onResume?: () => void | Promise<void>;
   overlayContainer?: HTMLElement | null;
+  ttsStatus?: {
+    headline: string;
+    detail?: string;
+    tone?: 'idle' | 'active' | 'warning' | 'error';
+  };
 }
 
 export function TTSControls({
@@ -472,6 +477,7 @@ export function TTSControls({
   resumePromptMessage = '朗读被系统中断，轻触即可继续。',
   onResume,
   overlayContainer,
+  ttsStatus,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -647,6 +653,15 @@ export function TTSControls({
   };
 
   const isToolbar = variant === 'toolbar';
+  const statusTone = ttsStatus?.tone ?? (isActive ? 'active' : 'idle');
+  const statusColor =
+    statusTone === 'error'
+      ? '#ef4444'
+      : statusTone === 'warning'
+        ? '#f59e0b'
+        : statusTone === 'active'
+          ? uiScheme.link
+          : uiScheme.mutedText;
 
   useEffect(() => {
     onExpandedChange?.(expanded);
@@ -948,6 +963,37 @@ export function TTSControls({
                       </Button>
                     )}
                   </div>
+
+                  {ttsStatus && (
+                    <div
+                      className="mb-2 rounded-[16px] border px-3 py-2"
+                      style={{
+                        background: 'transparent',
+                        borderColor: `${statusColor}30`,
+                        color: uiScheme.fg,
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span
+                          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{
+                            background: statusColor,
+                            boxShadow: `0 0 10px ${statusColor}66`,
+                          }}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold" style={{ color: uiScheme.fg }}>
+                            {ttsStatus.headline}
+                          </p>
+                          {ttsStatus.detail && (
+                            <p className="mt-0.5 line-clamp-2 text-[11px] leading-4" style={{ color: uiScheme.mutedText }}>
+                              {ttsStatus.detail}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div
                     className="mb-2 flex items-center justify-center gap-2 rounded-[20px] border px-2 py-2"

@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  GripVertical,
   Play,
   Pause,
   SlidersHorizontal,
@@ -26,10 +27,6 @@ interface FloatingButtonProps {
   position: { x: number; y: number };
   expanded: boolean;
   onClick: (e: React.MouseEvent) => void;
-  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-  onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
-  onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
-  onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerDownCapture: (e: React.PointerEvent<HTMLDivElement>) => void;
   uiScheme: ThemeColors;
 }
@@ -164,10 +161,6 @@ const FloatingButton = ({
   position,
   expanded,
   onClick,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  onPointerCancel,
   onPointerDownCapture,
   uiScheme,
 }: FloatingButtonProps) => {
@@ -210,10 +203,6 @@ const FloatingButton = ({
       data-reader-interactive="true"
       onPointerDownCapture={onPointerDownCapture}
       onClick={onClick}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -233,11 +222,11 @@ const FloatingButton = ({
         bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y}px)`,
         width: 52,
         height: 52,
-        cursor: isDragging ? 'grabbing' : 'pointer',
+        cursor: 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
       }}
-      title="控制面板（拖动移动）"
+      title="朗读控制"
     >
       {/* 播放状态外层光环 */}
       {isActive && <ActiveGlowRing uiScheme={uiScheme} />}
@@ -490,6 +479,7 @@ export function TTSControls({
   const [localRate, setLocalRate] = useState(settings.rate);
   const [position, setPosition] = useState({ x: 22, y: 12 });
   const [isDragging, setIsDragging] = useState(false);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number }>({
     startX: 0,
     startY: 0,
@@ -498,10 +488,9 @@ export function TTSControls({
   });
   const positionRef = useRef(position);
   const isDraggingRef = useRef(false);
+  const draggingPointerIdRef = useRef<number | null>(null);
   const hasDraggedRef = useRef(false);
   const suppressClickRef = useRef(false);
-  const rafRef = useRef<number | null>(null);
-  const pendingPositionRef = useRef(position);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const FAB_SIZE = 52;
@@ -521,6 +510,19 @@ export function TTSControls({
   }, []);
 
   useEffect(() => {
+    const syncViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, []);
+
+  useEffect(() => {
     setLocalRate(settings.rate);
   }, [settings]);
 
@@ -531,14 +533,6 @@ export function TTSControls({
   useEffect(() => {
     isDraggingRef.current = isDragging;
   }, [isDragging]);
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, []);
 
   const handleStartClick = async () => {
     if (isPending) return;
@@ -558,21 +552,14 @@ export function TTSControls({
   };
 
   const commitPosition = useCallback((nextPosition: { x: number; y: number }) => {
-    pendingPositionRef.current = nextPosition;
     positionRef.current = nextPosition;
-
-    if (rafRef.current !== null) return;
-
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      setPosition(pendingPositionRef.current);
-    });
+    setPosition(nextPosition);
   }, []);
 
   const clampPosition = useCallback((clientX: number, clientY: number) => {
     const deltaX = clientX - dragRef.current.startX;
     const deltaY = clientY - dragRef.current.startY;
-    const threshold = prefersReducedMotion.current ? 2 : 5;
+    const threshold = prefersReducedMotion.current ? 1 : 2;
 
     if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
       hasDraggedRef.current = true;
@@ -587,34 +574,33 @@ export function TTSControls({
 
   const stopDragging = useCallback(() => {
     if (!isDraggingRef.current) return;
+    draggingPointerIdRef.current = null;
     isDraggingRef.current = false;
     setIsDragging(false);
   }, []);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-
+  const startDragging = useCallback((clientX: number, clientY: number, pointerId?: number) => {
+    draggingPointerIdRef.current = pointerId ?? null;
     hasDraggedRef.current = false;
     suppressClickRef.current = false;
     isDraggingRef.current = true;
     setIsDragging(true);
     dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
+      startX: clientX,
+      startY: clientY,
       startPosX: positionRef.current.x,
       startPosY: positionRef.current.y,
     };
-  };
+  }, []);
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
+  const handleDragHandlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     e.preventDefault();
-    commitPosition(clampPosition(e.clientX, e.clientY));
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startDragging(e.clientX, e.clientY, e.pointerId);
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handleDragHandlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -622,7 +608,7 @@ export function TTSControls({
     stopDragging();
   };
 
-  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handleDragHandlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -673,6 +659,43 @@ export function TTSControls({
   }, [expanded]);
 
   useEffect(() => {
+    if (!isDragging) return;
+
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      if (
+        draggingPointerIdRef.current !== null &&
+        event.pointerId !== draggingPointerIdRef.current
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      commitPosition(clampPosition(event.clientX, event.clientY));
+    };
+
+    const handleWindowPointerEnd = (event: PointerEvent) => {
+      if (
+        draggingPointerIdRef.current !== null &&
+        event.pointerId !== draggingPointerIdRef.current
+      ) {
+        return;
+      }
+
+      stopDragging();
+    };
+
+    window.addEventListener('pointermove', handleWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', handleWindowPointerEnd);
+    window.addEventListener('pointercancel', handleWindowPointerEnd);
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerEnd);
+      window.removeEventListener('pointercancel', handleWindowPointerEnd);
+    };
+  }, [clampPosition, commitPosition, isDragging, stopDragging]);
+
+  useEffect(() => {
     if (!expanded) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -685,11 +708,27 @@ export function TTSControls({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [expanded]);
 
+  const floatingPopupWidth = Math.min(364, Math.max(viewport.width - 28, 280));
+  const floatingPopupMaxHeight = Math.min(viewport.height * 0.62, 680);
+  const popupViewportMargin = 12;
+  const maxPopupRight = Math.max(
+    popupViewportMargin,
+    viewport.width - floatingPopupWidth - popupViewportMargin
+  );
+  const maxPopupBottom = Math.max(
+    popupViewportMargin,
+    viewport.height - floatingPopupMaxHeight - popupViewportMargin
+  );
+
   const floatingPopupStyle = {
-    right: `calc(env(safe-area-inset-right, 0px) + ${Math.max(position.x - 4, 10)}px)`,
-    bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 14}px)`,
-    width: 'min(364px, calc(100vw - 28px))',
-    maxHeight: 'min(62vh, 680px)',
+    right: `calc(env(safe-area-inset-right, 0px) + ${
+      Math.min(maxPopupRight, Math.max(position.x - 4, popupViewportMargin))
+    }px)`,
+    bottom: `calc(env(safe-area-inset-bottom, 0px) + ${
+      Math.min(maxPopupBottom, Math.max(position.y + FAB_SIZE + 14, popupViewportMargin))
+    }px)`,
+    width: `${floatingPopupWidth}px`,
+    maxHeight: `${floatingPopupMaxHeight}px`,
   } as const;
 
   const toolbarPopupStyle = {
@@ -759,19 +798,40 @@ export function TTSControls({
             )}
           </Button>
         ) : (
-          <FloatingButton
-            isActive={isActive}
-            isDragging={isDragging}
-            position={position}
-            expanded={expanded}
-            onClick={handleClick}
-            onPointerDownCapture={stopInteractivePropagation}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
-            uiScheme={uiScheme}
-          />
+          <>
+            {expanded && (
+              <button
+                type="button"
+                onPointerDown={handleDragHandlePointerDown}
+                onPointerUp={handleDragHandlePointerUp}
+                onPointerCancel={handleDragHandlePointerCancel}
+                className="fixed z-[71] inline-flex h-8 touch-none select-none items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-transform duration-200 hover:scale-[1.03] active:scale-95"
+                style={{
+                  right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
+                  bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 18}px)`,
+                  color: isDragging ? uiScheme.link : uiScheme.mutedText,
+                  background: 'transparent',
+                  border: 'none',
+                  boxShadow: 'none',
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                }}
+                aria-label="拖动悬浮球位置"
+                title="按住拖动悬浮球"
+              >
+                <GripVertical className="h-3.5 w-3.5" />
+                拖动
+              </button>
+            )}
+            <FloatingButton
+              isActive={isActive}
+              isDragging={isDragging}
+              position={position}
+              expanded={expanded}
+              onClick={handleClick}
+              onPointerDownCapture={stopInteractivePropagation}
+              uiScheme={uiScheme}
+            />
+          </>
         )}
 
         {expanded && (
@@ -805,23 +865,10 @@ export function TTSControls({
               )}
 
               <div className="relative px-4 pt-2.5 sm:px-4">
-                <button
-                  type="button"
-                  onClick={() => setExpanded(false)}
-                  className="absolute right-3 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-[1.04] active:scale-95"
-                  style={{
-                    color: uiScheme.mutedText,
-                    background: `${uiScheme.buttonBg}66`,
-                    borderColor: `${uiScheme.cardBorder}32`,
-                  }}
-                  aria-label="关闭朗读控制"
-                  title="关闭"
-                >
-                  <span className="text-base leading-none">×</span>
-                </button>
+                <div aria-hidden="true" className="h-4" />
               </div>
 
-              <div className="space-y-2 overflow-y-auto px-4 py-2.5" style={{ maxHeight: 'inherit' }}>
+              <div className="space-y-2 overflow-y-auto px-4 pb-14 pt-2.5" style={{ maxHeight: 'inherit' }}>
                 {resumePromptVisible && (
                   <section
                     className="rounded-[20px] border px-3 py-2.5"

@@ -9,6 +9,7 @@ import {
   TTSMark,
   buildAzureSSML,
   getTextFromSSML,
+  isSkippableTTSText,
   loadTTSSettings,
 } from '@/lib/tts';
 import { FoliateView } from '@/lib/types';
@@ -238,6 +239,13 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return buildAzureSSML(content, settings);
   }, [settings]);
 
+  const isSpeakableSSML = useCallback((ssml: string | null | undefined): ssml is string => {
+    if (!ssml) return false;
+
+    const text = getTextFromSSML(ssml);
+    return Boolean(text && !isSkippableTTSText(text));
+  }, []);
+
   const ensureTTS = useCallback(async () => {
     if (!viewRef.current) return false;
 
@@ -281,7 +289,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       
       const enhancedList = ssmlList.map(ssml => {
         const text = getTextFromSSML(ssml);
-        return text ? buildSSML(ssml) : '';
+        return text && !isSkippableTTSText(text) ? buildSSML(ssml) : '';
       }).filter((ssml: string) => ssml);
       
       await ttsInstance.current.preloadMultiple(enhancedList);
@@ -297,17 +305,14 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   }, [preloadNext]);
 
   const speakSSML = useCallback(async (ssml: string | null | undefined, isContinuous?: boolean): Promise<boolean> => {
-    if (!ssml) return false;
-    
-    const text = getTextFromSSML(ssml);
-    if (!text) return false;
+    if (!isSpeakableSSML(ssml)) return false;
 
     const enhancedSSML = buildSSML(ssml);
     
     // 清理不相关的预加载
     const nextSSMLs = getNextSSMLs(3).map(s => {
       const t = getTextFromSSML(s);
-      return t ? buildSSML(s) : '';
+      return t && !isSkippableTTSText(t) ? buildSSML(s) : '';
     }).filter(s => s);
     
     ttsInstance.current.cleanupIrrelevantPreloads([enhancedSSML, ...nextSSMLs]);
@@ -328,7 +333,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       console.error('TTS speak error:', err);
       return false;
     }
-  }, [buildSSML, viewRef, getNextSSMLs, preloadNext]);
+  }, [buildSSML, viewRef, getNextSSMLs, preloadNext, isSpeakableSSML]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
@@ -342,28 +347,38 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     let inited = await ensureTTS();
     if (!inited) return false;
 
-    let ssml = view.tts?.next?.();
-    
-    if (!ssml) {
-      try {
-        await view.next?.();
-        await new Promise(r => setTimeout(r, 500));
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      let ssml = view.tts?.next?.();
+      
+      if (!ssml) {
+        try {
+          await view.next?.();
+          await new Promise(r => setTimeout(r, 500));
 
-        inited = await ensureTTS();
-        if (inited) {
-          ssml = view.tts?.start?.();
+          inited = await ensureTTS();
+          if (inited) {
+            ssml = view.tts?.start?.();
+          }
+        } catch (err) {
+          console.error('Failed to navigate to next page:', err);
+          return false;
         }
-      } catch (err) {
-        console.error('Failed to navigate to next page:', err);
+      }
+
+      if (!ssml) {
         return false;
       }
+
+      if (!isSpeakableSSML(ssml)) {
+        logTTS('skip-noise-segment', { direction: 'next' });
+        continue;
+      }
+
+      return speakSSML(ssml, true);
     }
 
-    if (!ssml) {
-      return false;
-    }
-    return speakSSML(ssml, true);
-  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight]);
+    return false;
+  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, isSpeakableSSML, logTTS]);
 
   const getPrevAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) return false;
@@ -375,26 +390,36 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     let inited = await ensureTTS();
     if (!inited) return false;
 
-    let ssml = view.tts?.prev?.();
-    
-    if (!ssml) {
-      try {
-        await view.prev?.();
-        await new Promise(r => setTimeout(r, 500));
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      let ssml = view.tts?.prev?.();
+      
+      if (!ssml) {
+        try {
+          await view.prev?.();
+          await new Promise(r => setTimeout(r, 500));
 
-        inited = await ensureTTS();
-        if (inited) {
-          ssml = view.tts?.start?.();
+          inited = await ensureTTS();
+          if (inited) {
+            ssml = view.tts?.start?.();
+          }
+        } catch (err) {
+          console.error('Failed to navigate to prev page:', err);
+          return false;
         }
-      } catch (err) {
-        console.error('Failed to navigate to prev page:', err);
-        return false;
       }
+
+      if (!ssml) return false;
+
+      if (!isSpeakableSSML(ssml)) {
+        logTTS('skip-noise-segment', { direction: 'prev' });
+        continue;
+      }
+
+      return speakSSML(ssml, true);
     }
 
-    if (!ssml) return false;
-    return speakSSML(ssml, true);
-  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight]);
+    return false;
+  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, isSpeakableSSML, logTTS]);
 
   const start = useCallback(async () => {
     if (state === 'playing') {
@@ -464,7 +489,9 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
     if (!ssml) return;
 
-    const success = await speakSSML(ssml);
+    const success = isSpeakableSSML(ssml)
+      ? await speakSSML(ssml)
+      : await getNextAndSpeak();
     if (success) {
       isPlayingRef.current = true;
       shouldResumeOnForegroundRef.current = true;
@@ -478,6 +505,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     ensureTTS,
     loadTTSSession,
     logTTS,
+    getNextAndSpeak,
+    isSpeakableSSML,
     requestWakeLock,
     speakSSML,
     state,

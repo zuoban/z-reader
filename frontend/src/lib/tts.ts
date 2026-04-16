@@ -149,6 +149,85 @@ export function getTextFromSSML(ssml: string): string {
   return text || stripSSML(ssml);
 }
 
+export function isSkippableTTSText(text: string): boolean {
+  const normalized = text
+    .replace(/\s+/g, ' ')
+    .replace(/[\u00a0\u200b-\u200d\ufeff]/g, '')
+    .trim();
+
+  if (!normalized) return true;
+
+  const compact = normalized.replace(/\s+/g, '');
+  if (/^\d{1,4}$/.test(compact)) return true;
+  if (/^[·•*_\-.。．…]+$/.test(compact)) return true;
+  if (/^[\p{P}\p{S}]+$/u.test(compact) && compact.length <= 8) return true;
+  if (/^\.{3,}$/.test(compact) || /^…+$/.test(compact)) return true;
+  if (/^[·•*-]\d{1,4}$/.test(compact)) return true;
+
+  return false;
+}
+
+function getBreakTimeForCharacter(character: string): string | null {
+  if ('，,、'.includes(character)) return '120ms';
+  if ('；;'.includes(character)) return '220ms';
+  if ('：:'.includes(character)) return '180ms';
+  if ('。.!！？?'.includes(character)) return '320ms';
+  if (character === '…') return '260ms';
+  return null;
+}
+
+function appendTextWithBreaks(doc: XMLDocument, fragment: DocumentFragment, text: string): void {
+  let buffer = '';
+
+  for (const character of text) {
+    buffer += character;
+    const breakTime = getBreakTimeForCharacter(character);
+    if (!breakTime) continue;
+
+    fragment.appendChild(doc.createTextNode(buffer));
+    buffer = '';
+
+    const breakElement = doc.createElementNS(
+      'http://www.w3.org/2001/10/synthesis',
+      'break',
+    );
+    breakElement.setAttribute('time', breakTime);
+    fragment.appendChild(breakElement);
+  }
+
+  if (buffer) {
+    fragment.appendChild(doc.createTextNode(buffer));
+  }
+}
+
+function shouldEnhanceTextNode(node: Node): boolean {
+  if (!node.textContent?.trim()) return false;
+
+  const parent = node.parentElement;
+  if (!parent) return false;
+
+  const preservedParents = new Set(['break', 'bookmark', 'mark', 'phoneme', 'say-as', 'sub']);
+  return !preservedParents.has(parent.localName.toLowerCase());
+}
+
+function enhanceProsodyBreaks(doc: XMLDocument, root: Element): void {
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node instanceof Text && shouldEnhanceTextNode(node)) {
+      textNodes.push(node);
+    }
+  }
+
+  textNodes.forEach((textNode) => {
+    const fragment = doc.createDocumentFragment();
+    appendTextWithBreaks(doc, fragment, textNode.data);
+    textNode.replaceWith(fragment);
+  });
+}
+
 export function buildAzureSSML(content: string, settings: TTSSettings): string {
   const rateStr = settings.rate >= 0 ? `+${settings.rate}%` : `${settings.rate}%`;
   const originalDoc = createParserErrorFreeDocument(content);
@@ -207,6 +286,8 @@ export function buildAzureSSML(content: string, settings: TTSSettings): string {
   } else {
     prosody.appendChild(doc.createTextNode(content));
   }
+
+  enhanceProsodyBreaks(doc, prosody);
 
   return new XMLSerializer().serializeToString(doc);
 }

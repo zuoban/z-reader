@@ -819,7 +819,6 @@ export function TTSControls({
                 title="按住拖动悬浮球"
               >
                 <GripVertical className="h-3.5 w-3.5" />
-                拖动
               </button>
             )}
             <FloatingButton

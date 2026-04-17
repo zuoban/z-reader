@@ -77,6 +77,7 @@ export default function ReadPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState("初始化中...");
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,8 @@ export default function ReadPage() {
   // 缓存脚本加载状态，避免重复创建 script 标签
   const scriptLoadedRef = useRef(false);
   const tocListRef = useRef<HTMLDivElement>(null);
+  const headerHideTimerRef = useRef<number | null>(null);
+  const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
 
   const handleHighlight = useCallback((range: Range) => {
     if (viewRef.current?.renderer) {
@@ -244,9 +247,74 @@ export default function ReadPage() {
     }
   }, []);
 
+  const clearHeaderHideTimer = useCallback(() => {
+    if (headerHideTimerRef.current !== null) {
+      window.clearTimeout(headerHideTimerRef.current);
+      headerHideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHeaderHide = useCallback(
+    (delay = 2200) => {
+      clearHeaderHideTimer();
+
+      if (loading || tocOpen || themeSettingsOpen) {
+        return;
+      }
+
+      headerHideTimerRef.current = window.setTimeout(() => {
+        setIsHeaderVisible(false);
+        headerHideTimerRef.current = null;
+      }, delay);
+    },
+    [clearHeaderHideTimer, loading, themeSettingsOpen, tocOpen],
+  );
+
+  const showHeader = useCallback(
+    (delay = 2200) => {
+      setIsHeaderVisible(true);
+      scheduleHeaderHide(delay);
+    },
+    [scheduleHeaderHide],
+  );
+
+  const handleReaderMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (event.clientY <= 88) {
+        showHeader(2600);
+      }
+    },
+    [showHeader],
+  );
+
+  const handleReaderClick = useCallback(() => {
+    showHeader();
+  }, [showHeader]);
+
+  const bindHeaderInteractionDocument = useCallback(
+    (doc: Document) => {
+      if (headerInteractionDocsRef.current.has(doc)) return;
+
+      doc.addEventListener("click", handleReaderClick);
+      doc.addEventListener("mousemove", handleReaderMouseMove);
+      headerInteractionDocsRef.current.add(doc);
+    },
+    [handleReaderClick, handleReaderMouseMove],
+  );
+
+  const cleanupHeaderInteractionDocuments = useCallback(() => {
+    headerInteractionDocsRef.current.forEach((doc) => {
+      doc.removeEventListener("click", handleReaderClick);
+      doc.removeEventListener("mousemove", handleReaderMouseMove);
+    });
+    headerInteractionDocsRef.current.clear();
+  }, [handleReaderClick, handleReaderMouseMove]);
+
   const handleBack = useCallback(() => {
     destroyedRef.current = true;
     saveNow();
+    clearHeaderHideTimer();
+    cleanupHeaderInteractionDocuments();
 
     if (document.fullscreenElement === pageRef.current) {
       void document.exitFullscreen();
@@ -270,7 +338,7 @@ export default function ReadPage() {
     }
 
     router.push("/shelf");
-  }, [saveNow, router]);
+  }, [cleanupHeaderInteractionDocuments, clearHeaderHideTimer, saveNow, router]);
 
   const {
     isTouchReader,
@@ -350,6 +418,7 @@ export default function ReadPage() {
           const doc = e.detail?.doc;
           if (doc) {
             bindReaderDocument(doc);
+            bindHeaderInteractionDocument(doc);
             // 清理内联样式，确保夜间模式主题生效
             cleanInlineStyles(doc);
           }
@@ -380,6 +449,7 @@ export default function ReadPage() {
           const doc = e.detail?.doc;
           if (doc) {
             bindReaderDocument(doc);
+            bindHeaderInteractionDocument(doc);
             if (theme.preset === "dark") {
               cleanInlineStyles(doc);
             }
@@ -429,6 +499,7 @@ export default function ReadPage() {
     }
   }, [
     applyRendererPreferences,
+    bindHeaderInteractionDocument,
     bindReaderDocument,
     bookId,
     cleanInlineStyles,
@@ -454,6 +525,8 @@ export default function ReadPage() {
 
     return () => {
       destroyedRef.current = true;
+      clearHeaderHideTimer();
+      cleanupHeaderInteractionDocuments();
 
       const view = viewRef.current;
       viewRef.current = null;
@@ -474,7 +547,13 @@ export default function ReadPage() {
         container.innerHTML = "";
       }
     };
-  }, [initReader, isAuthenticated, progressLoading]);
+  }, [
+    cleanupHeaderInteractionDocuments,
+    clearHeaderHideTimer,
+    initReader,
+    isAuthenticated,
+    progressLoading,
+  ]);
 
   useEffect(() => {
     if (!tocOpen || !currentChapter) return;
@@ -496,6 +575,42 @@ export default function ReadPage() {
       window.cancelAnimationFrame(frame);
     };
   }, [tocOpen, currentChapter]);
+
+  useEffect(() => {
+    if (loading) {
+      setIsHeaderVisible(true);
+      clearHeaderHideTimer();
+      return;
+    }
+
+    if (tocOpen || themeSettingsOpen) {
+      setIsHeaderVisible(true);
+      clearHeaderHideTimer();
+      return;
+    }
+
+    scheduleHeaderHide(1800);
+
+    return () => {
+      clearHeaderHideTimer();
+    };
+  }, [
+    clearHeaderHideTimer,
+    loading,
+    scheduleHeaderHide,
+    themeSettingsOpen,
+    tocOpen,
+  ]);
+
+  useEffect(() => {
+    window.addEventListener("click", handleReaderClick);
+    window.addEventListener("mousemove", handleReaderMouseMove);
+
+    return () => {
+      window.removeEventListener("click", handleReaderClick);
+      window.removeEventListener("mousemove", handleReaderMouseMove);
+    };
+  }, [handleReaderClick, handleReaderMouseMove]);
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -594,11 +709,17 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className="pointer-events-none absolute inset-x-0 top-0 z-50 px-2.5 pb-0.5 transition-all duration-200 ease-out sm:px-3 sm:pb-0.75"
+          className={`pointer-events-none absolute inset-x-0 top-0 z-50 px-2.5 pb-0.5 transition-all duration-300 ease-out sm:px-3 sm:pb-0.75 ${
+            isHeaderVisible
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
+          }`}
           style={{
             background: "transparent",
             paddingTop: headerSafeAreaPaddingTop,
           }}
+          onMouseEnter={() => showHeader(3200)}
+          onMouseLeave={() => scheduleHeaderHide(900)}
         >
           <div className="flex items-center justify-between gap-3 sm:gap-4">
             <div

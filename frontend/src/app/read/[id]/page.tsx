@@ -685,7 +685,9 @@ export default function ReadPage() {
   };
   const overlayContainer = pageRef.current;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.75rem)";
+  const readerContentInsetTop = isHeaderVisible
+    ? "calc(env(safe-area-inset-top, 0px) + 2.75rem)"
+    : "calc(env(safe-area-inset-top, 0px) + 0.35rem)";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
   const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)";
 
@@ -939,7 +941,7 @@ export default function ReadPage() {
 
             <div
               ref={containerRef}
-              className="absolute"
+              className="absolute transition-[top] duration-300 ease-out"
               style={{
                 top: readerContentInsetTop,
                 right: 0,

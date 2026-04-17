@@ -766,12 +766,6 @@ export function TTSControls({
     maxHeight: 'min(64vh, 680px)',
   } as const;
 
-  const floatingStatusStyle = {
-    right: `calc(env(safe-area-inset-right, 0px) + ${position.x + 42}px)`,
-    bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
-    width: `min(500px, calc(100vw - ${position.x + 66}px))`,
-  } as const;
-
   const statusContent = ttsStatus ? (
     <div
       className="rounded-[16px] border px-3 py-2"
@@ -888,15 +882,6 @@ export function TTSControls({
                 <GripVertical className="h-3.5 w-3.5" />
               </button>
             )}
-            {expanded && ttsStatus && !detailsExpanded && (
-              <div
-                data-reader-interactive="true"
-                className="fixed z-[71] transition-transform duration-200 ease-out motion-reduce:transition-none"
-                style={floatingStatusStyle}
-              >
-                {statusContent}
-              </div>
-            )}
             <FloatingButton
               isActive={isActive}
               isDragging={isDragging}
@@ -990,6 +975,8 @@ export function TTSControls({
                   </section>
                 )}
 
+                {ttsStatus && !detailsExpanded && <div>{statusContent}</div>}
+
                 <section className="rounded-[22px] border p-3" style={styles.section}>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div>
@@ -1024,8 +1011,6 @@ export function TTSControls({
                       </Button>
                     )}
                   </div>
-
-                  {isToolbar && ttsStatus && <div className="mb-2">{statusContent}</div>}
 
                   <div
                     className="mb-2 rounded-[16px] border px-3 py-2"

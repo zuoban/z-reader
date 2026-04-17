@@ -30,8 +30,8 @@ FROM caddy:2-alpine AS final
 LABEL maintainer="zuoban"
 LABEL org.opencontainers.image.source="https://github.com/zuoban/z-reader"
 
-# Install Node.js and ca-certificates
-RUN apk add --no-cache nodejs ca-certificates tzdata
+# Install runtime dependencies
+RUN apk add --no-cache bash nodejs ca-certificates tini tzdata
 
 # Create directories
 RUN mkdir -p /app/data /app/uploads /app/frontend
@@ -46,13 +46,8 @@ COPY --from=frontend-builder /app/frontend/public /app/frontend/public
 
 # Copy Caddyfile
 COPY Caddyfile /etc/caddy/Caddyfile
-
-# Create startup script
-RUN printf '#!/bin/sh\n\
-cd /app && ./z-reader &\n\
-cd /app/frontend && node server.js &\n\
-caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n\
-' > /app/start.sh && chmod +x /app/start.sh
+COPY docker/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 WORKDIR /app
 
@@ -69,4 +64,5 @@ VOLUME ["/app/uploads", "/app/data"]
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/app/start.sh"]

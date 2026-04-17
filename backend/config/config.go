@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ type Config struct {
 	AppPort        string
 	UploadDir      string
 	DBPath         string
+	MaxUploadBytes int64
 	AllowedOrigins []string
 }
 
@@ -89,14 +91,20 @@ func getAllowedOrigins() []string {
 	})
 }
 
-func Load() *Config {
+func Load() (*Config, error) {
+	password := strings.TrimSpace(os.Getenv("APP_PASSWORD"))
+	if password == "" {
+		return nil, fmt.Errorf("APP_PASSWORD must be set")
+	}
+
 	return &Config{
-		AppPassword:    getEnv("APP_PASSWORD", "password"),
+		AppPassword:    password,
 		AppPort:        getEnv("APP_PORT", "8080"),
 		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
 		DBPath:         getEnv("DB_PATH", "./data.db"),
+		MaxUploadBytes: getEnvInt64("MAX_UPLOAD_BYTES", 256*1024*1024),
 		AllowedOrigins: getAllowedOrigins(),
-	}
+	}, nil
 }
 
 func getEnv(key, defaultValue string) string {
@@ -111,6 +119,20 @@ func getEnvSlice(key string, defaultValue []string) []string {
 		return splitCSV(value)
 	}
 	return defaultValue
+}
+
+func getEnvInt64(key string, defaultValue int64) int64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		return defaultValue
+	}
+
+	return parsed
 }
 
 func splitCSV(s string) []string {

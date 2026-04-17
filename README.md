@@ -36,9 +36,20 @@ docker run -d \
   --name z-reader \
   -p 80:80 \
   -e APP_PASSWORD=your_password \
+  -e MAX_UPLOAD_BYTES=268435456 \
   -v ./uploads:/app/uploads \
   -v ./data:/app/data \
   ghcr.io/zuoban/z-reader:latest
+```
+
+如果启用了 TTS，也可以一并传入缓存相关配置：
+
+```bash
+-e TTS_CACHE_DIR=/app/data/tts-cache \
+-e TTS_CACHE_MAX_BYTES=67108864 \
+-e TTS_CACHE_MAX_ITEMS=128 \
+-e TTS_CACHE_TTL_SECONDS=86400 \
+-e TTS_MAX_CONCURRENCY=3
 ```
 
 ### Docker Compose
@@ -48,11 +59,12 @@ docker run -d \
 git clone https://github.com/zuoban/z-reader.git
 cd z-reader
 
-# 配置密码
-echo "APP_PASSWORD=your_password" > .env
+# 复制环境变量模板并设置密码
+cp .env.example .env
+# 编辑 .env，至少设置 APP_PASSWORD
 
 # 启动服务
-docker-compose up -d
+docker compose up -d
 ```
 
 访问 http://localhost 即可使用。
@@ -80,6 +92,7 @@ cp .env.example .env
 | `APP_PORT` | 后端端口 | 8080 |
 | `UPLOAD_DIR` | 图书存储目录 | ./uploads |
 | `DB_PATH` | 数据库路径 | ./data.db |
+| `MAX_UPLOAD_BYTES` | 单个上传文件最大字节数 | 268435456 |
 | `ALLOWED_ORIGINS` | 允许访问后端的前端来源（逗号分隔） | http://localhost:3000,http://localhost:8080 |
 | `NEXT_SERVER_API_URL` | Next.js 开发/SSR 代理到后端时使用的地址 | http://127.0.0.1:8080 |
 | `TTS_CACHE_DIR` | TTS 磁盘缓存目录 | ./data/tts-cache |
@@ -87,6 +100,12 @@ cp .env.example .env
 | `TTS_CACHE_MAX_ITEMS` | TTS 缓存最大条目数 | 128 |
 | `TTS_CACHE_TTL_SECONDS` | TTS 缓存保留秒数 | 86400 |
 | `TTS_MAX_CONCURRENCY` | TTS 真实合成请求最大并发数 | 3 |
+
+说明：
+
+- `APP_PASSWORD` 现在是必填项，未设置时后端不会启动。
+- 在 Docker / Compose 部署下，前端默认通过同源 `/api/*` 访问后端，通常不需要设置 `NEXT_PUBLIC_API_URL`。
+- `NEXT_SERVER_API_URL` 主要用于本地开发或 SSR 代理到独立后端时使用。
 
 ### 2. 启动后端
 
@@ -103,6 +122,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+前端依赖管理以 `npm` 为准，使用 [frontend/package-lock.json](/Users/wangjinqiang/ZCodeProject/z-reader/frontend/package-lock.json:1)。
 
 ### 4. 访问应用
 
@@ -175,6 +196,13 @@ cd frontend && npm run build
 # Docker 构建
 docker build -t z-reader .
 ```
+
+## CI
+
+仓库现在包含两条 GitHub Actions 工作流：
+
+- `CI`：在 `main` 分支 push、PR 和手动触发时运行后端测试、前端 lint、Docker 构建检查
+- `Build and Push Docker Image`：只在 `main` 分支 push 和手动触发时构建并推送镜像到 `ghcr.io`
 
 ## License
 

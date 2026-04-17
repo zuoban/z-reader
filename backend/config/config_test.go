@@ -25,3 +25,30 @@ func TestUniqueStringsPreservesOrder(t *testing.T) {
 		t.Fatalf("uniqueStrings() = %#v, want %#v", got, want)
 	}
 }
+
+func TestLoadRequiresPassword(t *testing.T) {
+	t.Setenv("APP_PASSWORD", "")
+
+	cfg, err := Load()
+	if err == nil {
+		t.Fatalf("expected Load to fail when APP_PASSWORD is missing, got cfg=%+v", cfg)
+	}
+}
+
+func TestLoadReadsUploadLimit(t *testing.T) {
+	t.Setenv("APP_PASSWORD", "secret")
+	t.Setenv("MAX_UPLOAD_BYTES", "1024")
+	t.Setenv("APP_PORT", "")
+	t.Setenv("UPLOAD_DIR", "")
+	t.Setenv("DB_PATH", "")
+	t.Setenv("ALLOWED_ORIGINS", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	if cfg.MaxUploadBytes != 1024 {
+		t.Fatalf("expected MaxUploadBytes=1024, got %d", cfg.MaxUploadBytes)
+	}
+}

@@ -235,6 +235,21 @@ export const api = {
     });
   },
 
+  saveProgressOnUnload: (bookId: string, cfi: string, percentage: number): void => {
+    const token = getToken();
+    void fetch(`${API_BASE}/api/progress/${bookId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: token } : {}),
+      },
+      body: JSON.stringify({ cfi, percentage }),
+      keepalive: true,
+    }).catch(() => {
+      // Ignore unload-time failures.
+    });
+  },
+
   listCategories: async (): Promise<Category[]> => {
     return fetchApi<Category[]>('/api/categories');
   },

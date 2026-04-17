@@ -16,7 +16,7 @@ const SERVER_API_BASE =
 const allowedDevOrigins = parseCSV(process.env.NEXT_DEV_ALLOWED_ORIGINS);
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   allowedDevOrigins:
     allowedDevOrigins.length > 0 ? allowedDevOrigins : ["127.0.0.1", "localhost"],
   output: "standalone",

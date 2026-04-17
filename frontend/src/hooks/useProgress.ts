@@ -98,14 +98,15 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
   // 页面卸载前保存
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (pendingSaveRef.current && lastSavedRef.current) {
+      if (pendingSaveRef.current) {
         const pending = pendingSaveRef.current;
-        // 如果有未保存的变化，使用 navigator.sendBeacon 后台发送
-        if (pending.cfi !== lastSavedRef.current.cfi ||
-            Math.abs(pending.percentage - lastSavedRef.current.percentage) >= 1) {
-          // 使用 form-urlencoded 格式（sendBeacon 默认格式）
-          const data = `cfi=${encodeURIComponent(pending.cfi)}&percentage=${pending.percentage}`;
-          navigator.sendBeacon?.(`/api/progress/${bookId}`, data);
+        const lastSaved = lastSavedRef.current;
+        if (
+          !lastSaved ||
+          pending.cfi !== lastSaved.cfi ||
+          Math.abs(pending.percentage - lastSaved.percentage) >= 1
+        ) {
+          api.saveProgressOnUnload(bookId, pending.cfi, pending.percentage);
         }
       }
     };

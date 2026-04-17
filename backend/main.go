@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
@@ -23,7 +26,11 @@ func main() {
 	godotenv.Load("../.env")
 
 	logger.Init()
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Error("Failed to load config", "error", err)
+		os.Exit(1)
+	}
 
 	logger.Info("Server starting", "port", cfg.AppPort, "password_configured", cfg.AppPassword != "")
 
@@ -48,28 +55,17 @@ func main() {
 	}()
 
 	r := gin.Default()
-
-	r.Use(func(c *gin.Context) {
-		origin := c.GetHeader("Origin")
-		allowed := false
-		for _, o := range cfg.AllowedOrigins {
-			if o == origin {
-				allowed = true
-				break
-			}
-		}
-		if allowed {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Credentials", "true")
-		}
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
+	server := &http.Server{
+		Addr:    ":" + cfg.AppPort,
+		Handler: r,
+	}
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.AllowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	authHandler := handlers.NewAuthHandler(cfg, db)
 	booksHandler := handlers.NewBooksHandler(cfg, db)
@@ -82,10 +78,6 @@ func main() {
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-
-	r.GET("/api/tts", ttsHandler.TTS)
-	r.POST("/api/ssml", ttsHandler.SSML)
-	r.GET("/api/voices", ttsHandler.VoiceList)
 
 	api := r.Group("/api")
 	api.Use(middleware.AuthRequired(db))
@@ -105,25 +97,27 @@ func main() {
 		api.GET("/progress/:id", progressHandler.Get)
 		api.POST("/progress/:id", progressHandler.Save)
 
+		api.GET("/tts", ttsHandler.TTS)
+		api.POST("/ssml", ttsHandler.SSML)
+		api.GET("/voices", ttsHandler.VoiceList)
+
 		api.GET("/categories", categoriesHandler.List)
 		api.POST("/categories", categoriesHandler.Create)
 		api.PATCH("/categories/:id", categoriesHandler.Update)
 		api.DELETE("/categories/:id", categoriesHandler.Delete)
 	}
 
-	logger.Info("Server starting", "port", cfg.AppPort, "password_configured", cfg.AppPassword != "")
-
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	serverErr := make(chan error, 1)
 	go func() {
-		serverErr <- r.Run(":" + cfg.AppPort)
+		serverErr <- server.ListenAndServe()
 	}()
 
 	select {
 	case err := <-serverErr:
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Server error", "error", err)
 		}
 	case sig := <-quit:
@@ -131,6 +125,11 @@ func main() {
 	}
 
 	cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("Failed to shut down server gracefully", "error", err)
+	}
 	wg.Wait()
 	db.Close()
 	logger.Info("Server stopped")
@@ -140,7 +139,9 @@ func startSessionCleaner(ctx context.Context, db *storage.DB) {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
-	db.CleanExpiredSessions()
+	if err := db.CleanExpiredSessions(); err != nil {
+		logger.Error("Failed to clean expired sessions", "error", err)
+	}
 	logger.Info("Session cleaner started")
 
 	for {

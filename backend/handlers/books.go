@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -45,23 +47,8 @@ func (h *BooksHandler) List(c *gin.Context) {
 		return
 	}
 
-	bookIDs := make([]string, 0, len(books))
 	for i := range books {
 		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-		bookIDs = append(bookIDs, books[i].ID)
-	}
-
-	progressMap, err := h.db.ListProgressByBookIDs(bookIDs)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list reading progress"})
-		return
-	}
-
-	for i := range books {
-		if progress, ok := progressMap[books[i].ID]; ok {
-			lastReadAt := progress.UpdatedAt
-			books[i].LastReadAt = &lastReadAt
-		}
 	}
 
 	c.JSON(http.StatusOK, books)
@@ -81,7 +68,6 @@ func (h *BooksHandler) Get(c *gin.Context) {
 	}
 
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
-	h.hydrateLastReadAt(book)
 	c.JSON(http.StatusOK, book)
 }
 
@@ -92,10 +78,23 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	if file.Size <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is empty"})
+		return
+	}
+	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file exceeds upload limit"})
+		return
+	}
+
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	format, ok := supportedBookFormats[ext]
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "supported formats: EPUB, MOBI, AZW3, PDF"})
+		return
+	}
+	if err := validateUploadedBook(file, format); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -154,12 +153,18 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
-	os.Remove(filepath)
-
-	if err := h.db.DeleteBook(id); err != nil {
+	if err := h.db.DeleteBookData(id); err != nil {
+		if err == storage.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete book"})
 		return
+	}
+
+	removeFileIfExists(filepath.Join(h.cfg.UploadDir, book.Filename))
+	if book.CoverPath != "" {
+		removeFileIfExists(filepath.Join(h.cfg.UploadDir, book.CoverPath))
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
@@ -223,20 +228,89 @@ func normalizeBookFormat(format string, filename string) string {
 	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
 }
 
-func (h *BooksHandler) hydrateLastReadAt(book *models.Book) {
-	progress, err := h.db.GetProgress(book.ID)
+func validateUploadedBook(file *multipart.FileHeader, format string) error {
+	header, err := readUploadedFileHeader(file, 512)
 	if err != nil {
-		logger.Debug("Failed to get reading progress",
-			slog.String("book_id", book.ID),
+		return fmt.Errorf("failed to read upload")
+	}
+
+	switch format {
+	case "pdf":
+		if !bytes.HasPrefix(header, []byte("%PDF-")) {
+			return fmt.Errorf("uploaded file does not match PDF format")
+		}
+	case "epub":
+		if !isZIPHeader(header) {
+			return fmt.Errorf("uploaded file does not match EPUB format")
+		}
+	case "mobi", "azw3":
+		if !hasMobiSignature(header) {
+			return fmt.Errorf("uploaded file does not match %s format", strings.ToUpper(format))
+		}
+	}
+
+	return nil
+}
+
+func validateUploadedCover(file *multipart.FileHeader, ext string) error {
+	header, err := readUploadedFileHeader(file, 512)
+	if err != nil {
+		return fmt.Errorf("failed to read upload")
+	}
+
+	contentType := http.DetectContentType(header)
+	switch ext {
+	case ".jpg", ".jpeg":
+		if contentType != "image/jpeg" {
+			return fmt.Errorf("uploaded cover does not match JPEG format")
+		}
+	case ".png":
+		if contentType != "image/png" {
+			return fmt.Errorf("uploaded cover does not match PNG format")
+		}
+	case ".webp":
+		if contentType != "image/webp" {
+			return fmt.Errorf("uploaded cover does not match WEBP format")
+		}
+	}
+
+	return nil
+}
+
+func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+
+	buf := make([]byte, maxBytes)
+	n, err := src.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	return buf[:n], nil
+}
+
+func isZIPHeader(header []byte) bool {
+	return len(header) >= 4 &&
+		header[0] == 'P' &&
+		header[1] == 'K' &&
+		(header[2] == 3 || header[2] == 5 || header[2] == 7) &&
+		(header[3] == 4 || header[3] == 6 || header[3] == 8)
+}
+
+func hasMobiSignature(header []byte) bool {
+	return len(header) >= 68 && string(header[60:68]) == "BOOKMOBI"
+}
+
+func removeFileIfExists(path string) {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		logger.Warn("Failed to remove file during cleanup",
+			slog.String("path", path),
 			slog.Any("error", err),
 		)
-		book.LastReadAt = nil
-		return
-	}
-	if progress != nil {
-		book.LastReadAt = &progress.UpdatedAt
-	} else {
-		book.LastReadAt = nil
 	}
 }
 
@@ -285,8 +359,6 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		return
 	}
 
-	h.hydrateLastReadAt(book)
-
 	c.JSON(http.StatusOK, book)
 }
 
@@ -310,8 +382,6 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save book"})
 		return
 	}
-
-	h.hydrateLastReadAt(book)
 
 	c.JSON(http.StatusOK, book)
 }
@@ -404,6 +474,14 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "file required"})
 		return
 	}
+	if file.Size <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is empty"})
+		return
+	}
+	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file exceeds upload limit"})
+		return
+	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext == "" {
@@ -418,9 +496,20 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 			ext = ".png"
 		}
 	}
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".webp":
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported cover format"})
+		return
+	}
+	if err := validateUploadedCover(file, ext); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	coverFilename := id + ".cover" + ext
 	coverPath := filepath.Join(h.cfg.UploadDir, coverFilename)
+	previousCoverPath := book.CoverPath
 	if err := c.SaveUploadedFile(file, coverPath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save cover"})
 		return
@@ -429,8 +518,12 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	book.CoverPath = coverFilename
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 	if err := h.db.SaveBook(book); err != nil {
+		os.Remove(coverPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save book"})
 		return
+	}
+	if previousCoverPath != "" && previousCoverPath != coverFilename {
+		os.Remove(filepath.Join(h.cfg.UploadDir, previousCoverPath))
 	}
 
 	c.JSON(http.StatusOK, book)

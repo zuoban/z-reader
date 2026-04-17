@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -138,4 +141,149 @@ func TestBooksListIncludesLastReadAt(t *testing.T) {
 	if !found {
 		t.Fatalf("book %s not found in response", bookA.ID)
 	}
+}
+
+func TestBooksDeleteRemovesCoverAndProgress(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	uploadDir := t.TempDir()
+	db := openHandlerTestDB(t)
+
+	book := &models.Book{
+		ID:        "book-delete",
+		Title:     "Delete Me",
+		Filename:  "book-delete.epub",
+		Format:    "epub",
+		Size:      128,
+		CoverPath: "book-delete.cover.png",
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := db.SaveBook(book); err != nil {
+		t.Fatalf("failed to save book: %v", err)
+	}
+	if err := db.SaveProgress(&models.Progress{
+		BookID:     book.ID,
+		CFI:        "epubcfi(/6/2[chapter]!/4/2/6)",
+		Percentage: 44,
+		UpdatedAt:  time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("failed to save progress: %v", err)
+	}
+
+	bookPath := filepath.Join(uploadDir, book.Filename)
+	coverPath := filepath.Join(uploadDir, book.CoverPath)
+	if err := os.WriteFile(bookPath, []byte("book"), 0600); err != nil {
+		t.Fatalf("failed to write book file: %v", err)
+	}
+	if err := os.WriteFile(coverPath, []byte("cover"), 0600); err != nil {
+		t.Fatalf("failed to write cover file: %v", err)
+	}
+
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	req := httptest.NewRequest(http.MethodDelete, "/api/books/"+book.ID, nil)
+	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx.Request = req
+
+	handler.Delete(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	if _, err := os.Stat(bookPath); !os.IsNotExist(err) {
+		t.Fatalf("expected book file to be removed, stat err=%v", err)
+	}
+	if _, err := os.Stat(coverPath); !os.IsNotExist(err) {
+		t.Fatalf("expected cover file to be removed, stat err=%v", err)
+	}
+
+	gotBook, err := db.GetBook(book.ID)
+	if err != nil {
+		t.Fatalf("GetBook returned error: %v", err)
+	}
+	if gotBook != nil {
+		t.Fatalf("expected book to be deleted, got %+v", gotBook)
+	}
+
+	gotProgress, err := db.GetProgress(book.ID)
+	if err != nil {
+		t.Fatalf("GetProgress returned error: %v", err)
+	}
+	if gotProgress != nil {
+		t.Fatalf("expected progress to be deleted, got %+v", gotProgress)
+	}
+}
+
+func TestValidateUploadedBook(t *testing.T) {
+	tests := []struct {
+		name    string
+		format  string
+		content []byte
+		wantErr bool
+	}{
+		{name: "pdf ok", format: "pdf", content: []byte("%PDF-1.7 test")},
+		{name: "pdf mismatch", format: "pdf", content: []byte("not-a-pdf"), wantErr: true},
+		{name: "epub ok", format: "epub", content: []byte{'P', 'K', 3, 4, 0, 0}},
+		{name: "mobi ok", format: "mobi", content: append(make([]byte, 60), []byte("BOOKMOBI")...)},
+		{name: "azw3 mismatch", format: "azw3", content: []byte("plain-text"), wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file := newMultipartFileHeader(t, "book.bin", tt.content)
+			err := validateUploadedBook(file, tt.format)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("validateUploadedBook() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateUploadedCover(t *testing.T) {
+	pngHeader := []byte{
+		0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n',
+		0, 0, 0, 0, 'I', 'H', 'D', 'R',
+	}
+
+	if err := validateUploadedCover(newMultipartFileHeader(t, "cover.png", pngHeader), ".png"); err != nil {
+		t.Fatalf("expected PNG cover to validate, got %v", err)
+	}
+
+	err := validateUploadedCover(newMultipartFileHeader(t, "cover.png", []byte("not-an-image")), ".png")
+	if err == nil {
+		t.Fatalf("expected invalid PNG cover to fail validation")
+	}
+}
+
+func newMultipartFileHeader(t *testing.T, filename string, content []byte) *multipart.FileHeader {
+	t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatalf("CreateFormFile returned error: %v", err)
+	}
+	if _, err := part.Write(content); err != nil {
+		t.Fatalf("part.Write returned error: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("writer.Close returned error: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/upload", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if err := req.ParseMultipartForm(int64(len(body.Bytes()) + 1024)); err != nil {
+		t.Fatalf("ParseMultipartForm returned error: %v", err)
+	}
+
+	file, header, err := req.FormFile("file")
+	if err != nil {
+		t.Fatalf("FormFile returned error: %v", err)
+	}
+	_ = file.Close()
+
+	return header
 }

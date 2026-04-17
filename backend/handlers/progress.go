@@ -72,6 +72,10 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 	}
 
 	if err := h.db.SaveProgress(progress); err != nil {
+		if err == storage.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save progress"})
 		return
 	}

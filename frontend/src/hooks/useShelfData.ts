@@ -9,14 +9,24 @@ const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
+const VALID_SORT_OPTIONS: SortOption[] = ['recent_read', 'title', 'recent_added', 'author'];
 
 function readShelfSort(): SortOption {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (['recent_read', 'title', 'recent_added', 'author'].includes(parsed)) {
+      if (typeof parsed === 'string' && VALID_SORT_OPTIONS.includes(parsed as SortOption)) {
         return parsed as SortOption;
+      }
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'sortBy' in parsed &&
+        typeof parsed.sortBy === 'string' &&
+        VALID_SORT_OPTIONS.includes(parsed.sortBy as SortOption)
+      ) {
+        return parsed.sortBy as SortOption;
       }
     }
   } catch {
@@ -27,7 +37,7 @@ function readShelfSort(): SortOption {
 
 function writeShelfSort(sortBy: SortOption) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ sortBy }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sortBy));
   } catch {
     // ignore
   }
@@ -88,13 +98,13 @@ export function useShelfData(isAuthenticated: boolean) {
     setIsLoadingBooks(true);
     try {
       const data = await api.listBooks();
-      setBooks(sortBooks(data || [], sortBy));
+      setBooks(data || []);
     } catch {
       setBooks([]);
     } finally {
       setIsLoadingBooks(false);
     }
-  }, [sortBy]);
+  }, []);
 
   const loadCategories = useCallback(async () => {
     try {

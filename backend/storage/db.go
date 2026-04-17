@@ -92,21 +92,57 @@ func (db *DB) ListBooks() ([]models.Book, error) {
 	return books, err
 }
 
-func (db *DB) DeleteBook(id string) error {
+func (db *DB) DeleteBookData(id string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(BooksBucket)
-		return b.Delete([]byte(id))
+		booksBucket := tx.Bucket(BooksBucket)
+		if booksBucket.Get([]byte(id)) == nil {
+			return ErrNotFound
+		}
+		if err := booksBucket.Delete([]byte(id)); err != nil {
+			return err
+		}
+
+		progressBucket := tx.Bucket(ProgressBucket)
+		return progressBucket.Delete([]byte(id))
+	})
+}
+
+func (db *DB) DeleteProgress(bookID string) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(ProgressBucket)
+		return b.Delete([]byte(bookID))
 	})
 }
 
 func (db *DB) SaveProgress(progress *models.Progress) error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(ProgressBucket)
+		progressBucket := tx.Bucket(ProgressBucket)
 		data, err := json.Marshal(progress)
 		if err != nil {
 			return err
 		}
-		return b.Put([]byte(progress.BookID), data)
+		if err := progressBucket.Put([]byte(progress.BookID), data); err != nil {
+			return err
+		}
+
+		booksBucket := tx.Bucket(BooksBucket)
+		bookData := booksBucket.Get([]byte(progress.BookID))
+		if bookData == nil {
+			return ErrNotFound
+		}
+
+		var book models.Book
+		if err := json.Unmarshal(bookData, &book); err != nil {
+			return err
+		}
+		book.LastReadAt = &progress.UpdatedAt
+
+		updatedBookData, err := json.Marshal(&book)
+		if err != nil {
+			return err
+		}
+
+		return booksBucket.Put([]byte(book.ID), updatedBookData)
 	})
 }
 
@@ -127,32 +163,6 @@ func (db *DB) GetProgress(bookID string) (*models.Progress, error) {
 		return nil, err
 	}
 	return &progress, nil
-}
-
-func (db *DB) ListProgressByBookIDs(bookIDs []string) (map[string]models.Progress, error) {
-	progressMap := make(map[string]models.Progress, len(bookIDs))
-	if len(bookIDs) == 0 {
-		return progressMap, nil
-	}
-
-	err := db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(ProgressBucket)
-		for _, bookID := range bookIDs {
-			data := b.Get([]byte(bookID))
-			if data == nil {
-				continue
-			}
-
-			var progress models.Progress
-			if err := json.Unmarshal(data, &progress); err != nil {
-				return err
-			}
-			progressMap[bookID] = progress
-		}
-		return nil
-	})
-
-	return progressMap, err
 }
 
 func (db *DB) SaveSession(session *models.Session) error {

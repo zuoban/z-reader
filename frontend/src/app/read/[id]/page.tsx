@@ -482,15 +482,10 @@ export default function ReadPage() {
       applyRendererPreferences(view.renderer);
 
       const savedProgress = progressRef.current;
-      if (savedProgress?.cfi) {
-        try {
-          await view.goTo?.(savedProgress.cfi);
-        } catch {
-          await view.renderer?.next?.();
-        }
-      } else {
-        await view.renderer?.next?.();
-      }
+      await view.init?.({
+        lastLocation: savedProgress?.cfi ?? null,
+        showTextStart: false,
+      });
     } catch (err) {
       if (!destroyedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to load book");
@@ -668,10 +663,10 @@ export default function ReadPage() {
     opacity: active ? 1 : 0.84,
   });
   const toolbarClusterStyle = {
-    background: "transparent",
-    border: "1px solid transparent",
-    boxShadow: "none",
-    backdropFilter: "none",
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.72 : 0.82),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.38 : 0.52)}`,
+    boxShadow: `0 14px 32px -22px ${withOpacity(uiScheme.cardBorder, 0.42)}`,
+    backdropFilter: "blur(16px)",
   } as const;
   const statusBarStyle = {
     background: "transparent",
@@ -685,9 +680,7 @@ export default function ReadPage() {
   };
   const overlayContainer = pageRef.current;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = isHeaderVisible
-    ? "calc(env(safe-area-inset-top, 0px) + 2.75rem)"
-    : "calc(env(safe-area-inset-top, 0px) + 0.35rem)";
+  const readerContentInsetTop = "0px";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
   const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)";
 

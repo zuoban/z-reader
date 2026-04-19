@@ -42,6 +42,7 @@ export interface FoliateView {
     pages?: number;
   };
   lastLocation?: LastLocation;
+  init?: (options?: { lastLocation?: string | null; showTextStart?: boolean }) => Promise<void>;
   initTTS?: (granularity?: string, highlight?: (range: Range) => void) => Promise<void>;
   goTo?: (target: string | number) => Promise<void>;
   prev?: () => Promise<void>;

@@ -44,6 +44,14 @@ func main() {
 		logger.Error("Failed to open database", "error", err)
 		os.Exit(1)
 	}
+	if err := db.EnsureDefaultAdmin(cfg.AppPassword); err != nil {
+		logger.Error("Failed to ensure default admin", "error", err)
+		os.Exit(1)
+	}
+	if err := db.AssignUnownedDataToAdmin(); err != nil {
+		logger.Error("Failed to assign legacy data owner", "error", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
@@ -72,6 +80,7 @@ func main() {
 	progressHandler := handlers.NewProgressHandler(db)
 	ttsHandler := handlers.NewTTSHandler()
 	categoriesHandler := handlers.NewCategoriesHandler(cfg, db)
+	usersHandler := handlers.NewUsersHandler(db)
 
 	r.POST("/api/login", authHandler.Login)
 	r.POST("/api/logout", authHandler.Logout)
@@ -105,6 +114,15 @@ func main() {
 		api.POST("/categories", categoriesHandler.Create)
 		api.PATCH("/categories/:id", categoriesHandler.Update)
 		api.DELETE("/categories/:id", categoriesHandler.Delete)
+
+		users := api.Group("/users")
+		users.Use(middleware.AdminRequired())
+		{
+			users.GET("", usersHandler.List)
+			users.POST("", usersHandler.Create)
+			users.PATCH("/:id", usersHandler.Update)
+			users.DELETE("/:id", usersHandler.Delete)
+		}
 	}
 
 	quit := make(chan os.Signal, 1)

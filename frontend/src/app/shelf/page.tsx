@@ -23,6 +23,7 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { SortSelector } from '@/components/SortSelector';
+import { UserManager } from '@/components/UserManager';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -140,7 +141,7 @@ function CategoryDropdown({
 
 export default function ShelfPage() {
   const router = useRouter();
-  const { isLoading, isAuthenticated, logout } = useAuth();
+  const { isLoading, isAuthenticated, user, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -194,6 +195,9 @@ export default function ShelfPage() {
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <CategoryManager onCategoryChange={loadCategories} />
+            {user?.role === 'admin' && (
+              <UserManager currentUser={user} buttonClassName={HEADER_ICON_BUTTON_CLASS} />
+            )}
             <FileUploadAction
               accept={SUPPORTED_FORMATS_ACCEPT}
               onChange={handleUpload}

@@ -41,7 +41,12 @@ func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
 }
 
 func (h *BooksHandler) List(c *gin.Context) {
-	books, err := h.db.ListBooks()
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	books, err := h.db.ListBooks(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list books"})
 		return
@@ -56,8 +61,12 @@ func (h *BooksHandler) List(c *gin.Context) {
 
 func (h *BooksHandler) Get(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return
@@ -72,6 +81,11 @@ func (h *BooksHandler) Get(c *gin.Context) {
 }
 
 func (h *BooksHandler) Upload(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "file required"})
@@ -109,6 +123,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 	book := &models.Book{
 		ID:        bookID,
+		UserID:    userID,
 		Filename:  filename,
 		Format:    format,
 		Size:      file.Size,
@@ -142,8 +157,12 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 func (h *BooksHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return
@@ -153,7 +172,7 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteBookData(id); err != nil {
+	if err := h.db.DeleteBookData(id, userID); err != nil {
 		if err == storage.ErrNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 			return
@@ -172,8 +191,12 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 
 func (h *BooksHandler) GetFile(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return
@@ -325,8 +348,12 @@ func extractBookMetadata(path string, format string) (*epubMetadata, error) {
 
 func (h *BooksHandler) Update(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return
@@ -349,6 +376,17 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		book.Author = *req.Author.Value
 	}
 	if req.CategoryID.Set {
+		if req.CategoryID.Value != nil {
+			category, err := h.db.GetCategoryForUser(*req.CategoryID.Value, userID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get category"})
+				return
+			}
+			if category == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "category not found"})
+				return
+			}
+		}
 		book.CategoryID = req.CategoryID.Value
 	}
 
@@ -364,8 +402,12 @@ func (h *BooksHandler) Update(c *gin.Context) {
 
 func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return
@@ -423,8 +465,12 @@ func extractEPUBMetadata(path string) (*epubMetadata, error) {
 
 func (h *BooksHandler) GetCover(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return
@@ -458,8 +504,12 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 
 func (h *BooksHandler) UploadCover(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	book, err := h.db.GetBook(id)
+	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
 		return

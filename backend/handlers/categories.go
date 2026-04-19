@@ -33,7 +33,12 @@ func NewCategoriesHandler(cfg *config.Config, db *storage.DB) *CategoriesHandler
 }
 
 func (h *CategoriesHandler) List(c *gin.Context) {
-	categories, err := h.db.ListCategories()
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	categories, err := h.db.ListCategories(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list categories"})
 		return
@@ -47,13 +52,18 @@ type categoryRequest struct {
 }
 
 func (h *CategoriesHandler) Create(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
 	var req categoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	categories, err := h.db.ListCategories()
+	categories, err := h.db.ListCategories(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list categories"})
 		return
@@ -70,6 +80,7 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 
 	category := &models.Category{
 		ID:        uuid.New().String(),
+		UserID:    userID,
 		Name:      req.Name,
 		Color:     color,
 		SortOrder: sortOrder,
@@ -91,8 +102,12 @@ type categoryUpdateRequest struct {
 
 func (h *CategoriesHandler) Update(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	category, err := h.db.GetCategory(id)
+	category, err := h.db.GetCategoryForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get category"})
 		return
@@ -135,8 +150,12 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 
 func (h *CategoriesHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	category, err := h.db.GetCategory(id)
+	category, err := h.db.GetCategoryForUser(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get category"})
 		return
@@ -146,7 +165,7 @@ func (h *CategoriesHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteCategory(id); err != nil {
+	if err := h.db.DeleteCategory(id, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete category"})
 		return
 	}

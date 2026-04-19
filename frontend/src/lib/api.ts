@@ -7,6 +7,7 @@ import {
 
 export interface Book {
   id: string;
+  user_id: string;
   title: string;
   author: string;
   filename: string;
@@ -20,6 +21,7 @@ export interface Book {
 
 export interface Category {
   id: string;
+  user_id: string;
   name: string;
   color: string;
   sort_order: number;
@@ -28,21 +30,51 @@ export interface Category {
 
 export interface Progress {
   book_id: string;
+  user_id: string;
   cfi: string;
   percentage: number;
   updated_at: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  role: 'admin' | 'user';
+  created_at: string;
+  updated_at: string;
+}
+
 function getToken(): string | null {
+  if (typeof window === 'undefined' || !window.localStorage?.getItem) return null;
   return localStorage.getItem('token');
 }
 
 function setToken(token: string): void {
+  if (typeof window === 'undefined' || !window.localStorage?.setItem) return;
   localStorage.setItem('token', token);
 }
 
 function removeToken(): void {
+  if (typeof window === 'undefined' || !window.localStorage?.removeItem) return;
   localStorage.removeItem('token');
+  localStorage.removeItem('user');
+}
+
+function getCurrentUser(): User | null {
+  if (typeof window === 'undefined' || !window.localStorage?.getItem) return null;
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+}
+
+function setCurrentUser(user: User): void {
+  if (typeof window === 'undefined' || !window.localStorage?.setItem) return;
+  localStorage.setItem('user', JSON.stringify(user));
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
@@ -76,12 +108,13 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
 }
 
 export const api = {
-  login: async (password: string): Promise<{ token: string }> => {
-    const res = await fetchApi<{ token: string }>('/api/login', {
+  login: async (username: string, password: string): Promise<{ token: string; user: User }> => {
+    const res = await fetchApi<{ token: string; user: User }>('/api/login', {
       method: 'POST',
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
     setToken(res.token);
+    setCurrentUser(res.user);
     return res;
   },
 
@@ -94,8 +127,34 @@ export const api = {
     removeToken();
   },
 
-  verify: async (): Promise<{ valid: boolean }> => {
-    return fetchApi('/api/auth/verify');
+  verify: async (): Promise<{ valid: boolean; user?: User }> => {
+    const res = await fetchApi<{ valid: boolean; user?: User }>('/api/auth/verify');
+    if (res.user) {
+      setCurrentUser(res.user);
+    }
+    return res;
+  },
+
+  listUsers: async (): Promise<User[]> => {
+    return fetchApi<User[]>('/api/users');
+  },
+
+  createUser: async (data: { username: string; password: string; role: User['role'] }): Promise<User> => {
+    return fetchApi<User>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateUser: async (id: string, data: { password?: string; role?: User['role'] }): Promise<User> => {
+    return fetchApi<User>(`/api/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    await fetchApi(`/api/users/${id}`, { method: 'DELETE' });
   },
 
   listBooks: async (): Promise<Book[]> => {
@@ -277,5 +336,7 @@ export const auth = {
   getToken,
   setToken,
   removeToken,
+  getCurrentUser,
+  setCurrentUser,
   isLoggedIn: () => !!getToken(),
 };

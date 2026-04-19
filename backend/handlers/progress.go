@@ -25,8 +25,22 @@ type ProgressRequest struct {
 
 func (h *ProgressHandler) Get(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
-	progress, err := h.db.GetProgress(id)
+	book, err := h.db.GetBookForUser(id, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get book"})
+		return
+	}
+	if book == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
+		return
+	}
+
+	progress, err := h.db.GetProgress(id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get progress"})
 		return
@@ -46,6 +60,10 @@ func (h *ProgressHandler) Get(c *gin.Context) {
 
 func (h *ProgressHandler) Save(c *gin.Context) {
 	id := c.Param("id")
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
 
 	var req ProgressRequest
 	// 支持 JSON 和 form-urlencoded 格式（sendBeacon 使用 form 格式）
@@ -66,12 +84,13 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 
 	progress := &models.Progress{
 		BookID:     id,
+		UserID:     userID,
 		CFI:        req.CFI,
 		Percentage: req.Percentage,
 		UpdatedAt:  time.Now(),
 	}
 
-	if err := h.db.SaveProgress(progress); err != nil {
+	if err := h.db.SaveProgress(progress, userID); err != nil {
 		if err == storage.ErrNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 			return

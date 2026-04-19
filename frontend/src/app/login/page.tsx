@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CircleAlert, LockKeyhole, MoveRight } from 'lucide-react';
+import { CircleAlert, LockKeyhole, MoveRight, UserRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandMark, LoadingSpinner, LoadingState } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 export default function LoginPage() {
   const router = useRouter();
   const { isLoading, isAuthenticated, login } = useAuth();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +29,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login(password);
+      await login(username, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
@@ -58,6 +59,26 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="group space-y-2">
               <Label
+                htmlFor="username"
+                className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors group-focus-within:text-foreground"
+              >
+                <UserRound className="h-3.5 w-3.5 opacity-60" />
+                用户名
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="请输入用户名"
+                autoComplete="username"
+                autoFocus
+                className="h-12 rounded-xl border-border/70 bg-background px-4 text-sm shadow-none transition-all duration-300 placeholder:text-muted-foreground/50 focus:border-foreground/20 focus:bg-background focus:outline-none focus:ring-2 focus:ring-foreground/8"
+              />
+            </div>
+
+            <div className="group space-y-2">
+              <Label
                 htmlFor="password"
                 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors group-focus-within:text-foreground"
               >
@@ -71,7 +92,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入访问密码"
-                  autoFocus
+                  autoComplete="current-password"
                   className="h-12 rounded-xl border-border/70 bg-background px-4 pr-10 text-sm shadow-none transition-all duration-300 placeholder:text-muted-foreground/50 focus:border-foreground/20 focus:bg-background focus:outline-none focus:ring-2 focus:ring-foreground/8"
                 />
                 <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-opacity duration-300 group-focus-within:opacity-80">

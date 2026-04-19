@@ -23,11 +23,13 @@ func NewAuthHandler(cfg *config.Config, db *storage.DB) *AuthHandler {
 }
 
 type LoginRequest struct {
+	Username string `json:"username"`
 	Password string `json:"password" binding:"required"`
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token string       `json:"token"`
+	User  userResponse `json:"user"`
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -37,7 +39,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	if req.Password != h.cfg.AppPassword {
+	username := strings.TrimSpace(req.Username)
+	if username == "" {
+		username = "admin"
+	}
+
+	user, err := h.db.GetUserByUsername(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		return
+	}
+	if user == nil || !storage.CheckPassword(user.PasswordHash, req.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
 		return
 	}
@@ -45,6 +57,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	token := uuid.New().String()
 	session := &models.Session{
 		Token:     token,
+		UserID:    user.ID,
+		Username:  user.Username,
+		Role:      user.Role,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
@@ -54,7 +69,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token})
+	c.JSON(http.StatusOK, LoginResponse{Token: token, User: publicUser(*user)})
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
@@ -80,5 +95,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 func (h *AuthHandler) Verify(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"valid": true})
+	user, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"valid": true})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"valid": true, "user": user})
 }

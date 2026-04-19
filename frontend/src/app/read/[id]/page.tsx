@@ -482,7 +482,7 @@ export default function ReadPage() {
       applyRendererPreferences(view.renderer);
 
       const savedProgress = progressRef.current;
-      await view.init?.({
+      await (view as any).init?.({
         lastLocation: savedProgress?.cfi ?? null,
         showTextStart: false,
       });

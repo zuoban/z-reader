@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
+  CalendarClock,
   Clock,
   FileText,
   HardDrive,
@@ -83,6 +84,23 @@ function formatRelativeTime(dateString: string): string {
   return timeStr;
 }
 
+function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return '未知';
+  }
+
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
 interface BookCoverFaceProps {
   coverUrl: string | null;
   titleLabel: string;
@@ -156,6 +174,7 @@ export function BookCard({
   const titleLabel = book.title?.trim() || '未命名';
   const progressValue = progress !== null ? Math.max(0, Math.min(progress, 100)) : null;
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
+  const uploadedAtLabel = formatDateTime(book.created_at);
   const progressLabel = progressValue !== null ? `${progressValue}%` : '未开始';
   const readButtonLabel = progressValue !== null ? '继续阅读' : '开始阅读';
   const category = useMemo(
@@ -288,23 +307,34 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={8}
-                    className="w-48 rounded-2xl border border-black/8 bg-white/96 dark:bg-popover/95 dark:border-white/10 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+                    className="w-56 rounded-2xl border border-black/8 bg-white/96 dark:bg-popover/95 dark:border-white/10 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
                   >
-                    <div className="space-y-1 rounded-xl px-3 py-2.5 text-[12px] text-foreground/72">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2">
+                    <div className="space-y-1.5 rounded-xl px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
+                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
+                        <span className="flex items-center">
                           <FileText className="h-3.5 w-3.5 text-foreground/52" />
-                          格式
                         </span>
-                        <span className="font-medium text-foreground/88">{formatLabel}</span>
+                        <span className="whitespace-nowrap">格式</span>
+                        <span className="min-w-0 whitespace-nowrap text-right font-medium text-foreground/88">
+                          {formatLabel}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2">
+                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
+                        <span className="flex items-center">
                           <HardDrive className="h-3.5 w-3.5 text-foreground/52" />
-                          大小
                         </span>
-                        <span className="font-medium text-foreground/88">
+                        <span className="whitespace-nowrap">大小</span>
+                        <span className="min-w-0 whitespace-nowrap text-right font-medium text-foreground/88">
                           {sizeLabel || '未知'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
+                        <span className="flex items-center">
+                          <CalendarClock className="h-3.5 w-3.5 text-foreground/52" />
+                        </span>
+                        <span className="whitespace-nowrap">上传</span>
+                        <span className="min-w-0 whitespace-nowrap text-right font-medium tabular-nums text-foreground/88">
+                          {uploadedAtLabel}
                         </span>
                       </div>
                     </div>

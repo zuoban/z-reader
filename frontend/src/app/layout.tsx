@@ -37,8 +37,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#1f2937' },
+    { media: '(prefers-color-scheme: light)', color: '#F7FBF8' },
+    { media: '(prefers-color-scheme: dark)', color: '#0E1513' },
   ],
 };
 
@@ -100,7 +100,7 @@ export default function RootLayout({
                 background: 'var(--background)',
                 color: 'var(--foreground)',
                 border: '1px solid var(--border)',
-                borderRadius: '12px',
+                borderRadius: '8px',
               },
             }}
           />

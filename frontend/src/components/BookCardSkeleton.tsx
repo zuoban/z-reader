@@ -41,20 +41,19 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
     >
       <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
         <div
-          className="relative flex cursor-default flex-col overflow-hidden rounded-[22px] border border-black/8 bg-white dark:bg-neutral-900 dark:border-white/10 shadow-[0_24px_44px_-34px_rgba(15,23,42,0.38),0_10px_24px_-20px_rgba(15,23,42,0.22)] sm:rounded-[20px]"
+          className="relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/75 bg-card shadow-[0_18px_40px_-32px_rgba(15,23,42,0.34),0_8px_18px_-18px_rgba(15,23,42,0.18)]"
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
         >
           {/* Cover skeleton */}
           <div
-            className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-stone-50 to-zinc-100 dark:from-neutral-800/60 dark:via-neutral-900/80 dark:to-neutral-950"
+            className="relative overflow-hidden bg-muted/70"
             style={{ height: coverHeight }}
           >
             {isMobile && (
               <>
-                <div className="pointer-events-none absolute inset-x-3 top-0 h-16 rounded-b-[32px] bg-white/40 dark:bg-white/8 blur-3xl" />
-                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-black/8 to-transparent dark:via-white/5" />
+                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
               </>
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
@@ -77,7 +76,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col justify-between border-t border-black/5 dark:border-white/5 bg-gradient-to-b from-white via-white to-stone-50/55 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-950/55 px-3.5 py-3.5 sm:px-4 sm:py-3.5"
+            className="flex flex-col justify-between border-t border-border/70 bg-card px-3.5 py-3.5 sm:px-4 sm:py-3.5"
             style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
           >
             <div className="space-y-2.5 sm:space-y-2.5">
@@ -112,8 +111,8 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2.5 border-t border-black/5 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
-              <Skeleton className="h-10 w-full rounded-[10px] sm:h-9 sm:w-full sm:rounded-[10px]" />
+            <div className="flex flex-col gap-2.5 border-t border-border/70 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
+              <Skeleton className="h-10 w-full rounded-lg sm:h-9 sm:w-full" />
             </div>
           </div>
         </div>
@@ -126,7 +125,7 @@ export function BookCardSkeletonGrid({ count = 6 }: { count?: number }) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:gap-x-5 sm:gap-y-6 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] lg:gap-x-6 lg:gap-y-7">
+    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,1fr))] sm:gap-x-5 sm:gap-y-7 lg:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] lg:gap-x-6 lg:gap-y-8">
       {Array.from({ length: count }).map((_, index) => (
         <BookCardSkeleton key={index} isMobile={isMobile} />
       ))}

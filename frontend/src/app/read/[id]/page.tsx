@@ -770,7 +770,7 @@ export default function ReadPage() {
                   <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-126px)] sm:h-[calc(100vh-88px)]">
                     <div
                       ref={tocListRef}
-                      className="m-4 rounded-[22px] border p-3"
+                      className="m-4 rounded-lg border p-3"
                       style={{
                         background: withOpacity(uiScheme.buttonBg, 0.44),
                         borderColor: withOpacity(uiScheme.cardBorder, 0.42),
@@ -884,7 +884,7 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="flex min-w-[220px] flex-col items-center gap-4 rounded-[26px] border px-8 py-7 backdrop-blur-xl"
+                  className="flex min-w-[220px] flex-col items-center gap-4 rounded-lg border px-8 py-7 backdrop-blur-xl"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.88),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.78),
@@ -892,7 +892,7 @@ export default function ReadPage() {
                   }}
                 >
                   <div
-                    className="flex h-20 w-16 items-center justify-center rounded-[20px] border"
+                    className="flex h-20 w-16 items-center justify-center rounded-lg border"
                     style={{
                       background: withOpacity(uiScheme.buttonBg, 0.52),
                       borderColor: withOpacity(uiScheme.cardBorder, 0.72),
@@ -944,7 +944,7 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl px-4 py-3 backdrop-blur-xl"
+                  className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-lg px-4 py-3 backdrop-blur-xl"
                   style={mobileResumeCardStyle}
                 >
                   <div
@@ -975,7 +975,7 @@ export default function ReadPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => void resumeTTS()}
-                    className="h-10 shrink-0 rounded-xl px-3.5 text-sm font-semibold"
+                    className="h-10 shrink-0 rounded-lg px-3.5 text-sm font-semibold"
                     style={{
                       color: uiScheme.link,
                       background: withOpacity(uiScheme.buttonBg, 0.72),
@@ -1062,7 +1062,7 @@ function TOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         variant="ghost"
         size="sm"
-        className="mb-1.5 h-9 w-full justify-start rounded-xl border transition-all duration-150 sm:h-10"
+        className="mb-1.5 h-9 w-full justify-start rounded-lg border transition-all duration-150 sm:h-10"
         style={{
           paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : "12px",
           paddingRight: "12px",

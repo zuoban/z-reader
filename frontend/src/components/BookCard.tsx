@@ -250,16 +250,15 @@ export function BookCard({
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
-          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[22px] border border-black/8 bg-white dark:bg-neutral-900 dark:border-white/10 shadow-[0_24px_44px_-34px_rgba(15,23,42,0.38),0_10px_24px_-20px_rgba(15,23,42,0.22)] transition-[border-color,box-shadow,transform] duration-300 ease-out hover:border-black/15 dark:hover:border-white/20 hover:shadow-[0_28px_52px_-34px_rgba(15,23,42,0.42)] active:scale-[0.985] active:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)] motion-reduce:transition-none sm:rounded-[20px] cursor-pointer"
+          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/75 bg-card shadow-[0_18px_40px_-32px_rgba(15,23,42,0.34),0_8px_18px_-18px_rgba(15,23,42,0.18)] transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_22px_46px_-32px_rgba(15,23,42,0.4)] active:scale-[0.985] active:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.24)] motion-reduce:transition-none cursor-pointer"
         >
           <div
-            className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-stone-50 to-zinc-100 dark:from-neutral-800/60 dark:via-neutral-900/80 dark:to-neutral-950"
+            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_68%,white)_0%,color-mix(in_srgb,var(--secondary)_70%,transparent)_100%)] dark:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_60%,black)_0%,color-mix(in_srgb,var(--background)_88%,black)_100%)]"
             style={{ height: coverHeight }}
           >
             {isMobile && (
               <>
-                <div className="pointer-events-none absolute inset-x-3 top-0 h-16 rounded-b-[32px] bg-white/40 dark:bg-white/8 blur-3xl" />
-                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-black/8 to-transparent dark:via-white/5" />
+                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
               </>
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
@@ -282,10 +281,10 @@ export function BookCard({
               </div>
             </div>
 
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/10" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-foreground/8 via-transparent to-background/14" />
           </div>
           <div
-            className="flex flex-col justify-between border-t border-black/5 dark:border-white/5 bg-gradient-to-b from-white via-white to-stone-50/55 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-950/55 px-3.5 py-3.5 sm:px-4 sm:py-3.5"
+            className="flex flex-col justify-between border-t border-border/70 bg-card px-3.5 py-3.5 sm:px-4 sm:py-3.5"
             style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
           >
             <div className="space-y-2.5 sm:space-y-2.5">
@@ -299,7 +298,7 @@ export function BookCard({
                 </h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className="absolute right-[-6px] top-[-5px] flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-foreground/48 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:text-foreground/72 active:scale-95 sm:right-[-4px] sm:top-[-4px] sm:h-6.5 sm:w-6.5 sm:rounded-lg sm:bg-transparent sm:text-foreground/34 opacity-60 hover:opacity-100 cursor-pointer"
+                    className="absolute right-[-6px] top-[-5px] flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-foreground/48 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:border-border/70 hover:bg-muted/70 hover:text-foreground/78 active:scale-95 sm:right-[-4px] sm:top-[-4px] sm:h-7 sm:w-7 sm:rounded-lg opacity-70 hover:opacity-100 cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
@@ -307,9 +306,9 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={8}
-                    className="w-56 rounded-2xl border border-black/8 bg-white/96 dark:bg-popover/95 dark:border-white/10 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+                    className="w-56 rounded-lg border border-border/75 bg-popover/96 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
                   >
-                    <div className="space-y-1.5 rounded-xl px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
+                    <div className="space-y-1.5 rounded-lg bg-muted/35 px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
                       <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
                         <span className="flex items-center">
                           <FileText className="h-3.5 w-3.5 text-foreground/52" />
@@ -338,18 +337,18 @@ export function BookCard({
                         </span>
                       </div>
                     </div>
-                    <DropdownMenuSeparator className="my-1.5 bg-black/6" />
+                    <DropdownMenuSeparator className="my-1.5 bg-border/70" />
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
                         setCategoryDialogOpen(true);
                       }}
-                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-foreground/88 transition-colors hover:bg-stone-100 focus:bg-stone-100 cursor-pointer"
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium text-foreground/88 transition-colors hover:bg-muted/75 focus:bg-muted/75 cursor-pointer"
                     >
                       <Tag className="h-3.5 w-3.5 text-foreground/62" />
                       <span>设置分类</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-1.5 bg-black/6" />
+                    <DropdownMenuSeparator className="my-1.5 bg-border/70" />
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
@@ -357,7 +356,7 @@ export function BookCard({
                       }}
                       disabled={isDeleting}
                       variant="destructive"
-                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/7 focus:bg-destructive/7 cursor-pointer"
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span>{isDeleting ? '删除中' : '删除图书'}</span>
@@ -390,7 +389,7 @@ export function BookCard({
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2.5 border-t border-black/5 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
+            <div className="flex flex-col gap-2.5 border-t border-border/70 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
               <Button
                 type="button"
                 size="sm"
@@ -398,9 +397,9 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-11 w-full shrink-0 gap-2 rounded-lg border border-foreground/10 bg-foreground px-4 text-[12px] font-semibold tracking-normal text-background shadow-[0_12px_26px_-18px_rgba(15,23,42,0.72)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-foreground/16 hover:bg-foreground/92 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.78)] active:scale-[0.98] dark:border-white/12 dark:bg-white dark:text-neutral-950 dark:hover:bg-white/92 sm:h-9 sm:w-full sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
+                className="h-11 w-full shrink-0 gap-2 rounded-lg border border-primary/15 bg-primary px-4 text-[12px] font-semibold tracking-normal text-primary-foreground shadow-[0_12px_26px_-18px_rgba(15,23,42,0.52)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-primary/25 hover:bg-primary/92 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.62)] active:scale-[0.98] sm:h-9 sm:w-full sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-background/14 text-background/88 dark:bg-neutral-950/10 dark:text-neutral-950/80 sm:h-4.5 sm:w-4.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary-foreground/16 text-primary-foreground sm:h-4.5 sm:w-4.5">
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 </span>
                 <span>{readButtonLabel}</span>

@@ -291,7 +291,7 @@ export function BookCard({
             <div className="space-y-2.5 sm:space-y-2.5">
               <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-h-[3rem] min-w-0 text-[15px] font-semibold leading-[1.45] tracking-normal text-foreground sm:min-h-[2.7rem] sm:text-[14.5px]"
+                  className="h-[42px] min-w-0 text-[15px] font-semibold leading-[21px] tracking-normal text-foreground sm:h-[42px] sm:text-[14.5px] sm:leading-[21px]"
                   style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                   title={titleLabel}
                 >
@@ -398,10 +398,12 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-10 w-full shrink-0 rounded-[10px] border border-black/7 bg-muted/42 px-4 text-[12px] font-semibold tracking-normal text-foreground/78 shadow-none transition-[transform,background-color,border-color,color] duration-200 hover:border-black/12 hover:bg-muted/62 hover:text-foreground active:scale-[0.98] dark:border-white/8 dark:bg-muted/28 dark:hover:bg-muted/40 sm:h-9 sm:w-full sm:rounded-[10px] sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
+                className="h-11 w-full shrink-0 gap-2 rounded-lg border border-foreground/10 bg-foreground px-4 text-[12px] font-semibold tracking-normal text-background shadow-[0_12px_26px_-18px_rgba(15,23,42,0.72)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-foreground/16 hover:bg-foreground/92 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.78)] active:scale-[0.98] dark:border-white/12 dark:bg-white dark:text-neutral-950 dark:hover:bg-white/92 sm:h-9 sm:w-full sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
               >
-                <BookOpen className="mr-1.5 h-4 w-4 text-foreground/58 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
-                {readButtonLabel}
+                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-background/14 text-background/88 dark:bg-neutral-950/10 dark:text-neutral-950/80 sm:h-4.5 sm:w-4.5">
+                  <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+                </span>
+                <span>{readButtonLabel}</span>
               </Button>
             </div>
           </div>

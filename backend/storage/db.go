@@ -56,8 +56,11 @@ func Open(path string) (*DB, error) {
 	return &DB{db}, nil
 }
 
+// BcryptCost 是密码哈希的计算成本。12 在现代硬件上提供合理的安全性平衡。
+const BcryptCost = 12
+
 func HashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), BcryptCost)
 	return string(hash), err
 }
 

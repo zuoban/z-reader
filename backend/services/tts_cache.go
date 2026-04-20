@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -387,13 +388,10 @@ func cleanupDiskTTSCache(config ttsCacheConfig) {
 		return
 	}
 
-	for i := 0; i < len(files)-1; i++ {
-		for j := i + 1; j < len(files); j++ {
-			if files[j].modTime.Before(files[i].modTime) {
-				files[i], files[j] = files[j], files[i]
-			}
-		}
-	}
+	// 按修改时间升序排序（最旧的在前），使用 O(n log n) 排序
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].modTime.Before(files[j].modTime)
+	})
 
 	for _, file := range files {
 		if total <= int64(config.MaxBytes) && len(files) <= config.MaxItems {

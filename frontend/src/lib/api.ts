@@ -107,6 +107,30 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
   }
 }
 
+/** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
+async function authedFetch(path: string, options: RequestInit = {}, timeout?: number): Promise<Response> {
+  const token = getToken();
+  const { controller, timeoutId } = createAbortController(timeout);
+
+  const headers: HeadersInit = {
+    ...(token ? { Authorization: token } : {}),
+    ...options.headers,
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+    return res;
+  } catch (error) {
+    throw normalizeRequestError(error);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export const api = {
   login: async (username: string, password: string): Promise<{ token: string; user: User }> => {
     const res = await fetchApi<{ token: string; user: User }>('/api/login', {
@@ -179,13 +203,11 @@ export const api = {
   },
 
   uploadBook: async (file: File): Promise<Book> => {
-    const token = getToken();
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch(`${API_BASE}/api/books`, {
+    const res = await authedFetch('/api/books', {
       method: 'POST',
-      headers: token ? { Authorization: token } : {},
       body: formData,
     });
 
@@ -210,23 +232,13 @@ export const api = {
   },
 
   fetchBook: async (id: string): Promise<Blob> => {
-    const token = getToken();
-    const { controller, timeoutId } = createAbortController(DEFAULT_TIMEOUT);
-    try {
-      const res = await fetch(`${API_BASE}/api/books/${id}/file`, {
-        headers: token ? { Authorization: token } : {},
-        signal: controller.signal,
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        throw new Error(`加载书籍失败：${res.status}`);
-      }
-      return res.blob();
-    } catch (error) {
-      throw normalizeRequestError(error, '加载书籍超时，请稍后重试');
-    } finally {
-      clearTimeout(timeoutId);
+    const res = await authedFetch(`/api/books/${id}/file`, {
+      credentials: 'include',
+    }, DEFAULT_TIMEOUT);
+    if (!res.ok) {
+      throw new Error(`加载书籍失败：${res.status}`);
     }
+    return res.blob();
   },
 
   createBookFile: async (id: string): Promise<File> => {
@@ -242,13 +254,11 @@ export const api = {
   },
 
   uploadCover: async (id: string, file: Blob, filename = 'cover.png'): Promise<Book> => {
-    const token = getToken();
     const formData = new FormData();
     formData.append('file', file, filename);
 
-    const res = await fetch(`${API_BASE}/api/books/${id}/cover`, {
+    const res = await authedFetch(`/api/books/${id}/cover`, {
       method: 'POST',
-      headers: token ? { Authorization: token } : {},
       body: formData,
     });
 
@@ -261,26 +271,13 @@ export const api = {
   },
 
   fetchCover: async (id: string): Promise<Blob | null> => {
-    const token = getToken();
-    const { controller, timeoutId } = createAbortController(DEFAULT_TIMEOUT);
-    try {
-      const res = await fetch(`${API_BASE}/api/books/${id}/cover`, {
-        headers: token ? { Authorization: token } : {},
-        signal: controller.signal,
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        return null;
-      }
-      return res.blob();
-    } catch (error) {
-      if (error instanceof Error && error.name === 'TimeoutError') {
-        return null;
-      }
-      throw normalizeRequestError(error, '加载封面超时，请稍后重试');
-    } finally {
-      clearTimeout(timeoutId);
+    const res = await authedFetch(`/api/books/${id}/cover`, {
+      credentials: 'include',
+    }, DEFAULT_TIMEOUT);
+    if (!res.ok) {
+      return null;
     }
+    return res.blob();
   },
 
   getProgress: async (bookId: string): Promise<Progress> => {

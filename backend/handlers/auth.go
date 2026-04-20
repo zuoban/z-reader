@@ -10,6 +10,7 @@ import (
 
 	"z-reader/backend/config"
 	"z-reader/backend/models"
+	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
 
@@ -35,7 +36,7 @@ type LoginResponse struct {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入密码"})
+		response.BadRequest(c, "请输入密码")
 		return
 	}
 
@@ -46,11 +47,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	user, err := h.db.GetUserByUsername(username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户失败"})
+		response.InternalError(c, "获取用户失败")
 		return
 	}
 	if user == nil || !storage.CheckPassword(user.PasswordHash, req.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+		response.Unauthorized(c, "用户名或密码错误")
 		return
 	}
 
@@ -65,7 +66,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := h.db.SaveSession(session); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存登录状态失败"})
+		response.InternalError(c, "保存登录状态失败")
 		return
 	}
 
@@ -75,23 +76,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	token := strings.TrimSpace(c.GetHeader("Authorization"))
 	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少登录凭证"})
+		response.BadRequest(c, "缺少登录凭证")
 		return
 	}
 
 	token = strings.TrimPrefix(token, "Bearer ")
 	token = strings.TrimSpace(token)
 	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少登录凭证"})
+		response.BadRequest(c, "缺少登录凭证")
 		return
 	}
 
 	if err := h.db.DeleteSession(token); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "退出登录失败"})
+		response.InternalError(c, "退出登录失败")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "已退出登录"})
+	response.Success(c, "已退出登录")
 }
 
 func (h *AuthHandler) Verify(c *gin.Context) {

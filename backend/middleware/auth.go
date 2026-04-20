@@ -1,12 +1,12 @@
 package middleware
 
 import (
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"z-reader/backend/models"
+	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
 
@@ -14,7 +14,7 @@ func AuthRequired(db *storage.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+			response.Unauthorized(c, "请先登录")
 			c.Abort()
 			return
 		}
@@ -26,29 +26,29 @@ func AuthRequired(db *storage.DB) gin.HandlerFunc {
 
 		session, err := db.GetSession(token)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "验证登录状态失败"})
+			response.InternalError(c, "验证登录状态失败")
 			c.Abort()
 			return
 		}
 		if session == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "登录已失效，请重新登录"})
+			response.Unauthorized(c, "登录已失效，请重新登录")
 			c.Abort()
 			return
 		}
 		if session.UserID == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "登录已失效，请重新登录"})
+			response.Unauthorized(c, "登录已失效，请重新登录")
 			c.Abort()
 			return
 		}
 
 		user, err := db.GetUser(session.UserID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户失败"})
+			response.InternalError(c, "获取用户失败")
 			c.Abort()
 			return
 		}
 		if user == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "登录已失效，请重新登录"})
+			response.Unauthorized(c, "登录已失效，请重新登录")
 			c.Abort()
 			return
 		}
@@ -72,7 +72,7 @@ func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get("userRole")
 		if role != models.UserRoleAdmin {
-			c.JSON(http.StatusForbidden, gin.H{"error": "需要管理员权限"})
+			response.Forbidden(c, "需要管理员权限")
 			c.Abort()
 			return
 		}

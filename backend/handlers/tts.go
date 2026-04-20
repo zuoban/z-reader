@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"z-reader/backend/response"
 	"z-reader/backend/services"
 )
 
@@ -19,10 +20,7 @@ func NewTTSHandler() *TTSHandler {
 func (h *TTSHandler) TTS(c *gin.Context) {
 	text := c.Query("t")
 	if text == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_param",
-			"message": "参数 't' 不能为空",
-		})
+		response.BadRequest(c, "参数 't' 不能为空")
 		return
 	}
 
@@ -35,10 +33,7 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 
 	audioData, err := services.GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "tts_error",
-			"message": err.Error(),
-		})
+		response.InternalError(c, err.Error())
 		return
 	}
 
@@ -68,18 +63,12 @@ type SSMLRequest struct {
 func (h *TTSHandler) SSML(c *gin.Context) {
 	var req SSMLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_body",
-			"message": "请求体必须是有效 JSON",
-		})
+		response.BadRequest(c, "请求体必须是有效 JSON")
 		return
 	}
 
 	if req.Ssml == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "invalid_param",
-			"message": "参数 'ssml' 不能为空",
-		})
+		response.BadRequest(c, "参数 'ssml' 不能为空")
 		return
 	}
 
@@ -90,10 +79,7 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 
 	audioData, err := services.GenerateAudioFromSsml(req.Ssml, outputFormat)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "tts_error",
-			"message": err.Error(),
-		})
+		response.InternalError(c, err.Error())
 		return
 	}
 
@@ -119,10 +105,7 @@ func (h *TTSHandler) VoiceList(c *gin.Context) {
 
 	voices, err := services.GetVoiceList()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "voice_list_error",
-			"message": err.Error(),
-		})
+		response.InternalError(c, err.Error())
 		return
 	}
 

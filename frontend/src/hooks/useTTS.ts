@@ -19,6 +19,10 @@ import { useTTSResumePrompt } from '@/hooks/useTTSResumePrompt';
 import { useTTSVoices } from '@/hooks/useTTSVoices';
 import { useWakeLock } from '@/hooks/useWakeLock';
 
+// TTS 导航重试配置
+const MAX_NAV_RETRIES = 8;
+const NAV_RETRY_DELAY_MS = 500;
+
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
   onHighlight?: (range: Range) => void;
@@ -666,13 +670,13 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     let inited = await ensureTTS();
     if (!inited) return false;
 
-    for (let attempt = 0; attempt < 8; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_NAV_RETRIES; attempt += 1) {
       let ssml = view.tts?.next?.();
-      
+
       if (!ssml) {
         try {
           await view.next?.();
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, NAV_RETRY_DELAY_MS));
 
           inited = await ensureTTS();
           if (inited) {
@@ -714,13 +718,13 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     let inited = await ensureTTS();
     if (!inited) return false;
 
-    for (let attempt = 0; attempt < 8; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_NAV_RETRIES; attempt += 1) {
       let ssml = view.tts?.prev?.();
-      
+
       if (!ssml) {
         try {
           await view.prev?.();
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, NAV_RETRY_DELAY_MS));
 
           inited = await ensureTTS();
           if (inited) {

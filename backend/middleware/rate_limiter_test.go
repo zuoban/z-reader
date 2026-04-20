@@ -1,0 +1,62 @@
+package middleware
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+func TestRateLimiterAllowsWithinLimit(t *testing.T) {
+	rl := NewRateLimiter(3, 5*time.Minute)
+
+	for i := 0; i < 3; i++ {
+		if !rl.Allow("127.0.0.1") {
+			t.Fatalf("request %d should be allowed", i+1)
+		}
+	}
+}
+
+func TestRateLimiterBlocksAfterLimit(t *testing.T) {
+	rl := NewRateLimiter(2, 5*time.Minute)
+
+	rl.Allow("127.0.0.1")
+	rl.Allow("127.0.0.1")
+
+	if rl.Allow("127.0.0.1") {
+		t.Fatal("request should be blocked after limit")
+	}
+}
+
+func TestRateLimiterDifferentIPsAreIndependent(t *testing.T) {
+	rl := NewRateLimiter(1, 5*time.Minute)
+
+	rl.Allow("10.0.0.1")
+
+	// Different IP should still be allowed
+	if !rl.Allow("10.0.0.2") {
+		t.Fatal("different IP should not affect rate limit")
+	}
+}
+
+func TestRateLimiterMiddlewareReturns429(t *testing.T) {
+	rl := NewRateLimiter(1, 5*time.Minute)
+	// First request allowed
+	rl.Allow("10.0.0.99")
+	// Second request would be blocked
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+	c.Request.RemoteAddr = "10.0.0.99:12345"
+
+	handler := RateLimit(rl)
+	handler(c)
+
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected status 429, got %d", w.Code)
+	}
+}

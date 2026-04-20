@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -16,8 +17,11 @@ import (
 
 const (
 	EndpointRefreshThreshold = 300
-	SignatureKeyBase64       = "oik6PdDdMnOXemTbwvMn9de/h9lFnfBaCWbGMMZqqoSaQaqUOqjVGm5NqsmjcBI1x+sS9ugjB55HEJWRiFXYFw=="
 )
+
+// defaultSignatureKey 是 Microsoft Translator TTS 端点的默认签名密钥。
+// 建议通过 MICROSOFT_TTS_SIGNATURE_KEY 环境变量覆盖。
+var defaultSignatureKey = "oik6PdDdMnOXemTbwvMn9de/h9lFnfBaCWbGMMZqqoSaQaqUOqjVGm5NqsmjcBI1x+sS9ugjB55HEJWRiFXYFw=="
 
 type EndpointCache struct {
 	Endpoint  string
@@ -145,6 +149,13 @@ func callEndpointAPI() (*EndpointResponse, error) {
 	return &endpointResp, nil
 }
 
+func getSignatureKey() string {
+	if key := os.Getenv("MICROSOFT_TTS_SIGNATURE_KEY"); key != "" {
+		return key
+	}
+	return defaultSignatureKey
+}
+
 func buildSignature(urlStr string) (string, error) {
 	urlPart := strings.TrimPrefix(urlStr, "https://")
 	encodedUrl := encodeURIComponent(urlPart)
@@ -153,7 +164,7 @@ func buildSignature(urlStr string) (string, error) {
 
 	bytesToSign := strings.ToLower("MSTranslatorAndroidApp" + encodedUrl + formattedDate + uuidStr)
 
-	key, err := utils.Base64Decode(SignatureKeyBase64)
+	key, err := utils.Base64Decode(getSignatureKey())
 	if err != nil {
 		return "", err
 	}

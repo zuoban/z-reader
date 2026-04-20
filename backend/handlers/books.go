@@ -21,6 +21,7 @@ import (
 	"z-reader/backend/config"
 	"z-reader/backend/logger"
 	"z-reader/backend/models"
+	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
 
@@ -48,7 +49,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 
 	books, err := h.db.ListBooks(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍列表失败"})
+		response.InternalError(c, "获取书籍列表失败")
 		return
 	}
 
@@ -68,11 +69,11 @@ func (h *BooksHandler) Get(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 
@@ -88,12 +89,12 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请选择文件"})
+		response.BadRequest(c, "请选择文件")
 		return
 	}
 
 	if file.Size <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "文件为空"})
+		response.BadRequest(c, "文件为空")
 		return
 	}
 	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
@@ -104,11 +105,11 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	format, ok := supportedBookFormats[ext]
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "支持的格式：EPUB、MOBI、AZW3、PDF"})
+		response.BadRequest(c, "支持的格式：EPUB、MOBI、AZW3、PDF")
 		return
 	}
 	if err := validateUploadedBook(file, format); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.BadRequest(c, err.Error())
 		return
 	}
 
@@ -117,7 +118,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	filepath := filepath.Join(h.cfg.UploadDir, filename)
 
 	if err := c.SaveUploadedFile(file, filepath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存文件失败"})
+		response.InternalError(c, "保存文件失败")
 		return
 	}
 
@@ -148,7 +149,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 	if err := h.db.SaveBook(book); err != nil {
 		os.Remove(filepath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存书籍失败"})
+		response.InternalError(c, "保存书籍失败")
 		return
 	}
 
@@ -164,20 +165,20 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 
 	if err := h.db.DeleteBookData(id, userID); err != nil {
 		if err == storage.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+			response.NotFound(c, "书籍不存在")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除书籍失败"})
+		response.InternalError(c, "删除书籍失败")
 		return
 	}
 
@@ -198,17 +199,30 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
-	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
-	c.File(filepath)
+	filePath := filepath.Join(h.cfg.UploadDir, book.Filename)
+
+	// 路径遍历保护：验证解析后的文件路径在 UploadDir 范围内
+	uploadDirAbs, err := filepath.Abs(h.cfg.UploadDir)
+	if err != nil {
+		response.InternalError(c, "获取上传目录失败")
+		return
+	}
+	resolved, err := filepath.Abs(filePath)
+	if err != nil || !strings.HasPrefix(resolved, uploadDirAbs+string(filepath.Separator)) {
+		response.Forbidden(c, "文件访问被拒绝")
+		return
+	}
+
+	c.File(filePath)
 }
 
 type epubMetadata struct {
@@ -355,17 +369,17 @@ func (h *BooksHandler) Update(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 
 	var req bookUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求内容无效"})
+		response.BadRequest(c, "请求内容无效")
 		return
 	}
 
@@ -379,11 +393,11 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		if req.CategoryID.Value != nil {
 			category, err := h.db.GetCategoryForUser(*req.CategoryID.Value, userID)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分类失败"})
+				response.InternalError(c, "获取分类失败")
 				return
 			}
 			if category == nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "分类不存在"})
+				response.BadRequest(c, "分类不存在")
 				return
 			}
 		}
@@ -393,7 +407,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	if err := h.db.SaveBook(book); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存书籍失败"})
+		response.InternalError(c, "保存书籍失败")
 		return
 	}
 
@@ -409,11 +423,11 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 
@@ -421,7 +435,7 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	if err := h.db.SaveBook(book); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存书籍失败"})
+		response.InternalError(c, "保存书籍失败")
 		return
 	}
 
@@ -472,11 +486,11 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
@@ -487,14 +501,14 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	}
 
 	if book.Format != "epub" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "封面不存在"})
+		response.NotFound(c, "封面不存在")
 		return
 	}
 
 	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
 	coverData, err := extractEPUBCover(filepath)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "封面不存在"})
+		response.NotFound(c, "封面不存在")
 		return
 	}
 
@@ -511,21 +525,21 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请选择文件"})
+		response.BadRequest(c, "请选择文件")
 		return
 	}
 	if file.Size <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "文件为空"})
+		response.BadRequest(c, "文件为空")
 		return
 	}
 	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
@@ -549,11 +563,11 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".webp":
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "不支持的封面格式"})
+		response.BadRequest(c, "不支持的封面格式")
 		return
 	}
 	if err := validateUploadedCover(file, ext); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.BadRequest(c, err.Error())
 		return
 	}
 
@@ -561,7 +575,7 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	coverPath := filepath.Join(h.cfg.UploadDir, coverFilename)
 	previousCoverPath := book.CoverPath
 	if err := c.SaveUploadedFile(file, coverPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存封面失败"})
+		response.InternalError(c, "保存封面失败")
 		return
 	}
 
@@ -569,7 +583,7 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 	if err := h.db.SaveBook(book); err != nil {
 		os.Remove(coverPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存书籍失败"})
+		response.InternalError(c, "保存书籍失败")
 		return
 	}
 	if previousCoverPath != "" && previousCoverPath != coverFilename {

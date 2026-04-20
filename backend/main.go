@@ -82,7 +82,7 @@ func main() {
 	categoriesHandler := handlers.NewCategoriesHandler(cfg, db)
 	usersHandler := handlers.NewUsersHandler(db)
 
-	r.POST("/api/login", authHandler.Login)
+	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
 	r.POST("/api/logout", authHandler.Logout)
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})

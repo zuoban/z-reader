@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"z-reader/backend/models"
+	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
 
@@ -32,17 +33,17 @@ func (h *ProgressHandler) Get(c *gin.Context) {
 
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取书籍失败"})
+		response.InternalError(c, "获取书籍失败")
 		return
 	}
 	if book == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+		response.NotFound(c, "书籍不存在")
 		return
 	}
 
 	progress, err := h.db.GetProgress(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取阅读进度失败"})
+		response.InternalError(c, "获取阅读进度失败")
 		return
 	}
 
@@ -68,17 +69,17 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 	var req ProgressRequest
 	// 支持 JSON 和 form-urlencoded 格式（sendBeacon 使用 form 格式）
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求内容无效"})
+		response.BadRequest(c, "请求内容无效")
 		return
 	}
 
 	if req.CFI == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少阅读位置"})
+		response.BadRequest(c, "缺少阅读位置")
 		return
 	}
 
 	if req.Percentage < 0 || req.Percentage > 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "阅读进度必须在 0 到 100 之间"})
+		response.BadRequest(c, "阅读进度必须在 0 到 100 之间")
 		return
 	}
 
@@ -92,10 +93,10 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 
 	if err := h.db.SaveProgress(progress, userID); err != nil {
 		if err == storage.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "书籍不存在"})
+			response.NotFound(c, "书籍不存在")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存阅读进度失败"})
+		response.InternalError(c, "保存阅读进度失败")
 		return
 	}
 

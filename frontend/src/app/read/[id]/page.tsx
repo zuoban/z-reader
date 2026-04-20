@@ -121,21 +121,13 @@ export default function ReadPage() {
     resume: resumeTTS,
   } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
 
+  // 合并多个 ref 同步更新，减少独立 useEffect 数量
   useEffect(() => {
     progressRef.current = progress;
-  }, [progress]);
-
-  useEffect(() => {
     themeRef.current = theme;
-  }, [theme]);
-
-  useEffect(() => {
     getStylesheetRef.current = getStylesheet;
-  }, [getStylesheet]);
-
-  useEffect(() => {
     updateProgressRef.current = updateProgress;
-  }, [updateProgress]);
+  }, [progress, theme, getStylesheet, updateProgress]);
 
   const applyRendererPreferences = useCallback(
     (renderer?: FoliateView["renderer"] | null) => {

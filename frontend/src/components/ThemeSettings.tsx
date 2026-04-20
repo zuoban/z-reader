@@ -296,16 +296,16 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-7 w-7 rounded-full border transition-all duration-200 hover:opacity-100 active:scale-95 cursor-pointer";
+    "h-8 w-8 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:shadow-sm hover:opacity-100 active:scale-95 active:bg-white/[0.12] cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
-    background: "transparent",
-    border: `1px solid ${open ? `${uiScheme.link}2e` : "transparent"}`,
+    background: open ? withOpacity(uiScheme.link, 0.08) : "transparent",
+    border: `1px solid ${open ? withOpacity(uiScheme.link, 0.22) : withOpacity(uiScheme.buttonText, 0.06)}`,
     boxShadow: open
-      ? `0 8px 18px -20px ${uiScheme.link}2e`
+      ? `0 4px 12px -4px ${withOpacity(uiScheme.link, 0.18)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.06)}`
       : "none",
-    backdropFilter: "none",
-    opacity: open ? 1 : 0.84,
+    backdropFilter: "blur(8px)",
+    opacity: open ? 1 : 0.78,
   } as const;
 
   const selectStyle = {
@@ -786,4 +786,19 @@ export function ThemeSettings({
       </SheetContent>
     </Sheet>
   );
+}
+
+function withOpacity(color: string, opacity: number) {
+  if (!color.startsWith("#")) return color;
+
+  const normalized =
+    color.length === 4
+      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+      : color;
+
+  const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
+    .toString(16)
+    .padStart(2, "0");
+
+  return `${normalized}${hexOpacity}`;
 }

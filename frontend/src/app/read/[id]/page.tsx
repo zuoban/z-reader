@@ -650,23 +650,23 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "h-7 w-7 rounded-full border bg-transparent! transition-all duration-200 hover:-translate-y-0.5 hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!";
+    "h-8 w-8 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:shadow-sm hover:opacity-100 active:scale-95 active:bg-white/[0.12] aria-expanded:bg-white/[0.10]";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
-    background: "transparent",
-    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.18) : "transparent"}`,
+    background: active ? withOpacity(uiScheme.link, 0.08) : "transparent",
+    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.22) : withOpacity(uiScheme.buttonText, 0.06)}`,
     boxShadow: active
-      ? `0 8px 18px -20px ${withOpacity(uiScheme.link, 0.22)}`
+      ? `0 4px 12px -4px ${withOpacity(uiScheme.link, 0.18)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.06)}`
       : "none",
-    backdropFilter: "none",
-    opacity: active ? 1 : 0.84,
+    backdropFilter: "blur(8px)",
+    opacity: active ? 1 : 0.78,
   });
   const toolbarClusterStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.72 : 0.82),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.38 : 0.52)}`,
-    boxShadow: `0 14px 32px -22px ${withOpacity(uiScheme.cardBorder, 0.42)}`,
-    backdropFilter: "blur(16px)",
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.6 : 0.72),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.32 : 0.42)}`,
+    boxShadow: `0 8px 24px -12px ${withOpacity(uiScheme.cardBorder, 0.28)}, inset 0 1px 0 ${withOpacity(isDarkPreset ? "#ffffff" : uiScheme.cardBg, 0.18)}`,
+    backdropFilter: "blur(20px)",
   } as const;
   const statusBarStyle = {
     background: "transparent",
@@ -704,7 +704,7 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className={`pointer-events-none absolute inset-x-0 top-0 z-50 px-2.5 pb-0.5 transition-all duration-300 ease-out sm:px-3 sm:pb-0.75 ${
+          className={`pointer-events-none absolute inset-x-0 top-0 z-50 px-3 pb-1 transition-all duration-300 ease-out sm:px-4 sm:pb-1 ${
             isHeaderVisible
               ? "translate-y-0 opacity-100"
               : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
@@ -718,7 +718,7 @@ export default function ReadPage() {
         >
           <div className="flex items-center justify-between gap-3 sm:gap-4">
             <div
-              className="pointer-events-auto flex items-center gap-0.5 rounded-full px-0.5 py-0.5"
+              className="pointer-events-auto flex items-center gap-1 rounded-full p-1"
               style={toolbarClusterStyle}
             >
               <Button
@@ -726,7 +726,7 @@ export default function ReadPage() {
                 size="sm"
                 onClick={handleBack}
                 title="返回书库"
-                className="h-7 w-7 shrink-0 rounded-full p-0"
+                className={toolbarButtonClass}
                 style={getToolbarButtonStyle(false)}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -809,7 +809,7 @@ export default function ReadPage() {
             </div>
 
             <div
-              className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full px-0.5 py-0.5"
+              className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-full p-1"
               style={toolbarClusterStyle}
             >
               {isFullscreenSupported && (

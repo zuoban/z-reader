@@ -47,26 +47,26 @@ const PRESETS = [
   {
     key: "light",
     label: "明亮",
-    bg: "#ffffff",
-    fg: "#333333",
+    bg: "#FEFDF8",
+    fg: "#1C1917",
   },
   {
     key: "sepia",
     label: "纸张",
-    bg: "#f4ecd8",
-    fg: "#5c4b37",
+    bg: "#F5F0E1",
+    fg: "#3D3225",
   },
   {
     key: "green",
     label: "森林",
-    bg: "#cce8cf",
-    fg: "#2d4a3e",
+    bg: "#E4F0E6",
+    fg: "#1E3A2A",
   },
   {
     key: "dark",
     label: "夜间",
-    bg: "#1e293b",
-    fg: "#e2e8f0",
+    bg: "#0C0B09",
+    fg: "#D6D3CD",
   },
 ] as const satisfies ReadonlyArray<{
   key: ReaderTheme["preset"];

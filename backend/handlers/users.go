@@ -64,7 +64,7 @@ func isValidUserRole(role string) bool {
 func (h *UsersHandler) List(c *gin.Context) {
 	users, err := h.db.ListUsers()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list users"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户列表失败"})
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *UsersHandler) List(c *gin.Context) {
 func (h *UsersHandler) Create(c *gin.Context) {
 	var req createUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求内容无效"})
 		return
 	}
 
@@ -86,31 +86,31 @@ func (h *UsersHandler) Create(c *gin.Context) {
 	password := strings.TrimSpace(req.Password)
 	role := normalizeUserRole(req.Role)
 	if username == "" || len(username) > 50 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username must be 1-50 characters"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "用户名长度必须为 1 到 50 个字符"})
 		return
 	}
 	if len(password) < 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 6 characters"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "密码至少需要 6 个字符"})
 		return
 	}
 	if !isValidUserRole(role) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user role"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "用户角色无效"})
 		return
 	}
 
 	existing, err := h.db.GetUserByUsername(username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户失败"})
 		return
 	}
 	if existing != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "username already exists"})
+		c.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
 		return
 	}
 
 	passwordHash, err := storage.HashPassword(password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "处理密码失败"})
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *UsersHandler) Create(c *gin.Context) {
 		UpdatedAt:    now,
 	}
 	if err := h.db.SaveUser(user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户失败"})
 		return
 	}
 
@@ -134,29 +134,29 @@ func (h *UsersHandler) Create(c *gin.Context) {
 func (h *UsersHandler) Update(c *gin.Context) {
 	user, err := h.db.GetUser(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户失败"})
 		return
 	}
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
 		return
 	}
 
 	var req updateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求内容无效"})
 		return
 	}
 
 	if req.Password != nil {
 		password := strings.TrimSpace(*req.Password)
 		if len(password) < 6 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 6 characters"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "密码至少需要 6 个字符"})
 			return
 		}
 		passwordHash, err := storage.HashPassword(password)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "处理密码失败"})
 			return
 		}
 		user.PasswordHash = passwordHash
@@ -165,12 +165,12 @@ func (h *UsersHandler) Update(c *gin.Context) {
 	if req.Role != nil {
 		role := normalizeUserRole(*req.Role)
 		if !isValidUserRole(role) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user role"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "用户角色无效"})
 			return
 		}
 		if user.Role == models.UserRoleAdmin && role != models.UserRoleAdmin {
 			if h.isLastAdmin(user.ID) {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "cannot remove the last admin"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "不能移除最后一个管理员"})
 				return
 			}
 		}
@@ -179,7 +179,7 @@ func (h *UsersHandler) Update(c *gin.Context) {
 
 	user.UpdatedAt = time.Now()
 	if err := h.db.SaveUser(user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户失败"})
 		return
 	}
 	c.JSON(http.StatusOK, publicUser(*user))
@@ -188,33 +188,33 @@ func (h *UsersHandler) Update(c *gin.Context) {
 func (h *UsersHandler) Delete(c *gin.Context) {
 	user, err := h.db.GetUser(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户失败"})
 		return
 	}
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
 		return
 	}
 
 	currentUserID, _ := currentUserID(c)
 	if currentUserID == user.ID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot delete current user"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不能删除当前登录用户"})
 		return
 	}
 	if user.Role == models.UserRoleAdmin && h.isLastAdmin(user.ID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot delete the last admin"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不能删除最后一个管理员"})
 		return
 	}
 
 	if err := h.db.DeleteUserData(user.ID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clean user data"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "清理用户数据失败"})
 		return
 	}
 	if err := h.db.DeleteUser(user.ID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除用户失败"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
 }
 
 func (h *UsersHandler) isLastAdmin(userID string) bool {

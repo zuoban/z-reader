@@ -4,10 +4,10 @@ export const DEFAULT_TIMEOUT = 30000;
 
 function createTimeoutReason(timeout: number): Error {
   if (typeof DOMException !== 'undefined') {
-    return new DOMException(`Request timed out after ${timeout}ms`, 'TimeoutError');
+    return new DOMException(`请求在 ${timeout}ms 后超时`, 'TimeoutError');
   }
 
-  const error = new Error(`Request timed out after ${timeout}ms`);
+  const error = new Error(`请求在 ${timeout}ms 后超时`);
   error.name = 'TimeoutError';
   return error;
 }
@@ -43,5 +43,5 @@ export function normalizeRequestError(
     return error;
   }
 
-  return new Error('Unknown error');
+  return new Error('未知错误');
 }

@@ -80,7 +80,7 @@ func refreshEndpointCache() (*EndpointCache, error) {
 func parseJWTExp(token string) (int64, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
-		return 0, fmt.Errorf("invalid JWT format")
+		return 0, fmt.Errorf("语音服务令牌格式无效")
 	}
 
 	payload := parts[1]
@@ -88,7 +88,7 @@ func parseJWTExp(token string) (int64, error) {
 	if err != nil {
 		decoded, err = base64.RawStdEncoding.DecodeString(payload)
 		if err != nil {
-			return 0, fmt.Errorf("failed to decode JWT payload: %v", err)
+			return 0, fmt.Errorf("解析语音服务令牌失败：%v", err)
 		}
 	}
 
@@ -96,7 +96,7 @@ func parseJWTExp(token string) (int64, error) {
 		Exp int64 `json:"exp"`
 	}
 	if err := json.Unmarshal(decoded, &jwtData); err != nil {
-		return 0, fmt.Errorf("failed to parse JWT payload: %v", err)
+		return 0, fmt.Errorf("读取语音服务令牌失败：%v", err)
 	}
 
 	return jwtData.Exp, nil
@@ -134,7 +134,7 @@ func callEndpointAPI() (*EndpointResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("endpoint API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("语音服务端点返回状态码 %d", resp.StatusCode)
 	}
 
 	var endpointResp EndpointResponse

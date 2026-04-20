@@ -95,8 +95,8 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
     });
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || 'Request failed');
+      const error = await res.json().catch(() => ({ error: '未知错误' }));
+      throw new Error(error.error || error.message || '请求失败');
     }
 
     return res.json();
@@ -190,8 +190,8 @@ export const api = {
     });
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || 'Upload failed');
+      const error = await res.json().catch(() => ({ error: '未知错误' }));
+      throw new Error(error.error || error.message || '上传失败');
     }
 
     return res.json();
@@ -219,7 +219,7 @@ export const api = {
         credentials: 'include',
       });
       if (!res.ok) {
-        throw new Error(`Failed to fetch book: ${res.status}`);
+        throw new Error(`加载书籍失败：${res.status}`);
       }
       return res.blob();
     } catch (error) {
@@ -253,8 +253,8 @@ export const api = {
     });
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || 'Cover upload failed');
+      const error = await res.json().catch(() => ({ error: '未知错误' }));
+      throw new Error(error.error || error.message || '上传封面失败');
     }
 
     return res.json();

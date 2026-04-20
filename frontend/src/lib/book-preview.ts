@@ -36,7 +36,7 @@ async function ensureFoliateLoaded(): Promise<void> {
       script.src = '/foliate/view.js';
       script.type = 'module';
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load foliate.js'));
+      script.onerror = () => reject(new Error('加载阅读器脚本失败'));
       document.head.appendChild(script);
     });
   }
@@ -49,7 +49,7 @@ export async function extractBookPreview(file: File): Promise<BookPreview> {
   await ensureFoliateLoaded();
   const makeBook = globalThis.window?.foliateMakeBook;
   if (!makeBook) {
-    throw new Error('foliate.js not available');
+    throw new Error('阅读器脚本不可用');
   }
   const book = await makeBook(file);
 

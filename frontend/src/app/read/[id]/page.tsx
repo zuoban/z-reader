@@ -370,7 +370,7 @@ export default function ReadPage() {
 
         const loadPromise = new Promise<void>((resolve, reject) => {
           script.onload = () => resolve();
-          script.onerror = () => reject(new Error("Failed to load foliate.js"));
+          script.onerror = () => reject(new Error("加载阅读器脚本失败"));
         });
 
         document.head.appendChild(script);
@@ -383,7 +383,7 @@ export default function ReadPage() {
         }
 
         if (!customElements.get("foliate-view")) {
-          throw new Error("foliate-view not registered");
+          throw new Error("阅读器组件注册失败");
         }
       } else {
         // 脚本已加载或正在加载中，等待注册完成
@@ -472,7 +472,7 @@ export default function ReadPage() {
       } catch (err) {
         console.error("Failed to open book:", err);
         throw new Error(
-          `Failed to open book: ${err instanceof Error ? err.message : "Unknown error"}`,
+          `打开书籍失败：${err instanceof Error ? err.message : "未知错误"}`,
         );
       }
 
@@ -488,7 +488,7 @@ export default function ReadPage() {
       });
     } catch (err) {
       if (!destroyedRef.current) {
-        setError(err instanceof Error ? err.message : "Failed to load book");
+        setError(err instanceof Error ? err.message : "加载书籍失败");
         setLoading(false);
       }
     }

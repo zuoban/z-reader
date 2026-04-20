@@ -94,7 +94,7 @@ func getAllowedOrigins() []string {
 func Load() (*Config, error) {
 	password := strings.TrimSpace(os.Getenv("APP_PASSWORD"))
 	if password == "" {
-		return nil, fmt.Errorf("APP_PASSWORD must be set")
+		return nil, fmt.Errorf("必须设置 APP_PASSWORD")
 	}
 
 	return &Config{

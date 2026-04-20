@@ -757,7 +757,7 @@ export class BackendTTS {
       });
 
       if (!response.ok) {
-        throw new Error(`TTS API error: ${response.status}`);
+        throw new Error(`语音合成失败，状态码：${response.status}`);
       }
 
       const blob = await response.blob();
@@ -964,7 +964,7 @@ export class BackendTTS {
       });
 
       if (!response.ok) {
-        throw new Error(`TTS API error: ${response.status}`);
+        throw new Error(`语音合成失败，状态码：${response.status}`);
       }
 
       return await response.blob();
@@ -972,7 +972,7 @@ export class BackendTTS {
       if (isAbortLikeError(error)) {
         throw error;
       }
-      throw new Error(`TTS fetch error: ${error}`);
+      throw new Error(`获取语音失败：${error}`);
     }
   }
 

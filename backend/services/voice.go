@@ -114,7 +114,7 @@ func callVoiceListAPI() ([]Voice, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("voice list API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("声音列表服务返回状态码 %d", resp.StatusCode)
 	}
 
 	var voices []Voice

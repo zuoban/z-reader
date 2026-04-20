@@ -111,7 +111,7 @@ export function VoiceSelector({
       abortControllerRef.current = null;
 
       if (!response.ok) {
-        throw new Error(`TTS API error: ${response.status}`);
+        throw new Error(`语音试听失败，状态码：${response.status}`);
       }
 
       const blob = await response.blob();

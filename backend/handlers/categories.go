@@ -40,7 +40,7 @@ func (h *CategoriesHandler) List(c *gin.Context) {
 
 	categories, err := h.db.ListCategories(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list categories"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分类列表失败"})
 		return
 	}
 	c.JSON(http.StatusOK, categories)
@@ -59,13 +59,13 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 
 	var req categoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求内容无效"})
 		return
 	}
 
 	categories, err := h.db.ListCategories(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list categories"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分类列表失败"})
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *CategoriesHandler) Create(c *gin.Context) {
 	}
 
 	if err := h.db.SaveCategory(category); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save category"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存分类失败"})
 		return
 	}
 
@@ -109,17 +109,17 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 
 	category, err := h.db.GetCategoryForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get category"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分类失败"})
 		return
 	}
 	if category == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "分类不存在"})
 		return
 	}
 
 	var req categoryUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求内容无效"})
 		return
 	}
 
@@ -128,7 +128,7 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	}
 	if req.SortOrder != nil {
 		if *req.SortOrder <= 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sort order"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "排序位置无效"})
 			return
 		}
 		// 如果排序位置变化，更新颜色
@@ -141,7 +141,7 @@ func (h *CategoriesHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.db.SaveCategory(category); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save category"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存分类失败"})
 		return
 	}
 
@@ -157,18 +157,18 @@ func (h *CategoriesHandler) Delete(c *gin.Context) {
 
 	category, err := h.db.GetCategoryForUser(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get category"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分类失败"})
 		return
 	}
 	if category == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "分类不存在"})
 		return
 	}
 
 	if err := h.db.DeleteCategory(id, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete category"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除分类失败"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
 }

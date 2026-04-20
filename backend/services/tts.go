@@ -35,7 +35,7 @@ func clearEndpointCache() {
 func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
 	cache, err := GetEndpoint()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get endpoint: %v", err)
+		return nil, fmt.Errorf("获取语音服务端点失败：%v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -74,5 +74,5 @@ func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
 	}
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	return nil, fmt.Errorf("TTS API error: status %d, message: %s", resp.StatusCode, string(bodyBytes))
+	return nil, fmt.Errorf("语音合成服务返回错误：状态码 %d，信息：%s", resp.StatusCode, string(bodyBytes))
 }

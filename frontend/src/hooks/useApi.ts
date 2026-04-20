@@ -49,8 +49,8 @@ export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errData.message || errData.error || `Request failed with status ${res.status}`);
+        const errData = await res.json().catch(() => ({ message: '未知错误' }));
+        throw new Error(errData.message || errData.error || `请求失败，状态码：${res.status}`);
       }
 
       const result = await res.json() as T;
@@ -105,8 +105,8 @@ export function useApiMutation<T, P = void>(defaultOptions?: UseApiOptions<T>) {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errData.message || errData.error || `Request failed with status ${res.status}`);
+        const errData = await res.json().catch(() => ({ message: '未知错误' }));
+        throw new Error(errData.message || errData.error || `请求失败，状态码：${res.status}`);
       }
 
       const result = await res.json() as T;

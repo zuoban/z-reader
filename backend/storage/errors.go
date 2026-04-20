@@ -3,5 +3,5 @@ package storage
 import "errors"
 
 var (
-	ErrNotFound = errors.New("not found")
+	ErrNotFound = errors.New("未找到")
 )

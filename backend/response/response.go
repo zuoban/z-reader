@@ -16,11 +16,11 @@ type SuccessResponse struct {
 }
 
 var (
-	ErrBadRequest   = &ErrorResponse{Code: "bad_request", Message: "Invalid request"}
-	ErrUnauthorized = &ErrorResponse{Code: "unauthorized", Message: "Authorization required"}
-	ErrForbidden    = &ErrorResponse{Code: "forbidden", Message: "Access denied"}
-	ErrNotFound     = &ErrorResponse{Code: "not_found", Message: "Resource not found"}
-	ErrInternal     = &ErrorResponse{Code: "internal_error", Message: "Internal server error"}
+	ErrBadRequest   = &ErrorResponse{Code: "bad_request", Message: "请求无效"}
+	ErrUnauthorized = &ErrorResponse{Code: "unauthorized", Message: "请先登录"}
+	ErrForbidden    = &ErrorResponse{Code: "forbidden", Message: "没有访问权限"}
+	ErrNotFound     = &ErrorResponse{Code: "not_found", Message: "资源不存在"}
+	ErrInternal     = &ErrorResponse{Code: "internal_error", Message: "服务器内部错误"}
 )
 
 func Error(c *gin.Context, status int, err *ErrorResponse) {

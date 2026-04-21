@@ -15,6 +15,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -365,46 +366,86 @@ export function ThemeSettings({
         style={panelStyle}
       >
         <SheetHeader
-          className="sm:pl-5 sm:pr-16"
+          className="border-0 bg-transparent px-4 pb-3 pt-4 pr-16 sm:px-5 sm:pb-4 sm:pr-16"
           style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <SheetTitle
-                className="font-heading text-base font-semibold"
-                style={{ color: uiScheme.fg }}
-              >
-                阅读偏好
-              </SheetTitle>
+          <div
+            className="overflow-hidden rounded-[1.25rem] border px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+            style={{
+              background: `linear-gradient(145deg, ${withOpacity(currentPreset.bg, 0.98)} 0%, ${withOpacity(uiScheme.cardBg, 0.96)} 100%)`,
+              borderColor: `${uiScheme.cardBorder}36`,
+            }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
+                  style={{
+                    color: uiScheme.link,
+                    background: withOpacity(uiScheme.link, 0.1),
+                    borderColor: withOpacity(uiScheme.link, 0.18),
+                  }}
+                >
+                  <Settings className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <SheetTitle
+                    className="font-heading text-base font-semibold"
+                    style={{ color: uiScheme.fg }}
+                  >
+                    阅读偏好
+                  </SheetTitle>
+                  <SheetDescription
+                    className="mt-1 text-[13px] leading-5"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    在当前页面即时调整主题、版式与动效，找到更舒服的阅读节奏。
+                  </SheetDescription>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetTheme}
+                  disabled={isDefaultTheme}
+                  title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
+                  className="h-8 gap-1.5 rounded-full border bg-transparent! px-2.5 text-xs font-medium shadow-none transition-colors hover:bg-transparent! active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! disabled:cursor-default disabled:opacity-45"
+                  style={{
+                    color: uiScheme.buttonText,
+                    background: withOpacity(uiScheme.buttonBg, 0.72),
+                    borderColor: withOpacity(uiScheme.cardBorder, 0.45),
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  重置默认
+                </Button>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleResetTheme}
-                disabled={isDefaultTheme}
-                title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
-                className="h-8 gap-1.5 rounded-md border bg-transparent! px-2.5 text-xs font-medium shadow-none transition-colors hover:bg-transparent! active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! disabled:cursor-default disabled:opacity-45"
-                style={{
-                  color: uiScheme.buttonText,
-                  background: "transparent",
-                  borderColor: "transparent",
-                }}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                重置默认
-              </Button>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <ValuePill uiScheme={uiScheme}>{currentPreset.label}</ValuePill>
+              <ValuePill uiScheme={uiScheme} muted>
+                {FONT_FAMILY_OPTIONS[theme.fontFamily].label}
+              </ValuePill>
+              <ValuePill uiScheme={uiScheme} muted>
+                {getFlowLabel(theme.flow)}
+              </ValuePill>
+              <ValuePill uiScheme={uiScheme} muted={!theme.animated}>
+                {theme.animated ? "动态效果开启" : "动态效果关闭"}
+              </ValuePill>
             </div>
           </div>
         </SheetHeader>
 
-        <div className="max-h-[calc(100vh-73px)] space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-5 pt-1 sm:px-5">
           <section
-            className="overflow-hidden rounded-lg border"
+            className="overflow-hidden rounded-[1.25rem] border"
             style={{
               background: uiScheme.cardBg,
               borderColor: `${uiScheme.cardBorder}30`,
+              boxShadow: `0 16px 36px ${withOpacity(uiScheme.cardBorder, 0.12)}`,
             }}
           >
             <div

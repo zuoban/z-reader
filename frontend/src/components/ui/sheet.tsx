@@ -36,7 +36,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/20 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-sm motion-reduce:duration-0",
+        "fixed inset-0 z-50 bg-black/30 transition-opacity duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-md motion-reduce:duration-0",
         className
       )}
       {...props}
@@ -66,7 +66,7 @@ function SheetContent({
         data-side={side}
         finalFocus={finalFocus}
         className={cn(
-          "fixed z-50 flex flex-col gap-0 overflow-hidden border-border/70 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-2xl outline-none ring-1 ring-foreground/5 transition duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:duration-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:rounded-t-lg data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-full data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-full data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:rounded-b-lg data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=left]:sm:rounded-r-lg data-[side=right]:sm:max-w-sm data-[side=right]:sm:rounded-l-lg",
+          "fixed z-50 flex max-h-[100svh] flex-col gap-0 overflow-hidden border border-border/70 bg-popover/96 bg-clip-padding text-sm text-popover-foreground shadow-[0_24px_80px_rgba(15,23,42,0.18)] outline-none ring-1 ring-black/5 transition duration-300 ease-out supports-backdrop-filter:backdrop-blur-xl motion-reduce:duration-0 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/70 before:to-transparent data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:max-h-[min(92svh,48rem)] data-[side=bottom]:rounded-t-[1.5rem] data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-10 data-[side=bottom]:data-starting-style:translate-y-10 data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-[100svh] data-[side=left]:w-full data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2rem] data-[side=left]:data-starting-style:translate-x-[-2rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-[100svh] data-[side=right]:w-full data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2rem] data-[side=right]:data-starting-style:translate-x-[2rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:max-h-[min(92svh,48rem)] data-[side=top]:rounded-b-[1.5rem] data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2rem] data-[side=top]:data-starting-style:translate-y-[-2rem] data-[side=left]:sm:bottom-3 data-[side=left]:sm:top-3 data-[side=left]:sm:h-auto data-[side=left]:sm:max-w-md data-[side=left]:sm:rounded-r-[1.5rem] data-[side=left]:sm:border data-[side=right]:sm:bottom-3 data-[side=right]:sm:right-3 data-[side=right]:sm:top-3 data-[side=right]:sm:h-auto data-[side=right]:sm:max-w-md data-[side=right]:sm:rounded-[1.5rem] data-[side=right]:sm:border data-[side=top]:sm:left-1/2 data-[side=top]:sm:max-w-2xl data-[side=top]:sm:-translate-x-1/2 data-[side=bottom]:sm:left-1/2 data-[side=bottom]:sm:max-w-2xl data-[side=bottom]:sm:-translate-x-1/2 data-[side=bottom]:sm:rounded-[1.5rem]",
           className
         )}
         {...props}
@@ -78,7 +78,7 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute right-3 top-3 h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="absolute right-[max(0.75rem,env(safe-area-inset-right,0px))] top-[max(0.75rem,env(safe-area-inset-top,0px))] h-9 w-9 rounded-full border border-border/70 bg-background/75 text-muted-foreground shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-[1.03] hover:bg-background hover:text-foreground hover:shadow-md"
                 size="icon-sm"
               />
             }
@@ -97,7 +97,10 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-1.5 border-b border-border/60 bg-popover px-5 py-4 pr-14", className)}
+      className={cn(
+        "flex flex-col gap-1.5 border-b border-border/60 bg-popover/92 px-5 py-4 pr-14 supports-backdrop-filter:backdrop-blur-xl",
+        className
+      )}
       {...props}
     />
   )
@@ -107,7 +110,10 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 border-t border-border/60 bg-muted/40 p-4", className)}
+      className={cn(
+        "mt-auto flex flex-col gap-2 border-t border-border/60 bg-muted/55 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] supports-backdrop-filter:backdrop-blur-md",
+        className
+      )}
       {...props}
     />
   )

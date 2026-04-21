@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { DragEvent } from 'react';
 import { toast } from 'sonner';
 import {
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -51,16 +52,6 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
   const [loading, setLoading] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      void loadCategories();
-    } else {
-      resetForm();
-      setDeleteConfirmOpen(false);
-      setDeleteTarget(null);
-    }
-  }, [open]);
 
   async function loadCategories() {
     try {
@@ -226,6 +217,19 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
     setName('');
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (nextOpen) {
+      void loadCategories();
+      return;
+    }
+
+    resetForm();
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+  }
+
   const editingCategory = categories.find((category) => category.id === editingId) ?? null;
   // 新分类的颜色根据当前分类数量计算（新增分类将是最后一个）
   const nextSortOrder = editingId ? editingCategory?.sort_order : categories.length + 1;
@@ -233,7 +237,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
   const formTitle = editingId ? '编辑分类' : '新建分类';
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger
         render={
           <Button
@@ -253,16 +257,42 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
         finalFocus={false}
         className="bg-background p-0 sm:w-[400px] sm:max-w-[400px]"
       >
-        <SheetHeader className="border-border/50 bg-background py-4">
-          <SheetTitle className="text-base font-semibold tracking-tight">
-            管理分类
-          </SheetTitle>
+        <SheetHeader className="border-0 bg-transparent px-4 pb-3 pt-4 sm:px-5">
+          <div className="rounded-[1.25rem] border border-border/60 bg-gradient-to-b from-background to-muted/35 px-4 py-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)]">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/8 text-primary">
+                <Layers3 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <SheetTitle className="text-base font-semibold tracking-tight">
+                  管理分类
+                </SheetTitle>
+                <SheetDescription className="mt-1 text-[13px] leading-5">
+                  统一整理书架分类，支持快速编辑和排序，分类体系会同步到整套书库。
+                </SheetDescription>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <Layers3 className="h-3.5 w-3.5" />
+                {categories.length} 个分类
+              </span>
+              <span className="inline-flex items-center rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                支持拖拽排序
+              </span>
+              {editingCategory && (
+                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[11px] font-medium text-primary">
+                  正在编辑：{editingCategory.name}
+                </span>
+              )}
+            </div>
+          </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="space-y-5 p-4">
-            <section className="rounded-lg border border-border/70 bg-background">
-              <div className="border-b border-border/50 px-3.5 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="space-y-5 px-4 pb-5 sm:px-5">
+            <section className="rounded-[1.25rem] border border-border/60 bg-gradient-to-b from-background to-muted/25 shadow-[0_16px_36px_rgba(15,23,42,0.05)]">
+              <div className="border-b border-border/50 px-4 py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">{formTitle}</h3>
                   {editingId && (
@@ -279,10 +309,10 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                 </div>
               </div>
 
-              <div className="space-y-3.5 px-3.5 py-3.5">
+              <div className="space-y-3.5 px-4 py-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/30 text-sm font-semibold"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/30 text-sm font-semibold shadow-sm"
                     style={{
                       backgroundColor: previewColor,
                       color: getContrastColor(previewColor),
@@ -305,7 +335,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                     maxLength={50}
-                    className="h-10 rounded-md border-border/70 bg-background px-3 text-sm transition-all focus:ring-2 focus:ring-primary/20"
+                    className="h-11 rounded-xl border-border/70 bg-background px-3 text-sm transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <p className="text-right text-xs text-muted-foreground">{name.length}/50</p>
                 </div>
@@ -313,7 +343,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                 <Button
                   onClick={handleSave}
                   disabled={loading || !name.trim()}
-                  className="h-10 w-full rounded-md text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                  className="h-11 w-full rounded-xl text-sm font-medium shadow-sm transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
@@ -338,7 +368,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold">已有分类</h3>
-                <div className="flex items-center gap-1.5 rounded-md border border-border/60 px-2 py-1 text-xs font-medium text-muted-foreground">
+                <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm">
                   <Layers3 className="h-3.5 w-3.5" />
                   {categories.length}
                 </div>
@@ -347,11 +377,12 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
               <ScrollArea className="max-h-[min(45vh,24rem)] pr-1">
                 <div className="space-y-2">
                   {categories.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/70 py-8 text-center">
-                      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                    <div className="flex flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 bg-muted/20 py-9 text-center">
+                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                         <Layers3 className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <p className="text-sm font-medium">暂无分类</p>
+                      <p className="mt-1 text-xs text-muted-foreground">先创建一个分类，后续可随时调整顺序。</p>
                     </div>
                   ) : (
                     categories.map((cat, index) => {
@@ -367,10 +398,10 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                           onDragOver={(event) => handleDragOver(event, cat.id)}
                           onDrop={(event) => void handleDrop(event, cat.id)}
                           onDragEnd={handleDragEnd}
-                          className={`group relative flex items-center gap-3 rounded-md border p-2.5 pr-2 transition-all duration-200 ${
+                          className={`group relative flex items-center gap-3 rounded-xl border p-3 pr-2.5 shadow-sm transition-all duration-200 ${
                             isEditing
                               ? 'border-primary/40 bg-primary/5'
-                              : 'border-border/60 bg-background hover:border-border hover:bg-muted/35'
+                              : 'border-border/60 bg-background/90 hover:border-border hover:bg-muted/35'
                           }`}
                           style={{
                             opacity: isDragging ? 0.5 : 1,
@@ -381,7 +412,7 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
                             <div className="pointer-events-none absolute inset-x-2 -top-0.5 h-0.5 rounded-full bg-primary/70" />
                           )}
                           <div
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs font-semibold shadow-sm"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold shadow-sm"
                             style={{ backgroundColor: catColor, color: getContrastColor(catColor) }}
                           >
                             {cat.name.slice(0, 2)}

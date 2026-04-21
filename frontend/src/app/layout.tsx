@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Noto_Sans_SC } from 'next/font/google';
+import { Inter, Noto_Sans_SC, Noto_Serif_SC } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -22,6 +22,14 @@ const notoSansSC = Noto_Sans_SC({
   preload: false,
 });
 
+const notoSerifSC = Noto_Serif_SC({
+  variable: '--font-noto-serif-sc',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  preload: false,
+});
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -29,8 +37,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F7FBF8' },
-    { media: '(prefers-color-scheme: dark)', color: '#0E1513' },
+    { media: '(prefers-color-scheme: light)', color: '#F2EADC' },
+    { media: '(prefers-color-scheme: dark)', color: '#16110E' },
   ],
 };
 
@@ -62,6 +70,7 @@ export const metadata: Metadata = {
       { url: '/favicon.ico', sizes: 'any' },
     ],
     icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -78,7 +87,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${inter.variable} ${notoSansSC.variable} h-full antialiased`}>
+    <html
+      lang="zh-CN"
+      className={`${inter.variable} ${notoSansSC.variable} ${notoSerifSC.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col bg-background paper-texture font-sans">
         <ThemeProvider>
           <TooltipProvider>
@@ -86,17 +98,17 @@ export default function RootLayout({
             <ErrorSuppressor />
             {children}
             <Toaster
-            position="top-center"
-            toastOptions={{
-              style: {
-                background: 'var(--background)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-              },
-            }}
-          />
-        </TooltipProvider>
+              position="top-center"
+              toastOptions={{
+                style: {
+                  background: 'var(--background)',
+                  color: 'var(--foreground)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                },
+              }}
+            />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

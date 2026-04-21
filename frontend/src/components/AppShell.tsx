@@ -15,10 +15,11 @@ interface AppScreenProps {
 function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'shelf') {
     return (
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden shelf-ambient-bg"
-      />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 shelf-ambient-bg" />
+        <div className="absolute left-[7%] top-[-4rem] h-52 w-52 rounded-[2.5rem] border border-border/20 bg-card/30 blur-3xl" />
+        <div className="absolute bottom-[-6rem] right-[8%] h-72 w-72 rounded-[3rem] border border-border/20 bg-secondary/20 blur-3xl" />
+      </div>
     );
   }
 
@@ -27,6 +28,9 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 login-ambient-bg" />
         <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_16%,transparent),transparent)]" />
+        <div className="absolute left-[9%] top-[10%] h-40 w-56 rotate-[-8deg] rounded-[2rem] border border-border/20 bg-card/22 shadow-[0_32px_48px_-42px_var(--paper-shadow)]" />
+        <div className="absolute bottom-[9%] right-[10%] h-44 w-64 rotate-[6deg] rounded-[2rem] border border-border/18 bg-card/18 shadow-[0_38px_54px_-44px_var(--paper-shadow)]" />
+        <div className="absolute left-[18%] top-[16%] h-28 w-40 rotate-[4deg] rounded-[1.5rem] border border-border/16 bg-card/16 shadow-[0_26px_40px_-38px_var(--paper-shadow)]" />
       </div>
     );
   }
@@ -89,7 +93,7 @@ export function BrandMark({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-border/70 bg-background/88 px-5 py-3 shadow-[0_22px_54px_-38px_rgba(43,28,18,0.34)] backdrop-blur-lg',
+        'paper-panel paper-stack rounded-2xl px-5 py-3',
         className
       )}
     >
@@ -147,7 +151,7 @@ export function LoadingState({
         className={cn(
           'flex flex-col items-center gap-4',
           card &&
-            'editorial-panel min-w-[240px] rounded-[1.75rem] px-8 py-10'
+            'editorial-panel paper-stack min-w-[240px] rounded-[1.75rem] px-8 py-10'
         )}
       >
         {content}

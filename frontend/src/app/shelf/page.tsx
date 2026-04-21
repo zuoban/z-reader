@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -33,12 +34,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+function paperDelay(ms: number) {
+  return { '--paper-delay': `${ms}ms` } as CSSProperties;
+}
+
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 const HEADER_ICON_BUTTON_CLASS =
-  'h-10 w-10 shrink-0 rounded-lg border border-border/60 bg-background p-0 text-foreground ' +
-  'transition-colors duration-200 hover:border-border/80 hover:bg-muted/20';
+  'paper-control h-10 w-10 shrink-0 rounded-lg p-0 text-foreground transition-all duration-200 hover:-translate-y-0.5';
 const HEADER_FILTER_TRIGGER_CLASS =
-  'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-background px-3 ' +
+  'paper-control group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 ' +
   'text-sm font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none ' +
   'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2';
 
@@ -90,7 +94,7 @@ function CategoryDropdown({
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[196px] rounded-2xl border border-border/70 bg-popover p-1.5 shadow-[0_18px_30px_-24px_rgba(43,28,18,0.2)]">
+      <DropdownMenuContent align="end" className="paper-panel min-w-[196px] rounded-2xl border border-border/70 p-1.5 shadow-[0_18px_30px_-24px_var(--paper-shadow)]">
         <DropdownMenuItem
           onClick={() => {
             onSelectCategory(null);
@@ -104,7 +108,7 @@ function CategoryDropdown({
           )}
         >
           <span className="flex-1">全部</span>
-          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+          <span className="paper-chip ml-2 rounded-full px-2 py-0.5 text-xs">
             {bookCounts.all}
           </span>
         </DropdownMenuItem>
@@ -129,7 +133,7 @@ function CategoryDropdown({
                 style={{ backgroundColor: category.color }}
               />
               <span className="flex-1">{category.name}</span>
-              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+              <span className="paper-chip ml-2 rounded-full px-2 py-0.5 text-xs">
                 {bookCounts[category.id] || 0}
               </span>
             </DropdownMenuItem>
@@ -186,8 +190,14 @@ export default function ShelfPage() {
       ambient="shelf"
       contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-4 py-4 sm:px-7 sm:py-7 lg:px-10 lg:py-10"
     >
-      <header className="rounded-[1.25rem] border border-border/60 bg-card px-4 py-3.5 sm:px-5 sm:py-4">
-        <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-3.5 sm:gap-5 sm:pb-4">
+      <header
+        className="paper-reveal paper-stage-panel paper-panel paper-stack rounded-[1.25rem] px-4 py-3.5 sm:px-5 sm:py-4"
+        style={paperDelay(0)}
+      >
+        <div
+          className="paper-reveal-soft flex items-center justify-between gap-4 border-b border-border/50 pb-3.5 sm:gap-5 sm:pb-4"
+          style={paperDelay(60)}
+        >
           <div className="min-w-0 flex-1">
             <BrandMark size="sm" className="hidden sm:block" priority />
             <BrandMark size="sm" className="sm:hidden" priority />
@@ -242,13 +252,16 @@ export default function ShelfPage() {
             </Button>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 text-[12px] leading-5 text-muted-foreground sm:mt-3.5 sm:text-[13px]">
+        <div
+          className="paper-reveal-soft mt-3 flex flex-wrap items-center justify-between gap-2.5 text-[12px] leading-5 text-muted-foreground sm:mt-3.5 sm:text-[13px]"
+          style={paperDelay(130)}
+        >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3.5 text-[12px] font-semibold leading-5 text-foreground sm:text-[13px]">
+            <span className="paper-control inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[12px] font-semibold leading-5 text-foreground sm:text-[13px]">
               <Library className="h-3.5 w-3.5" />
               我的书架
             </span>
-            <span className="inline-flex h-9 items-center rounded-lg border border-border/55 bg-background px-3.5 font-medium tabular-nums text-muted-foreground">
+            <span className="paper-control inline-flex h-9 items-center rounded-lg px-3.5 font-medium tabular-nums text-muted-foreground">
               共 {books.length} 本书
             </span>
           </div>
@@ -268,36 +281,42 @@ export default function ShelfPage() {
 
       <main className="flex-1 py-6 sm:py-9">
         {!isLoadingBooks && books.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            title="书架还是空的"
-            description="上传你的第一本 EPUB、MOBI、AZW3 或 PDF，开始你的阅读之旅"
-            tags={['EPUB', 'MOBI', 'AZW3', 'PDF']}
-            action={
-              <FileUploadAction
-                accept={SUPPORTED_FORMATS_ACCEPT}
-                onChange={handleUpload}
-                disabled={isUploading}
-                title="上传书籍"
-                wrapperClassName="w-full sm:w-auto"
-                buttonClassName="h-12 w-full rounded-2xl border border-primary/15 bg-primary px-8 text-sm font-semibold tracking-[0.04em] text-primary-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:w-auto sm:px-10"
-              >
-                {isUploading ? (
-                  <>
-                    <LoadingSpinner inverted className="mr-2.5 h-4 w-4 border-background/30" />
-                    添加中...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-2.5 h-4 w-4" />
-                    添加第一本书
-                  </>
-                )}
-              </FileUploadAction>
-            }
-          />
+          <div className="paper-reveal" style={paperDelay(120)}>
+            <EmptyState
+              icon={BookOpen}
+              title="书架还是空的"
+              description="上传你的第一本 EPUB、MOBI、AZW3 或 PDF，开始你的阅读之旅"
+              tags={['EPUB', 'MOBI', 'AZW3', 'PDF']}
+              action={
+                <FileUploadAction
+                  accept={SUPPORTED_FORMATS_ACCEPT}
+                  onChange={handleUpload}
+                  disabled={isUploading}
+                  title="上传书籍"
+                  wrapperClassName="w-full sm:w-auto"
+                  buttonClassName="h-12 w-full rounded-2xl border border-primary/15 bg-primary px-8 text-sm font-semibold tracking-[0.04em] text-primary-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:w-auto sm:px-10"
+                >
+                  {isUploading ? (
+                    <>
+                      <LoadingSpinner inverted className="mr-2.5 h-4 w-4 border-background/30" />
+                      添加中...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2.5 h-4 w-4" />
+                      添加第一本书
+                    </>
+                  )}
+                </FileUploadAction>
+              }
+            />
+          </div>
         ) : (
-          <section className="relative isolate">
+          <section
+            className="paper-reveal shelf-stage relative rounded-[2rem] px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8"
+            style={paperDelay(150)}
+          >
+            <div aria-hidden="true" className="shelf-bands pointer-events-none absolute inset-0 rounded-[2rem]" />
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (

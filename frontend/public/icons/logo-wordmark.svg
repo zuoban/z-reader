@@ -1,247 +1,61 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
   <defs>
-    <!-- Background gradient for symbol -->
-    <radialGradient id="bgRadial" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#1e2a3a"/>
-      <stop offset="60%" stop-color="#121c2e"/>
-      <stop offset="100%" stop-color="#0a0e1a"/>
-    </radialGradient>
-
-    <!-- Ambient glow -->
-    <radialGradient id="ambientGlow" cx="50%" cy="48%" r="45%">
-      <stop offset="0%" stop-color="#2a3a5a" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#2a3a5a" stop-opacity="0"/>
-    </radialGradient>
-
-    <!-- Cover gradients -->
-    <linearGradient id="coverLeft" x1="28" y1="30" x2="110" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2d3436"/>
-      <stop offset="100%" stop-color="#1e272e"/>
+    <linearGradient id="sheetBack" x1="20" y1="14" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f0e6d8"/>
+      <stop offset="1" stop-color="#d6c1a4"/>
     </linearGradient>
-    <linearGradient id="coverRight" x1="110" y1="30" x2="192" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#252c30"/>
-      <stop offset="100%" stop-color="#1a2228"/>
+    <linearGradient id="sheetFront" x1="34" y1="24" x2="184" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#f1e5d1"/>
     </linearGradient>
-
-    <!-- Page gradients -->
-    <linearGradient id="pageLeft" x1="32" y1="36" x2="110" y2="184" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#fffef9"/>
-      <stop offset="100%" stop-color="#f5eedd"/>
+    <linearGradient id="spine" x1="110" y1="34" x2="110" y2="172" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d1b589"/>
+      <stop offset="1" stop-color="#b08a5a"/>
     </linearGradient>
-    <linearGradient id="pageRight" x1="110" y1="36" x2="188" y2="184" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f8f2e4"/>
-      <stop offset="100%" stop-color="#ebe3cc"/>
+    <linearGradient id="titleGrad" x1="262" y1="58" x2="498" y2="146" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5ede1"/>
+      <stop offset="1" stop-color="#ddd0be"/>
     </linearGradient>
-
-    <!-- Spine gradient -->
-    <linearGradient id="spine" x1="108" y1="30" x2="112" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d4af37"/>
-      <stop offset="50%" stop-color="#c9a84c"/>
-      <stop offset="100%" stop-color="#b8942e"/>
-    </linearGradient>
-
-    <!-- Gold accent -->
-    <linearGradient id="goldAccent" x1="0" y1="0" x2="220" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d4af37"/>
-      <stop offset="50%" stop-color="#f4e4a6"/>
-      <stop offset="100%" stop-color="#d4af37"/>
-    </linearGradient>
-
-    <!-- Text gradients -->
-    <linearGradient id="headingText" x1="40" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#3d3528"/>
-      <stop offset="100%" stop-color="#5a4d3a"/>
-    </linearGradient>
-    <linearGradient id="bodyText" x1="38" y1="0" x2="104" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#8a7e6b"/>
-      <stop offset="100%" stop-color="#a09580"/>
-    </linearGradient>
-    <linearGradient id="bodyTextRight" x1="116" y1="0" x2="182" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#8a7e6b"/>
-      <stop offset="100%" stop-color="#958a75"/>
-    </linearGradient>
-
-    <!-- Image gradient -->
-    <linearGradient id="imageGrad" x1="118" y1="60" x2="170" y2="90" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d6cec0"/>
-      <stop offset="100%" stop-color="#c4b8a8"/>
-    </linearGradient>
-
-    <!-- Title gradient -->
-    <linearGradient id="titleGrad" x1="240" y1="72" x2="520" y2="154" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f5eedd"/>
-      <stop offset="100%" stop-color="#e8dcc8"/>
-    </linearGradient>
-
-    <!-- Filters -->
-    <filter id="dropShadow" x="-8%" y="-8%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.3"/>
+    <filter id="backShadow" x="12" y="18" width="204" height="182" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#7f6442" flood-opacity="0.18"/>
     </filter>
-    <filter id="softGlow">
-      <feGaussianBlur stdDeviation="1" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <filter id="frontShadow" x="18" y="18" width="192" height="178" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#7f6442" flood-opacity="0.14"/>
     </filter>
-
-    <!-- Clip paths -->
-    <clipPath id="pageClipLeft">
-      <path d="M32 40C32 36 34.7 34 38 34H90C100.4 34 110 43.6 110 54V178C104 172 94 170 88 170H38C34.7 170 32 167.3 32 164V40Z"/>
-    </clipPath>
-    <clipPath id="pageClipRight">
-      <path d="M188 40C188 36 185.3 34 182 34H130C119.6 34 110 43.6 110 54V178C116 172 126 170 132 170H182C185.3 170 188 167.3 188 164V40Z"/>
-    </clipPath>
   </defs>
 
-  <!-- ==================== SYMBOL BACKGROUND ==================== -->
+  <g>
+    <g filter="url(#backShadow)">
+      <path d="M38 32H126C143.67 32 158 46.33 158 64V138C158 155.67 143.67 170 126 170H38C20.33 170 6 155.67 6 138V64C6 46.33 20.33 32 38 32Z" fill="url(#sheetBack)"/>
+    </g>
+    <g filter="url(#frontShadow)">
+      <path d="M46 26H138C154.02 26 167 38.98 167 55V145C167 161.02 154.02 174 138 174H46C29.98 174 17 161.02 17 145V55C17 38.98 29.98 26 46 26Z" fill="url(#sheetFront)"/>
+      <path d="M46 26H138C154.02 26 167 38.98 167 55V145C167 161.02 154.02 174 138 174H46C29.98 174 17 161.02 17 145V55C17 38.98 29.98 26 46 26Z" stroke="#f9f4eb" stroke-opacity=".82"/>
+      <path d="M40 34H132C148.02 34 161 46.98 161 63V153C161 169.02 148.02 182 132 182H40C23.98 182 11 169.02 11 153V63C11 46.98 23.98 34 40 34Z" stroke="#b18d60" stroke-opacity=".22"/>
+    </g>
 
-  <!-- Background -->
-  <rect x="10" y="10" width="200" height="200" rx="44" fill="url(#bgRadial)"/>
+    <path d="M92 38H128" stroke="#8c6d4b" stroke-opacity=".18" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M92 46H120" stroke="#8c6d4b" stroke-opacity=".14" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M92 140H140" stroke="#b49160" stroke-opacity=".34" stroke-width="1.2" stroke-linecap="round"/>
+    <text x="92" y="152" text-anchor="middle" font-family="serif" font-size="12" letter-spacing="4" fill="#a07a4f" fill-opacity=".86">READER</text>
 
-  <!-- Ambient glow -->
-  <ellipse cx="110" cy="110" rx="75" ry="65" fill="url(#ambientGlow)"/>
+    <path d="M92 40V160" stroke="url(#spine)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M93.5 44V158" stroke="#f9edd7" stroke-width=".8" stroke-linecap="round" opacity=".6"/>
 
-  <!-- Subtle star/dot pattern -->
-  <circle cx="30" cy="28" r="0.8" fill="#ffffff" opacity="0.15"/>
-  <circle cx="185" cy="22" r="0.7" fill="#ffffff" opacity="0.12"/>
-  <circle cx="195" cy="55" r="0.9" fill="#ffffff" opacity="0.1"/>
-  <circle cx="25" cy="60" r="0.7" fill="#ffffff" opacity="0.12"/>
-  <circle cx="35" cy="155" r="0.8" fill="#ffffff" opacity="0.1"/>
-  <circle cx="190" cy="160" r="0.7" fill="#ffffff" opacity="0.12"/>
-
-  <!-- Subtle concentric rings -->
-  <circle cx="110" cy="110" r="60" stroke="#4a6a8a" stroke-width="0.4" opacity="0.08"/>
-  <circle cx="110" cy="110" r="46" stroke="#4a6a8a" stroke-width="0.4" opacity="0.06"/>
-
-  <!-- ==================== BOOK COVER ==================== -->
-
-  <!-- Cover shadow -->
-  <g filter="url(#dropShadow)">
-    <!-- Left cover -->
-    <path d="M24 36C24 30 28.8 26 36 26H82C96.4 26 112 34 112 48V174C106 168 96 166 88 166H36C28.8 166 24 164 24 158V36Z" fill="url(#coverLeft)"/>
-    <!-- Right cover -->
-    <path d="M196 36C196 30 191.2 26 184 26H138C123.6 26 108 34 108 48V174C114 168 124 166 132 166H184C191.2 166 196 164 196 158V36Z" fill="url(#coverRight)"/>
+    <path d="M44 58H80" stroke="#7a5e42" stroke-opacity=".16" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M44 66H74" stroke="#7a5e42" stroke-opacity=".12" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M104 58H140" stroke="#7a5e42" stroke-opacity=".18" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M104 66H132" stroke="#7a5e42" stroke-opacity=".12" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="62" y="114" text-anchor="middle" font-family="serif" font-size="52" font-weight="700" fill="#614933">Z</text>
+    <path d="M104 96H136" stroke="#6f563f" stroke-opacity=".24" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M104 106H130" stroke="#6f563f" stroke-opacity=".18" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M104 124H138" stroke="#6f563f" stroke-opacity=".22" stroke-width="1.8" stroke-linecap="round"/>
   </g>
 
-  <!-- Cover gold border -->
-  <path d="M26 36C26 31 30 28.5 37 28.5H81C94.4 28.5 110.5 35.4 110.5 48" stroke="url(#goldAccent)" stroke-width="1" opacity="0.5"/>
-  <path d="M194 36C194 31 190 28.5 183 28.5H139C125.6 28.5 109.5 35.4 109.5 48" stroke="url(#goldAccent)" stroke-width="1" opacity="0.5"/>
+  <path d="M228 154H548" stroke="#d8c7ae" stroke-opacity=".32" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="228" cy="154" r="2.4" fill="#c29a68" fill-opacity=".46"/>
+  <circle cx="548" cy="154" r="2.4" fill="#c29a68" fill-opacity=".46"/>
 
-  <!-- ==================== BOOK PAGES ==================== -->
-
-  <!-- Left page -->
-  <path d="M32 40C32 36 34.7 34 38 34H90C100.4 34 110 43.6 110 54V178C104 172 94 170 88 170H38C34.7 170 32 167.3 32 164V40Z" fill="url(#pageLeft)"/>
-
-  <!-- Right page -->
-  <path d="M188 40C188 36 185.3 34 182 34H130C119.6 34 110 43.6 110 54V178C116 172 126 170 132 170H182C185.3 170 188 167.3 188 164V40Z" fill="url(#pageRight)"/>
-
-  <!-- Page edge shadow (center fold) -->
-  <path d="M110 54V178" stroke="#c4b898" stroke-width="4" opacity="0.3"/>
-  <path d="M110 54V178" stroke="#a89878" stroke-width="1.5" opacity="0.2"/>
-
-  <!-- Page thickness lines at top -->
-  <path d="M32 40C32 36 34.7 34 38 34H90C100.4 34 110 43.6 110 54" stroke="#e8dfc8" stroke-width="1" opacity="0.6"/>
-  <path d="M188 40C188 36 185.3 34 182 34H130C119.6 34 110 43.6 110 54" stroke="#ddd4bc" stroke-width="1" opacity="0.6"/>
-
-  <!-- Subtle page curve -->
-  <path d="M36 52 Q54 42 110 38" stroke="#d4c8a8" stroke-width="0.5" opacity="0.4"/>
-  <path d="M184 52 Q166 42 110 38" stroke="#ccc0a4" stroke-width="0.5" opacity="0.4"/>
-
-  <!-- ==================== LEFT PAGE CONTENT ==================== -->
-
-  <g clip-path="url(#pageClipLeft)">
-    <!-- Chapter ornament -->
-    <circle cx="71" cy="52" r="10" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.5"/>
-    <text x="71" y="56" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="12" font-weight="bold" fill="#a88c3a">I</text>
-
-    <!-- Heading -->
-    <rect x="42" y="68" width="40" height="3" rx="1.5" fill="url(#headingText)" opacity="0.7"/>
-    <rect x="42" y="75" width="30" height="3" rx="1.5" fill="url(#headingText)" opacity="0.5"/>
-
-    <!-- Decorative divider -->
-    <line x1="40" y1="83" x2="94" y2="83" stroke="#c9a84c" stroke-width="0.6" opacity="0.4" stroke-linecap="round"/>
-    <circle cx="67" cy="83" r="1.5" fill="#c9a84c" opacity="0.5"/>
-
-    <!-- Body paragraphs -->
-    <rect x="40" y="90" width="46" height="1.5" rx="0.75" fill="url(#bodyText)" opacity="0.45"/>
-    <rect x="40" y="95" width="42" height="1.5" rx="0.75" fill="url(#bodyText)" opacity="0.4"/>
-    <rect x="40" y="100" width="48" height="1.5" rx="0.75" fill="url(#bodyText)" opacity="0.45"/>
-    <rect x="40" y="105" width="38" height="1.5" rx="0.75" fill="url(#bodyText)" opacity="0.4"/>
-    <rect x="40" y="110" width="44" height="1.5" rx="0.75" fill="url(#bodyText)" opacity="0.45"/>
-    <rect x="40" y="115" width="34" height="1.5" rx="0.75" fill="url(#bodyText)" opacity="0.4"/>
-
-    <!-- Quote block -->
-    <rect x="42" y="122" width="40" height="14" rx="2.5" fill="#e8e0cc" opacity="0.3"/>
-    <line x1="45" y1="126" x2="45" y2="134" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    <rect x="50" y="127" width="28" height="1.2" rx="0.6" fill="#8a7e6b" opacity="0.4"/>
-    <rect x="50" y="130" width="24" height="1.2" rx="0.6" fill="#8a7e6b" opacity="0.35"/>
-    <rect x="50" y="133" width="20" height="1.2" rx="0.6" fill="#8a7e6b" opacity="0.4"/>
-
-    <!-- Page folio -->
-    <text x="71" y="162" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#a09580" opacity="0.5">5</text>
-  </g>
-
-  <!-- ==================== RIGHT PAGE CONTENT ==================== -->
-
-  <g clip-path="url(#pageClipRight)">
-    <!-- Section heading -->
-    <rect x="118" y="48" width="36" height="2.5" rx="1.25" fill="url(#bodyTextRight)" opacity="0.5"/>
-    <rect x="118" y="54" width="42" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.4"/>
-
-    <!-- Illustration -->
-    <rect x="118" y="62" width="48" height="26" rx="3.5" fill="url(#imageGrad)" opacity="0.35"/>
-    <rect x="118" y="62" width="48" height="26" rx="3.5" fill="none" stroke="#b8a898" stroke-width="0.6" opacity="0.4"/>
-
-    <!-- Landscape in illustration -->
-    <path d="M120 84 L134 68 L148 78 L160 66 L164 84 Z" fill="#c4b8a8" opacity="0.3"/>
-    <circle cx="158" cy="70" r="3.5" fill="#d4c8b8" opacity="0.35"/>
-    <path d="M124 84 L138 74 L146 80 L154 72 L162 84" stroke="#b0a494" stroke-width="0.6" fill="none" opacity="0.4"/>
-
-    <!-- Caption -->
-    <rect x="124" y="93" width="28" height="1.2" rx="0.6" fill="#958a75" opacity="0.35"/>
-    <rect x="130" y="96" width="20" height="1.2" rx="0.6" fill="#958a75" opacity="0.3"/>
-
-    <!-- Body text -->
-    <rect x="118" y="104" width="44" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.45"/>
-    <rect x="118" y="109" width="46" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.4"/>
-    <rect x="118" y="114" width="42" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.45"/>
-    <rect x="118" y="119" width="44" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.4"/>
-
-    <!-- Bullet list -->
-    <circle cx="123" cy="128" r="1.2" fill="#c9a84c" opacity="0.4"/>
-    <rect x="128" y="127" width="28" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.35"/>
-    <circle cx="123" cy="135" r="1.2" fill="#c9a84c" opacity="0.4"/>
-    <rect x="128" y="134" width="22" height="1.5" rx="0.75" fill="url(#bodyTextRight)" opacity="0.35"/>
-
-    <!-- Page folio -->
-    <text x="148" y="162" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#958a75" opacity="0.5">6</text>
-  </g>
-
-  <!-- ==================== SPINE ==================== -->
-
-  <!-- Main spine line -->
-  <path d="M110 54V178" stroke="url(#spine)" stroke-width="3" stroke-linecap="round"/>
-
-  <!-- Spine highlight -->
-  <path d="M111.5 56V176" stroke="#e8d888" stroke-width="0.6" opacity="0.25"/>
-
-  <!-- Spine ornaments -->
-  <circle cx="110" cy="64" r="2" fill="#c9a84c" opacity="0.5"/>
-  <circle cx="110" cy="168" r="2" fill="#c9a84c" opacity="0.5"/>
-
-  <!-- ==================== BRAND TEXT ==================== -->
-
-  <!-- Divider line -->
-  <line x1="240" y1="156" x2="520" y2="156" stroke="url(#goldAccent)" stroke-width="0.5" stroke-linecap="round" opacity="0.4"/>
-  <circle cx="240" cy="156" r="2" fill="#c9a84c" opacity="0.4"/>
-  <circle cx="520" cy="156" r="2" fill="#c9a84c" opacity="0.4"/>
-
-  <!-- Brand text -->
-  <text x="380" y="110" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="600" fill="url(#titleGrad)" letter-spacing="2">
-    <tspan fill="#f4e4a6" font-weight="700">Z</tspan>
-    <tspan fill="#f5eedd" font-weight="400"> Reader</tspan>
-  </text>
-
-  <!-- Tagline -->
-  <text x="380" y="140" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#8a7e6b" letter-spacing="3" opacity="0.6">
-    READ WITH CLARITY
-  </text>
+  <text x="390" y="102" text-anchor="middle" font-family="serif" font-size="56" font-weight="600" fill="url(#titleGrad)" letter-spacing="1.5">Z Reader</text>
+  <text x="390" y="138" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" letter-spacing="4" fill="#cdbca3" fill-opacity=".82">A QUIETER DIGITAL LIBRARY</text>
 </svg>

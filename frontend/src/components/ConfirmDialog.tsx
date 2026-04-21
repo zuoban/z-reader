@@ -49,12 +49,14 @@ export function ConfirmDialog({
         <DialogFooter>
           <Button
             variant="outline"
+            className="min-w-20"
             onClick={() => onOpenChange(false)}
           >
             {cancelLabel}
           </Button>
           <Button
             variant={confirmVariant}
+            className="min-w-24"
             onClick={onConfirm}
             disabled={confirmDisabled}
           >

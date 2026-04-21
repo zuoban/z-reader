@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-noto-sans-sc);
   --font-mono: var(--font-inter);
-  --font-heading: var(--font-inter);
+  --font-heading: var(--font-noto-serif-sc);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,76 +49,91 @@
 }
 
 :root {
-  --background: #f6f2ea;
-  --foreground: #1f1914;
-  --card: rgba(255, 251, 245, 0.88);
-  --card-foreground: #1f1914;
-  --popover: rgba(255, 251, 245, 0.96);
-  --popover-foreground: #1f1914;
-  --primary: #7f4f32;
+  --background: #f2eadc;
+  --foreground: #241b14;
+  --card: rgba(255, 249, 240, 0.9);
+  --card-foreground: #231b15;
+  --popover: rgba(255, 249, 241, 0.96);
+  --popover-foreground: #231b15;
+  --primary: #7c5437;
   --primary-foreground: #fff9f3;
-  --secondary: #efe6d7;
-  --secondary-foreground: #2b2019;
-  --muted: #e9dfd0;
-  --muted-foreground: #74655a;
-  --accent: #c86b4c;
+  --secondary: #e5d5bd;
+  --secondary-foreground: #2e221b;
+  --muted: #e8dcc9;
+  --muted-foreground: #776758;
+  --accent: #bc7c55;
   --accent-foreground: #fffaf5;
   --destructive: #dc2626;
-  --border: rgba(114, 88, 68, 0.18);
-  --input: rgba(114, 88, 68, 0.16);
-  --ring: #a56643;
-  --chart-1: #7f4f32;
-  --chart-2: #c86b4c;
-  --chart-3: #5a6c63;
-  --chart-4: #be9470;
-  --chart-5: #d8be9e;
-  --radius: 1rem;
-  --sidebar: rgba(252, 247, 240, 0.92);
-  --sidebar-foreground: #1f1914;
-  --sidebar-primary: #7f4f32;
+  --border: rgba(119, 93, 69, 0.24);
+  --input: rgba(119, 93, 69, 0.17);
+  --ring: #a56b48;
+  --chart-1: #7c5437;
+  --chart-2: #bc7c55;
+  --chart-3: #617465;
+  --chart-4: #c59a77;
+  --chart-5: #dcc1a3;
+  --radius: 1.05rem;
+  --sidebar: rgba(250, 243, 233, 0.92);
+  --sidebar-foreground: #231b15;
+  --sidebar-primary: #7c5437;
   --sidebar-primary-foreground: #fff9f3;
-  --sidebar-accent: #c86b4c;
+  --sidebar-accent: #bc7c55;
   --sidebar-accent-foreground: #fffaf5;
-  --sidebar-border: rgba(114, 88, 68, 0.18);
-  --sidebar-ring: #a56643;
+  --sidebar-border: rgba(119, 93, 69, 0.22);
+  --sidebar-ring: #a56b48;
+  --paper-shadow: rgba(58, 39, 24, 0.18);
+  --paper-shadow-soft: rgba(58, 39, 24, 0.08);
+  --paper-edge: rgba(255, 255, 255, 0.68);
+  --paper-crease: rgba(120, 93, 69, 0.12);
+  --paper-speck: rgba(108, 83, 63, 0.05);
+  --paper-ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --paper-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --paper-duration-fast: 180ms;
+  --paper-duration-base: 240ms;
+  --paper-duration-slow: 320ms;
 
-  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.018'/%3E%3C/svg%3E");
+  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' seed='12' stitchTiles='stitch'/%3E%3C/filter%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03' numOctaves='2' seed='7'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23fff9ef'/%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.028'/%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.038'/%3E%3Cg stroke='%23885f42' stroke-opacity='0.07' stroke-width='0.5'%3E%3Cpath d='M0 42h240'/%3E%3Cpath d='M0 118h240'/%3E%3Cpath d='M0 194h240'/%3E%3C/g%3E%3Cg fill='%23855e46' fill-opacity='0.055'%3E%3Ccircle cx='26' cy='36' r='0.8'/%3E%3Ccircle cx='118' cy='88' r='0.9'/%3E%3Ccircle cx='176' cy='164' r='0.7'/%3E%3Ccircle cx='210' cy='54' r='0.8'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 .dark {
-  --background: #15110e;
-  --foreground: #f2e7d8;
-  --card: rgba(33, 26, 21, 0.84);
-  --card-foreground: #f2e7d8;
-  --popover: rgba(29, 23, 19, 0.96);
-  --popover-foreground: #f2e7d8;
-  --primary: #d3a073;
+  --background: #16110e;
+  --foreground: #f1e5d6;
+  --card: rgba(35, 28, 23, 0.9);
+  --card-foreground: #f1e5d6;
+  --popover: rgba(28, 23, 19, 0.95);
+  --popover-foreground: #f1e5d6;
+  --primary: #d5a67a;
   --primary-foreground: #19120e;
-  --secondary: #271f1a;
-  --secondary-foreground: #f2e7d8;
-  --muted: #211a15;
-  --muted-foreground: #b8a89a;
-  --accent: #f09a75;
+  --secondary: #2a211b;
+  --secondary-foreground: #f1e5d6;
+  --muted: #231b16;
+  --muted-foreground: #b9a898;
+  --accent: #e4a07b;
   --accent-foreground: #21140e;
   --destructive: #ef4444;
-  --border: rgba(214, 189, 163, 0.16);
-  --input: rgba(214, 189, 163, 0.14);
-  --ring: #d3a073;
-  --chart-1: #d3a073;
-  --chart-2: #f09a75;
+  --border: rgba(214, 190, 166, 0.18);
+  --input: rgba(214, 190, 166, 0.15);
+  --ring: #d5a67a;
+  --chart-1: #d5a67a;
+  --chart-2: #e4a07b;
   --chart-3: #9bb4a6;
-  --chart-4: #7d5a43;
-  --chart-5: #3c2f26;
-  --sidebar: rgba(24, 19, 16, 0.92);
-  --sidebar-foreground: #f2e7d8;
-  --sidebar-primary: #d3a073;
+  --chart-4: #88624a;
+  --chart-5: #3f3127;
+  --sidebar: rgba(24, 19, 15, 0.94);
+  --sidebar-foreground: #f1e5d6;
+  --sidebar-primary: #d5a67a;
   --sidebar-primary-foreground: #19120e;
-  --sidebar-accent: #f09a75;
+  --sidebar-accent: #e4a07b;
   --sidebar-accent-foreground: #21140e;
-  --sidebar-border: rgba(214, 189, 163, 0.14);
-  --sidebar-ring: #d3a073;
+  --sidebar-border: rgba(214, 190, 166, 0.16);
+  --sidebar-ring: #d5a67a;
+  --paper-shadow: rgba(0, 0, 0, 0.34);
+  --paper-shadow-soft: rgba(0, 0, 0, 0.16);
+  --paper-edge: rgba(255, 245, 232, 0.14);
+  --paper-crease: rgba(255, 226, 196, 0.08);
+  --paper-speck: rgba(255, 226, 196, 0.05);
 
-  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.68' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.026'/%3E%3C/svg%3E");
+  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.032' numOctaves='2' seed='9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%2316110e'/%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.04'/%3E%3Cg stroke='%23f0d4b6' stroke-opacity='0.055' stroke-width='0.5'%3E%3Cpath d='M0 44h240'/%3E%3Cpath d='M0 126h240'/%3E%3Cpath d='M0 196h240'/%3E%3C/g%3E%3Cg fill='%23f0d4b6' fill-opacity='0.04'%3E%3Ccircle cx='42' cy='68' r='0.8'/%3E%3Ccircle cx='156' cy='104' r='0.9'/%3E%3Ccircle cx='198' cy='176' r='0.8'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 @layer base {
@@ -132,11 +147,21 @@
 
   body {
     @apply bg-background text-foreground;
+    min-height: 100vh;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    background-attachment: fixed;
     background-image:
-      radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 28%),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 24%),
-      linear-gradient(180deg, color-mix(in srgb, var(--background) 88%, white 12%) 0%, var(--background) 100%);
+      radial-gradient(circle at 8% 6%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 24%),
+      radial-gradient(circle at 96% 4%, color-mix(in srgb, var(--primary) 14%, transparent) 0%, transparent 22%),
+      radial-gradient(circle at 50% 118%, color-mix(in srgb, var(--secondary) 70%, transparent) 0%, transparent 38%),
+      linear-gradient(180deg, color-mix(in srgb, black 6%, transparent) 0%, transparent 18%, transparent 82%, color-mix(in srgb, black 8%, transparent) 100%),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--background) 78%, white 22%) 0%,
+        var(--background) 36%,
+        color-mix(in srgb, var(--background) 84%, var(--secondary) 16%) 100%
+      );
+    color: var(--foreground);
   }
 
   ::selection {
@@ -181,30 +206,77 @@ foliate-view::part(filter) {
 @layer utilities {
   .paper-texture {
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--background) 92%, white 8%) 0%, var(--background) 100%),
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 88%, transparent) 0%, transparent 10%, transparent 86%, color-mix(in srgb, var(--paper-crease) 56%, transparent) 100%),
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, white 72%, transparent) 0%, transparent 30%),
+      repeating-linear-gradient(180deg, color-mix(in srgb, var(--paper-speck) 54%, transparent) 0px, color-mix(in srgb, var(--paper-speck) 54%, transparent) 1px, transparent 1px, transparent 7px),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 87%, white 13%) 0%, var(--background) 52%, color-mix(in srgb, var(--background) 91%, var(--secondary) 9%) 100%),
       var(--paper-texture);
+    background-blend-mode: screen, screen, soft-light, normal, multiply;
+    background-size: auto, auto, auto, auto, 240px 240px;
   }
 
   .shelf-ambient-bg {
-    background: color-mix(in srgb, var(--background) 97%, white 3%);
+    background:
+      radial-gradient(circle at 14% 12%, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 22%),
+      radial-gradient(circle at 84% 10%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 24%),
+      linear-gradient(180deg, color-mix(in srgb, black 6%, transparent) 0%, transparent 20%, transparent 82%, color-mix(in srgb, black 8%, transparent) 100%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, white 6%) 0%, var(--background) 100%);
   }
 
   .login-ambient-bg {
     background:
-      radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 24%),
-      radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--primary) 18%, transparent) 0%, transparent 28%),
-      linear-gradient(135deg, color-mix(in srgb, var(--background) 92%, white 8%) 0%, color-mix(in srgb, var(--secondary) 82%, var(--background) 18%) 100%);
+      radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--accent) 13%, transparent) 0%, transparent 22%),
+      radial-gradient(circle at 84% 10%, color-mix(in srgb, var(--primary) 16%, transparent) 0%, transparent 26%),
+      radial-gradient(circle at 50% 104%, color-mix(in srgb, var(--secondary) 72%, transparent) 0%, transparent 40%),
+      linear-gradient(180deg, color-mix(in srgb, black 8%, transparent) 0%, transparent 14%, transparent 78%, color-mix(in srgb, black 10%, transparent) 100%),
+      linear-gradient(135deg, color-mix(in srgb, var(--background) 90%, white 10%) 0%, color-mix(in srgb, var(--secondary) 82%, var(--background) 18%) 100%);
   }
 
   .editorial-panel {
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--card) 94%, white 6%) 0%, color-mix(in srgb, var(--card) 96%, transparent) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 92%, transparent) 0%, transparent 12%, transparent 84%, color-mix(in srgb, var(--paper-crease) 68%, transparent) 100%),
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, white 54%, transparent) 0%, transparent 30%),
+      linear-gradient(140deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 88%, var(--background) 12%) 100%),
+      var(--paper-texture);
     border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
     box-shadow:
-      0 32px 64px -48px rgba(41, 26, 17, 0.45),
-      0 12px 28px -24px rgba(41, 26, 17, 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(20px) saturate(135%);
+      0 38px 68px -46px var(--paper-shadow),
+      0 18px 34px -28px var(--paper-shadow-soft),
+      0 2px 0 rgba(255, 255, 255, 0.22),
+      inset 0 1px 0 var(--paper-edge),
+      inset 0 -1px 0 color-mix(in srgb, var(--paper-crease) 82%, transparent);
+    backdrop-filter: blur(14px) saturate(112%);
+    background-size: auto, auto, auto, 220px 220px;
+    background-blend-mode: screen, screen, normal, multiply;
+    transition:
+      transform var(--paper-duration-slow) var(--paper-ease-out),
+      box-shadow var(--paper-duration-slow) var(--paper-ease-out),
+      border-color var(--paper-duration-base) var(--paper-ease-soft),
+      background-color var(--paper-duration-base) var(--paper-ease-soft),
+      opacity var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .paper-panel {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 88%, transparent) 0%, transparent 12%, transparent 86%, color-mix(in srgb, var(--paper-crease) 54%, transparent) 100%),
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, white 46%, transparent) 0%, transparent 30%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 90%, var(--background) 10%) 100%),
+      var(--paper-texture);
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+    box-shadow:
+      0 24px 42px -34px var(--paper-shadow),
+      0 10px 18px -16px var(--paper-shadow-soft),
+      inset 0 1px 0 var(--paper-edge),
+      inset 0 -1px 0 color-mix(in srgb, var(--paper-crease) 72%, transparent);
+    background-size: auto, auto, auto, 220px 220px;
+    background-blend-mode: screen, screen, normal, multiply;
+    backdrop-filter: blur(10px) saturate(112%);
+    transition:
+      transform var(--paper-duration-slow) var(--paper-ease-out),
+      box-shadow var(--paper-duration-slow) var(--paper-ease-out),
+      border-color var(--paper-duration-base) var(--paper-ease-soft),
+      background-color var(--paper-duration-base) var(--paper-ease-soft),
+      opacity var(--paper-duration-base) var(--paper-ease-soft);
   }
 
   .editorial-divider {
@@ -226,16 +298,314 @@ foliate-view::part(filter) {
     background-size: 180px 180px;
   }
 
+  .paper-stack {
+    box-shadow:
+      0 24px 42px -32px var(--paper-shadow),
+      0 2px 0 color-mix(in srgb, var(--paper-edge) 68%, transparent),
+      0 10px 0 -8px color-mix(in srgb, var(--card) 95%, var(--background) 5%),
+      0 20px 0 -16px color-mix(in srgb, var(--card) 88%, var(--background) 12%);
+  }
+
+  .paper-control {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 70%, transparent) 0%, transparent 40%),
+      linear-gradient(145deg, color-mix(in srgb, var(--background) 92%, white 8%) 0%, color-mix(in srgb, var(--background) 86%, var(--secondary) 14%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+    box-shadow:
+      0 10px 20px -18px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 76%, transparent);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-control:hover {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 80%, transparent) 0%, transparent 42%),
+      linear-gradient(145deg, color-mix(in srgb, var(--background) 90%, white 10%) 0%, color-mix(in srgb, var(--background) 82%, var(--secondary) 18%) 100%);
+    box-shadow:
+      0 14px 24px -20px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 82%, transparent);
+  }
+
+  .paper-field {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 78%, transparent) 0%, transparent 36%),
+      linear-gradient(145deg, color-mix(in srgb, var(--background) 94%, white 6%) 0%, color-mix(in srgb, var(--background) 88%, var(--secondary) 12%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    box-shadow:
+      0 8px 18px -18px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 74%, transparent);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-field:focus-within,
+  .paper-field:focus-visible {
+    box-shadow:
+      0 10px 22px -18px var(--paper-shadow),
+      0 0 0 3px color-mix(in srgb, var(--ring) 14%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 78%, transparent);
+  }
+
+  .paper-menu {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 88%, transparent) 0%, transparent 16%),
+      linear-gradient(145deg, color-mix(in srgb, var(--popover) 96%, white 4%) 0%, color-mix(in srgb, var(--popover) 90%, var(--background) 10%) 100%),
+      var(--paper-texture);
+    background-size: auto, auto, 220px 220px;
+    background-blend-mode: screen, normal, multiply;
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+    box-shadow:
+      0 20px 34px -26px var(--paper-shadow),
+      0 10px 18px -18px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 82%, transparent);
+    transition:
+      transform var(--paper-duration-base) var(--paper-ease-out),
+      box-shadow var(--paper-duration-base) var(--paper-ease-out),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-chip {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 64%, transparent) 0%, transparent 42%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 90%, var(--background) 10%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 74%, transparent),
+      0 8px 18px -20px var(--paper-shadow-soft);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-panel-soft {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 72%, transparent) 0%, transparent 20%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 94%, white 6%) 0%, color-mix(in srgb, var(--card) 90%, var(--background) 10%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 76%, transparent),
+      0 12px 24px -22px var(--paper-shadow-soft);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-icon-well {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 60%, transparent) 0%, transparent 38%),
+      linear-gradient(145deg, color-mix(in srgb, var(--background) 90%, white 10%) 0%, color-mix(in srgb, var(--background) 84%, var(--secondary) 16%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 72%, transparent),
+      0 10px 18px -18px var(--paper-shadow-soft);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-badge {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 56%, transparent) 0%, transparent 42%),
+      linear-gradient(145deg, color-mix(in srgb, var(--muted) 88%, white 12%) 0%, color-mix(in srgb, var(--muted) 92%, var(--background) 8%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 68%, transparent);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-cover-frame {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 62%, transparent) 0%, transparent 18%, transparent 82%, color-mix(in srgb, var(--paper-crease) 48%, transparent) 100%),
+      linear-gradient(155deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 86%, var(--background) 14%) 100%),
+      var(--paper-texture);
+    background-size: auto, auto, 180px 180px;
+    background-blend-mode: screen, normal, multiply;
+    border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 76%, transparent),
+      inset 0 -1px 0 color-mix(in srgb, var(--paper-crease) 66%, transparent),
+      0 10px 18px -18px var(--paper-shadow-soft);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-motion-interactive {
+    transition-property: transform, box-shadow, border-color, background-color, color, opacity, filter;
+    transition-duration: var(--paper-duration-fast);
+    transition-timing-function: var(--paper-ease-soft);
+    will-change: transform;
+  }
+
+  .paper-motion-surface {
+    transition-property: box-shadow, border-color, background-color, color, opacity;
+    transition-duration: var(--paper-duration-fast);
+    transition-timing-function: var(--paper-ease-soft);
+  }
+
+  .paper-motion-veil {
+    transition-property: opacity, backdrop-filter, background-color;
+    transition-duration: var(--paper-duration-base);
+    transition-timing-function: var(--paper-ease-soft);
+  }
+
+  .paper-motion-panel {
+    will-change: transform, opacity;
+  }
+
+  .paper-motion-panel[data-open] {
+    animation: paperPanelIn var(--paper-duration-slow) var(--paper-ease-out) both;
+  }
+
+  .paper-motion-panel[data-closed] {
+    animation: paperPanelOut var(--paper-duration-fast) var(--paper-ease-soft) both;
+  }
+
+  .paper-motion-sheet {
+    transition-property: transform, opacity, box-shadow, border-color, backdrop-filter;
+    transition-duration: var(--paper-duration-slow);
+    transition-timing-function: var(--paper-ease-out);
+    will-change: transform, opacity;
+  }
+
+  .paper-motion-menu {
+    --paper-motion-x: 0px;
+    --paper-motion-y: 0px;
+    --paper-motion-scale: 0.985;
+    will-change: transform, opacity;
+  }
+
+  .paper-motion-menu[data-side="bottom"] {
+    --paper-motion-y: -8px;
+  }
+
+  .paper-motion-menu[data-side="top"] {
+    --paper-motion-y: 8px;
+  }
+
+  .paper-motion-menu[data-side="left"],
+  .paper-motion-menu[data-side="inline-start"] {
+    --paper-motion-x: 8px;
+  }
+
+  .paper-motion-menu[data-side="right"],
+  .paper-motion-menu[data-side="inline-end"] {
+    --paper-motion-x: -8px;
+  }
+
+  .paper-motion-menu[data-open],
+  .paper-motion-menu[data-state="open"],
+  .paper-motion-menu[data-state="delayed-open"] {
+    animation: paperFloatIn var(--paper-duration-base) var(--paper-ease-out) both;
+  }
+
+  .paper-motion-menu[data-closed],
+  .paper-motion-menu[data-state="closed"] {
+    animation: paperFloatOut var(--paper-duration-fast) var(--paper-ease-soft) both;
+  }
+
+  .paper-motion-progress {
+    transition-property: width, transform, opacity, background-position;
+    transition-duration: 520ms;
+    transition-timing-function: var(--paper-ease-out);
+  }
+
+  .shelf-stage {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .shelf-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 2rem;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, white 24%, transparent) 0%, transparent 14%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, white 6%) 0%, color-mix(in srgb, var(--background) 88%, var(--secondary) 12%) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent),
+      0 24px 44px -38px var(--paper-shadow-soft);
+    z-index: -2;
+  }
+
+  .shelf-stage::after {
+    content: "";
+    position: absolute;
+    inset-inline: 1.25rem;
+    bottom: 1.5rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--paper-shadow) 18%, transparent) 14%, color-mix(in srgb, var(--paper-shadow) 18%, transparent) 86%, transparent 100%);
+    filter: blur(12px);
+    z-index: -1;
+  }
+
+  .shelf-bands {
+    background:
+      linear-gradient(180deg, transparent 0%, transparent 20%, color-mix(in srgb, var(--border) 18%, transparent) 20%, color-mix(in srgb, var(--border) 18%, transparent) 20.35%, transparent 20.35%),
+      linear-gradient(180deg, transparent 0%, transparent 54%, color-mix(in srgb, var(--border) 16%, transparent) 54%, color-mix(in srgb, var(--border) 16%, transparent) 54.35%, transparent 54.35%),
+      linear-gradient(180deg, transparent 0%, transparent 88%, color-mix(in srgb, var(--border) 14%, transparent) 88%, color-mix(in srgb, var(--border) 14%, transparent) 88.35%, transparent 88.35%);
+  }
+
+  .reading-status-panel {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 72%, transparent) 0%, transparent 36%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 88%, var(--background) 12%) 100%),
+      var(--paper-texture);
+    background-size: auto, auto, 220px 220px;
+    background-blend-mode: screen, normal, multiply;
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    box-shadow:
+      0 16px 28px -24px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 78%, transparent);
+  }
+
   .book-shadow {
     box-shadow:
       0 10px 20px rgba(43, 28, 18, 0.08),
-      0 22px 42px rgba(43, 28, 18, 0.14);
+      0 24px 46px rgba(43, 28, 18, 0.14);
   }
 
   .book-shadow-hover {
     box-shadow:
       0 16px 28px rgba(43, 28, 18, 0.12),
-      0 30px 50px rgba(43, 28, 18, 0.18);
+      0 34px 56px rgba(43, 28, 18, 0.18);
     transform: translateY(-3px);
   }
 
@@ -261,6 +631,116 @@ foliate-view::part(filter) {
 
   .animate-book-appear {
     animation: fadeIn 0.4s ease-out forwards;
+  }
+
+  @keyframes paperPanelIn {
+    from {
+      opacity: 0;
+      transform: translate3d(-50%, calc(-50% + 14px), 0) scale(0.984);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(-50%, -50%, 0) scale(1);
+    }
+  }
+
+  @keyframes paperPanelOut {
+    from {
+      opacity: 1;
+      transform: translate3d(-50%, -50%, 0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate3d(-50%, calc(-50% + 10px), 0) scale(0.992);
+    }
+  }
+
+  @keyframes paperFloatIn {
+    from {
+      opacity: 0;
+      transform: translate3d(var(--paper-motion-x), var(--paper-motion-y), 0) scale(var(--paper-motion-scale));
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes paperFloatOut {
+    from {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate3d(calc(var(--paper-motion-x) * 0.6), calc(var(--paper-motion-y) * 0.6), 0) scale(0.992);
+    }
+  }
+
+  @keyframes paperShelfReveal {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 16px, 0) scale(0.985);
+      filter: saturate(0.94) blur(0.2px);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: saturate(1) blur(0);
+    }
+  }
+
+  @keyframes paperShelfRevealSoft {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .paper-reveal {
+    opacity: 0;
+    animation: paperShelfReveal 620ms var(--paper-ease-out) forwards;
+    animation-delay: var(--paper-delay, 0ms);
+    will-change: transform, opacity, filter;
+  }
+
+  .paper-reveal-soft {
+    opacity: 0;
+    animation: paperShelfRevealSoft 460ms var(--paper-ease-out) forwards;
+    animation-delay: var(--paper-delay, 0ms);
+    will-change: transform, opacity;
+  }
+
+  .paper-stage-panel {
+    position: relative;
+  }
+
+  .paper-stage-panel::before {
+    content: "";
+    position: absolute;
+    inset-inline: 1.5rem;
+    top: 0.9rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--paper-edge) 88%, transparent) 18%, color-mix(in srgb, var(--paper-edge) 88%, transparent) 82%, transparent 100%);
+    opacity: 0.75;
+    pointer-events: none;
+  }
+
+  .paper-stage-panel::after {
+    content: "";
+    position: absolute;
+    inset-inline: 1.25rem;
+    bottom: 0.85rem;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--paper-shadow) 18%, transparent) 18%, color-mix(in srgb, var(--paper-shadow) 18%, transparent) 82%, transparent 100%);
+    filter: blur(10px);
+    opacity: 0.34;
+    pointer-events: none;
   }
 
   @keyframes soundWave {
@@ -327,6 +807,15 @@ foliate-view::part(filter) {
     animation: loginDrift 7s ease-in-out infinite;
   }
 
+  @keyframes paperShimmer {
+    0% {
+      background-position: 180% 0;
+    }
+    100% {
+      background-position: -180% 0;
+    }
+  }
+
   .spinner-border {
     border-top-color: var(--foreground);
   }
@@ -368,7 +857,15 @@ foliate-view::part(filter) {
   }
 
   .animate-login-float,
-  .animate-login-drift {
+  .animate-login-drift,
+  .paper-reveal,
+  .paper-reveal-soft {
     animation: none;
+  }
+
+  .paper-reveal,
+  .paper-reveal-soft {
+    opacity: 1;
+    filter: none;
   }
 }

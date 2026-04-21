@@ -4,8 +4,8 @@
   "description": "A refined online EPUB reading experience",
   "start_url": "/shelf",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1f2937",
+  "background_color": "#f2eadc",
+  "theme_color": "#e3d2b5",
   "orientation": "portrait",
   "icons": [
     {

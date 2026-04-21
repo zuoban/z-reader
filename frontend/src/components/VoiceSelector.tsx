@@ -142,9 +142,9 @@ export function VoiceSelector({
   const styles = {
     selectTrigger: {
       borderColor: `${uiScheme.cardBorder}36`,
-      background: 'transparent',
+      background: `${uiScheme.buttonBg}8c`,
       color: uiScheme.fg,
-      boxShadow: 'none',
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28)`,
     },
     selectContent: {
       backgroundColor: `${uiScheme.cardBg}f6`,
@@ -168,11 +168,9 @@ export function VoiceSelector({
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
               title={voicesLoading ? '正在加载声音列表' : '重新加载声音列表'}
-              className="h-7.5 shrink-0 rounded-lg border px-2.5 text-xs font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+              className="paper-motion-interactive paper-control h-7.5 shrink-0 rounded-lg px-2.5 text-xs font-semibold hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
               style={{
                 color: uiScheme.mutedText,
-                background: 'transparent',
-                border: 'none',
               }}
             >
               {voicesLoading ? '加载中' : '重载'}
@@ -184,11 +182,9 @@ export function VoiceSelector({
             size="sm"
             onClick={handlePreview}
             title={isPreviewing ? '停止' : '试听'}
-            className="h-7.5 shrink-0 rounded-lg border px-2.5 text-xs font-semibold transition-all duration-200 ease-out hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
+            className="paper-motion-interactive paper-control h-7.5 shrink-0 rounded-lg px-2.5 text-xs font-semibold hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
             style={{
               color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
-              background: 'transparent',
-              border: 'none',
             }}
           >
             {isPreviewing ? (
@@ -208,10 +204,9 @@ export function VoiceSelector({
 
       {(voicesLoading || voicesError) && (
         <div
-          className="rounded-2xl border px-3 py-1.5 text-xs"
+          className="paper-motion-surface paper-field rounded-2xl border px-3 py-1.5 text-xs"
           style={{
             color: voicesError ? uiScheme.link : uiScheme.mutedText,
-            background: 'transparent',
             borderColor: `${uiScheme.cardBorder}24`,
           }}
         >
@@ -228,7 +223,7 @@ export function VoiceSelector({
           <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 min-w-0 flex-1 rounded-xl px-3 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
+              className="paper-motion-surface h-9 min-w-0 flex-1 rounded-xl px-3 text-sm hover:border-opacity-60"
               style={styles.selectTrigger}
             >
               <SelectValue placeholder="选择语音" className="truncate" />
@@ -244,7 +239,7 @@ export function VoiceSelector({
                 <SelectItem
                   key={voice.Name}
                   value={voice.Name}
-                  className="my-0.5 truncate rounded-lg px-3 py-2.5 text-sm"
+                  className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
                   style={{ color: uiScheme.fg }}
                 >
                   {voice.LocalName} ({GENDER_LABELS[voice.Gender] || ''})
@@ -267,7 +262,7 @@ export function VoiceSelector({
           >
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 min-w-0 flex-1 rounded-xl px-3 text-sm transition-all duration-200 ease-out hover:border-opacity-60"
+              className="paper-motion-surface h-9 min-w-0 flex-1 rounded-xl px-3 text-sm hover:border-opacity-60"
               style={styles.selectTrigger}
             >
               <SelectValue placeholder="选择风格" className="truncate" />
@@ -281,7 +276,7 @@ export function VoiceSelector({
             >
               <SelectItem
                 value="__clear__"
-                className="my-0.5 truncate rounded-lg px-3 py-2.5 text-sm"
+                className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
                 style={{ color: uiScheme.mutedText }}
               >
                 不指定
@@ -290,7 +285,7 @@ export function VoiceSelector({
                 <SelectItem
                   key={style}
                   value={style}
-                  className="my-0.5 truncate rounded-lg px-3 py-2.5 text-sm"
+                  className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
                   style={{ color: uiScheme.fg }}
                 >
                   {style}

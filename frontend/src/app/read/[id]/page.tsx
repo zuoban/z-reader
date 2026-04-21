@@ -647,7 +647,7 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "h-9 w-9 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:shadow-sm hover:opacity-100 active:scale-95 active:bg-white/[0.12] aria-expanded:bg-white/[0.10] sm:h-10 sm:w-10";
+    "paper-motion-interactive paper-control h-9 w-9 rounded-2xl backdrop-blur-sm hover:-translate-y-0.5 hover:opacity-100 active:scale-95 aria-expanded:bg-white/[0.10] sm:h-10 sm:w-10";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
@@ -684,7 +684,7 @@ export default function ReadPage() {
   return (
     <div
       ref={handlePageRef}
-      className="fixed inset-0 overflow-hidden overscroll-none"
+      className="paper-texture fixed inset-0 overflow-hidden overscroll-none"
       style={{ background: uiScheme.bg }}
     >
       <div
@@ -715,7 +715,7 @@ export default function ReadPage() {
         >
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 sm:gap-4">
             <div
-              className="pointer-events-auto flex items-center gap-1 rounded-[1.35rem] p-1.5"
+              className="reading-status-panel pointer-events-auto flex items-center gap-1 rounded-[1.35rem] p-1.5"
               style={toolbarClusterStyle}
             >
               <Button
@@ -775,7 +775,7 @@ export default function ReadPage() {
                   <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-126px)] sm:h-[calc(100vh-88px)]">
                     <div
                       ref={tocListRef}
-                      className="m-4 rounded-lg border p-3"
+                      className="paper-field m-4 rounded-lg border p-3"
                       style={{
                         background: withOpacity(uiScheme.buttonBg, 0.44),
                         borderColor: withOpacity(uiScheme.cardBorder, 0.42),
@@ -806,7 +806,7 @@ export default function ReadPage() {
             </div>
 
             <div
-              className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-[1.35rem] p-1.5"
+              className="reading-status-panel pointer-events-auto flex shrink-0 items-center gap-1 rounded-[1.35rem] p-1.5"
               style={toolbarClusterStyle}
             >
               {isFullscreenSupported && (
@@ -889,9 +889,9 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="flex min-w-[240px] flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8 backdrop-blur-xl"
+                  className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8 backdrop-blur-xl"
                   style={{
-                    background: withOpacity(uiScheme.cardBg, 0.88),
+                    background: withOpacity(uiScheme.cardBg, 0.9),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.78),
                     boxShadow: `0 24px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                   }}
@@ -930,15 +930,42 @@ export default function ReadPage() {
             )}
 
             <div
-              ref={containerRef}
-              className="absolute transition-[top] duration-300 ease-out"
+              className="absolute inset-x-2 transition-[top] duration-300 ease-out sm:inset-x-5 lg:inset-x-8"
               style={{
                 top: readerContentInsetTop,
-                right: 0,
                 bottom: statusBarReservedSpace,
-                left: 0,
               }}
-            />
+            >
+              <div
+                className="paper-panel paper-stack relative h-full overflow-hidden rounded-[1.5rem] border sm:rounded-[2rem]"
+                style={{
+                  borderColor: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.46 : 0.58),
+                  background: `
+                    linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.68)} 0%, transparent 10%, transparent 90%, ${withOpacity(uiScheme.cardBorder, 0.08)} 100%),
+                    linear-gradient(145deg, ${withOpacity(uiScheme.cardBg, 0.98)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
+                  `,
+                  boxShadow: `0 28px 56px -34px ${withOpacity(uiScheme.cardBorder, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.46)`,
+                }}
+              >
+                <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)]" />
+                <div
+                  className="pointer-events-none absolute inset-y-0 left-0 w-8"
+                  style={{
+                    background: `linear-gradient(90deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.14 : 0.08)} 0%, transparent 100%)`,
+                  }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-y-0 right-0 w-8"
+                  style={{
+                    background: `linear-gradient(270deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.06)} 0%, transparent 100%)`,
+                  }}
+                />
+                <div
+                  ref={containerRef}
+                  className="absolute inset-0"
+                />
+              </div>
+            </div>
 
             {isTouchReader && resumePromptVisible && (
               <div
@@ -949,7 +976,7 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-lg px-4 py-3 backdrop-blur-xl"
+                  className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.15rem] px-4 py-3 backdrop-blur-xl"
                   style={mobileResumeCardStyle}
                 >
                   <div
@@ -977,13 +1004,12 @@ export default function ReadPage() {
                   </div>
                   <Button
                     data-reader-interactive="true"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => void resumeTTS()}
-                    className="h-10 shrink-0 rounded-lg px-3.5 text-sm font-semibold"
+                    className="h-10 shrink-0 rounded-xl px-3.5 text-sm font-semibold"
                     style={{
                       color: uiScheme.link,
-                      background: withOpacity(uiScheme.buttonBg, 0.72),
                       border: `1px solid ${withOpacity(uiScheme.link, 0.18)}`,
                     }}
                   >
@@ -1001,7 +1027,7 @@ export default function ReadPage() {
             }}
           >
             <div
-              className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-full px-4 py-2 text-[10px] sm:gap-4 sm:px-5 sm:py-2.5 sm:text-[11px]"
+              className="reading-status-panel mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-[1.4rem] px-4 py-2 text-[10px] sm:gap-4 sm:px-5 sm:py-2.5 sm:text-[11px]"
               style={statusBarStyle}
             >
               <span
@@ -1067,7 +1093,7 @@ function TOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         variant="ghost"
         size="sm"
-        className="mb-1.5 h-9 w-full justify-start rounded-lg border transition-all duration-150 sm:h-10"
+        className="paper-motion-interactive paper-field mb-1.5 h-9 w-full justify-start rounded-xl border sm:h-10"
         style={{
           paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : "12px",
           paddingRight: "12px",
@@ -1077,7 +1103,7 @@ function TOCNode({
             ? withOpacity(uiScheme.link, 0.14)
             : isHovered
               ? withOpacity(uiScheme.link, 0.1)
-              : withOpacity(uiScheme.buttonBg, 0.5),
+              : withOpacity(uiScheme.buttonBg, 0.72),
           borderColor: isCurrentChapter
             ? withOpacity(uiScheme.link, 0.28)
             : isHovered

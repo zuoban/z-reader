@@ -25,7 +25,7 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-background px-3 text-sm font-medium transition-all duration-200 cursor-pointer',
+          'paper-motion-interactive paper-control group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium cursor-pointer',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2',
           open
             ? 'text-foreground'
@@ -37,12 +37,12 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
         <span className={cn(open && 'font-semibold')}>{currentOption?.label}</span>
         <ChevronDown
           className={cn(
-            'h-3.5 w-3.5 opacity-60 transition-transform duration-200',
+            'paper-motion-interactive h-3.5 w-3.5 opacity-60',
             open && 'rotate-180'
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[160px] rounded-2xl border border-border/70 bg-popover p-1.5 shadow-[0_18px_30px_-24px_rgba(43,28,18,0.2)]">
+      <DropdownMenuContent align="end" className="paper-panel min-w-[160px] rounded-2xl border border-border/70 p-1.5 shadow-[0_18px_30px_-24px_var(--paper-shadow)]">
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
             key={option.value}
@@ -51,7 +51,7 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
               setOpen(false);
             }}
             className={cn(
-              'cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors',
+              'paper-motion-interactive cursor-pointer rounded-xl px-3 py-2 text-sm',
               value === option.value
                 ? 'bg-muted/70 font-semibold text-foreground'
                 : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'

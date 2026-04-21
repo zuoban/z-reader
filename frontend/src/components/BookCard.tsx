@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
@@ -122,6 +123,7 @@ function BookCoverFace({
           className="object-cover saturate-[1.02] contrast-[1.03]"
         />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.06)_26%,rgba(23,23,23,0.22)_100%)] mix-blend-screen dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.03)_24%,rgba(0,0,0,0.38)_100%)] dark:mix-blend-normal" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),transparent_10%,transparent_90%,rgba(0,0,0,0.14))]" />
         <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),inset_0_-18px_32px_-24px_rgba(0,0,0,0.55)]" />
       </div>
     );
@@ -129,25 +131,45 @@ function BookCoverFace({
 
   // 默认封面 - 纸张质感
   return (
-    <div className="relative flex size-full flex-col bg-[linear-gradient(155deg,rgba(255,252,246,0.98)_0%,rgba(240,231,218,0.96)_100%)] p-4 text-foreground shadow-[inset_0_0_0_1px_rgba(116,79,43,0.08)] dark:bg-[linear-gradient(155deg,rgba(42,35,28,0.95)_0%,rgba(28,24,20,0.98)_100%)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]">
-      <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.5] tracking-[-0.01em] text-foreground/90">
-        {titleLabel}
-      </h3>
-      <div className="mt-auto flex items-end">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-foreground/40"
-        >
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-        </svg>
+    <div className="paper-cover-frame relative flex size-full flex-col p-4 text-foreground">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.28),transparent_18%,transparent_82%,rgba(71,46,28,0.08))]" />
+      <div className="relative flex h-full flex-col">
+        <div className="flex items-start justify-between gap-2">
+          <span className="paper-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-foreground/55">
+            BOOK
+          </span>
+          <span className="text-[10px] font-semibold tracking-[0.24em] text-foreground/32 uppercase">
+            Z
+          </span>
+        </div>
+        <div className="mt-5 space-y-3">
+          <div className="h-px w-9 bg-foreground/12" />
+          <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.5] tracking-[-0.01em] text-foreground/90">
+            {titleLabel}
+          </h3>
+        </div>
+        <div className="mt-auto flex items-end justify-between gap-3">
+          <div className="space-y-1">
+            <div className="text-[10px] font-semibold tracking-[0.18em] text-foreground/35 uppercase">
+              Z Reader
+            </div>
+            <div className="h-px w-12 bg-foreground/10" />
+          </div>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-foreground/40"
+          >
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          </svg>
+        </div>
       </div>
     </div>
   );
@@ -230,15 +252,15 @@ export function BookCard({
     };
   }, [book.id]);
 
-  const animationDelay = `${Math.min(index * 0.05, 0.2)}s`;
+  const animationStyle = {
+    '--paper-delay': `${Math.min(index * 55, 260)}ms`,
+    width: isMobile ? '100%' : cardFrameWidth,
+  } as CSSProperties;
 
   return (
     <div
-      className="flex items-center justify-start opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
-      style={{
-        animationDelay,
-        width: isMobile ? '100%' : cardFrameWidth,
-      }}
+      className="paper-reveal flex items-center justify-start"
+      style={animationStyle}
     >
       <div
         style={{
@@ -248,17 +270,19 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-border/85 hover:shadow-[0_18px_30px_-28px_rgba(64,36,20,0.26)] active:translate-y-0 active:scale-[0.995] active:shadow-[0_12px_20px_-20px_rgba(64,36,20,0.18)] motion-reduce:transition-none cursor-pointer"
+          className="group/card paper-stack relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-border/85 hover:shadow-[0_18px_30px_-28px_rgba(64,36,20,0.26)] active:translate-y-0 active:scale-[0.995] active:shadow-[0_12px_20px_-20px_rgba(64,36,20,0.18)] motion-reduce:transition-none cursor-pointer"
           style={{
             width: isMobile ? '100%' : cardWidth,
             boxShadow:
               '0 12px 24px -24px rgba(64,36,20,0.24), 0 6px 16px -18px rgba(64,36,20,0.14)',
           }}
         >
+          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
           <div
             className="relative overflow-hidden bg-muted/45 dark:bg-muted/30"
             style={{ height: coverHeight }}
           >
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),transparent_24%,transparent_72%,rgba(66,43,25,0.08))]" />
             {isMobile && (
               <>
                 <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-border/60" />
@@ -286,7 +310,7 @@ export function BookCard({
 
             {book.category_id && category && (
               <div className="absolute right-3 top-1 z-20 sm:right-4 sm:top-1">
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card/92 px-2.5 py-1 text-[11px] font-medium leading-4 tracking-[0.01em] text-foreground/82 shadow-[0_8px_18px_-18px_rgba(64,36,20,0.18)]">
+                <span className="paper-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium leading-4 tracking-[0.01em] text-foreground/82 shadow-[0_8px_18px_-18px_rgba(64,36,20,0.18)]">
                   <Tag className="h-3 w-3 shrink-0" />
                   <span className="max-w-[5rem] truncate">{categoryLabel}</span>
                 </span>
@@ -323,7 +347,7 @@ export function BookCard({
                 </h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className="absolute right-[-4px] top-[-4px] flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.95rem] border border-border/55 bg-card/92 text-foreground/46 opacity-0 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.2)] transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 group-hover/card:opacity-100 hover:border-border/75 hover:bg-card hover:text-foreground/82 hover:shadow-[0_12px_22px_-20px_rgba(64,36,20,0.24)] active:scale-95 sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] cursor-pointer"
+                    className="paper-control absolute right-[-4px] top-[-4px] flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.95rem] text-foreground/46 opacity-100 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.2)] transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:text-foreground/82 hover:shadow-[0_12px_22px_-20px_rgba(64,36,20,0.24)] active:scale-95 sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100 cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
@@ -331,9 +355,9 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={8}
-                    className="w-56 rounded-2xl border border-border/75 bg-popover p-1.5 shadow-[0_18px_30px_-24px_rgba(64,36,20,0.2)]"
+                    className="w-56 rounded-2xl p-1.5"
                   >
-                    <div className="space-y-1.5 rounded-xl bg-muted/30 px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
+                    <div className="paper-field space-y-1.5 rounded-xl px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
                       <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
                         <span className="flex items-center">
                           <FileText className="h-3.5 w-3.5 text-foreground/52" />
@@ -399,7 +423,7 @@ export function BookCard({
                 </DropdownMenu>
               </div>
               <div className="flex min-w-0 items-center justify-between gap-2.5 text-[12.5px] leading-5 text-foreground/72 sm:text-[13px]">
-                <div className="flex min-w-0 items-center gap-1.5 rounded-full bg-muted/28 px-2.5 py-1 text-foreground/72">
+                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-foreground/72">
                   <UserRound className="h-[14px] w-[14px] shrink-0 text-muted-foreground/70" />
                   <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                 </div>

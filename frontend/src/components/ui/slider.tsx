@@ -12,15 +12,15 @@ const Slider = React.forwardRef<
   <SliderPrimitive.Root
     ref={ref}
     className={cn(
-      'relative flex w-full touch-none select-none items-center',
+      'paper-motion-surface relative flex w-full touch-none select-none items-center',
       className
     )}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-primary/20">
-      <SliderPrimitive.Range className="absolute h-full rounded-full bg-primary" />
+    <SliderPrimitive.Track className="paper-field relative h-2 w-full grow overflow-hidden rounded-full border border-border/60 bg-muted/50 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)]">
+      <SliderPrimitive.Range className="paper-motion-progress absolute h-full rounded-full bg-[linear-gradient(90deg,var(--primary),color-mix(in_srgb,var(--primary)_72%,white_28%))]" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-[18px] w-[18px] rounded-full border-2 border-primary/60 bg-background shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:scale-105 disabled:pointer-events-none disabled:opacity-50 hover:scale-110 active:scale-105" />
+    <SliderPrimitive.Thumb className="paper-motion-interactive paper-control block h-[18px] w-[18px] rounded-full border border-primary/45 bg-background shadow-[0_10px_18px_-14px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_78%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:scale-105 disabled:pointer-events-none disabled:opacity-50 hover:scale-110 active:scale-105" />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;

@@ -309,31 +309,31 @@ const FloatingButton = ({
   );
 };
 
-// 提取通用样式配置 - 增强 glassmorphism 效果
+// 提取通用样式配置，保持与阅读器纸面主题一致
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
-    background: `${uiScheme.cardBg}f0`,
+    background: `${uiScheme.cardBg}f2`,
     borderColor: `${uiScheme.cardBorder}72`,
-    backdropFilter: 'blur(22px) saturate(180%)',
+    backdropFilter: 'blur(14px) saturate(118%)',
     boxShadow: isActive
-      ? `0 26px 64px ${uiScheme.link}12, 0 12px 30px ${uiScheme.cardBorder}16, inset 0 1px 0 rgba(255,255,255,0.48)`
-      : `0 22px 58px ${uiScheme.cardBorder}18, inset 0 1px 0 rgba(255,255,255,0.38)`,
+      ? `0 28px 54px -30px ${uiScheme.link}22, 0 14px 28px -24px ${uiScheme.cardBorder}20, inset 0 1px 0 rgba(255,255,255,0.4)`
+      : `0 24px 46px -30px ${uiScheme.cardBorder}26, inset 0 1px 0 rgba(255,255,255,0.34)`,
   },
   section: {
-    background: 'transparent',
+    background: 'color-mix(in srgb, var(--card) 96%, transparent)',
     borderColor: `${uiScheme.cardBorder}36`,
-    boxShadow: 'none',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26)',
   },
   selectTrigger: {
-    background: `${uiScheme.buttonBg}78`,
+    background: `${uiScheme.buttonBg}88`,
     borderColor: `${uiScheme.cardBorder}55`,
     color: uiScheme.fg,
-    transition: 'all 0.2s ease-out',
+    transition: 'border-color var(--paper-duration-fast) var(--paper-ease-soft), background-color var(--paper-duration-fast) var(--paper-ease-soft), color var(--paper-duration-fast) var(--paper-ease-soft), box-shadow var(--paper-duration-fast) var(--paper-ease-soft)',
   },
   selectContent: {
-    background: `${uiScheme.cardBg}f4`,
+    background: `${uiScheme.cardBg}f6`,
     borderColor: `${uiScheme.cardBorder}68`,
-    backdropFilter: 'blur(18px)',
+    backdropFilter: 'blur(10px)',
   },
 });
 
@@ -351,11 +351,9 @@ interface VoiceSliderProps {
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
   <div
-    className="group flex min-h-10 items-center gap-3 rounded-2xl border px-3 py-2"
+    className="paper-field group flex min-h-10 items-center gap-3 rounded-2xl border px-3 py-2"
     style={{
-      background: 'transparent',
       borderColor: `${uiScheme.cardBorder}34`,
-      boxShadow: 'none',
     }}
   >
     <label
@@ -373,11 +371,9 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       className="flex-1 [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-105 [&_[role=slider]]:active:scale-95"
     />
     <span
-      className="w-16 rounded-full px-2 py-1 text-right text-xs font-semibold tabular-nums tracking-tight transition-colors duration-200"
+      className="paper-chip w-16 rounded-full px-2 py-1 text-right text-xs font-semibold tabular-nums tracking-tight transition-colors duration-200"
       style={{
         color: uiScheme.fg,
-        background: 'transparent',
-        boxShadow: 'none',
       }}
     >
       {format(value)}
@@ -411,12 +407,10 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-10 w-10 rounded-2xl transition-all duration-200 ease-out hover:scale-[1.03] active:scale-95
+      className="paper-motion-interactive paper-control h-10 w-10 rounded-2xl hover:scale-[1.03] active:scale-95
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
-        background: 'transparent',
-        border: 'none',
         boxShadow: disabled
           ? 'none'
           : active
@@ -768,7 +762,7 @@ export function TTSControls({
 
   const statusContent = ttsStatus ? (
     <div
-      className="rounded-[16px] border px-3 py-2"
+      className="paper-panel-soft rounded-[16px] border px-3 py-2"
       style={{
         background: 'transparent',
         borderColor: `${statusColor}30`,
@@ -828,12 +822,12 @@ export function TTSControls({
             aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
             aria-expanded={expanded}
             aria-haspopup="dialog"
-            className="relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle transition-all duration-200 hover:scale-[1.04] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
+            className="paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle hover:scale-[1.04] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
             style={{
               color: isActive ? '#ffffff' : uiScheme.fg,
               background: isActive
                 ? `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.55) 0%, ${uiScheme.link} 46%, ${uiScheme.link}dd 100%)`
-                : `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.82) 0%, ${uiScheme.cardBg} 48%, ${uiScheme.cardBg}f2 100%)`,
+                : `linear-gradient(180deg, rgba(255,255,255,0.82) 0%, ${uiScheme.cardBg} 32%, ${uiScheme.cardBg}f2 100%)`,
               border: `1px solid ${isActive ? `${uiScheme.link}55` : `${uiScheme.cardBorder}58`}`,
               boxShadow: isActive
                 ? `0 12px 24px -12px ${uiScheme.link}aa, 0 0 0 1px ${uiScheme.link}1f, inset 0 1px 0 rgba(255,255,255,0.5)`
@@ -866,14 +860,14 @@ export function TTSControls({
                 onPointerDown={handleDragHandlePointerDown}
                 onPointerUp={handleDragHandlePointerUp}
                 onPointerCancel={handleDragHandlePointerCancel}
-                className="fixed z-[71] inline-flex h-8 touch-none select-none items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-transform duration-200 hover:scale-[1.03] active:scale-95"
+                className="paper-motion-interactive paper-chip fixed z-[71] inline-flex h-8 touch-none select-none items-center gap-1.5 rounded-full px-2.5 text-xs font-medium hover:scale-[1.03] active:scale-95"
                 style={{
                   right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
                   bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
                   color: isDragging ? uiScheme.link : uiScheme.mutedText,
-                  background: 'transparent',
-                  border: 'none',
-                  boxShadow: 'none',
+                  background: 'color-mix(in srgb, var(--card) 94%, transparent)',
+                  border: `1px solid ${uiScheme.cardBorder}30`,
+                  boxShadow: '0 10px 20px -18px rgba(0,0,0,0.12)',
                   cursor: isDragging ? 'grabbing' : 'grab',
                 }}
                 aria-label="拖动悬浮球位置"
@@ -903,14 +897,14 @@ export function TTSControls({
             aria-label={showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
             className={
               isToolbar
-                ? 'absolute bottom-full right-0 z-[70] mb-3 origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200'
-                : 'fixed z-[70] origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-200'
+                ? 'paper-reveal-soft absolute bottom-full right-0 z-[70] mb-3 origin-bottom-right'
+                : 'paper-reveal-soft fixed z-[70] origin-bottom-right'
             }
             style={isToolbar ? toolbarPopupStyle : floatingPopupStyle}
             onClick={stopInteractivePropagation}
           >
             <div
-              className="relative overflow-hidden rounded-[28px] border p-0 shadow-2xl backdrop-blur-xl transition-transform duration-200 ease-out motion-reduce:transition-none"
+              className="paper-motion-surface paper-panel paper-stack relative overflow-hidden rounded-[28px] border p-0 shadow-2xl backdrop-blur-xl motion-reduce:transition-none"
               style={styles.panel}
             >
               {!isToolbar && (
@@ -930,12 +924,10 @@ export function TTSControls({
 
               <div className="space-y-2 overflow-y-auto px-4 pb-14 pt-2.5" style={{ maxHeight: 'inherit' }}>
                 {resumePromptVisible && (
-                  <section
-                    className="rounded-[20px] border px-3 py-2.5"
+                <section
+                    className="paper-panel-soft rounded-[20px] border px-3 py-2.5"
                     style={{
-                      background: 'transparent',
                       borderColor: `${uiScheme.link}36`,
-                      boxShadow: 'none',
                     }}
                   >
                     <div className="flex items-start gap-3">
@@ -960,7 +952,7 @@ export function TTSControls({
                             type="button"
                             variant="ghost"
                             onClick={() => void onResume?.()}
-                            className="h-8 rounded-xl px-3 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                            className="paper-motion-interactive h-8 rounded-xl px-3 text-sm font-semibold hover:scale-[1.02] active:scale-95"
                             style={{
                               color: uiScheme.link,
                               background: 'transparent',
@@ -977,7 +969,7 @@ export function TTSControls({
 
                 {ttsStatus && !detailsExpanded && <div>{statusContent}</div>}
 
-                <section className="rounded-[22px] border p-3" style={styles.section}>
+                <section className="paper-panel-soft rounded-[22px] border p-3" style={styles.section}>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div>
                       <label className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: uiScheme.mutedText }}>
@@ -993,7 +985,7 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="h-8 rounded-full px-2.5 text-[11px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                        className="paper-motion-interactive h-8 rounded-full px-2.5 text-[11px] font-semibold hover:scale-[1.02] active:scale-95"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
                           background: 'transparent',
@@ -1013,7 +1005,7 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="mb-2 rounded-[16px] border px-3 py-2"
+                    className="paper-field mb-2 rounded-[16px] border px-3 py-2"
                     style={{
                       background: 'transparent',
                       borderColor: sleepTimerActive ? `${uiScheme.link}32` : `${uiScheme.cardBorder}24`,
@@ -1110,7 +1102,7 @@ export function TTSControls({
                       disabled={isPending}
                       title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                       aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                      className="h-12 w-12 rounded-[1rem] bg-transparent! transition-all duration-200 ease-out hover:scale-[1.03] hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                      className="paper-motion-interactive h-12 w-12 rounded-[1rem] bg-transparent! hover:scale-[1.03] hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                       style={{
                         color: isPending ? uiScheme.mutedText : uiScheme.link,
                         background: 'transparent',
@@ -1163,7 +1155,7 @@ export function TTSControls({
 
                 {showSettingsPanel && detailsExpanded && (
                   <section
-                    className="flex flex-col gap-2 rounded-[22px] border p-3 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 duration-200"
+                    className="paper-reveal-soft flex flex-col gap-2 rounded-[22px] border p-3"
                     style={styles.section}
                   >
                     <VoiceSelector

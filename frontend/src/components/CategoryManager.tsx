@@ -259,10 +259,10 @@ export function CategoryManager({
         side="right"
         showCloseButton
         finalFocus={false}
-        className="bg-background p-0 sm:w-[400px] sm:max-w-[400px]"
+        className="p-0 sm:w-[400px] sm:max-w-[400px]"
       >
         <SheetHeader className="border-0 bg-transparent px-4 pb-3 pt-4 sm:px-5">
-          <div className="rounded-[1.25rem] border border-border/60 bg-gradient-to-b from-background to-muted/35 px-4 py-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)]">
+          <div className="paper-panel paper-stack rounded-[1.25rem] border border-border/60 px-4 py-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)]">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/8 text-primary">
                 <Layers3 className="h-5 w-5" />
@@ -277,15 +277,15 @@ export function CategoryManager({
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              <span className="paper-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 <Layers3 className="h-3.5 w-3.5" />
                 {categories.length} 个分类
               </span>
-              <span className="inline-flex items-center rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              <span className="paper-chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 支持拖拽排序
               </span>
               {editingCategory && (
-                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[11px] font-medium text-primary">
+                <span className="paper-chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium text-primary">
                   正在编辑：{editingCategory.name}
                 </span>
               )}
@@ -295,7 +295,7 @@ export function CategoryManager({
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="space-y-5 px-4 pb-5 sm:px-5">
-            <section className="rounded-[1.25rem] border border-border/60 bg-gradient-to-b from-background to-muted/25 shadow-[0_16px_36px_rgba(15,23,42,0.05)]">
+            <section className="paper-panel rounded-[1.25rem] border border-border/60 shadow-[0_16px_36px_rgba(15,23,42,0.05)]">
               <div className="border-b border-border/50 px-4 py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">{formTitle}</h3>
@@ -316,7 +316,7 @@ export function CategoryManager({
               <div className="space-y-3.5 px-4 py-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/30 text-sm font-semibold shadow-sm"
+                    className="paper-icon-well flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold shadow-sm"
                     style={{
                       backgroundColor: previewColor,
                       color: getContrastColor(previewColor),
@@ -339,7 +339,7 @@ export function CategoryManager({
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                     maxLength={50}
-                    className="h-11 rounded-xl border-border/70 bg-background px-3 text-sm transition-all focus:ring-2 focus:ring-primary/20"
+                    className="h-11 rounded-xl px-3 text-sm transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <p className="text-right text-xs text-muted-foreground">{name.length}/50</p>
                 </div>
@@ -372,7 +372,7 @@ export function CategoryManager({
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold">已有分类</h3>
-                <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                <div className="paper-chip flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm">
                   <Layers3 className="h-3.5 w-3.5" />
                   {categories.length}
                 </div>
@@ -381,8 +381,8 @@ export function CategoryManager({
               <ScrollArea className="max-h-[min(45vh,24rem)] pr-1">
                 <div className="space-y-2">
                   {categories.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 bg-muted/20 py-9 text-center">
-                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                    <div className="paper-panel flex flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 py-9 text-center">
+                      <div className="paper-panel-soft mb-3 flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground">
                         <Layers3 className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <p className="text-sm font-medium">暂无分类</p>
@@ -402,21 +402,22 @@ export function CategoryManager({
                           onDragOver={(event) => handleDragOver(event, cat.id)}
                           onDrop={(event) => void handleDrop(event, cat.id)}
                           onDragEnd={handleDragEnd}
-                          className={`group relative flex items-center gap-3 rounded-xl border p-3 pr-2.5 shadow-sm transition-all duration-200 ${
+                          className={`paper-field group relative flex items-center gap-3 rounded-xl border p-3 pr-2.5 shadow-sm transition-all duration-200 ${
                             isEditing
-                              ? 'border-primary/40 bg-primary/5'
-                              : 'border-border/60 bg-background/90 hover:border-border hover:bg-muted/35'
+                              ? 'border-primary/40'
+                              : 'border-border/60 hover:border-border hover:bg-muted/35'
                           }`}
                           style={{
                             opacity: isDragging ? 0.5 : 1,
                             transform: isDragging ? 'scale(0.98)' : undefined,
+                            background: isEditing ? 'color-mix(in srgb, var(--primary) 7%, var(--card) 93%)' : undefined,
                           }}
                         >
                           {isDropTarget && (
                             <div className="pointer-events-none absolute inset-x-2 -top-0.5 h-0.5 rounded-full bg-primary/70" />
                           )}
                           <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold shadow-sm"
+                            className="paper-icon-well flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold shadow-sm"
                             style={{ backgroundColor: catColor, color: getContrastColor(catColor) }}
                           >
                             {cat.name.slice(0, 2)}
@@ -425,7 +426,7 @@ export function CategoryManager({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
                               <div className="truncate text-sm font-medium">{cat.name}</div>
-                              <span className="rounded border border-border/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              <span className="paper-chip rounded-full px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                                 #{index + 1}
                               </span>
                             </div>
@@ -468,16 +469,16 @@ export function CategoryManager({
 
                           <DropdownMenu>
                             <DropdownMenuTrigger
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background/70 opacity-100 transition hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
+                              className="paper-control flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreHorizontal className="h-3.5 w-3.5" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-36 rounded-lg p-1">
+                            <DropdownMenuContent align="end" className="w-36 rounded-xl p-1.5">
                               <DropdownMenuItem
                                 onClick={() => startEdit(cat)}
                                 disabled={loading}
-                                className="flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer"
+                                className="flex items-center gap-2 px-2.5 py-2 cursor-pointer"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span>编辑</span>
@@ -489,7 +490,7 @@ export function CategoryManager({
                                   setDeleteConfirmOpen(true);
                                 }}
                                 disabled={loading}
-                                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-destructive focus:bg-destructive/10 cursor-pointer"
+                                className="flex items-center gap-2 px-2.5 py-2 text-destructive focus:bg-destructive/10 cursor-pointer"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 <span>删除</span>

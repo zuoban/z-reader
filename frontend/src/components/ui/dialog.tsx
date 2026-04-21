@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/20 duration-200 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:duration-0",
+        "paper-motion-veil fixed inset-0 isolate z-50 bg-black/20 supports-backdrop-filter:backdrop-blur-sm motion-reduce:duration-0",
         className
       )}
       {...props}
@@ -60,7 +60,7 @@ function DialogContent({
         data-slot="dialog-content"
         finalFocus={finalFocus}
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-border/70 bg-popover p-5 text-sm text-popover-foreground shadow-2xl outline-none ring-1 ring-foreground/5 duration-200 sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 motion-reduce:duration-0",
+          "paper-motion-panel paper-panel paper-stack fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5 sm:max-w-sm motion-reduce:duration-0",
           className
         )}
         {...props}
@@ -73,7 +73,7 @@ function DialogContent({
               <Button
                 variant="ghost"
                 className={cn(
-                  "absolute right-3 top-3 h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground",
+                  "paper-motion-interactive absolute right-3 top-3 h-9 w-9 rounded-lg paper-control text-muted-foreground hover:text-foreground",
                   closeButtonClassName
                 )}
                 size="icon-sm"
@@ -113,7 +113,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-muted/40 p-4 sm:flex-row sm:justify-end",
+        "-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_90%,transparent),color-mix(in_srgb,var(--muted)_42%,transparent))] p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

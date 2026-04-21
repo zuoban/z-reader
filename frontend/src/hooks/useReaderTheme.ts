@@ -60,60 +60,60 @@ export interface ThemeColors {
 
 export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
   light: {
-    bg: "#FEFDF8",
-    fg: "#1C1917",
-    link: "#C5A028",
-    headerBg: "#FFFFFF",
-    headerBorder: "#E7E2D5",
-    cardBg: "#FFFFFF",
-    cardBorder: "#E7E2D5",
-    buttonBg: "#F8F5EB",
-    buttonHoverBg: "#F3F0E5",
-    buttonText: "#44403C",
-    mutedText: "#78716C",
-    accentText: "#A8A29E",
+    bg: "#F6EFE3",
+    fg: "#2D241D",
+    link: "#9C6B3E",
+    headerBg: "#FBF5EA",
+    headerBorder: "#E3D5BF",
+    cardBg: "#FFF8EE",
+    cardBorder: "#E3D5BF",
+    buttonBg: "#F2E6D6",
+    buttonHoverBg: "#EBDECC",
+    buttonText: "#4C3D32",
+    mutedText: "#78695D",
+    accentText: "#9E8A78",
   },
   sepia: {
-    bg: "#F5F0E1",
-    fg: "#3D3225",
-    link: "#B89A2E",
-    headerBg: "#FAF5E8",
-    headerBorder: "#E5D9BE",
-    cardBg: "#FAF5E8",
-    cardBorder: "#E5D9BE",
-    buttonBg: "#F0E9D5",
-    buttonHoverBg: "#E8DFC5",
-    buttonText: "#5C4D3C",
-    mutedText: "#7D6E5A",
-    accentText: "#9E8E78",
+    bg: "#F1E2C8",
+    fg: "#433427",
+    link: "#A47C39",
+    headerBg: "#F7E9D3",
+    headerBorder: "#D9C39B",
+    cardBg: "#F8ECDA",
+    cardBorder: "#D9C39B",
+    buttonBg: "#ECDDBD",
+    buttonHoverBg: "#E3D2AF",
+    buttonText: "#644F3B",
+    mutedText: "#7C6751",
+    accentText: "#9A846C",
   },
   green: {
-    bg: "#E4F0E6",
-    fg: "#1E3A2A",
-    link: "#2E7D4F",
-    headerBg: "#EDF5EF",
-    headerBorder: "#C8DEC9",
-    cardBg: "#EDF5EF",
-    cardBorder: "#C8DEC9",
-    buttonBg: "#E4F0E6",
-    buttonHoverBg: "#D5E8D8",
-    buttonText: "#2D4A3A",
-    mutedText: "#4A6A5A",
-    accentText: "#6A8A7A",
+    bg: "#E5EDE0",
+    fg: "#24352B",
+    link: "#4A7557",
+    headerBg: "#EEF3E9",
+    headerBorder: "#CBD8C7",
+    cardBg: "#F2F6EE",
+    cardBorder: "#CBD8C7",
+    buttonBg: "#E5EDE0",
+    buttonHoverBg: "#D9E4D4",
+    buttonText: "#344B3B",
+    mutedText: "#5B6E5F",
+    accentText: "#7D8F7F",
   },
   dark: {
-    bg: "#0C0B09",
-    fg: "#D6D3CD",
-    link: "#D4B43C",
-    headerBg: "#181714",
-    headerBorder: "#292722",
-    cardBg: "#181714",
-    cardBorder: "#292722",
-    buttonBg: "#232119",
-    buttonHoverBg: "#2E2B22",
-    buttonText: "#A8A29E",
-    mutedText: "#6B665E",
-    accentText: "#555048",
+    bg: "#14100D",
+    fg: "#E3D8CA",
+    link: "#D3AF6B",
+    headerBg: "#1D1814",
+    headerBorder: "#312A23",
+    cardBg: "#1A1511",
+    cardBorder: "#312A23",
+    buttonBg: "#241E19",
+    buttonHoverBg: "#2E2721",
+    buttonText: "#B4AAA0",
+    mutedText: "#7B7268",
+    accentText: "#5E554B",
   },
 };
 
@@ -194,6 +194,8 @@ export function useReaderTheme() {
     const selectionColor = isDark ? "#f7f1df" : preset.fg;
     // 夜间模式 code 背景使用浅色透明层
     const codeBg = isDark ? "#ffffff10" : "#00000008";
+    const bodyGlow = isDark ? "#ffffff08" : "#fffef8";
+    const bodyWarmth = withOpacity(preset.link, isDark ? 0.06 : 0.08);
 
     return `
       html {
@@ -202,6 +204,10 @@ export function useReaderTheme() {
       }
       body {
         background: ${preset.bg} !important;
+        background-image:
+          linear-gradient(180deg, ${bodyGlow} 0%, transparent 15%, transparent 84%, rgba(0, 0, 0, ${isDark ? "0.08" : "0.03"}) 100%),
+          radial-gradient(circle at 50% 0%, ${bodyWarmth} 0%, transparent 30%),
+          repeating-linear-gradient(180deg, ${withOpacity(preset.fg, isDark ? 0.018 : 0.03)} 0px, ${withOpacity(preset.fg, isDark ? 0.018 : 0.03)} 1px, transparent 1px, transparent 8px);
         color: ${preset.fg} !important;
         font-size: ${theme.fontSize}px !important;
         line-height: ${theme.lineHeight} !important;
@@ -209,6 +215,7 @@ export function useReaderTheme() {
         padding-inline: ${theme.pagePaddingX}px !important;
         font-family: ${fontStack} !important;
         box-sizing: border-box;
+        text-rendering: optimizeLegibility;
       }
       body, body * {
         font-family: ${fontStack} !important;
@@ -224,7 +231,9 @@ export function useReaderTheme() {
         text-align: justify;
         margin: ${theme.paragraphSpacing}em 0 !important;
         hyphens: auto;
-        word-spacing: 0.05em;
+        word-spacing: 0.04em;
+        letter-spacing: 0.01em;
+        text-wrap: pretty;
         color: ${preset.fg} !important;
       }
       li {
@@ -236,7 +245,8 @@ export function useReaderTheme() {
         line-height: ${theme.lineHeight} !important;
         margin: ${Math.max(theme.paragraphSpacing * 1.4, 1.2)}em 0 !important;
         padding-left: 1.5em;
-        border-left: 3px solid ${preset.link};
+        border-left: 3px solid ${withOpacity(preset.link, 0.8)};
+        background: linear-gradient(90deg, ${withOpacity(preset.link, isDark ? 0.12 : 0.08)} 0%, transparent 56%);
         opacity: 0.9;
         color: ${preset.fg} !important;
       }
@@ -246,6 +256,7 @@ export function useReaderTheme() {
         margin-top: 1.5em !important;
         margin-bottom: 0.5em !important;
         line-height: 1.3 !important;
+        letter-spacing: 0.01em !important;
         background: transparent !important;
       }
       h1 *, h2 *, h3 *, h4 *, h5 *, h6 * {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { api, Category } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface CategorySelectorProps {
@@ -54,10 +55,10 @@ export function CategorySelector({
             onClick={() => handleSelect(null)}
             disabled={loading}
             className={cn(
-              'w-full cursor-pointer rounded-lg border p-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
+              'paper-field w-full cursor-pointer rounded-xl p-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
               !currentCategoryId
-                ? 'border-foreground/20 bg-muted text-foreground'
-                : 'border-border/70 bg-background hover:bg-muted/70'
+                ? 'border-foreground/20 text-foreground'
+                : 'border-border/70 hover:bg-muted/70'
             )}
           >
             无分类
@@ -68,21 +69,26 @@ export function CategorySelector({
               onClick={() => handleSelect(cat.id)}
               disabled={loading}
               className={cn(
-                'flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
+                'paper-field flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
                 currentCategoryId === cat.id
-                  ? 'border-foreground/20 bg-muted text-foreground'
-                  : 'border-border/70 bg-background hover:bg-muted/70'
+                  ? 'border-foreground/20 text-foreground'
+                  : 'border-border/70 hover:bg-muted/70'
               )}
             >
               <div className="flex min-w-0 items-center gap-2">
                 <div className="h-3 w-3 rounded-full" style={{ backgroundColor: cat.color }} />
                 <span className="truncate font-medium">{cat.name}</span>
               </div>
-              <span className="rounded-full bg-muted-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="paper-chip rounded-full px-2 py-0.5 text-xs font-medium text-muted-foreground">
                 {bookCounts[cat.id] || 0}
               </span>
             </button>
           ))}
+          {loading && (
+            <Button variant="ghost" className="w-full justify-center rounded-xl" disabled>
+              处理中...
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

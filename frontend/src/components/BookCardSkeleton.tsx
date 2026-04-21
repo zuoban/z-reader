@@ -41,18 +41,20 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
     >
       <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
         <div
-          className="relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card"
+          className="paper-panel paper-stack relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card"
           style={{
             width: isMobile ? '100%' : cardWidth,
             boxShadow:
               '0 12px 24px -24px rgba(64,36,20,0.24), 0 6px 16px -18px rgba(64,36,20,0.14)',
           }}
         >
+          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
           {/* Cover skeleton */}
           <div
             className="relative overflow-hidden bg-muted/45 dark:bg-muted/30"
             style={{ height: coverHeight }}
           >
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent_24%,transparent_74%,rgba(66,43,25,0.08))]" />
             {isMobile && (
               <>
                 <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-border/60" />
@@ -67,8 +69,25 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                   <div
                     style={{ transform: `scale(${bookScale})`, transformOrigin: 'center center' }}
                   >
-                    <div className="relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] border border-border/50 bg-muted/80 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.18)]">
-                      <Skeleton className="absolute inset-0 rounded-[4px]" />
+                    <div className="paper-cover-frame relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] border border-border/50 bg-muted/80 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.18)]">
+                      <div className="absolute inset-x-3 top-3 flex items-center justify-between">
+                        <Skeleton className="h-4 w-11 rounded-full" />
+                        <Skeleton className="h-3 w-4 rounded-sm" />
+                      </div>
+                      <div className="absolute inset-x-3 top-12 space-y-2">
+                        <Skeleton className="h-1 w-10 rounded-full" />
+                        <Skeleton className="h-4 w-[78%] rounded-md" />
+                        <Skeleton className="h-4 w-[64%] rounded-md" />
+                        <Skeleton className="h-4 w-[58%] rounded-md" />
+                      </div>
+                      <div className="absolute inset-x-3 bottom-3 flex items-end justify-between">
+                        <div className="space-y-1">
+                          <Skeleton className="h-3 w-12 rounded-sm" />
+                          <Skeleton className="h-1 w-10 rounded-full" />
+                        </div>
+                        <Skeleton className="h-5 w-5 rounded-sm" />
+                      </div>
+                      <div className="absolute inset-0 rounded-[4px] bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent_20%,transparent_84%,rgba(71,46,28,0.07))]" />
                     </div>
                   </div>
                 </div>
@@ -90,7 +109,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
               {/* Author skeleton */}
               <div className="flex min-w-0 items-center justify-between gap-2.5">
-                <div className="flex min-w-0 items-center gap-1.5 rounded-full bg-muted/20 px-2.5 py-1">
+                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1">
                   <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
                   <Skeleton className="h-[15px] w-24 rounded-md" />
                 </div>

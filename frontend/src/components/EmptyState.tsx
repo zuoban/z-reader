@@ -25,17 +25,24 @@ export function EmptyState({
     <div className="flex min-h-[58vh] items-center justify-center">
       <section
         className={cn(
-          'relative w-full max-w-2xl rounded-[2rem] border border-border/60 bg-card/92 px-6 py-12 text-center shadow-[0_18px_30px_-28px_rgba(43,28,18,0.24)] sm:px-14 sm:py-16',
+          'paper-panel paper-stack relative w-full max-w-2xl rounded-[2rem] px-6 py-12 text-center sm:px-14 sm:py-16',
           className
         )}
       >
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)]"
+        />
         <div className="relative mx-auto mb-8 inline-flex">
-          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[1.75rem] border border-primary/18 bg-primary/8 shadow-[0_12px_24px_-24px_rgba(64,36,20,0.2)]">
+          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[1.75rem] border border-primary/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.1)),linear-gradient(145deg,color-mix(in_srgb,var(--primary)_12%,white_88%),color-mix(in_srgb,var(--primary)_8%,transparent))] shadow-[0_16px_30px_-26px_var(--paper-shadow)]">
             <Icon className="h-10 w-10 text-primary" />
           </div>
         </div>
 
         <div className="space-y-3.5">
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-muted-foreground uppercase">
+            Personal Library
+          </p>
           <h2 className="font-heading text-[2rem] font-semibold leading-tight tracking-[-0.04em] text-foreground sm:text-[2.6rem]">
             {title}
           </h2>
@@ -49,7 +56,7 @@ export function EmptyState({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-border/65 bg-card px-3.5 py-1.5 text-xs font-semibold tracking-[0.08em] leading-5 text-muted-foreground"
+                className="paper-chip rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-[0.08em] leading-5 text-muted-foreground"
               >
                 {tag}
               </span>

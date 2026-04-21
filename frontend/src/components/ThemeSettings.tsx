@@ -47,27 +47,27 @@ const FONT_ORDER: ReaderTheme["fontFamily"][] = [
 const PRESETS = [
   {
     key: "light",
-    label: "明亮",
-    bg: "#FEFDF8",
-    fg: "#1C1917",
+    label: "棉纸",
+    bg: "#F6EFE3",
+    fg: "#2D241D",
   },
   {
     key: "sepia",
-    label: "纸张",
-    bg: "#F5F0E1",
-    fg: "#3D3225",
+    label: "旧书",
+    bg: "#F1E2C8",
+    fg: "#433427",
   },
   {
     key: "green",
-    label: "森林",
-    bg: "#E4F0E6",
-    fg: "#1E3A2A",
+    label: "苔纸",
+    bg: "#E5EDE0",
+    fg: "#24352B",
   },
   {
     key: "dark",
-    label: "夜间",
-    bg: "#0C0B09",
-    fg: "#D6D3CD",
+    label: "夜读",
+    bg: "#14100D",
+    fg: "#E3D8CA",
   },
 ] as const satisfies ReadonlyArray<{
   key: ReaderTheme["preset"];
@@ -146,9 +146,8 @@ function SectionCard({
 }: SectionCardProps) {
   return (
     <section
-      className="overflow-hidden rounded-lg border transition-colors duration-200"
+      className="paper-panel overflow-hidden rounded-[1.15rem] border transition-colors duration-200"
       style={{
-        background: uiScheme.cardBg,
         borderColor: isOpen ? `${uiScheme.link}30` : `${uiScheme.cardBorder}30`,
       }}
     >
@@ -157,7 +156,7 @@ function SectionCard({
         onClick={() => onToggle(id)}
         className="flex w-full items-center justify-between gap-3 p-3.5 text-left transition-colors duration-200 cursor-pointer"
         style={{
-          background: isOpen ? `${uiScheme.buttonBg}18` : "transparent",
+          background: isOpen ? `${uiScheme.buttonBg}22` : "transparent",
         }}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -216,10 +215,9 @@ function SectionCard({
 function ValuePill({ uiScheme, children, muted = false }: ValuePillProps) {
   return (
     <span
-      className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
+      className="paper-chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap"
       style={{
         color: muted ? uiScheme.mutedText : uiScheme.link,
-        background: muted ? `${uiScheme.cardBorder}10` : `${uiScheme.link}10`,
       }}
     >
       {children}
@@ -241,9 +239,8 @@ function SliderField({
 }: SliderFieldProps) {
   return (
     <div
-      className="rounded-lg border p-3"
+      className="paper-field rounded-[1rem] p-3"
       style={{
-        background: `${uiScheme.buttonBg}70`,
         borderColor: `${uiScheme.cardBorder}28`,
       }}
     >
@@ -297,7 +294,7 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "h-8 w-8 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:shadow-sm hover:opacity-100 active:scale-95 active:bg-white/[0.12] cursor-pointer";
+    "paper-control h-8 w-8 rounded-full backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:opacity-100 active:scale-95 cursor-pointer";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
     background: open ? withOpacity(uiScheme.link, 0.08) : "transparent",
@@ -370,7 +367,7 @@ export function ThemeSettings({
           style={{ borderColor: `${uiScheme.cardBorder}30` }}
         >
           <div
-            className="overflow-hidden rounded-[1.25rem] border px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+            className="paper-panel paper-stack overflow-hidden rounded-[1.25rem] border px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
             style={{
               background: `linear-gradient(145deg, ${withOpacity(currentPreset.bg, 0.98)} 0%, ${withOpacity(uiScheme.cardBg, 0.96)} 100%)`,
               borderColor: `${uiScheme.cardBorder}36`,
@@ -379,11 +376,9 @@ export function ThemeSettings({
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
+                  className="paper-icon-well flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
                   style={{
                     color: uiScheme.link,
-                    background: withOpacity(uiScheme.link, 0.1),
-                    borderColor: withOpacity(uiScheme.link, 0.18),
                   }}
                 >
                   <Settings className="h-5 w-5" />
@@ -406,15 +401,14 @@ export function ThemeSettings({
               <div className="flex shrink-0 items-center gap-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={handleResetTheme}
                   disabled={isDefaultTheme}
                   title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
-                  className="h-8 gap-1.5 rounded-full border bg-transparent! px-2.5 text-xs font-medium shadow-none transition-colors hover:bg-transparent! active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! disabled:cursor-default disabled:opacity-45"
+                  className="h-8 gap-1.5 rounded-full px-2.5 text-xs font-medium shadow-none disabled:cursor-default disabled:opacity-45"
                   style={{
                     color: uiScheme.buttonText,
-                    background: withOpacity(uiScheme.buttonBg, 0.72),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.45),
                   }}
                 >
@@ -441,9 +435,8 @@ export function ThemeSettings({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-5 pt-1 sm:px-5">
           <section
-            className="overflow-hidden rounded-[1.25rem] border"
+            className="paper-panel overflow-hidden rounded-[1.25rem] border"
             style={{
-              background: uiScheme.cardBg,
               borderColor: `${uiScheme.cardBorder}30`,
               boxShadow: `0 16px 36px ${withOpacity(uiScheme.cardBorder, 0.12)}`,
             }}
@@ -511,10 +504,12 @@ export function ThemeSettings({
                     key={preset.key}
                     type="button"
                     onClick={() => setTheme({ preset: preset.key })}
-                    className="group text-left transition-colors duration-200 cursor-pointer rounded-lg border p-2.5"
+                    className="paper-field group text-left transition-colors duration-200 cursor-pointer rounded-[1rem] p-2.5"
                     style={{
-                      background: isActive ? `${uiScheme.link}0c` : uiScheme.buttonBg,
                       borderColor: isActive ? `${uiScheme.link}40` : `${uiScheme.cardBorder}25`,
+                      boxShadow: isActive
+                        ? `0 16px 28px -22px ${withOpacity(uiScheme.link, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.28)`
+                        : undefined,
                     }}
                   >
                     <div

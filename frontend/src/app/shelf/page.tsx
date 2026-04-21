@@ -35,12 +35,12 @@ import {
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 const HEADER_ICON_BUTTON_CLASS =
-  'h-9 w-9 shrink-0 rounded-lg border border-transparent bg-transparent p-0 text-foreground ' +
-  'shadow-none hover:border-border/70 hover:bg-muted/60 hover:opacity-100 sm:h-10 sm:w-10';
+  'h-10 w-10 shrink-0 rounded-2xl border border-border/55 bg-background/55 p-0 text-foreground ' +
+  'shadow-[0_10px_24px_-20px_rgba(43,28,18,0.48)] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-border/80 hover:bg-background/86 hover:opacity-100 sm:h-11 sm:w-11';
 const HEADER_FILTER_TRIGGER_CLASS =
-  'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-background/70 px-3 ' +
+  'group relative flex h-10 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-border/60 bg-background/72 px-3.5 ' +
   'text-sm font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none ' +
-  'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2';
+  'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 shadow-[0_10px_24px_-20px_rgba(43,28,18,0.42)] backdrop-blur-md';
 
 function CategoryDropdown({
   categories,
@@ -90,17 +90,17 @@ function CategoryDropdown({
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[180px] p-1">
+      <DropdownMenuContent align="end" className="min-w-[196px] rounded-2xl border border-border/70 bg-popover/95 p-1.5 shadow-[0_24px_48px_-26px_rgba(43,28,18,0.28)] backdrop-blur-xl">
         <DropdownMenuItem
           onClick={() => {
             onSelectCategory(null);
             setOpen(false);
           }}
           className={cn(
-            'cursor-pointer rounded-md px-3 py-1.5 text-sm transition-colors',
+            'cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors',
             selectedCategoryId === null
-              ? 'bg-muted/80 font-semibold text-foreground'
-              : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              ? 'bg-muted/70 font-semibold text-foreground'
+              : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
           )}
         >
           <span className="flex-1">全部</span>
@@ -118,10 +118,10 @@ function CategoryDropdown({
                 setOpen(false);
               }}
               className={cn(
-                'cursor-pointer rounded-md px-3 py-1.5 text-sm transition-colors',
+                'cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors',
                 selectedCategoryId === category.id
-                  ? 'bg-muted/80 font-semibold text-foreground'
-                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                  ? 'bg-muted/70 font-semibold text-foreground'
+                  : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
               )}
             >
               <span
@@ -184,20 +184,20 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col px-3 py-3 sm:px-7 sm:py-6 lg:px-10 lg:py-8"
+      contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-4 py-4 sm:px-7 sm:py-7 lg:px-10 lg:py-10"
     >
-      <header className="rounded-lg border border-border/70 bg-card/88 px-4 py-4 shadow-[0_18px_48px_-42px_rgba(15,23,42,0.34)] backdrop-blur-lg sm:px-5 sm:py-5">
-        <div className="flex items-start justify-between gap-4">
+      <header className="editorial-panel rounded-[2rem] px-4 py-4 sm:px-6 sm:py-6">
+        <div className="editorial-divider flex items-start justify-between gap-4 pb-5 sm:gap-6 sm:pb-6">
           <div className="min-w-0 flex-1">
             <BrandMark size="md" className="hidden sm:block" priority />
             <BrandMark size="sm" className="sm:hidden" priority />
-            <p className="mt-3 hidden max-w-xl text-sm leading-6 text-muted-foreground sm:block">
-              管理你的电子书，按分类筛选，并从上次停下的位置继续。
-            </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <CategoryManager onCategoryChange={loadCategories} />
+          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <CategoryManager
+              onCategoryChange={loadCategories}
+              buttonClassName={HEADER_ICON_BUTTON_CLASS}
+            />
             {user?.role === 'admin' && (
               <UserManager currentUser={user} buttonClassName={HEADER_ICON_BUTTON_CLASS} />
             )}
@@ -242,18 +242,18 @@ export default function ShelfPage() {
             </Button>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12px] leading-5 text-muted-foreground sm:mt-5 sm:text-[13px]">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/65 bg-background/70 px-3 text-[12px] font-semibold leading-5 text-foreground sm:text-[13px]">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12px] leading-5 text-muted-foreground sm:text-[13px]">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-border/65 bg-background/72 px-4 text-[12px] font-semibold leading-5 text-foreground shadow-[0_10px_24px_-20px_rgba(43,28,18,0.42)] sm:text-[13px]">
               <Library className="h-3.5 w-3.5" />
               我的书架
             </span>
-            <span className="inline-flex h-9 items-center rounded-lg border border-border/45 bg-muted/55 px-3 font-medium tabular-nums text-muted-foreground">
+            <span className="inline-flex h-10 items-center rounded-2xl border border-border/45 bg-muted/45 px-4 font-medium tabular-nums text-muted-foreground">
               共 {books.length} 本书
             </span>
           </div>
           {categories.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <SortSelector value={sortBy} onChange={setSortBy} />
               <CategoryDropdown
                 categories={categories}
@@ -266,7 +266,7 @@ export default function ShelfPage() {
         </div>
       </header>
 
-      <main className="flex-1 py-5 sm:py-8">
+      <main className="flex-1 py-6 sm:py-9">
         {!isLoadingBooks && books.length === 0 ? (
           <EmptyState
             icon={BookOpen}
@@ -280,7 +280,7 @@ export default function ShelfPage() {
                 disabled={isUploading}
                 title="上传书籍"
                 wrapperClassName="w-full sm:w-auto"
-                buttonClassName="h-12 w-full rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-[0_12px_32px_-16px_rgba(15,23,42,0.45)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-primary/92 hover:shadow-[0_16px_40px_-20px_rgba(15,23,42,0.5)] active:scale-[0.98] sm:w-auto sm:px-10"
+                buttonClassName="h-12 w-full rounded-2xl bg-primary px-8 text-sm font-semibold tracking-[0.04em] text-primary-foreground shadow-[0_20px_36px_-20px_rgba(64,36,20,0.55)] transition-[background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-primary/92 hover:shadow-[0_24px_42px_-20px_rgba(64,36,20,0.6)] active:scale-[0.98] sm:w-auto sm:px-10"
               >
                 {isUploading ? (
                   <>
@@ -301,7 +301,7 @@ export default function ShelfPage() {
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (
-              <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,1fr))] sm:gap-x-5 sm:gap-y-7 lg:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] lg:gap-x-6 lg:gap-y-8">
+              <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-6 sm:gap-y-8 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-7 lg:gap-y-10">
                 {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

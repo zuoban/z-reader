@@ -25,8 +25,8 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-8 items-center gap-1.5 whitespace-nowrap rounded-none px-1 text-sm font-medium transition-all duration-200 cursor-pointer',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'group relative flex h-10 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-border/60 bg-background/72 px-3.5 text-sm font-medium transition-all duration-200 cursor-pointer shadow-[0_10px_24px_-20px_rgba(43,28,18,0.42)] backdrop-blur-md',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2',
           open
             ? 'text-foreground'
             : 'text-muted-foreground hover:text-foreground'
@@ -42,7 +42,7 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[130px] p-1">
+      <DropdownMenuContent align="end" className="min-w-[160px] rounded-2xl border border-border/70 bg-popover/95 p-1.5 shadow-[0_24px_48px_-26px_rgba(43,28,18,0.28)] backdrop-blur-xl">
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
             key={option.value}
@@ -51,10 +51,10 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
               setOpen(false);
             }}
             className={cn(
-              'cursor-pointer rounded-md px-3 py-1.5 text-sm transition-colors',
+              'cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors',
               value === option.value
-                ? 'bg-muted/80 font-semibold text-foreground'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                ? 'bg-muted/70 font-semibold text-foreground'
+                : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
             )}
           >
             {option.label}

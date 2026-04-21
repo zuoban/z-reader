@@ -25,8 +25,8 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'login') {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-36 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_12%,transparent),transparent)]" />
-        <div className="absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(270deg,color-mix(in_srgb,var(--accent)_8%,transparent),transparent)]" />
+        <div className="absolute inset-0 login-ambient-bg" />
+        <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_16%,transparent),transparent)]" />
       </div>
     );
   }
@@ -41,7 +41,7 @@ export function AppScreen({
   ambient = 'none',
 }: AppScreenProps) {
   return (
-    <div className={cn('relative min-h-screen overflow-hidden paper-texture', className)}>
+    <div className={cn('relative min-h-screen overflow-hidden paper-texture text-foreground', className)}>
       <AmbientLayer variant={ambient} />
       <div className={cn('relative z-10 min-h-screen', contentClassName)}>
         {children}
@@ -89,7 +89,7 @@ export function BrandMark({
   return (
     <div
       className={cn(
-        'rounded-lg border border-border/70 bg-background px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)]',
+        'rounded-2xl border border-border/70 bg-background/88 px-5 py-3 shadow-[0_22px_54px_-38px_rgba(43,28,18,0.34)] backdrop-blur-lg',
         className
       )}
     >
@@ -115,7 +115,7 @@ export function LoadingSpinner({
 }) {
   return (
     <div
-      className={cn('h-10 w-10 animate-spin rounded-full border-2 border-foreground/20', className)}
+      className={cn('h-10 w-10 animate-spin rounded-full border-2 border-foreground/20 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]', className)}
       style={{ borderTopColor: inverted ? 'var(--background)' : 'var(--foreground)' }}
     />
   );
@@ -147,7 +147,7 @@ export function LoadingState({
         className={cn(
           'flex flex-col items-center gap-4',
           card &&
-            'min-w-[220px] rounded-lg border border-border/70 bg-background/95 px-8 py-10 shadow-[0_24px_60px_-48px_rgba(15,23,42,0.45)] backdrop-blur-sm'
+            'editorial-panel min-w-[240px] rounded-[1.75rem] px-8 py-10'
         )}
       >
         {content}

@@ -40,9 +40,13 @@ import { getCategoryColor, getContrastColor } from '@/lib/categoryColors';
 
 interface CategoryManagerProps {
   onCategoryChange?: () => void;
+  buttonClassName?: string;
 }
 
-export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
+export function CategoryManager({
+  onCategoryChange,
+  buttonClassName,
+}: CategoryManagerProps) {
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -242,10 +246,10 @@ export function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
         render={
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="sm"
             title="管理分类"
             aria-label="管理分类"
-            className="h-8 w-8 shrink-0 rounded-none border-transparent bg-transparent p-0 text-foreground shadow-none hover:bg-transparent hover:opacity-70 sm:h-9 sm:w-9 cursor-pointer"
+            className={cn(buttonClassName, 'cursor-pointer')}
           />
         }
       >

@@ -78,6 +78,7 @@ export default function ReadPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState("初始化中...");
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,6 +93,10 @@ export default function ReadPage() {
   const tocListRef = useRef<HTMLDivElement>(null);
   const headerHideTimerRef = useRef<number | null>(null);
   const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
+  const handlePageRef = useCallback((node: HTMLDivElement | null) => {
+    pageRef.current = node;
+    setOverlayContainer(node);
+  }, []);
 
   const handleHighlight = useCallback((range: Range) => {
     if (viewRef.current?.renderer) {
@@ -642,7 +647,7 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "h-8 w-8 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:shadow-sm hover:opacity-100 active:scale-95 active:bg-white/[0.12] aria-expanded:bg-white/[0.10]";
+    "h-9 w-9 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:shadow-sm hover:opacity-100 active:scale-95 active:bg-white/[0.12] aria-expanded:bg-white/[0.10] sm:h-10 sm:w-10";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
@@ -655,22 +660,22 @@ export default function ReadPage() {
     opacity: active ? 1 : 0.78,
   });
   const toolbarClusterStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.6 : 0.72),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.32 : 0.42)}`,
-    boxShadow: `0 8px 24px -12px ${withOpacity(uiScheme.cardBorder, 0.28)}, inset 0 1px 0 ${withOpacity(isDarkPreset ? "#ffffff" : uiScheme.cardBg, 0.18)}`,
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.68 : 0.8),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.36 : 0.5)}`,
+    boxShadow: `0 14px 34px -18px ${withOpacity(uiScheme.cardBorder, 0.34)}, inset 0 1px 0 ${withOpacity(isDarkPreset ? "#ffffff" : uiScheme.cardBg, 0.22)}`,
     backdropFilter: "blur(20px)",
   } as const;
   const statusBarStyle = {
-    background: "transparent",
-    borderTop: "none",
-    boxShadow: "none",
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.36 : 0.5),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.24)}`,
+    boxShadow: `0 18px 30px -24px ${withOpacity(uiScheme.cardBorder, 0.32)}`,
+    backdropFilter: "blur(16px)",
   } as const;
   const mobileResumeCardStyle = {
     background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.9 : 0.94),
     border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
-  const overlayContainer = pageRef.current;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "0px";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
@@ -678,17 +683,17 @@ export default function ReadPage() {
 
   return (
     <div
-      ref={pageRef}
+      ref={handlePageRef}
       className="fixed inset-0 overflow-hidden overscroll-none"
       style={{ background: uiScheme.bg }}
     >
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 reading-grid"
         style={{
           background: `
-            radial-gradient(circle at top left, ${withOpacity(uiScheme.link, 0.12)} 0%, transparent 28%),
-            radial-gradient(circle at top right, ${withOpacity(uiScheme.headerBorder, 0.34)} 0%, transparent 24%),
-            linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.96)} 0%, ${uiScheme.bg} 28%, ${withOpacity(uiScheme.cardBg, 0.98)} 100%)
+            radial-gradient(circle at top left, ${withOpacity(uiScheme.link, 0.11)} 0%, transparent 26%),
+            radial-gradient(circle at top right, ${withOpacity(uiScheme.headerBorder, 0.3)} 0%, transparent 22%),
+            linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.97)} 0%, ${uiScheme.bg} 26%, ${withOpacity(uiScheme.cardBg, 0.98)} 100%)
           `,
         }}
       />
@@ -696,7 +701,7 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className={`pointer-events-none absolute inset-x-0 top-0 z-50 px-3 pb-1 transition-all duration-300 ease-out sm:px-4 sm:pb-1 ${
+          className={`pointer-events-none absolute inset-x-0 top-0 z-50 px-3 pb-2 transition-all duration-300 ease-out sm:px-4 sm:pb-2 ${
             isHeaderVisible
               ? "translate-y-0 opacity-100"
               : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
@@ -708,9 +713,9 @@ export default function ReadPage() {
           onMouseEnter={() => showHeader(3200)}
           onMouseLeave={() => scheduleHeaderHide(900)}
         >
-          <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 sm:gap-4">
             <div
-              className="pointer-events-auto flex items-center gap-1 rounded-full p-1"
+              className="pointer-events-auto flex items-center gap-1 rounded-[1.35rem] p-1.5"
               style={toolbarClusterStyle}
             >
               <Button
@@ -801,7 +806,7 @@ export default function ReadPage() {
             </div>
 
             <div
-              className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-full p-1"
+              className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-[1.35rem] p-1.5"
               style={toolbarClusterStyle}
             >
               {isFullscreenSupported && (
@@ -866,7 +871,7 @@ export default function ReadPage() {
             className="relative min-h-0 flex-1 overflow-hidden"
             style={{
               background: `
-                linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.96)} 0%, ${withOpacity(uiScheme.bg, 0.94)} 100%)
+                linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.95)} 0%, ${withOpacity(uiScheme.bg, 0.92)} 100%)
               `,
             }}
           >
@@ -884,15 +889,15 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="flex min-w-[220px] flex-col items-center gap-4 rounded-lg border px-8 py-7 backdrop-blur-xl"
+                  className="flex min-w-[240px] flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8 backdrop-blur-xl"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.88),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.78),
-                    boxShadow: `0 18px 48px ${withOpacity(uiScheme.cardBorder, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                    boxShadow: `0 24px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                   }}
                 >
                   <div
-                    className="flex h-20 w-16 items-center justify-center rounded-lg border"
+                    className="flex h-20 w-16 items-center justify-center rounded-[1.25rem] border"
                     style={{
                       background: withOpacity(uiScheme.buttonBg, 0.52),
                       borderColor: withOpacity(uiScheme.cardBorder, 0.72),
@@ -996,7 +1001,7 @@ export default function ReadPage() {
             }}
           >
             <div
-              className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden px-1 pt-1.5 text-[10px] sm:gap-4 sm:text-[11px]"
+              className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-full px-4 py-2 text-[10px] sm:gap-4 sm:px-5 sm:py-2.5 sm:text-[11px]"
               style={statusBarStyle}
             >
               <span

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Noto_Serif_SC, Noto_Sans_SC } from 'next/font/google';
+import { Inter, Noto_Sans_SC } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -12,14 +12,6 @@ const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
-});
-
-const notoSerifSC = Noto_Serif_SC({
-  variable: '--font-noto-serif-sc',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  preload: false,
 });
 
 const notoSansSC = Noto_Sans_SC({
@@ -86,7 +78,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${inter.variable} ${notoSerifSC.variable} ${notoSansSC.variable} h-full antialiased`}>
+    <html lang="zh-CN" className={`${inter.variable} ${notoSansSC.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background paper-texture font-sans">
         <ThemeProvider>
           <TooltipProvider>

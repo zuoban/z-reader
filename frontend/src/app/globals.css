@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-noto-sans-sc);
   --font-mono: var(--font-inter);
   --font-heading: var(--font-inter);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -39,98 +39,109 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.65);
+  --radius-md: calc(var(--radius) * 0.85);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.35);
+  --radius-2xl: calc(var(--radius) * 1.85);
+  --radius-3xl: calc(var(--radius) * 2.35);
+  --radius-4xl: calc(var(--radius) * 2.8);
 }
 
 :root {
-  --background: #F7FBF8;
-  --foreground: #13211D;
-  --card: #FFFFFF;
-  --card-foreground: #13211D;
-  --popover: #FFFFFF;
-  --popover-foreground: #13211D;
-  --primary: #0F8B7D;
-  --primary-foreground: #FFFFFF;
-  --secondary: #EEF6F2;
-  --secondary-foreground: #1D332D;
-  --muted: #E8F1ED;
-  --muted-foreground: #63736D;
-  --accent: #D95F59;
-  --accent-foreground: #FFFFFF;
-  --destructive: #DC2626;
-  --border: #D7E3DE;
-  --input: #D7E3DE;
-  --ring: #0F8B7D;
-  --chart-1: #0F8B7D;
-  --chart-2: #D95F59;
-  --chart-3: #426C63;
-  --chart-4: #8FB8AE;
-  --chart-5: #B7D8D0;
-  --radius: 0.5rem;
-  --sidebar: #F2F8F5;
-  --sidebar-foreground: #13211D;
-  --sidebar-primary: #0F8B7D;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #D95F59;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #D7E3DE;
-  --sidebar-ring: #0F8B7D;
+  --background: #f6f2ea;
+  --foreground: #1f1914;
+  --card: rgba(255, 251, 245, 0.88);
+  --card-foreground: #1f1914;
+  --popover: rgba(255, 251, 245, 0.96);
+  --popover-foreground: #1f1914;
+  --primary: #7f4f32;
+  --primary-foreground: #fff9f3;
+  --secondary: #efe6d7;
+  --secondary-foreground: #2b2019;
+  --muted: #e9dfd0;
+  --muted-foreground: #74655a;
+  --accent: #c86b4c;
+  --accent-foreground: #fffaf5;
+  --destructive: #dc2626;
+  --border: rgba(114, 88, 68, 0.18);
+  --input: rgba(114, 88, 68, 0.16);
+  --ring: #a56643;
+  --chart-1: #7f4f32;
+  --chart-2: #c86b4c;
+  --chart-3: #5a6c63;
+  --chart-4: #be9470;
+  --chart-5: #d8be9e;
+  --radius: 1rem;
+  --sidebar: rgba(252, 247, 240, 0.92);
+  --sidebar-foreground: #1f1914;
+  --sidebar-primary: #7f4f32;
+  --sidebar-primary-foreground: #fff9f3;
+  --sidebar-accent: #c86b4c;
+  --sidebar-accent-foreground: #fffaf5;
+  --sidebar-border: rgba(114, 88, 68, 0.18);
+  --sidebar-ring: #a56643;
 
-  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.012'/%3E%3C/svg%3E");
+  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.018'/%3E%3C/svg%3E");
 }
 
 .dark {
-  --background: #0E1513;
-  --foreground: #EAF2EF;
-  --card: #151F1C;
-  --card-foreground: #EAF2EF;
-  --popover: #151F1C;
-  --popover-foreground: #EAF2EF;
-  --primary: #53CDBB;
-  --primary-foreground: #0E1513;
-  --secondary: #1C2A26;
-  --secondary-foreground: #EAF2EF;
-  --muted: #20312C;
-  --muted-foreground: #A3B3AE;
-  --accent: #F28A84;
-  --accent-foreground: #101615;
-  --destructive: #EF4444;
-  --border: #2A3A35;
-  --input: #2A3A35;
-  --ring: #53CDBB;
-  --chart-1: #53CDBB;
-  --chart-2: #F28A84;
-  --chart-3: #8FB8AE;
-  --chart-4: #426C63;
-  --chart-5: #283D37;
-  --sidebar: #111A17;
-  --sidebar-foreground: #EAF2EF;
-  --sidebar-primary: #53CDBB;
-  --sidebar-primary-foreground: #0E1513;
-  --sidebar-accent: #F28A84;
-  --sidebar-accent-foreground: #101615;
-  --sidebar-border: #2A3A35;
-  --sidebar-ring: #53CDBB;
+  --background: #15110e;
+  --foreground: #f2e7d8;
+  --card: rgba(33, 26, 21, 0.84);
+  --card-foreground: #f2e7d8;
+  --popover: rgba(29, 23, 19, 0.96);
+  --popover-foreground: #f2e7d8;
+  --primary: #d3a073;
+  --primary-foreground: #19120e;
+  --secondary: #271f1a;
+  --secondary-foreground: #f2e7d8;
+  --muted: #211a15;
+  --muted-foreground: #b8a89a;
+  --accent: #f09a75;
+  --accent-foreground: #21140e;
+  --destructive: #ef4444;
+  --border: rgba(214, 189, 163, 0.16);
+  --input: rgba(214, 189, 163, 0.14);
+  --ring: #d3a073;
+  --chart-1: #d3a073;
+  --chart-2: #f09a75;
+  --chart-3: #9bb4a6;
+  --chart-4: #7d5a43;
+  --chart-5: #3c2f26;
+  --sidebar: rgba(24, 19, 16, 0.92);
+  --sidebar-foreground: #f2e7d8;
+  --sidebar-primary: #d3a073;
+  --sidebar-primary-foreground: #19120e;
+  --sidebar-accent: #f09a75;
+  --sidebar-accent-foreground: #21140e;
+  --sidebar-border: rgba(214, 189, 163, 0.14);
+  --sidebar-ring: #d3a073;
 
-  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.018'/%3E%3C/svg%3E");
+  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.68' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.026'/%3E%3C/svg%3E");
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
+
   html {
     @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    background-image:
+      radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 7%, transparent) 0%, transparent 28%),
+      radial-gradient(circle at top right, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 24%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 88%, white 12%) 0%, var(--background) 100%);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    color: var(--foreground);
   }
 }
 
@@ -144,30 +155,23 @@ foliate-view::part(filter) {
   filter: none;
 }
 
-/* 移动端阅读优化 */
 @media (max-width: 640px) {
   foliate-view {
     padding: 0;
   }
 
-  /* 优化移动端触摸区域 */
-  button, a {
+  button,
+  a {
     min-height: 44px;
     min-width: 44px;
   }
 
-  /* 防止移动端双击缩放 */
   * {
     touch-action: pan-y;
   }
 
-  /* 优化移动端滚动 */
   body {
     -webkit-overflow-scrolling: touch;
-  }
-
-  /* 移动端字体渲染优化 */
-  body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -177,15 +181,47 @@ foliate-view::part(filter) {
 @layer utilities {
   .paper-texture {
     background:
-      linear-gradient(180deg, var(--background) 0%, color-mix(in srgb, var(--background) 92%, var(--primary) 8%) 100%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 92%, white 8%) 0%, var(--background) 100%),
       var(--paper-texture);
   }
 
   .shelf-ambient-bg {
     background:
-      linear-gradient(120deg, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 38%),
-      linear-gradient(240deg, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 42%),
-      linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--background) 86%, var(--muted) 14%) 100%);
+      radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 22%),
+      radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--primary) 15%, transparent) 0%, transparent 26%),
+      radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--secondary) 55%, transparent) 0%, transparent 38%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 90%, white 10%) 0%, color-mix(in srgb, var(--background) 96%, var(--secondary) 4%) 100%);
+  }
+
+  .login-ambient-bg {
+    background:
+      radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 24%),
+      radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--primary) 18%, transparent) 0%, transparent 28%),
+      linear-gradient(135deg, color-mix(in srgb, var(--background) 92%, white 8%) 0%, color-mix(in srgb, var(--secondary) 82%, var(--background) 18%) 100%);
+  }
+
+  .editorial-panel {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 94%, white 6%) 0%, color-mix(in srgb, var(--card) 96%, transparent) 100%);
+    border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    box-shadow:
+      0 32px 64px -48px rgba(41, 26, 17, 0.45),
+      0 12px 28px -24px rgba(41, 26, 17, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(20px) saturate(135%);
+  }
+
+  .editorial-divider {
+    position: relative;
+  }
+
+  .editorial-divider::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--border) 82%, transparent) 18%, color-mix(in srgb, var(--border) 82%, transparent) 82%, transparent 100%);
   }
 
   .book-cover-texture {
@@ -196,104 +232,135 @@ foliate-view::part(filter) {
 
   .book-shadow {
     box-shadow:
-      0 1px 2px rgba(0,0,0,0.04),
-      0 4px 8px rgba(0,0,0,0.06),
-      0 8px 16px rgba(197,160,40,0.04);
+      0 10px 20px rgba(43, 28, 18, 0.08),
+      0 22px 42px rgba(43, 28, 18, 0.14);
   }
 
   .book-shadow-hover {
     box-shadow:
-      0 2px 4px rgba(0,0,0,0.06),
-      0 8px 16px rgba(0,0,0,0.08),
-      0 16px 32px rgba(197,160,40,0.08);
-    transform: translateY(-2px);
+      0 16px 28px rgba(43, 28, 18, 0.12),
+      0 30px 50px rgba(43, 28, 18, 0.18);
+    transform: translateY(-3px);
+  }
+
+  .reading-grid {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%),
+      linear-gradient(90deg, color-mix(in srgb, var(--border) 16%, transparent) 1px, transparent 1px),
+      linear-gradient(color-mix(in srgb, var(--border) 10%, transparent) 1px, transparent 1px);
+    background-size: auto, 32px 32px, 32px 32px;
+    background-position: 0 0, center center, center center;
   }
 
   @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .animate-book-appear {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+
+  @keyframes soundWave {
+    0%,
+    100% {
+      transform: scaleY(0.4);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scaleY(1);
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes glowPulse {
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes indicatorPulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.15);
+    }
+  }
+
+  @keyframes loginFloat {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes loginDrift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotate(-4deg);
+    }
+    50% {
+      transform: translate3d(0, -12px, 0) rotate(-1deg);
+    }
+  }
+
+  .animate-login-float {
+    animation: loginFloat 6s ease-in-out infinite;
+  }
+
+  .animate-login-drift {
+    animation: loginDrift 7s ease-in-out infinite;
+  }
+
+  .spinner-border {
+    border-top-color: var(--foreground);
+  }
+
+  .spinner-border-primary {
+    border-top-color: var(--primary-foreground);
+  }
+
+  @keyframes sectionReveal {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes presetGlow {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 }
 
-.animate-book-appear {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-/* TTS 悬浮按钮动画 */
-@keyframes soundWave {
-  0%, 100% {
-    transform: scaleY(0.4);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scaleY(1);
-    opacity: 0.9;
-  }
-}
-
-@keyframes glowPulse {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes indicatorPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.15);
-  }
-}
-
-@keyframes loginFloat {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes loginDrift {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) rotate(-4deg);
-  }
-  50% {
-    transform: translate3d(0, -12px, 0) rotate(-1deg);
-  }
-}
-
-.animate-login-float {
-  animation: loginFloat 6s ease-in-out infinite;
-}
-
-.animate-login-drift {
-  animation: loginDrift 7s ease-in-out infinite;
-}
-
-/* 加载 spinner 边框颜色 */
-.spinner-border {
-  border-top-color: var(--foreground);
-}
-
-.spinner-border-primary {
-  border-top-color: var(--primary-foreground);
-}
-
-/* 尊重用户减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -308,23 +375,4 @@ foliate-view::part(filter) {
   .animate-login-drift {
     animation: none;
   }
-}
-
-/* 阅读偏好面板 - 区域展开动画 */
-@keyframes sectionReveal {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 阅读偏好面板 - 主题预设悬停光晕 */
-@keyframes presetGlow {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
-}
 }

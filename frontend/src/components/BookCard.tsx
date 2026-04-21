@@ -48,13 +48,13 @@ interface BookCardProps {
 
 const MOBILE_CARD_WIDTH = 172;
 const MOBILE_CARD_SCALE = 1;
-const MOBILE_COVER_HEIGHT = 200;
-const MOBILE_INFO_HEIGHT = 184;
+const MOBILE_COVER_HEIGHT = 210;
+const MOBILE_INFO_HEIGHT = 196;
 
 const DESKTOP_CARD_WIDTH = 218;
 const DESKTOP_CARD_SCALE = 0.83;
-const DESKTOP_COVER_HEIGHT = 228;
-const DESKTOP_INFO_HEIGHT = 162;
+const DESKTOP_COVER_HEIGHT = 242;
+const DESKTOP_INFO_HEIGHT = 176;
 // 标准书籍封面宽高比（49:60），用于 PerspectiveBook 预览尺寸计算
 const SPELL_BOOK_WIDTH = 150;
 const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
@@ -247,13 +247,15 @@ export function BookCard({
         }}
       >
         <Card
+          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-[1.65rem] border border-border/70 bg-card transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_26px_52px_-30px_rgba(64,36,20,0.34)] active:scale-[0.985] active:shadow-[0_18px_34px_-26px_rgba(64,36,20,0.22)] motion-reduce:transition-none cursor-pointer"
           style={{
             width: isMobile ? '100%' : cardWidth,
+            boxShadow:
+              '0 18px 36px -28px rgba(64,36,20,0.28), 0 10px 22px -20px rgba(64,36,20,0.18), inset 0 1px 0 rgba(255,255,255,0.42)',
           }}
-          className="group/card relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/75 bg-card shadow-[0_18px_40px_-32px_rgba(15,23,42,0.34),0_8px_18px_-18px_rgba(15,23,42,0.18)] transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_22px_46px_-32px_rgba(15,23,42,0.4)] active:scale-[0.985] active:shadow-[0_14px_28px_-22px_rgba(15,23,42,0.24)] motion-reduce:transition-none cursor-pointer"
         >
           <div
-            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_68%,white)_0%,color-mix(in_srgb,var(--secondary)_70%,transparent)_100%)] dark:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_60%,black)_0%,color-mix(in_srgb,var(--background)_88%,black)_100%)]"
+            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--background)_62%,white)_38%,color-mix(in_srgb,var(--secondary)_88%,transparent)_100%)] dark:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_66%,black)_0%,color-mix(in_srgb,var(--background)_92%,black)_100%)]"
             style={{ height: coverHeight }}
           >
             {isMobile && (
@@ -281,16 +283,17 @@ export function BookCard({
               </div>
             </div>
 
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-foreground/8 via-transparent to-background/14" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.48),transparent_45%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-foreground/10 via-transparent to-background/20" />
           </div>
           <div
-            className="flex flex-col justify-between border-t border-border/70 bg-card px-3.5 py-3.5 sm:px-4 sm:py-3.5"
+            className="flex flex-col justify-between border-t border-border/65 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,white)_0%,var(--card)_100%)] px-4 py-4 sm:px-[18px] sm:py-4"
             style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
           >
-            <div className="space-y-2.5 sm:space-y-2.5">
+            <div className="space-y-3">
               <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="h-[42px] min-w-0 text-[15px] font-semibold leading-[21px] tracking-normal text-foreground sm:h-[42px] sm:text-[14.5px] sm:leading-[21px]"
+                  className="h-[46px] min-w-0 font-heading text-[15.5px] font-semibold leading-[23px] tracking-[-0.02em] text-foreground sm:h-[46px] sm:text-[15px] sm:leading-[23px]"
                   style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                   title={titleLabel}
                 >
@@ -298,7 +301,7 @@ export function BookCard({
                 </h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className="absolute right-[-6px] top-[-5px] flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-foreground/48 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:border-border/70 hover:bg-muted/70 hover:text-foreground/78 active:scale-95 sm:right-[-4px] sm:top-[-4px] sm:h-7 sm:w-7 sm:rounded-lg opacity-70 hover:opacity-100 cursor-pointer"
+                    className="absolute right-[-6px] top-[-5px] flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-transparent bg-transparent text-foreground/48 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:border-border/70 hover:bg-background/72 hover:text-foreground/78 active:scale-95 sm:right-[-4px] sm:top-[-4px] sm:h-[30px] sm:w-[30px] sm:rounded-xl opacity-70 hover:opacity-100 cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
@@ -306,9 +309,9 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={8}
-                    className="w-56 rounded-lg border border-border/75 bg-popover/96 p-1.5 shadow-[0_24px_40px_-24px_rgba(15,23,42,0.28),0_12px_24px_-18px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+                    className="w-56 rounded-2xl border border-border/75 bg-popover/96 p-1.5 shadow-[0_28px_44px_-24px_rgba(64,36,20,0.28),0_12px_24px_-18px_rgba(64,36,20,0.16)] backdrop-blur-xl"
                   >
-                    <div className="space-y-1.5 rounded-lg bg-muted/35 px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
+                    <div className="space-y-1.5 rounded-xl bg-muted/30 px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
                       <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
                         <span className="flex items-center">
                           <FileText className="h-3.5 w-3.5 text-foreground/52" />
@@ -343,7 +346,7 @@ export function BookCard({
                         e.stopPropagation();
                         setCategoryDialogOpen(true);
                       }}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium text-foreground/88 transition-colors hover:bg-muted/75 focus:bg-muted/75 cursor-pointer"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-foreground/88 transition-colors hover:bg-muted/75 focus:bg-muted/75 cursor-pointer"
                     >
                       <Tag className="h-3.5 w-3.5 text-foreground/62" />
                       <span>设置分类</span>
@@ -356,7 +359,7 @@ export function BookCard({
                       }}
                       disabled={isDeleting}
                       variant="destructive"
-                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span>{isDeleting ? '删除中' : '删除图书'}</span>
@@ -364,23 +367,23 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="space-y-1.5 text-[12.5px] leading-5 text-foreground/76 sm:text-[13px]">
+              <div className="space-y-2 text-[12.5px] leading-5 text-foreground/76 sm:text-[13px]">
                 <div className="flex min-w-0 items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
                     <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                   </div>
-                  <span className="inline-flex max-w-[5.2rem] shrink-0 items-center gap-1 px-1 py-0.5 text-[11px] font-medium leading-5 tracking-normal text-muted-foreground sm:max-w-[5.6rem]">
+                  <span className="inline-flex max-w-[5.4rem] shrink-0 items-center gap-1 rounded-full border border-border/50 bg-background/55 px-2 py-0.5 text-[11px] font-medium leading-5 tracking-normal text-muted-foreground sm:max-w-[5.8rem]">
                     <Tag className="h-3 w-3 shrink-0 text-muted-foreground/70" />
                     <span className="truncate">{categoryLabel}</span>
                   </span>
                 </div>
-                <div className="flex min-w-0 items-center justify-between gap-2 text-[11.5px] leading-5 text-muted-foreground/82 sm:text-[12px]">
-                  <span className="inline-flex min-w-0 items-center gap-1">
+                <div className="grid min-w-0 grid-cols-2 gap-2 text-[11.5px] leading-5 text-muted-foreground/82 sm:text-[12px]">
+                  <span className="inline-flex min-w-0 items-center gap-1 rounded-xl bg-muted/28 px-2 py-1">
                     <BookOpen className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
                     <span className="font-medium tracking-normal tabular-nums">{progressLabel}</span>
                   </span>
-                  <span className="inline-flex min-w-0 shrink-0 items-center gap-1">
+                  <span className="inline-flex min-w-0 shrink-0 items-center gap-1 rounded-xl bg-muted/28 px-2 py-1">
                     <Clock className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
                     <span className="max-w-[4.6rem] truncate font-medium tracking-normal tabular-nums sm:max-w-none">
                       {lastReadLabel}
@@ -389,7 +392,7 @@ export function BookCard({
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2.5 border-t border-border/70 pt-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3">
+            <div className="flex flex-col gap-2.5 border-t border-border/65 pt-3 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3.5">
               <Button
                 type="button"
                 size="sm"
@@ -397,9 +400,9 @@ export function BookCard({
                   e.stopPropagation();
                   onRead();
                 }}
-                className="h-11 w-full shrink-0 gap-2 rounded-lg border border-primary/15 bg-primary px-4 text-[12px] font-semibold tracking-normal text-primary-foreground shadow-[0_12px_26px_-18px_rgba(15,23,42,0.52)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-primary/25 hover:bg-primary/92 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.62)] active:scale-[0.98] sm:h-9 sm:w-full sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
+                className="h-11 w-full shrink-0 gap-2 rounded-2xl border border-primary/10 bg-primary px-4 text-[12px] font-semibold tracking-[0.04em] text-primary-foreground shadow-[0_18px_30px_-20px_rgba(64,36,20,0.52)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-primary/20 hover:bg-primary/92 hover:shadow-[0_22px_34px_-20px_rgba(64,36,20,0.62)] active:scale-[0.98] sm:h-10 sm:w-full sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary-foreground/16 text-primary-foreground sm:h-4.5 sm:w-4.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-primary-foreground/16 text-primary-foreground sm:h-5 sm:w-5">
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 </span>
                 <span>{readButtonLabel}</span>

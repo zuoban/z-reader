@@ -41,16 +41,16 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
     >
       <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
         <div
-          className="relative flex cursor-default flex-col overflow-hidden rounded-[1.65rem] border border-border/70 bg-card"
+          className="relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card"
           style={{
             width: isMobile ? '100%' : cardWidth,
             boxShadow:
-              '0 18px 36px -28px rgba(64,36,20,0.28), 0 10px 22px -20px rgba(64,36,20,0.18), inset 0 1px 0 rgba(255,255,255,0.42)',
+              '0 20px 40px -30px rgba(64,36,20,0.3), 0 12px 26px -22px rgba(64,36,20,0.2), inset 0 1px 0 rgba(255,255,255,0.48)',
           }}
         >
           {/* Cover skeleton */}
           <div
-            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--background)_62%,white)_38%,color-mix(in_srgb,var(--secondary)_88%,transparent)_100%)]"
+            className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0)_46%),linear-gradient(180deg,color-mix(in_srgb,var(--background)_58%,white)_0%,color-mix(in_srgb,var(--secondary)_86%,transparent)_100%)]"
             style={{ height: coverHeight }}
           >
             {isMobile && (
@@ -67,7 +67,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                   <div
                     style={{ transform: `scale(${bookScale})`, transformOrigin: 'center center' }}
                   >
-                    <div className="relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] bg-muted shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                    <div className="relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] bg-muted shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06),inset_0_-18px_32px_-24px_rgba(0,0,0,0.28)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
                       <Skeleton className="absolute inset-0 rounded-[4px]" />
                     </div>
                   </div>
@@ -78,43 +78,24 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col justify-between border-t border-border/65 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,white)_0%,var(--card)_100%)] px-4 py-4 sm:px-[18px] sm:py-4"
+            className="flex flex-col justify-between border-t border-border/65 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_95%,white)_0%,color-mix(in_srgb,var(--card)_99%,var(--background))_100%)] px-4 pb-3.5 pt-4 sm:px-[18px] sm:pb-4 sm:pt-4.5"
             style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
           >
             <div className="space-y-3">
               {/* Title skeleton */}
-              <div className="relative pr-6 sm:pr-5">
+              <div className="relative pr-7 sm:pr-6">
                 <Skeleton className="min-h-[3rem] min-w-0 rounded-md sm:min-h-[2.7rem]" />
-                <Skeleton className="absolute right-[-6px] top-[-5px] h-8 w-8 rounded-xl sm:right-[-4px] sm:top-[-4px] sm:h-[30px] sm:w-[30px] sm:rounded-xl" />
+                <Skeleton className="absolute right-[-4px] top-[-4px] h-8 w-8 rounded-[0.95rem] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem]" />
               </div>
 
               {/* Author skeleton */}
-              <div className="flex min-w-0 items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5">
+              <div className="flex min-w-0 items-center justify-between gap-2.5">
+                <div className="flex min-w-0 items-center gap-1.5 rounded-full bg-muted/28 px-2.5 py-1">
                   <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
                   <Skeleton className="h-[15px] w-24 rounded-md" />
                 </div>
-                <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/50 bg-background/55 px-2 py-0.5">
-                  <Skeleton className="h-3 w-3 rounded-full" />
-                  <Skeleton className="h-[13px] w-12 rounded-md" />
-                </div>
+                <Skeleton className="h-9 w-[74px] shrink-0 rounded-[0.95rem] sm:h-8 sm:w-[68px]" />
               </div>
-
-              {/* Progress skeleton */}
-              <div className="grid min-w-0 grid-cols-2 gap-2">
-                <div className="flex min-w-0 items-center gap-1 rounded-xl bg-muted/28 px-2 py-1">
-                  <Skeleton className="h-[13px] w-[13px] rounded-full" />
-                  <Skeleton className="h-[13px] w-9 rounded-md" />
-                </div>
-                <div className="flex shrink-0 items-center gap-1 rounded-xl bg-muted/28 px-2 py-1">
-                  <Skeleton className="h-[13px] w-[13px] rounded-full" />
-                  <Skeleton className="h-[13px] w-10 rounded-md" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2.5 border-t border-border/65 pt-3 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3.5">
-              <Skeleton className="h-11 w-full rounded-2xl sm:h-10 sm:w-full" />
             </div>
           </div>
         </div>

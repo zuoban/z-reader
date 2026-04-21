@@ -433,7 +433,7 @@ export default function ReadPage() {
           setPercentage(pctRaw);
 
           if (cfi) {
-            updateProgressRef.current(cfi, Math.round(pctRaw));
+            updateProgressRef.current(cfi, pctRaw);
           }
 
           if (tocItem?.label) {

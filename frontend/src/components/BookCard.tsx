@@ -173,10 +173,11 @@ export function BookCard({
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
   const progressValue = progress !== null ? Math.max(0, Math.min(progress, 100)) : null;
+  const progressDisplay = progressValue !== null ? progressValue.toFixed(2) : '';
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const progressLabel = progressValue !== null ? `${progressValue}%` : '未开始';
-  const readButtonLabel = progressValue !== null ? '继续阅读' : '开始阅读';
+  const readButtonLabel = '阅读';
   const category = useMemo(
     () => categories.find((item) => item.id === book.category_id) ?? null,
     [book.category_id, categories]
@@ -214,7 +215,7 @@ export function BookCard({
     api.getProgress(book.id)
       .then((progress) => {
         if (!cancelled && progress?.percentage !== undefined) {
-          setProgress(Math.round(progress.percentage));
+          setProgress(progress.percentage);
         }
       })
       .catch(() => {
@@ -283,14 +284,37 @@ export function BookCard({
               </div>
             </div>
 
+            {book.category_id && category && (
+              <div className="absolute right-3 top-1 z-20 sm:right-4 sm:top-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] font-medium leading-4 tracking-normal text-white/90 backdrop-blur-md dark:bg-white/20">
+                  <Tag className="h-3 w-3 shrink-0" />
+                  <span className="max-w-[5rem] truncate">{categoryLabel}</span>
+                </span>
+              </div>
+            )}
+            {progressValue !== null && progressValue > 0 && (
+              <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-1.5 sm:px-4 sm:pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-white/15 backdrop-blur-sm dark:bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-teal-500 transition-[width] duration-500 ease-out dark:from-emerald-500 dark:via-teal-500 dark:to-teal-600"
+                      style={{ width: `${progressValue}%` }}
+                    />
+                  </div>
+                  <span className="shrink-0 tabular-nums text-[11px] font-semibold tracking-tight text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+                    {progressDisplay}%
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.48),transparent_45%)]" />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-foreground/10 via-transparent to-background/20" />
           </div>
           <div
-            className="flex flex-col justify-between border-t border-border/65 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,white)_0%,var(--card)_100%)] px-4 py-4 sm:px-[18px] sm:py-4"
-            style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
+            className="flex flex-col border-t border-border/65 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,white)_0%,var(--card)_100%)] px-4 pb-3 pt-4 sm:px-[18px] sm:pb-3.5 sm:pt-4"
+            style={isMobile ? { minHeight: infoHeight - 70 } : { height: infoHeight - 70 }}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="relative pr-6 sm:pr-5">
                 <h3
                   className="h-[46px] min-w-0 font-heading text-[15.5px] font-semibold leading-[23px] tracking-[-0.02em] text-foreground sm:h-[46px] sm:text-[15px] sm:leading-[23px]"
@@ -339,6 +363,15 @@ export function BookCard({
                           {uploadedAtLabel}
                         </span>
                       </div>
+                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
+                        <span className="flex items-center">
+                          <Clock className="h-3.5 w-3.5 text-foreground/52" />
+                        </span>
+                        <span className="whitespace-nowrap">阅读</span>
+                        <span className="min-w-0 whitespace-nowrap text-right font-medium tabular-nums text-foreground/88">
+                          {lastReadLabel}
+                        </span>
+                      </div>
                     </div>
                     <DropdownMenuSeparator className="my-1.5 bg-border/70" />
                     <DropdownMenuItem
@@ -367,46 +400,24 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="space-y-2 text-[12.5px] leading-5 text-foreground/76 sm:text-[13px]">
-                <div className="flex min-w-0 items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
-                    <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
-                  </div>
-                  <span className="inline-flex max-w-[5.4rem] shrink-0 items-center gap-1 rounded-full border border-border/50 bg-background/55 px-2 py-0.5 text-[11px] font-medium leading-5 tracking-normal text-muted-foreground sm:max-w-[5.8rem]">
-                    <Tag className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                    <span className="truncate">{categoryLabel}</span>
-                  </span>
+              <div className="flex min-w-0 items-center justify-between gap-2 text-[12.5px] leading-5 text-foreground/76 sm:text-[13px]">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <UserRound className="h-[15px] w-[15px] shrink-0 text-muted-foreground/65" />
+                  <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                 </div>
-                <div className="grid min-w-0 grid-cols-2 gap-2 text-[11.5px] leading-5 text-muted-foreground/82 sm:text-[12px]">
-                  <span className="inline-flex min-w-0 items-center gap-1 rounded-xl bg-muted/28 px-2 py-1">
-                    <BookOpen className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
-                    <span className="font-medium tracking-normal tabular-nums">{progressLabel}</span>
-                  </span>
-                  <span className="inline-flex min-w-0 shrink-0 items-center gap-1 rounded-xl bg-muted/28 px-2 py-1">
-                    <Clock className="h-[13px] w-[13px] shrink-0 text-muted-foreground/65" />
-                    <span className="max-w-[4.6rem] truncate font-medium tracking-normal tabular-nums sm:max-w-none">
-                      {lastReadLabel}
-                    </span>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2.5 border-t border-border/65 pt-3 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:pt-3.5">
-              <Button
-                type="button"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRead();
-                }}
-                className="h-11 w-full shrink-0 gap-2 rounded-2xl border border-primary/10 bg-primary px-4 text-[12px] font-semibold tracking-[0.04em] text-primary-foreground shadow-[0_18px_30px_-20px_rgba(64,36,20,0.52)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-primary/20 hover:bg-primary/92 hover:shadow-[0_22px_34px_-20px_rgba(64,36,20,0.62)] active:scale-[0.98] sm:h-10 sm:w-full sm:px-4 sm:text-[12px] sm:hover:translate-y-[-1px] sm:active:translate-y-0 cursor-pointer"
-              >
-                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-primary-foreground/16 text-primary-foreground sm:h-5 sm:w-5">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRead();
+                  }}
+                  className="h-9 shrink-0 gap-1.5 rounded-xl border border-primary/10 bg-primary px-3 text-[12px] font-semibold tracking-[0.04em] text-primary-foreground shadow-[0_12px_20px_-14px_rgba(64,36,20,0.45)] transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.98] sm:h-8 sm:px-3 sm:text-[11px] cursor-pointer"
+                >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
-                </span>
-                <span>{readButtonLabel}</span>
-              </Button>
+                  <span>{readButtonLabel}</span>
+                </Button>
+              </div>
             </div>
           </div>
         </Card>

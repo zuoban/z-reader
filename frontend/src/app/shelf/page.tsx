@@ -35,12 +35,12 @@ import {
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 const HEADER_ICON_BUTTON_CLASS =
-  'h-10 w-10 shrink-0 rounded-2xl border border-border/60 bg-card/92 p-0 text-foreground ' +
-  'shadow-[0_12px_24px_-24px_rgba(43,28,18,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-border/80 hover:bg-card sm:h-11 sm:w-11';
+  'h-10 w-10 shrink-0 rounded-lg border border-border/60 bg-background p-0 text-foreground ' +
+  'transition-colors duration-200 hover:border-border/80 hover:bg-muted/20';
 const HEADER_FILTER_TRIGGER_CLASS =
-  'group relative flex h-10 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-border/60 bg-card/92 px-3.5 ' +
+  'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-background px-3 ' +
   'text-sm font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none ' +
-  'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 shadow-[0_12px_24px_-24px_rgba(43,28,18,0.2)]';
+  'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2';
 
 function CategoryDropdown({
   categories,
@@ -186,10 +186,10 @@ export default function ShelfPage() {
       ambient="shelf"
       contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-4 py-4 sm:px-7 sm:py-7 lg:px-10 lg:py-10"
     >
-      <header className="rounded-[2rem] border border-border/60 bg-card/92 px-4 py-4 shadow-[0_18px_30px_-28px_rgba(43,28,18,0.24)] sm:px-6 sm:py-6">
-        <div className="flex items-start justify-between gap-4 border-b border-border/60 pb-5 sm:gap-6 sm:pb-6">
+      <header className="rounded-[1.25rem] border border-border/60 bg-card px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-3.5 sm:gap-5 sm:pb-4">
           <div className="min-w-0 flex-1">
-            <BrandMark size="md" className="hidden sm:block" priority />
+            <BrandMark size="sm" className="hidden sm:block" priority />
             <BrandMark size="sm" className="sm:hidden" priority />
           </div>
 
@@ -242,18 +242,18 @@ export default function ShelfPage() {
             </Button>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12px] leading-5 text-muted-foreground sm:text-[13px]">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-border/65 bg-card px-4 text-[12px] font-semibold leading-5 text-foreground shadow-[0_12px_24px_-24px_rgba(43,28,18,0.2)] sm:text-[13px]">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 text-[12px] leading-5 text-muted-foreground sm:mt-3.5 sm:text-[13px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3.5 text-[12px] font-semibold leading-5 text-foreground sm:text-[13px]">
               <Library className="h-3.5 w-3.5" />
               我的书架
             </span>
-            <span className="inline-flex h-10 items-center rounded-2xl border border-border/55 bg-muted/28 px-4 font-medium tabular-nums text-muted-foreground">
+            <span className="inline-flex h-9 items-center rounded-lg border border-border/55 bg-background px-3.5 font-medium tabular-nums text-muted-foreground">
               共 {books.length} 本书
             </span>
           </div>
           {categories.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               <SortSelector value={sortBy} onChange={setSortBy} />
               <CategoryDropdown
                 categories={categories}

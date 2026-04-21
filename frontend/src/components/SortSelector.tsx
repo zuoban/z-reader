@@ -25,7 +25,7 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-10 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-border/60 bg-card/92 px-3.5 text-sm font-medium transition-all duration-200 cursor-pointer shadow-[0_12px_24px_-24px_rgba(43,28,18,0.2)]',
+          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/60 bg-background px-3 text-sm font-medium transition-all duration-200 cursor-pointer',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2',
           open
             ? 'text-foreground'

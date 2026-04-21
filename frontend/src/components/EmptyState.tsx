@@ -25,15 +25,12 @@ export function EmptyState({
     <div className="flex min-h-[58vh] items-center justify-center">
       <section
         className={cn(
-          'editorial-panel relative w-full max-w-2xl rounded-[2rem] px-6 py-12 text-center sm:px-14 sm:py-16',
+          'relative w-full max-w-2xl rounded-[2rem] border border-border/60 bg-card/92 px-6 py-12 text-center shadow-[0_18px_30px_-28px_rgba(43,28,18,0.24)] sm:px-14 sm:py-16',
           className
         )}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/8 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/8 to-transparent" />
-
         <div className="relative mx-auto mb-8 inline-flex">
-          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[1.75rem] border border-primary/20 bg-primary/10 shadow-[0_18px_32px_-24px_rgba(64,36,20,0.4),inset_0_1px_0_rgba(255,255,255,0.45)]">
+          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[1.75rem] border border-primary/18 bg-primary/8 shadow-[0_12px_24px_-24px_rgba(64,36,20,0.2)]">
             <Icon className="h-10 w-10 text-primary" />
           </div>
         </div>
@@ -52,7 +49,7 @@ export function EmptyState({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-border/65 bg-background/62 px-3.5 py-1.5 text-xs font-semibold tracking-[0.08em] leading-5 text-muted-foreground"
+                className="rounded-full border border-border/65 bg-card px-3.5 py-1.5 text-xs font-semibold tracking-[0.08em] leading-5 text-muted-foreground"
               >
                 {tag}
               </span>

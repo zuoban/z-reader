@@ -81,7 +81,7 @@ export default function ShelfPage() {
     >
       {/* 统一头部面板：品牌 + 操作 + 筛选 + 分类 */}
       <div
-        className="paper-reveal shelf-header rounded-2xl overflow-hidden"
+        className="paper-reveal shelf-header rounded-2xl overflow-hidden bg-[#f9f5ee] dark:bg-[#231c17]"
         style={delay(0)}
       >
         {/* 品牌 + 操作按钮行 */}
@@ -208,10 +208,9 @@ export default function ShelfPage() {
           </div>
         ) : (
           <section
-            className="paper-reveal shelf-stage relative rounded-2xl overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
+            className="paper-reveal shelf-container relative rounded-2xl bg-[#f9f5ee] px-4 py-6 dark:bg-[#231c17] sm:px-6 sm:py-8 lg:px-7 lg:py-9"
             style={delay(150)}
           >
-            <div aria-hidden="true" className="shelf-stage-bg pointer-events-none absolute inset-0" />
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (

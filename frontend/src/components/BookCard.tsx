@@ -120,7 +120,7 @@ function BookCoverFace({
           sizes="(max-width: 640px) 40vw, (max-width: 1024px) 18vw, 156px"
           className="object-cover saturate-[1.02] contrast-[1.03]"
         />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.06)_26%,rgba(23,23,23,0.22)_100%)] mix-blend-screen dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.03)_24%,rgba(0,0,0,0.38)_100%)] dark:mix-blend-normal" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_26%,rgba(23,23,23,0.22)_100%)] mix-blend-screen dark:bg-[linear-gradient(180deg,transparent_0%,transparent_24%,rgba(0,0,0,0.38)_100%)] dark:mix-blend-normal" />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),transparent_10%,transparent_90%,rgba(0,0,0,0.14))]" />
         <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),inset_0_-18px_32px_-24px_rgba(0,0,0,0.55)]" />
       </div>
@@ -274,12 +274,10 @@ export function BookCard({
               '0 12px 24px -24px rgba(64,36,20,0.24), 0 6px 16px -18px rgba(64,36,20,0.14)',
           }}
         >
-          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
           <div
             className="relative overflow-hidden bg-muted/45 dark:bg-muted/30"
             style={{ height: coverHeight }}
           >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),transparent_24%,transparent_72%,rgba(66,43,25,0.08))]" />
             {isMobile && (
               <>
                 <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-border/60" />

@@ -101,7 +101,7 @@ export function CategoryFilter({
       {/* 左侧渐变指示器 */}
       <div
         className={cn(
-          'pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-8 bg-gradient-to-r from-background via-background/90 to-transparent transition-opacity duration-300',
+          'pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-10 bg-gradient-to-r from-background/0 via-background/80 to-background transition-opacity duration-300',
           showLeftGradient ? 'opacity-100' : 'opacity-0'
         )}
       />
@@ -109,7 +109,7 @@ export function CategoryFilter({
       {/* 右侧渐变指示器 */}
       <div
         className={cn(
-          'pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-8 bg-gradient-to-l from-background via-background/90 to-transparent transition-opacity duration-300',
+          'pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-10 bg-gradient-to-l from-background/0 via-background/80 to-background transition-opacity duration-300',
           showRightGradient ? 'opacity-100' : 'opacity-0'
         )}
       />
@@ -123,7 +123,7 @@ export function CategoryFilter({
         <div
           role="tablist"
           aria-label="书籍分类筛选"
-          className="flex min-w-max items-center gap-2 px-1 py-1"
+          className="flex min-w-max items-center gap-1 px-1 py-1.5"
         >
           {filterItems.map((item) => {
             const isSelected = selectedCategoryId === item.id;
@@ -136,18 +136,17 @@ export function CategoryFilter({
                 role="tab"
                 aria-selected={isSelected}
                 className={cn(
-                  'paper-motion-interactive paper-control group relative flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-medium cursor-pointer',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'group relative flex h-8 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium cursor-pointer transition-colors duration-200',
                   isSelected
-                    ? 'text-foreground shadow-[0_10px_22px_-20px_rgba(15,23,42,0.35)]'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-muted/60 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 )}
               >
                 {/* 颜色指示点 */}
                 {item.color && (
                   <span
                     className={cn(
-                      'paper-motion-interactive h-2.5 w-2.5 shrink-0 rounded-full border border-white/30 shadow-sm',
+                      'h-2 w-2 shrink-0 rounded-full',
                       isSelected ? 'scale-110' : 'group-hover:scale-110'
                     )}
                     style={{ backgroundColor: item.color }}
@@ -163,10 +162,10 @@ export function CategoryFilter({
                 {item.count > 0 && (
                   <span
                     className={cn(
-                      'paper-motion-surface paper-badge flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-xs font-medium',
+                      'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-xs font-medium transition-colors',
                       isSelected
-                        ? 'text-foreground/70'
-                        : 'text-muted-foreground'
+                        ? 'bg-muted/80 text-muted-foreground'
+                        : 'text-muted-foreground/70'
                     )}
                   >
                     {item.count}

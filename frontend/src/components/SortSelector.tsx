@@ -25,11 +25,9 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'paper-motion-interactive paper-control group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium cursor-pointer',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2',
-          open
-            ? 'text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
+          'group relative flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-medium cursor-pointer transition-colors duration-200',
+          'text-muted-foreground hover:text-foreground hover:bg-muted/40',
+          open && 'text-foreground bg-muted/50'
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -42,7 +40,7 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="paper-panel min-w-[160px] rounded-2xl border border-border/70 p-1.5 shadow-[0_18px_30px_-24px_var(--paper-shadow)]">
+      <DropdownMenuContent align="end" className="min-w-[160px] rounded-xl p-1.5">
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
             key={option.value}

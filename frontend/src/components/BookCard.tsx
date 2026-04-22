@@ -50,12 +50,10 @@ interface BookCardProps {
 const MOBILE_CARD_WIDTH = 172;
 const MOBILE_CARD_SCALE = 1;
 const MOBILE_COVER_HEIGHT = 210;
-const MOBILE_INFO_HEIGHT = 196;
 
 const DESKTOP_CARD_WIDTH = 218;
 const DESKTOP_CARD_SCALE = 0.83;
 const DESKTOP_COVER_HEIGHT = 242;
-const DESKTOP_INFO_HEIGHT = 176;
 // 标准书籍封面宽高比（49:60），用于 PerspectiveBook 预览尺寸计算
 const SPELL_BOOK_WIDTH = 150;
 const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
@@ -196,7 +194,7 @@ export function BookCard({
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
   const progressValue = progress !== null ? Math.max(0, Math.min(progress, 100)) : null;
-  const progressDisplay = progressValue !== null ? progressValue.toFixed(2) : '';
+  const progressDisplay = progressValue !== null ? progressValue.toFixed(1) : '';
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const readButtonLabel = '阅读';
@@ -209,7 +207,6 @@ export function BookCard({
   const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
   const cardFrameWidth = Math.round(cardWidth * cardScale);
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
-  const infoHeight = isMobile ? MOBILE_INFO_HEIGHT : DESKTOP_INFO_HEIGHT;
   const bookScale = isMobile ? 0.86 : 1;
   const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
   const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
@@ -309,23 +306,23 @@ export function BookCard({
             </div>
 
             {book.category_id && category && (
-              <div className="absolute right-3 top-1 z-20 sm:right-4 sm:top-1">
-                <span className="paper-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium leading-4 tracking-[0.01em] text-foreground/82 shadow-[0_8px_18px_-18px_rgba(64,36,20,0.18)]">
+              <div className="absolute right-2.5 top-2 z-20 sm:right-3 sm:top-2.5">
+                <span className="paper-chip inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10.5px] font-medium leading-4 tracking-[0.01em] text-foreground/80">
                   <Tag className="h-3 w-3 shrink-0" />
-                  <span className="max-w-[5rem] truncate">{categoryLabel}</span>
+                  <span className="max-w-[4.5rem] truncate">{categoryLabel}</span>
                 </span>
               </div>
             )}
             {progressValue !== null && progressValue > 0 && (
-              <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-1.5 sm:px-4 sm:pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
+              <div className="absolute inset-x-0 bottom-0 z-20 px-2.5 pb-2 sm:px-3 sm:pb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
                     <div
                       className="h-full rounded-full bg-primary/85 transition-[width] duration-500 ease-out"
                       style={{ width: `${progressValue}%` }}
                     />
                   </div>
-                  <span className="shrink-0 tabular-nums text-[11px] font-semibold tracking-tight text-foreground/78">
+                  <span className="shrink-0 tabular-nums text-[10px] font-semibold tracking-tight text-foreground/70">
                     {progressDisplay}%
                   </span>
                 </div>
@@ -333,14 +330,13 @@ export function BookCard({
             )}
           </div>
           <div
-            className="flex flex-col border-t border-border/65 bg-card px-4 pb-3.5 pt-4 sm:px-[18px] sm:pb-4 sm:pt-4.5"
-            style={isMobile ? { minHeight: infoHeight - 70 } : { height: infoHeight - 70 }}
+            className="flex flex-col border-t border-border/50 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
           >
-            <div className="space-y-2.5">
-              <div className="relative pr-7 sm:pr-6">
+            <div className="space-y-2">
+              <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-w-0 font-heading text-[15px] font-semibold leading-[22px] tracking-[-0.025em] text-foreground"
-                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '44px' }}
+                  className="min-w-0 font-heading text-[14px] font-semibold leading-[21px] tracking-[-0.02em] text-foreground"
+                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '42px' }}
                   title={titleLabel}
                 >
                   {titleLabel}
@@ -422,9 +418,9 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex min-w-0 items-center justify-between gap-2 text-[12.5px] leading-5 text-foreground/72 sm:text-[13px]">
-                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-foreground/72">
-                  <UserRound className="h-[14px] w-[14px] shrink-0 text-muted-foreground/70" />
+              <div className="flex min-w-0 items-center justify-between gap-1.5 text-[12px] leading-5 text-foreground/70 sm:text-[12.5px]">
+                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-foreground/70">
+                  <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                   <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                 </div>
                 <Button
@@ -434,7 +430,7 @@ export function BookCard({
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="h-9 shrink-0 gap-1.5 rounded-xl border border-primary/15 bg-primary px-3.5 text-[12px] font-semibold tracking-[0.04em] text-primary-foreground transition-[transform,background-color,border-color] duration-200 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:h-8 sm:px-3 sm:text-[11px] cursor-pointer"
+                  className="h-8 shrink-0 gap-1 rounded-lg border border-primary/15 bg-primary px-3 text-[11.5px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,border-color] duration-200 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:h-7 sm:px-2.5 sm:text-[11px] cursor-pointer"
                 >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   <span>{readButtonLabel}</span>

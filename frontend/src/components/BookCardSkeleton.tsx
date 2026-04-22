@@ -15,19 +15,16 @@ const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
 const MOBILE_CARD_WIDTH = 172;
 const MOBILE_CARD_SCALE = 1;
 const MOBILE_COVER_HEIGHT = 210;
-const MOBILE_INFO_HEIGHT = 196;
 
 const DESKTOP_CARD_WIDTH = 218;
 const DESKTOP_CARD_SCALE = 0.83;
 const DESKTOP_COVER_HEIGHT = 242;
-const DESKTOP_INFO_HEIGHT = 176;
 
 export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
   const cardFrameWidth = Math.round(cardWidth * cardScale);
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
-  const infoHeight = isMobile ? MOBILE_INFO_HEIGHT : DESKTOP_INFO_HEIGHT;
   const bookScale = isMobile ? 0.86 : 1;
   const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
   const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
@@ -97,23 +94,22 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col justify-between border-t border-border/65 bg-card px-4 pb-3.5 pt-4 sm:px-[18px] sm:pb-4 sm:pt-4.5"
-            style={isMobile ? { minHeight: infoHeight - 70 } : { height: infoHeight - 70 }}
+            className="flex flex-col border-t border-border/50 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
           >
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {/* Title skeleton */}
-              <div className="relative pr-7 sm:pr-6">
-                <Skeleton className="min-h-[44px] min-w-0 rounded-md sm:min-h-[44px]" />
+              <div className="relative pr-6 sm:pr-5">
+                <Skeleton className="min-h-[42px] min-w-0 rounded-md sm:min-h-[42px]" />
                 <Skeleton className="absolute right-[-4px] top-[-4px] h-8 w-8 rounded-[0.95rem] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem]" />
               </div>
 
               {/* Author skeleton */}
-              <div className="flex min-w-0 items-center justify-between gap-2">
-                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1">
-                  <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
-                  <Skeleton className="h-[15px] w-24 rounded-md" />
+              <div className="flex min-w-0 items-center justify-between gap-1.5">
+                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5">
+                  <Skeleton className="h-3.5 w-3.5 shrink-0 rounded-full" />
+                  <Skeleton className="h-3.5 w-24 rounded-md" />
                 </div>
-                <Skeleton className="h-9 w-[74px] shrink-0 rounded-xl sm:h-8 sm:w-[68px]" />
+                <Skeleton className="h-8 w-[70px] shrink-0 rounded-lg sm:h-7 sm:w-[64px]" />
               </div>
             </div>
           </div>

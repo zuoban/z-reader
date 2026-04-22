@@ -568,10 +568,7 @@ foliate-view::part(filter) {
   }
 
   .shelf-bands {
-    background:
-      linear-gradient(180deg, transparent 0%, transparent 14%, color-mix(in srgb, var(--border) 12%, transparent) 14%, color-mix(in srgb, var(--border) 12%, transparent) 14.3%, transparent 14.3%),
-      linear-gradient(180deg, transparent 0%, transparent 42%, color-mix(in srgb, var(--border) 10%, transparent) 42%, color-mix(in srgb, var(--border) 10%, transparent) 42.3%, transparent 42.3%),
-      linear-gradient(180deg, transparent 0%, transparent 70%, color-mix(in srgb, var(--border) 8%, transparent) 70%, color-mix(in srgb, var(--border) 8%, transparent) 70.3%, transparent 70.3%);
+    /* Removed — fixed-position bands don't align with dynamic book grid rows */
   }
 
   .reading-status-panel {

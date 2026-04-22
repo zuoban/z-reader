@@ -212,7 +212,6 @@ export default function ShelfPage() {
             style={delay(150)}
           >
             <div aria-hidden="true" className="shelf-stage-bg pointer-events-none absolute inset-0" />
-            <div aria-hidden="true" className="shelf-bands pointer-events-none absolute inset-0" />
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (

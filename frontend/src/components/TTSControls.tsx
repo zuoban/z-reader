@@ -16,6 +16,7 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
+  Loader2,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import { VoiceSelector } from '@/components/VoiceSelector';
@@ -407,7 +408,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="paper-motion-interactive paper-control h-10 w-10 rounded-2xl hover:scale-[1.03] active:scale-95
+      className="paper-motion-interactive paper-control h-10 w-10 rounded-full hover:scale-[1.03] active:scale-95
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
@@ -1027,7 +1028,7 @@ export function TTSControls({
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-5 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {[15, 30, 60].map((minutes) => {
                         const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                         return (
@@ -1047,19 +1048,6 @@ export function TTSControls({
                           </Button>
                         );
                       })}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onSleepTimerSegment?.()}
-                        className="h-7 rounded-lg px-2 text-[11px] font-semibold"
-                        style={{
-                          color: sleepTimer?.mode === 'segment' ? uiScheme.link : uiScheme.mutedText,
-                          background: sleepTimer?.mode === 'segment' ? `${uiScheme.link}14` : 'transparent',
-                          border: 'none',
-                        }}
-                      >
-                        本段
-                      </Button>
                       <Button
                         type="button"
                         variant="ghost"
@@ -1102,17 +1090,19 @@ export function TTSControls({
                       disabled={isPending}
                       title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                       aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                      className="paper-motion-interactive h-12 w-12 rounded-[1rem] bg-transparent! hover:scale-[1.03] hover:bg-transparent! active:scale-95 aria-expanded:bg-transparent! dark:hover:bg-transparent! motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                      className="paper-motion-interactive paper-control h-12 w-12 rounded-full hover:scale-[1.03] active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
                       style={{
                         color: isPending ? uiScheme.mutedText : uiScheme.link,
-                        background: 'transparent',
-                        border: 'none',
                         boxShadow: isPending
                           ? 'none'
-                          : `0 16px 28px -22px ${uiScheme.link}aa, 0 8px 20px -18px ${uiScheme.link}88, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                          : `0 10px 20px -18px ${uiScheme.cardBorder}66, inset 0 1px 0 rgba(255,255,255,0.38)`,
+                        cursor: isPending ? 'not-allowed' : 'pointer',
+                        opacity: isPending ? 0.5 : 1,
                       }}
                     >
-                      {isPlaying ? (
+                      {isPending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : isPlaying ? (
                         <Pause className="h-5 w-5 sm:h-5 sm:w-5" />
                       ) : (
                         <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />

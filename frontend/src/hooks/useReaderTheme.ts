@@ -135,6 +135,18 @@ const STORAGE_KEY = "z-reader-theme";
 
 let cachedTheme: ReaderTheme | null = null;
 
+function normalizeReaderTheme(theme: ReaderTheme): ReaderTheme {
+  return {
+    ...theme,
+    pagePaddingX: DEFAULT_READER_THEME.pagePaddingX,
+    pagePaddingY: DEFAULT_READER_THEME.pagePaddingY,
+    paragraphSpacing: DEFAULT_READER_THEME.paragraphSpacing,
+    maxInlineSize: DEFAULT_READER_THEME.maxInlineSize,
+    gap: DEFAULT_READER_THEME.gap,
+    animated: DEFAULT_READER_THEME.animated,
+  };
+}
+
 function subscribe(callback: () => void) {
   const handler = () => {
     cachedTheme = null;
@@ -147,25 +159,28 @@ function subscribe(callback: () => void) {
 function getSnapshot(): ReaderTheme {
   if (cachedTheme) return cachedTheme;
   if (typeof window === "undefined") {
-    cachedTheme = DEFAULT_READER_THEME;
-    return DEFAULT_READER_THEME;
+    cachedTheme = normalizeReaderTheme(DEFAULT_READER_THEME);
+    return cachedTheme;
   }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      const parsed = { ...DEFAULT_READER_THEME, ...JSON.parse(saved) } as ReaderTheme;
+      const parsed = normalizeReaderTheme({
+        ...DEFAULT_READER_THEME,
+        ...JSON.parse(saved),
+      } as ReaderTheme);
       cachedTheme = parsed;
       return parsed;
     }
   } catch (err) {
     console.error("Failed to load theme from localStorage:", err);
   }
-  cachedTheme = DEFAULT_READER_THEME;
-  return DEFAULT_READER_THEME;
+  cachedTheme = normalizeReaderTheme(DEFAULT_READER_THEME);
+  return cachedTheme;
 }
 
 function getServerSnapshot(): ReaderTheme {
-  return DEFAULT_READER_THEME;
+  return normalizeReaderTheme(DEFAULT_READER_THEME);
 }
 
 export function useReaderTheme() {
@@ -173,7 +188,7 @@ export function useReaderTheme() {
 
   const setTheme = useCallback(
     (newTheme: Partial<ReaderTheme>) => {
-      const updated = { ...theme, ...newTheme };
+      const updated = normalizeReaderTheme({ ...theme, ...newTheme });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       cachedTheme = updated;
       window.dispatchEvent(new StorageEvent("storage"));

@@ -1,10 +1,13 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Build outputs
 frontend/.next/
 frontend/out/
 frontend/build/
+frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
 z-reader
 
 # Database
@@ -19,10 +22,14 @@ uploads/
 .env
 .env.local
 .env.*.local
+.mcp.json
 
 # IDE
 .idea/
 .vscode/
+.claude/
+.playwright-mcp/
+.sc/
 .serena/
 *.swp
 *.swo

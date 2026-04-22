@@ -44,10 +44,6 @@ async function ensureFoliateLoaded(): Promise<void> {
 }
 
 export async function extractBookPreview(file: File): Promise<BookPreview> {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[BookPreview] 开始提取书籍信息:', file.name, file.type, file.size);
-  }
-
   await ensureFoliateLoaded();
   const makeBook = globalThis.window?.foliateMakeBook;
   if (!makeBook) {
@@ -56,25 +52,9 @@ export async function extractBookPreview(file: File): Promise<BookPreview> {
   const book = await makeBook(file);
 
   const metadata = (book?.metadata ?? {}) as Record<string, unknown>;
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[BookPreview] 元数据:', metadata);
-  }
-
   const title = normalizeTextValue(metadata.title) || file.name.replace(/\.[^.]+$/, '');
   const author = normalizeTextValue(metadata.author);
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[BookPreview] 开始提取封面...');
-  }
   const cover = await book?.getCover?.();
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[BookPreview] 封面提取结果:', {
-      hasCover: !!cover,
-      isBlob: cover instanceof Blob,
-      type: cover instanceof Blob ? cover.type : typeof cover,
-      size: cover instanceof Blob ? cover.size : 0
-    });
-  }
 
   book?.destroy?.();
 

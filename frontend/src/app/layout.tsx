@@ -91,7 +91,7 @@ export default function RootLayout({
       lang="zh-CN"
       className={`${inter.variable} ${notoSansSC.variable} ${notoSerifSC.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background paper-texture font-sans">
+      <body className="min-h-full flex flex-col bg-background font-sans">
         <ThemeProvider>
           <TooltipProvider>
             <ServiceWorkerRegistration />

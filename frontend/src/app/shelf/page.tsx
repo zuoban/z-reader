@@ -77,7 +77,7 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+      contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
     >
       {/* 统一头部面板：品牌 + 操作 + 筛选 + 分类 */}
       <div
@@ -85,19 +85,19 @@ export default function ShelfPage() {
         style={delay(0)}
       >
         {/* 品牌 + 操作按钮行 */}
-        <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-3.5">
+        <div className="flex items-center justify-between px-3 py-2.5 sm:px-5 sm:py-3.5">
           <div className="min-w-0 flex-1">
             <BrandMark size="sm" className="hidden sm:block" priority />
-            <BrandMark size="sm" className="sm:hidden" priority />
+            <BrandMark size="sm" className="w-[120px] sm:hidden" priority />
           </div>
 
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <CategoryManager
               onCategoryChange={loadCategories}
-              buttonClassName="shelf-icon-btn"
+              buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9"
             />
             {user?.role === 'admin' && (
-              <UserManager currentUser={user} buttonClassName="shelf-icon-btn" />
+              <UserManager currentUser={user} buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9" />
             )}
             <FileUploadAction
               accept={SUPPORTED_FORMATS_ACCEPT}
@@ -106,12 +106,12 @@ export default function ShelfPage() {
               title="上传书籍"
               buttonVariant="ghost"
               buttonSize="sm"
-              buttonClassName="shelf-icon-btn"
+              buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9"
             >
               {isUploading ? (
                 <LoadingSpinner className="h-4 w-4" />
               ) : (
-                <Upload className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                <Upload className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
               )}
             </FileUploadAction>
 
@@ -120,12 +120,12 @@ export default function ShelfPage() {
               size="sm"
               onClick={toggleTheme}
               title={isDark ? '切换亮色模式' : '切换暗色模式'}
-              className="shelf-icon-btn cursor-pointer"
+              className="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9 cursor-pointer"
             >
               {isDark ? (
-                <Sun className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                <Sun className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
               ) : (
-                <Moon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                <Moon className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
               )}
             </Button>
 
@@ -134,9 +134,9 @@ export default function ShelfPage() {
               size="sm"
               onClick={logout}
               title="退出"
-              className="shelf-icon-btn cursor-pointer"
+              className="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9 cursor-pointer"
             >
-              <LogOut className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+              <LogOut className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
             </Button>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function ShelfPage() {
         <div className="mx-4 sm:mx-5 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
         {/* 书架信息 + 排序行 */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-5 sm:py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:px-5 sm:py-2.5">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground sm:text-[14px]">
               <Library className="h-4 w-4 text-primary/80" />
@@ -208,13 +208,13 @@ export default function ShelfPage() {
           </div>
         ) : (
           <section
-            className="paper-reveal shelf-container relative rounded-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
+            className="paper-reveal shelf-container relative rounded-2xl px-3 py-5 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
             style={delay(150)}
           >
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (
-              <div className="relative z-0 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
+              <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
                 {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

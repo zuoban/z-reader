@@ -179,8 +179,10 @@ function getSnapshot(): ReaderTheme {
   return cachedTheme;
 }
 
+const SERVER_SNAPSHOT = normalizeReaderTheme(DEFAULT_READER_THEME);
+
 function getServerSnapshot(): ReaderTheme {
-  return normalizeReaderTheme(DEFAULT_READER_THEME);
+  return SERVER_SNAPSHOT;
 }
 
 export function useReaderTheme() {

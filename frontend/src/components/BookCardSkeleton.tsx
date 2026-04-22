@@ -66,7 +66,10 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                   <div
                     style={{ transform: `scale(${bookScale})`, transformOrigin: 'center center' }}
                   >
-                    <div className="paper-cover-frame relative aspect-[49/60] h-full w-full overflow-hidden rounded-[4px] border border-border/50 bg-muted/80 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.18)]">
+                    <div 
+                      className="paper-cover-frame relative overflow-hidden rounded-[4px] border border-border/50 bg-muted/80 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.18)]"
+                      style={{ width: SPELL_BOOK_WIDTH, height: SPELL_BOOK_HEIGHT }}
+                    >
                       <div className="absolute inset-x-3 top-3 flex items-center justify-between">
                         <Skeleton className="h-4 w-11 rounded-full" />
                         <Skeleton className="h-3 w-4 rounded-sm" />
@@ -104,12 +107,12 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
               </div>
 
               {/* Author skeleton */}
-              <div className="flex min-w-0 items-center justify-between gap-1.5">
-                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5">
+              <div className="flex min-w-0 items-center justify-end sm:justify-between gap-1.5">
+                <div className="paper-chip hidden sm:flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5">
                   <Skeleton className="h-3.5 w-3.5 shrink-0 rounded-full" />
                   <Skeleton className="h-3.5 w-24 rounded-md" />
                 </div>
-                <Skeleton className="h-8 w-[70px] shrink-0 rounded-lg sm:h-7 sm:w-[64px]" />
+                <Skeleton className="w-full sm:w-[64px] h-8 shrink-0 rounded-lg sm:h-7" />
               </div>
             </div>
           </div>
@@ -123,7 +126,7 @@ export function BookCardSkeletonGrid({ count = 6 }: { count?: number }) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="relative z-0 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
+    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
       {Array.from({ length: count }).map((_, index) => (
         <BookCardSkeleton key={index} isMobile={isMobile} />
       ))}

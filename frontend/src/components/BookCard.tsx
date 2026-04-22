@@ -266,7 +266,7 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/25 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-0 gap-0 backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/25 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
@@ -282,7 +282,7 @@ export function BookCard({
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
-                className="shrink-0"
+                className="relative shrink-0"
                 style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
               >
                 <div className="flex h-full w-full items-center justify-center">
@@ -297,17 +297,16 @@ export function BookCard({
                     </PerspectiveBook>
                   </div>
                 </div>
+                {book.category_id && category && (
+                  <div className="absolute left-1/2 -top-5 z-20 -translate-x-1/2 sm:-top-6">
+                    <span className="paper-chip shadow-sm inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10.5px] font-medium leading-4 tracking-[0.01em] text-foreground/80">
+                      <Tag className="h-3 w-3 shrink-0" />
+                      <span className="max-w-[4.5rem] truncate">{categoryLabel}</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-
-            {book.category_id && category && (
-              <div className="absolute right-2.5 top-2 z-20 sm:right-3 sm:top-2.5">
-                <span className="paper-chip inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10.5px] font-medium leading-4 tracking-[0.01em] text-foreground/80">
-                  <Tag className="h-3 w-3 shrink-0" />
-                  <span className="max-w-[4.5rem] truncate">{categoryLabel}</span>
-                </span>
-              </div>
-            )}
             {progressValue !== null && progressValue > 0 && (
               <div className="absolute inset-x-0 bottom-0 z-20 px-2.5 pb-2 sm:px-3 sm:pb-2.5">
                 <div className="flex items-center gap-1.5">
@@ -413,8 +412,8 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex min-w-0 items-center justify-between gap-1.5 text-[12px] leading-5 text-foreground/70 sm:text-[12.5px]">
-                <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-foreground/70">
+              <div className="flex min-w-0 items-center justify-end sm:justify-between gap-1.5 text-[12px] leading-5 text-foreground/70 sm:text-[12.5px]">
+                <div className="paper-chip hidden sm:flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-foreground/70">
                   <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                   <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
                 </div>
@@ -425,7 +424,7 @@ export function BookCard({
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="h-8 shrink-0 gap-1 rounded-lg bg-primary px-3 text-[11.5px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-7 sm:px-2.5 sm:text-[11px] cursor-pointer"
+                  className="w-full sm:w-auto h-8 shrink-0 gap-1 rounded-lg bg-primary px-3 text-[11.5px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-7 sm:px-2.5 sm:text-[11px] cursor-pointer"
                 >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   <span>{readButtonLabel}</span>

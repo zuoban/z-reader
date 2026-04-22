@@ -24,6 +24,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   DEFAULT_READER_THEME,
   FONT_FAMILY_OPTIONS,
+  PRESET_STYLES,
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
@@ -44,30 +45,31 @@ const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "classic",
   "humanist",
 ];
+
 const PRESETS = [
   {
     key: "light",
-    label: "棉纸",
-    bg: "#F6EFE3",
-    fg: "#2D241D",
+    label: "净白",
+    bg: PRESET_STYLES.light.bg,
+    fg: PRESET_STYLES.light.fg,
   },
   {
     key: "sepia",
     label: "旧书",
-    bg: "#F1E2C8",
-    fg: "#433427",
+    bg: PRESET_STYLES.sepia.bg,
+    fg: PRESET_STYLES.sepia.fg,
   },
   {
     key: "green",
     label: "苔纸",
-    bg: "#E5EDE0",
-    fg: "#24352B",
+    bg: PRESET_STYLES.green.bg,
+    fg: PRESET_STYLES.green.fg,
   },
   {
     key: "dark",
     label: "夜读",
-    bg: "#14100D",
-    fg: "#E3D8CA",
+    bg: PRESET_STYLES.dark.bg,
+    fg: PRESET_STYLES.dark.fg,
   },
 ] as const satisfies ReadonlyArray<{
   key: ReaderTheme["preset"];
@@ -148,25 +150,24 @@ function SectionCard({
 }: SectionCardProps) {
   return (
     <section
-      className="paper-panel overflow-hidden rounded-[1.15rem] border transition-colors duration-200"
+      className="overflow-hidden rounded-2xl transition-all duration-300"
       style={{
-        borderColor: isOpen ? `${uiScheme.link}30` : `${uiScheme.cardBorder}30`,
+        background: isOpen ? withOpacity(uiScheme.cardBg, 0.6) : "transparent",
+        border: `1px solid ${isOpen ? withOpacity(uiScheme.cardBorder, 0.3) : "transparent"}`,
+        boxShadow: isOpen ? `0 8px 32px ${withOpacity(uiScheme.cardBorder, 0.1)}` : "none",
       }}
     >
       <button
         type="button"
         onClick={() => onToggle(id)}
-        className="flex w-full items-center justify-between gap-3 p-3.5 text-left transition-colors duration-200 cursor-pointer"
-        style={{
-          background: isOpen ? `${uiScheme.buttonBg}22` : "transparent",
-        }}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors duration-200 cursor-pointer"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors duration-200"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200"
             style={{
               color: isOpen ? uiScheme.link : uiScheme.mutedText,
-              background: isOpen ? `${uiScheme.link}10` : `${uiScheme.cardBorder}10`,
+              background: isOpen ? withOpacity(uiScheme.link, 0.1) : withOpacity(uiScheme.cardBorder, 0.15),
             }}
           >
             {icon}
@@ -174,7 +175,7 @@ function SectionCard({
           <div className="min-w-0 flex-1">
             <h3
               className="font-heading text-sm font-semibold"
-              style={{ color: uiScheme.fg }}
+              style={{ color: isOpen ? uiScheme.fg : uiScheme.mutedText }}
             >
               {title}
             </h3>
@@ -189,27 +190,32 @@ function SectionCard({
             </div>
           )}
           <div
-            className="flex h-7 w-7 items-center justify-center rounded-md transition-transform duration-200"
+            className="flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-200"
             style={{
               color: isOpen ? uiScheme.link : uiScheme.mutedText,
               transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+              background: isOpen ? withOpacity(uiScheme.link, 0.05) : "transparent",
             }}
           >
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-4 w-4" />
           </div>
         </div>
       </button>
 
-      {isOpen && (
-        <div
-          className="px-3.5 pb-3.5 pt-1 space-y-3"
-          style={{
-            borderTop: `1px solid ${uiScheme.cardBorder}18`,
-          }}
-        >
-          {children}
+      <div
+        className="grid transition-all duration-300 ease-in-out"
+        style={{
+          gridTemplateRows: isOpen ? "1fr" : "0fr",
+          opacity: isOpen ? 1 : 0,
+        }}
+      >
+        <div className="overflow-hidden">
+          <div className="px-4 pb-5 pt-2 space-y-5">
+            <div className="w-full h-px mb-2" style={{ background: withOpacity(uiScheme.cardBorder, 0.2) }} />
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -217,9 +223,11 @@ function SectionCard({
 function ValuePill({ uiScheme, children, muted = false }: ValuePillProps) {
   return (
     <span
-      className="paper-chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap"
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap tracking-wide transition-colors"
       style={{
         color: muted ? uiScheme.mutedText : uiScheme.link,
+        background: muted ? withOpacity(uiScheme.cardBorder, 0.15) : withOpacity(uiScheme.link, 0.1),
+        border: `1px solid ${muted ? withOpacity(uiScheme.cardBorder, 0.2) : withOpacity(uiScheme.link, 0.15)}`,
       }}
     >
       {children}
@@ -240,22 +248,15 @@ function SliderField({
   uiScheme,
 }: SliderFieldProps) {
   return (
-    <div
-      className="paper-field rounded-[1rem] p-3"
-      style={{
-        borderColor: `${uiScheme.cardBorder}28`,
-      }}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <Label className="text-xs font-medium" style={{ color: uiScheme.fg }}>
-            {label}
-          </Label>
-        </div>
-        <ValuePill uiScheme={uiScheme}>{valueLabel}</ValuePill>
+    <div className="py-1">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <Label className="text-xs font-semibold tracking-wide" style={{ color: uiScheme.fg, opacity: 0.8 }}>
+          {label}
+        </Label>
+        <span className="text-xs font-semibold tabular-nums" style={{ color: uiScheme.link }}>{valueLabel}</span>
       </div>
-      <div className="mt-3 flex items-center gap-3">
-        <span className="text-xs tabular-nums shrink-0 w-5 text-right" style={{ color: uiScheme.mutedText }}>
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] tabular-nums shrink-0 w-6 text-right font-medium" style={{ color: uiScheme.mutedText }}>
           {minLabel}
         </span>
         <Slider
@@ -264,9 +265,9 @@ function SliderField({
           min={min}
           max={max}
           step={step}
-          className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary/60 [&_[role=slider]]:bg-background [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:focus-visible:ring-2 [&_[role=slider]]:focus-visible:ring-primary/40"
+          className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary/60 [&_[role=slider]]:bg-background [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:focus-visible:ring-2 [&_[role=slider]]:focus-visible:ring-primary/40 [&_[role=track]]:h-1.5"
         />
-        <span className="text-xs tabular-nums shrink-0 w-5" style={{ color: uiScheme.mutedText }}>
+        <span className="text-[11px] tabular-nums shrink-0 w-6 font-medium" style={{ color: uiScheme.mutedText }}>
           {maxLabel}
         </span>
       </div>
@@ -291,10 +292,12 @@ export function ThemeSettings({
     motion: false,
   });
   const panelStyle = {
-    background: uiScheme.cardBg,
-    borderColor: `${uiScheme.cardBorder}40`,
+    background: withOpacity(uiScheme.cardBg, 0.75),
+    backdropFilter: "blur(32px) saturate(180%)",
+    WebkitBackdropFilter: "blur(32px) saturate(180%)",
+    borderLeft: `1px solid ${withOpacity(uiScheme.cardBorder, 0.3)}`,
     color: uiScheme.fg,
-    boxShadow: `0 24px 60px ${uiScheme.cardBorder}22`,
+    boxShadow: `-12px 0 40px ${withOpacity(uiScheme.cardBorder, 0.15)}`,
   } as const;
 
   const selectStyle = {
@@ -350,132 +353,74 @@ export function ThemeSettings({
         showCloseButton
         finalFocus={false}
         container={overlayContainer}
-        className="max-w-[420px] p-0 sm:w-[420px] sm:max-w-[420px]"
+        className="max-w-[420px] p-0 sm:w-[420px] sm:max-w-[420px] border-l-0 flex flex-col"
         style={panelStyle}
       >
         <SheetHeader
-          className="border-0 bg-transparent px-4 pb-3 pt-4 pr-16 sm:px-5 sm:pb-4 sm:pr-16"
-          style={{ borderColor: `${uiScheme.cardBorder}30` }}
+          className="px-6 pb-5 pt-8"
+          style={{ borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, 0.2)}` }}
         >
-          <div
-            className="paper-panel paper-stack overflow-hidden rounded-[1.25rem] border px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
-            style={{
-              background: `linear-gradient(145deg, ${withOpacity(currentPreset.bg, 0.98)} 0%, ${withOpacity(uiScheme.cardBg, 0.96)} 100%)`,
-              borderColor: `${uiScheme.cardBorder}36`,
-            }}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                style={{
+                  background: withOpacity(uiScheme.link, 0.12),
+                  color: uiScheme.link,
+                }}
+              >
+                <Settings className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <SheetTitle
+                  className="font-heading text-lg font-semibold"
+                  style={{ color: uiScheme.fg }}
+                >
+                  阅读偏好
+                </SheetTitle>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleResetTheme}
+                disabled={isDefaultTheme}
+                title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
+                className="h-8 gap-1.5 rounded-full px-3 text-xs font-medium transition-colors disabled:opacity-40"
+                style={{
+                  color: uiScheme.buttonText,
+                  background: withOpacity(uiScheme.cardBorder, 0.15),
+                  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.2)}`,
+                }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                重置
+              </Button>
+            </div>
+          </div>
+          
+          <SheetDescription
+            className="mt-3 text-sm leading-relaxed"
+            style={{ color: uiScheme.mutedText }}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <div
-                  className="paper-icon-well flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                  style={{
-                    color: uiScheme.link,
-                  }}
-                >
-                  <Settings className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <SheetTitle
-                    className="font-heading text-base font-semibold"
-                    style={{ color: uiScheme.fg }}
-                  >
-                    阅读偏好
-                  </SheetTitle>
-                  <SheetDescription
-                    className="mt-1 text-[13px] leading-5"
-                    style={{ color: uiScheme.mutedText }}
-                  >
-                    在当前页面即时调整主题、版式与动效，找到更舒服的阅读节奏。
-                  </SheetDescription>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetTheme}
-                  disabled={isDefaultTheme}
-                  title={isDefaultTheme ? "已是默认样式" : "恢复默认阅读样式"}
-                  className="h-8 gap-1.5 rounded-full px-2.5 text-xs font-medium shadow-none disabled:cursor-default disabled:opacity-45"
-                  style={{
-                    color: uiScheme.buttonText,
-                    borderColor: withOpacity(uiScheme.cardBorder, 0.45),
-                  }}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  重置默认
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <ValuePill uiScheme={uiScheme}>{currentPreset.label}</ValuePill>
-              <ValuePill uiScheme={uiScheme} muted>
-                {FONT_FAMILY_OPTIONS[theme.fontFamily].label}
-              </ValuePill>
-              <ValuePill uiScheme={uiScheme} muted>
-                {getFlowLabel(theme.flow)}
-              </ValuePill>
-              <ValuePill uiScheme={uiScheme} muted={!theme.animated}>
-                {theme.animated ? "动态效果开启" : "动态效果关闭"}
-              </ValuePill>
-            </div>
+            即时调整主题、版式与动效，找到更舒服的阅读节奏。
+          </SheetDescription>
+          
+          <div className="mt-5 flex flex-wrap gap-2">
+            <ValuePill uiScheme={uiScheme}>{currentPreset.label}</ValuePill>
+            <ValuePill uiScheme={uiScheme} muted>
+              {FONT_FAMILY_OPTIONS[theme.fontFamily].label}
+            </ValuePill>
+            <ValuePill uiScheme={uiScheme} muted>
+              {getFlowLabel(theme.flow)}
+            </ValuePill>
           </div>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-5 pt-1 sm:px-5">
-          <section
-            className="paper-panel overflow-hidden rounded-[1.25rem] border"
-            style={{
-              borderColor: `${uiScheme.cardBorder}30`,
-              boxShadow: `0 16px 36px ${withOpacity(uiScheme.cardBorder, 0.12)}`,
-            }}
-          >
-            <div
-              className="flex items-center justify-between gap-2.5 px-3.5 py-2.5"
-              style={{ borderBottom: `1px solid ${uiScheme.cardBorder}15` }}
-            >
-              <span
-                className="text-xs font-medium"
-                style={{ color: uiScheme.accentText }}
-              >
-                预览
-              </span>
-              <ValuePill uiScheme={uiScheme}>
-                {currentPreset.label} · {FONT_FAMILY_OPTIONS[theme.fontFamily].label}
-              </ValuePill>
-            </div>
-            <div
-              className="p-4"
-              style={{
-                background: currentPreset.bg,
-              }}
-            >
-              <div>
-                <h3
-                  className="text-sm font-semibold leading-snug"
-                  style={{
-                    fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
-                    color: currentPreset.fg,
-                  }}
-                >
-                  文字的节奏，<br />会决定阅读的呼吸感。
-                </h3>
-                <p
-                  className="mt-2 leading-relaxed opacity-75"
-                  style={{
-                    fontFamily: FONT_FAMILY_OPTIONS[theme.fontFamily].stack,
-                    fontSize: `${Math.max(theme.fontSize - 2, 12)}px`,
-                    lineHeight: theme.lineHeight,
-                    color: currentPreset.fg,
-                  }}
-                >
-                  调整主题、字体和版式后，这里会同步呈现当前阅读效果。
-                </p>
-              </div>
-            </div>
-          </section>
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 pb-8 pt-6 sm:px-6">
+
 
           <SectionCard
             id="theme"
@@ -495,12 +440,11 @@ export function ThemeSettings({
                     key={preset.key}
                     type="button"
                     onClick={() => setTheme({ preset: preset.key })}
-                    className="paper-field group text-left transition-colors duration-200 cursor-pointer rounded-[1rem] p-2.5"
+                    className="group text-left transition-all duration-300 cursor-pointer rounded-xl p-2.5"
                     style={{
-                      borderColor: isActive ? `${uiScheme.link}40` : `${uiScheme.cardBorder}25`,
-                      boxShadow: isActive
-                        ? `0 16px 28px -22px ${withOpacity(uiScheme.link, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.28)`
-                        : undefined,
+                      background: isActive ? withOpacity(uiScheme.link, 0.08) : "transparent",
+                      border: `1px solid ${isActive ? withOpacity(uiScheme.link, 0.3) : withOpacity(uiScheme.cardBorder, 0.3)}`,
+                      boxShadow: isActive ? `0 8px 24px -8px ${withOpacity(uiScheme.link, 0.2)}` : "none",
                     }}
                   >
                     <div
@@ -546,10 +490,10 @@ export function ThemeSettings({
             uiScheme={uiScheme}
           >
             <div
-              className="rounded-lg border p-3"
+              className="rounded-xl p-3.5 mb-4"
               style={{
-                background: `${uiScheme.buttonBg}70`,
-                borderColor: `${uiScheme.cardBorder}28`,
+                background: withOpacity(uiScheme.buttonBg, 0.4),
+                border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.2)}`,
               }}
             >
               <div className="flex items-center justify-between gap-3">
@@ -583,10 +527,10 @@ export function ThemeSettings({
                 </SelectContent>
               </Select>
               <div
-                className="mt-3 rounded-md border px-3 py-2.5"
+                className="mt-3 rounded-lg px-3 py-2.5"
                 style={{
-                  background: `${uiScheme.cardBorder}08`,
-                  borderColor: `${uiScheme.cardBorder}18`,
+                  background: withOpacity(uiScheme.cardBorder, 0.1),
+                  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.15)}`,
                 }}
               >
                 <p
@@ -651,10 +595,10 @@ export function ThemeSettings({
             uiScheme={uiScheme}
           >
             <div
-              className="rounded-lg border p-3"
+              className="rounded-xl p-3.5 mb-4"
               style={{
-                background: `${uiScheme.buttonBg}70`,
-                borderColor: `${uiScheme.cardBorder}28`,
+                background: withOpacity(uiScheme.buttonBg, 0.4),
+                border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.2)}`,
               }}
             >
               <div className="flex items-center justify-between gap-3">
@@ -667,8 +611,11 @@ export function ThemeSettings({
               </div>
 
               <div
-                className="mt-3 grid grid-cols-2 gap-2"
-                style={{ background: `${uiScheme.cardBorder}10`, borderColor: `${uiScheme.cardBorder}20` }}
+                className="mt-3 grid grid-cols-2 gap-2 rounded-lg p-1.5"
+                style={{
+                  background: withOpacity(uiScheme.cardBorder, 0.1),
+                  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.15)}`,
+                }}
               >
                 {(["paginated", "scrolled"] as const).map((flow) => {
                   const isActive = theme.flow === flow;
@@ -678,11 +625,12 @@ export function ThemeSettings({
                       key={flow}
                       type="button"
                       onClick={() => setTheme({ flow })}
-                      className="flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left transition-colors duration-200 cursor-pointer"
+                      className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-left transition-colors duration-200 cursor-pointer"
                       style={{
                         color: isActive ? uiScheme.link : uiScheme.mutedText,
-                        background: isActive ? `${uiScheme.link}0e` : "transparent",
-                        border: `1px solid ${isActive ? `${uiScheme.link}30` : "transparent"}`,
+                        background: isActive ? withOpacity(uiScheme.link, 0.1) : "transparent",
+                        border: `1px solid ${isActive ? withOpacity(uiScheme.link, 0.2) : "transparent"}`,
+                        boxShadow: isActive ? `0 2px 8px ${withOpacity(uiScheme.link, 0.1)}` : "none",
                       }}
                     >
                       {flow === "paginated" ? (
@@ -764,10 +712,10 @@ export function ThemeSettings({
             uiScheme={uiScheme}
           >
             <div
-              className="flex items-center justify-between gap-3 rounded-lg border p-3"
+              className="flex items-center justify-between gap-3 rounded-xl p-3.5"
               style={{
-                background: `${uiScheme.buttonBg}70`,
-                borderColor: `${uiScheme.cardBorder}28`,
+                background: withOpacity(uiScheme.buttonBg, 0.4),
+                border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.2)}`,
               }}
             >
               <div className="min-w-0 flex-1">

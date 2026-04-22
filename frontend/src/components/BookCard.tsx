@@ -267,11 +267,9 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card paper-stack relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-border/85 hover:shadow-[0_18px_30px_-28px_rgba(64,36,20,0.26)] active:translate-y-0 active:scale-[0.995] active:shadow-[0_12px_20px_-20px_rgba(64,36,20,0.18)] motion-reduce:transition-none cursor-pointer"
+          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-border/85 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
           style={{
             width: isMobile ? '100%' : cardWidth,
-            boxShadow:
-              '0 12px 24px -24px rgba(64,36,20,0.24), 0 6px 16px -18px rgba(64,36,20,0.14)',
           }}
         >
           <div
@@ -341,7 +339,7 @@ export function BookCard({
                 </h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className="paper-control absolute right-[-4px] top-[-4px] flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.95rem] text-foreground/46 opacity-100 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.2)] transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:text-foreground/82 hover:shadow-[0_12px_22px_-20px_rgba(64,36,20,0.24)] active:scale-95 sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100 cursor-pointer"
+                    className="paper-control absolute right-[-4px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] text-foreground/46 opacity-100 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:text-foreground/82 active:scale-95 sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />

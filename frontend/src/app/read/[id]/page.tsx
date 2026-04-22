@@ -69,6 +69,7 @@ export default function ReadPage() {
   const uiScheme = getUIScheme();
 
   const [toc, setToc] = useState<TOCItem[]>([]);
+  const [bookTitle, setBookTitle] = useState("");
   const [percentage, setPercentage] = useState(0);
   const [currentChapter, setCurrentChapter] = useState("");
   const [currentPageLabel, setCurrentPageLabel] = useState("");
@@ -409,6 +410,7 @@ export default function ReadPage() {
         try {
           const book = view.book;
           setToc(book?.toc || []);
+          setBookTitle(book?.metadata?.title || "");
           setLoading(false);
 
           // 给 iframe 的 document 绑定键盘事件，解决点击正文后快捷键失效的问题
@@ -647,29 +649,30 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "paper-motion-interactive paper-control h-9 w-9 rounded-2xl backdrop-blur-sm hover:-translate-y-0.5 hover:opacity-100 active:scale-95 aria-expanded:bg-white/[0.10] sm:h-10 sm:w-10";
+    "paper-motion-interactive paper-control h-9 w-9 rounded-2xl backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:opacity-100 active:scale-95 active:duration-100 aria-expanded:bg-white/[0.10] aria-expanded:opacity-100 sm:h-10 sm:w-10";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
-    background: active ? withOpacity(uiScheme.link, 0.08) : "transparent",
-    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.22) : withOpacity(uiScheme.buttonText, 0.06)}`,
+    background: active ? withOpacity(uiScheme.link, 0.10) : "transparent",
+    border: `1px solid ${active ? withOpacity(uiScheme.link, 0.26) : withOpacity(uiScheme.buttonText, 0.08)}`,
     boxShadow: active
-      ? `0 4px 12px -4px ${withOpacity(uiScheme.link, 0.18)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.06)}`
-      : "none",
+      ? `0 6px 16px -6px ${withOpacity(uiScheme.link, 0.22)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.08)}`
+      : `0 2px 6px -2px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
     backdropFilter: "blur(8px)",
-    opacity: active ? 1 : 0.78,
+    opacity: active ? 1 : 0.82,
+    transition: "all 200ms cubic-bezier(0.32, 0.72, 0, 1)",
   });
-  const toolbarClusterStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.68 : 0.8),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.36 : 0.5)}`,
-    boxShadow: `0 14px 34px -18px ${withOpacity(uiScheme.cardBorder, 0.34)}, inset 0 1px 0 ${withOpacity(isDarkPreset ? "#ffffff" : uiScheme.cardBg, 0.22)}`,
-    backdropFilter: "blur(20px)",
+  const unifiedToolbarStyle = {
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.76 : 0.90),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.42 : 0.55)}`,
+    boxShadow: `0 12px 40px -16px ${withOpacity(uiScheme.cardBorder, 0.36)}, 0 4px 12px -6px ${withOpacity(uiScheme.cardBorder, 0.15)}, inset 0 1px 0 ${withOpacity(isDarkPreset ? "#ffffff" : "#ffffff", 0.22)}`,
+    backdropFilter: "blur(28px)",
   } as const;
   const statusBarStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.36 : 0.5),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.24)}`,
-    boxShadow: `0 18px 30px -24px ${withOpacity(uiScheme.cardBorder, 0.32)}`,
-    backdropFilter: "blur(16px)",
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.44 : 0.58),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.22 : 0.30)}`,
+    boxShadow: `0 12px 36px -20px ${withOpacity(uiScheme.cardBorder, 0.34)}, 0 2px 8px -4px ${withOpacity(uiScheme.cardBorder, 0.10)}, inset 0 1px 0 ${withOpacity(isDarkPreset ? "#ffffff" : "#ffffff", 0.14)}`,
+    backdropFilter: "blur(20px)",
   } as const;
   const mobileResumeCardStyle = {
     background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.9 : 0.94),
@@ -701,7 +704,7 @@ export default function ReadPage() {
       <div className="relative flex h-full min-h-0 flex-col">
         <header
           data-reader-interactive="true"
-          className={`pointer-events-none absolute inset-x-0 top-0 z-50 px-3 pb-2 transition-all duration-300 ease-out sm:px-4 sm:pb-2 ${
+          className={`pointer-events-none absolute inset-x-0 top-0 z-50 sm:px-4 ${
             isHeaderVisible
               ? "translate-y-0 opacity-100"
               : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
@@ -709,40 +712,43 @@ export default function ReadPage() {
           style={{
             background: "transparent",
             paddingTop: headerSafeAreaPaddingTop,
+            transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
           }}
           onMouseEnter={() => showHeader(3200)}
           onMouseLeave={() => scheduleHeaderHide(900)}
         >
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 sm:gap-4">
+          <div className="flex justify-center px-3 pt-2 sm:px-4">
             <div
-              className="reading-status-panel pointer-events-auto flex items-center gap-1 rounded-[1.35rem] p-1.5"
-              style={toolbarClusterStyle}
+              className="pointer-events-auto flex w-full max-w-2xl items-center gap-1 rounded-[1.5rem] px-2 py-1.5 sm:rounded-[1.75rem] sm:px-3 sm:py-2"
+              style={unifiedToolbarStyle}
             >
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBack}
-                title="返回书库"
-                className={toolbarButtonClass}
-                style={getToolbarButtonStyle(false)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              <Sheet open={tocOpen} onOpenChange={setTocOpen}>
-                <SheetTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="目录"
-                      className={toolbarButtonClass}
-                      style={getToolbarButtonStyle(tocOpen)}
-                    />
-                  }
+              {/* 左侧按钮组 */}
+              <div className="flex shrink-0 items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  title="返回书库"
+                  className={toolbarButtonClass}
+                  style={getToolbarButtonStyle(false)}
                 >
-                  <List className="h-4 w-4" />
-                </SheetTrigger>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <Sheet open={tocOpen} onOpenChange={setTocOpen}>
+                  <SheetTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="目录"
+                        className={toolbarButtonClass}
+                        style={getToolbarButtonStyle(tocOpen)}
+                      />
+                    }
+                  >
+                    <List className="h-4 w-4" />
+                  </SheetTrigger>
                 <SheetContent
                   side="left"
                   container={overlayContainer}
@@ -803,12 +809,35 @@ export default function ReadPage() {
                   </ScrollArea>
                 </SheetContent>
               </Sheet>
-            </div>
+              </div>
 
-            <div
-              className="reading-status-panel pointer-events-auto flex shrink-0 items-center gap-1 rounded-[1.35rem] p-1.5"
-              style={toolbarClusterStyle}
-            >
+              {/* 中间标题区域 - 显示书名 */}
+              <div className="flex min-w-0 flex-1 items-center justify-center px-2 sm:px-3">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+                  <div
+                    className="h-1 w-1 shrink-0 rounded-full sm:hidden"
+                    style={{ background: withOpacity(uiScheme.link, 0.5) }}
+                  />
+                  <span
+                    className="truncate text-xs font-medium leading-none sm:text-sm"
+                    style={{
+                      color: withOpacity(uiScheme.fg, 0.88),
+                      textShadow: isDarkPreset
+                        ? `0 1px 4px rgba(0,0,0,0.3)`
+                        : `0 1px 2px rgba(255,255,255,0.6)`,
+                    }}
+                  >
+                    {bookTitle || "阅读中"}
+                  </span>
+                  <div
+                    className="h-1 w-1 shrink-0 rounded-full sm:hidden"
+                    style={{ background: withOpacity(uiScheme.link, 0.5) }}
+                  />
+                </div>
+              </div>
+
+              {/* 右侧按钮组 */}
+              <div className="flex shrink-0 items-center gap-0.5">
               {isFullscreenSupported && (
                 <Button
                   data-reader-interactive="true"
@@ -836,6 +865,7 @@ export default function ReadPage() {
                 onOpenChange={setThemeSettingsOpen}
                 overlayContainer={overlayContainer}
               />
+              </div>
             </div>
           </div>
         </header>
@@ -1027,42 +1057,63 @@ export default function ReadPage() {
             }}
           >
             <div
-              className="reading-status-panel mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-[1.4rem] px-4 py-2 text-[10px] sm:gap-4 sm:px-5 sm:py-2.5 sm:text-[11px]"
+              className="reading-status-panel mx-auto flex w-full max-w-xl items-center overflow-hidden rounded-[1.35rem] px-1.5 py-1.5 text-xs sm:rounded-[1.5rem] sm:px-2 sm:py-1.5 sm:text-[13px]"
               style={statusBarStyle}
             >
+              {/* 左侧：阅读进度 */}
+              <div className="flex shrink-0 items-center gap-2 pl-3 pr-3 sm:pl-4 sm:pr-3">
+                <span
+                  className="font-mono tabular-nums font-medium"
+                  style={{
+                    color: withOpacity(uiScheme.link, isDarkPreset ? 0.88 : 0.82),
+                    textShadow: isDarkPreset
+                      ? `0 1px 4px rgba(0,0,0,0.4)`
+                      : `0 1px 3px rgba(255,255,255,0.8)`,
+                  }}
+                >
+                  {percentage.toFixed(1)}%
+                </span>
+                <div
+                  className="h-4 w-px shrink-0"
+                  style={{
+                    background: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.20 : 0.28),
+                  }}
+                />
+              </div>
+
+              {/* 中间：当前章节 */}
               <span
-                className="min-w-0 truncate text-left font-mono tabular-nums"
+                className="min-w-0 flex-1 truncate px-1 text-center font-medium"
                 style={{
-                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.6 : 0.56),
+                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.72 : 0.66),
                   textShadow: isDarkPreset
-                    ? `0 1px 6px rgba(0,0,0,0.5)`
-                    : `0 1px 6px rgba(255,255,255,0.9)`,
-                }}
-              >
-                {percentage.toFixed(2)}%
-              </span>
-              <span
-                className="min-w-0 truncate text-center"
-                style={{
-                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.68 : 0.62),
-                  textShadow: isDarkPreset
-                    ? `0 1px 6px rgba(0,0,0,0.5)`
-                    : `0 1px 6px rgba(255,255,255,0.9)`,
+                    ? `0 1px 4px rgba(0,0,0,0.35)`
+                    : `0 1px 3px rgba(255,255,255,0.7)`,
                 }}
               >
                 {currentChapter || "等待定位章节"}
               </span>
-              <span
-                className="min-w-0 truncate text-right"
-                style={{
-                  color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.54 : 0.5),
-                  textShadow: isDarkPreset
-                    ? `0 1px 6px rgba(0,0,0,0.5)`
-                    : `0 1px 6px rgba(255,255,255,0.9)`,
-                }}
-              >
-                {currentPageLabel || "页码加载中"}
-              </span>
+
+              {/* 右侧：页码 */}
+              <div className="flex shrink-0 items-center gap-2 pr-3 pl-3 sm:pr-4 sm:pl-3">
+                <div
+                  className="h-4 w-px shrink-0"
+                  style={{
+                    background: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.20 : 0.28),
+                  }}
+                />
+                <span
+                  className="tabular-nums"
+                  style={{
+                    color: withOpacity(uiScheme.mutedText, isDarkPreset ? 0.58 : 0.52),
+                    textShadow: isDarkPreset
+                      ? `0 1px 4px rgba(0,0,0,0.3)`
+                      : `0 1px 3px rgba(255,255,255,0.6)`,
+                  }}
+                >
+                  {currentPageLabel || "页码加载中"}
+                </span>
+              </div>
             </div>
           </div>
         </div>

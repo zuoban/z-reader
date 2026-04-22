@@ -294,16 +294,17 @@ export function ThemeSettings({
   } as const;
 
   const triggerClassName =
-    "paper-control h-8 w-8 rounded-full backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:opacity-100 active:scale-95 cursor-pointer";
+    "paper-motion-interactive paper-control h-9 w-9 rounded-2xl backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:opacity-100 active:scale-95 active:duration-100 sm:h-10 sm:w-10";
   const triggerStyle = {
     color: open ? uiScheme.link : uiScheme.buttonText,
-    background: open ? withOpacity(uiScheme.link, 0.08) : "transparent",
-    border: `1px solid ${open ? withOpacity(uiScheme.link, 0.22) : withOpacity(uiScheme.buttonText, 0.06)}`,
+    background: open ? withOpacity(uiScheme.link, 0.10) : "transparent",
+    border: `1px solid ${open ? withOpacity(uiScheme.link, 0.26) : withOpacity(uiScheme.buttonText, 0.08)}`,
     boxShadow: open
-      ? `0 4px 12px -4px ${withOpacity(uiScheme.link, 0.18)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.06)}`
-      : "none",
+      ? `0 6px 16px -6px ${withOpacity(uiScheme.link, 0.22)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.08)}`
+      : `0 2px 6px -2px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
     backdropFilter: "blur(8px)",
-    opacity: open ? 1 : 0.78,
+    opacity: open ? 1 : 0.82,
+    transition: "all 200ms cubic-bezier(0.32, 0.72, 0, 1)",
   } as const;
 
   const selectStyle = {
@@ -352,7 +353,7 @@ export function ThemeSettings({
           />
         }
       >
-        <Settings className="h-5 w-5" />
+        <Settings className="h-4 w-4" />
       </SheetTrigger>
       <SheetContent
         side="right"

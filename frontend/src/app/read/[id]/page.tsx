@@ -671,10 +671,25 @@ export default function ReadPage() {
     backdropFilter: "blur(40px) saturate(180%)",
   } as const;
   const statusBarStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.72 : 0.88),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.32 : 0.40)}`,
-    boxShadow: `0 8px 32px -8px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.40 : 0.20)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.60)}`,
-    backdropFilter: "blur(32px) saturate(160%)",
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.18 : 0.34),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.10 : 0.14)}`,
+    boxShadow: `0 8px 18px -18px ${withOpacity(uiScheme.fg, isDarkPreset ? 0.28 : 0.12)}`,
+    backdropFilter: "blur(12px) saturate(108%)",
+  } as const;
+  const statusBarProgressStyle = {
+    background: "transparent",
+    border: "1px solid transparent",
+    boxShadow: "none",
+  } as const;
+  const statusBarChapterStyle = {
+    background: "transparent",
+    border: "1px solid transparent",
+    boxShadow: "none",
+  } as const;
+  const statusBarPageStyle = {
+    background: "transparent",
+    border: "1px solid transparent",
+    boxShadow: "none",
   } as const;
   const mobileResumeCardStyle = {
     background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.9 : 0.94),
@@ -683,8 +698,8 @@ export default function ReadPage() {
   };
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "0px";
-  const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)";
-  const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)";
+  const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.6rem)";
+  const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.4rem)";
 
   return (
     <div
@@ -1037,44 +1052,46 @@ export default function ReadPage() {
             style={{ paddingBottom: statusBarSafeAreaPaddingBottom }}
           >
             <div
-              className="reading-status-panel pointer-events-auto flex w-full max-w-lg items-center gap-0 overflow-hidden rounded-2xl text-xs sm:text-[13px]"
+              className="reading-status-panel pointer-events-auto flex w-full max-w-md items-center gap-0.5 overflow-hidden rounded-xl px-2 py-0.5 text-xs transition-[background,border-color,box-shadow] duration-200 ease-out sm:text-[13px]"
               style={statusBarStyle}
             >
               {/* 左侧：进度数字 */}
-              <div className="flex shrink-0 items-center px-4 py-2.5">
+              <div
+                className="flex min-h-8 shrink-0 items-center rounded-lg px-2.5 sm:px-3"
+                style={statusBarProgressStyle}
+              >
                 <span
-                  className="min-w-[3ch] font-mono tabular-nums text-[11px] font-semibold tracking-wide"
-                  style={{ color: uiScheme.link }}
+                  className="min-w-[4ch] font-mono text-[10.5px] font-normal tabular-nums tracking-[0.04em]"
+                  style={{
+                    color: withOpacity(
+                      uiScheme.buttonText,
+                      isDarkPreset ? 0.58 : 0.56,
+                    ),
+                  }}
                 >
                   {percentage.toFixed(1)}%
                 </span>
               </div>
 
-              {/* 分隔线 */}
-              <div
-                className="h-4 w-px shrink-0"
-                style={{ background: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.24 : 0.18) }}
-              />
-
               {/* 中间：当前章节 */}
               <span
-                className="min-w-0 flex-1 truncate px-4 py-2.5 text-center text-[11.5px] font-medium sm:text-xs"
-                style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.55 : 0.50) }}
+                className="flex min-h-8 min-w-0 flex-1 items-center justify-center truncate rounded-lg px-2.5 text-center text-[10.5px] font-normal transition-colors duration-200 sm:px-3 sm:text-[11px]"
+                style={{
+                  ...statusBarChapterStyle,
+                  color: withOpacity(uiScheme.fg, isDarkPreset ? 0.44 : 0.42),
+                }}
               >
                 {currentChapter || "—"}
               </span>
 
-              {/* 分隔线 */}
-              <div
-                className="h-4 w-px shrink-0"
-                style={{ background: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.24 : 0.18) }}
-              />
-
               {/* 右侧：页码 */}
-              <div className="shrink-0 px-4 py-2.5">
+              <div
+                className="flex min-h-8 shrink-0 items-center rounded-lg px-2.5 sm:px-3"
+                style={statusBarPageStyle}
+              >
                 <span
-                  className="tabular-nums text-[11px] font-medium"
-                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.38 : 0.34) }}
+                  className="font-normal tabular-nums text-[10.5px] tracking-[0.02em]"
+                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.34 : 0.34) }}
                 >
                   {currentPageLabel || "—"}
                 </span>

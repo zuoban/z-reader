@@ -81,7 +81,7 @@ export default function ShelfPage() {
     >
       {/* 统一头部面板：品牌 + 操作 + 筛选 + 分类 */}
       <div
-        className="paper-reveal paper-panel paper-stack rounded-2xl overflow-hidden"
+        className="paper-reveal shelf-header rounded-2xl overflow-hidden"
         style={delay(0)}
       >
         {/* 品牌 + 操作按钮行 */}

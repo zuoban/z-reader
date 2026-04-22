@@ -567,6 +567,24 @@ foliate-view::part(filter) {
     border-color: color-mix(in srgb, var(--border) 35%, transparent);
   }
 
+  .shelf-header {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 88%, transparent) 0%, transparent 12%, transparent 86%, color-mix(in srgb, var(--paper-crease) 54%, transparent) 100%),
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, white 46%, transparent) 0%, transparent 30%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 90%, var(--background) 10%) 100%),
+      var(--paper-texture);
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+    border-bottom: none;
+    border-radius: 1rem;
+    box-shadow:
+      0 24px 42px -34px var(--paper-shadow),
+      0 10px 18px -16px var(--paper-shadow-soft),
+      inset 0 1px 0 var(--paper-edge);
+    background-size: auto, auto, auto, 220px 220px;
+    background-blend-mode: screen, screen, normal, multiply;
+    backdrop-filter: blur(10px) saturate(112%);
+  }
+
   .shelf-bands {
     /* Removed — fixed-position bands don't align with dynamic book grid rows */
   }

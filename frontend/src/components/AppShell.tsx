@@ -39,7 +39,7 @@ export function AppScreen({
   ambient = 'none',
 }: AppScreenProps) {
   return (
-    <div className={cn('relative min-h-screen overflow-hidden paper-texture text-foreground', className)}>
+    <div className={cn('relative min-h-screen overflow-hidden bg-background text-foreground', className)}>
       <AmbientLayer variant={ambient} />
       <div className={cn('relative z-10 min-h-screen', contentClassName)}>
         {children}

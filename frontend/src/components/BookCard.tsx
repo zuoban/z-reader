@@ -336,11 +336,11 @@ export function BookCard({
             className="flex flex-col border-t border-border/65 bg-card px-4 pb-3.5 pt-4 sm:px-[18px] sm:pb-4 sm:pt-4.5"
             style={isMobile ? { minHeight: infoHeight - 70 } : { height: infoHeight - 70 }}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="relative pr-7 sm:pr-6">
                 <h3
-                  className="h-[46px] min-w-0 font-heading text-[15.5px] font-semibold leading-[22px] tracking-[-0.025em] text-foreground sm:h-[46px] sm:text-[15px] sm:leading-[22px]"
-                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                  className="min-w-0 font-heading text-[15px] font-semibold leading-[22px] tracking-[-0.025em] text-foreground"
+                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '44px' }}
                   title={titleLabel}
                 >
                   {titleLabel}
@@ -422,7 +422,7 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex min-w-0 items-center justify-between gap-2.5 text-[12.5px] leading-5 text-foreground/72 sm:text-[13px]">
+              <div className="flex min-w-0 items-center justify-between gap-2 text-[12.5px] leading-5 text-foreground/72 sm:text-[13px]">
                 <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-foreground/72">
                   <UserRound className="h-[14px] w-[14px] shrink-0 text-muted-foreground/70" />
                   <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
@@ -434,7 +434,7 @@ export function BookCard({
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="h-9 shrink-0 gap-1.5 rounded-[0.95rem] border border-primary/15 bg-primary px-3.5 text-[12px] font-semibold tracking-[0.04em] text-primary-foreground transition-[transform,background-color,border-color] duration-200 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:h-8 sm:px-3 sm:text-[11px] cursor-pointer"
+                  className="h-9 shrink-0 gap-1.5 rounded-xl border border-primary/15 bg-primary px-3.5 text-[12px] font-semibold tracking-[0.04em] text-primary-foreground transition-[transform,background-color,border-color] duration-200 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:h-8 sm:px-3 sm:text-[11px] cursor-pointer"
                 >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   <span>{readButtonLabel}</span>

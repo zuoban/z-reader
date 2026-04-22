@@ -816,6 +816,17 @@ foliate-view::part(filter) {
     }
   }
 
+  .shelf-icon-btn {
+    @apply h-9 w-9 shrink-0 rounded-md p-0 text-muted-foreground transition-colors duration-200;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .shelf-icon-btn:hover {
+    @apply text-foreground bg-muted/50;
+  }
+
   .spinner-border {
     border-top-color: var(--foreground);
   }

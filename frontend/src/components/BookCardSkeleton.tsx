@@ -98,22 +98,22 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
           {/* Info skeleton */}
           <div
             className="flex flex-col justify-between border-t border-border/65 bg-card px-4 pb-3.5 pt-4 sm:px-[18px] sm:pb-4 sm:pt-4.5"
-            style={isMobile ? { minHeight: infoHeight } : { height: infoHeight }}
+            style={isMobile ? { minHeight: infoHeight - 70 } : { height: infoHeight - 70 }}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {/* Title skeleton */}
               <div className="relative pr-7 sm:pr-6">
-                <Skeleton className="min-h-[3rem] min-w-0 rounded-md sm:min-h-[2.7rem]" />
+                <Skeleton className="min-h-[44px] min-w-0 rounded-md sm:min-h-[44px]" />
                 <Skeleton className="absolute right-[-4px] top-[-4px] h-8 w-8 rounded-[0.95rem] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem]" />
               </div>
 
               {/* Author skeleton */}
-              <div className="flex min-w-0 items-center justify-between gap-2.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
                 <div className="paper-chip flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1">
                   <Skeleton className="h-[15px] w-[15px] shrink-0 rounded-full" />
                   <Skeleton className="h-[15px] w-24 rounded-md" />
                 </div>
-                <Skeleton className="h-9 w-[74px] shrink-0 rounded-[0.95rem] sm:h-8 sm:w-[68px]" />
+                <Skeleton className="h-9 w-[74px] shrink-0 rounded-xl sm:h-8 sm:w-[68px]" />
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ export function BookCardSkeletonGrid({ count = 6 }: { count?: number }) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-6 sm:gap-y-8 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-7 lg:gap-y-10">
+    <div className="relative z-0 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
       {Array.from({ length: count }).map((_, index) => (
         <BookCardSkeleton key={index} isMobile={isMobile} />
       ))}

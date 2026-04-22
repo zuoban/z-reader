@@ -530,35 +530,32 @@ foliate-view::part(filter) {
   }
 
   .shelf-stage-bg {
-    background:
-      linear-gradient(145deg, color-mix(in srgb, var(--card) 55%, white 5%) 0%, color-mix(in srgb, var(--card) 50%, var(--background) 10%) 100%),
-      var(--paper-texture);
-    background-size: auto, 180px 180px;
-    background-blend-mode: normal, multiply;
+    background-color: color-mix(in srgb, var(--card) 60%, var(--background) 40%);
+    background-image: var(--paper-texture);
+    background-repeat: repeat;
+    background-size: 180px 180px;
     border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   }
 
   .dark .shelf-stage-bg {
-    background:
-      linear-gradient(145deg, color-mix(in srgb, var(--card) 92%, var(--background) 8%) 0%, color-mix(in srgb, var(--card) 88%, var(--background) 8%) 100%),
-      var(--paper-texture);
-    background-size: auto, 180px 180px;
-    background-blend-mode: normal, multiply;
+    background-color: color-mix(in srgb, var(--card) 90%, var(--background) 10%);
+    background-image: var(--paper-texture);
+    background-repeat: repeat;
+    background-size: 180px 180px;
     border-color: color-mix(in srgb, var(--border) 35%, transparent);
   }
 
   .shelf-header {
-    background:
-      linear-gradient(145deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 90%, var(--background) 10%) 100%),
-      var(--paper-texture);
+    background-color: color-mix(in srgb, var(--card) 94%, var(--background) 6%);
+    background-image: var(--paper-texture);
+    background-repeat: repeat;
+    background-size: 220px 220px;
     border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
     border-bottom: none;
     border-radius: 1rem;
     box-shadow:
       0 24px 42px -34px var(--paper-shadow),
       0 10px 18px -16px var(--paper-shadow-soft);
-    background-size: auto, 220px 220px;
-    background-blend-mode: normal, multiply;
     backdrop-filter: blur(10px) saturate(112%);
   }
 

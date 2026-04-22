@@ -58,14 +58,6 @@ export default function LoginPage() {
               <h1 className="font-heading text-[2rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.4rem]">
                 欢迎回来
               </h1>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                进入你的书页、目录与阅读进度。
-              </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground">
-              <span className="paper-chip rounded-full px-3 py-1">纸质阅读</span>
-              <span className="paper-chip rounded-full px-3 py-1">沉浸排版</span>
-              <span className="paper-chip rounded-full px-3 py-1">进度同步</span>
             </div>
           </div>
 

@@ -60,23 +60,23 @@ export interface ThemeColors {
 
 export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
   light: {
-    bg: "#F6EFE3",
-    fg: "#2D241D",
-    link: "#9C6B3E",
-    headerBg: "#FBF5EA",
-    headerBorder: "#E3D5BF",
-    cardBg: "#FFF8EE",
-    cardBorder: "#E3D5BF",
-    buttonBg: "#F2E6D6",
-    buttonHoverBg: "#EBDECC",
-    buttonText: "#4C3D32",
-    mutedText: "#78695D",
-    accentText: "#9E8A78",
+    bg: "#f0f2f8",
+    fg: "#1a1e2e",
+    link: "#4f6ef7",
+    headerBg: "#f5f7ff",
+    headerBorder: "#d4daf5",
+    cardBg: "#f8faff",
+    cardBorder: "#d4daf5",
+    buttonBg: "#e8ecf8",
+    buttonHoverBg: "#dce3f5",
+    buttonText: "#2c3563",
+    mutedText: "#5a6490",
+    accentText: "#8090c0",
   },
   sepia: {
     bg: "#F1E2C8",
     fg: "#433427",
-    link: "#A47C39",
+    link: "#7c6ef8",
     headerBg: "#F7E9D3",
     headerBorder: "#D9C39B",
     cardBg: "#F8ECDA",
@@ -102,18 +102,18 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     accentText: "#7D8F7F",
   },
   dark: {
-    bg: "#14100D",
-    fg: "#E3D8CA",
-    link: "#D3AF6B",
-    headerBg: "#1D1814",
-    headerBorder: "#312A23",
-    cardBg: "#1A1511",
-    cardBorder: "#312A23",
-    buttonBg: "#241E19",
-    buttonHoverBg: "#2E2721",
-    buttonText: "#B4AAA0",
-    mutedText: "#7B7268",
-    accentText: "#5E554B",
+    bg: "#080c18",
+    fg: "#d8e0f8",
+    link: "#7c9bfa",
+    headerBg: "#0d1222",
+    headerBorder: "#1e2848",
+    cardBg: "#0f1628",
+    cardBorder: "#1e2848",
+    buttonBg: "#141c36",
+    buttonHoverBg: "#1a2442",
+    buttonText: "#8a9cc8",
+    mutedText: "#4a5880",
+    accentText: "#2e3a60",
   },
 };
 
@@ -194,8 +194,8 @@ export function useReaderTheme() {
     const selectionColor = isDark ? "#f7f1df" : preset.fg;
     // 夜间模式 code 背景使用浅色透明层
     const codeBg = isDark ? "#ffffff10" : "#00000008";
-    const bodyGlow = isDark ? "#ffffff08" : "#fffef8";
-    const bodyWarmth = withOpacity(preset.link, isDark ? 0.06 : 0.08);
+    const bodyGlow = isDark ? "#4f6ef714" : "#f5f7ffee";
+    const bodyWarmth = withOpacity(preset.link, isDark ? 0.05 : 0.06);
 
     return `
       html {
@@ -205,9 +205,8 @@ export function useReaderTheme() {
       body {
         background: ${preset.bg} !important;
         background-image:
-          linear-gradient(180deg, ${bodyGlow} 0%, transparent 15%, transparent 84%, rgba(0, 0, 0, ${isDark ? "0.08" : "0.03"}) 100%),
-          radial-gradient(circle at 50% 0%, ${bodyWarmth} 0%, transparent 30%),
-          repeating-linear-gradient(180deg, ${withOpacity(preset.fg, isDark ? 0.018 : 0.03)} 0px, ${withOpacity(preset.fg, isDark ? 0.018 : 0.03)} 1px, transparent 1px, transparent 8px);
+          linear-gradient(180deg, ${bodyGlow} 0%, transparent 12%, transparent 88%, rgba(0, 0, 0, ${isDark ? "0.10" : "0.02"}) 100%),
+          radial-gradient(circle at 50% 0%, ${bodyWarmth} 0%, transparent 28%);
         color: ${preset.fg} !important;
         font-size: ${theme.fontSize}px !important;
         line-height: ${theme.lineHeight} !important;

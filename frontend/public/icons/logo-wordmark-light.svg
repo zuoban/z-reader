@@ -1,26 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
   <defs>
     <linearGradient id="sheetBack" x1="20" y1="14" x2="192" y2="192" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#efe2d1"/>
-      <stop offset="1" stop-color="#d3baa0"/>
+      <stop offset="0" stop-color="#dce4fd"/>
+      <stop offset="1" stop-color="#b8c8fa"/>
     </linearGradient>
     <linearGradient id="sheetFront" x1="34" y1="24" x2="184" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fffdf8"/>
-      <stop offset="1" stop-color="#f1e5d2"/>
+      <stop offset="0" stop-color="#f5f7ff"/>
+      <stop offset="1" stop-color="#e4eafd"/>
     </linearGradient>
     <linearGradient id="spine" x1="110" y1="34" x2="110" y2="172" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#d1b589"/>
-      <stop offset="1" stop-color="#b08a5a"/>
+      <stop offset="0" stop-color="#7c9bfa"/>
+      <stop offset="1" stop-color="#4f6ef7"/>
     </linearGradient>
     <linearGradient id="titleGrad" x1="256" y1="52" x2="512" y2="148" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#5a4430"/>
-      <stop offset="1" stop-color="#836345"/>
+      <stop offset="0" stop-color="#1a2a7a"/>
+      <stop offset="1" stop-color="#4f6ef7"/>
     </linearGradient>
     <filter id="backShadow" x="12" y="18" width="204" height="182" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#7f6442" flood-opacity="0.16"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#4f6ef7" flood-opacity="0.16"/>
     </filter>
     <filter id="frontShadow" x="18" y="18" width="192" height="178" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#7f6442" flood-opacity="0.12"/>
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#4f6ef7" flood-opacity="0.12"/>
     </filter>
   </defs>
 
@@ -30,32 +30,31 @@
     </g>
     <g filter="url(#frontShadow)">
       <path d="M46 26H138C154.02 26 167 38.98 167 55V145C167 161.02 154.02 174 138 174H46C29.98 174 17 161.02 17 145V55C17 38.98 29.98 26 46 26Z" fill="url(#sheetFront)"/>
-      <path d="M46 26H138C154.02 26 167 38.98 167 55V145C167 161.02 154.02 174 138 174H46C29.98 174 17 161.02 17 145V55C17 38.98 29.98 26 46 26Z" stroke="#f8f1e5" stroke-opacity=".84"/>
-      <path d="M40 34H132C148.02 34 161 46.98 161 63V153C161 169.02 148.02 182 132 182H40C23.98 182 11 169.02 11 153V63C11 46.98 23.98 34 40 34Z" stroke="#b18d60" stroke-opacity=".22"/>
+      <path d="M46 26H138C154.02 26 167 38.98 167 55V145C167 161.02 154.02 174 138 174H46C29.98 174 17 161.02 17 145V55C17 38.98 29.98 26 46 26Z" stroke="#c8d5fb" stroke-opacity=".8"/>
     </g>
 
-    <path d="M92 38H128" stroke="#8c6d4b" stroke-opacity=".18" stroke-width="1.4" stroke-linecap="round"/>
-    <path d="M92 46H120" stroke="#8c6d4b" stroke-opacity=".14" stroke-width="1.4" stroke-linecap="round"/>
-    <path d="M92 140H140" stroke="#b49160" stroke-opacity=".34" stroke-width="1.2" stroke-linecap="round"/>
-    <text x="92" y="152" text-anchor="middle" font-family="serif" font-size="12" letter-spacing="4" fill="#a07a4f" fill-opacity=".86">READER</text>
+    <path d="M92 38H128" stroke="#4f6ef7" stroke-opacity=".18" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M92 46H120" stroke="#4f6ef7" stroke-opacity=".13" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M92 140H140" stroke="#4f6ef7" stroke-opacity=".28" stroke-width="1.2" stroke-linecap="round"/>
+    <text x="92" y="152" text-anchor="middle" font-family="serif" font-size="12" letter-spacing="4" fill="#4f6ef7" fill-opacity=".72">READER</text>
 
     <path d="M92 40V160" stroke="url(#spine)" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M93.5 44V158" stroke="#f9edd7" stroke-width=".8" stroke-linecap="round" opacity=".6"/>
+    <path d="M93.5 44V158" stroke="#ffffff" stroke-width=".8" stroke-linecap="round" opacity=".6"/>
 
-    <path d="M44 58H80" stroke="#7a5e42" stroke-opacity=".16" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M44 66H74" stroke="#7a5e42" stroke-opacity=".12" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M104 58H140" stroke="#7a5e42" stroke-opacity=".18" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M104 66H132" stroke="#7a5e42" stroke-opacity=".12" stroke-width="1.5" stroke-linecap="round"/>
-    <text x="62" y="114" text-anchor="middle" font-family="serif" font-size="52" font-weight="700" fill="#614933">Z</text>
-    <path d="M104 96H136" stroke="#6f563f" stroke-opacity=".24" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M104 106H130" stroke="#6f563f" stroke-opacity=".18" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M104 124H138" stroke="#6f563f" stroke-opacity=".22" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M44 58H80" stroke="#3a56c4" stroke-opacity=".14" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M44 66H74" stroke="#3a56c4" stroke-opacity=".10" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M104 58H140" stroke="#3a56c4" stroke-opacity=".16" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M104 66H132" stroke="#3a56c4" stroke-opacity=".10" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="62" y="114" text-anchor="middle" font-family="serif" font-size="52" font-weight="700" fill="#3349b5">Z</text>
+    <path d="M104 96H136" stroke="#4f6ef7" stroke-opacity=".22" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M104 106H130" stroke="#4f6ef7" stroke-opacity=".16" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M104 124H138" stroke="#4f6ef7" stroke-opacity=".20" stroke-width="1.8" stroke-linecap="round"/>
   </g>
 
-  <path d="M228 154H548" stroke="#ccbea9" stroke-opacity=".42" stroke-width="1.2" stroke-linecap="round"/>
-  <circle cx="228" cy="154" r="2.4" fill="#bc9665" fill-opacity=".54"/>
-  <circle cx="548" cy="154" r="2.4" fill="#bc9665" fill-opacity=".54"/>
+  <path d="M228 154H548" stroke="#a8b8f0" stroke-opacity=".36" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="228" cy="154" r="2.4" fill="#4f6ef7" fill-opacity=".46"/>
+  <circle cx="548" cy="154" r="2.4" fill="#4f6ef7" fill-opacity=".46"/>
 
   <text x="390" y="102" text-anchor="middle" font-family="serif" font-size="56" font-weight="600" fill="url(#titleGrad)" letter-spacing="1.5">Z Reader</text>
-  <text x="390" y="138" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" letter-spacing="4" fill="#8c745b" fill-opacity=".86">A QUIETER DIGITAL LIBRARY</text>
+  <text x="390" y="138" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" letter-spacing="4" fill="#5a6fa8" fill-opacity=".82">A QUIETER DIGITAL LIBRARY</text>
 </svg>

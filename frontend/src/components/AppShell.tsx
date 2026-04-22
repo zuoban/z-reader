@@ -56,9 +56,9 @@ interface BrandMarkProps {
 }
 
 const brandSizes = {
-  sm: 'w-[132px]',
-  md: 'w-[180px]',
-  lg: 'w-[200px]',
+  sm: 'w-[220px]',
+  md: 'w-[260px]',
+  lg: 'w-[300px]',
 };
 
 export function BrandMark({

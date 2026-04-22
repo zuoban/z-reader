@@ -136,10 +136,10 @@ export function CategoryFilter({
                 role="tab"
                 aria-selected={isSelected}
                 className={cn(
-                  'group relative flex h-8 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium cursor-pointer transition-colors duration-200',
+                  'group relative flex h-8 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium cursor-pointer transition-all duration-200',
                   isSelected
-                    ? 'bg-muted/60 text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    ? 'bg-primary/12 text-primary ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
                 )}
               >
                 {/* 颜色指示点 */}

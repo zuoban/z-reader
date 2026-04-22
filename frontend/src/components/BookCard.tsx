@@ -111,47 +111,46 @@ function BookCoverFace({
 }: BookCoverFaceProps) {
   if (coverUrl) {
     return (
-      <div className="relative h-full w-full bg-[linear-gradient(160deg,rgba(255,255,255,0.98)_0%,rgba(244,238,230,0.96)_100%)] dark:bg-[linear-gradient(160deg,rgba(28,28,28,0.96)_0%,rgba(18,18,18,0.98)_100%)]">
+      <div className="relative h-full w-full">
         <Image
           src={coverUrl}
           alt={titleLabel}
           fill
           unoptimized
           sizes="(max-width: 640px) 40vw, (max-width: 1024px) 18vw, 156px"
-          className="object-cover saturate-[1.02] contrast-[1.03]"
+          className="object-cover"
         />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_26%,rgba(23,23,23,0.22)_100%)] mix-blend-screen dark:bg-[linear-gradient(180deg,transparent_0%,transparent_24%,rgba(0,0,0,0.38)_100%)] dark:mix-blend-normal" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),transparent_10%,transparent_90%,rgba(0,0,0,0.14))]" />
-        <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),inset_0_-18px_32px_-24px_rgba(0,0,0,0.55)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_30%,rgba(8,12,24,0.28)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(107,139,250,0.08),transparent_15%,transparent_85%,rgba(0,0,0,0.12))]" />
       </div>
     );
   }
 
-  // 默认封面 - 纸张质感
+  // 默认封面 - 现代渐变风格
   return (
     <div className="paper-cover-frame relative flex size-full flex-col p-4 text-foreground">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.28),transparent_18%,transparent_82%,rgba(71,46,28,0.08))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(107,139,250,0.15)_0%,rgba(155,141,249,0.08)_50%,rgba(6,182,212,0.06)_100%)]" />
       <div className="relative flex h-full flex-col">
         <div className="flex items-start justify-between gap-2">
-          <span className="paper-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-foreground/55">
+          <span className="paper-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-primary/70">
             BOOK
           </span>
-          <span className="text-[10px] font-semibold tracking-[0.24em] text-foreground/32 uppercase">
+          <span className="text-[10px] font-semibold tracking-[0.24em] text-foreground/30 uppercase">
             Z
           </span>
         </div>
         <div className="mt-5 space-y-3">
-          <div className="h-px w-9 bg-foreground/12" />
-          <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.5] tracking-[-0.01em] text-foreground/90">
+          <div className="h-px w-9 bg-primary/20" />
+          <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.5] tracking-[-0.01em] text-foreground/85">
             {titleLabel}
           </h3>
         </div>
         <div className="mt-auto flex items-end justify-between gap-3">
           <div className="space-y-1">
-            <div className="text-[10px] font-semibold tracking-[0.18em] text-foreground/35 uppercase">
+            <div className="text-[10px] font-semibold tracking-[0.18em] text-primary/50 uppercase">
               Z Reader
             </div>
-            <div className="h-px w-12 bg-foreground/10" />
+            <div className="h-px w-12 bg-primary/15" />
           </div>
           <svg
             width="20"
@@ -162,7 +161,7 @@ function BookCoverFace({
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-foreground/40"
+            className="text-primary/35"
           >
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
@@ -267,13 +266,13 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-border/85 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/25 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
         >
           <div
-            className="relative overflow-hidden bg-muted/45 dark:bg-muted/30"
+            className="relative overflow-hidden bg-gradient-to-b from-muted/60 to-muted/30 dark:from-muted/40 dark:to-muted/20"
             style={{ height: coverHeight }}
           >
             {isMobile && (
@@ -314,7 +313,7 @@ export function BookCard({
                 <div className="flex items-center gap-1.5">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
                     <div
-                      className="h-full rounded-full bg-primary/85 transition-[width] duration-500 ease-out"
+                      className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
                       style={{ width: `${progressValue}%` }}
                     />
                   </div>
@@ -426,7 +425,7 @@ export function BookCard({
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="h-8 shrink-0 gap-1 rounded-lg border border-primary/15 bg-primary px-3 text-[11.5px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,border-color] duration-200 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:h-7 sm:px-2.5 sm:text-[11px] cursor-pointer"
+                  className="h-8 shrink-0 gap-1 rounded-lg bg-primary px-3 text-[11.5px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-7 sm:px-2.5 sm:text-[11px] cursor-pointer"
                 >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   <span>{readButtonLabel}</span>

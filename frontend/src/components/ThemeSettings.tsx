@@ -83,6 +83,8 @@ interface ThemeSettingsProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   overlayContainer?: HTMLElement | null;
+  triggerClassName?: string;
+  triggerStyle?: React.CSSProperties;
 }
 
 interface SectionCardProps {
@@ -279,6 +281,8 @@ export function ThemeSettings({
   open,
   onOpenChange,
   overlayContainer,
+  triggerClassName,
+  triggerStyle,
 }: ThemeSettingsProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     theme: true,
@@ -291,20 +295,6 @@ export function ThemeSettings({
     borderColor: `${uiScheme.cardBorder}40`,
     color: uiScheme.fg,
     boxShadow: `0 24px 60px ${uiScheme.cardBorder}22`,
-  } as const;
-
-  const triggerClassName =
-    "paper-motion-interactive paper-control h-9 w-9 rounded-2xl backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:opacity-100 active:scale-95 active:duration-100 sm:h-10 sm:w-10";
-  const triggerStyle = {
-    color: open ? uiScheme.link : uiScheme.buttonText,
-    background: open ? withOpacity(uiScheme.link, 0.10) : "transparent",
-    border: `1px solid ${open ? withOpacity(uiScheme.link, 0.26) : withOpacity(uiScheme.buttonText, 0.08)}`,
-    boxShadow: open
-      ? `0 6px 16px -6px ${withOpacity(uiScheme.link, 0.22)}, inset 0 1px 0 ${withOpacity(uiScheme.link, 0.08)}`
-      : `0 2px 6px -2px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
-    backdropFilter: "blur(8px)",
-    opacity: open ? 1 : 0.82,
-    transition: "all 200ms cubic-bezier(0.32, 0.72, 0, 1)",
   } as const;
 
   const selectStyle = {

@@ -14,11 +14,7 @@ interface AppScreenProps {
 
 function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'shelf') {
-    return (
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 shelf-ambient-bg" />
-      </div>
-    );
+    return null;
   }
 
   if (variant === 'login') {

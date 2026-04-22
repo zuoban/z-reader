@@ -208,8 +208,8 @@ export default function ShelfPage() {
           </div>
         ) : (
           <section
-            className="paper-reveal relative rounded-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
-            style={{ ...delay(150), background: 'var(--shelf-container-bg)' }}
+            className="paper-reveal shelf-container relative rounded-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
+            style={delay(150)}
           >
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />

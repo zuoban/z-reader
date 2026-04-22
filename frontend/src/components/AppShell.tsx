@@ -17,8 +17,6 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 shelf-ambient-bg" />
-        <div className="absolute left-[7%] top-[-4rem] h-52 w-52 rounded-[2.5rem] border border-border/20 bg-card/30 blur-3xl" />
-        <div className="absolute bottom-[-6rem] right-[8%] h-72 w-72 rounded-[3rem] border border-border/20 bg-secondary/20 blur-3xl" />
       </div>
     );
   }

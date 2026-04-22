@@ -217,10 +217,9 @@ foliate-view::part(filter) {
 
   .shelf-ambient-bg {
     background:
-      radial-gradient(circle at 14% 12%, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 22%),
-      radial-gradient(circle at 84% 10%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 24%),
-      linear-gradient(180deg, color-mix(in srgb, black 6%, transparent) 0%, transparent 20%, transparent 82%, color-mix(in srgb, black 8%, transparent) 100%),
-      linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, white 6%) 0%, var(--background) 100%);
+      radial-gradient(ellipse 60% 40% at 20% 10%, color-mix(in srgb, var(--primary) 6%, transparent) 0%, transparent 100%),
+      radial-gradient(ellipse 50% 35% at 80% 20%, color-mix(in srgb, var(--accent) 5%, transparent) 0%, transparent 100%),
+      radial-gradient(ellipse 70% 50% at 50% 90%, color-mix(in srgb, var(--secondary) 20%, transparent) 0%, transparent 100%);
   }
 
   .login-ambient-bg {
@@ -546,41 +545,33 @@ foliate-view::part(filter) {
 
   .shelf-stage {
     position: relative;
-    isolation: isolate;
   }
 
-  .shelf-stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 2rem;
+  .shelf-stage-bg {
     background:
-      linear-gradient(180deg, color-mix(in srgb, white 24%, transparent) 0%, transparent 14%),
-      linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, white 6%) 0%, color-mix(in srgb, var(--background) 88%, var(--secondary) 12%) 100%);
-    border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent),
-      0 24px 44px -38px var(--paper-shadow-soft);
-    z-index: -2;
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 60%, transparent) 0%, transparent 14%, transparent 88%, color-mix(in srgb, var(--paper-crease) 40%, transparent) 100%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 55%, white 5%) 0%, color-mix(in srgb, var(--card) 50%, var(--background) 10%) 100%),
+      var(--paper-texture);
+    background-size: auto, auto, 180px 180px;
+    background-blend-mode: screen, normal, multiply;
+    border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   }
 
-  .shelf-stage::after {
-    content: "";
-    position: absolute;
-    inset-inline: 1.25rem;
-    bottom: 1.5rem;
-    height: 0.75rem;
-    border-radius: 999px;
-    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--paper-shadow) 18%, transparent) 14%, color-mix(in srgb, var(--paper-shadow) 18%, transparent) 86%, transparent 100%);
-    filter: blur(12px);
-    z-index: -1;
+  .dark .shelf-stage-bg {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 40%, transparent) 0%, transparent 14%, transparent 88%, color-mix(in srgb, var(--paper-crease) 25%, transparent) 100%),
+      linear-gradient(145deg, color-mix(in srgb, var(--card) 92%, var(--background) 8%) 0%, color-mix(in srgb, var(--card) 88%, var(--background) 8%) 100%),
+      var(--paper-texture);
+    background-size: auto, auto, 180px 180px;
+    background-blend-mode: screen, normal, multiply;
+    border-color: color-mix(in srgb, var(--border) 35%, transparent);
   }
 
   .shelf-bands {
     background:
-      linear-gradient(180deg, transparent 0%, transparent 20%, color-mix(in srgb, var(--border) 18%, transparent) 20%, color-mix(in srgb, var(--border) 18%, transparent) 20.35%, transparent 20.35%),
-      linear-gradient(180deg, transparent 0%, transparent 54%, color-mix(in srgb, var(--border) 16%, transparent) 54%, color-mix(in srgb, var(--border) 16%, transparent) 54.35%, transparent 54.35%),
-      linear-gradient(180deg, transparent 0%, transparent 88%, color-mix(in srgb, var(--border) 14%, transparent) 88%, color-mix(in srgb, var(--border) 14%, transparent) 88.35%, transparent 88.35%);
+      linear-gradient(180deg, transparent 0%, transparent 14%, color-mix(in srgb, var(--border) 12%, transparent) 14%, color-mix(in srgb, var(--border) 12%, transparent) 14.3%, transparent 14.3%),
+      linear-gradient(180deg, transparent 0%, transparent 42%, color-mix(in srgb, var(--border) 10%, transparent) 42%, color-mix(in srgb, var(--border) 10%, transparent) 42.3%, transparent 42.3%),
+      linear-gradient(180deg, transparent 0%, transparent 70%, color-mix(in srgb, var(--border) 8%, transparent) 70%, color-mix(in srgb, var(--border) 8%, transparent) 70.3%, transparent 70.3%);
   }
 
   .reading-status-panel {

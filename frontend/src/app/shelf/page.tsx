@@ -208,10 +208,11 @@ export default function ShelfPage() {
           </div>
         ) : (
           <section
-            className="paper-reveal shelf-stage relative rounded-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
+            className="paper-reveal shelf-stage relative rounded-2xl overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
             style={delay(150)}
           >
-            <div aria-hidden="true" className="shelf-bands pointer-events-none absolute inset-0 rounded-2xl" />
+            <div aria-hidden="true" className="shelf-stage-bg pointer-events-none absolute inset-0" />
+            <div aria-hidden="true" className="shelf-bands pointer-events-none absolute inset-0" />
             {isLoadingBooks ? (
               <BookCardSkeletonGrid count={6} />
             ) : (

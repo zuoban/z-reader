@@ -1028,7 +1028,26 @@ export function TTSControls({
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-5 gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onSleepTimerSegment?.()}
+                        className="h-7 rounded-lg px-2 text-[11px] font-semibold"
+                        style={{
+                          color:
+                            sleepTimer?.mode === 'segment'
+                              ? uiScheme.link
+                              : uiScheme.mutedText,
+                          background:
+                            sleepTimer?.mode === 'segment'
+                              ? `${uiScheme.link}14`
+                              : 'transparent',
+                          border: 'none',
+                        }}
+                      >
+                        本段
+                      </Button>
                       {[15, 30, 60].map((minutes) => {
                         const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                         return (

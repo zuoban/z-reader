@@ -89,6 +89,9 @@ export default function ReadPage() {
   const themeRef = useRef(theme);
   const getStylesheetRef = useRef(getStylesheet);
   const updateProgressRef = useRef(updateProgress);
+  const loadingRef = useRef(loading);
+  const tocOpenRef = useRef(tocOpen);
+  const themeSettingsOpenRef = useRef(themeSettingsOpen);
   // 缓存脚本加载状态，避免重复创建 script 标签
   const scriptLoadedRef = useRef(false);
   const tocListRef = useRef<HTMLDivElement>(null);
@@ -133,24 +136,39 @@ export default function ReadPage() {
     themeRef.current = theme;
     getStylesheetRef.current = getStylesheet;
     updateProgressRef.current = updateProgress;
-  }, [progress, theme, getStylesheet, updateProgress]);
+    loadingRef.current = loading;
+    tocOpenRef.current = tocOpen;
+    themeSettingsOpenRef.current = themeSettingsOpen;
+  }, [
+    progress,
+    theme,
+    getStylesheet,
+    updateProgress,
+    loading,
+    tocOpen,
+    themeSettingsOpen,
+  ]);
 
   const applyRendererPreferences = useCallback(
     (renderer?: FoliateView["renderer"] | null) => {
       if (!renderer) return;
 
+      const currentTheme = themeRef.current;
       renderer.setAttribute("margin", "0");
-      renderer.setAttribute("flow", theme.flow);
-      renderer.setAttribute("gap", `${theme.gap}%`);
-      renderer.setAttribute("max-inline-size", `${theme.maxInlineSize}px`);
+      renderer.setAttribute("flow", currentTheme.flow);
+      renderer.setAttribute("gap", `${currentTheme.gap}%`);
+      renderer.setAttribute(
+        "max-inline-size",
+        `${currentTheme.maxInlineSize}px`,
+      );
 
-      if (theme.animated) {
+      if (currentTheme.animated) {
         renderer.setAttribute("animated", "");
       } else {
         renderer.removeAttribute("animated");
       }
     },
-    [theme.animated, theme.flow, theme.gap, theme.maxInlineSize],
+    [],
   );
 
   const updatePageLabel = useCallback(
@@ -190,19 +208,24 @@ export default function ReadPage() {
   // 清理书籍内容中的内联样式，确保主题样式生效
   const cleanInlineStyles = useCallback(
     (doc: Document) => {
-      if (theme.preset !== "dark") return;
+      const STYLE_ID = "z-reader-dark-overrides";
+      const styleEl = doc.getElementById(STYLE_ID) as HTMLStyleElement | null;
+
+      if (themeRef.current.preset !== "dark") {
+        styleEl?.remove();
+        return;
+      }
 
       const preset = PRESET_STYLES.dark;
-      const STYLE_ID = "z-reader-dark-overrides";
 
       // 注入强制覆盖的 CSS 到书籍文档
-      let styleEl = doc.getElementById(STYLE_ID) as HTMLStyleElement | null;
-      if (!styleEl) {
-        styleEl = doc.createElement("style");
-        styleEl.id = STYLE_ID;
-        doc.head.appendChild(styleEl);
+      let darkStyleEl = styleEl;
+      if (!darkStyleEl) {
+        darkStyleEl = doc.createElement("style");
+        darkStyleEl.id = STYLE_ID;
+        doc.head.appendChild(darkStyleEl);
       }
-      styleEl.textContent = `
+      darkStyleEl.textContent = `
       * {
         color: ${preset.fg} !important;
       }
@@ -211,7 +234,7 @@ export default function ReadPage() {
       }
     `;
     },
-    [theme.preset],
+    [],
   );
 
   useEffect(() => {
@@ -256,7 +279,11 @@ export default function ReadPage() {
     (delay = 2200) => {
       clearHeaderHideTimer();
 
-      if (loading || tocOpen || themeSettingsOpen) {
+      if (
+        loadingRef.current ||
+        tocOpenRef.current ||
+        themeSettingsOpenRef.current
+      ) {
         return;
       }
 
@@ -265,7 +292,7 @@ export default function ReadPage() {
         headerHideTimerRef.current = null;
       }, delay);
     },
-    [clearHeaderHideTimer, loading, themeSettingsOpen, tocOpen],
+    [clearHeaderHideTimer],
   );
 
   const showHeader = useCallback(
@@ -449,9 +476,7 @@ export default function ReadPage() {
           if (doc) {
             bindReaderDocument(doc);
             bindHeaderInteractionDocument(doc);
-            if (theme.preset === "dark") {
-              cleanInlineStyles(doc);
-            }
+            cleanInlineStyles(doc);
           }
         } catch (err) {
           console.error("Failed to handle relocate event:", err);
@@ -497,7 +522,6 @@ export default function ReadPage() {
     bindReaderDocument,
     bookId,
     cleanInlineStyles,
-    theme.preset,
     updatePageLabel,
   ]);
 

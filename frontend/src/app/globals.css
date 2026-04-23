@@ -479,14 +479,14 @@ foliate-view::part(filter) {
   }
 
   .shelf-header {
-    background: color-mix(in srgb, var(--card) 88%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 54%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 52%, transparent);
     border-radius: 1rem;
     box-shadow:
-      0 8px 32px -8px var(--paper-shadow),
-      0 2px 8px -2px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent);
-    backdrop-filter: blur(20px) saturate(160%);
+      0 6px 24px -14px var(--paper-shadow),
+      0 1px 6px -4px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 44%, transparent);
+    backdrop-filter: blur(14px) saturate(135%);
   }
 
   .shelf-bands {

@@ -50,7 +50,7 @@ export default function LoginPage() {
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-5 py-6 sm:px-7 sm:py-10 lg:px-10 lg:py-12">
         <div className="editorial-panel paper-stack w-full max-w-[460px] rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
           <div className="editorial-divider mb-8 flex flex-col items-center gap-5 pb-8">
-            <BrandMark size="lg" framed priority />
+            <BrandMark size="lg" priority />
             <div className="text-center">
               <p className="text-[11px] font-semibold tracking-[0.24em] text-muted-foreground uppercase">
                 Your Reading Room
@@ -139,10 +139,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 flex items-center justify-between gap-3 border-t border-border/40 pt-5 text-[11px] leading-5 text-muted-foreground">
-            <span>在暖色纸面中继续阅读</span>
-            <span className="paper-chip rounded-full px-2.5 py-0.5">Z Reader</span>
-          </div>
         </div>
       </div>
     </AppScreen>

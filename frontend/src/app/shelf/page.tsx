@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen,
-  Library,
   LogOut,
   Moon,
   Plus,
@@ -78,7 +77,7 @@ export default function ShelfPage() {
       ambient="shelf"
       contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
     >
-      {/* 统一头部面板：品牌 + 操作 + 筛选 + 分类 */}
+      {/* 统一头部面板：品牌 + 操作 */}
       <div
         className="paper-reveal shelf-header rounded-2xl overflow-hidden"
         style={delay(0)}
@@ -141,37 +140,6 @@ export default function ShelfPage() {
           </div>
         </div>
 
-        {/* 分隔线 */}
-        <div className="mx-4 sm:mx-5 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
-
-        {/* 书架信息 + 排序行 */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:px-5 sm:py-2.5">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground sm:text-[14px]">
-              <Library className="h-4 w-4 text-primary/80" />
-              我的书架
-            </span>
-            <span className="paper-chip rounded-full px-2.5 py-0.5 text-[12px] font-medium tabular-nums text-muted-foreground">
-              {filteredBooks.length} / {books.length}
-            </span>
-          </div>
-          <SortSelector value={sortBy} onChange={setSortBy} />
-        </div>
-
-        {/* 分类筛选行（有分类时显示） */}
-        {categories.length > 0 && (
-          <>
-            <div className="mx-4 sm:mx-5 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
-            <div className="px-1 pb-1.5 sm:px-2 sm:pb-2">
-              <CategoryFilter
-                categories={categories}
-                selectedCategoryId={selectedCategoryId}
-                onSelectCategory={setSelectedCategoryId}
-                bookCounts={bookCounts}
-              />
-            </div>
-          </>
-        )}
       </div>
 
       <main className="flex-1 mt-6 sm:mt-8">
@@ -208,13 +176,37 @@ export default function ShelfPage() {
           </div>
         ) : (
           <section
-            className="paper-reveal shelf-container relative rounded-2xl px-3 py-5 sm:px-6 sm:py-8 lg:px-7 lg:py-9"
+            className="paper-reveal shelf-container relative rounded-2xl"
             style={delay(150)}
           >
+            <div className="relative z-10 border-b border-border/45 px-3 py-3 sm:px-6 sm:py-4 lg:px-7">
+              {categories.length > 0 ? (
+                <div className="flex items-center gap-3">
+                  <div className="-mx-1 min-w-0 flex-1">
+                    <CategoryFilter
+                      categories={categories}
+                      selectedCategoryId={selectedCategoryId}
+                      onSelectCategory={setSelectedCategoryId}
+                      bookCounts={bookCounts}
+                    />
+                  </div>
+                  <div className="ml-auto shrink-0">
+                    <SortSelector value={sortBy} onChange={setSortBy} />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-end">
+                  <SortSelector value={sortBy} onChange={setSortBy} />
+                </div>
+              )}
+            </div>
+
             {isLoadingBooks ? (
-              <BookCardSkeletonGrid count={6} />
+              <div className="px-3 py-5 sm:px-6 sm:py-8 lg:px-7 lg:py-9">
+                <BookCardSkeletonGrid count={6} />
+              </div>
             ) : (
-              <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
+              <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 px-3 py-5 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 sm:px-6 sm:py-8 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12 lg:px-7 lg:py-9">
                 {filteredBooks.map((book, index) => (
                   <BookCard
                     key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

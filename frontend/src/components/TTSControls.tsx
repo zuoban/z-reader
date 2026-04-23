@@ -352,33 +352,38 @@ interface VoiceSliderProps {
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
   <div
-    className="paper-field group flex min-h-10 items-center gap-3 rounded-2xl border px-3 py-2"
+    className="paper-field group flex min-h-11 items-center gap-4 rounded-2xl border px-4 py-2"
     style={{
-      borderColor: `${uiScheme.cardBorder}34`,
+      borderColor: `${uiScheme.cardBorder}28`,
+      background: `${uiScheme.muted}40`,
     }}
   >
     <label
-      className="w-10 shrink-0 text-xs font-semibold uppercase tracking-[0.14em] transition-colors duration-200"
+      className="w-10 shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-200"
       style={{ color: uiScheme.mutedText }}
     >
       {label}
     </label>
-    <Slider
-      value={[value]}
-      onValueChange={(v) => onChange(v[0])}
-      min={min}
-      max={max}
-      step={step}
-      className="flex-1 [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-105 [&_[role=slider]]:active:scale-95"
-    />
-    <span
-      className="paper-chip w-16 rounded-full px-2 py-1 text-right text-xs font-semibold tabular-nums tracking-tight transition-colors duration-200"
+    <div className="relative flex flex-1 items-center">
+      <Slider
+        value={[value]}
+        onValueChange={(v) => onChange(v[0])}
+        min={min}
+        max={max}
+        step={step}
+        className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-white [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-110 [&_[role=slider]]:active:scale-95"
+      />
+    </div>
+    <div
+      className="flex h-7 min-w-[56px] items-center justify-center rounded-lg px-2 text-xs font-bold tabular-nums tracking-tight transition-colors duration-200"
       style={{
         color: uiScheme.fg,
+        background: `${uiScheme.muted}60`,
+        boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
       }}
     >
       {format(value)}
-    </span>
+    </div>
   </div>
 );
 
@@ -404,21 +409,23 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
   return (
     <Button
       variant="ghost"
-      size="icon-sm"
+      size="icon"
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="paper-motion-interactive paper-control h-10 w-10 rounded-full hover:scale-[1.03] active:scale-95
+      className="paper-motion-interactive h-11 w-11 rounded-2xl hover:scale-[1.05] active:scale-95
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
+        background: active ? `${uiScheme.muted}60` : 'transparent',
+        border: active ? `1px solid ${uiScheme.cardBorder}40` : '1px solid transparent',
         boxShadow: disabled
           ? 'none'
           : active
-            ? `0 10px 20px -18px ${uiScheme.cardBorder}66, inset 0 1px 0 rgba(255,255,255,0.38)`
-            : `inset 0 1px 0 rgba(255,255,255,0.2)`,
+            ? `0 8px 16px -12px ${uiScheme.cardBorder}40, inset 0 1px 0 rgba(255,255,255,0.4)`
+            : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
+        opacity: disabled ? 0.4 : 1,
       }}
     >
       {children}
@@ -732,7 +739,7 @@ export function TTSControls({
   }, [expanded]);
 
   const floatingPopupWidth = Math.min(364, Math.max(viewport.width - 28, 280));
-  const floatingPopupMaxHeight = Math.min(viewport.height * 0.62, 680);
+  const floatingPopupMaxHeight = Math.min(viewport.height * 0.72, 720);
   const popupViewportMargin = 12;
   const maxPopupRight = Math.max(
     popupViewportMargin,
@@ -756,32 +763,38 @@ export function TTSControls({
 
   const toolbarPopupStyle = {
     width: 'min(364px, calc(100vw - 24px))',
-    maxHeight: 'min(64vh, 680px)',
+    maxHeight: 'min(72vh, 720px)',
   } as const;
 
   const statusContent = ttsStatus ? (
     <div
-      className="paper-panel-soft rounded-[16px] border px-3 py-2"
+      className="paper-panel-soft mb-2 rounded-[22px] border px-4 py-3"
       style={{
-        background: 'transparent',
-        borderColor: `${statusColor}30`,
+        background: `${statusColor}10`,
+        borderColor: `${statusColor}25`,
         color: uiScheme.fg,
       }}
     >
-      <div className="flex items-start gap-2">
-        <span
-          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{
-            background: statusColor,
-            boxShadow: `0 0 10px ${statusColor}66`,
-          }}
-        />
-        <div className="min-w-0">
-          <p className="truncate text-xs font-semibold" style={{ color: uiScheme.fg }}>
+      <div className="flex items-start gap-3">
+        <div className="relative mt-1 flex h-2 w-2 shrink-0 items-center justify-center">
+          <span
+            className="absolute h-full w-full animate-ping rounded-full"
+            style={{ background: statusColor, opacity: 0.4 }}
+          />
+          <span
+            className="relative h-2 w-2 rounded-full"
+            style={{
+              background: statusColor,
+              boxShadow: `0 0 8px ${statusColor}`,
+            }}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold leading-tight" style={{ color: uiScheme.fg }}>
             {ttsStatus.headline}
           </p>
           {ttsStatus.detail && (
-            <p className="mt-0.5 line-clamp-2 text-[11px] leading-4" style={{ color: uiScheme.mutedText }}>
+            <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-relaxed" style={{ color: uiScheme.mutedText }}>
               {ttsStatus.detail}
             </p>
           )}
@@ -921,7 +934,10 @@ export function TTSControls({
                 <div aria-hidden="true" className="h-4" />
               </div>
 
-              <div className="space-y-2 overflow-y-auto px-4 pb-14 pt-2.5" style={{ maxHeight: 'inherit' }}>
+              <div 
+                className="space-y-4 overflow-y-auto px-4 pb-10 pt-2.5" 
+                style={{ maxHeight: `${floatingPopupMaxHeight - 20}px` }}
+              >
                 {resumePromptVisible && (
                 <section
                     className="paper-panel-soft rounded-[20px] border px-3 py-2.5"
@@ -968,13 +984,13 @@ export function TTSControls({
 
                 {ttsStatus && !detailsExpanded && <div>{statusContent}</div>}
 
-                <section className="paper-panel-soft rounded-[22px] border p-3" style={styles.section}>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div>
-                      <label className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: uiScheme.mutedText }}>
+                <section className="paper-panel-soft flex flex-col gap-4 rounded-[28px] border p-4" style={styles.section}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: uiScheme.mutedText }}>
                         快捷控制
                       </label>
-                      <p className="mt-1 text-[11px]" style={{ color: uiScheme.mutedText }}>
+                      <p className="mt-0.5 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
                         播放与速度
                       </p>
                     </div>
@@ -984,49 +1000,59 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="paper-motion-interactive h-8 rounded-full px-2.5 text-[11px] font-semibold hover:scale-[1.02] active:scale-95"
+                        className="paper-motion-interactive h-9 rounded-full px-3 text-xs font-bold hover:scale-[1.02] active:scale-95"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: 'transparent',
-                          border: 'none',
-                          boxShadow: 'none',
+                          background: `${uiScheme.muted}50`,
+                          border: `1px solid ${uiScheme.cardBorder}20`,
+                          boxShadow: '0 2px 8px -4px rgba(0,0,0,0.05)',
                         }}
                       >
-                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                        <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
                         更多设置
                         {detailsExpanded ? (
-                          <ChevronUp className="h-3.5 w-3.5" />
+                          <ChevronUp className="ml-1 h-3.5 w-3.5" />
                         ) : (
-                          <ChevronDown className="h-3.5 w-3.5" />
+                          <ChevronDown className="ml-1 h-3.5 w-3.5" />
                         )}
                       </Button>
                     )}
                   </div>
 
                   <div
-                    className="paper-field mb-2 rounded-[16px] border px-3 py-2"
+                    className="paper-field rounded-[20px] border p-3"
                     style={{
-                      background: 'transparent',
-                      borderColor: sleepTimerActive ? `${uiScheme.link}32` : `${uiScheme.cardBorder}24`,
-                      color: uiScheme.fg,
+                      background: `${uiScheme.muted}30`,
+                      borderColor: sleepTimerActive ? `${uiScheme.link}28` : `${uiScheme.cardBorder}20`,
                     }}
                   >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <Clock
-                          className="h-3.5 w-3.5 shrink-0"
-                          style={{ color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText }}
-                        />
-                        <p className="truncate text-xs font-semibold" style={{ color: uiScheme.fg }}>
+                    <div className="mb-3 flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="flex h-7 w-7 items-center justify-center rounded-lg"
+                          style={{
+                            background: sleepTimerActive ? `${uiScheme.link}15` : `${uiScheme.muted}60`,
+                            color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
+                          }}
+                        >
+                          <Clock className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-bold" style={{ color: uiScheme.fg }}>
                           睡眠定时
                         </p>
                       </div>
-                      <p className="truncate text-[11px]" style={{ color: uiScheme.mutedText }}>
+                      <div
+                        className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                        style={{
+                          background: sleepTimerActive ? `${uiScheme.link}15` : 'transparent',
+                          color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
+                        }}
+                      >
                         {sleepTimerActive ? sleepTimer?.label : '未设置'}
-                      </p>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-4 gap-2">
                       {[15, 30, 60].map((minutes) => {
                         const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                         return (
@@ -1035,11 +1061,12 @@ export function TTSControls({
                             type="button"
                             variant="ghost"
                             onClick={() => onSleepTimerMinutes?.(minutes)}
-                            className="h-7 rounded-lg px-2 text-[11px] font-semibold"
+                            className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
                             style={{
-                              color: active ? uiScheme.link : uiScheme.mutedText,
-                              background: active ? `${uiScheme.link}14` : 'transparent',
-                              border: 'none',
+                              color: active ? uiScheme.link : uiScheme.fg,
+                              background: active ? uiScheme.bg : 'transparent',
+                              border: active ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
+                              boxShadow: active ? `0 4px 12px -4px ${uiScheme.link}30` : 'none',
                             }}
                           >
                             {minutes}分
@@ -1051,9 +1078,9 @@ export function TTSControls({
                         variant="ghost"
                         onClick={() => onClearSleepTimer?.()}
                         disabled={!sleepTimerActive}
-                        className="h-7 rounded-lg px-2 text-[11px] font-semibold"
+                        className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
                         style={{
-                          color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}70`,
+                          color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}60`,
                           background: 'transparent',
                           border: 'none',
                         }}
@@ -1064,11 +1091,10 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="mb-2 flex items-center justify-center gap-2 rounded-[20px] border px-2 py-2"
+                    className="flex items-center justify-center gap-3 rounded-[24px] border p-3"
                     style={{
-                      background: 'transparent',
-                      borderColor: `${uiScheme.cardBorder}24`,
-                      boxShadow: 'none',
+                      background: `${uiScheme.muted}25`,
+                      borderColor: `${uiScheme.cardBorder}18`,
                     }}
                   >
                     <ControlButton
@@ -1078,34 +1104,45 @@ export function TTSControls({
                       active={isActive}
                       uiScheme={uiScheme}
                     >
-                      <SkipBack className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      <SkipBack className="h-5 w-5" />
                     </ControlButton>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleStartClick}
-                      disabled={isPending}
-                      title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                      aria-label={isPlaying ? '暂停播放' : isPaused ? '继续播放' : '开始播放'}
-                      className="paper-motion-interactive paper-control h-12 w-12 rounded-full hover:scale-[1.03] active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                      style={{
-                        color: isPending ? uiScheme.mutedText : uiScheme.link,
-                        boxShadow: isPending
-                          ? 'none'
-                          : `0 10px 20px -18px ${uiScheme.cardBorder}66, inset 0 1px 0 rgba(255,255,255,0.38)`,
-                        cursor: isPending ? 'not-allowed' : 'pointer',
-                        opacity: isPending ? 0.5 : 1,
-                      }}
-                    >
-                      {isPending ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : isPlaying ? (
-                        <Pause className="h-5 w-5 sm:h-5 sm:w-5" />
-                      ) : (
-                        <Play className="ml-0.5 h-5 w-5 sm:h-5 sm:w-5" />
+                    <div className="relative flex items-center justify-center">
+                      {isPlaying && (
+                        <div
+                          className="absolute inset-0 animate-ping rounded-full opacity-20"
+                          style={{ background: uiScheme.link }}
+                        />
                       )}
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleStartClick}
+                        disabled={isPending}
+                        title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                        className="paper-motion-interactive h-16 w-16 rounded-full hover:scale-[1.04] active:scale-95 focus-visible:outline-none"
+                        style={{
+                          background: isPending
+                            ? `${uiScheme.muted}80`
+                            : `linear-gradient(135deg, ${uiScheme.link} 0%, ${uiScheme.link}dd 100%)`,
+                          color: '#ffffff',
+                          boxShadow: isPending
+                            ? 'none'
+                            : `0 12px 28px -10px ${uiScheme.link}66, inset 0 1px 0 rgba(255,255,255,0.4)`,
+                          cursor: isPending ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {isPending ? (
+                          <Loader2 className="h-7 w-7 animate-spin" />
+                        ) : isPaused ? (
+                          <Play className="ml-1 h-7 w-7 fill-white" />
+                        ) : isPlaying ? (
+                          <Pause className="h-7 w-7 fill-white" />
+                        ) : (
+                          <Play className="ml-1 h-7 w-7 fill-white" />
+                        )}
+                      </Button>
+                    </div>
 
                     <ControlButton
                       onClick={onNext}
@@ -1114,7 +1151,7 @@ export function TTSControls({
                       active={isActive}
                       uiScheme={uiScheme}
                     >
-                      <SkipForward className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      <SkipForward className="h-5 w-5" />
                     </ControlButton>
 
                     <ControlButton
@@ -1122,10 +1159,9 @@ export function TTSControls({
                       disabled={!isActive || isPending}
                       title="停止"
                       active={isActive}
-                      variant="danger"
                       uiScheme={uiScheme}
                     >
-                      <Square className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      <Square className="h-5 w-5" />
                     </ControlButton>
                   </div>
 

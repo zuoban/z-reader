@@ -27,11 +27,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { AlertCircle, ChevronLeft, Expand, List, Shrink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() =>
@@ -725,40 +727,38 @@ export default function ReadPage() {
                 <SheetContent
                   side="left"
                   container={overlayContainer}
-                  className="max-w-sm p-0 backdrop-blur-xl [&_[data-slot=sheet-close]]:top-[calc(env(safe-area-inset-top,0px)+1rem)] sm:w-80 sm:[&_[data-slot=sheet-close]]:top-3"
+                  className="max-w-sm border-r-0 p-0 backdrop-blur-3xl sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
                   style={{
-                    background: withOpacity(uiScheme.cardBg, 0.97),
-                    borderColor: withOpacity(uiScheme.cardBorder, 0.82),
-                    boxShadow: `0 28px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.34)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
+                    background: withOpacity(uiScheme.cardBg, 0.94),
+                    boxShadow: `20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
                   }}
                 >
-                  <SheetHeader
-                    className="pb-3.5 pt-[calc(env(safe-area-inset-top,0px)+1.5rem)]"
-                    style={{
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.34),
-                    }}
-                  >
-                    <SheetTitle
-                      className="text-base font-semibold sm:text-lg"
-                      style={{ color: uiScheme.fg }}
-                    >
-                      目录
-                    </SheetTitle>
-                    <p
-                      className="text-xs"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      快速跳转章节与结构
-                    </p>
+                  <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8">
+                    <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
+                    <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
+                    
+                    <div className="relative flex items-center gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                        <List className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                          书籍目录
+                        </SheetTitle>
+                        <SheetDescription
+                          className="mt-1 text-[11px] font-medium opacity-60 text-muted-foreground"
+                          style={{ color: uiScheme.mutedText }}
+                        >
+                          快速穿梭于书页的脉络之间
+                        </SheetDescription>
+                      </div>
+                    </div>
                   </SheetHeader>
-                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-126px)] sm:h-[calc(100vh-88px)]">
+
+                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-136px)] sm:h-[calc(100vh-120px)]">
                     <div
                       ref={tocListRef}
-                      className="paper-field m-4 rounded-lg border p-3"
-                      style={{
-                        background: withOpacity(uiScheme.buttonBg, 0.44),
-                        borderColor: withOpacity(uiScheme.cardBorder, 0.42),
-                      }}
+                      className="space-y-1.5 px-5 pb-12 pt-2"
                     >
                       {toc.length > 0 ? (
                         toc.map((item, idx) => (
@@ -771,12 +771,12 @@ export default function ReadPage() {
                           />
                         ))
                       ) : (
-                        <p
-                          className="py-8 text-center text-sm"
-                          style={{ color: uiScheme.mutedText }}
-                        >
-                          暂无目录
-                        </p>
+                        <div className="flex flex-col items-center justify-center py-20 opacity-30">
+                          <List className="h-12 w-12 stroke-[1]" style={{ color: uiScheme.mutedText }} />
+                          <p className="mt-4 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                            未检测到目录结构
+                          </p>
+                        </div>
                       )}
                     </div>
                   </ScrollArea>
@@ -1073,52 +1073,61 @@ function TOCNode({
   currentChapter: string;
   uiScheme: ThemeColors;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
   const isCurrentChapter = currentChapter === item.label;
 
   return (
-    <div>
-      <Button
-        data-current-chapter={isCurrentChapter ? "true" : undefined}
-        variant="ghost"
-        size="sm"
-        className="paper-motion-interactive paper-field mb-1.5 h-9 w-full justify-start rounded-xl border sm:h-10"
-        style={{
-          paddingLeft: depth > 0 ? `${depth * 14 + 12}px` : "12px",
-          paddingRight: "12px",
-          color:
-            isCurrentChapter || isHovered ? uiScheme.fg : uiScheme.buttonText,
-          background: isCurrentChapter
-            ? withOpacity(uiScheme.link, 0.14)
-            : isHovered
-              ? withOpacity(uiScheme.link, 0.1)
-              : withOpacity(uiScheme.buttonBg, 0.72),
-          borderColor: isCurrentChapter
-            ? withOpacity(uiScheme.link, 0.28)
-            : isHovered
-              ? withOpacity(uiScheme.link, 0.18)
-              : withOpacity(uiScheme.cardBorder, 0.4),
-          boxShadow:
-            isCurrentChapter || isHovered
-              ? `0 14px 22px -20px ${withOpacity(uiScheme.link, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.35)`
-              : "none",
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={() => onGoTo(item.href)}
-      >
-        <span className="truncate text-xs sm:text-sm">{item.label}</span>
-      </Button>
-      {item.subitems?.map((sub, idx) => (
-        <MemoizedTOCNode
-          key={idx}
-          item={sub}
-          onGoTo={onGoTo}
-          depth={depth + 1}
-          currentChapter={currentChapter}
-          uiScheme={uiScheme}
+    <div className="relative">
+      {depth > 0 && (
+        <div 
+          className="absolute left-[20px] top-0 bottom-0 w-px bg-primary/5"
+          style={{ left: `${(depth - 1) * 16 + 24}px` }}
         />
-      ))}
+      )}
+      
+      <button
+        data-current-chapter={isCurrentChapter ? "true" : undefined}
+        onClick={() => onGoTo(item.href)}
+        className={cn(
+          "group relative mb-1 flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left transition-all active:scale-[0.98] sm:py-3",
+          isCurrentChapter ? "shadow-sm shadow-primary/5" : "hover:bg-primary/5"
+        )}
+        style={{
+          marginLeft: depth > 0 ? `${depth * 16}px` : "0px",
+          background: isCurrentChapter
+            ? withOpacity(uiScheme.buttonBg, 0.8)
+            : "transparent",
+          border: `1px solid ${isCurrentChapter ? withOpacity(uiScheme.cardBorder, 0.4) : "transparent"}`,
+        }}
+      >
+        {isCurrentChapter && (
+          <div className="absolute -left-1.5 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+        )}
+        
+        <span 
+          className={cn(
+            "truncate text-[13px] transition-colors sm:text-[14px]",
+            isCurrentChapter ? "font-bold" : "font-medium opacity-70 group-hover:opacity-100"
+          )}
+          style={{ color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText }}
+        >
+          {item.label}
+        </span>
+      </button>
+
+      {item.subitems && item.subitems.length > 0 && (
+        <div className="space-y-0.5">
+          {item.subitems.map((sub, idx) => (
+            <MemoizedTOCNode
+              key={idx}
+              item={sub}
+              onGoTo={onGoTo}
+              depth={depth + 1}
+              currentChapter={currentChapter}
+              uiScheme={uiScheme}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

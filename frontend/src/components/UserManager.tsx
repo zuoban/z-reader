@@ -181,22 +181,25 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
       </SheetTrigger>
       <SheetContent side="right" className="w-full p-0 sm:max-w-[520px]">
         <div className="flex min-h-0 flex-1 flex-col">
-          <SheetHeader className="border-b border-border/40 bg-background/50 px-6 pb-6 pt-8 backdrop-blur-md">
-            <div className="flex items-center gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                <ShieldCheck className="h-7 w-7" />
+          <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8">
+            <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
+            <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
+            
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                <ShieldCheck className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-2xl font-bold tracking-tight text-foreground">
+                <SheetTitle className="text-xl font-bold tracking-tight text-foreground">
                   用户管理
                 </SheetTitle>
-                <SheetDescription className="mt-1 text-[13px] font-medium text-muted-foreground/80">
+                <SheetDescription className="mt-1 text-[12px] font-medium opacity-60 text-muted-foreground">
                   集中维护账号权限与安全设置
                 </SheetDescription>
               </div>
             </div>
             
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="relative mt-6 flex flex-wrap gap-2">
               <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-[10px] font-bold tracking-wider text-primary">
                 <UserCog className="h-3 w-3" />
                 {users.length} 位用户

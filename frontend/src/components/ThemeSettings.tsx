@@ -266,25 +266,27 @@ export function ThemeSettings({
         style={panelStyle}
       >
         <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8">
-          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
-          <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
+          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
+          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
           
           <div className="relative flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Settings className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                  <Settings className="h-5 w-5" />
                 </div>
-                <SheetTitle className="text-lg font-bold tracking-tight" style={{ color: uiScheme.fg }}>
-                  阅读偏好
-                </SheetTitle>
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                    阅读偏好
+                  </SheetTitle>
+                  <SheetDescription
+                    className="mt-1 text-[11px] font-medium opacity-60"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    营造最舒适的数字阅读环境
+                  </SheetDescription>
+                </div>
               </div>
-              <SheetDescription
-                className="mt-2 text-[11px] font-medium leading-relaxed opacity-70"
-                style={{ color: uiScheme.mutedText }}
-              >
-                营造最舒适的数字阅读环境，每一行文字都值得被温和对待。
-              </SheetDescription>
             </div>
             
             <Button

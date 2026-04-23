@@ -181,168 +181,181 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
       </SheetTrigger>
       <SheetContent side="right" className="w-full p-0 sm:max-w-[520px]">
         <div className="flex min-h-0 flex-1 flex-col">
-          <SheetHeader className="border-0 bg-transparent px-4 pb-3 pt-4 text-left sm:px-5">
-            <div className="paper-panel paper-stack rounded-[1.25rem] border border-border/60 px-4 py-4 shadow-[0_16px_36px_rgba(15,23,42,0.06)]">
-              <div className="flex items-start gap-3">
-                <div className="paper-icon-well flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-primary">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <SheetTitle className="text-lg font-semibold">
-                    用户管理
-                  </SheetTitle>
-                  <SheetDescription className="mt-1 text-[13px] leading-5">
-                    在这里创建账号、调整权限并处理密码重置，适合集中维护多人阅读环境。
-                  </SheetDescription>
-                </div>
+          <SheetHeader className="border-b border-border/40 bg-background/50 px-6 pb-6 pt-8 backdrop-blur-md">
+            <div className="flex items-center gap-5">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                <ShieldCheck className="h-7 w-7" />
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="paper-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  <UserCog className="h-3.5 w-3.5" />
-                  {users.length} 位用户
-                </span>
-                <span className="paper-chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  {users.filter((user) => user.role === 'admin').length} 位管理员
-                </span>
-                <span className="paper-chip inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  支持即时修改角色
-                </span>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-2xl font-bold tracking-tight text-foreground">
+                  用户管理
+                </SheetTitle>
+                <SheetDescription className="mt-1 text-[13px] font-medium text-muted-foreground/80">
+                  集中维护账号权限与安全设置
+                </SheetDescription>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-[10px] font-bold tracking-wider text-primary">
+                <UserCog className="h-3 w-3" />
+                {users.length} 位用户
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[10px] font-bold tracking-wider text-muted-foreground">
+                {users.filter((user) => user.role === 'admin').length} 名管理员
               </div>
             </div>
           </SheetHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="space-y-6 px-4 pb-5 sm:px-5">
-              <section className="paper-panel rounded-[1.25rem] border border-border/60 p-4 shadow-[0_16px_36px_rgba(15,23,42,0.05)]">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <UserPlus className="h-4 w-4" />
-                  新建用户
+            <div className="space-y-12 bg-muted/20 px-6 pb-12 pt-8">
+              {/* Create User Section */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-2.5 px-1">
+                  <UserPlus className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/90">新建用户</h3>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="new-username" className="text-xs text-muted-foreground">
-                      用户名
-                    </Label>
-                    <Input
-                      id="new-username"
-                      value={username}
-                      onChange={(event) => setUsername(event.target.value)}
-                      placeholder="reader"
-                      disabled={loading}
-                      className="h-11 rounded-xl"
-                    />
+                
+                <div className="rounded-[2rem] border border-border/40 bg-background p-6 shadow-sm shadow-primary/5">
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_140px]">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-username" className="pl-1 text-[11px] font-bold tracking-wide text-muted-foreground/60">
+                        用户名
+                      </Label>
+                      <Input
+                        id="new-username"
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        placeholder="请输入用户名"
+                        disabled={loading}
+                        className="h-11 rounded-xl border-border/60 bg-muted/20 transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password" className="pl-1 text-[11px] font-bold tracking-wide text-muted-foreground/60">
+                        初始密码
+                      </Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="至少 6 位"
+                        disabled={loading}
+                        className="h-11 rounded-xl border-border/60 bg-muted/20 transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="pl-1 text-[11px] font-bold tracking-wide text-muted-foreground/60">权限角色</Label>
+                      <Select
+                        value={role}
+                        onValueChange={(value) => setRole(value as User['role'])}
+                        disabled={loading}
+                      >
+                        <SelectTrigger className="h-11 rounded-xl border-border/60 bg-muted/20 transition-all hover:bg-muted/40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 shadow-xl">
+                          <SelectItem value="user">普通用户</SelectItem>
+                          <SelectItem value="admin">管理员</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="new-password" className="text-xs text-muted-foreground">
-                      密码
-                    </Label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="至少 6 位"
-                      disabled={loading}
-                      className="h-11 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">角色</Label>
-                    <Select
-                      value={role}
-                      onValueChange={(value) => setRole(value as User['role'])}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">用户</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
-                <Button
-                  onClick={handleCreate}
-                  disabled={loading || !username.trim() || password.trim().length < 6}
-                  className="mt-4 h-11 rounded-xl shadow-sm"
-                >
-                  创建用户
-                </Button>
+                  <Button
+                    onClick={handleCreate}
+                    disabled={loading || !username.trim() || password.trim().length < 6}
+                    className="mt-6 h-11 w-full rounded-xl bg-primary font-bold shadow-lg shadow-primary/10 transition-all active:scale-[0.98] sm:w-auto sm:px-10"
+                  >
+                    确认创建
+                  </Button>
+                </div>
               </section>
 
-              <section className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold">已有用户</div>
-                  <div className="paper-chip rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                    共 {users.length} 人
+              {/* User List Section */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <div className="flex items-center gap-2.5">
+                    <UserCog className="h-4 w-4 text-muted-foreground/80" />
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/90">成员列表</h3>
                   </div>
                 </div>
-                <div className="space-y-2.5">
+
+                <div className="grid gap-3">
                   {users.map((user) => {
                     const isCurrentUser = currentUser?.id === user.id;
                     return (
                       <div
                         key={user.id}
-                        className="paper-field flex flex-col gap-3 rounded-xl border border-border/60 px-3.5 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                        className="group flex flex-col gap-4 rounded-2xl border border-border/40 bg-background p-4 transition-all hover:border-primary/20 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                       >
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="truncate text-sm font-semibold">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <span className="text-base font-bold tracking-tight">
                               {user.username}
                             </span>
-                            {isCurrentUser && (
-                              <span className="paper-chip rounded-full px-2 py-0.5 text-[11px] text-muted-foreground">
-                                当前账号
+                            <div className="flex gap-1.5">
+                              {isCurrentUser && (
+                                <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black tracking-tighter text-primary">
+                                  当前
+                                </span>
+                              )}
+                              <span className={cn(
+                                "rounded-md px-1.5 py-0.5 text-[9px] font-black tracking-tighter",
+                                user.role === 'admin' 
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
+                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                              )}>
+                                {user.role === 'admin' ? '管理员' : '普通用户'}
                               </span>
-                            )}
-                            <span className="paper-chip rounded-full px-2 py-0.5 text-[11px] text-muted-foreground">
-                              {user.role === 'admin' ? 'Admin' : '用户'}
-                            </span>
+                            </div>
                           </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {user.role === 'admin' ? '拥有系统管理权限' : '可进行日常阅读与管理操作'}
-                          </div>
+                          <p className="mt-1 text-[12px] font-medium text-muted-foreground/60">
+                            {user.role === 'admin' ? '拥有完整系统管理权限' : '标准阅读访问权限'}
+                          </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
+                        
+                        <div className="flex shrink-0 items-center gap-3">
                           <Select
                             value={user.role}
                             onValueChange={(value) => handleRoleChange(user, value as User['role'])}
                             disabled={loading}
                           >
-                            <SelectTrigger className="h-9 w-[108px] rounded-xl">
+                            <SelectTrigger className="h-9 w-[100px] rounded-lg border-border/60 bg-muted/10 text-[12px] font-bold transition-all hover:bg-muted/20">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user">用户</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
+                            <SelectContent className="rounded-xl border-border/60">
+                              <SelectItem value="user">普通用户</SelectItem>
+                              <SelectItem value="admin">管理员</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="重置密码"
-                            onClick={() => openResetPasswordDialog(user)}
-                            disabled={loading}
-                            className="paper-control h-9 w-9 rounded-xl p-0"
-                          >
-                            <KeyRound className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="删除用户"
-                            onClick={() => {
-                              setDeleteTarget(user);
-                              setDeleteConfirmOpen(true);
-                            }}
-                            disabled={loading || isCurrentUser}
-                            className="paper-control h-9 w-9 rounded-xl p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="重置密码"
+                              onClick={() => openResetPasswordDialog(user)}
+                              disabled={loading}
+                              className="h-9 w-9 rounded-lg text-muted-foreground/40 transition-all hover:bg-primary/10 hover:text-primary"
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="删除用户"
+                              onClick={() => {
+                                setDeleteTarget(user);
+                                setDeleteConfirmOpen(true);
+                              }}
+                              disabled={loading || isCurrentUser}
+                              className="h-9 w-9 rounded-lg text-muted-foreground/40 transition-all hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -377,24 +390,28 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
           }
         }}
       >
-        <DialogContent className="max-w-sm" showCloseButton={!loading}>
-          <DialogHeader>
-            <DialogTitle>重置密码</DialogTitle>
-            <DialogDescription>
-              {resetTarget
-                ? `为「${resetTarget.username}」设置一个新密码。`
-                : '设置一个新密码。'}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-[400px] gap-0 overflow-hidden rounded-[1.5rem] border-border/60 p-0 shadow-2xl" showCloseButton={!loading}>
+          <div className="relative border-b border-border/40 bg-muted/20 px-6 py-6">
+            <div className="absolute -right-8 -top-8 h-32 w-32 bg-primary/5 blur-[40px]" />
+            <DialogHeader className="relative space-y-1.5">
+              <DialogTitle className="text-lg font-bold tracking-tight">重置密码</DialogTitle>
+              <DialogDescription className="text-[13px] leading-relaxed">
+                {resetTarget
+                  ? `为您选定的用户「${resetTarget.username}」设置一个更安全的新密码。`
+                  : '设置一个安全的新密码。'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          
           <form
-            className="space-y-4"
+            className="space-y-6 p-6"
             onSubmit={(event) => {
               event.preventDefault();
               void handleResetPassword();
             }}
           >
-            <div className="space-y-2">
-              <Label htmlFor="reset-password" className="text-xs text-muted-foreground">
+            <div className="space-y-2.5">
+              <Label htmlFor="reset-password" className="pl-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                 新密码
               </Label>
               <Input
@@ -402,18 +419,19 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                 type="password"
                 value={resetPassword}
                 onChange={(event) => setResetPassword(event.target.value)}
-                placeholder="至少 6 位"
+                placeholder="至少 6 个字符"
                 autoComplete="new-password"
                 disabled={loading}
                 autoFocus
-                className="h-11 rounded-xl"
+                className="h-11 rounded-xl border-border/40 bg-background/40 transition-all focus:bg-background/80"
               />
             </div>
-            <DialogFooter>
+            
+            <DialogFooter className="flex-row items-center justify-end gap-2.5 pt-2">
               <Button
                 type="button"
-                variant="outline"
-                className="min-w-20"
+                variant="ghost"
+                className="h-10 rounded-xl px-5 text-[13px] font-semibold text-muted-foreground transition-all hover:bg-muted"
                 onClick={closeResetPasswordDialog}
                 disabled={loading}
               >
@@ -421,10 +439,10 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
               </Button>
               <Button
                 type="submit"
-                className="min-w-20"
+                className="h-10 rounded-xl px-8 text-[13px] font-bold shadow-md transition-all active:scale-[0.98]"
                 disabled={loading || resetPassword.trim().length < 6}
               >
-                保存
+                保存设置
               </Button>
             </DialogFooter>
           </form>

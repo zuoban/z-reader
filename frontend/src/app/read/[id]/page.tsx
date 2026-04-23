@@ -40,28 +40,17 @@ import {
   LocateFixed,
   Shrink,
 } from "lucide-react";
+import {
+  floatingSheetActionButtonClass,
+  getFloatingSheetActionButtonStyle,
+  withOpacity,
+} from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() =>
   import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
 );
-
-function withOpacity(color: string | undefined, opacity: number) {
-  if (!color) return "";
-  if (!color.startsWith("#")) return color;
-
-  const normalized =
-    color.length === 4
-      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-      : color;
-
-  const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
-    .toString(16)
-    .padStart(2, "0");
-
-  return `${normalized}${hexOpacity}`;
-}
 
 export default function ReadPage() {
   const router = useRouter();
@@ -749,43 +738,30 @@ export default function ReadPage() {
                         : "暂未识别当前章节"
                     }
                     aria-label="定位到当前章节"
-                    className="paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-full backdrop-blur-sm hover:scale-[1.03] hover:shadow-md"
-                    style={{
-                      right:
-                        "calc(max(0.75rem, env(safe-area-inset-right, 0px)) + 2.75rem)",
-                      color: currentChapter
-                        ? uiScheme.link
-                        : withOpacity(uiScheme.mutedText, 0.7),
-                      background: currentChapter
-                        ? withOpacity(uiScheme.link, 0.08)
-                        : withOpacity(uiScheme.cardBorder, 0.08),
-                      border: `1px solid ${
-                        currentChapter
-                          ? withOpacity(uiScheme.link, 0.18)
-                          : withOpacity(uiScheme.cardBorder, 0.14)
-                      }`,
-                      boxShadow: currentChapter
-                        ? `0 10px 18px -16px ${withOpacity(uiScheme.link, 0.45)}`
-                        : "none",
-                    }}
+                    className={floatingSheetActionButtonClass}
+                    style={getFloatingSheetActionButtonStyle({
+                      uiScheme,
+                      enabled: Boolean(currentChapter),
+                      side: "right",
+                    })}
                   >
                     <LocateFixed className="h-4 w-4" />
                   </Button>
 
-                  <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-28">
-                    <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
-                    <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
+                  <SheetHeader className="relative overflow-hidden border-b border-border/40 px-5 py-6 pr-28">
+                    <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-[36px]" />
+                    <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-accent/5 blur-[28px]" />
                     
-                    <div className="relative flex items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                        <List className="h-5 w-5" />
+                    <div className="relative flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                        <List className="h-4.5 w-4.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                        <SheetTitle className="text-lg font-bold tracking-tight" style={{ color: uiScheme.fg }}>
                           书籍目录
                         </SheetTitle>
                         <SheetDescription
-                          className="mt-1 text-[11px] font-medium opacity-60 text-muted-foreground"
+                          className="mt-0.5 text-[10px] font-medium opacity-60 text-muted-foreground"
                           style={{ color: uiScheme.mutedText }}
                         >
                           快速穿梭于书页的脉络之间
@@ -794,10 +770,10 @@ export default function ReadPage() {
                     </div>
                   </SheetHeader>
 
-                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-136px)] sm:h-[calc(100vh-120px)]">
+                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-116px)] sm:h-[calc(100vh-104px)]">
                     <div
                       ref={tocListRef}
-                      className="space-y-1.5 px-5 pb-12 pt-2"
+                      className="space-y-1 px-4 pb-8 pt-1.5"
                     >
                       {toc.length > 0 ? (
                         toc.map((item, idx) => (
@@ -1099,8 +1075,8 @@ function TOCNode({
     <div className="relative">
       {depth > 0 && (
         <div 
-          className="absolute left-[20px] top-0 bottom-0 w-px bg-primary/5"
-          style={{ left: `${(depth - 1) * 16 + 24}px` }}
+          className="absolute top-0 bottom-0 w-px bg-primary/5"
+          style={{ left: `${(depth - 1) * 14 + 20}px` }}
         />
       )}
       
@@ -1108,11 +1084,11 @@ function TOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "group relative mb-1 flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left transition-all active:scale-[0.98] sm:py-3",
+          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all active:scale-[0.98] sm:py-2.5",
           isCurrentChapter ? "shadow-sm shadow-primary/5" : "hover:bg-primary/5"
         )}
         style={{
-          marginLeft: depth > 0 ? `${depth * 16}px` : "0px",
+          marginLeft: depth > 0 ? `${depth * 14}px` : "0px",
           background: isCurrentChapter
             ? withOpacity(uiScheme.buttonBg, 0.8)
             : "transparent",
@@ -1120,12 +1096,12 @@ function TOCNode({
         }}
       >
         {isCurrentChapter && (
-          <div className="absolute -left-1.5 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+          <div className="absolute -left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
         )}
         
         <span 
           className={cn(
-            "truncate text-[13px] transition-colors sm:text-[14px]",
+            "truncate text-[12px] leading-5 transition-colors sm:text-[13px]",
             isCurrentChapter ? "font-bold" : "font-medium opacity-70 group-hover:opacity-100"
           )}
           style={{ color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText }}
@@ -1135,7 +1111,7 @@ function TOCNode({
       </button>
 
       {item.subitems && item.subitems.length > 0 && (
-        <div className="space-y-0.5">
+        <div className="space-y-0">
           {item.subitems.map((sub, idx) => (
             <MemoizedTOCNode
               key={idx}

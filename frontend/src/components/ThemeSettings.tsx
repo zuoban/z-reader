@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
+import {
+  floatingSheetActionButtonClass,
+  getFloatingSheetActionButtonStyle,
+  withOpacity,
+} from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_READER_THEME,
@@ -218,6 +224,9 @@ export function ThemeSettings({
   triggerClassName,
   triggerStyle,
 }: ThemeSettingsProps) {
+  const resetFeedbackTimeoutRef = useRef<number | null>(null);
+  const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
+  const [resetFeedbackCount, setResetFeedbackCount] = useState(0);
   const panelStyle = {
     background: withOpacity(uiScheme.cardBg, 0.75),
     backdropFilter: "blur(28px) saturate(175%)",
@@ -234,7 +243,24 @@ export function ThemeSettings({
 
   const currentPreset = PRESETS.find((preset) => preset.key === theme.preset) ?? PRESETS[0];
 
+  useEffect(() => {
+    return () => {
+      if (resetFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(resetFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   function handleResetTheme() {
+    setIsResetFeedbackVisible(true);
+    setResetFeedbackCount((count) => count + 1);
+    if (resetFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(resetFeedbackTimeoutRef.current);
+    }
+    resetFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setIsResetFeedbackVisible(false);
+      resetFeedbackTimeoutRef.current = null;
+    }, 480);
     setTheme(DEFAULT_READER_THEME);
   }
 
@@ -265,46 +291,59 @@ export function ThemeSettings({
         className="flex flex-col border-l-0 p-0 sm:w-[380px] sm:max-w-[380px]"
         style={panelStyle}
       >
-        <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleResetTheme}
+          disabled={isDefaultTheme}
+          title="重置阅读偏好"
+          aria-label="重置阅读偏好"
+          className={cn(
+            floatingSheetActionButtonClass,
+            isResetFeedbackVisible && "scale-[1.08]",
+          )}
+          style={{
+            ...getFloatingSheetActionButtonStyle({
+              uiScheme,
+              enabled: !isDefaultTheme,
+              side: "right",
+              tone: "neutral",
+            }),
+            boxShadow: isResetFeedbackVisible
+              ? `0 0 0 4px ${withOpacity(uiScheme.link, 0.12)}, 0 10px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.28)}`
+              : undefined,
+          }}
+        >
+          <RotateCcw
+            className="h-4 w-4 transition-transform duration-500 ease-out"
+            style={{
+              transform: `rotate(${resetFeedbackCount * 360}deg)`,
+            }}
+          />
+        </Button>
+
+        <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-28">
           <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
           <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
           
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                  <Settings className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
-                    阅读偏好
-                  </SheetTitle>
-                  <SheetDescription
-                    className="mt-1 text-[11px] font-medium opacity-60"
-                    style={{ color: uiScheme.mutedText }}
-                  >
-                    营造最舒适的数字阅读环境
-                  </SheetDescription>
-                </div>
+          <div className="relative min-w-0">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                <Settings className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                  阅读偏好
+                </SheetTitle>
+                <SheetDescription
+                  className="mt-1 text-[11px] font-medium opacity-60"
+                  style={{ color: uiScheme.mutedText }}
+                >
+                  营造最舒适的数字阅读环境
+                </SheetDescription>
               </div>
             </div>
-            
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleResetTheme}
-              disabled={isDefaultTheme}
-              className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-[10px] font-black uppercase tracking-wider transition-all active:scale-[0.95] disabled:opacity-30"
-              style={{
-                color: uiScheme.buttonText,
-                background: withOpacity(uiScheme.buttonBg, 0.4),
-                border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.2)}`,
-              }}
-            >
-              <RotateCcw className="h-3 w-3" />
-              重置
-            </Button>
           </div>
         </SheetHeader>
 
@@ -465,19 +504,4 @@ export function ThemeSettings({
       </SheetContent>
     </Sheet>
   );
-}
-
-function withOpacity(color: string, opacity: number) {
-  if (!color.startsWith("#")) return color;
-
-  const normalized =
-    color.length === 4
-      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-      : color;
-
-  const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
-    .toString(16)
-    .padStart(2, "0");
-
-  return `${normalized}${hexOpacity}`;
 }

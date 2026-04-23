@@ -915,7 +915,7 @@ export default function ReadPage() {
             )}
 
             <div
-              className="absolute inset-x-2 transition-[top] duration-300 ease-out sm:inset-x-5 lg:inset-x-8"
+              className="absolute inset-x-0 transition-[top] duration-300 ease-out"
               style={{
                 top: readerContentInsetTop,
                 bottom: statusBarReservedSpace,
@@ -923,31 +923,9 @@ export default function ReadPage() {
               onClickCapture={(event) => handleReaderClick(event.nativeEvent)}
             >
               <div
-                className="paper-panel paper-stack relative h-full overflow-hidden rounded-[1.5rem] border sm:rounded-[2rem]"
-                style={{
-                  borderColor: withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.50 : 0.60),
-                  background: uiScheme.cardBg,
-                  boxShadow: `0 20px 60px -24px ${withOpacity(uiScheme.cardBorder, 0.28)}, 0 0 0 1px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.15 : 0.08)}`,
-                }}
-              >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent)]" />
-                <div
-                  className="pointer-events-none absolute inset-y-0 left-0 w-8"
-                  style={{
-                    background: `linear-gradient(90deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.14 : 0.08)} 0%, transparent 100%)`,
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute inset-y-0 right-0 w-8"
-                  style={{
-                    background: `linear-gradient(270deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.06)} 0%, transparent 100%)`,
-                  }}
-                />
-                <div
-                  ref={containerRef}
-                  className="absolute inset-0"
-                />
-              </div>
+                ref={containerRef}
+                className="h-full w-full overflow-hidden"
+              />
             </div>
 
             {isTouchReader && resumePromptVisible && (

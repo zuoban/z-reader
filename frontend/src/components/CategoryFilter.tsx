@@ -137,32 +137,32 @@ export function CategoryFilter({
                 onClick={() => onSelectCategory(item.id)}
                 role="tab"
                 aria-selected={isSelected}
-                className={cn(
-                  'group relative flex h-8 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium cursor-pointer transition-all duration-200',
-                  isSelected
-                    ? 'bg-primary/12 text-primary ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-                )}
-              >
-                {/* 标签文字 */}
-                <span className={cn(isSelected && 'font-semibold')}>
-                  {truncateLabel(item.label)}
-                </span>
-
-                {/* 书籍数量徽章 */}
-                {item.count > 0 && (
-                  <span
-                    className={cn(
-                      'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-xs font-medium transition-colors',
-                      isSelected
-                        ? 'bg-muted/80 text-muted-foreground'
-                        : 'text-muted-foreground/70'
-                    )}
-                  >
-                    {item.count}
+                  className={cn(
+                    'group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-xl px-4 text-[13.5px] font-medium cursor-pointer border transition-all duration-300 ease-out',
+                    isSelected
+                      ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25'
+                      : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:border-border/40 hover:text-foreground active:scale-[0.97]'
+                  )}
+                >
+                  {/* 标签文字 */}
+                  <span className={cn(isSelected ? 'font-semibold tracking-tight' : 'tracking-normal')}>
+                    {truncateLabel(item.label)}
                   </span>
-                )}
-              </button>
+
+                  {/* 书籍数量徽章 */}
+                  {item.count > 0 && (
+                    <span
+                      className={cn(
+                        'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-all duration-300',
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : 'bg-muted/60 text-muted-foreground/70 group-hover:bg-muted/80'
+                      )}
+                    >
+                      {item.count}
+                    </span>
+                  )}
+                </button>
             );
           })}
         </div>

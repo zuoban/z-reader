@@ -51,7 +51,7 @@
 :root {
   --background: #f0f2f8;
   --foreground: #0f1629;
-  --card: rgba(255, 255, 255, 0.88);
+  --card: rgba(255, 255, 255, 0.76);
   --card-foreground: #0f1629;
   --popover: rgba(255, 255, 255, 0.96);
   --popover-foreground: #0f1629;
@@ -466,9 +466,9 @@ foliate-view::part(filter) {
   }
 
   .shelf-container {
-    background: color-mix(in srgb, var(--card) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    backdrop-filter: blur(12px) saturate(140%);
+    background: color-mix(in srgb, var(--card) 55%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
     box-shadow:
       0 4px 24px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 50%, transparent);
@@ -479,14 +479,14 @@ foliate-view::part(filter) {
   }
 
   .shelf-header {
-    background: color-mix(in srgb, var(--card) 54%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 52%, transparent);
+    background: color-mix(in srgb, var(--card) 48%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
     border-radius: 1rem;
     box-shadow:
       0 6px 24px -14px var(--paper-shadow),
       0 1px 6px -4px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 44%, transparent);
-    backdrop-filter: blur(14px) saturate(135%);
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
+    backdrop-filter: blur(18px) saturate(135%);
   }
 
   .shelf-bands {

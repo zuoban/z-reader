@@ -263,7 +263,7 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-0 gap-0 backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/25 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/65 p-0 gap-0 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card/80 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
@@ -313,7 +313,7 @@ export function BookCard({
             )}
           </div>
           <div
-            className="flex flex-col border-t border-border/50 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
+            className="flex flex-col border-t border-border/40 bg-card/40 px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
           >
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">

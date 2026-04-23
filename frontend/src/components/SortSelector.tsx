@@ -25,18 +25,18 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-medium cursor-pointer transition-colors duration-200',
-          'text-muted-foreground hover:text-foreground hover:bg-muted/40',
-          open && 'text-foreground bg-muted/50'
+          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-xl border border-transparent px-3.5 text-[13.5px] font-medium cursor-pointer transition-all duration-300 ease-out',
+          'text-muted-foreground hover:bg-muted/60 hover:border-border/40 hover:text-foreground active:scale-[0.97]',
+          open && 'bg-muted/80 border-border/60 text-foreground'
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
-        <span className={cn(open && 'font-semibold')}>{currentOption?.label}</span>
+        <ArrowUpDown className="h-4 w-4 opacity-50 transition-opacity group-hover:opacity-80" />
+        <span className={cn(open && 'font-semibold tracking-tight')}>{currentOption?.label}</span>
         <ChevronDown
           className={cn(
-            'paper-motion-interactive h-3.5 w-3.5 opacity-60',
-            open && 'rotate-180'
+            'h-3.5 w-3.5 opacity-40 transition-all duration-300 group-hover:opacity-70',
+            open && 'rotate-180 opacity-80'
           )}
         />
       </DropdownMenuTrigger>

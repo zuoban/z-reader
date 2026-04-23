@@ -125,7 +125,7 @@ export function CategoryFilter({
         <div
           role="tablist"
           aria-label="书籍分类筛选"
-          className="flex min-w-max items-center gap-1 px-1 py-1.5"
+          className="inline-flex min-w-max items-center gap-1 rounded-full border border-border/60 bg-muted/35 p-1.5"
         >
           {filterItems.map((item) => {
             const isSelected = selectedCategoryId === item.id;
@@ -137,32 +137,27 @@ export function CategoryFilter({
                 onClick={() => onSelectCategory(item.id)}
                 role="tab"
                 aria-selected={isSelected}
-                  className={cn(
-                    'group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-[1.25rem] px-4 text-[13.5px] font-medium cursor-pointer border transition-all duration-300 ease-out',
-                    isSelected
-                      ? 'bg-primary/85 text-primary-foreground border-primary shadow-md shadow-primary/20 backdrop-blur-sm'
-                      : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:border-border/40 hover:text-foreground active:scale-[0.97]'
-                  )}
-                >
-                  {/* 标签文字 */}
-                  <span className={cn(isSelected ? 'font-semibold tracking-tight' : 'tracking-normal')}>
-                    {truncateLabel(item.label)}
+                className={cn(
+                  'inline-flex h-9 items-center gap-2 rounded-xl px-4 py-1 text-[13px] font-medium transition-all duration-200',
+                  isSelected
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
+                )}
+              >
+                <span>{truncateLabel(item.label)}</span>
+                {item.count > 0 && (
+                  <span
+                    className={cn(
+                      'inline-flex min-w-[1.45rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums',
+                      isSelected
+                        ? 'bg-foreground text-background'
+                        : 'bg-muted-foreground/20 text-muted-foreground'
+                    )}
+                  >
+                    {item.count}
                   </span>
-
-                  {/* 书籍数量徽章 */}
-                  {item.count > 0 && (
-                    <span
-                      className={cn(
-                        'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-all duration-300',
-                        isSelected
-                          ? 'bg-white/15 text-white'
-                          : 'bg-muted/40 text-muted-foreground/70 group-hover:bg-muted/60'
-                      )}
-                    >
-                      {item.count}
-                    </span>
-                  )}
-                </button>
+                )}
+              </button>
             );
           })}
         </div>

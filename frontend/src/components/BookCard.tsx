@@ -346,71 +346,80 @@ export function BookCard({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    sideOffset={8}
-                    className="w-56 rounded-2xl p-1.5"
+                    sideOffset={10}
+                    className="paper-menu paper-motion-menu w-64 p-2"
                   >
-                    <div className="paper-field space-y-1.5 rounded-xl px-3 py-2.5 text-[12px] leading-5 text-foreground/72">
-                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
-                        <span className="flex items-center">
-                          <FileText className="h-3.5 w-3.5 text-foreground/52" />
+                    {/* 书籍信息卡片部分 */}
+                    <div className="mb-2 overflow-hidden rounded-xl border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-3 shadow-inner">
+                      <div className="mb-3 flex items-center justify-between border-b border-primary/10 pb-2">
+                        <span className="text-[10px] font-bold tracking-[0.1em] text-primary/60 uppercase">
+                          书籍详情
                         </span>
-                        <span className="whitespace-nowrap">格式</span>
-                        <span className="min-w-0 whitespace-nowrap text-right font-medium text-foreground/88">
+                        <div className="flex h-5 items-center rounded-full bg-primary/10 px-2 text-[9px] font-bold text-primary/70">
                           {formatLabel}
-                        </span>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
-                        <span className="flex items-center">
-                          <HardDrive className="h-3.5 w-3.5 text-foreground/52" />
-                        </span>
-                        <span className="whitespace-nowrap">大小</span>
-                        <span className="min-w-0 whitespace-nowrap text-right font-medium text-foreground/88">
-                          {sizeLabel || '未知'}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
-                        <span className="flex items-center">
-                          <CalendarClock className="h-3.5 w-3.5 text-foreground/52" />
-                        </span>
-                        <span className="whitespace-nowrap">上传</span>
-                        <span className="min-w-0 whitespace-nowrap text-right font-medium tabular-nums text-foreground/88">
-                          {uploadedAtLabel}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-[auto_3rem_1fr] items-center gap-2">
-                        <span className="flex items-center">
-                          <Clock className="h-3.5 w-3.5 text-foreground/52" />
-                        </span>
-                        <span className="whitespace-nowrap">阅读</span>
-                        <span className="min-w-0 whitespace-nowrap text-right font-medium tabular-nums text-foreground/88">
-                          {lastReadLabel}
-                        </span>
+                      
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-2 text-foreground/50">
+                            <HardDrive className="h-3.5 w-3.5" />
+                            <span>大小</span>
+                          </div>
+                          <span className="font-medium text-foreground/80 tabular-nums">
+                            {sizeLabel || '未知'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-2 text-foreground/50">
+                            <CalendarClock className="h-3.5 w-3.5" />
+                            <span>上传日期</span>
+                          </div>
+                          <span className="font-medium text-foreground/80 tabular-nums">
+                            {uploadedAtLabel}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-2 text-foreground/50">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>上次阅读</span>
+                          </div>
+                          <span className="font-medium text-foreground/80 tabular-nums">
+                            {lastReadLabel}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <DropdownMenuSeparator className="my-1.5 bg-border/70" />
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCategoryDialogOpen(true);
-                      }}
-                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-foreground/88 transition-colors hover:bg-muted/75 focus:bg-muted/75 cursor-pointer"
-                    >
-                      <Tag className="h-3.5 w-3.5 text-foreground/62" />
-                      <span>设置分类</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-1.5 bg-border/70" />
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirmOpen(true);
-                      }}
-                      disabled={isDeleting}
-                      variant="destructive"
-                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>{isDeleting ? '删除中' : '删除图书'}</span>
-                    </DropdownMenuItem>
+
+                    <div className="space-y-1">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCategoryDialogOpen(true);
+                        }}
+                        className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all hover:bg-primary/5 hover:text-primary focus:bg-primary/5 focus:text-primary"
+                      >
+                        <Tag className="h-4 w-4 opacity-70" />
+                        <span>设置分类</span>
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator className="mx-1 my-1 opacity-50" />
+                      
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmOpen(true);
+                        }}
+                        disabled={isDeleting}
+                        variant="destructive"
+                        className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all hover:bg-destructive/5 focus:bg-destructive/5"
+                      >
+                        <Trash2 className="h-4 w-4 opacity-70" />
+                        <span>{isDeleting ? '删除中...' : '删除图书'}</span>
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

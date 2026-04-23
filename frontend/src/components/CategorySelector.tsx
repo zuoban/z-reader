@@ -64,7 +64,15 @@ export function CategorySelector({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <DialogContent
+        className="max-w-sm border-border bg-background shadow-md"
+        style={{
+          backgroundColor: 'var(--background)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>设置分类</DialogTitle>
         </DialogHeader>

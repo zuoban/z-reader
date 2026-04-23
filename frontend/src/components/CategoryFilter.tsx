@@ -125,7 +125,7 @@ export function CategoryFilter({
         <div
           role="tablist"
           aria-label="书籍分类筛选"
-          className="inline-flex min-w-max items-center gap-1 rounded-full border border-border/60 bg-muted/35 p-1.5"
+          className="inline-flex min-w-max items-center gap-1 py-1"
         >
           {filterItems.map((item) => {
             const isSelected = selectedCategoryId === item.id;

@@ -31,6 +31,7 @@ function DropdownMenuContent({
   side = "bottom",
   sideOffset = 4,
   className,
+  style,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<
@@ -48,7 +49,16 @@ function DropdownMenuContent({
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
-          className={cn("paper-motion-menu paper-menu z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-xl p-1.5 text-popover-foreground ring-1 ring-foreground/10 outline-none data-closed:overflow-hidden", className )}
+          className={cn(
+            "paper-motion-menu z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-background p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none data-closed:overflow-hidden",
+            className
+          )}
+          style={{
+            backgroundColor: "var(--background)",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            ...style,
+          }}
           {...props}
         />
       </MenuPrimitive.Positioner>

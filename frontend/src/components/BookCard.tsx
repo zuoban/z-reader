@@ -347,7 +347,12 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="paper-menu paper-motion-menu w-64 p-2"
+                    className="w-64 rounded-[1.25rem] border-border bg-background p-2 shadow-md"
+                    style={{
+                      backgroundColor: 'var(--background)',
+                      backdropFilter: 'none',
+                      WebkitBackdropFilter: 'none',
+                    }}
                   >
                     {/* 书籍信息卡片部分 */}
                     <div className="mb-2 overflow-hidden rounded-xl border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-3 shadow-inner">

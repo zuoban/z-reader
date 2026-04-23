@@ -59,7 +59,12 @@ export function ConfirmDialog({
       <div
         aria-modal="true"
         role="alertdialog"
-        className="paper-motion-panel paper-panel paper-stack relative z-10 grid w-full max-w-sm gap-4 rounded-[1.5rem] p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5"
+        className="paper-motion-panel paper-stack relative z-10 grid w-full max-w-sm gap-4 overflow-hidden rounded-[1.5rem] border border-border bg-background p-5 text-sm text-popover-foreground shadow-md outline-none ring-1 ring-foreground/5"
+        style={{
+          backgroundColor: 'var(--background)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+        }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex flex-col gap-1.5">
@@ -70,7 +75,7 @@ export function ConfirmDialog({
             {description}
           </p>
         </div>
-        <div className="-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_72%,transparent),color-mix(in_srgb,var(--muted)_28%,transparent))] p-4 sm:flex-row sm:justify-end">
+        <div className="-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-background p-4 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
             className="min-w-20"

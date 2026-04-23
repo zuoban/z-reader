@@ -25,22 +25,30 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-[1.25rem] border border-transparent px-3.5 text-[13.5px] font-medium cursor-pointer transition-all duration-300 ease-out',
-          'text-muted-foreground hover:bg-muted/40 hover:border-border/40 hover:text-foreground active:scale-[0.97]',
-          open && 'bg-muted/50 border-border/60 text-foreground'
+          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-xl bg-background px-4 text-[13px] font-medium text-foreground shadow-sm cursor-pointer transition-all duration-200',
+          'hover:bg-background/95 active:scale-[0.97]',
+          open && 'bg-background text-foreground shadow-sm'
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <ArrowUpDown className="h-4 w-4 opacity-50 transition-opacity group-hover:opacity-80" />
-        <span className={cn(open && 'font-semibold tracking-tight')}>{currentOption?.label}</span>
+        <ArrowUpDown className="h-4 w-4 opacity-70 transition-opacity group-hover:opacity-90" />
+        <span className="font-medium">{currentOption?.label}</span>
         <ChevronDown
           className={cn(
-            'h-3.5 w-3.5 opacity-40 transition-all duration-300 group-hover:opacity-70',
+            'h-3.5 w-3.5 opacity-60 transition-all duration-200 group-hover:opacity-85',
             open && 'rotate-180 opacity-80'
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[160px] rounded-[1.25rem] p-1.5">
+      <DropdownMenuContent
+        align="end"
+        className="min-w-[160px] rounded-[1.25rem] border-border bg-background p-1.5 shadow-md"
+        style={{
+          backgroundColor: 'var(--background)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+        }}
+      >
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
             key={option.value}

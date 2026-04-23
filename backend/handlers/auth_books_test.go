@@ -15,6 +15,7 @@ import (
 
 	"z-reader/backend/config"
 	"z-reader/backend/models"
+	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
 
@@ -297,6 +298,101 @@ func TestValidateUploadedBook(t *testing.T) {
 	}
 }
 
+func TestBooksUploadRejectsDuplicateContent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	userID := "user-a"
+	content := []byte{'P', 'K', 3, 4, 0, 0}
+
+	firstRecorder := httptest.NewRecorder()
+	firstCtx, _ := gin.CreateTestContext(firstRecorder)
+	firstCtx.Set("userID", userID)
+	firstCtx.Request = newMultipartUploadRequest(t, "duplicate.epub", content)
+
+	handler.Upload(firstCtx)
+
+	if firstRecorder.Code != http.StatusOK {
+		t.Fatalf("expected first upload status 200, got %d body=%s", firstRecorder.Code, firstRecorder.Body.String())
+	}
+
+	secondRecorder := httptest.NewRecorder()
+	secondCtx, _ := gin.CreateTestContext(secondRecorder)
+	secondCtx.Set("userID", userID)
+	secondCtx.Request = newMultipartUploadRequest(t, "renamed.epub", content)
+
+	handler.Upload(secondCtx)
+
+	if secondRecorder.Code != http.StatusConflict {
+		t.Fatalf("expected duplicate upload status 409, got %d body=%s", secondRecorder.Code, secondRecorder.Body.String())
+	}
+
+	var resp response.ErrorResponse
+	if err := json.Unmarshal(secondRecorder.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode duplicate response: %v", err)
+	}
+	if resp.Message == "" {
+		t.Fatal("expected duplicate response message")
+	}
+
+	books, err := db.ListBooks(userID)
+	if err != nil {
+		t.Fatalf("ListBooks returned error: %v", err)
+	}
+	if len(books) != 1 {
+		t.Fatalf("expected 1 book after duplicate upload, got %d", len(books))
+	}
+	if books[0].ContentHash == "" {
+		t.Fatal("expected uploaded book to store content hash")
+	}
+}
+
+func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	userID := "user-a"
+	content := []byte{'P', 'K', 3, 4, 0, 0}
+	legacyBook := &models.Book{
+		ID:        "legacy-book",
+		UserID:    userID,
+		Title:     "Legacy Book",
+		Filename:  "legacy.epub",
+		Format:    "epub",
+		Size:      int64(len(content)),
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := db.SaveBook(legacyBook); err != nil {
+		t.Fatalf("failed to save legacy book: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(uploadDir, legacyBook.Filename), content, 0600); err != nil {
+		t.Fatalf("failed to write legacy book file: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Request = newMultipartUploadRequest(t, "legacy-copy.epub", content)
+
+	handler.Upload(ctx)
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("expected duplicate upload status 409, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	got, err := db.GetBook(legacyBook.ID)
+	if err != nil {
+		t.Fatalf("GetBook returned error: %v", err)
+	}
+	if got == nil || got.ContentHash == "" {
+		t.Fatalf("expected legacy book hash to be backfilled, got %+v", got)
+	}
+}
+
 func TestValidateUploadedCover(t *testing.T) {
 	pngHeader := []byte{
 		0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n',
@@ -311,6 +407,27 @@ func TestValidateUploadedCover(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected invalid PNG cover to fail validation")
 	}
+}
+
+func newMultipartUploadRequest(t *testing.T, filename string, content []byte) *http.Request {
+	t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatalf("CreateFormFile returned error: %v", err)
+	}
+	if _, err := part.Write(content); err != nil {
+		t.Fatalf("part.Write returned error: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("writer.Close returned error: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/books", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req
 }
 
 func newMultipartFileHeader(t *testing.T, filename string, content []byte) *multipart.FileHeader {

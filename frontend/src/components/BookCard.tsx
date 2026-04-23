@@ -10,7 +10,7 @@ import {
   Clock,
   FileText,
   HardDrive,
-  MoreHorizontal,
+  MoreVertical,
   Tag,
   Trash2,
   UserRound,
@@ -282,7 +282,7 @@ export function BookCard({
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
-                className="relative shrink-0"
+                className="relative shrink-0 -translate-y-2"
                 style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
               >
                 <div className="flex h-full w-full items-center justify-center">
@@ -297,14 +297,6 @@ export function BookCard({
                     </PerspectiveBook>
                   </div>
                 </div>
-                {book.category_id && category && (
-                  <div className="absolute left-1/2 -top-5 z-20 -translate-x-1/2 sm:-top-6">
-                    <span className="paper-chip shadow-sm inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10.5px] font-medium leading-4 tracking-[0.01em] text-foreground/80">
-                      <Tag className="h-3 w-3 shrink-0" />
-                      <span className="max-w-[4.5rem] truncate">{categoryLabel}</span>
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
             {progressValue !== null && progressValue > 0 && (
@@ -335,12 +327,25 @@ export function BookCard({
                 >
                   {titleLabel}
                 </h3>
+                <div className="-mr-6 mt-1.5 flex min-h-5 items-center justify-between gap-2 text-[10.5px] font-medium leading-4 text-muted-foreground sm:-mr-5">
+                  <span className="inline-flex min-w-0 items-center gap-1">
+                    <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/55" />
+                    <span className="truncate">{authorLabel}</span>
+                  </span>
+                  {book.category_id && category && (
+                    <span className="inline-flex shrink-0 items-center gap-0.5 text-foreground/55">
+                      <Tag className="h-3 w-3 shrink-0 text-muted-foreground/55" />
+                      <span className="max-w-[5.5rem] truncate sm:max-w-[4.5rem]">{categoryLabel}</span>
+                    </span>
+                  )}
+                </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className="paper-control absolute right-[-4px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] text-foreground/46 opacity-100 transition-[background-color,border-color,color,transform,opacity,box-shadow] duration-200 hover:text-foreground/82 active:scale-95 sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
+                    aria-label="更多操作"
+                    className="absolute right-[-14px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] border-0 bg-transparent text-foreground/46 shadow-none outline-none transition-[background-color,color,transform,opacity] duration-200 hover:bg-muted/60 hover:text-foreground/82 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MoreHorizontal className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
+                    <MoreVertical className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
@@ -412,11 +417,7 @@ export function BookCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex min-w-0 items-center justify-end sm:justify-between gap-1.5 text-[12px] leading-5 text-foreground/70 sm:text-[12.5px]">
-                <div className="paper-chip hidden sm:flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-foreground/70">
-                  <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                  <span className="line-clamp-1 font-medium tracking-normal">{authorLabel}</span>
-                </div>
+              <div className="flex">
                 <Button
                   type="button"
                   size="sm"
@@ -424,7 +425,7 @@ export function BookCard({
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="w-full sm:w-auto h-8 shrink-0 gap-1 rounded-lg bg-primary px-3 text-[11.5px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-7 sm:px-2.5 sm:text-[11px] cursor-pointer"
+                  className="h-9 w-full shrink-0 gap-1.5 rounded-xl bg-primary px-4 text-[12px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-8 sm:px-4 sm:text-[11.5px] cursor-pointer"
                 >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   <span>{readButtonLabel}</span>

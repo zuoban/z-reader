@@ -372,6 +372,56 @@ func (db *DB) SaveBook(book *models.Book) error {
 	})
 }
 
+func (db *DB) CreateBook(book *models.Book) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(BooksBucket)
+		if book.ContentHash != "" {
+			if err := b.ForEach(func(k, v []byte) error {
+				var existing models.Book
+				if err := json.Unmarshal(v, &existing); err != nil {
+					return err
+				}
+				if existing.ID != book.ID &&
+					existing.UserID == book.UserID &&
+					existing.ContentHash == book.ContentHash {
+					return ErrDuplicateBookContent
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+
+		data, err := json.Marshal(book)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(book.ID), data)
+	})
+}
+
+func (db *DB) FindBookByContentHash(userID string, contentHash string) (*models.Book, error) {
+	if contentHash == "" {
+		return nil, nil
+	}
+
+	var book *models.Book
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(BooksBucket)
+		return b.ForEach(func(k, v []byte) error {
+			var candidate models.Book
+			if err := json.Unmarshal(v, &candidate); err != nil {
+				return err
+			}
+			if candidate.UserID == userID && candidate.ContentHash == contentHash {
+				book = &candidate
+			}
+			return nil
+		})
+	})
+	return book, err
+}
+
 func (db *DB) GetBook(id string) (*models.Book, error) {
 	var book models.Book
 	err := db.View(func(tx *bbolt.Tx) error {

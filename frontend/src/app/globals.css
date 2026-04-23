@@ -558,24 +558,24 @@ foliate-view::part(filter) {
   @keyframes paperPanelIn {
     from {
       opacity: 0;
-      transform: translate3d(-50%, calc(-50% + 14px), 0) scale(0.984);
+      transform: translate3d(0, 14px, 0) scale(0.984);
     }
 
     to {
       opacity: 1;
-      transform: translate3d(-50%, -50%, 0) scale(1);
+      transform: translate3d(0, 0, 0) scale(1);
     }
   }
 
   @keyframes paperPanelOut {
     from {
       opacity: 1;
-      transform: translate3d(-50%, -50%, 0) scale(1);
+      transform: translate3d(0, 0, 0) scale(1);
     }
 
     to {
       opacity: 0;
-      transform: translate3d(-50%, calc(-50% + 10px), 0) scale(0.992);
+      transform: translate3d(0, 10px, 0) scale(0.992);
     }
   }
 

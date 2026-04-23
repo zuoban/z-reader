@@ -3,6 +3,8 @@ package handlers
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -113,6 +115,21 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	contentHash, err := hashUploadedFile(file)
+	if err != nil {
+		response.InternalError(c, "读取上传文件失败")
+		return
+	}
+	existing, err := h.findDuplicateBook(userID, contentHash)
+	if err != nil {
+		response.InternalError(c, "检查重复图书失败")
+		return
+	}
+	if existing != nil {
+		response.Conflict(c, duplicateBookMessage(existing))
+		return
+	}
+
 	bookID := uuid.New().String()
 	filename := bookID + ext
 	filepath := filepath.Join(h.cfg.UploadDir, filename)
@@ -123,12 +140,13 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	}
 
 	book := &models.Book{
-		ID:        bookID,
-		UserID:    userID,
-		Filename:  filename,
-		Format:    format,
-		Size:      file.Size,
-		CreatedAt: time.Now(),
+		ID:          bookID,
+		UserID:      userID,
+		Filename:    filename,
+		Format:      format,
+		Size:        file.Size,
+		ContentHash: contentHash,
+		CreatedAt:   time.Now(),
 	}
 
 	meta, err := extractBookMetadata(filepath, format)
@@ -147,8 +165,12 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		book.Title = strings.TrimSuffix(file.Filename, ext)
 	}
 
-	if err := h.db.SaveBook(book); err != nil {
+	if err := h.db.CreateBook(book); err != nil {
 		os.Remove(filepath)
+		if err == storage.ErrDuplicateBookContent {
+			response.Conflict(c, "这本书已在书架中，请勿重复上传")
+			return
+		}
 		response.InternalError(c, "保存书籍失败")
 		return
 	}
@@ -328,6 +350,78 @@ func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, e
 	}
 
 	return buf[:n], nil
+}
+
+func hashUploadedFile(file *multipart.FileHeader) (string, error) {
+	src, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, src); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func hashFile(path string) (string, error) {
+	src, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, src); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*models.Book, error) {
+	existing, err := h.db.FindBookByContentHash(userID, contentHash)
+	if err != nil || existing != nil {
+		return existing, err
+	}
+
+	books, err := h.db.ListBooks(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range books {
+		if books[i].ContentHash != "" {
+			continue
+		}
+
+		storedHash, err := hashFile(filepath.Join(h.cfg.UploadDir, books[i].Filename))
+		if err != nil {
+			logger.Warn("Failed to hash existing book during duplicate check",
+				slog.String("book_id", books[i].ID),
+				slog.Any("error", err),
+			)
+			continue
+		}
+
+		books[i].ContentHash = storedHash
+		if err := h.db.SaveBook(&books[i]); err != nil {
+			return nil, err
+		}
+		if storedHash == contentHash {
+			return &books[i], nil
+		}
+	}
+
+	return nil, nil
+}
+
+func duplicateBookMessage(book *models.Book) string {
+	if strings.TrimSpace(book.Title) == "" {
+		return "这本书已在书架中，请勿重复上传"
+	}
+	return fmt.Sprintf("《%s》已在书架中，请勿重复上传", book.Title)
 }
 
 func isZIPHeader(header []byte) bool {

@@ -13,6 +13,7 @@ export interface Book {
   filename: string;
   format: string;
   size: number;
+  content_hash?: string;
   cover_path?: string;
   category_id?: string;
   created_at: string;

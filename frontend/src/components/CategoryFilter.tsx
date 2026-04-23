@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Category } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -95,30 +96,35 @@ export function CategoryFilter({
       }))
       .filter((item) => item.count > 0),
   ];
+  const edgeFadeWidth = 24;
+  const scrollMask = (() => {
+    if (showLeftGradient && showRightGradient) {
+      return `linear-gradient(to right, transparent 0, black ${edgeFadeWidth}px, black calc(100% - ${edgeFadeWidth}px), transparent 100%)`;
+    }
+
+    if (showLeftGradient) {
+      return `linear-gradient(to right, transparent 0, black ${edgeFadeWidth}px, black 100%)`;
+    }
+
+    if (showRightGradient) {
+      return `linear-gradient(to right, black 0, black calc(100% - ${edgeFadeWidth}px), transparent 100%)`;
+    }
+
+    return undefined;
+  })();
+  const scrollMaskStyle = {
+    maskImage: scrollMask,
+    WebkitMaskImage: scrollMask,
+  } as CSSProperties;
 
   return (
     <div className="relative w-full">
-      {/* 左侧渐变指示器 */}
-      <div
-        className={cn(
-          'pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-10 bg-gradient-to-r from-background/0 via-background/80 to-background transition-opacity duration-300',
-          showLeftGradient ? 'opacity-100' : 'opacity-0'
-        )}
-      />
-
-      {/* 右侧渐变指示器 */}
-      <div
-        className={cn(
-          'pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-10 bg-gradient-to-l from-background/0 via-background/80 to-background transition-opacity duration-300',
-          showRightGradient ? 'opacity-100' : 'opacity-0'
-        )}
-      />
-
       {/* 筛选标签容器 */}
       <div
         className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         ref={containerRef}
         onScroll={checkScroll}
+        style={scrollMaskStyle}
       >
         <div
           role="tablist"

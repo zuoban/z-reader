@@ -1,15 +1,9 @@
 'use client';
 
 import type { ComponentProps } from 'react';
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 type ButtonVariant = ComponentProps<typeof Button>['variant'];
 
@@ -36,17 +30,47 @@ export function ConfirmDialog({
   confirmDisabled = false,
   onConfirm,
 }: ConfirmDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-sm"
-        showCloseButton={false}
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onOpenChange(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onOpenChange, open]);
+
+  const portalRoot = typeof document === 'undefined' ? null : document.body;
+
+  if (!portalRoot || !open) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex min-h-svh items-center justify-center p-4"
+      role="presentation"
+      onClick={() => onOpenChange(false)}
+    >
+      <div className="paper-motion-veil absolute inset-0 bg-black/20 supports-backdrop-filter:backdrop-blur-sm" />
+      <div
+        aria-modal="true"
+        role="alertdialog"
+        className="paper-motion-panel paper-panel paper-stack relative z-10 grid w-full max-w-sm gap-4 rounded-lg p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5"
+        onClick={(event) => event.stopPropagation()}
       >
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
+        <div className="flex flex-col gap-1.5">
+          <h2 className="font-heading text-base font-semibold leading-tight tracking-tight text-foreground">
+            {title}
+          </h2>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        </div>
+        <div className="-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_90%,transparent),color-mix(in_srgb,var(--muted)_42%,transparent))] p-4 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
             className="min-w-20"
@@ -62,8 +86,9 @@ export function ConfirmDialog({
           >
             {confirmLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>,
+    portalRoot
   );
 }

@@ -3,17 +3,18 @@ package models
 import "time"
 
 type Book struct {
-	ID         string     `json:"id"`
-	UserID     string     `json:"user_id"`
-	Title      string     `json:"title"`
-	Author     string     `json:"author"`
-	Filename   string     `json:"filename"`
-	Format     string     `json:"format"`
-	Size       int64      `json:"size"`
-	CoverPath  string     `json:"cover_path,omitempty"`
-	CategoryID *string    `json:"category_id,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
-	LastReadAt *time.Time `json:"last_read_at,omitempty"`
+	ID          string     `json:"id"`
+	UserID      string     `json:"user_id"`
+	Title       string     `json:"title"`
+	Author      string     `json:"author"`
+	Filename    string     `json:"filename"`
+	Format      string     `json:"format"`
+	Size        int64      `json:"size"`
+	ContentHash string     `json:"content_hash,omitempty"`
+	CoverPath   string     `json:"cover_path,omitempty"`
+	CategoryID  *string    `json:"category_id,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	LastReadAt  *time.Time `json:"last_read_at,omitempty"`
 }
 
 type Progress struct {

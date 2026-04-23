@@ -59,6 +59,11 @@ func NotFound(c *gin.Context, message string) {
 	c.JSON(http.StatusNotFound, err)
 }
 
+func Conflict(c *gin.Context, message string) {
+	err := &ErrorResponse{Code: "conflict", Message: message}
+	c.JSON(http.StatusConflict, err)
+}
+
 func InternalError(c *gin.Context, message string) {
 	err := &ErrorResponse{Code: "internal_error", Message: message}
 	if message == "" {

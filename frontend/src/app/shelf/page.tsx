@@ -25,6 +25,7 @@ import { FileUploadAction } from '@/components/FileUploadAction';
 import { SortSelector } from '@/components/SortSelector';
 import { UserManager } from '@/components/UserManager';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
 
@@ -104,12 +105,17 @@ export default function ShelfPage() {
               onChange={handleUpload}
               disabled={isUploading}
               title="上传书籍"
+              statusLabel={isUploading ? '上传中' : undefined}
+              wrapperClassName="overflow-visible"
               buttonVariant="ghost"
               buttonSize="sm"
-              buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9"
+              buttonClassName={cn(
+                'shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9',
+                isUploading && 'bg-primary/10 text-primary opacity-100 hover:bg-primary/12'
+              )}
             >
               {isUploading ? (
-                <LoadingSpinner className="h-4 w-4" />
+                <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
               ) : (
                 <Upload className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
               )}

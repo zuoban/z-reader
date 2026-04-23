@@ -11,6 +11,7 @@ interface FileUploadActionProps {
   title: string;
   children: ReactNode;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  statusLabel?: string;
   wrapperClassName?: string;
   buttonClassName?: string;
   buttonVariant?: ComponentProps<typeof Button>['variant'];
@@ -23,6 +24,7 @@ export function FileUploadAction({
   title,
   children,
   onChange,
+  statusLabel,
   wrapperClassName,
   buttonClassName,
   buttonVariant = 'default',
@@ -49,6 +51,11 @@ export function FileUploadAction({
       >
         {children}
       </Button>
+      {statusLabel && (
+        <span className="paper-chip pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-primary shadow-sm">
+          {statusLabel}
+        </span>
+      )}
     </div>
   );
 }

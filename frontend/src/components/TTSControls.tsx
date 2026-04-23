@@ -72,19 +72,18 @@ const SoundWaveAnimation = ({ uiScheme }: { uiScheme: ThemeColors }) => {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center overflow-hidden motion-reduce:hidden">
-      {/* 波形条 - 使用主题色渐变 */}
-      <div className="relative flex items-center gap-0.5 h-full py-2.5">
+      <div className="relative flex items-end gap-[1.5px] h-3.5 mb-0.5">
         {[0, 1, 2, 3, 4].map((index) => (
           <div
             key={index}
-            className="w-0.5 rounded-full"
+            className="w-[2px] rounded-full"
             style={{
-              background: `linear-gradient(180deg, ${colors.waveStart} 0%, ${colors.waveEnd} 100%)`,
-              height: index === 2 ? 14 : index % 2 === 0 ? 9 : 11,
-              animation: `soundWave ${550 + index * 70}ms ease-in-out infinite`,
-              animationDelay: `${index * 50}ms`,
-              opacity: 0.75,
-              boxShadow: `0 0 6px ${colors.glowInner}`,
+              background: `linear-gradient(to top, ${colors.primary}, ${colors.primaryLight})`,
+              height: '100%',
+              animation: `soundWave ${600 + index * 100}ms ease-in-out infinite`,
+              animationDelay: `${index * 80}ms`,
+              opacity: 0.85,
+              boxShadow: `0 0 4px ${colors.glowInner}`,
             }}
           />
         ))}
@@ -99,24 +98,23 @@ const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
 
   return (
     <>
-      {/* 外层柔光 - 降低存在感，避免按钮显得臃肿 */}
       <div
         className="absolute rounded-full motion-reduce:hidden pointer-events-none"
         style={{
-          inset: -5,
-          background: `radial-gradient(circle, ${colors.glowOuter} 0%, transparent 72%)`,
-          boxShadow: `0 10px 30px ${colors.glowInner}, 0 0 36px ${colors.glowOuter}`,
-          animation: 'glowPulse 2.5s ease-in-out infinite',
+          inset: -8,
+          background: `radial-gradient(circle, ${colors.primarySoft} 0%, transparent 75%)`,
+          opacity: 0.6,
+          animation: 'glowPulse 3s ease-in-out infinite',
         }}
       />
       <div
         className="absolute rounded-full motion-reduce:hidden pointer-events-none"
         style={{
-          inset: -1,
-          border: `1px solid ${colors.borderHighlight}`,
-          boxShadow: `0 0 0 1px ${colors.primarySoft}`,
+          inset: -2,
+          border: `1.5px solid ${colors.borderHighlight}`,
+          boxShadow: `0 0 12px ${colors.glowInner}`,
           animation: 'glowPulse 2s ease-in-out infinite',
-          animationDelay: '0.4s',
+          animationDelay: '0.2s',
         }}
       />
     </>
@@ -125,33 +123,27 @@ const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
 
 // 活动状态指示器 - 使用绿色系保持独立性
 const ActiveIndicator = ({ uiScheme }: { uiScheme: ThemeColors }) => (
-  <div className="absolute top-1.5 right-1.5 motion-reduce:static">
-    {/* 外层光环 */}
+  <div className="absolute top-1 right-1 z-20 motion-reduce:static">
     <div
       className="absolute rounded-full motion-reduce:hidden"
       style={{
-        width: 12,
-        height: 12,
+        width: 14,
+        height: 14,
         left: -3,
         top: -3,
-        background: 'radial-gradient(circle, #22c55e30 0%, transparent 70%)',
-        boxShadow: '0 0 14px #22c55e45',
-        animation: 'indicatorPulse 1.5s ease-in-out infinite',
+        background: 'radial-gradient(circle, #22c55e40 0%, transparent 70%)',
+        animation: 'indicatorPulse 2s ease-in-out infinite',
       }}
     />
-    {/* 主指示器 - 渐变绿色 */}
     <div
-      className="relative h-2 w-2 rounded-full motion-reduce:animate-none"
+      className="relative h-2.5 w-2.5 rounded-full"
       style={{
-        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)',
+        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
         boxShadow: `
-          0 0 8px #22c55e75,
-          0 0 14px #22c55e35,
-          inset 0 1px 0 rgba(255,255,255,0.4),
-          inset 0 -1px 0 rgba(0,0,0,0.1)
+          0 0 10px #22c55e60,
+          inset 0 1px 0 rgba(255,255,255,0.5)
         `,
         border: `1.5px solid ${uiScheme.bg}`,
-        animation: 'indicatorPulse 1.5s ease-in-out infinite',
       }}
     />
   </div>
@@ -184,17 +176,17 @@ const FloatingButton = ({
 
     // 播放状态 - 改为更清爽的高亮玻璃按钮，减少厚重块感
     return {
-      background: `linear-gradient(180deg,
-        rgba(255,255,255,0.96) 0%,
-        ${colors.primarySoft} 22%,
-        rgba(255,255,255,0.9) 100%)`,
-      border: `1px solid ${colors.border}`,
+      background: `linear-gradient(135deg,
+        rgba(255,255,255,0.98) 0%,
+        ${colors.primarySoft} 45%,
+        rgba(255,255,255,0.92) 100%)`,
+      border: `1.5px solid ${colors.borderHighlight}`,
       boxShadow: isDragging
-        ? `0 16px 36px ${colors.glowInner}, 0 8px 20px ${colors.glowOuter},
-           inset 0 1px 0 rgba(255,255,255,0.95)`
-        : `0 10px 24px ${colors.glowInner}, 0 4px 12px ${colors.glowOuter},
-           inset 0 1px 0 rgba(255,255,255,0.95)`,
-      backdropFilter: 'blur(18px) saturate(165%)',
+        ? `0 20px 40px ${colors.glowInner}, 0 8px 24px ${colors.glowOuter},
+           inset 0 1px 0 rgba(255,255,255,0.98)`
+        : `0 12px 28px ${colors.glowInner}, 0 6px 16px ${colors.glowOuter},
+           inset 0 1px 0 rgba(255,255,255,0.98)`,
+      backdropFilter: 'blur(20px) saturate(180%)',
     };
   };
 
@@ -235,60 +227,50 @@ const FloatingButton = ({
 
       {/* 主按钮 */}
       <div
-        className="relative h-11 w-11 rounded-full flex items-center justify-center overflow-hidden
-          transition-all duration-250 ease-out
+        className="relative h-12 w-12 rounded-full flex items-center justify-center overflow-hidden
+          transition-all duration-300 ease-out
           motion-reduce:transition-none"
         style={{
           ...fabStyles,
-          transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.02)' : undefined,
+          transform: isDragging ? 'scale(1.1)' : expanded ? 'scale(1.05)' : undefined,
         }}
       >
-        {/* 内部光泽层 - 播放时使用白色高光 */}
+        {/* 内部高光层 */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
             background: isActive
-              ? `linear-gradient(180deg,
-                  rgba(255,255,255,0.9) 0%,
-                  rgba(255,255,255,0.45) 28%,
-                  transparent 60%)`
-              : `linear-gradient(180deg, rgba(255,255,255,0.72) 0%, transparent 58%)`,
-            opacity: isActive ? 1 : 0.55,
+              ? `linear-gradient(135deg,
+                  rgba(255,255,255,0.95) 0%,
+                  rgba(255,255,255,0.2) 50%,
+                  transparent 100%)`
+              : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, transparent 60%)`,
+            opacity: isActive ? 1 : 0.6,
           }}
         />
 
-        {/* 底部轻微染色，保留层次但不过度压暗 */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-1/2 rounded-b-full"
-          style={{
-            background: isActive
-              ? `linear-gradient(0deg, ${colors.primaryDark}40 0%, transparent 100%)`
-              : `linear-gradient(0deg, ${uiScheme.cardBorder}10 0%, transparent 100%)`,
-          }}
-        />
-
+        {/* 边缘高光线 */}
         <div
           className="absolute inset-[1px] rounded-full pointer-events-none"
           style={{
-            border: `1px solid ${isActive ? colors.borderHighlight : `${uiScheme.fg}0d`}`,
-            opacity: isActive ? 1 : 0.7,
+            border: `1px solid ${isActive ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)'}`,
+            opacity: 0.8,
           }}
         />
 
         {/* 声音波形动画 */}
         {isActive && <SoundWaveAnimation uiScheme={uiScheme} />}
 
-        {/* 图标 - 播放时使用白色 */}
-        <Volume2
-          className="h-4 w-4 transition-all duration-200 ease-out relative z-10
-            motion-reduce:transition-none"
-          style={{
-            color: isActive ? colors.primary : uiScheme.fg,
-            filter: isActive
-              ? `drop-shadow(0 1px 1px rgba(255,255,255,0.45)) drop-shadow(0 0 6px ${colors.glowOuter})`
-              : undefined,
-          }}
-        />
+        {/* 图标 */}
+        {!isActive && (
+          <Volume2
+            className="h-5 w-5 transition-all duration-300 ease-out relative z-10"
+            style={{
+              color: uiScheme.fg,
+              opacity: 0.85,
+            }}
+          />
+        )}
 
         {/* 活动状态指示器 */}
         {isActive && <ActiveIndicator uiScheme={uiScheme} />}

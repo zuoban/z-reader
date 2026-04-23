@@ -263,7 +263,7 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card/45 p-0 gap-0 backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card/60 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card p-0 gap-0 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
@@ -313,7 +313,7 @@ export function BookCard({
             )}
           </div>
           <div
-            className="flex flex-col border-t border-border/40 bg-card/25 px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
+            className="flex flex-col border-t border-border/40 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
           >
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">
@@ -339,7 +339,7 @@ export function BookCard({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     aria-label="更多操作"
-                    className="absolute right-[-14px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] border-0 bg-transparent text-foreground/46 shadow-none outline-none transition-[background-color,color,transform,opacity] duration-200 hover:bg-muted/60 hover:text-foreground/82 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
+                    className="absolute right-[-14px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] border border-border/40 bg-card text-foreground/46 shadow-none outline-none transition-[background-color,color,transform,opacity] duration-200 hover:bg-muted/80 hover:text-foreground/82 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreVertical className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />

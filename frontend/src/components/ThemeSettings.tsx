@@ -117,7 +117,7 @@ function SectionCard({
 }: SectionProps) {
   return (
     <section
-      className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/28 p-5 shadow-sm backdrop-blur-sm backdrop-saturate-150 transition-all hover:bg-card/45"
+      className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card"
       style={{
         borderColor: withOpacity(uiScheme.cardBorder, 0.18),
       }}
@@ -228,9 +228,7 @@ export function ThemeSettings({
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
   const [resetFeedbackCount, setResetFeedbackCount] = useState(0);
   const panelStyle = {
-    background: withOpacity(uiScheme.cardBg, 0.75),
-    backdropFilter: "blur(28px) saturate(175%)",
-    WebkitBackdropFilter: "blur(28px) saturate(175%)",
+    background: uiScheme.cardBg,
     borderLeft: `1px solid ${withOpacity(uiScheme.cardBorder, 0.22)}`,
     color: uiScheme.fg,
     boxShadow: `-10px 0 28px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
@@ -324,8 +322,8 @@ export function ThemeSettings({
         </Button>
 
         <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-28">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
-          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
+          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
+          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
           
           <div className="relative min-w-0">
             <div className="flex items-center gap-4">

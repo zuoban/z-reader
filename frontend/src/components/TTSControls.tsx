@@ -83,13 +83,12 @@ const FloatingButton = ({
     ...getGlassSurface(uiScheme, {
       elevated: expanded || isDragging,
     }),
-    background: withOpacity(uiScheme.cardBg, 0.68),
+    background: uiScheme.cardBg,
     boxShadow: isDragging
       ? `0 16px 30px -16px ${withOpacity(uiScheme.fg, 0.24)}`
       : expanded
         ? `0 14px 26px -16px ${withOpacity(uiScheme.fg, 0.2)}`
         : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.16)}`,
-    backdropFilter: 'none',
     transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.03)' : 'scale(1)',
   };
 
@@ -143,7 +142,6 @@ const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
     background: uiScheme.cardBg,
     borderColor: `${uiScheme.cardBorder}72`,
-    backdropFilter: 'blur(22px) saturate(150%)',
     boxShadow: isActive
       ? `0 28px 54px -30px ${uiScheme.link}22, 0 14px 28px -24px ${uiScheme.cardBorder}20, inset 0 1px 0 rgba(255,255,255,0.4)`
       : `0 24px 46px -30px ${uiScheme.cardBorder}26, inset 0 1px 0 rgba(255,255,255,0.34)`,
@@ -162,7 +160,6 @@ const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   selectContent: {
     background: uiScheme.cardBg,
     borderColor: `${uiScheme.cardBorder}68`,
-    backdropFilter: 'blur(10px)',
   },
 });
 
@@ -244,8 +241,8 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
-        background: active ? uiScheme.muted : 'transparent',
-        border: active ? `1px solid ${withOpacity(uiScheme.cardBorder, 0.28)}` : '1px solid transparent',
+        background: active ? uiScheme.muted : uiScheme.cardBg,
+        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.28) : withOpacity(uiScheme.cardBorder, 0.16)}`,
         boxShadow: disabled
           ? 'none'
           : active
@@ -661,7 +658,7 @@ export function TTSControls({
             aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
             aria-expanded={expanded}
             aria-haspopup="dialog"
-            className="paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle hover:scale-[1.04] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
+            className="paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 align-middle hover:scale-[1.04] hover:opacity-100 active:scale-95 focus-visible:border-transparent! focus-visible:ring-0!"
             style={{
               color: uiScheme.buttonText,
               ...getGlassSurface(uiScheme, {
@@ -673,7 +670,6 @@ export function TTSControls({
                   ? withOpacity(uiScheme.link, 0.28)
                   : withOpacity(uiScheme.fg, 0.14),
               }),
-              backdropFilter: 'blur(14px) saturate(150%)',
               opacity: isPending ? 0.72 : 1,
             }}
           >
@@ -743,7 +739,7 @@ export function TTSControls({
             onClick={stopInteractivePropagation}
           >
             <div
-              className="paper-motion-surface paper-panel paper-stack relative overflow-hidden rounded-[28px] border p-0 shadow-2xl backdrop-blur-xl motion-reduce:transition-none"
+              className="paper-motion-surface paper-panel paper-stack relative overflow-hidden rounded-[28px] border p-0 shadow-2xl motion-reduce:transition-none"
               style={styles.panel}
             >
               {!isToolbar && (
@@ -872,7 +868,7 @@ export function TTSControls({
                       <div
                         className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
                         style={{
-                          background: sleepTimerActive ? uiScheme.cardBg : 'transparent',
+                          background: sleepTimerActive ? uiScheme.cardBg : uiScheme.muted,
                           color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
                         }}
                       >
@@ -892,8 +888,8 @@ export function TTSControls({
                             className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
                             style={{
                               color: active ? uiScheme.link : uiScheme.fg,
-                              background: active ? uiScheme.cardBg : 'transparent',
-                              border: active ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
+                              background: active ? uiScheme.cardBg : uiScheme.muted,
+                              border: `1px solid ${active ? `${uiScheme.link}40` : `${uiScheme.cardBorder}24`}`,
                               boxShadow: active ? `0 4px 12px -4px ${uiScheme.link}30` : 'none',
                             }}
                           >

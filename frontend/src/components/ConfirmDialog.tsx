@@ -55,7 +55,7 @@ export function ConfirmDialog({
       role="presentation"
       onClick={() => onOpenChange(false)}
     >
-      <div className="paper-motion-veil absolute inset-0 bg-black/35 supports-backdrop-filter:backdrop-blur-md" />
+      <div className="paper-motion-veil absolute inset-0 bg-black/45" />
       <div
         aria-modal="true"
         role="alertdialog"

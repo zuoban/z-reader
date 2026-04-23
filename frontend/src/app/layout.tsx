@@ -105,7 +105,6 @@ export default function RootLayout({
                   color: 'var(--foreground)',
                   border: '1px solid var(--border)',
                   borderRadius: '1rem',
-                  backdropFilter: 'blur(24px) saturate(170%)',
                 },
               }}
             />

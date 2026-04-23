@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "paper-motion-veil fixed inset-0 isolate z-50 bg-black/35 supports-backdrop-filter:backdrop-blur-md motion-reduce:duration-0",
+        "paper-motion-veil fixed inset-0 isolate z-50 bg-black/45 motion-reduce:duration-0",
         className
       )}
       {...props}
@@ -115,7 +115,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_72%,transparent),color-mix(in_srgb,var(--muted)_28%,transparent))] p-4 sm:flex-row sm:justify-end",
+        "-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-muted p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

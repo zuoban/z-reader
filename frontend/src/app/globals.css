@@ -51,9 +51,9 @@
 :root {
   --background: #f0f2f8;
   --foreground: #0f1629;
-  --card: rgba(255, 255, 255, 0.48);
+  --card: #ffffff;
   --card-foreground: #0f1629;
-  --popover: rgba(255, 255, 255, 0.65);
+  --popover: #ffffff;
   --popover-foreground: #0f1629;
   --primary: #4f6ef7;
   --primary-foreground: #ffffff;
@@ -64,8 +64,8 @@
   --accent: #7c6ef8;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: rgba(79, 110, 247, 0.20);
-  --input: rgba(79, 110, 247, 0.08);
+  --border: #cfd9fb;
+  --input: #e6ecff;
   --ring: #4f6ef7;
   --chart-1: #4f6ef7;
   --chart-2: #7c6ef8;
@@ -73,7 +73,7 @@
   --chart-4: #f59e0b;
   --chart-5: #10b981;
   --radius: 1.05rem;
-  --sidebar: rgba(240, 242, 248, 0.52);
+  --sidebar: #f0f2f8;
   --sidebar-foreground: #0f1629;
   --sidebar-primary: #4f6ef7;
   --sidebar-primary-foreground: #ffffff;
@@ -104,9 +104,9 @@
 .dark {
   --background: #080c18;
   --foreground: #e8edf8;
-  --card: rgba(16, 22, 42, 0.55);
+  --card: #10162a;
   --card-foreground: #e8edf8;
-  --popover: rgba(12, 18, 36, 0.60);
+  --popover: #0c1224;
   --popover-foreground: #e8edf8;
   --primary: #6b8bfa;
   --primary-foreground: #ffffff;
@@ -117,15 +117,15 @@
   --accent: #9b8df9;
   --accent-foreground: #ffffff;
   --destructive: #f87171;
-  --border: rgba(107, 139, 250, 0.24);
-  --input: rgba(107, 139, 250, 0.10);
+  --border: #2c3a66;
+  --input: #1b2442;
   --ring: #6b8bfa;
   --chart-1: #6b8bfa;
   --chart-2: #9b8df9;
   --chart-3: #22d3ee;
   --chart-4: #fbbf24;
   --chart-5: #34d399;
-  --sidebar: rgba(10, 14, 28, 0.52);
+  --sidebar: #0a0e1c;
   --sidebar-foreground: #e8edf8;
   --sidebar-primary: #6b8bfa;
   --sidebar-primary-foreground: #ffffff;
@@ -215,16 +215,14 @@ foliate-view::part(filter) {
   }
 
   .editorial-panel {
-    background: color-mix(in srgb, var(--card) 65%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 100%, transparent);
+    background: var(--card);
+    border: 1px solid var(--border);
     box-shadow:
       0 0 0 0.5px color-mix(in srgb, var(--paper-edge) 40%, transparent),
       0 32px 72px -20px var(--paper-shadow),
       0 8px 24px -8px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 80%, transparent),
       inset 0 -1px 0 color-mix(in srgb, var(--paper-edge) 25%, transparent);
-    backdrop-filter: blur(36px) saturate(185%);
-    -webkit-backdrop-filter: blur(36px) saturate(185%);
     transition:
       transform var(--paper-duration-slow) var(--paper-ease-out),
       box-shadow var(--paper-duration-slow) var(--paper-ease-out),
@@ -234,15 +232,13 @@ foliate-view::part(filter) {
   }
 
   .paper-panel {
-    background: color-mix(in srgb, var(--card) 70%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+    background: var(--card);
+    border: 1px solid var(--border);
     box-shadow:
       0 8px 32px -8px var(--paper-shadow),
       0 2px 12px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 75%, transparent),
       inset 0 -1px 0 color-mix(in srgb, var(--paper-edge) 20%, transparent);
-    backdrop-filter: blur(32px) saturate(180%);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
     transition:
       transform var(--paper-duration-slow) var(--paper-ease-out),
       box-shadow var(--paper-duration-slow) var(--paper-ease-out),
@@ -277,11 +273,9 @@ foliate-view::part(filter) {
   }
 
   .paper-control {
-    background: color-mix(in srgb, var(--muted) 50%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: var(--muted);
+    border: 1px solid var(--border);
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 55%, transparent);
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -292,16 +286,14 @@ foliate-view::part(filter) {
   }
 
   .paper-control:hover {
-    background: color-mix(in srgb, var(--muted) 70%, transparent);
-    border-color: color-mix(in srgb, var(--border) 120%, transparent);
+    background: color-mix(in srgb, var(--muted) 88%, var(--background));
+    border-color: var(--border);
   }
 
   .paper-field {
-    background: color-mix(in srgb, var(--muted) 40%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--muted) 82%, var(--background));
+    border: 1px solid var(--border);
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 45%, transparent);
-    backdrop-filter: blur(10px) saturate(130%);
-    -webkit-backdrop-filter: blur(10px) saturate(130%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -320,14 +312,12 @@ foliate-view::part(filter) {
   }
 
   .paper-menu {
-    background: color-mix(in srgb, var(--popover) 75%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+    background: var(--popover);
+    border: 1px solid var(--border);
     box-shadow:
       0 16px 40px -12px var(--paper-shadow),
       0 4px 16px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent);
-    backdrop-filter: blur(36px) saturate(185%);
-    -webkit-backdrop-filter: blur(36px) saturate(185%);
     transition:
       transform var(--paper-duration-base) var(--paper-ease-out),
       box-shadow var(--paper-duration-base) var(--paper-ease-out),
@@ -337,10 +327,8 @@ foliate-view::part(filter) {
   }
 
   .paper-chip {
-    background: color-mix(in srgb, var(--muted) 55%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-    backdrop-filter: blur(8px) saturate(120%);
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    background: color-mix(in srgb, var(--muted) 88%, var(--background));
+    border: 1px solid var(--border);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -349,11 +337,9 @@ foliate-view::part(filter) {
   }
 
   .paper-panel-soft {
-    background: color-mix(in srgb, var(--card) 55%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background: color-mix(in srgb, var(--card) 94%, var(--background));
+    border: 1px solid var(--border);
     box-shadow: 0 4px 16px -4px var(--paper-shadow-soft);
-    backdrop-filter: blur(20px) saturate(150%);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -373,10 +359,8 @@ foliate-view::part(filter) {
   }
 
   .paper-badge {
-    background: color-mix(in srgb, var(--muted) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    backdrop-filter: blur(6px) saturate(115%);
-    -webkit-backdrop-filter: blur(6px) saturate(115%);
+    background: color-mix(in srgb, var(--muted) 90%, var(--background));
+    border: 1px solid var(--border);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -389,12 +373,10 @@ foliate-view::part(filter) {
       color-mix(in srgb, var(--primary) 6%, var(--card)) 0%,
       color-mix(in srgb, var(--accent) 4%, var(--card)) 100%
     );
-    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    border: 1px solid var(--border);
     box-shadow:
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 60%, transparent),
       0 4px 12px -4px var(--paper-shadow-soft);
-    backdrop-filter: blur(8px) saturate(120%);
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -418,7 +400,7 @@ foliate-view::part(filter) {
   }
 
   .paper-motion-veil {
-    transition-property: opacity, backdrop-filter, background-color;
+    transition-property: opacity, background-color;
     transition-duration: var(--paper-duration-base);
     transition-timing-function: var(--paper-ease-soft);
   }
@@ -436,7 +418,7 @@ foliate-view::part(filter) {
   }
 
   .paper-motion-sheet {
-    transition-property: transform, opacity, box-shadow, border-color, backdrop-filter;
+    transition-property: transform, opacity, box-shadow, border-color;
     transition-duration: var(--paper-duration-slow);
     transition-timing-function: var(--paper-ease-out);
     will-change: transform, opacity;
@@ -489,10 +471,8 @@ foliate-view::part(filter) {
   }
 
   .shelf-container {
-    background: color-mix(in srgb, var(--card) 38%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    background: color-mix(in srgb, var(--card) 96%, var(--background));
+    border: 1px solid var(--border);
     box-shadow:
       0 4px 24px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 50%, transparent);
@@ -503,15 +483,13 @@ foliate-view::part(filter) {
   }
 
   .shelf-header {
-    background: color-mix(in srgb, var(--card) 32%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    background: color-mix(in srgb, var(--card) 96%, var(--background));
+    border: 1px solid var(--border);
     border-radius: 1.25rem;
     box-shadow:
       0 6px 24px -14px var(--paper-shadow),
       0 1px 6px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
   }
 
   .shelf-bands {
@@ -519,10 +497,8 @@ foliate-view::part(filter) {
   }
 
   .reading-status-panel {
-    background: color-mix(in srgb, var(--card) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    backdrop-filter: blur(28px) saturate(170%);
-    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    background: color-mix(in srgb, var(--card) 96%, var(--background));
+    border: 1px solid var(--border);
     box-shadow: 0 4px 20px -4px var(--paper-shadow-soft);
   }
 

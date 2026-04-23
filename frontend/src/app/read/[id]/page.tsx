@@ -633,18 +633,16 @@ export default function ReadPage() {
     transition: "all 150ms ease-out",
   });
   const unifiedToolbarStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.60 : 0.78),
+    background: uiScheme.cardBg,
     border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.36 : 0.44)}`,
     boxShadow: `0 8px 32px -8px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.30 : 0.14)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.10 : 0.75)}`,
-    backdropFilter: "blur(44px) saturate(200%)",
   } as const;
   const statusBarContainerStyle = {
-    background: withOpacity(uiScheme.bg, isDarkPreset ? 0.65 : 0.82),
+    background: uiScheme.bg,
     borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.3 : 0.4)}`,
-    backdropFilter: "blur(28px) saturate(180%)",
   } as const;
   const mobileResumeCardStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.70 : 0.80),
+    background: uiScheme.cardBg,
     border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
@@ -679,7 +677,7 @@ export default function ReadPage() {
               : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
           }`}
           style={{
-            background: "transparent",
+            background: uiScheme.bg,
             paddingTop: headerSafeAreaPaddingTop,
             transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
           }}
@@ -719,9 +717,9 @@ export default function ReadPage() {
                 <SheetContent
                   side="left"
                   container={overlayContainer}
-                  className="max-w-sm border-r-0 p-0 backdrop-blur-3xl sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
+                  className="max-w-sm border-r-0 p-0 sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
                   style={{
-                    background: withOpacity(uiScheme.cardBg, 0.94),
+                    background: uiScheme.cardBg,
                     boxShadow: `20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
                   }}
                 >
@@ -749,8 +747,8 @@ export default function ReadPage() {
                   </Button>
 
                   <SheetHeader className="relative overflow-hidden border-b border-border/40 px-5 py-6 pr-28">
-                    <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-[36px]" />
-                    <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-accent/5 blur-[28px]" />
+                    <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
+                    <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-accent/10" />
                     
                     <div className="relative flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm shadow-primary/5">
@@ -889,9 +887,9 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8 backdrop-blur-xl"
+                  className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8"
                   style={{
-                    background: withOpacity(uiScheme.cardBg, 0.9),
+                    background: uiScheme.cardBg,
                     borderColor: withOpacity(uiScheme.cardBorder, 0.78),
                     boxShadow: `0 24px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
                   }}
@@ -952,7 +950,7 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3 backdrop-blur-xl"
+                  className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3"
                   style={mobileResumeCardStyle}
                 >
                   <div

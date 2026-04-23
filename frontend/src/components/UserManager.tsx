@@ -179,39 +179,49 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
       >
         <UserCog className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
       </SheetTrigger>
-      <SheetContent side="right" className="w-full p-0 sm:max-w-[520px]">
+      <SheetContent
+        side="right"
+        className="w-full border-r-0 bg-background p-0 sm:w-[520px] sm:max-w-[520px] sm:[&_[data-slot=sheet-close]]:top-4 sm:[&_[data-slot=sheet-close]]:border-border sm:[&_[data-slot=sheet-close]]:bg-background sm:[&_[data-slot=sheet-close]]:shadow-none"
+        style={{
+          backgroundColor: 'var(--background)',
+          boxShadow: '20px 0 60px -20px var(--paper-shadow)',
+        }}
+      >
         <div className="flex min-h-0 flex-1 flex-col">
-          <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8">
-            <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
-            <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
+          <SheetHeader
+            className="relative overflow-hidden border-b border-border/40 px-5 py-6 pr-28"
+            style={{ backgroundColor: 'var(--background)' }}
+          >
+            <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-muted" />
+            <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-secondary" />
             
-            <div className="relative flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                <ShieldCheck className="h-6 w-6" />
+            <div className="relative flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-primary shadow-sm shadow-primary/10">
+                <ShieldCheck className="h-4.5 w-4.5" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-bold tracking-tight text-foreground">
+                <SheetTitle className="text-lg font-bold tracking-tight text-foreground">
                   用户管理
                 </SheetTitle>
-                <SheetDescription className="mt-1 text-[12px] font-medium opacity-60 text-muted-foreground">
+                <SheetDescription className="mt-0.5 text-[10px] font-medium text-muted-foreground">
                   集中维护账号权限与安全设置
                 </SheetDescription>
-              </div>
-            </div>
-            
-            <div className="relative mt-6 flex flex-wrap gap-2">
-              <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-[10px] font-bold tracking-wider text-primary">
-                <UserCog className="h-3 w-3" />
-                {users.length} 位用户
-              </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[10px] font-bold tracking-wider text-muted-foreground">
-                {users.filter((user) => user.role === 'admin').length} 名管理员
               </div>
             </div>
           </SheetHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="space-y-12 bg-muted/20 px-6 pb-12 pt-8">
+            <div className="space-y-12 bg-muted px-6 pb-12 pt-8">
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[10px] font-bold tracking-wider text-primary">
+                  <UserCog className="h-3 w-3" />
+                  {users.length} 位用户
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[10px] font-bold tracking-wider text-muted-foreground">
+                  {users.filter((user) => user.role === 'admin').length} 名管理员
+                </div>
+              </div>
+
               {/* Create User Section */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2.5 px-1">
@@ -219,7 +229,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                   <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/90">新建用户</h3>
                 </div>
                 
-                <div className="rounded-[2rem] border border-border/40 bg-background p-6 shadow-sm shadow-primary/5">
+                <div className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm shadow-primary/10">
                   <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_140px]">
                     <div className="space-y-2">
                       <Label htmlFor="new-username" className="pl-1 text-[11px] font-bold tracking-wide text-muted-foreground/60">
@@ -231,7 +241,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                         onChange={(event) => setUsername(event.target.value)}
                         placeholder="请输入用户名"
                         disabled={loading}
-                        className="h-11 rounded-xl border-border/60 bg-muted/20 transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                        className="h-11 rounded-xl border-border/60 bg-background transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
                       />
                     </div>
                     <div className="space-y-2">
@@ -245,7 +255,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="至少 6 位"
                         disabled={loading}
-                        className="h-11 rounded-xl border-border/60 bg-muted/20 transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                        className="h-11 rounded-xl border-border/60 bg-background transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
                       />
                     </div>
                     <div className="space-y-2">
@@ -255,7 +265,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                         onValueChange={(value) => setRole(value as User['role'])}
                         disabled={loading}
                       >
-                        <SelectTrigger className="h-11 rounded-xl border-border/60 bg-muted/20 transition-all hover:bg-muted/40">
+                        <SelectTrigger className="h-11 rounded-xl border-border/60 bg-background transition-all hover:bg-muted">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/60 shadow-xl">
@@ -300,14 +310,14 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                             </span>
                             <div className="flex gap-1.5">
                               {isCurrentUser && (
-                                <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black tracking-tighter text-primary">
+                                <span className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[9px] font-black tracking-tighter text-primary">
                                   当前
                                 </span>
                               )}
                               <span className={cn(
                                 "rounded-md px-1.5 py-0.5 text-[9px] font-black tracking-tighter",
                                 user.role === 'admin' 
-                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" 
                                   : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                               )}>
                                 {user.role === 'admin' ? '管理员' : '普通用户'}
@@ -325,7 +335,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                             onValueChange={(value) => handleRoleChange(user, value as User['role'])}
                             disabled={loading}
                           >
-                            <SelectTrigger className="h-9 w-[100px] rounded-lg border-border/60 bg-muted/10 text-[12px] font-bold transition-all hover:bg-muted/20">
+                            <SelectTrigger className="h-9 w-[100px] rounded-lg border-border/60 bg-background text-[12px] font-bold transition-all hover:bg-muted">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-border/60">
@@ -394,8 +404,8 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
         }}
       >
         <DialogContent className="max-w-[400px] gap-0 overflow-hidden rounded-[1.5rem] border-border/60 p-0 shadow-2xl" showCloseButton={!loading}>
-          <div className="relative border-b border-border/40 bg-muted/20 px-6 py-6">
-            <div className="absolute -right-8 -top-8 h-32 w-32 bg-primary/5 blur-[40px]" />
+          <div className="relative border-b border-border/60 bg-card px-6 py-6">
+            <div className="absolute -right-8 -top-8 h-32 w-32 bg-muted" />
             <DialogHeader className="relative space-y-1.5">
               <DialogTitle className="text-lg font-bold tracking-tight">重置密码</DialogTitle>
               <DialogDescription className="text-[13px] leading-relaxed">
@@ -426,7 +436,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
                 autoComplete="new-password"
                 disabled={loading}
                 autoFocus
-                className="h-11 rounded-xl border-border/40 bg-background/40 transition-all focus:bg-background/80"
+                className="h-11 rounded-xl border-border/60 bg-background transition-all focus:bg-background"
               />
             </div>
             

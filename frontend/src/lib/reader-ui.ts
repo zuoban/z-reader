@@ -19,7 +19,7 @@ export function withOpacity(color: string | undefined, opacity: number) {
 }
 
 export const floatingSheetActionButtonClass =
-  "paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-full backdrop-blur-sm transition-[transform,box-shadow,background-color,border-color,color] hover:scale-[1.03] hover:shadow-md disabled:opacity-100 sm:top-4";
+  "paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-full transition-[transform,box-shadow,background-color,border-color,color] hover:scale-[1.03] hover:shadow-md disabled:opacity-100 sm:top-4";
 
 export function getFloatingSheetActionButtonStyle({
   uiScheme,

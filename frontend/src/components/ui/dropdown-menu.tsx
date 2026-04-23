@@ -95,7 +95,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "paper-motion-interactive group/dropdown-menu-item relative flex cursor-default items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm outline-hidden select-none data-inset:pl-7 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 focus:bg-muted/70 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
+        "paper-motion-interactive group/dropdown-menu-item relative flex cursor-default items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm outline-hidden select-none data-inset:pl-7 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 focus:bg-muted/50 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
         className
       )}
       {...props}
@@ -234,7 +234,7 @@ function DropdownMenuSeparator({
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("-mx-1 my-1.5 h-px bg-border/75", className)}
+      className={cn("-mx-1 my-1.5 h-px bg-border/50", className)}
       {...props}
     />
   )

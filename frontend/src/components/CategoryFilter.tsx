@@ -138,10 +138,10 @@ export function CategoryFilter({
                 role="tab"
                 aria-selected={isSelected}
                   className={cn(
-                    'group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-xl px-4 text-[13.5px] font-medium cursor-pointer border transition-all duration-300 ease-out',
+                    'group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-[1.25rem] px-4 text-[13.5px] font-medium cursor-pointer border transition-all duration-300 ease-out',
                     isSelected
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25'
-                      : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:border-border/40 hover:text-foreground active:scale-[0.97]'
+                      ? 'bg-primary/85 text-primary-foreground border-primary shadow-md shadow-primary/20 backdrop-blur-sm'
+                      : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:border-border/40 hover:text-foreground active:scale-[0.97]'
                   )}
                 >
                   {/* 标签文字 */}
@@ -155,8 +155,8 @@ export function CategoryFilter({
                       className={cn(
                         'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-all duration-300',
                         isSelected
-                          ? 'bg-white/20 text-white'
-                          : 'bg-muted/60 text-muted-foreground/70 group-hover:bg-muted/80'
+                          ? 'bg-white/15 text-white'
+                          : 'bg-muted/40 text-muted-foreground/70 group-hover:bg-muted/60'
                       )}
                     >
                       {item.count}

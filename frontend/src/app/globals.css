@@ -51,9 +51,9 @@
 :root {
   --background: #f0f2f8;
   --foreground: #0f1629;
-  --card: rgba(255, 255, 255, 0.76);
+  --card: rgba(255, 255, 255, 0.48);
   --card-foreground: #0f1629;
-  --popover: rgba(255, 255, 255, 0.96);
+  --popover: rgba(255, 255, 255, 0.65);
   --popover-foreground: #0f1629;
   --primary: #4f6ef7;
   --primary-foreground: #ffffff;
@@ -64,8 +64,8 @@
   --accent: #7c6ef8;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: rgba(79, 110, 247, 0.14);
-  --input: rgba(79, 110, 247, 0.10);
+  --border: rgba(79, 110, 247, 0.20);
+  --input: rgba(79, 110, 247, 0.08);
   --ring: #4f6ef7;
   --chart-1: #4f6ef7;
   --chart-2: #7c6ef8;
@@ -73,19 +73,22 @@
   --chart-4: #f59e0b;
   --chart-5: #10b981;
   --radius: 1.05rem;
-  --sidebar: rgba(240, 242, 248, 0.95);
+  --sidebar: rgba(240, 242, 248, 0.52);
   --sidebar-foreground: #0f1629;
   --sidebar-primary: #4f6ef7;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #7c6ef8;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(79, 110, 247, 0.14);
+  --sidebar-border: rgba(79, 110, 247, 0.20);
   --sidebar-ring: #4f6ef7;
   --paper-shadow: rgba(79, 110, 247, 0.14);
   --paper-shadow-soft: rgba(79, 110, 247, 0.07);
   --paper-edge: rgba(255, 255, 255, 0.85);
   --paper-crease: rgba(79, 110, 247, 0.08);
   --paper-speck: rgba(79, 110, 247, 0.04);
+  --glass-specular: rgba(255, 255, 255, 0.65);
+  --glass-tint: rgba(79, 110, 247, 0.05);
+  --glass-edge: rgba(255, 255, 255, 0.50);
   --paper-ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
   --paper-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --paper-duration-fast: 180ms;
@@ -93,17 +96,17 @@
   --paper-duration-slow: 320ms;
   --paper-texture: none;
   /* Ambient gradient orbs */
-  --ambient-orb-1: radial-gradient(ellipse 60% 50% at 20% 10%, rgba(79, 110, 247, 0.12) 0%, transparent 70%);
-  --ambient-orb-2: radial-gradient(ellipse 50% 60% at 80% 5%, rgba(124, 110, 248, 0.10) 0%, transparent 70%);
-  --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
+  --ambient-orb-1: radial-gradient(ellipse 60% 50% at 20% 10%, rgba(79, 110, 247, 0.08) 0%, transparent 70%);
+  --ambient-orb-2: radial-gradient(ellipse 50% 60% at 80% 5%, rgba(124, 110, 248, 0.06) 0%, transparent 70%);
+  --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(6, 182, 212, 0.05) 0%, transparent 60%);
 }
 
 .dark {
   --background: #080c18;
   --foreground: #e8edf8;
-  --card: rgba(16, 22, 42, 0.85);
+  --card: rgba(16, 22, 42, 0.55);
   --card-foreground: #e8edf8;
-  --popover: rgba(12, 18, 36, 0.97);
+  --popover: rgba(12, 18, 36, 0.60);
   --popover-foreground: #e8edf8;
   --primary: #6b8bfa;
   --primary-foreground: #ffffff;
@@ -114,31 +117,34 @@
   --accent: #9b8df9;
   --accent-foreground: #ffffff;
   --destructive: #f87171;
-  --border: rgba(107, 139, 250, 0.18);
-  --input: rgba(107, 139, 250, 0.12);
+  --border: rgba(107, 139, 250, 0.24);
+  --input: rgba(107, 139, 250, 0.10);
   --ring: #6b8bfa;
   --chart-1: #6b8bfa;
   --chart-2: #9b8df9;
   --chart-3: #22d3ee;
   --chart-4: #fbbf24;
   --chart-5: #34d399;
-  --sidebar: rgba(10, 14, 28, 0.96);
+  --sidebar: rgba(10, 14, 28, 0.52);
   --sidebar-foreground: #e8edf8;
   --sidebar-primary: #6b8bfa;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #9b8df9;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(107, 139, 250, 0.16);
+  --sidebar-border: rgba(107, 139, 250, 0.24);
   --sidebar-ring: #6b8bfa;
   --paper-shadow: rgba(0, 0, 0, 0.5);
   --paper-shadow-soft: rgba(0, 0, 0, 0.28);
   --paper-edge: rgba(107, 139, 250, 0.22);
   --paper-crease: rgba(107, 139, 250, 0.10);
   --paper-speck: rgba(107, 139, 250, 0.06);
+  --glass-specular: rgba(107, 139, 250, 0.28);
+  --glass-tint: rgba(107, 139, 250, 0.06);
+  --glass-edge: rgba(107, 139, 250, 0.15);
   --paper-texture: none;
-  --ambient-orb-1: radial-gradient(ellipse 60% 50% at 20% 10%, rgba(79, 110, 247, 0.22) 0%, transparent 70%);
-  --ambient-orb-2: radial-gradient(ellipse 50% 60% at 80% 5%, rgba(124, 110, 248, 0.18) 0%, transparent 70%);
-  --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
+  --ambient-orb-1: radial-gradient(ellipse 60% 50% at 20% 10%, rgba(79, 110, 247, 0.16) 0%, transparent 70%);
+  --ambient-orb-2: radial-gradient(ellipse 50% 60% at 80% 5%, rgba(124, 110, 248, 0.12) 0%, transparent 70%);
+  --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
 }
 
 @layer base {
@@ -209,14 +215,16 @@ foliate-view::part(filter) {
   }
 
   .editorial-panel {
-    background: color-mix(in srgb, var(--card) 90%, transparent);
+    background: color-mix(in srgb, var(--card) 65%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 100%, transparent);
     box-shadow:
       0 0 0 0.5px color-mix(in srgb, var(--paper-edge) 40%, transparent),
-      0 24px 60px -20px var(--paper-shadow),
+      0 32px 72px -20px var(--paper-shadow),
       0 8px 24px -8px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent);
-    backdrop-filter: blur(20px) saturate(160%);
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 80%, transparent),
+      inset 0 -1px 0 color-mix(in srgb, var(--paper-edge) 25%, transparent);
+    backdrop-filter: blur(36px) saturate(185%);
+    -webkit-backdrop-filter: blur(36px) saturate(185%);
     transition:
       transform var(--paper-duration-slow) var(--paper-ease-out),
       box-shadow var(--paper-duration-slow) var(--paper-ease-out),
@@ -226,13 +234,15 @@ foliate-view::part(filter) {
   }
 
   .paper-panel {
-    background: color-mix(in srgb, var(--card) 85%, transparent);
+    background: color-mix(in srgb, var(--card) 70%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
     box-shadow:
       0 8px 32px -8px var(--paper-shadow),
       0 2px 12px -4px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 60%, transparent);
-    backdrop-filter: blur(16px) saturate(150%);
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 75%, transparent),
+      inset 0 -1px 0 color-mix(in srgb, var(--paper-edge) 20%, transparent);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
     transition:
       transform var(--paper-duration-slow) var(--paper-ease-out),
       box-shadow var(--paper-duration-slow) var(--paper-ease-out),
@@ -267,9 +277,11 @@ foliate-view::part(filter) {
   }
 
   .paper-control {
-    background: color-mix(in srgb, var(--muted) 60%, transparent);
+    background: color-mix(in srgb, var(--muted) 50%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 50%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 55%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -280,14 +292,16 @@ foliate-view::part(filter) {
   }
 
   .paper-control:hover {
-    background: color-mix(in srgb, var(--muted) 80%, transparent);
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
     border-color: color-mix(in srgb, var(--border) 120%, transparent);
   }
 
   .paper-field {
-    background: color-mix(in srgb, var(--muted) 50%, transparent);
+    background: color-mix(in srgb, var(--muted) 40%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 45%, transparent);
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -306,13 +320,14 @@ foliate-view::part(filter) {
   }
 
   .paper-menu {
-    background: color-mix(in srgb, var(--popover) 96%, transparent);
+    background: color-mix(in srgb, var(--popover) 75%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
     box-shadow:
       0 16px 40px -12px var(--paper-shadow),
       0 4px 16px -4px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 60%, transparent);
-    backdrop-filter: blur(24px) saturate(160%);
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent);
+    backdrop-filter: blur(36px) saturate(185%);
+    -webkit-backdrop-filter: blur(36px) saturate(185%);
     transition:
       transform var(--paper-duration-base) var(--paper-ease-out),
       box-shadow var(--paper-duration-base) var(--paper-ease-out),
@@ -322,8 +337,10 @@ foliate-view::part(filter) {
   }
 
   .paper-chip {
-    background: color-mix(in srgb, var(--muted) 70%, transparent);
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -332,9 +349,11 @@ foliate-view::part(filter) {
   }
 
   .paper-panel-soft {
-    background: color-mix(in srgb, var(--card) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 55%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     box-shadow: 0 4px 16px -4px var(--paper-shadow-soft);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -354,8 +373,10 @@ foliate-view::part(filter) {
   }
 
   .paper-badge {
-    background: color-mix(in srgb, var(--muted) 80%, transparent);
+    background: color-mix(in srgb, var(--muted) 60%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    backdrop-filter: blur(6px) saturate(115%);
+    -webkit-backdrop-filter: blur(6px) saturate(115%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -365,13 +386,15 @@ foliate-view::part(filter) {
   .paper-cover-frame {
     background: linear-gradient(
       145deg,
-      color-mix(in srgb, var(--primary) 8%, var(--card)) 0%,
-      color-mix(in srgb, var(--accent) 6%, var(--card)) 100%
+      color-mix(in srgb, var(--primary) 6%, var(--card)) 0%,
+      color-mix(in srgb, var(--accent) 4%, var(--card)) 100%
     );
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
     box-shadow:
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 60%, transparent),
       0 4px 12px -4px var(--paper-shadow-soft);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
     transition:
       transform var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
@@ -466,9 +489,10 @@ foliate-view::part(filter) {
   }
 
   .shelf-container {
-    background: color-mix(in srgb, var(--card) 55%, transparent);
+    background: color-mix(in srgb, var(--card) 38%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-    backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
     box-shadow:
       0 4px 24px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 50%, transparent);
@@ -479,14 +503,15 @@ foliate-view::part(filter) {
   }
 
   .shelf-header {
-    background: color-mix(in srgb, var(--card) 48%, transparent);
+    background: color-mix(in srgb, var(--card) 32%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
-    border-radius: 1rem;
+    border-radius: 1.25rem;
     box-shadow:
       0 6px 24px -14px var(--paper-shadow),
       0 1px 6px -4px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
-    backdrop-filter: blur(18px) saturate(135%);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
   }
 
   .shelf-bands {
@@ -494,9 +519,10 @@ foliate-view::part(filter) {
   }
 
   .reading-status-panel {
-    background: color-mix(in srgb, var(--card) 85%, transparent);
+    background: color-mix(in srgb, var(--card) 60%, transparent);
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(28px) saturate(170%);
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
     box-shadow: 0 4px 20px -4px var(--paper-shadow-soft);
   }
 
@@ -760,6 +786,22 @@ foliate-view::part(filter) {
     background: transparent;
     border: none;
     box-shadow: none;
+  }
+
+  .liquid-glass-specular {
+    position: relative;
+  }
+
+  .liquid-glass-specular::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--glass-specular) 60%, transparent) 20%, color-mix(in srgb, var(--glass-specular) 80%, transparent) 50%, color-mix(in srgb, var(--glass-specular) 60%, transparent) 80%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
   }
 
   .shelf-icon-btn:hover {

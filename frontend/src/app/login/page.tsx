@@ -48,7 +48,7 @@ export default function LoginPage() {
   return (
     <AppScreen ambient="login">
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-5 py-6 sm:px-7 sm:py-10 lg:px-10 lg:py-12">
-        <div className="editorial-panel paper-stack w-full max-w-[460px] rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
+        <div className="editorial-panel paper-stack w-full max-w-[460px] rounded-[2.25rem] px-6 py-8 sm:px-10 sm:py-10">
           <div className="editorial-divider mb-8 flex flex-col items-center gap-5 pb-8">
             <BrandMark size="lg" priority />
             <div className="text-center">
@@ -78,7 +78,7 @@ export default function LoginPage() {
                 placeholder="请输入用户名"
                 autoComplete="username"
                 autoFocus
-                className="paper-control h-[52px] rounded-2xl px-4 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                className="paper-control h-[52px] rounded-2xl px-4 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
               />
             </div>
 
@@ -98,7 +98,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入访问密码"
                   autoComplete="current-password"
-                  className="paper-control h-[52px] rounded-2xl px-4 pr-10 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  className="paper-control h-[52px] rounded-2xl px-4 pr-10 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
                 <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-opacity duration-300 group-focus-within:opacity-80">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -111,7 +111,7 @@ export default function LoginPage() {
 
             {error && (
               <div className="animate-in slide-in-from-top-2 fade-in duration-300">
-                <p className="paper-field flex items-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/6 px-4 py-3 text-sm text-destructive">
+                <p className="paper-field flex items-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/4 px-4 py-3 text-sm text-destructive">
                   <CircleAlert className="h-4 w-4 flex-shrink-0" />
                   {error}
                 </p>

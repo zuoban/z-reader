@@ -25,9 +25,9 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-xl border border-transparent px-3.5 text-[13.5px] font-medium cursor-pointer transition-all duration-300 ease-out',
-          'text-muted-foreground hover:bg-muted/60 hover:border-border/40 hover:text-foreground active:scale-[0.97]',
-          open && 'bg-muted/80 border-border/60 text-foreground'
+          'group relative flex h-9 items-center gap-1.5 whitespace-nowrap rounded-[1.25rem] border border-transparent px-3.5 text-[13.5px] font-medium cursor-pointer transition-all duration-300 ease-out',
+          'text-muted-foreground hover:bg-muted/40 hover:border-border/40 hover:text-foreground active:scale-[0.97]',
+          open && 'bg-muted/50 border-border/60 text-foreground'
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -40,7 +40,7 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
           )}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[160px] rounded-xl p-1.5">
+      <DropdownMenuContent align="end" className="min-w-[160px] rounded-[1.25rem] p-1.5">
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
             key={option.value}
@@ -49,10 +49,10 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
               setOpen(false);
             }}
             className={cn(
-              'paper-motion-interactive cursor-pointer rounded-xl px-3 py-2 text-sm',
+              'paper-motion-interactive cursor-pointer rounded-[1.15rem] px-3 py-2 text-sm',
               value === option.value
-                ? 'bg-muted/70 font-semibold text-foreground'
-                : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+                ? 'bg-muted/50 font-semibold text-foreground'
+                : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
             )}
           >
             {option.label}

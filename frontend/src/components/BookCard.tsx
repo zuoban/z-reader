@@ -263,7 +263,7 @@ export function BookCard({
         }}
       >
         <Card
-          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/65 p-0 gap-0 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card/80 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card/45 p-0 gap-0 backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card/60 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
           style={{
             width: isMobile ? '100%' : cardWidth,
           }}
@@ -313,7 +313,7 @@ export function BookCard({
             )}
           </div>
           <div
-            className="flex flex-col border-t border-border/40 bg-card/40 px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
+            className="flex flex-col border-t border-border/40 bg-card/25 px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
           >
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">
@@ -431,7 +431,7 @@ export function BookCard({
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="h-9 w-full shrink-0 gap-1.5 rounded-xl bg-primary px-4 text-[12px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-8 sm:px-4 sm:text-[11.5px] cursor-pointer"
+                  className="h-9 w-full shrink-0 gap-1.5 rounded-[1rem] bg-primary px-4 text-[12px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-8 sm:px-4 sm:text-[11.5px] cursor-pointer"
                 >
                   <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   <span>{readButtonLabel}</span>

@@ -22,9 +22,9 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 login-ambient-bg" />
         <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_16%,transparent),transparent)]" />
-        <div className="absolute left-[9%] top-[10%] h-40 w-56 rotate-[-8deg] rounded-[2rem] border border-border/20 bg-card/22 shadow-[0_32px_48px_-42px_var(--paper-shadow)]" />
-        <div className="absolute bottom-[9%] right-[10%] h-44 w-64 rotate-[6deg] rounded-[2rem] border border-border/18 bg-card/18 shadow-[0_38px_54px_-44px_var(--paper-shadow)]" />
-        <div className="absolute left-[18%] top-[16%] h-28 w-40 rotate-[4deg] rounded-[1.5rem] border border-border/16 bg-card/16 shadow-[0_26px_40px_-38px_var(--paper-shadow)]" />
+        <div className="absolute left-[9%] top-[10%] h-40 w-56 rotate-[-8deg] rounded-[2.5rem] border border-border/20 bg-card/12 shadow-[0_32px_48px_-42px_var(--paper-shadow)] backdrop-blur-md" />
+        <div className="absolute bottom-[9%] right-[10%] h-44 w-64 rotate-[6deg] rounded-[2.5rem] border border-border/18 bg-card/08 shadow-[0_38px_54px_-44px_var(--paper-shadow)] backdrop-blur-md" />
+        <div className="absolute left-[18%] top-[16%] h-28 w-40 rotate-[4deg] rounded-[2rem] border border-border/16 bg-card/06 shadow-[0_26px_40px_-38px_var(--paper-shadow)] backdrop-blur-md" />
       </div>
     );
   }

@@ -170,7 +170,7 @@ const FloatingButton = ({
         boxShadow: isDragging
           ? `0 14px 36px ${uiScheme.cardBorder}24, 0 8px 18px ${uiScheme.cardBorder}16`
           : `0 8px 22px ${uiScheme.cardBorder}14, 0 2px 8px ${uiScheme.cardBorder}10`,
-        backdropFilter: 'blur(18px) saturate(150%)',
+        backdropFilter: 'blur(24px) saturate(170%)',
       };
     }
 
@@ -186,7 +186,7 @@ const FloatingButton = ({
            inset 0 1px 0 rgba(255,255,255,0.98)`
         : `0 12px 28px ${colors.glowInner}, 0 6px 16px ${colors.glowOuter},
            inset 0 1px 0 rgba(255,255,255,0.98)`,
-      backdropFilter: 'blur(20px) saturate(180%)',
+      backdropFilter: 'blur(28px) saturate(200%)',
     };
   };
 
@@ -295,15 +295,15 @@ const FloatingButton = ({
 // 提取通用样式配置，保持与阅读器纸面主题一致
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
-    background: `${uiScheme.cardBg}f2`,
+    background: `${uiScheme.cardBg}dc`,
     borderColor: `${uiScheme.cardBorder}72`,
-    backdropFilter: 'blur(14px) saturate(118%)',
+    backdropFilter: 'blur(22px) saturate(150%)',
     boxShadow: isActive
       ? `0 28px 54px -30px ${uiScheme.link}22, 0 14px 28px -24px ${uiScheme.cardBorder}20, inset 0 1px 0 rgba(255,255,255,0.4)`
       : `0 24px 46px -30px ${uiScheme.cardBorder}26, inset 0 1px 0 rgba(255,255,255,0.34)`,
   },
   section: {
-    background: 'color-mix(in srgb, var(--card) 96%, transparent)',
+    background: 'color-mix(in srgb, var(--card) 78%, transparent)',
     borderColor: `${uiScheme.cardBorder}36`,
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26)',
   },
@@ -859,7 +859,7 @@ export function TTSControls({
                   right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
                   bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
                   color: isDragging ? uiScheme.link : uiScheme.mutedText,
-                  background: 'color-mix(in srgb, var(--card) 94%, transparent)',
+                  background: 'color-mix(in srgb, var(--card) 78%, transparent)',
                   border: `1px solid ${uiScheme.cardBorder}30`,
                   boxShadow: '0 10px 20px -18px rgba(0,0,0,0.12)',
                   cursor: isDragging ? 'grabbing' : 'grab',
@@ -905,7 +905,7 @@ export function TTSControls({
                 <div
                   className="pointer-events-none absolute bottom-[-8px] right-5 h-4 w-4 rotate-45 border-r border-b"
                   style={{
-                    background: `${uiScheme.cardBg}f4`,
+                    background: `${uiScheme.cardBg}c8`,
                     borderColor: `${uiScheme.cardBorder}72`,
                     boxShadow: `8px 8px 18px -16px ${uiScheme.cardBorder}40`,
                   }}

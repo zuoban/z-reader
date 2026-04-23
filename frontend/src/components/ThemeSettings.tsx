@@ -111,7 +111,7 @@ function SectionCard({
 }: SectionProps) {
   return (
     <section
-      className="space-y-4 rounded-[1.5rem] border border-border/40 bg-card/40 p-5 shadow-sm backdrop-blur-sm transition-all hover:bg-card/60"
+      className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/28 p-5 shadow-sm backdrop-blur-sm backdrop-saturate-150 transition-all hover:bg-card/45"
       style={{
         borderColor: withOpacity(uiScheme.cardBorder, 0.18),
       }}
@@ -142,7 +142,7 @@ function ValuePill({ label, active, onClick, uiScheme }: { label: string; active
       type="button"
       onClick={onClick}
       className={cn(
-        "flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all active:scale-[0.96]",
+        "flex-1 rounded-[1.25rem] px-3 py-2.5 text-xs font-bold transition-all active:scale-[0.96]",
         active ? "shadow-md" : "hover:bg-muted/40"
       )}
       style={{
@@ -219,9 +219,9 @@ export function ThemeSettings({
   triggerStyle,
 }: ThemeSettingsProps) {
   const panelStyle = {
-    background: withOpacity(uiScheme.cardBg, 0.92),
-    backdropFilter: "blur(22px) saturate(150%)",
-    WebkitBackdropFilter: "blur(22px) saturate(150%)",
+    background: withOpacity(uiScheme.cardBg, 0.75),
+    backdropFilter: "blur(28px) saturate(175%)",
+    WebkitBackdropFilter: "blur(28px) saturate(175%)",
     borderLeft: `1px solid ${withOpacity(uiScheme.cardBorder, 0.22)}`,
     color: uiScheme.fg,
     boxShadow: `-10px 0 28px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
@@ -323,7 +323,7 @@ export function ThemeSettings({
                     key={preset.key}
                     type="button"
                     onClick={() => setTheme({ preset: preset.key })}
-                    className="group relative overflow-hidden rounded-2xl border p-3 text-left transition-all duration-300 cursor-pointer active:scale-[0.96]"
+                    className="group relative overflow-hidden rounded-[1.5rem] border p-3 text-left transition-all duration-300 cursor-pointer active:scale-[0.96]"
                     style={{
                       background: isActive
                         ? withOpacity(uiScheme.link, 0.08)
@@ -334,7 +334,7 @@ export function ThemeSettings({
                     }}
                   >
                     <div
-                      className="relative h-14 overflow-hidden rounded-xl px-3 py-2.5 shadow-sm transition-transform group-hover:scale-[1.02]"
+                      className="relative h-14 overflow-hidden rounded-[1.15rem] px-3 py-2.5 shadow-sm transition-transform group-hover:scale-[1.02]"
                       style={{
                         background: preset.bg,
                         border: `1px solid ${
@@ -413,7 +413,7 @@ export function ThemeSettings({
                       <button
                         key={key}
                         onClick={() => setTheme({ fontFamily: key })}
-                        className="flex items-center justify-between rounded-xl border p-3 text-left transition-all active:scale-[0.98]"
+                        className="flex items-center justify-between rounded-[1.25rem] border p-3 text-left transition-all active:scale-[0.98]"
                         style={{
                           background: isActive ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
                           borderColor: isActive ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1),

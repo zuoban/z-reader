@@ -32,7 +32,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { AlertCircle, ChevronLeft, Expand, List, Shrink } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  Expand,
+  List,
+  LocateFixed,
+  Shrink,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // 延迟加载 TTS 组件，首屏不加载
@@ -108,6 +115,27 @@ export default function ReadPage() {
       viewRef.current.renderer.scrollToAnchor?.(range, true);
     }
   }, []);
+
+  const scrollToCurrentChapter = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      const activeItem = tocListRef.current?.querySelector(
+        '[data-current-chapter="true"]',
+      );
+
+      if (!(activeItem instanceof HTMLElement)) {
+        return false;
+      }
+
+      activeItem.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+        behavior,
+      });
+
+      return true;
+    },
+    [],
+  );
 
   const {
     state: ttsState,
@@ -543,22 +571,13 @@ export default function ReadPage() {
     if (!tocOpen || !currentChapter) return;
 
     const frame = window.requestAnimationFrame(() => {
-      const activeItem = tocListRef.current?.querySelector(
-        '[data-current-chapter="true"]',
-      );
-      if (activeItem instanceof HTMLElement) {
-        activeItem.scrollIntoView({
-          block: "center",
-          inline: "nearest",
-          behavior: "smooth",
-        });
-      }
+      scrollToCurrentChapter("smooth");
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [tocOpen, currentChapter]);
+  }, [tocOpen, currentChapter, scrollToCurrentChapter]);
 
   useEffect(() => {
     if (loading || tocOpen || themeSettingsOpen) {
@@ -625,18 +644,18 @@ export default function ReadPage() {
     transition: "all 150ms ease-out",
   });
   const unifiedToolbarStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.80 : 0.92),
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.60 : 0.78),
     border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.36 : 0.44)}`,
-    boxShadow: `0 8px 32px -8px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.30 : 0.14)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.06 : 0.70)}`,
-    backdropFilter: "blur(40px) saturate(180%)",
+    boxShadow: `0 8px 32px -8px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.30 : 0.14)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.10 : 0.75)}`,
+    backdropFilter: "blur(44px) saturate(200%)",
   } as const;
   const statusBarContainerStyle = {
-    background: withOpacity(uiScheme.bg, isDarkPreset ? 0.85 : 0.95),
+    background: withOpacity(uiScheme.bg, isDarkPreset ? 0.65 : 0.82),
     borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.3 : 0.4)}`,
-    backdropFilter: "blur(20px) saturate(160%)",
+    backdropFilter: "blur(28px) saturate(180%)",
   } as const;
   const mobileResumeCardStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.9 : 0.94),
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.70 : 0.80),
     border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
@@ -678,7 +697,7 @@ export default function ReadPage() {
         >
           <div className="flex justify-center px-3 pt-2 sm:px-4 sm:pt-2.5">
             <div
-              className="pointer-events-auto flex w-full max-w-2xl items-center gap-1 rounded-xl px-1 py-1 sm:rounded-2xl sm:px-1.5 sm:py-1.5"
+              className="pointer-events-auto flex w-full max-w-2xl items-center gap-1 rounded-[1.25rem] px-1 py-1 sm:rounded-[1.75rem] sm:px-1.5 sm:py-1.5"
               style={unifiedToolbarStyle}
             >
               {/* 左侧按钮组 */}
@@ -717,7 +736,43 @@ export default function ReadPage() {
                     boxShadow: `20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
                   }}
                 >
-                  <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => {
+                      scrollToCurrentChapter("smooth");
+                    }}
+                    disabled={!currentChapter}
+                    title={
+                      currentChapter
+                        ? `定位到当前章节：${currentChapter}`
+                        : "暂未识别当前章节"
+                    }
+                    aria-label="定位到当前章节"
+                    className="paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-full backdrop-blur-sm hover:scale-[1.03] hover:shadow-md"
+                    style={{
+                      right:
+                        "calc(max(0.75rem, env(safe-area-inset-right, 0px)) + 2.75rem)",
+                      color: currentChapter
+                        ? uiScheme.link
+                        : withOpacity(uiScheme.mutedText, 0.7),
+                      background: currentChapter
+                        ? withOpacity(uiScheme.link, 0.08)
+                        : withOpacity(uiScheme.cardBorder, 0.08),
+                      border: `1px solid ${
+                        currentChapter
+                          ? withOpacity(uiScheme.link, 0.18)
+                          : withOpacity(uiScheme.cardBorder, 0.14)
+                      }`,
+                      boxShadow: currentChapter
+                        ? `0 10px 18px -16px ${withOpacity(uiScheme.link, 0.45)}`
+                        : "none",
+                    }}
+                  >
+                    <LocateFixed className="h-4 w-4" />
+                  </Button>
+
+                  <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-28">
                     <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-[40px]" />
                     <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/5 blur-[32px]" />
                     
@@ -858,7 +913,7 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8 backdrop-blur-xl"
+                  className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8 backdrop-blur-xl"
                   style={{
                     background: withOpacity(uiScheme.cardBg, 0.9),
                     borderColor: withOpacity(uiScheme.cardBorder, 0.78),
@@ -921,7 +976,7 @@ export default function ReadPage() {
                 }}
               >
                 <div
-                  className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.15rem] px-4 py-3 backdrop-blur-xl"
+                  className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3 backdrop-blur-xl"
                   style={mobileResumeCardStyle}
                 >
                   <div

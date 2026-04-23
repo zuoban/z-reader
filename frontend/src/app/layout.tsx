@@ -101,10 +101,11 @@ export default function RootLayout({
               position="top-center"
               toastOptions={{
                 style: {
-                  background: 'var(--background)',
+                  background: 'var(--card)',
                   color: 'var(--foreground)',
                   border: '1px solid var(--border)',
-                  borderRadius: '8px',
+                  borderRadius: '1rem',
+                  backdropFilter: 'blur(24px) saturate(170%)',
                 },
               }}
             />

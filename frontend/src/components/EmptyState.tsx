@@ -25,7 +25,7 @@ export function EmptyState({
     <div className="flex min-h-[58vh] items-center justify-center">
       <section
         className={cn(
-          'paper-panel paper-stack relative w-full max-w-2xl rounded-[2rem] px-6 py-12 text-center sm:px-14 sm:py-16',
+          'paper-panel paper-stack relative w-full max-w-2xl rounded-[2.25rem] px-6 py-12 text-center sm:px-14 sm:py-16',
           className
         )}
       >
@@ -34,7 +34,7 @@ export function EmptyState({
           className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)]"
         />
         <div className="relative mx-auto mb-8 inline-flex">
-          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[1.75rem] border border-primary/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.1)),linear-gradient(145deg,color-mix(in_srgb,var(--primary)_12%,white_88%),color-mix(in_srgb,var(--primary)_8%,transparent))] shadow-[0_16px_30px_-26px_var(--paper-shadow)]">
+          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[2rem] border border-primary/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.38),rgba(255,255,255,0.08)),linear-gradient(145deg,color-mix(in_srgb,var(--primary)_10%,white_90%),color-mix(in_srgb,var(--primary)_6%,transparent))] shadow-[0_16px_30px_-26px_var(--paper-shadow)]">
             <Icon className="h-10 w-10 text-primary" />
           </div>
         </div>

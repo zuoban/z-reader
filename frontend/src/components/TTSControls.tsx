@@ -452,13 +452,12 @@ interface TTSControlsProps {
     tone?: 'idle' | 'active' | 'warning' | 'error';
   };
   sleepTimer?: {
-    mode: 'off' | 'segment' | 'minutes';
+    mode: 'off' | 'minutes';
     minutes?: number;
     endsAt?: number;
     label: string;
   };
   onSleepTimerMinutes?: (minutes: number) => void;
-  onSleepTimerSegment?: () => void;
   onClearSleepTimer?: () => void;
 }
 
@@ -485,7 +484,6 @@ export function TTSControls({
   ttsStatus,
   sleepTimer,
   onSleepTimerMinutes,
-  onSleepTimerSegment,
   onClearSleepTimer,
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(false);
@@ -1028,26 +1026,7 @@ export function TTSControls({
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-5 gap-1.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onSleepTimerSegment?.()}
-                        className="h-7 rounded-lg px-2 text-[11px] font-semibold"
-                        style={{
-                          color:
-                            sleepTimer?.mode === 'segment'
-                              ? uiScheme.link
-                              : uiScheme.mutedText,
-                          background:
-                            sleepTimer?.mode === 'segment'
-                              ? `${uiScheme.link}14`
-                              : 'transparent',
-                          border: 'none',
-                        }}
-                      >
-                        本段
-                      </Button>
+                    <div className="grid grid-cols-4 gap-1.5">
                       {[15, 30, 60].map((minutes) => {
                         const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                         return (

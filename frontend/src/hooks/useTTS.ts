@@ -64,7 +64,7 @@ interface TTSVisibleStatus {
   tone?: 'idle' | 'active' | 'warning' | 'error';
 }
 
-type TTSSleepTimerMode = 'off' | 'segment' | 'minutes';
+type TTSSleepTimerMode = 'off' | 'minutes';
 
 interface TTSSleepTimer {
   mode: TTSSleepTimerMode;
@@ -227,21 +227,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     sleepTimerRef.current = nextTimer;
     setSleepTimer(nextTimer);
   }, [clearSleepTimerTimeout]);
-
-  const setSleepTimerForSegment = useCallback(() => {
-    clearSleepTimerTimeout();
-    const nextTimer: TTSSleepTimer = {
-      mode: 'segment',
-      label: '读完当前段停止',
-    };
-    sleepTimerRef.current = nextTimer;
-    setSleepTimer(nextTimer);
-    updateVisibleStatus({
-      headline: '已设置睡眠定时',
-      detail: '读完当前段后停止朗读',
-      tone: 'active',
-    });
-  }, [clearSleepTimerTimeout, updateVisibleStatus]);
 
   const setSleepTimerForMinutes = useCallback((minutes: number) => {
     clearSleepTimerTimeout();
@@ -1045,13 +1030,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     ttsInstance.current.onEndCallback(async () => {
       if (!isPlayingRef.current) return;
 
-      if (sleepTimerRef.current.mode === 'segment') {
-        logTTS('sleep-timer-segment-complete');
-        clearSleepTimer();
-        stopRef.current();
-        return;
-      }
-
       const success = await getNextAndSpeakRef.current();
       if (!success && !retryContinuationRef.current) {
         logTTS('continuation-retry');
@@ -1084,9 +1062,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         const timerDetail =
           timer.mode === 'minutes' && timer.endsAt
             ? ` · 定时${formatSleepTimerRemaining(timer.endsAt)}`
-            : timer.mode === 'segment'
-              ? ' · 本段后停止'
-              : '';
+            : '';
         updateVisibleStatus({
           headline: '正在朗读',
           detail: `${formatRemainingTime(remainingSeconds)} · ${readyCount} 段已准备${timerDetail}`,
@@ -1159,7 +1135,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     ttsStatus,
     sleepTimer,
     setSleepTimerForMinutes,
-    setSleepTimerForSegment,
     clearSleepTimer,
     resumePromptVisible,
     resumePromptMessage,

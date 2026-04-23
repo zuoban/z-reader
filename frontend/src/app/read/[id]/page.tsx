@@ -95,7 +95,6 @@ export default function ReadPage() {
   // 缓存脚本加载状态，避免重复创建 script 标签
   const scriptLoadedRef = useRef(false);
   const tocListRef = useRef<HTMLDivElement>(null);
-  const headerHideTimerRef = useRef<number | null>(null);
   const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
   const handlePageRef = useCallback((node: HTMLDivElement | null) => {
     pageRef.current = node;
@@ -125,7 +124,6 @@ export default function ReadPage() {
     ttsStatus,
     sleepTimer,
     setSleepTimerForMinutes,
-    setSleepTimerForSegment,
     clearSleepTimer,
     resume: resumeTTS,
   } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
@@ -268,77 +266,45 @@ export default function ReadPage() {
     }
   }, []);
 
-  const clearHeaderHideTimer = useCallback(() => {
-    if (headerHideTimerRef.current !== null) {
-      window.clearTimeout(headerHideTimerRef.current);
-      headerHideTimerRef.current = null;
+  const handleReaderClick = useCallback((event: Event) => {
+    if (
+      loadingRef.current ||
+      tocOpenRef.current ||
+      themeSettingsOpenRef.current
+    ) {
+      return;
     }
+
+    if (
+      event.target instanceof Element &&
+      event.target.closest('[data-reader-interactive="true"]')
+    ) {
+      return;
+    }
+
+    setIsHeaderVisible((visible) => !visible);
   }, []);
-
-  const scheduleHeaderHide = useCallback(
-    (delay = 2200) => {
-      clearHeaderHideTimer();
-
-      if (
-        loadingRef.current ||
-        tocOpenRef.current ||
-        themeSettingsOpenRef.current
-      ) {
-        return;
-      }
-
-      headerHideTimerRef.current = window.setTimeout(() => {
-        setIsHeaderVisible(false);
-        headerHideTimerRef.current = null;
-      }, delay);
-    },
-    [clearHeaderHideTimer],
-  );
-
-  const showHeader = useCallback(
-    (delay = 2200) => {
-      setIsHeaderVisible(true);
-      scheduleHeaderHide(delay);
-    },
-    [scheduleHeaderHide],
-  );
-
-  const handleReaderMouseMove = useCallback(
-    (event: MouseEvent) => {
-      if (event.clientY <= 88) {
-        showHeader(2600);
-      }
-    },
-    [showHeader],
-  );
-
-  const handleReaderClick = useCallback(() => {
-    showHeader();
-  }, [showHeader]);
 
   const bindHeaderInteractionDocument = useCallback(
     (doc: Document) => {
       if (headerInteractionDocsRef.current.has(doc)) return;
 
       doc.addEventListener("click", handleReaderClick);
-      doc.addEventListener("mousemove", handleReaderMouseMove);
       headerInteractionDocsRef.current.add(doc);
     },
-    [handleReaderClick, handleReaderMouseMove],
+    [handleReaderClick],
   );
 
   const cleanupHeaderInteractionDocuments = useCallback(() => {
     headerInteractionDocsRef.current.forEach((doc) => {
       doc.removeEventListener("click", handleReaderClick);
-      doc.removeEventListener("mousemove", handleReaderMouseMove);
     });
     headerInteractionDocsRef.current.clear();
-  }, [handleReaderClick, handleReaderMouseMove]);
+  }, [handleReaderClick]);
 
   const handleBack = useCallback(() => {
     destroyedRef.current = true;
     saveNow();
-    clearHeaderHideTimer();
     cleanupHeaderInteractionDocuments();
 
     if (document.fullscreenElement === pageRef.current) {
@@ -363,7 +329,7 @@ export default function ReadPage() {
     }
 
     router.push("/shelf");
-  }, [cleanupHeaderInteractionDocuments, clearHeaderHideTimer, saveNow, router]);
+  }, [cleanupHeaderInteractionDocuments, saveNow, router]);
 
   const {
     isTouchReader,
@@ -543,7 +509,6 @@ export default function ReadPage() {
 
     return () => {
       destroyedRef.current = true;
-      clearHeaderHideTimer();
       cleanupHeaderInteractionDocuments();
 
       const view = viewRef.current;
@@ -567,7 +532,6 @@ export default function ReadPage() {
     };
   }, [
     cleanupHeaderInteractionDocuments,
-    clearHeaderHideTimer,
     initReader,
     isAuthenticated,
     progressLoading,
@@ -595,40 +559,10 @@ export default function ReadPage() {
   }, [tocOpen, currentChapter]);
 
   useEffect(() => {
-    if (loading) {
+    if (loading || tocOpen || themeSettingsOpen) {
       setIsHeaderVisible(true);
-      clearHeaderHideTimer();
-      return;
     }
-
-    if (tocOpen || themeSettingsOpen) {
-      setIsHeaderVisible(true);
-      clearHeaderHideTimer();
-      return;
-    }
-
-    scheduleHeaderHide(1800);
-
-    return () => {
-      clearHeaderHideTimer();
-    };
-  }, [
-    clearHeaderHideTimer,
-    loading,
-    scheduleHeaderHide,
-    themeSettingsOpen,
-    tocOpen,
-  ]);
-
-  useEffect(() => {
-    window.addEventListener("click", handleReaderClick);
-    window.addEventListener("mousemove", handleReaderMouseMove);
-
-    return () => {
-      window.removeEventListener("click", handleReaderClick);
-      window.removeEventListener("mousemove", handleReaderMouseMove);
-    };
-  }, [handleReaderClick, handleReaderMouseMove]);
+  }, [loading, themeSettingsOpen, tocOpen]);
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -755,8 +689,6 @@ export default function ReadPage() {
             paddingTop: headerSafeAreaPaddingTop,
             transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
           }}
-          onMouseEnter={() => showHeader(3200)}
-          onMouseLeave={() => scheduleHeaderHide(900)}
         >
           <div className="flex justify-center px-3 pt-2 sm:px-4 sm:pt-2.5">
             <div
@@ -917,7 +849,6 @@ export default function ReadPage() {
             ttsStatus={ttsStatus}
             sleepTimer={sleepTimer}
             onSleepTimerMinutes={setSleepTimerForMinutes}
-            onSleepTimerSegment={setSleepTimerForSegment}
             onClearSleepTimer={clearSleepTimer}
             onResume={resumeTTS}
             overlayContainer={overlayContainer}
@@ -989,6 +920,7 @@ export default function ReadPage() {
                 top: readerContentInsetTop,
                 bottom: statusBarReservedSpace,
               }}
+              onClickCapture={(event) => handleReaderClick(event.nativeEvent)}
             >
               <div
                 className="paper-panel paper-stack relative h-full overflow-hidden rounded-[1.5rem] border sm:rounded-[2rem]"

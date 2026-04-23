@@ -20,11 +20,44 @@ import {
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import { VoiceSelector } from '@/components/VoiceSelector';
+import { withOpacity } from '@/lib/reader-ui';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
+
+const getGlassSurface = (
+  uiScheme: ThemeColors,
+  options?: {
+    elevated?: boolean;
+    accentBorder?: string;
+    accentGlow?: string;
+  }
+) => ({
+  background: uiScheme.cardBg,
+  border: `1px solid ${options?.accentBorder ?? withOpacity(uiScheme.cardBorder, 0.3)}`,
+  boxShadow: options?.elevated
+    ? `0 16px 30px -18px ${options?.accentGlow ?? withOpacity(uiScheme.fg, 0.18)}`
+    : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.12)}`,
+});
+
+const getSoftFieldSurface = (uiScheme: ThemeColors) => ({
+  background: uiScheme.muted,
+  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
+});
+
+const getPrimaryActionSurface = (uiScheme: ThemeColors, disabled?: boolean) => ({
+  background: disabled
+    ? uiScheme.muted
+    : uiScheme.fg,
+  color: withOpacity('#ffffff', 0.96),
+  boxShadow: disabled
+    ? 'none'
+    : `0 10px 20px -12px ${withOpacity(uiScheme.fg, 0.2)}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+});
 
 // 悬浮按钮组件 - 精致的视觉效果
 interface FloatingButtonProps {
   isActive: boolean;
+  isPlaying: boolean;
+  isPaused: boolean;
   isDragging: boolean;
   position: { x: number; y: number };
   expanded: boolean;
@@ -33,124 +66,10 @@ interface FloatingButtonProps {
   uiScheme: ThemeColors;
 }
 
-// 播放状态配色方案 - 生成丰富的颜色组合
-const getActiveColorScheme = (primaryColor: string) => {
-  // 验证 hex 格式，确保是有效的 6 位 hex 颜色
-  const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(primaryColor);
-  const hex = isValidHex ? primaryColor : '#3b82f6'; // 默认蓝色
-
-  // 解析 RGB 值
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-
-  // 使用 rgba 格式确保跨浏览器兼容性
-  return {
-    // 主色系
-    primary: hex,
-    primaryLight: `rgba(${r}, ${g}, ${b}, 0.9)`,
-    primarySoft: `rgba(${r}, ${g}, ${b}, 0.16)`,
-    primaryDark: `rgba(${r}, ${g}, ${b}, 0.74)`,
-
-    // 光环颜色
-    glowInner: `rgba(${r}, ${g}, ${b}, 0.2)`,
-    glowOuter: `rgba(${r}, ${g}, ${b}, 0.08)`,
-
-    // 波形渐变
-    waveStart: `rgba(${r}, ${g}, ${b}, 0.55)`,
-    waveEnd: `rgba(${r}, ${g}, ${b}, 0.2)`,
-
-    // 边框
-    border: `rgba(${r}, ${g}, ${b}, 0.28)`,
-    borderHighlight: `rgba(${r}, ${g}, ${b}, 0.42)`,
-  };
-};
-
-// 声音波形动画组件 - 播放时显示，使用主题色
-const SoundWaveAnimation = ({ uiScheme }: { uiScheme: ThemeColors }) => {
-  const colors = getActiveColorScheme(uiScheme.link);
-
-  return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden motion-reduce:hidden">
-      <div className="relative flex items-end gap-[1.5px] h-3.5 mb-0.5">
-        {[0, 1, 2, 3, 4].map((index) => (
-          <div
-            key={index}
-            className="w-[2px] rounded-full"
-            style={{
-              background: `linear-gradient(to top, ${colors.primary}, ${colors.primaryLight})`,
-              height: '100%',
-              animation: `soundWave ${600 + index * 100}ms ease-in-out infinite`,
-              animationDelay: `${index * 80}ms`,
-              opacity: 0.85,
-              boxShadow: `0 0 4px ${colors.glowInner}`,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// 播放状态外层光环 - 使用主题色脉冲
-const ActiveGlowRing = ({ uiScheme }: { uiScheme: ThemeColors }) => {
-  const colors = getActiveColorScheme(uiScheme.link);
-
-  return (
-    <>
-      <div
-        className="absolute rounded-full motion-reduce:hidden pointer-events-none"
-        style={{
-          inset: -8,
-          background: `radial-gradient(circle, ${colors.primarySoft} 0%, transparent 75%)`,
-          opacity: 0.6,
-          animation: 'glowPulse 3s ease-in-out infinite',
-        }}
-      />
-      <div
-        className="absolute rounded-full motion-reduce:hidden pointer-events-none"
-        style={{
-          inset: -2,
-          border: `1.5px solid ${colors.borderHighlight}`,
-          boxShadow: `0 0 12px ${colors.glowInner}`,
-          animation: 'glowPulse 2s ease-in-out infinite',
-          animationDelay: '0.2s',
-        }}
-      />
-    </>
-  );
-};
-
-// 活动状态指示器 - 使用绿色系保持独立性
-const ActiveIndicator = ({ uiScheme }: { uiScheme: ThemeColors }) => (
-  <div className="absolute top-1 right-1 z-20 motion-reduce:static">
-    <div
-      className="absolute rounded-full motion-reduce:hidden"
-      style={{
-        width: 14,
-        height: 14,
-        left: -3,
-        top: -3,
-        background: 'radial-gradient(circle, #22c55e40 0%, transparent 70%)',
-        animation: 'indicatorPulse 2s ease-in-out infinite',
-      }}
-    />
-    <div
-      className="relative h-2.5 w-2.5 rounded-full"
-      style={{
-        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-        boxShadow: `
-          0 0 10px #22c55e60,
-          inset 0 1px 0 rgba(255,255,255,0.5)
-        `,
-        border: `1.5px solid ${uiScheme.bg}`,
-      }}
-    />
-  </div>
-);
-
 const FloatingButton = ({
   isActive,
+  isPlaying,
+  isPaused,
   isDragging,
   position,
   expanded,
@@ -158,39 +77,21 @@ const FloatingButton = ({
   onPointerDownCapture,
   uiScheme,
 }: FloatingButtonProps) => {
-  // 获取播放状态颜色方案
-  const colors = getActiveColorScheme(uiScheme.link);
-
-  // 播放状态样式 - 使用多色渐变
-  const getActiveStyles = () => {
-    if (!isActive) {
-      return {
-        background: `linear-gradient(180deg, ${uiScheme.cardBg}fa 0%, ${uiScheme.cardBg}ef 100%)`,
-        border: `1px solid ${uiScheme.cardBorder}52`,
-        boxShadow: isDragging
-          ? `0 14px 36px ${uiScheme.cardBorder}24, 0 8px 18px ${uiScheme.cardBorder}16`
-          : `0 8px 22px ${uiScheme.cardBorder}14, 0 2px 8px ${uiScheme.cardBorder}10`,
-        backdropFilter: 'blur(24px) saturate(170%)',
-      };
-    }
-
-    // 播放状态 - 改为更清爽的高亮玻璃按钮，减少厚重块感
-    return {
-      background: `linear-gradient(135deg,
-        rgba(255,255,255,0.98) 0%,
-        ${colors.primarySoft} 45%,
-        rgba(255,255,255,0.92) 100%)`,
-      border: `1.5px solid ${colors.borderHighlight}`,
-      boxShadow: isDragging
-        ? `0 20px 40px ${colors.glowInner}, 0 8px 24px ${colors.glowOuter},
-           inset 0 1px 0 rgba(255,255,255,0.98)`
-        : `0 12px 28px ${colors.glowInner}, 0 6px 16px ${colors.glowOuter},
-           inset 0 1px 0 rgba(255,255,255,0.98)`,
-      backdropFilter: 'blur(28px) saturate(200%)',
-    };
+  const ActiveIconGlyph = isPlaying ? Pause : isPaused ? Play : Volume2;
+  const iconColor = withOpacity(uiScheme.buttonText, 0.92);
+  const buttonStyles = {
+    ...getGlassSurface(uiScheme, {
+      elevated: expanded || isDragging,
+    }),
+    background: withOpacity(uiScheme.cardBg, 0.68),
+    boxShadow: isDragging
+      ? `0 16px 30px -16px ${withOpacity(uiScheme.fg, 0.24)}`
+      : expanded
+        ? `0 14px 26px -16px ${withOpacity(uiScheme.fg, 0.2)}`
+        : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.16)}`,
+    backdropFilter: 'none',
+    transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.03)' : 'scale(1)',
   };
-
-  const fabStyles = getActiveStyles();
 
   return (
     <div
@@ -207,87 +108,32 @@ const FloatingButton = ({
       tabIndex={0}
       aria-label={isActive ? 'TTS 控制面板（正在播放）' : 'TTS 控制面板'}
       aria-expanded={expanded}
-      className="fixed z-[60] flex items-center justify-center touch-none
-        transition-all duration-250 ease-out
-        motion-reduce:transition-none
-        group"
+      className="fixed z-[60] focus-visible:outline-none"
       style={{
         right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
         bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y}px)`,
-        width: 52,
-        height: 52,
         cursor: 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
+        outline: 'none',
       }}
       title="朗读控制"
     >
-      {/* 播放状态外层光环 */}
-      {isActive && <ActiveGlowRing uiScheme={uiScheme} />}
-
-      {/* 主按钮 */}
       <div
-        className="relative h-12 w-12 rounded-full flex items-center justify-center overflow-hidden
-          transition-all duration-300 ease-out
-          motion-reduce:transition-none"
-        style={{
-          ...fabStyles,
-          transform: isDragging ? 'scale(1.1)' : expanded ? 'scale(1.05)' : undefined,
-        }}
+        className="paper-motion-interactive relative flex h-[42px] w-[42px] items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
+        style={buttonStyles}
       >
-        {/* 内部高光层 */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: isActive
-              ? `linear-gradient(135deg,
-                  rgba(255,255,255,0.95) 0%,
-                  rgba(255,255,255,0.2) 50%,
-                  transparent 100%)`
-              : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, transparent 60%)`,
-            opacity: isActive ? 1 : 0.6,
-          }}
-        />
-
-        {/* 边缘高光线 */}
         <div
           className="absolute inset-[1px] rounded-full pointer-events-none"
           style={{
-            border: `1px solid ${isActive ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)'}`,
-            opacity: 0.8,
+            border: `1px solid ${withOpacity('#ffffff', 0.06)}`,
           }}
         />
-
-        {/* 声音波形动画 */}
-        {isActive && <SoundWaveAnimation uiScheme={uiScheme} />}
-
-        {/* 图标 */}
-        {!isActive && (
-          <Volume2
-            className="h-5 w-5 transition-all duration-300 ease-out relative z-10"
-            style={{
-              color: uiScheme.fg,
-              opacity: 0.85,
-            }}
-          />
-        )}
-
-        {/* 活动状态指示器 */}
-        {isActive && <ActiveIndicator uiScheme={uiScheme} />}
+        <ActiveIconGlyph
+          className={isPaused ? 'relative ml-0.5 h-4.5 w-4.5' : 'relative h-4.5 w-4.5'}
+          style={{ color: iconColor }}
+        />
       </div>
-
-      {/* Hover 效果层 - 播放时显示 */}
-      {isActive && (
-        <div
-          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100
-            transition-opacity duration-300 ease-out motion-reduce:hidden pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at 50% 35%, rgba(255,255,255,0.35) 0%, transparent 70%)`,
-            transform: 'scale(1.08)',
-            boxShadow: `0 0 28px ${colors.glowInner}`,
-          }}
-        />
-      )}
     </div>
   );
 };
@@ -295,7 +141,7 @@ const FloatingButton = ({
 // 提取通用样式配置，保持与阅读器纸面主题一致
 const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
   panel: {
-    background: `${uiScheme.cardBg}dc`,
+    background: uiScheme.cardBg,
     borderColor: `${uiScheme.cardBorder}72`,
     backdropFilter: 'blur(22px) saturate(150%)',
     boxShadow: isActive
@@ -303,18 +149,18 @@ const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
       : `0 24px 46px -30px ${uiScheme.cardBorder}26, inset 0 1px 0 rgba(255,255,255,0.34)`,
   },
   section: {
-    background: 'color-mix(in srgb, var(--card) 78%, transparent)',
-    borderColor: `${uiScheme.cardBorder}36`,
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26)',
+    background: uiScheme.cardBg,
+    borderColor: `${uiScheme.cardBorder}32`,
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22)',
   },
   selectTrigger: {
-    background: `${uiScheme.buttonBg}88`,
+    background: uiScheme.buttonBg,
     borderColor: `${uiScheme.cardBorder}55`,
     color: uiScheme.fg,
     transition: 'border-color var(--paper-duration-fast) var(--paper-ease-soft), background-color var(--paper-duration-fast) var(--paper-ease-soft), color var(--paper-duration-fast) var(--paper-ease-soft), box-shadow var(--paper-duration-fast) var(--paper-ease-soft)',
   },
   selectContent: {
-    background: `${uiScheme.cardBg}f6`,
+    background: uiScheme.cardBg,
     borderColor: `${uiScheme.cardBorder}68`,
     backdropFilter: 'blur(10px)',
   },
@@ -336,8 +182,7 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
   <div
     className="paper-field group flex min-h-11 items-center gap-4 rounded-2xl border px-4 py-2"
     style={{
-      borderColor: `${uiScheme.cardBorder}28`,
-      background: `${uiScheme.muted}40`,
+      ...getSoftFieldSurface(uiScheme),
     }}
   >
     <label
@@ -360,7 +205,7 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       className="flex h-7 min-w-[56px] items-center justify-center rounded-lg px-2 text-xs font-bold tabular-nums tracking-tight transition-colors duration-200"
       style={{
         color: uiScheme.fg,
-        background: `${uiScheme.muted}60`,
+        background: uiScheme.muted,
         boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
       }}
     >
@@ -399,12 +244,12 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
-        background: active ? `${uiScheme.muted}60` : 'transparent',
-        border: active ? `1px solid ${uiScheme.cardBorder}40` : '1px solid transparent',
+        background: active ? uiScheme.muted : 'transparent',
+        border: active ? `1px solid ${withOpacity(uiScheme.cardBorder, 0.28)}` : '1px solid transparent',
         boxShadow: disabled
           ? 'none'
           : active
-            ? `0 8px 16px -12px ${uiScheme.cardBorder}40, inset 0 1px 0 rgba(255,255,255,0.4)`
+            ? `0 8px 16px -12px ${uiScheme.cardBorder}30, inset 0 1px 0 rgba(255,255,255,0.24)`
             : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.4 : 1,
@@ -752,7 +597,7 @@ export function TTSControls({
     <div
       className="paper-panel-soft mb-2 rounded-[22px] border px-4 py-3"
       style={{
-        background: `${statusColor}10`,
+        background: uiScheme.cardBg,
         borderColor: `${statusColor}25`,
         color: uiScheme.fg,
       }}
@@ -818,14 +663,16 @@ export function TTSControls({
             aria-haspopup="dialog"
             className="paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-transparent! p-0 align-middle hover:scale-[1.04] hover:bg-transparent! hover:opacity-100 active:scale-95 active:bg-transparent! aria-expanded:bg-transparent! focus-visible:border-transparent! focus-visible:ring-0! dark:bg-transparent! dark:hover:bg-transparent! dark:active:bg-transparent!"
             style={{
-              color: isActive ? '#ffffff' : uiScheme.fg,
-              background: isActive
-                ? `radial-gradient(circle at 30% 28%, rgba(255,255,255,0.55) 0%, ${uiScheme.link} 46%, ${uiScheme.link}dd 100%)`
-                : `linear-gradient(180deg, rgba(255,255,255,0.82) 0%, ${uiScheme.cardBg} 32%, ${uiScheme.cardBg}f2 100%)`,
-              border: `1px solid ${isActive ? `${uiScheme.link}55` : `${uiScheme.cardBorder}58`}`,
-              boxShadow: isActive
-                ? `0 12px 24px -12px ${uiScheme.link}aa, 0 0 0 1px ${uiScheme.link}1f, inset 0 1px 0 rgba(255,255,255,0.5)`
-                : `0 10px 20px -14px ${uiScheme.cardBorder}66, inset 0 1px 0 rgba(255,255,255,0.72)`,
+              color: uiScheme.buttonText,
+              ...getGlassSurface(uiScheme, {
+                elevated: true,
+                accentBorder: isActive
+                  ? withOpacity(uiScheme.link, 0.34)
+                  : withOpacity(uiScheme.cardBorder, 0.34),
+                accentGlow: isActive
+                  ? withOpacity(uiScheme.link, 0.28)
+                  : withOpacity(uiScheme.fg, 0.14),
+              }),
               backdropFilter: 'blur(14px) saturate(150%)',
               opacity: isPending ? 0.72 : 1,
             }}
@@ -833,15 +680,12 @@ export function TTSControls({
             <span
               className="pointer-events-none absolute inset-[1px] rounded-full"
               style={{
-                background: isActive
-                  ? 'linear-gradient(180deg, rgba(255,255,255,0.34) 0%, transparent 58%)'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.58) 0%, transparent 62%)',
+                background: uiScheme.cardBg,
               }}
             />
             <Volume2 className="relative z-10 h-4.5 w-4.5" />
             {isActive && (
               <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/45" />
                 <span className="relative inline-flex h-2 w-2 rounded-full border border-white/70 bg-emerald-500" />
               </span>
             )}
@@ -859,8 +703,7 @@ export function TTSControls({
                   right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
                   bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
                   color: isDragging ? uiScheme.link : uiScheme.mutedText,
-                  background: 'color-mix(in srgb, var(--card) 78%, transparent)',
-                  border: `1px solid ${uiScheme.cardBorder}30`,
+                  ...getGlassSurface(uiScheme),
                   boxShadow: '0 10px 20px -18px rgba(0,0,0,0.12)',
                   cursor: isDragging ? 'grabbing' : 'grab',
                 }}
@@ -872,6 +715,8 @@ export function TTSControls({
             )}
             <FloatingButton
               isActive={isActive}
+              isPlaying={isPlaying}
+              isPaused={isPaused}
               isDragging={isDragging}
               position={position}
               expanded={expanded}
@@ -905,7 +750,7 @@ export function TTSControls({
                 <div
                   className="pointer-events-none absolute bottom-[-8px] right-5 h-4 w-4 rotate-45 border-r border-b"
                   style={{
-                    background: `${uiScheme.cardBg}c8`,
+                    background: uiScheme.cardBg,
                     borderColor: `${uiScheme.cardBorder}72`,
                     boxShadow: `8px 8px 18px -16px ${uiScheme.cardBorder}40`,
                   }}
@@ -924,16 +769,17 @@ export function TTSControls({
                 <section
                     className="paper-panel-soft rounded-[20px] border px-3 py-2.5"
                     style={{
-                      borderColor: `${uiScheme.link}36`,
+                      ...getSoftFieldSurface(uiScheme),
+                      borderColor: `${uiScheme.link}30`,
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <div
-                        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                        style={{
-                          background: `${uiScheme.link}18`,
-                          color: uiScheme.link,
-                        }}
+                        <div
+                          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                          style={{
+                            background: uiScheme.cardBg,
+                            color: uiScheme.link,
+                          }}
                       >
                         <AlertCircle className="h-4 w-4" />
                       </div>
@@ -952,7 +798,7 @@ export function TTSControls({
                             className="paper-motion-interactive h-8 rounded-xl px-3 text-sm font-semibold hover:scale-[1.02] active:scale-95"
                             style={{
                               color: uiScheme.link,
-                              background: 'transparent',
+                              background: uiScheme.cardBg,
                               border: 'none',
                             }}
                           >
@@ -985,7 +831,7 @@ export function TTSControls({
                         className="paper-motion-interactive h-9 rounded-full px-3 text-xs font-bold hover:scale-[1.02] active:scale-95"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: `${uiScheme.muted}50`,
+                          background: uiScheme.muted,
                           border: `1px solid ${uiScheme.cardBorder}20`,
                           boxShadow: '0 2px 8px -4px rgba(0,0,0,0.05)',
                         }}
@@ -1004,7 +850,7 @@ export function TTSControls({
                   <div
                     className="paper-field rounded-[20px] border p-3"
                     style={{
-                      background: `${uiScheme.muted}30`,
+                      ...getSoftFieldSurface(uiScheme),
                       borderColor: sleepTimerActive ? `${uiScheme.link}28` : `${uiScheme.cardBorder}20`,
                     }}
                   >
@@ -1013,7 +859,7 @@ export function TTSControls({
                         <div
                           className="flex h-7 w-7 items-center justify-center rounded-lg"
                           style={{
-                            background: sleepTimerActive ? `${uiScheme.link}15` : `${uiScheme.muted}60`,
+                            background: sleepTimerActive ? uiScheme.cardBg : uiScheme.muted,
                             color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
                           }}
                         >
@@ -1026,7 +872,7 @@ export function TTSControls({
                       <div
                         className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
                         style={{
-                          background: sleepTimerActive ? `${uiScheme.link}15` : 'transparent',
+                          background: sleepTimerActive ? uiScheme.cardBg : 'transparent',
                           color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
                         }}
                       >
@@ -1046,7 +892,7 @@ export function TTSControls({
                             className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
                             style={{
                               color: active ? uiScheme.link : uiScheme.fg,
-                              background: active ? uiScheme.bg : 'transparent',
+                              background: active ? uiScheme.cardBg : 'transparent',
                               border: active ? `1px solid ${uiScheme.link}40` : '1px solid transparent',
                               boxShadow: active ? `0 4px 12px -4px ${uiScheme.link}30` : 'none',
                             }}
@@ -1063,7 +909,7 @@ export function TTSControls({
                         className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
                         style={{
                           color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}60`,
-                          background: 'transparent',
+                          background: uiScheme.cardBg,
                           border: 'none',
                         }}
                       >
@@ -1073,10 +919,11 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="flex items-center justify-center gap-3 rounded-[24px] border p-3"
+                    className="flex items-center justify-center gap-2 rounded-[22px] border px-2.5 py-2"
                     style={{
-                      background: `${uiScheme.muted}25`,
-                      borderColor: `${uiScheme.cardBorder}18`,
+                      ...getSoftFieldSurface(uiScheme),
+                      background: uiScheme.muted,
+                      borderColor: `${uiScheme.cardBorder}14`,
                     }}
                   >
                     <ControlButton
@@ -1093,7 +940,7 @@ export function TTSControls({
                       {isPlaying && (
                         <div
                           className="absolute inset-0 animate-ping rounded-full opacity-20"
-                          style={{ background: uiScheme.link }}
+                          style={{ background: uiScheme.cardBg }}
                         />
                       )}
                       <Button
@@ -1102,26 +949,23 @@ export function TTSControls({
                         onClick={handleStartClick}
                         disabled={isPending}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        className="paper-motion-interactive h-16 w-16 rounded-full hover:scale-[1.04] active:scale-95 focus-visible:outline-none"
+                        className="paper-motion-interactive h-14 w-14 rounded-full hover:scale-[1.03] active:scale-95 focus-visible:outline-none"
                         style={{
-                          background: isPending
-                            ? `${uiScheme.muted}80`
-                            : `linear-gradient(135deg, ${uiScheme.link} 0%, ${uiScheme.link}dd 100%)`,
-                          color: '#ffffff',
-                          boxShadow: isPending
-                            ? 'none'
-                            : `0 12px 28px -10px ${uiScheme.link}66, inset 0 1px 0 rgba(255,255,255,0.4)`,
+                          ...getPrimaryActionSurface(uiScheme, isPending),
                           cursor: isPending ? 'not-allowed' : 'pointer',
                         }}
                       >
                         {isPending ? (
-                          <Loader2 className="h-7 w-7 animate-spin" />
+                          <Loader2
+                            className="h-6 w-6 animate-spin"
+                            style={{ color: uiScheme.fg }}
+                          />
                         ) : isPaused ? (
-                          <Play className="ml-1 h-7 w-7 fill-white" />
+                          <Play className="ml-0.5 h-6 w-6 fill-current" />
                         ) : isPlaying ? (
-                          <Pause className="h-7 w-7 fill-white" />
+                          <Pause className="h-6 w-6 fill-current" />
                         ) : (
-                          <Play className="ml-1 h-7 w-7 fill-white" />
+                          <Play className="ml-0.5 h-6 w-6 fill-current" />
                         )}
                       </Button>
                     </div>

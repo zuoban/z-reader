@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BookOpen,
   CalendarClock,
@@ -15,7 +15,8 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react';
-import { api, Book, Category } from '@/lib/api';
+import { api } from '@/lib/api';
+import type { Book, Category } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
 import { Button } from '@/components/ui/button';
@@ -197,11 +198,7 @@ export function BookCard({
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const readButtonLabel = '阅读';
-  const category = useMemo(
-    () => categories.find((item) => item.id === book.category_id) ?? null,
-    [book.category_id, categories]
-  );
-  const categoryLabel = category?.name ?? '未分类';
+  const categoryLabel = book.category?.trim() ?? '';
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
   const cardFrameWidth = Math.round(cardWidth * cardScale);
@@ -332,7 +329,7 @@ export function BookCard({
                     <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/55" />
                     <span className="truncate">{authorLabel}</span>
                   </span>
-                  {book.category_id && category && (
+                  {categoryLabel && (
                     <span className="inline-flex shrink-0 items-center gap-0.5 text-foreground/55">
                       <Tag className="h-3 w-3 shrink-0 text-muted-foreground/55" />
                       <span className="max-w-[5.5rem] truncate sm:max-w-[4.5rem]">{categoryLabel}</span>
@@ -437,7 +434,7 @@ export function BookCard({
       </div>
       <CategorySelector
         bookId={book.id}
-        currentCategoryId={book.category_id}
+        currentCategory={book.category}
         categories={categories}
         bookCounts={bookCounts}
         onUpdate={onUpdate}

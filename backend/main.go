@@ -111,9 +111,6 @@ func main() {
 		api.GET("/voices", ttsHandler.VoiceList)
 
 		api.GET("/categories", categoriesHandler.List)
-		api.POST("/categories", categoriesHandler.Create)
-		api.PATCH("/categories/:id", categoriesHandler.Update)
-		api.DELETE("/categories/:id", categoriesHandler.Delete)
 
 		users := api.Group("/users")
 		users.Use(middleware.AdminRequired())

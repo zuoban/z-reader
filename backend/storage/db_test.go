@@ -253,6 +253,106 @@ func TestListBooksFiltersByUser(t *testing.T) {
 	}
 }
 
+func TestNormalizeBookCategoriesMigratesLegacyCategoryID(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	categoryID := "category-a"
+
+	if err := db.SaveCategory(&models.Category{
+		ID:        categoryID,
+		UserID:    userID,
+		Name:      "科幻",
+		SortOrder: 1,
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("failed to save category: %v", err)
+	}
+	if err := db.SaveBook(&models.Book{
+		ID:         "book-a",
+		UserID:     userID,
+		Title:      "Alpha",
+		Filename:   "book-a.epub",
+		Format:     "epub",
+		Size:       128,
+		CategoryID: &categoryID,
+		CreatedAt:  time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("failed to save book: %v", err)
+	}
+
+	if err := db.NormalizeBookCategories(); err != nil {
+		t.Fatalf("NormalizeBookCategories returned error: %v", err)
+	}
+
+	got, err := db.GetBook("book-a")
+	if err != nil {
+		t.Fatalf("GetBook returned error: %v", err)
+	}
+	if got == nil || got.Category == nil || *got.Category != "科幻" {
+		t.Fatalf("expected migrated category 科幻, got %+v", got)
+	}
+	if got.CategoryID != nil {
+		t.Fatalf("expected legacy category id to be cleared, got %+v", got.CategoryID)
+	}
+}
+
+func TestListCategoriesDerivesNamesFromBooks(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	categoryA := " 科幻 "
+	categoryB := "文学"
+	otherUserCategory := "历史"
+
+	books := []*models.Book{
+		{
+			ID:        "book-a",
+			UserID:    userID,
+			Title:     "Alpha",
+			Filename:  "book-a.epub",
+			Format:    "epub",
+			Size:      128,
+			Category:  &categoryA,
+			CreatedAt: time.Now().UTC(),
+		},
+		{
+			ID:        "book-b",
+			UserID:    userID,
+			Title:     "Beta",
+			Filename:  "book-b.epub",
+			Format:    "epub",
+			Size:      128,
+			Category:  &categoryB,
+			CreatedAt: time.Now().UTC(),
+		},
+		{
+			ID:        "book-c",
+			UserID:    "user-b",
+			Title:     "Gamma",
+			Filename:  "book-c.epub",
+			Format:    "epub",
+			Size:      128,
+			Category:  &otherUserCategory,
+			CreatedAt: time.Now().UTC(),
+		},
+	}
+	for _, book := range books {
+		if err := db.SaveBook(book); err != nil {
+			t.Fatalf("failed to save book: %v", err)
+		}
+	}
+
+	got, err := db.ListCategories(userID)
+	if err != nil {
+		t.Fatalf("ListCategories returned error: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 categories, got %+v", got)
+	}
+	if got[0].Name != "文学" || got[0].ID != "文学" || got[1].Name != "科幻" {
+		t.Fatalf("unexpected derived categories: %+v", got)
+	}
+}
+
 func TestSaveProgressRejectsOtherUsersBook(t *testing.T) {
 	db := openTestDB(t)
 

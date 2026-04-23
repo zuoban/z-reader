@@ -2,9 +2,8 @@
 
 import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Category } from '@/lib/api';
+import type { Category } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { getCategoryColor } from '@/lib/categoryColors';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const MAX_CATEGORY_LABEL_LENGTH = 12;
@@ -75,22 +74,19 @@ export function CategoryFilter({
     {
       id: null,
       label: '全部',
-      color: null,
       count: totalBooks,
       isRoot: true,
     },
     {
       id: UNCATEGORIZED_FILTER_ID,
       label: '未分类',
-      color: null,
       count: uncategorizedBooks,
       isRoot: true,
     },
     ...categories
-      .map((category, index) => ({
+      .map((category) => ({
         id: category.id,
         label: category.name,
-        color: getCategoryColor(index + 1),
         count: bookCounts[category.id] || 0,
         isRoot: false,
       }))
@@ -148,17 +144,6 @@ export function CategoryFilter({
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
                 )}
               >
-                {/* 颜色指示点 */}
-                {item.color && (
-                  <span
-                    className={cn(
-                      'h-2 w-2 shrink-0 rounded-full',
-                      isSelected ? 'scale-110' : 'group-hover:scale-110'
-                    )}
-                    style={{ backgroundColor: item.color }}
-                  />
-                )}
-
                 {/* 标签文字 */}
                 <span className={cn(isSelected && 'font-semibold')}>
                   {truncateLabel(item.label)}

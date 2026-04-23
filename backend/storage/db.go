@@ -52,6 +52,9 @@ func Open(path string) (*DB, error) {
 	if err := (&DB{db}).NormalizeCategorySortOrders(); err != nil {
 		return nil, err
 	}
+	if err := (&DB{db}).NormalizeBookCategories(); err != nil {
+		return nil, err
+	}
 
 	return &DB{db}, nil
 }
@@ -121,7 +124,10 @@ func (db *DB) AssignUnownedDataToAdmin() error {
 		if err := assignUnownedCategories(tx, adminID); err != nil {
 			return err
 		}
-		return assignUnownedProgress(tx, adminID)
+		if err := assignUnownedProgress(tx, adminID); err != nil {
+			return err
+		}
+		return migrateBookCategories(tx)
 	})
 }
 
@@ -639,6 +645,70 @@ func (db *DB) SaveCategory(category *models.Category) error {
 	})
 }
 
+func normalizeCategoryName(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	category := strings.TrimSpace(*value)
+	if category == "" {
+		return nil
+	}
+	return &category
+}
+
+func migrateBookCategories(tx *bbolt.Tx) error {
+	categoriesB := tx.Bucket(CategoriesBucket)
+	booksB := tx.Bucket(BooksBucket)
+	categoriesByID := map[string]models.Category{}
+
+	if err := categoriesB.ForEach(func(k, v []byte) error {
+		var category models.Category
+		if err := json.Unmarshal(v, &category); err != nil {
+			return err
+		}
+		categoriesByID[string(k)] = category
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return booksB.ForEach(func(k, v []byte) error {
+		var book models.Book
+		if err := json.Unmarshal(v, &book); err != nil {
+			return err
+		}
+
+		nextCategory := normalizeCategoryName(book.Category)
+		if nextCategory == nil && book.CategoryID != nil {
+			if category, ok := categoriesByID[*book.CategoryID]; ok {
+				nextCategory = normalizeCategoryName(&category.Name)
+			}
+		}
+
+		changed := book.CategoryID != nil
+		if (book.Category == nil) != (nextCategory == nil) {
+			changed = true
+		} else if book.Category != nil && nextCategory != nil && *book.Category != *nextCategory {
+			changed = true
+		}
+		if !changed {
+			return nil
+		}
+
+		book.Category = nextCategory
+		book.CategoryID = nil
+		data, err := json.Marshal(book)
+		if err != nil {
+			return err
+		}
+		return booksB.Put(k, data)
+	})
+}
+
+func (db *DB) NormalizeBookCategories() error {
+	return db.Update(migrateBookCategories)
+}
+
 func (db *DB) GetCategory(id string) (*models.Category, error) {
 	var category models.Category
 	err := db.View(func(tx *bbolt.Tx) error {
@@ -670,30 +740,43 @@ func (db *DB) GetCategoryForUser(id string, userID string) (*models.Category, er
 }
 
 func (db *DB) ListCategories(userID string) ([]models.Category, error) {
-	categories := []models.Category{}
+	categoriesByName := map[string]models.Category{}
 	err := db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(CategoriesBucket)
+		b := tx.Bucket(BooksBucket)
 		return b.ForEach(func(k, v []byte) error {
-			var category models.Category
-			if err := json.Unmarshal(v, &category); err != nil {
+			var book models.Book
+			if err := json.Unmarshal(v, &book); err != nil {
 				return err
 			}
-			if category.UserID != userID {
+			if book.UserID != userID {
 				return nil
 			}
-			categories = append(categories, category)
+			categoryName := normalizeCategoryName(book.Category)
+			if categoryName == nil {
+				return nil
+			}
+			if _, exists := categoriesByName[*categoryName]; exists {
+				return nil
+			}
+			categoriesByName[*categoryName] = models.Category{
+				ID:        *categoryName,
+				UserID:    userID,
+				Name:      *categoryName,
+				CreatedAt: book.CreatedAt,
+			}
 			return nil
 		})
 	})
+	categories := make([]models.Category, 0, len(categoriesByName))
+	for _, category := range categoriesByName {
+		categories = append(categories, category)
+	}
 	sort.Slice(categories, func(i, j int) bool {
-		if categories[i].SortOrder != categories[j].SortOrder {
-			return categories[i].SortOrder < categories[j].SortOrder
-		}
-		if !categories[i].CreatedAt.Equal(categories[j].CreatedAt) {
-			return categories[i].CreatedAt.Before(categories[j].CreatedAt)
-		}
 		return categories[i].Name < categories[j].Name
 	})
+	for index := range categories {
+		categories[index].SortOrder = index + 1
+	}
 	return categories, err
 }
 

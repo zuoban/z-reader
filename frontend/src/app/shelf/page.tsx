@@ -19,7 +19,6 @@ import { AppScreen, BrandMark, LoadingSpinner } from '@/components/AppShell';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryFilter } from '@/components/CategoryFilter';
-import { CategoryManager } from '@/components/CategoryManager';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { SortSelector } from '@/components/SortSelector';
@@ -48,7 +47,6 @@ export default function ShelfPage() {
     filteredBooks,
     bookCounts,
     loadBooks,
-    loadCategories,
     handleUpload,
     handleDelete,
     formatFileSize,
@@ -93,10 +91,6 @@ export default function ShelfPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <CategoryManager
-              onCategoryChange={loadCategories}
-              buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9"
-            />
             {user?.role === 'admin' && (
               <UserManager currentUser={user} buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9" />
             )}

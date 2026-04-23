@@ -12,6 +12,7 @@ type Book struct {
 	Size        int64      `json:"size"`
 	ContentHash string     `json:"content_hash,omitempty"`
 	CoverPath   string     `json:"cover_path,omitempty"`
+	Category    *string    `json:"category,omitempty"`
 	CategoryID  *string    `json:"category_id,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	LastReadAt  *time.Time `json:"last_read_at,omitempty"`

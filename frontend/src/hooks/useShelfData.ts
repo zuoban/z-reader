@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { api, Book, Category } from '@/lib/api';
+import { api } from '@/lib/api';
+import type { Book, Category } from '@/lib/api';
 import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
@@ -82,7 +83,6 @@ function formatFileSize(bytes: number): string {
 
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -106,33 +106,48 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, []);
 
-  const loadCategories = useCallback(async () => {
-    try {
-      const data = await api.listCategories();
-      setCategories(data || []);
-    } catch {
-      setCategories([]);
-    }
-  }, []);
-
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const timeoutId = window.setTimeout(() => {
       void loadBooks();
-      void loadCategories();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isAuthenticated, loadBooks, loadCategories]);
+  }, [isAuthenticated, loadBooks]);
+
+  const categories = useMemo<Category[]>(() => {
+    const names = Array.from(
+      new Set(
+        books
+          .map((book) => book.category?.trim())
+          .filter((category): category is string => !!category)
+      )
+    ).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+    return names.map((name, index) => ({
+      id: name,
+      user_id: '',
+      name,
+      sort_order: index + 1,
+      created_at: '',
+    }));
+  }, [books]);
+
+  useEffect(() => {
+    if (!selectedCategoryId || selectedCategoryId === UNCATEGORIZED_FILTER_ID) return;
+    if (!categories.some((category) => category.id === selectedCategoryId)) {
+      setSelectedCategoryId(null);
+    }
+  }, [categories, selectedCategoryId]);
 
   const filteredBooks = useMemo(() => {
     const sorted = sortBooks(books, sortBy);
     if (!selectedCategoryId) return sorted;
     if (selectedCategoryId === UNCATEGORIZED_FILTER_ID) {
-      return sorted.filter((book) => !book.category_id);
+      return sorted.filter((book) => !book.category?.trim());
     }
-    return sorted.filter((book) => book.category_id === selectedCategoryId);
+    return sorted.filter((book) => book.category?.trim() === selectedCategoryId);
   }, [books, selectedCategoryId, sortBy]);
 
   const bookCounts = useMemo(() => {
@@ -141,8 +156,9 @@ export function useShelfData(isAuthenticated: boolean) {
       [UNCATEGORIZED_FILTER_ID]: 0,
     };
     books.forEach((book) => {
-      if (book.category_id) {
-        counts[book.category_id] = (counts[book.category_id] || 0) + 1;
+      const category = book.category?.trim();
+      if (category) {
+        counts[category] = (counts[category] || 0) + 1;
       } else {
         counts[UNCATEGORIZED_FILTER_ID] += 1;
       }
@@ -215,7 +231,6 @@ export function useShelfData(isAuthenticated: boolean) {
     filteredBooks,
     bookCounts,
     loadBooks,
-    loadCategories,
     handleUpload,
     handleDelete,
     formatFileSize,

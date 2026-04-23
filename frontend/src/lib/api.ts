@@ -15,7 +15,7 @@ export interface Book {
   size: number;
   content_hash?: string;
   cover_path?: string;
-  category_id?: string;
+  category?: string;
   created_at: string;
   last_read_at?: string;
 }
@@ -24,7 +24,6 @@ export interface Category {
   id: string;
   user_id: string;
   name: string;
-  color: string;
   sort_order: number;
   created_at: string;
 }
@@ -190,16 +189,10 @@ export const api = {
     return fetchApi<Book>(`/api/books/${id}`);
   },
 
-  updateBook: async (id: string, data: { title?: string; author?: string; category_id?: string | null }): Promise<Book> => {
+  updateBook: async (id: string, data: { title?: string; author?: string; category?: string | null }): Promise<Book> => {
     return fetchApi<Book>(`/api/books/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
-    });
-  },
-
-  removeBookCategory: async (id: string): Promise<Book> => {
-    return fetchApi<Book>(`/api/books/${id}/category`, {
-      method: 'DELETE',
     });
   },
 
@@ -311,23 +304,6 @@ export const api = {
     return fetchApi<Category[]>('/api/categories');
   },
 
-  createCategory: async (data: { name: string; sort_order?: number }): Promise<Category> => {
-    return fetchApi<Category>('/api/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  updateCategory: async (id: string, data: { name?: string; sort_order?: number }): Promise<Category> => {
-    return fetchApi<Category>(`/api/categories/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
-
-  deleteCategory: async (id: string): Promise<void> => {
-    await fetchApi(`/api/categories/${id}`, { method: 'DELETE' });
-  },
 };
 
 export const auth = {

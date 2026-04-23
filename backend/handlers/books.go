@@ -275,9 +275,21 @@ func (o *optionalString) UnmarshalJSON(data []byte) error {
 }
 
 type bookUpdateRequest struct {
-	Title      optionalString `json:"title"`
-	Author     optionalString `json:"author"`
-	CategoryID optionalString `json:"category_id"`
+	Title    optionalString `json:"title"`
+	Author   optionalString `json:"author"`
+	Category optionalString `json:"category"`
+}
+
+func normalizeBookCategory(value *string) *string {
+	if value == nil {
+		return nil
+	}
+
+	category := strings.TrimSpace(*value)
+	if category == "" {
+		return nil
+	}
+	return &category
 }
 
 func normalizeBookFormat(format string, filename string) string {
@@ -483,19 +495,14 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	if req.Author.Set && req.Author.Value != nil {
 		book.Author = *req.Author.Value
 	}
-	if req.CategoryID.Set {
-		if req.CategoryID.Value != nil {
-			category, err := h.db.GetCategoryForUser(*req.CategoryID.Value, userID)
-			if err != nil {
-				response.InternalError(c, "获取分类失败")
-				return
-			}
-			if category == nil {
-				response.BadRequest(c, "分类不存在")
-				return
-			}
+	if req.Category.Set {
+		category := normalizeBookCategory(req.Category.Value)
+		if category != nil && len([]rune(*category)) > 50 {
+			response.BadRequest(c, "分类不能超过 50 个字符")
+			return
 		}
-		book.CategoryID = req.CategoryID.Value
+		book.Category = category
+		book.CategoryID = nil
 	}
 
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
@@ -525,6 +532,7 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 		return
 	}
 
+	book.Category = nil
 	book.CategoryID = nil
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 

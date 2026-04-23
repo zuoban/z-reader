@@ -631,24 +631,24 @@ export default function ReadPage() {
     backdropFilter: "blur(40px) saturate(180%)",
   } as const;
   const statusBarStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.18 : 0.34),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.10 : 0.14)}`,
-    boxShadow: `0 8px 18px -18px ${withOpacity(uiScheme.fg, isDarkPreset ? 0.28 : 0.12)}`,
-    backdropFilter: "blur(12px) saturate(108%)",
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.45 : 0.65),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.35 : 0.45)}`,
+    boxShadow: `0 12px 24px -12px ${withOpacity(uiScheme.fg, 0.15)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.05 : 0.65)}`,
+    backdropFilter: "blur(24px) saturate(160%)",
   } as const;
   const statusBarProgressStyle = {
-    background: "transparent",
-    border: "1px solid transparent",
+    background: withOpacity(uiScheme.buttonBg, 0.35),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.15)}`,
     boxShadow: "none",
   } as const;
   const statusBarChapterStyle = {
     background: "transparent",
-    border: "1px solid transparent",
+    border: "none",
     boxShadow: "none",
   } as const;
   const statusBarPageStyle = {
-    background: "transparent",
-    border: "1px solid transparent",
+    background: withOpacity(uiScheme.buttonBg, 0.35),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.15)}`,
     boxShadow: "none",
   } as const;
   const mobileResumeCardStyle = {
@@ -657,7 +657,7 @@ export default function ReadPage() {
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = "0px";
+  const readerContentInsetTop = "1.25rem";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.6rem)";
   const statusBarSafeAreaPaddingBottom = "calc(env(safe-area-inset-bottom, 0px) + 0.4rem)";
 
@@ -1004,50 +1004,71 @@ export default function ReadPage() {
           </div>
 
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 sm:px-8"
-            style={{ paddingBottom: statusBarSafeAreaPaddingBottom }}
+            className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 sm:px-8 ${
+              isHeaderVisible
+                ? "translate-y-0 opacity-100"
+                : "translate-y-[calc(100%+env(safe-area-inset-bottom,0px)+20px)] opacity-0"
+            }`}
+            style={{ 
+              paddingBottom: statusBarSafeAreaPaddingBottom,
+              transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
+            }}
           >
             <div
-              className="reading-status-panel pointer-events-auto flex w-full max-w-md items-center gap-0.5 overflow-hidden rounded-xl px-2 py-0.5 text-xs transition-[background,border-color,box-shadow] duration-200 ease-out sm:text-[13px]"
+              className="reading-status-panel pointer-events-auto relative flex w-full max-w-xl items-center gap-1.5 overflow-hidden rounded-2xl px-1.5 py-1 text-xs transition-all duration-300 ease-out sm:gap-2 sm:rounded-[1.25rem] sm:px-2 sm:text-[13px]"
               style={statusBarStyle}
             >
+              {/* 背景进度条 - 极细设计 */}
+              <div 
+                className="absolute bottom-0 left-0 h-[2px] transition-all duration-500 ease-out"
+                style={{ 
+                  width: `${percentage}%`,
+                  background: `linear-gradient(90deg, transparent, ${uiScheme.link})`,
+                  opacity: 0.6
+                }}
+              />
+
               {/* 左侧：进度数字 */}
               <div
-                className="flex min-h-8 shrink-0 items-center rounded-lg px-2.5 sm:px-3"
+                className="flex min-h-8 shrink-0 items-center rounded-xl px-3 sm:px-4"
                 style={statusBarProgressStyle}
               >
                 <span
-                  className="min-w-[4ch] font-mono text-[10.5px] font-normal tabular-nums tracking-[0.04em]"
+                  className="font-mono text-[11px] font-bold tabular-nums tracking-tight"
                   style={{
                     color: withOpacity(
-                      uiScheme.buttonText,
-                      isDarkPreset ? 0.58 : 0.56,
+                      uiScheme.fg,
+                      isDarkPreset ? 0.85 : 0.75,
                     ),
                   }}
                 >
-                  {percentage.toFixed(1)}%
+                  {percentage.toFixed(1)}<span className="ml-0.5 text-[9px] font-medium opacity-60">%</span>
                 </span>
               </div>
 
               {/* 中间：当前章节 */}
-              <span
-                className="flex min-h-8 min-w-0 flex-1 items-center justify-center truncate rounded-lg px-2.5 text-center text-[10.5px] font-normal transition-colors duration-200 sm:px-3 sm:text-[11px]"
-                style={{
-                  ...statusBarChapterStyle,
-                  color: withOpacity(uiScheme.fg, isDarkPreset ? 0.44 : 0.42),
-                }}
+              <div
+                className="flex min-h-8 min-w-0 flex-1 items-center justify-center truncate rounded-xl px-3 text-center transition-colors duration-200"
+                style={statusBarChapterStyle}
               >
-                {currentChapter || "—"}
-              </span>
+                <span 
+                  className="truncate text-[11px] font-bold tracking-tight sm:text-[12px]"
+                  style={{
+                    color: withOpacity(uiScheme.fg, isDarkPreset ? 0.75 : 0.65),
+                  }}
+                >
+                  {currentChapter || "—"}
+                </span>
+              </div>
 
               {/* 右侧：页码 */}
               <div
-                className="flex min-h-8 shrink-0 items-center rounded-lg px-2.5 sm:px-3"
+                className="flex min-h-8 shrink-0 items-center rounded-xl px-3 sm:px-4"
                 style={statusBarPageStyle}
               >
                 <span
-                  className="font-normal tabular-nums text-[10.5px] tracking-[0.02em]"
-                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.34 : 0.34) }}
+                  className="font-mono text-[11px] font-bold tabular-nums tracking-tight"
+                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.85 : 0.75) }}
                 >
                   {currentPageLabel || "—"}
                 </span>

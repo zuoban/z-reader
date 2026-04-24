@@ -617,25 +617,27 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "relative flex items-center justify-center h-7 w-7 rounded-lg transition-all duration-150 ease-out hover:scale-105 active:scale-95 sm:h-8 sm:w-8 sm:rounded-xl";
+    "relative flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-[0.95rem] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out hover:scale-[1.03] active:scale-95 sm:h-11 sm:w-11 sm:min-h-11 sm:min-w-11 sm:rounded-[1.05rem]";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
     background: active
-      ? withOpacity(uiScheme.link, isDarkPreset ? 0.16 : 0.10)
-      : withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.10 : 0.06),
+      ? withOpacity(uiScheme.link, isDarkPreset ? 0.18 : 0.11)
+      : "transparent",
     border: `1px solid ${active
-      ? withOpacity(uiScheme.link, 0.28)
-      : withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.12)}`,
+      ? withOpacity(uiScheme.link, 0.30)
+      : "transparent"}`,
     boxShadow: active
-      ? `0 4px 12px -4px ${withOpacity(uiScheme.link, 0.28)}`
+      ? `0 8px 18px -12px ${withOpacity(uiScheme.link, 0.46)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.54)}`
       : "none",
     transition: "all 150ms ease-out",
   });
   const unifiedToolbarStyle = {
-    background: uiScheme.cardBg,
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.36 : 0.44)}`,
-    boxShadow: `0 8px 32px -8px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.30 : 0.14)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.10 : 0.75)}`,
+    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.88 : 0.76),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.42 : 0.54)}`,
+    boxShadow: `0 18px 42px -30px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.76 : 0.42)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.82)}`,
+    backdropFilter: "blur(18px) saturate(1.15)",
+    WebkitBackdropFilter: "blur(18px) saturate(1.15)",
   } as const;
   const statusBarContainerStyle = {
     background: uiScheme.bg,
@@ -682,13 +684,13 @@ export default function ReadPage() {
             transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
           }}
         >
-          <div className="flex justify-center px-3 pt-2 sm:px-4 sm:pt-2.5">
+          <div className="flex justify-center px-3 pt-2 sm:px-4 sm:pt-3">
             <div
-              className="pointer-events-auto flex w-full max-w-2xl items-center gap-1 rounded-[1.25rem] px-1 py-1 sm:rounded-[1.75rem] sm:px-1.5 sm:py-1.5"
+              className="pointer-events-auto grid h-[3.25rem] w-full max-w-xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 rounded-[1.25rem] px-1.5 py-1 sm:h-[3.75rem] sm:max-w-2xl sm:gap-2 sm:rounded-[1.5rem] sm:px-2"
               style={unifiedToolbarStyle}
             >
               {/* 左侧按钮组 */}
-              <div className="flex shrink-0 items-center gap-0.5">
+              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -798,17 +800,17 @@ export default function ReadPage() {
               </div>
 
               {/* 中间标题区域 */}
-              <div className="flex min-w-0 flex-1 items-center justify-center px-1">
+              <div className="flex min-w-0 flex-1 items-center justify-center px-2 sm:px-4">
                 <span
-                  className="truncate text-[12px] font-medium leading-none tracking-[-0.01em] sm:text-[13px]"
-                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.70 : 0.65) }}
+                  className="truncate text-[13px] font-semibold leading-none sm:text-[14px]"
+                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.78 : 0.72) }}
                 >
                   {bookTitle || "阅读中"}
                 </span>
               </div>
 
               {/* 右侧按钮组 */}
-              <div className="flex shrink-0 items-center gap-0.5">
+              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
               {isFullscreenSupported && (
                 <Button
                   data-reader-interactive="true"
@@ -1004,15 +1006,6 @@ export default function ReadPage() {
             <div
               className="relative flex h-9 w-full items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]"
             >
-              {/* 背景进度条 - 极细顶端设计 */}
-              <div 
-                className="absolute top-0 left-0 h-[1.5px] transition-all duration-500 ease-out"
-                style={{ 
-                  width: `${percentage}%`,
-                  background: uiScheme.link,
-                }}
-              />
- 
               {/* 左侧：进度数字 */}
               <div className="flex w-16 shrink-0 items-center">
                 <span

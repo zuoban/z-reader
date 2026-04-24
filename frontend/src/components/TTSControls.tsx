@@ -17,6 +17,7 @@ import {
   SkipForward,
   Volume2,
   Loader2,
+  X,
 } from 'lucide-react';
 import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import { VoiceSelector } from '@/components/VoiceSelector';
@@ -38,9 +39,10 @@ const getGlassSurface = (
     : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.12)}`,
 });
 
-const getSoftFieldSurface = (uiScheme: ThemeColors) => ({
-  background: uiScheme.muted,
-  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
+const getInsetControlSurface = (uiScheme: ThemeColors) => ({
+  background: withOpacity(uiScheme.muted, 0.72),
+  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
+  boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.22)}`,
 });
 
 const getPrimaryActionSurface = (uiScheme: ThemeColors, disabled?: boolean) => ({
@@ -194,13 +196,13 @@ interface VoiceSliderProps {
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
   <div
-    className="paper-field group flex min-h-11 items-center gap-4 rounded-2xl border px-4 py-2"
+    className="paper-field group flex min-h-11 items-center gap-3 rounded-[18px] border px-3.5 py-2.5"
     style={{
-      ...getSoftFieldSurface(uiScheme),
+      ...getInsetControlSurface(uiScheme),
     }}
   >
     <label
-      className="w-10 shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-200"
+      className="w-9 shrink-0 text-[11px] font-bold transition-colors duration-200"
       style={{ color: uiScheme.mutedText }}
     >
       {label}
@@ -216,11 +218,12 @@ const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme 
       />
     </div>
     <div
-      className="flex h-7 min-w-[56px] items-center justify-center rounded-lg px-2 text-xs font-bold tabular-nums tracking-tight transition-colors duration-200"
+      className="flex h-8 min-w-[58px] items-center justify-center rounded-[14px] px-2 text-xs font-bold tabular-nums tracking-tight transition-colors duration-200"
       style={{
         color: uiScheme.fg,
-        background: uiScheme.muted,
-        boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
+        background: uiScheme.cardBg,
+        border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
+        boxShadow: `0 8px 16px -14px ${withOpacity(uiScheme.fg, 0.18)}`,
       }}
     >
       {format(value)}
@@ -254,16 +257,16 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="paper-motion-interactive h-11 w-11 rounded-2xl hover:scale-[1.05] active:scale-95
+      className="paper-motion-interactive h-11 w-11 rounded-[18px] hover:scale-[1.04] active:scale-95
         motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       style={{
         color: getButtonColor(),
-        background: active ? uiScheme.muted : uiScheme.cardBg,
-        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.28) : withOpacity(uiScheme.cardBorder, 0.16)}`,
+        background: active ? uiScheme.cardBg : withOpacity(uiScheme.cardBg, 0.68),
+        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.24) : withOpacity(uiScheme.cardBorder, 0.14)}`,
         boxShadow: disabled
           ? 'none'
           : active
-            ? `0 8px 16px -12px ${uiScheme.cardBorder}30, inset 0 1px 0 rgba(255,255,255,0.24)`
+            ? `0 10px 20px -16px ${withOpacity(uiScheme.fg, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.28)`
             : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.4 : 1,
@@ -673,16 +676,16 @@ export function TTSControls({
     maxHeight: 'min(72vh, 720px)',
   } as const;
 
-  const statusContent = ttsStatus ? (
+  const renderStatusContent = (withDragHandle = false) => ttsStatus ? (
     <div
-      className="paper-panel-soft mb-2 rounded-[22px] border px-4 py-3"
+      className="paper-panel-soft flex items-center gap-3 rounded-[18px] border px-3.5 py-2.5"
       style={{
         background: uiScheme.cardBg,
         borderColor: `${statusColor}25`,
         color: uiScheme.fg,
       }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
         <div className="relative mt-1 flex h-2 w-2 shrink-0 items-center justify-center">
           <span
             className="absolute h-full w-full animate-ping rounded-full"
@@ -707,6 +710,26 @@ export function TTSControls({
           )}
         </div>
       </div>
+      {withDragHandle && (
+        <button
+          type="button"
+          onPointerDown={handleDragHandlePointerDown}
+          onPointerUp={handleDragHandlePointerUp}
+          onPointerCancel={handleDragHandlePointerCancel}
+          className="paper-motion-interactive -mr-1 inline-flex h-9 w-9 shrink-0 touch-none select-none items-center justify-center rounded-full border-0 bg-transparent p-0 hover:scale-[1.03] active:scale-95"
+          style={{
+            color: isDragging ? uiScheme.link : uiScheme.mutedText,
+            background: 'transparent',
+            borderColor: 'transparent',
+            boxShadow: 'none',
+            cursor: isDragging ? 'grabbing' : 'grab',
+          }}
+          aria-label="拖动朗读控制面板位置"
+          title="按住拖动控制面板"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   ) : null;
 
@@ -815,29 +838,59 @@ export function TTSControls({
                 />
               )}
 
-              <div className="relative px-4 pt-2.5 sm:px-4">
-                <div aria-hidden="true" className="h-4" />
+              <div
+                className="flex items-center justify-between gap-3 border-b px-4 py-3"
+                style={{
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.18),
+                }}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold leading-tight" style={{ color: uiScheme.fg }}>
+                    朗读控制
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium leading-tight" style={{ color: uiScheme.mutedText }}>
+                    播放、定时与语速
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setExpanded(false)}
+                  className="paper-motion-interactive h-9 w-9 shrink-0 rounded-full hover:scale-[1.03] active:scale-95"
+                  style={{
+                    color: uiScheme.mutedText,
+                    background: withOpacity(uiScheme.muted, 0.72),
+                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
+                    boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.18)}`,
+                  }}
+                  aria-label="关闭朗读控制面板"
+                  title="关闭"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
 
               <div 
-                className="space-y-4 overflow-y-auto px-4 pb-4 pt-2.5" 
-                style={{ maxHeight: `${floatingPopupMaxHeight - (isToolbar ? 20 : 68)}px` }}
+                className="space-y-3 overflow-y-auto px-4 pb-4 pt-3" 
+                style={{ maxHeight: `${floatingPopupMaxHeight - (isToolbar ? 72 : 120)}px` }}
               >
                 {resumePromptVisible && (
-                <section
-                    className="paper-panel-soft rounded-[20px] border px-3 py-2.5"
+                  <section
+                    className="paper-panel-soft rounded-[18px] border px-3.5 py-3"
                     style={{
-                      ...getSoftFieldSurface(uiScheme),
-                      borderColor: `${uiScheme.link}30`,
+                      background: withOpacity(uiScheme.link, 0.07),
+                      borderColor: withOpacity(uiScheme.link, 0.18),
+                      boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.2)}`,
                     }}
                   >
-                    <div className="flex items-start gap-3">
-                        <div
-                          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                          style={{
-                            background: uiScheme.cardBg,
-                            color: uiScheme.link,
-                          }}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          background: uiScheme.cardBg,
+                          color: uiScheme.link,
+                        }}
                       >
                         <AlertCircle className="h-4 w-4" />
                       </div>
@@ -845,38 +898,36 @@ export function TTSControls({
                         <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
                           继续朗读
                         </p>
-                        <p className="mt-1 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
+                        <p className="mt-0.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
                           {resumePromptMessage}
                         </p>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => void onResume?.()}
-                            className="paper-motion-interactive h-8 rounded-xl px-3 text-sm font-semibold hover:scale-[1.02] active:scale-95"
-                            style={{
-                              color: uiScheme.link,
-                              background: uiScheme.cardBg,
-                              border: 'none',
-                            }}
-                          >
-                            继续朗读
-                          </Button>
-                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => void onResume?.()}
+                        className="paper-motion-interactive h-9 shrink-0 rounded-full px-3 text-xs font-bold hover:scale-[1.02] active:scale-95"
+                        style={{
+                          color: uiScheme.link,
+                          background: uiScheme.cardBg,
+                          border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
+                        }}
+                      >
+                        继续
+                      </Button>
                     </div>
                   </section>
                 )}
 
-                {ttsStatus && !detailsExpanded && <div>{statusContent}</div>}
+                {isToolbar && ttsStatus && !detailsExpanded && <div>{renderStatusContent()}</div>}
 
-                <section className="paper-panel-soft flex flex-col gap-4 rounded-[28px] border p-4" style={styles.section}>
+                <section className="paper-panel-soft flex flex-col gap-3 rounded-[24px] border p-3.5" style={styles.section}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex flex-col">
-                      <label className="text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: uiScheme.mutedText }}>
+                      <label className="text-[11px] font-bold" style={{ color: uiScheme.mutedText }}>
                         快捷控制
                       </label>
-                      <p className="mt-0.5 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                      <p className="mt-0.5 text-[13px] font-semibold" style={{ color: uiScheme.fg }}>
                         播放与速度
                       </p>
                     </div>
@@ -889,9 +940,9 @@ export function TTSControls({
                         className="paper-motion-interactive h-9 rounded-full px-3 text-xs font-bold hover:scale-[1.02] active:scale-95"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: uiScheme.muted,
-                          border: `1px solid ${uiScheme.cardBorder}20`,
-                          boxShadow: '0 2px 8px -4px rgba(0,0,0,0.05)',
+                          background: detailsExpanded ? withOpacity(uiScheme.link, 0.1) : withOpacity(uiScheme.muted, 0.76),
+                          border: `1px solid ${withOpacity(detailsExpanded ? uiScheme.link : uiScheme.cardBorder, 0.16)}`,
+                          boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.18)}`,
                         }}
                       >
                         <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
@@ -906,82 +957,9 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="paper-field rounded-[20px] border p-3"
+                    className="flex items-center justify-center gap-2 rounded-[20px] border px-2.5 py-2.5"
                     style={{
-                      ...getSoftFieldSurface(uiScheme),
-                      borderColor: sleepTimerActive ? `${uiScheme.link}28` : `${uiScheme.cardBorder}20`,
-                    }}
-                  >
-                    <div className="mb-3 flex items-center justify-between px-1">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="flex h-7 w-7 items-center justify-center rounded-lg"
-                          style={{
-                            background: sleepTimerActive ? uiScheme.cardBg : uiScheme.muted,
-                            color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
-                          }}
-                        >
-                          <Clock className="h-4 w-4" />
-                        </div>
-                        <p className="text-sm font-bold" style={{ color: uiScheme.fg }}>
-                          睡眠定时
-                        </p>
-                      </div>
-                      <div
-                        className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-                        style={{
-                          background: sleepTimerActive ? uiScheme.cardBg : uiScheme.muted,
-                          color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
-                        }}
-                      >
-                        {sleepTimerActive ? sleepTimer?.label : '未设置'}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2">
-                      {[15, 30, 60].map((minutes) => {
-                        const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
-                        return (
-                          <Button
-                            key={minutes}
-                            type="button"
-                            variant="ghost"
-                            onClick={() => onSleepTimerMinutes?.(minutes)}
-                            className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
-                            style={{
-                              color: active ? uiScheme.link : uiScheme.fg,
-                              background: active ? uiScheme.cardBg : uiScheme.muted,
-                              border: `1px solid ${active ? `${uiScheme.link}40` : `${uiScheme.cardBorder}24`}`,
-                              boxShadow: active ? `0 4px 12px -4px ${uiScheme.link}30` : 'none',
-                            }}
-                          >
-                            {minutes}分
-                          </Button>
-                        );
-                      })}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onClearSleepTimer?.()}
-                        disabled={!sleepTimerActive}
-                        className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
-                        style={{
-                          color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}60`,
-                          background: uiScheme.cardBg,
-                          border: 'none',
-                        }}
-                      >
-                        取消
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex items-center justify-center gap-2 rounded-[22px] border px-2.5 py-2"
-                    style={{
-                      ...getSoftFieldSurface(uiScheme),
-                      background: uiScheme.muted,
-                      borderColor: `${uiScheme.cardBorder}14`,
+                      ...getInsetControlSurface(uiScheme),
                     }}
                   >
                     <ControlButton
@@ -1059,6 +1037,80 @@ export function TTSControls({
                     format={formatRate}
                     uiScheme={uiScheme}
                   />
+
+                  {detailsExpanded && (
+                    <div
+                      className="paper-reveal-soft paper-field rounded-[18px] border p-3"
+                      style={{
+                        ...getInsetControlSurface(uiScheme),
+                        borderColor: sleepTimerActive ? withOpacity(uiScheme.link, 0.2) : withOpacity(uiScheme.cardBorder, 0.16),
+                      }}
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="flex h-8 w-8 items-center justify-center rounded-[14px]"
+                            style={{
+                              background: sleepTimerActive ? withOpacity(uiScheme.link, 0.1) : uiScheme.cardBg,
+                              color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
+                              border: `1px solid ${withOpacity(sleepTimerActive ? uiScheme.link : uiScheme.cardBorder, 0.14)}`,
+                            }}
+                          >
+                            <Clock className="h-4 w-4" />
+                          </div>
+                          <p className="text-sm font-bold" style={{ color: uiScheme.fg }}>
+                            睡眠定时
+                          </p>
+                        </div>
+                        <div
+                          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                          style={{
+                            background: sleepTimerActive ? withOpacity(uiScheme.link, 0.1) : uiScheme.cardBg,
+                            color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
+                          }}
+                        >
+                          {sleepTimerActive ? sleepTimer?.label : '未设置'}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2">
+                        {[15, 30, 60].map((minutes) => {
+                          const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
+                          return (
+                            <Button
+                              key={minutes}
+                              type="button"
+                              variant="ghost"
+                              onClick={() => onSleepTimerMinutes?.(minutes)}
+                              className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
+                              style={{
+                                color: active ? uiScheme.link : uiScheme.fg,
+                                background: active ? uiScheme.cardBg : withOpacity(uiScheme.cardBg, 0.64),
+                                border: `1px solid ${active ? withOpacity(uiScheme.link, 0.34) : withOpacity(uiScheme.cardBorder, 0.12)}`,
+                                boxShadow: active ? `0 8px 16px -12px ${withOpacity(uiScheme.link, 0.34)}` : 'none',
+                              }}
+                            >
+                              {minutes}分
+                            </Button>
+                          );
+                        })}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => onClearSleepTimer?.()}
+                          disabled={!sleepTimerActive}
+                          className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
+                          style={{
+                            color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}60`,
+                            background: uiScheme.cardBg,
+                            border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                          }}
+                        >
+                          取消
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </section>
 
                 {showSettingsPanel && detailsExpanded && (
@@ -1082,41 +1134,12 @@ export function TTSControls({
 
               {!isToolbar && (
                 <div
-                  className="flex items-center justify-between border-t p-3"
+                  className="border-t p-3"
                   style={{
                     borderColor: `${uiScheme.cardBorder}24`,
                   }}
                 >
-                  <button
-                    type="button"
-                    onPointerDown={handleDragHandlePointerDown}
-                    onPointerUp={handleDragHandlePointerUp}
-                    onPointerCancel={handleDragHandlePointerCancel}
-                    className="paper-motion-interactive inline-flex h-8 w-8 touch-none select-none items-center justify-center rounded-xl border hover:scale-[1.03] active:scale-95"
-                    style={{
-                      color: isDragging ? uiScheme.link : uiScheme.mutedText,
-                      background: uiScheme.muted,
-                      borderColor: `${uiScheme.cardBorder}22`,
-                      boxShadow: 'none',
-                      cursor: isDragging ? 'grabbing' : 'grab',
-                    }}
-                    aria-label="拖动朗读控制面板位置"
-                    title="按住拖动控制面板"
-                  >
-                    <GripVertical className="h-3.5 w-3.5" />
-                  </button>
-                  <FloatingButton
-                    isActive={isActive}
-                    isPlaying={isPlaying}
-                    isPaused={isPaused}
-                    isDragging={isDragging}
-                    position={position}
-                    expanded={expanded}
-                    placement="inline"
-                    onClick={handleClick}
-                    onPointerDownCapture={stopInteractivePropagation}
-                    uiScheme={uiScheme}
-                  />
+                  {ttsStatus && !detailsExpanded ? renderStatusContent(true) : null}
                 </div>
               )}
             </div>

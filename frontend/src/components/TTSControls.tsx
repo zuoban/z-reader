@@ -53,6 +53,12 @@ const getPrimaryActionSurface = (uiScheme: ThemeColors, disabled?: boolean) => (
     : `0 10px 20px -12px ${withOpacity(uiScheme.fg, 0.2)}, inset 0 1px 0 rgba(255,255,255,0.18)`,
 });
 
+const FAB_SIZE = 52;
+const FLOATING_IDLE_DOCK_DELAY_MS = 3600;
+const FLOATING_DOCK_RIGHT = 0;
+const FLOATING_VIEWPORT_MARGIN = 12;
+const FLOATING_PANEL_FOOTER_PADDING = 12;
+
 // 悬浮按钮组件 - 精致的视觉效果
 interface FloatingButtonProps {
   isActive: boolean;
@@ -61,6 +67,7 @@ interface FloatingButtonProps {
   isDragging: boolean;
   position: { x: number; y: number };
   expanded: boolean;
+  placement?: 'fixed' | 'inline';
   onClick: (e: React.MouseEvent) => void;
   onPointerDownCapture: (e: React.PointerEvent<HTMLDivElement>) => void;
   uiScheme: ThemeColors;
@@ -73,6 +80,7 @@ const FloatingButton = ({
   isDragging,
   position,
   expanded,
+  placement = 'fixed',
   onClick,
   onPointerDownCapture,
   uiScheme,
@@ -107,10 +115,18 @@ const FloatingButton = ({
       tabIndex={0}
       aria-label={isActive ? 'TTS 控制面板（正在播放）' : 'TTS 控制面板'}
       aria-expanded={expanded}
-      className="fixed z-[60] focus-visible:outline-none"
+      className={
+        placement === 'fixed'
+          ? 'fixed z-[60] focus-visible:outline-none'
+          : 'relative z-10 shrink-0 focus-visible:outline-none'
+      }
       style={{
-        right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
-        bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y}px)`,
+        ...(placement === 'fixed'
+          ? {
+              right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
+              bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y}px)`,
+            }
+          : {}),
         cursor: 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
@@ -336,13 +352,13 @@ export function TTSControls({
   const hasDraggedRef = useRef(false);
   const suppressClickRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
-
-  const FAB_SIZE = 52;
+  const autoDockTimerRef = useRef<number | null>(null);
 
   const styles = useThemeStyles(uiScheme, state !== 'stopped');
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
+  const isToolbar = variant === 'toolbar';
   // 检测用户是否偏好减少动画
   const prefersReducedMotion = useRef(false);
   useEffect(() => {
@@ -400,10 +416,50 @@ export function TTSControls({
     setPosition(nextPosition);
   }, []);
 
+  const clearAutoDockTimer = useCallback(() => {
+    if (autoDockTimerRef.current) {
+      window.clearTimeout(autoDockTimerRef.current);
+      autoDockTimerRef.current = null;
+    }
+  }, []);
+
+  const dockFloatingButton = useCallback(() => {
+    const nextPosition = {
+      x: FLOATING_DOCK_RIGHT,
+      y: Math.min(
+        Math.max(positionRef.current.y, 0),
+        Math.max(window.innerHeight - FAB_SIZE, 0)
+      ),
+    };
+    commitPosition(nextPosition);
+  }, [commitPosition]);
+
+  const getDragSurfaceSize = useCallback(() => {
+    if (!expanded) {
+      return { width: FAB_SIZE, height: FAB_SIZE };
+    }
+
+    return {
+      width: Math.min(364, Math.max(window.innerWidth - 28, 280)),
+      height: Math.min(window.innerHeight * 0.72, 720),
+    };
+  }, [expanded]);
+
+  const scheduleAutoDock = useCallback(() => {
+    clearAutoDockTimer();
+    if (isToolbar || expanded || isDraggingRef.current) return;
+
+    autoDockTimerRef.current = window.setTimeout(() => {
+      if (expanded || isDraggingRef.current) return;
+      dockFloatingButton();
+    }, FLOATING_IDLE_DOCK_DELAY_MS);
+  }, [clearAutoDockTimer, dockFloatingButton, expanded, isToolbar]);
+
   const clampPosition = useCallback((clientX: number, clientY: number) => {
     const deltaX = clientX - dragRef.current.startX;
     const deltaY = clientY - dragRef.current.startY;
     const threshold = prefersReducedMotion.current ? 1 : 2;
+    const dragSurfaceSize = getDragSurfaceSize();
 
     if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
       hasDraggedRef.current = true;
@@ -411,19 +467,33 @@ export function TTSControls({
     }
 
     return {
-      x: Math.max(0, Math.min(window.innerWidth - FAB_SIZE, dragRef.current.startPosX - deltaX)),
-      y: Math.max(0, Math.min(window.innerHeight - FAB_SIZE, dragRef.current.startPosY - deltaY)),
+      x: Math.max(
+        0,
+        Math.min(
+          Math.max(window.innerWidth - dragSurfaceSize.width - FLOATING_VIEWPORT_MARGIN, 0),
+          dragRef.current.startPosX - deltaX
+        )
+      ),
+      y: Math.max(
+        0,
+        Math.min(
+          Math.max(window.innerHeight - dragSurfaceSize.height - FLOATING_VIEWPORT_MARGIN, 0),
+          dragRef.current.startPosY - deltaY
+        )
+      ),
     };
-  }, []);
+  }, [getDragSurfaceSize]);
 
   const stopDragging = useCallback(() => {
     if (!isDraggingRef.current) return;
     draggingPointerIdRef.current = null;
     isDraggingRef.current = false;
     setIsDragging(false);
-  }, []);
+    scheduleAutoDock();
+  }, [scheduleAutoDock]);
 
   const startDragging = useCallback((clientX: number, clientY: number, pointerId?: number) => {
+    clearAutoDockTimer();
     draggingPointerIdRef.current = pointerId ?? null;
     hasDraggedRef.current = false;
     suppressClickRef.current = false;
@@ -435,7 +505,7 @@ export function TTSControls({
       startPosX: positionRef.current.x,
       startPosY: positionRef.current.y,
     };
-  }, []);
+  }, [clearAutoDockTimer]);
 
   const handleDragHandlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -467,17 +537,20 @@ export function TTSControls({
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       hasDraggedRef.current = false;
+      scheduleAutoDock();
       return;
     }
     // 仅当点击目标是 FloatingButton 本身（或其子元素但不是弹出面板内）时才切换
     if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
       return;
     }
+    clearAutoDockTimer();
     setExpanded((value) => !value);
   };
 
   const stopInteractivePropagation = (e: React.SyntheticEvent) => {
     e.stopPropagation();
+    scheduleAutoDock();
   };
 
   const handleRateChange = (value: number) => {
@@ -490,7 +563,6 @@ export function TTSControls({
     return `${rate > 0 ? '+' : ''}${rate}%`;
   };
 
-  const isToolbar = variant === 'toolbar';
   const statusTone = ttsStatus?.tone ?? (isActive ? 'active' : 'idle');
   const statusColor =
     statusTone === 'error'
@@ -511,6 +583,11 @@ export function TTSControls({
       setDetailsExpanded(false);
     }
   }, [expanded]);
+
+  useEffect(() => {
+    scheduleAutoDock();
+    return clearAutoDockTimer;
+  }, [clearAutoDockTimer, scheduleAutoDock]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -564,22 +641,27 @@ export function TTSControls({
 
   const floatingPopupWidth = Math.min(364, Math.max(viewport.width - 28, 280));
   const floatingPopupMaxHeight = Math.min(viewport.height * 0.72, 720);
-  const popupViewportMargin = 12;
   const maxPopupRight = Math.max(
-    popupViewportMargin,
-    viewport.width - floatingPopupWidth - popupViewportMargin
+    0,
+    viewport.width - floatingPopupWidth - FLOATING_VIEWPORT_MARGIN
   );
   const maxPopupBottom = Math.max(
-    popupViewportMargin,
-    viewport.height - floatingPopupMaxHeight - popupViewportMargin
+    0,
+    viewport.height - floatingPopupMaxHeight - FLOATING_VIEWPORT_MARGIN
   );
 
   const floatingPopupStyle = {
     right: `calc(env(safe-area-inset-right, 0px) + ${
-      Math.min(maxPopupRight, Math.max(position.x - 4, popupViewportMargin))
+      Math.min(
+        maxPopupRight,
+        Math.max(position.x - FLOATING_PANEL_FOOTER_PADDING, 0)
+      )
     }px)`,
     bottom: `calc(env(safe-area-inset-bottom, 0px) + ${
-      Math.min(maxPopupBottom, Math.max(position.y + FAB_SIZE + 14, popupViewportMargin))
+      Math.min(
+        maxPopupBottom,
+        Math.max(position.y - FLOATING_PANEL_FOOTER_PADDING, 0)
+      )
     }px)`,
     width: `${floatingPopupWidth}px`,
     maxHeight: `${floatingPopupMaxHeight}px`,
@@ -687,28 +769,7 @@ export function TTSControls({
             )}
           </Button>
         ) : (
-          <>
-            {expanded && (
-              <button
-                type="button"
-                onPointerDown={handleDragHandlePointerDown}
-                onPointerUp={handleDragHandlePointerUp}
-                onPointerCancel={handleDragHandlePointerCancel}
-                className="paper-motion-interactive paper-chip fixed z-[71] inline-flex h-8 touch-none select-none items-center gap-1.5 rounded-full px-2.5 text-xs font-medium hover:scale-[1.03] active:scale-95"
-                style={{
-                  right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
-                  bottom: `calc(env(safe-area-inset-bottom, 0px) + ${position.y + FAB_SIZE + 23}px)`,
-                  color: isDragging ? uiScheme.link : uiScheme.mutedText,
-                  ...getGlassSurface(uiScheme),
-                  boxShadow: '0 10px 20px -18px rgba(0,0,0,0.12)',
-                  cursor: isDragging ? 'grabbing' : 'grab',
-                }}
-                aria-label="拖动悬浮球位置"
-                title="按住拖动悬浮球"
-              >
-                <GripVertical className="h-3.5 w-3.5" />
-              </button>
-            )}
+          !expanded && (
             <FloatingButton
               isActive={isActive}
               isPlaying={isPlaying}
@@ -720,7 +781,7 @@ export function TTSControls({
               onPointerDownCapture={stopInteractivePropagation}
               uiScheme={uiScheme}
             />
-          </>
+          )
         )}
 
         {expanded && (
@@ -733,7 +794,7 @@ export function TTSControls({
             className={
               isToolbar
                 ? 'paper-reveal-soft absolute bottom-full right-0 z-[70] mb-3 origin-bottom-right'
-                : 'paper-reveal-soft fixed z-[70] origin-bottom-right'
+                : `${isDragging ? '' : 'paper-reveal-soft'} fixed z-[70] origin-bottom-right`
             }
             style={isToolbar ? toolbarPopupStyle : floatingPopupStyle}
             onClick={stopInteractivePropagation}
@@ -758,8 +819,8 @@ export function TTSControls({
               </div>
 
               <div 
-                className="space-y-4 overflow-y-auto px-4 pb-10 pt-2.5" 
-                style={{ maxHeight: `${floatingPopupMaxHeight - 20}px` }}
+                className="space-y-4 overflow-y-auto px-4 pb-4 pt-2.5" 
+                style={{ maxHeight: `${floatingPopupMaxHeight - (isToolbar ? 20 : 68)}px` }}
               >
                 {resumePromptVisible && (
                 <section
@@ -1017,6 +1078,46 @@ export function TTSControls({
                   </section>
                 )}
               </div>
+
+              {!isToolbar && (
+                <div
+                  className="flex items-center justify-between border-t p-3"
+                  style={{
+                    borderColor: `${uiScheme.cardBorder}24`,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onPointerDown={handleDragHandlePointerDown}
+                    onPointerUp={handleDragHandlePointerUp}
+                    onPointerCancel={handleDragHandlePointerCancel}
+                    className="paper-motion-interactive inline-flex h-8 w-8 touch-none select-none items-center justify-center rounded-xl border hover:scale-[1.03] active:scale-95"
+                    style={{
+                      color: isDragging ? uiScheme.link : uiScheme.mutedText,
+                      background: uiScheme.muted,
+                      borderColor: `${uiScheme.cardBorder}22`,
+                      boxShadow: 'none',
+                      cursor: isDragging ? 'grabbing' : 'grab',
+                    }}
+                    aria-label="拖动朗读控制面板位置"
+                    title="按住拖动控制面板"
+                  >
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </button>
+                  <FloatingButton
+                    isActive={isActive}
+                    isPlaying={isPlaying}
+                    isPaused={isPaused}
+                    isDragging={isDragging}
+                    position={position}
+                    expanded={expanded}
+                    placement="inline"
+                    onClick={handleClick}
+                    onPointerDownCapture={stopInteractivePropagation}
+                    uiScheme={uiScheme}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}

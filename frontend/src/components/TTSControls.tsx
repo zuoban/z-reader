@@ -130,6 +130,7 @@ const FloatingButton = ({
         cursor: 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
+        opacity: 0.7,
         outline: 'none',
       }}
       title="朗读控制"
@@ -794,7 +795,7 @@ export function TTSControls({
             className={
               isToolbar
                 ? 'paper-reveal-soft absolute bottom-full right-0 z-[70] mb-3 origin-bottom-right'
-                : `${isDragging ? '' : 'paper-reveal-soft'} fixed z-[70] origin-bottom-right`
+                : 'paper-reveal-soft fixed z-[70] origin-bottom-right'
             }
             style={isToolbar ? toolbarPopupStyle : floatingPopupStyle}
             onClick={stopInteractivePropagation}

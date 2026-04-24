@@ -741,9 +741,10 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
   const start = useCallback(async () => {
     if (state === 'playing') {
+      shouldResumeOnForegroundRef.current = false;
       ttsInstance.current.pause();
-      shouldResumeOnForegroundRef.current = true;
       setResumePromptVisible(false);
+      dismissResumePrompt();
       return;
     }
 
@@ -916,6 +917,9 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     currentMark,
     normalizeMetadataText,
     onPause: () => {
+      shouldResumeOnForegroundRef.current = false;
+      setResumePromptVisible(false);
+      dismissResumePrompt();
       ttsInstance.current.pause();
     },
     startRef,

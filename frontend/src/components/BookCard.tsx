@@ -339,7 +339,7 @@ export function BookCard({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     aria-label="更多操作"
-                    className="absolute right-[-14px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] border border-border/40 bg-card text-foreground/46 shadow-none outline-none transition-[background-color,color,transform,opacity] duration-200 hover:bg-muted/80 hover:text-foreground/82 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
+                    className="absolute right-[-14px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] border-0 bg-transparent text-foreground/46 shadow-none outline-none transition-[color,transform,opacity] duration-200 hover:text-foreground/82 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreVertical className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
@@ -354,16 +354,16 @@ export function BookCard({
                       WebkitBackdropFilter: 'none',
                     }}
                   >
-                    {/* 书籍信息卡片部分 */}
-                    <div className="mb-2 overflow-hidden rounded-xl border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-3 shadow-inner">
-                      <div className="mb-3 flex items-center justify-between border-b border-primary/10 pb-2">
-                        <span className="text-[10px] font-bold tracking-[0.1em] text-primary/60 uppercase">
+                    <div className="px-3 pb-3 pt-2">
+                      <div className="mb-2.5 flex items-center justify-between">
+                        <span className="text-[10px] font-bold tracking-[0.1em] text-foreground/80 uppercase">
                           书籍详情
                         </span>
-                        <div className="flex h-5 items-center rounded-full bg-primary/10 px-2 text-[9px] font-bold text-primary/70">
+                        <div className="flex h-5 items-center rounded-full bg-foreground/6 px-2 text-[9px] font-bold text-foreground/70">
                           {formatLabel}
                         </div>
                       </div>
+                      <div className="mb-3 h-px bg-border/55" />
                       
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between text-[11px]">
@@ -398,7 +398,9 @@ export function BookCard({
                       </div>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="mx-3 h-px bg-border/55" />
+
+                    <div className="space-y-1 pt-2">
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();

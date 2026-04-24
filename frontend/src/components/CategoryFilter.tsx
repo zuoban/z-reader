@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderOpen } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import type { Category } from '@/lib/api';
 import {
   Select,
@@ -68,11 +68,12 @@ export function CategoryFilter({
       <SelectTrigger
         aria-label="书籍分类筛选"
         className={cn(
-          'h-9 w-[11.5rem] max-w-full gap-2 bg-background px-3 text-[13px] font-medium text-foreground shadow-sm',
-          'hover:bg-background/95'
+          'grid h-11 w-[13.75rem] max-w-full grid-cols-[1.25rem_1fr_1.25rem] items-center gap-2 rounded-full border border-border/45 bg-background/70 px-4 text-[13px] font-semibold text-foreground shadow-[0_10px_24px_-20px_var(--paper-shadow)]',
+          'hover:border-border/60 hover:bg-background/85',
+          'focus:ring-2 focus:ring-primary/15 [&>span]:justify-self-center [&>span]:text-center [&>svg:last-child]:h-4 [&>svg:last-child]:w-4 [&>svg:last-child]:justify-self-end [&>svg:last-child]:opacity-55'
         )}
       >
-        <FolderOpen className="h-4 w-4 shrink-0 opacity-70" />
+        <Tag className="h-4 w-4 shrink-0 opacity-65" />
         <SelectValue />
       </SelectTrigger>
       <SelectContent
@@ -89,10 +90,10 @@ export function CategoryFilter({
             key={item.id}
             value={item.id}
             className={cn(
-              'cursor-pointer rounded-[1.15rem] py-2 pl-3 pr-8 text-sm',
+              'cursor-pointer rounded-[1.15rem] py-2 pl-3 pr-8 text-sm focus:bg-muted/50 focus:text-foreground',
               value === item.id
                 ? 'bg-muted/50 font-semibold text-foreground'
-                : 'text-muted-foreground'
+                : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
             )}
           >
             <span className="flex w-full min-w-0 items-center gap-2">

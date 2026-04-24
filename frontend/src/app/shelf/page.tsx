@@ -181,8 +181,8 @@ export default function ShelfPage() {
           >
             <div className="relative z-10 border-b border-border/45 px-3 py-3 sm:px-6 sm:py-4 lg:px-7">
               {categories.length > 0 ? (
-                <div className="flex items-center gap-3">
-                  <div className="-mx-1 min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 justify-start">
                     <CategoryFilter
                       categories={categories}
                       selectedCategoryId={selectedCategoryId}
@@ -190,7 +190,7 @@ export default function ShelfPage() {
                       bookCounts={bookCounts}
                     />
                   </div>
-                  <div className="ml-auto shrink-0">
+                  <div className="flex min-w-0 flex-1 justify-end">
                     <SortSelector value={sortBy} onChange={setSortBy} />
                   </div>
                 </div>

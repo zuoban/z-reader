@@ -1,11 +1,18 @@
 'use client';
 
-import type { CSSProperties } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { FolderOpen } from 'lucide-react';
 import type { Category } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
+const ALL_FILTER_ID = 'all';
 const MAX_CATEGORY_LABEL_LENGTH = 12;
 
 function truncateLabel(label: string) {
@@ -27,141 +34,85 @@ export function CategoryFilter({
   onSelectCategory,
   bookCounts,
 }: CategoryFilterProps) {
-  const [showLeftGradient, setShowLeftGradient] = useState(false);
-  const [showRightGradient, setShowRightGradient] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const activeItemRef = useRef<HTMLButtonElement | null>(null);
-
-  // 计算总书籍数和未分类书籍数
   const totalBooks = bookCounts.all ?? 0;
   const uncategorizedBooks = bookCounts[UNCATEGORIZED_FILTER_ID] ?? 0;
 
-  function checkScroll() {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const hasLeftScroll = el.scrollLeft > 0;
-    const hasRightScroll = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
-    setShowLeftGradient(hasLeftScroll);
-    setShowRightGradient(hasRightScroll);
-  }
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    checkScroll();
-
-    el.addEventListener('scroll', checkScroll);
-    const resizeObserver = new ResizeObserver(checkScroll);
-    resizeObserver.observe(el);
-
-    return () => {
-      el.removeEventListener('scroll', checkScroll);
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    activeItemRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    });
-  }, [selectedCategoryId]);
-
   const filterItems = [
     {
-      id: null,
+      id: ALL_FILTER_ID,
       label: '全部',
       count: totalBooks,
-      isRoot: true,
     },
     {
       id: UNCATEGORIZED_FILTER_ID,
       label: '未分类',
       count: uncategorizedBooks,
-      isRoot: true,
     },
     ...categories
       .map((category) => ({
         id: category.id,
         label: category.name,
         count: bookCounts[category.id] || 0,
-        isRoot: false,
       }))
       .filter((item) => item.count > 0),
   ];
-  const edgeFadeWidth = 24;
-  const scrollMask = (() => {
-    if (showLeftGradient && showRightGradient) {
-      return `linear-gradient(to right, transparent 0, black ${edgeFadeWidth}px, black calc(100% - ${edgeFadeWidth}px), transparent 100%)`;
-    }
-
-    if (showLeftGradient) {
-      return `linear-gradient(to right, transparent 0, black ${edgeFadeWidth}px, black 100%)`;
-    }
-
-    if (showRightGradient) {
-      return `linear-gradient(to right, black 0, black calc(100% - ${edgeFadeWidth}px), transparent 100%)`;
-    }
-
-    return undefined;
-  })();
-  const scrollMaskStyle = {
-    maskImage: scrollMask,
-    WebkitMaskImage: scrollMask,
-  } as CSSProperties;
+  const value = selectedCategoryId ?? ALL_FILTER_ID;
 
   return (
-    <div className="relative w-full">
-      {/* 筛选标签容器 */}
-      <div
-        className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        ref={containerRef}
-        onScroll={checkScroll}
-        style={scrollMaskStyle}
+    <Select
+      value={value}
+      onValueChange={(nextValue) => {
+        onSelectCategory(nextValue === ALL_FILTER_ID ? null : nextValue);
+      }}
+    >
+      <SelectTrigger
+        aria-label="书籍分类筛选"
+        className={cn(
+          'h-9 w-[11.5rem] max-w-full gap-2 bg-background px-3 text-[13px] font-medium text-foreground shadow-sm',
+          'hover:bg-background/95'
+        )}
       >
-        <div
-          role="tablist"
-          aria-label="书籍分类筛选"
-          className="inline-flex min-w-max items-center gap-1 py-1"
-        >
-          {filterItems.map((item) => {
-            const isSelected = selectedCategoryId === item.id;
-
-            return (
-              <button
-                key={item.id ?? 'all'}
-                ref={isSelected ? activeItemRef : null}
-                onClick={() => onSelectCategory(item.id)}
-                role="tab"
-                aria-selected={isSelected}
-                className={cn(
-                  'inline-flex h-9 items-center gap-2 rounded-xl px-4 py-1 text-[13px] font-medium transition-all duration-200',
-                  isSelected
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
-                )}
-              >
-                <span>{truncateLabel(item.label)}</span>
-                {item.count > 0 && (
-                  <span
-                    className={cn(
-                      'inline-flex min-w-[1.45rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums',
-                      isSelected
-                        ? 'bg-foreground text-background'
-                        : 'bg-muted-foreground/20 text-muted-foreground'
-                    )}
-                  >
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+        <FolderOpen className="h-4 w-4 shrink-0 opacity-70" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent
+        align="start"
+        className="min-w-[12rem] rounded-[1.25rem] border-border bg-background p-1.5 shadow-md"
+        style={{
+          backgroundColor: 'var(--background)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+        }}
+      >
+        {filterItems.map((item) => (
+          <SelectItem
+            key={item.id}
+            value={item.id}
+            className={cn(
+              'cursor-pointer rounded-[1.15rem] py-2 pl-3 pr-8 text-sm',
+              value === item.id
+                ? 'bg-muted/50 font-semibold text-foreground'
+                : 'text-muted-foreground'
+            )}
+          >
+            <span className="flex w-full min-w-0 items-center gap-2">
+              <span className="min-w-0 truncate">{truncateLabel(item.label)}</span>
+              {item.count > 0 && (
+                <span
+                  className={cn(
+                    'ml-auto inline-flex min-w-[1.45rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums',
+                    value === item.id
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted-foreground/20 text-muted-foreground'
+                  )}
+                >
+                  {item.count}
+                </span>
+              )}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

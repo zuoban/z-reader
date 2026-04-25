@@ -291,6 +291,8 @@ interface TTSControlsProps {
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
   variant?: 'floating' | 'toolbar';
+  triggerClassName?: string;
+  triggerStyle?: React.CSSProperties;
   onExpandedChange?: (expanded: boolean) => void;
   showSettingsPanel?: boolean;
   resumePromptVisible?: boolean;
@@ -326,6 +328,8 @@ export function TTSControls({
   onUpdateSettings,
   uiScheme,
   variant = 'floating',
+  triggerClassName,
+  triggerStyle,
   onExpandedChange,
   showSettingsPanel = true,
   resumePromptVisible = false,
@@ -679,6 +683,9 @@ export function TTSControls({
     width: 'min(364px, calc(100vw - 24px))',
     maxHeight: 'min(72vh, 720px)',
   } as const;
+  const panelBodyMaxHeight = isToolbar
+    ? 'calc(min(72vh, 720px) - 72px)'
+    : `${floatingPopupMaxHeight - 120}px`;
 
   const renderStatusContent = (withDragHandle = false) => ttsStatus ? (
     <div
@@ -768,33 +775,29 @@ export function TTSControls({
             aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
             aria-expanded={expanded}
             aria-haspopup="dialog"
-            className="paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 align-middle hover:scale-[1.04] hover:opacity-100 active:scale-95 focus-visible:border-transparent! focus-visible:ring-0!"
+            className={
+              triggerClassName ??
+              'paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.95rem] border p-0 align-middle hover:scale-[1.03] active:scale-95 focus-visible:border-transparent! focus-visible:ring-0! sm:h-11 sm:w-11 sm:rounded-[1.05rem]'
+            }
             style={{
-              color: uiScheme.buttonText,
-              ...getGlassSurface(uiScheme, {
-                elevated: true,
-                accentBorder: isActive
-                  ? withOpacity(uiScheme.link, 0.34)
-                  : withOpacity(uiScheme.cardBorder, 0.34),
-                accentGlow: isActive
-                  ? withOpacity(uiScheme.link, 0.28)
-                  : withOpacity(uiScheme.fg, 0.14),
-              }),
+              ...(
+                triggerStyle ?? {
+                  color: isActive ? uiScheme.link : uiScheme.buttonText,
+                  ...getGlassSurface(uiScheme, {
+                    elevated: isActive,
+                    accentBorder: isActive
+                      ? withOpacity(uiScheme.link, 0.30)
+                      : 'transparent',
+                    accentGlow: isActive
+                      ? withOpacity(uiScheme.link, 0.28)
+                      : withOpacity(uiScheme.fg, 0.14),
+                  }),
+                }
+              ),
               opacity: isPending ? 0.72 : 1,
             }}
           >
-            <span
-              className="pointer-events-none absolute inset-[1px] rounded-full"
-              style={{
-                background: uiScheme.cardBg,
-              }}
-            />
-            <Volume2 className="relative z-10 h-4.5 w-4.5" />
-            {isActive && (
-              <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-                <span className="relative inline-flex h-2 w-2 rounded-full border border-white/70 bg-emerald-500" />
-              </span>
-            )}
+            <Volume2 className="relative z-10 h-4 w-4" />
           </Button>
         ) : (
           !expanded && (
@@ -821,7 +824,7 @@ export function TTSControls({
             aria-label={showSettingsPanel ? '朗读控制与偏好' : '朗读控制'}
             className={
               isToolbar
-                ? 'paper-reveal-soft absolute bottom-full right-0 z-[70] mb-3 origin-bottom-right'
+                ? 'paper-reveal-soft fixed left-3 right-3 top-[calc(env(safe-area-inset-top,0px)+4.9rem)] z-[70] origin-top sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:origin-top-right'
                 : 'paper-reveal-soft fixed z-[70] origin-bottom-right'
             }
             style={isToolbar ? toolbarPopupStyle : floatingPopupStyle}
@@ -877,7 +880,7 @@ export function TTSControls({
 
               <div 
                 className="space-y-3 overflow-y-auto px-4 pb-4 pt-3" 
-                style={{ maxHeight: `${floatingPopupMaxHeight - (isToolbar ? 72 : 120)}px` }}
+                style={{ maxHeight: panelBodyMaxHeight }}
               >
                 {resumePromptVisible && (
                   <section

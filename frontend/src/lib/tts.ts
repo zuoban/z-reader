@@ -3,11 +3,13 @@
 import { API_BASE, createAbortController, isAbortLikeError } from '@/lib/config';
 
 export type TTSState = 'stopped' | 'playing' | 'paused';
+export type TTSHighlightMode = 'word' | 'sentence';
 
 export interface TTSSettings {
   rate: number;
   voiceName: string;
   style?: string;
+  highlightMode: TTSHighlightMode;
 }
 
 export interface TTSMark {
@@ -62,6 +64,7 @@ const DEFAULT_SETTINGS: TTSSettings = {
   rate: 0,
   voiceName: 'zh-CN-XiaoxiaoMultilingualNeural',
   style: 'general',
+  highlightMode: 'word',
 };
 
 export function loadTTSSettings(): TTSSettings {

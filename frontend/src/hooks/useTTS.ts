@@ -366,6 +366,23 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return buildAzureSSML(content, settings);
   }, [settings]);
 
+  const syncCurrentHighlight = useCallback(() => {
+    const tts = viewRef.current?.tts;
+    if (!tts) return;
+
+    if (settings.highlightMode === 'sentence') {
+      tts.highlightCurrent?.();
+      return;
+    }
+
+    tts.setMark?.('0');
+  }, [settings.highlightMode, viewRef]);
+
+  useEffect(() => {
+    if (stateRef.current === 'stopped') return;
+    syncCurrentHighlight();
+  }, [settings.highlightMode, syncCurrentHighlight]);
+
   const isSpeakableSSML = useCallback((ssml: string | null | undefined): ssml is string => {
     if (!ssml) return false;
 
@@ -613,9 +630,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       retryContinuationRef.current = false;
       setResumePromptVisible(false);
       
-      if (viewRef.current?.tts) {
-        viewRef.current.tts.setMark?.('0');
-      }
+      syncCurrentHighlight();
 
       void preloadNext();
       
@@ -643,9 +658,9 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     logTTS,
     preloadNext,
     rebuildSpeechQueue,
+    syncCurrentHighlight,
     updateQueueSegmentState,
     updateVisibleStatus,
-    viewRef,
   ]);
 
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
@@ -1079,7 +1094,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         });
       }
 
-      if (viewRef.current?.tts && duration > 0) {
+      if (settings.highlightMode === 'word' && viewRef.current?.tts && duration > 0) {
         const wordCount = viewRef.current.tts.getWordCount?.() || 0;
         if (wordCount > 0) {
           const progress = currentTime / duration;
@@ -1101,6 +1116,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     onHighlight,
     releaseWakeLock,
     saveTTSSession,
+    settings.highlightMode,
     updateVisibleStatus,
     viewRef,
   ]);

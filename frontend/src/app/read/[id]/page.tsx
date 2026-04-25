@@ -839,6 +839,8 @@ export default function ReadPage() {
                 overlayContainer={overlayContainer}
                 triggerClassName={toolbarButtonClass}
                 triggerStyle={getToolbarButtonStyle(themeSettingsOpen)}
+                ttsSettings={ttsSettings}
+                onUpdateTTSSettings={updateTTSSettings}
               />
               </div>
             </div>

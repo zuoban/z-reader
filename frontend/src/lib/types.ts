@@ -29,6 +29,7 @@ export interface FoliateView {
     peekNextMultiple?: (count: number) => string[];
     clearHighlight?: () => void;
     setMark?: (name: string) => void;
+    highlightCurrent?: () => void;
     getWordCount?: () => number;
     doc?: Document;
   };

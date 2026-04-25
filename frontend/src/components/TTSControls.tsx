@@ -19,9 +19,9 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import { TTSState, TTSSettings, Voice } from '@/lib/tts';
 import { VoiceSelector } from '@/components/VoiceSelector';
 import { withOpacity } from '@/lib/reader-ui';
+import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 
 const getGlassSurface = (
@@ -562,6 +562,10 @@ export function TTSControls({
     onUpdateSettings({ rate: value });
   };
 
+  const handleHighlightModeChange = (highlightMode: TTSHighlightMode) => {
+    onUpdateSettings({ highlightMode });
+  };
+
   const formatRate = (rate: number) => {
     if (rate === 0) return '正常';
     return `${rate > 0 ? '+' : ''}${rate}%`;
@@ -1037,6 +1041,58 @@ export function TTSControls({
                     format={formatRate}
                     uiScheme={uiScheme}
                   />
+
+                  {detailsExpanded && (
+                    <div
+                      className="paper-reveal-soft paper-field rounded-[18px] border p-3"
+                      style={{
+                        ...getInsetControlSurface(uiScheme),
+                        borderColor: withOpacity(uiScheme.cardBorder, 0.16),
+                      }}
+                    >
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: uiScheme.fg }}>
+                            高亮方式
+                          </p>
+                          <p className="mt-0.5 text-[11px] font-medium" style={{ color: uiScheme.mutedText }}>
+                            朗读时标记当前内容
+                          </p>
+                        </div>
+                        <div
+                          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                          style={{ background: uiScheme.cardBg, color: uiScheme.mutedText }}
+                        >
+                          {settings.highlightMode === 'sentence' ? '句子' : '词语'}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {([
+                          ['word', '词语'],
+                          ['sentence', '句子'],
+                        ] as const).map(([mode, label]) => {
+                          const active = settings.highlightMode === mode;
+                          return (
+                            <Button
+                              key={mode}
+                              type="button"
+                              variant="ghost"
+                              onClick={() => handleHighlightModeChange(mode)}
+                              className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
+                              style={{
+                                color: active ? uiScheme.link : uiScheme.fg,
+                                background: active ? uiScheme.cardBg : withOpacity(uiScheme.cardBg, 0.64),
+                                border: `1px solid ${active ? withOpacity(uiScheme.link, 0.34) : withOpacity(uiScheme.cardBorder, 0.12)}`,
+                                boxShadow: active ? `0 8px 16px -12px ${withOpacity(uiScheme.link, 0.34)}` : 'none',
+                              }}
+                            >
+                              {label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {detailsExpanded && (
                     <div

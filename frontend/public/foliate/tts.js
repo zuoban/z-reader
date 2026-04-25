@@ -412,6 +412,10 @@ export class TTS {
             this.highlight(range.cloneRange())
         }
     }
+    highlightCurrent() {
+        const [, range] = this.#list.current() ?? []
+        if (range) this.highlight(range.cloneRange())
+    }
     getWordCount() {
         return this.#ranges?.size || 0
     }

@@ -34,6 +34,7 @@ import {
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
+import type { TTSHighlightMode, TTSSettings } from "@/lib/tts";
 import { RotateCcw, Settings } from "lucide-react";
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
@@ -83,6 +84,8 @@ interface ThemeSettingsProps {
   overlayContainer?: HTMLElement | null;
   triggerClassName?: string;
   triggerStyle?: CSSProperties;
+  ttsSettings?: TTSSettings;
+  onUpdateTTSSettings?: (settings: Partial<TTSSettings>) => void;
 }
 
 interface SectionProps {
@@ -223,6 +226,8 @@ export function ThemeSettings({
   overlayContainer,
   triggerClassName,
   triggerStyle,
+  ttsSettings,
+  onUpdateTTSSettings,
 }: ThemeSettingsProps) {
   const resetFeedbackTimeoutRef = useRef<number | null>(null);
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
@@ -260,6 +265,10 @@ export function ThemeSettings({
       resetFeedbackTimeoutRef.current = null;
     }, 480);
     setTheme(DEFAULT_READER_THEME);
+  }
+
+  function handleHighlightModeChange(highlightMode: TTSHighlightMode) {
+    onUpdateTTSSettings?.({ highlightMode });
   }
 
   const isDefaultTheme = (
@@ -413,6 +422,29 @@ export function ThemeSettings({
               })}
             </div>
           </SectionCard>
+
+          {ttsSettings && onUpdateTTSSettings ? (
+            <SectionCard
+              title="朗读高亮"
+              description="选择朗读时文本标记的跟随方式。"
+              uiScheme={uiScheme}
+            >
+              <div className="flex gap-2 rounded-[1.35rem] p-1" style={{ background: withOpacity(uiScheme.buttonBg, 0.34) }}>
+                {([
+                  ["word", "词语"],
+                  ["sentence", "句子"],
+                ] as const).map(([mode, label]) => (
+                  <ValuePill
+                    key={mode}
+                    label={label}
+                    active={ttsSettings.highlightMode === mode}
+                    onClick={() => handleHighlightModeChange(mode)}
+                    uiScheme={uiScheme}
+                  />
+                ))}
+              </div>
+            </SectionCard>
+          ) : null}
 
           <SectionCard
             title="阅读引擎"

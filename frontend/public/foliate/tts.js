@@ -44,6 +44,62 @@ const getSegmenter = (lang = 'en', granularity = 'word') => {
     }
 }
 
+const textNodeFilter = NodeFilter.SHOW_TEXT | NodeFilter.SHOW_CDATA_SECTION
+
+const isTextNodeAllowedForTTS = node => {
+    for (let el = node.parentElement; el; el = el.parentElement) {
+        const name = el.tagName.toLowerCase()
+        if (name === 'script' || name === 'style') return false
+    }
+    return true
+}
+
+const getClippedTextEntries = (range, func) => {
+    const root = range.commonAncestorContainer
+    const walker = document.createTreeWalker(root, textNodeFilter, {
+        acceptNode: node => {
+            if (!isTextNodeAllowedForTTS(node)) return NodeFilter.FILTER_REJECT
+            return range.intersectsNode(node)
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT
+        },
+    })
+    const nodes = []
+    const offsets = []
+    const strs = []
+
+    const pushNode = node => {
+        const start = node === range.startContainer ? range.startOffset : 0
+        const end = node === range.endContainer ? range.endOffset : node.nodeValue.length
+        if (end <= start) return
+
+        nodes.push(node)
+        offsets.push(start)
+        strs.push(node.nodeValue.slice(start, end))
+    }
+
+    if (
+        (root.nodeType === Node.TEXT_NODE || root.nodeType === Node.CDATA_SECTION_NODE) &&
+        isTextNodeAllowedForTTS(root) &&
+        range.intersectsNode(root)
+    ) {
+        pushNode(root)
+    } else {
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            pushNode(node)
+        }
+    }
+
+    const makeRange = (startIndex, startOffset, endIndex, endOffset) => {
+        const clippedRange = document.createRange()
+        clippedRange.setStart(nodes[startIndex], offsets[startIndex] + startOffset)
+        clippedRange.setEnd(nodes[endIndex], offsets[endIndex] + endOffset)
+        return clippedRange
+    }
+
+    return [...func(strs, makeRange)]
+}
+
 const fragmentToSSML = (fragment, inherited) => {
     const ssml = document.implementation.createDocument(NS.SSML, 'speak')
     const { lang } = inherited
@@ -92,7 +148,12 @@ const fragmentToSSML = (fragment, inherited) => {
         }
         return el
     }
-    convert(fragment.firstChild, ssml.documentElement, inherited.alphabet)
+    let child = fragment.firstChild
+    while (child) {
+        const childEl = convert(child, ssml.documentElement, inherited.alphabet)
+        if (childEl && childEl !== ssml.documentElement) ssml.documentElement.append(childEl)
+        child = child.nextSibling
+    }
     return ssml
 }
 
@@ -106,7 +167,7 @@ const getFragmentWithMarks = (range, textWalker, granularity) => {
     // we need ranges on both the original document (for highlighting)
     // and the document fragment (for inserting marks)
     // so unfortunately need to do it twice, as you can't copy the ranges
-    const entries = [...textWalker(range, segmenter)]
+    const entries = getClippedTextEntries(range, segmenter)
     const fragmentEntries = [...textWalker(fragment, segmenter)]
 
     for (const [name, range] of fragmentEntries) {
@@ -119,6 +180,16 @@ const getFragmentWithMarks = (range, textWalker, granularity) => {
 }
 
 const rangeIsEmpty = range => !range.toString().trim()
+
+const createBoundaryRange = (range, collapseToStart) => {
+    const boundary = range.cloneRange()
+    boundary.collapse(collapseToStart)
+    return boundary
+}
+
+const rangeEndsAfterStart = (a, b) =>
+    createBoundaryRange(a, false).compareBoundaryPoints(Range.START_TO_START,
+        createBoundaryRange(b, true)) >= 0
 
 function* getBlocks(doc) {
     let last
@@ -140,6 +211,24 @@ function* getBlocks(doc) {
     }
     last.setEndAfter(doc.body.lastChild ?? doc.body)
     if (!rangeIsEmpty(last)) yield last
+}
+
+function* getSentences(doc, textWalker) {
+    for (const blockRange of getBlocks(doc)) {
+        const lang = getLang(blockRange.commonAncestorContainer)
+        const sentenceSegmenter = getSegmenter(lang, 'sentence')
+        let yieldedSentence = false
+
+        for (const [, sentenceRange] of textWalker(blockRange, sentenceSegmenter)) {
+            if (rangeIsEmpty(sentenceRange)) continue
+            yieldedSentence = true
+            yield sentenceRange
+        }
+
+        if (!yieldedSentence && !rangeIsEmpty(blockRange)) {
+            yield blockRange
+        }
+    }
 }
 
 class ListIterator {
@@ -228,7 +317,7 @@ export class TTS {
     constructor(doc, textWalker, highlight, granularity) {
         this.doc = doc
         this.highlight = highlight
-        this.#list = new ListIterator(getBlocks(doc), range => {
+        this.#list = new ListIterator(getSentences(doc, textWalker), range => {
             const { entries, ssml } = getFragmentWithMarks(range, textWalker, granularity)
             this.#ranges = new Map(entries)
             return [ssml, range]
@@ -278,7 +367,7 @@ export class TTS {
         // 保存当前的 ranges，避免预加载时更新高亮位置
         const savedRanges = this.#ranges
         const [doc] = this.#list.peekAt(1) ?? []
-        // 恢复 ranges，保持当前段落的单词映射
+        // 恢复 ranges，保持当前句子的单词映射
         this.#ranges = savedRanges
         return this.#speak(doc)
     }
@@ -295,17 +384,17 @@ export class TTS {
             }
         }
         
-        // 恢复 ranges，保持当前段落的单词映射
+        // 恢复 ranges，保持当前句子的单词映射
         this.#ranges = savedRanges
         return result
     }
     from(range) {
-        const [doc, blockRange] = this.#list.find(range_ =>
-            range.compareBoundaryPoints(Range.END_TO_START, range_) <= 0) ?? []
+        const [doc, sentenceRange] = this.#list.find(range_ =>
+            rangeEndsAfterStart(range_, range)) ?? []
         
-        if (!doc || !blockRange) return this.start()
+        if (!doc || !sentenceRange) return this.start()
         
-        const rangeAtStart = blockRange.cloneRange()
+        const rangeAtStart = sentenceRange.cloneRange()
         
         let mark
         for (const [name, range_] of this.#ranges.entries())

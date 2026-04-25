@@ -474,8 +474,8 @@ export class BackendTTS {
   private abortController: AbortController | null = null;
   
   private preloadedQueue: PreloadedAudio[] = [];
-  private maxPreloadCount: number = 3;
-  private maxPreloadConcurrency: number = 1;
+  private maxPreloadCount: number = 6;
+  private maxPreloadConcurrency: number = 2;
   private activePreloadCount: number = 0;
   private pendingPreloadTasks: PreloadTask[] = [];
   private queuedPreloadKeys: Set<string> = new Set();

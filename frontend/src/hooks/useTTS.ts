@@ -74,6 +74,8 @@ interface TTSSleepTimer {
 }
 
 const TTS_SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+const TTS_LOOKAHEAD_SENTENCE_COUNT = 6;
+const TTS_PRELOAD_SENTENCE_COUNT = 5;
 
 function getTTSSessionKey(bookId?: string): string | null {
   return bookId ? `z-reader-tts-session:${bookId}` : null;
@@ -424,13 +426,13 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     }
   }, [viewRef, handleHighlight]);
 
-  // 获取后续多个段落的 SSML（不改变状态）
+  // 获取后续多个句子的 SSML（不改变状态）
   const getNextSSMLs = useCallback((count: number): string[] => {
     if (!viewRef.current) return [];
 
     const view = viewRef.current;
     
-    // 使用 peekNextMultiple 获取多个下一段，不改变当前位置
+    // 使用 peekNextMultiple 获取多个下一句，不改变当前位置
     const ssmlList = view.tts?.peekNextMultiple?.(count) ?? [];
     
     return ssmlList.filter((ssml: string) => ssml);
@@ -439,7 +441,10 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const rebuildSpeechQueue = useCallback((currentSSML?: string): TTSQueueSegment[] => {
     const rawSegments = [
       ...(currentSSML ? [{ ssml: currentSSML, source: 'current' as const }] : []),
-      ...getNextSSMLs(3).map((ssml) => ({ ssml, source: 'lookahead' as const })),
+      ...getNextSSMLs(TTS_LOOKAHEAD_SENTENCE_COUNT).map((ssml) => ({
+        ssml,
+        source: 'lookahead' as const,
+      })),
     ];
 
     const seen = new Set<string>();
@@ -469,7 +474,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       .map((segment) => segment.enhancedSSML);
   }, []);
 
-  // 预加载后续段落
+  // 预加载后续句子
   const preloadNext = useCallback(async () => {
     if (!viewRef.current) return;
     
@@ -482,7 +487,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       
       const preloadSegments = queueRef.current
         .filter((segment) => segment.source === 'lookahead' && segment.state === 'queued')
-        .slice(0, 3);
+        .slice(0, TTS_PRELOAD_SENTENCE_COUNT);
 
       preloadSegments.forEach((segment) => {
         updateQueueSegmentState(segment.id, 'loading');
@@ -490,8 +495,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
       if (preloadSegments.length > 0) {
         updateVisibleStatus({
-          headline: '正在准备下一段',
-          detail: `预加载 ${preloadSegments.length} 段，朗读会更连贯`,
+          headline: '正在准备下一句',
+          detail: `预加载 ${preloadSegments.length} 句，朗读会更连贯`,
           tone: 'active',
         });
       }
@@ -507,8 +512,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       if (preloadSegments.length > 0) {
         const readyCount = queueRef.current.filter((segment) => segment.state === 'ready').length;
         updateVisibleStatus({
-          headline: '下一段已准备好',
-          detail: `队列中 ${readyCount} 段可无缝衔接`,
+          headline: '下一句已准备好',
+          detail: `队列中 ${readyCount} 句可无缝衔接`,
           tone: 'active',
         });
         logTTS('queue-preloaded', {
@@ -521,7 +526,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         .filter((segment) => segment.source === 'lookahead' && segment.state === 'loading')
         .forEach((segment) => updateQueueSegmentState(segment.id, 'failed'));
       updateVisibleStatus({
-        headline: '下一段预加载失败',
+        headline: '下一句预加载失败',
         detail: '当前朗读不受影响，会在需要时重新合成',
         tone: 'warning',
       });
@@ -554,7 +559,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         updateVisibleStatus({
           headline:
             attempt.kind === 'primary'
-              ? '正在合成当前段'
+              ? '正在合成当前句'
               : attempt.kind === 'retry'
                 ? '合成失败，正在重试'
                 : '正在使用纯文本降级',
@@ -573,7 +578,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         if (attempt.kind === 'fallback-text') {
           updateVisibleStatus({
             headline: '已降级播放',
-            detail: '当前段使用纯文本合成',
+            detail: '当前句使用纯文本合成',
             tone: 'warning',
           });
           logTTS('segment-fallback-success', { segment: segment.id });
@@ -623,12 +628,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       continuous: Boolean(isContinuous),
     });
     updateVisibleStatus({
-      headline: isContinuous ? '已跳过异常片段' : '当前片段朗读失败',
-      detail: isContinuous ? '正在尝试继续朗读下一段' : '已尝试重试和纯文本降级',
+      headline: isContinuous ? '已跳过异常句子' : '当前句朗读失败',
+      detail: isContinuous ? '正在尝试继续朗读下一句' : '已尝试重试和纯文本降级',
       tone: isContinuous ? 'warning' : 'error',
     });
     if (!isContinuous) {
-      toast.error('当前片段朗读失败，已尝试重试和纯文本降级。');
+      toast.error('当前句朗读失败，已尝试重试和纯文本降级。');
     }
     return false;
   }, [
@@ -998,7 +1003,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         dismissResumePrompt();
         updateVisibleStatus({
           headline: '正在朗读',
-          detail: '下一段会在后台自动准备',
+          detail: '下一句会在后台自动准备',
           tone: 'active',
         });
         saveTTSSession();
@@ -1069,7 +1074,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
             : '';
         updateVisibleStatus({
           headline: '正在朗读',
-          detail: `${formatRemainingTime(remainingSeconds)} · ${readyCount} 段已准备${timerDetail}`,
+          detail: `${formatRemainingTime(remainingSeconds)} · ${readyCount} 句已准备${timerDetail}`,
           tone: 'active',
         });
       }

@@ -153,25 +153,20 @@ export function VoiceSelector({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold" style={{ color: uiScheme.mutedText }}>
-            声线
-          </h3>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3.5 px-1 py-1">
+      <div className="flex items-center justify-between gap-3 px-2">
+        <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+          声音设置
+        </h3>
+        <div className="flex items-center gap-1.5">
           {onReloadVoices && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
-              title={voicesLoading ? '正在加载声音列表' : '重新加载声音列表'}
-              className="paper-motion-interactive paper-control h-7.5 shrink-0 rounded-lg px-2.5 text-xs font-semibold hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
-              style={{
-                color: uiScheme.mutedText,
-              }}
+              className="h-7.5 rounded-lg px-2 text-[10px] font-bold transition-all hover:bg-black/5 dark:hover:bg-white/5"
+              style={{ color: uiScheme.mutedText }}
             >
               {voicesLoading ? '加载中' : '重载'}
             </Button>
@@ -181,23 +176,10 @@ export function VoiceSelector({
             variant="ghost"
             size="sm"
             onClick={handlePreview}
-            title={isPreviewing ? '停止' : '试听'}
-            className="paper-motion-interactive paper-control h-7.5 shrink-0 rounded-lg px-2.5 text-xs font-semibold hover:scale-[1.02] active:scale-95 motion-reduce:transition-none"
-            style={{
-              color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
-            }}
+            className="h-7.5 rounded-lg px-2 text-[10px] font-bold transition-all hover:bg-black/5 dark:hover:bg-white/5"
+            style={{ color: isPreviewing ? uiScheme.link : uiScheme.mutedText }}
           >
-            {isPreviewing ? (
-              <>
-                <Square className="h-3.5 w-3.5" />
-                停止
-              </>
-            ) : (
-              <>
-                <Play className="ml-0.5 h-3.5 w-3.5" />
-                试听
-              </>
-            )}
+            {isPreviewing ? '停止' : '试听'}
           </Button>
         </div>
       </div>
@@ -214,26 +196,25 @@ export function VoiceSelector({
         </div>
       )}
 
-      {/* 语音选择 */}
       {zhVoices.length > 0 && (
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: uiScheme.mutedText }}>
-            语音
-          </label>
+        <div className="space-y-1.5 px-1">
           <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
             <SelectTrigger
               data-reader-interactive="true"
-              className="paper-motion-surface h-9 min-w-0 flex-1 rounded-xl px-3 text-sm hover:border-opacity-60"
-              style={styles.selectTrigger}
+              className="h-9 w-full rounded-xl border-0 bg-black/5 px-3.5 text-[13px] font-medium shadow-none transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+              style={{ color: uiScheme.fg }}
             >
-              <SelectValue placeholder="选择语音" className="truncate" />
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="shrink-0 text-[10px] font-black uppercase opacity-40">语音</span>
+                <SelectValue placeholder="选择语音" className="truncate" />
+              </div>
             </SelectTrigger>
             <SelectContent
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[300px] rounded-2xl"
-              style={styles.selectContent}
+              className="max-w-[300px] rounded-2xl border-border/40 shadow-2xl"
+              style={{ background: uiScheme.cardBg }}
             >
               {zhVoices.map((voice) => (
                 <SelectItem
@@ -250,29 +231,28 @@ export function VoiceSelector({
         </div>
       )}
 
-      {/* 风格选择 */}
       {availableStyles.length > 0 && (
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: uiScheme.mutedText }}>
-            风格
-          </label>
+        <div className="space-y-1.5 px-1">
           <Select
             value={settings.style ?? '__clear__'}
             onValueChange={handleStyleChange}
           >
             <SelectTrigger
               data-reader-interactive="true"
-              className="paper-motion-surface h-9 min-w-0 flex-1 rounded-xl px-3 text-sm hover:border-opacity-60"
-              style={styles.selectTrigger}
+              className="h-9 w-full rounded-xl border-0 bg-black/5 px-3.5 text-[13px] font-medium shadow-none transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+              style={{ color: uiScheme.fg }}
             >
-              <SelectValue placeholder="选择风格" className="truncate" />
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="shrink-0 text-[10px] font-black uppercase opacity-40">风格</span>
+                <SelectValue placeholder="选择风格" className="truncate" />
+              </div>
             </SelectTrigger>
             <SelectContent
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[260px] rounded-xl"
-              style={styles.selectContent}
+              className="max-w-[260px] rounded-xl border-border/40 shadow-2xl"
+              style={{ background: uiScheme.cardBg }}
             >
               <SelectItem
                 value="__clear__"

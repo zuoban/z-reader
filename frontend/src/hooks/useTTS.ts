@@ -330,6 +330,11 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     });
   }, [handleHighlight]);
 
+  const restoreCurrentHighlight = useCallback(() => {
+    if (stateRef.current === 'stopped') return;
+    syncHighlightAfterResume();
+  }, [syncHighlightAfterResume]);
+
   const clearReaderHighlight = useCallback(() => {
     const view = viewRef.current;
 
@@ -1164,5 +1169,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     resumePromptVisible,
     resumePromptMessage,
     resume: start,
+    restoreCurrentHighlight,
   };
 }

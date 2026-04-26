@@ -145,7 +145,17 @@ export default function ReadPage() {
     setSleepTimerForMinutes,
     clearSleepTimer,
     resume: resumeTTS,
+    restoreCurrentHighlight: restoreTTSHighlight,
   } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
+
+  const handleTTSExpandedChange = useCallback(
+    (expanded: boolean) => {
+      if (!expanded) {
+        restoreTTSHighlight();
+      }
+    },
+    [restoreTTSHighlight],
+  );
 
   // 合并多个 ref 同步更新，减少独立 useEffect 数量
   useEffect(() => {
@@ -859,6 +869,7 @@ export default function ReadPage() {
                   onSleepTimerMinutes={setSleepTimerForMinutes}
                   onClearSleepTimer={clearSleepTimer}
                   onResume={resumeTTS}
+                  onExpandedChange={handleTTSExpandedChange}
                   overlayContainer={overlayContainer}
                 />
               </Suspense>
@@ -871,8 +882,6 @@ export default function ReadPage() {
                 overlayContainer={overlayContainer}
                 triggerClassName={toolbarButtonClass}
                 triggerStyle={getToolbarButtonStyle(themeSettingsOpen)}
-                ttsSettings={ttsSettings}
-                onUpdateTTSSettings={updateTTSSettings}
               />
               </div>
             </div>

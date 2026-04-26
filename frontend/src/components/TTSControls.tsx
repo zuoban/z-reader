@@ -4,14 +4,20 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  Clock,
   GripVertical,
   Play,
   Pause,
-  SlidersHorizontal,
   Square,
   SkipBack,
   SkipForward,
@@ -37,22 +43,6 @@ const getGlassSurface = (
   boxShadow: options?.elevated
     ? `0 16px 30px -18px ${options?.accentGlow ?? withOpacity(uiScheme.fg, 0.18)}`
     : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.12)}`,
-});
-
-const getInsetControlSurface = (uiScheme: ThemeColors) => ({
-  background: withOpacity(uiScheme.muted, 0.72),
-  border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
-  boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.22)}`,
-});
-
-const getPrimaryActionSurface = (uiScheme: ThemeColors, disabled?: boolean) => ({
-  background: disabled
-    ? uiScheme.muted
-    : uiScheme.fg,
-  color: withOpacity('#ffffff', 0.96),
-  boxShadow: disabled
-    ? 'none'
-    : `0 10px 20px -12px ${withOpacity(uiScheme.fg, 0.2)}, inset 0 1px 0 rgba(255,255,255,0.18)`,
 });
 
 const FAB_SIZE = 52;
@@ -157,24 +147,20 @@ const FloatingButton = ({
 };
 
 // 提取通用样式配置，保持与阅读器纸面主题一致
-const useThemeStyles = (uiScheme: ThemeColors, isActive: boolean) => ({
+const useThemeStyles = (uiScheme: ThemeColors) => ({
   panel: {
     background: uiScheme.cardBg,
-    borderColor: `${uiScheme.cardBorder}72`,
-    boxShadow: isActive
-      ? `0 28px 54px -30px ${uiScheme.link}22, 0 14px 28px -24px ${uiScheme.cardBorder}20, inset 0 1px 0 rgba(255,255,255,0.4)`
-      : `0 24px 46px -30px ${uiScheme.cardBorder}26, inset 0 1px 0 rgba(255,255,255,0.34)`,
+    borderColor: `${uiScheme.cardBorder}40`,
+    boxShadow: `0 24px 60px -20px ${withOpacity(uiScheme.fg, 0.16)}, 0 10px 30px -15px ${withOpacity(uiScheme.fg, 0.12)}`,
   },
   section: {
-    background: uiScheme.cardBg,
-    borderColor: `${uiScheme.cardBorder}32`,
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22)',
+    background: withOpacity(uiScheme.cardBg, 0.5),
+    borderColor: `${uiScheme.cardBorder}24`,
   },
   selectTrigger: {
     background: uiScheme.buttonBg,
     borderColor: `${uiScheme.cardBorder}55`,
     color: uiScheme.fg,
-    transition: 'border-color var(--paper-duration-fast) var(--paper-ease-soft), background-color var(--paper-duration-fast) var(--paper-ease-soft), color var(--paper-duration-fast) var(--paper-ease-soft), box-shadow var(--paper-duration-fast) var(--paper-ease-soft)',
   },
   selectContent: {
     background: uiScheme.cardBg,
@@ -195,40 +181,76 @@ interface VoiceSliderProps {
 }
 
 const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
-  <div
-    className="paper-field group flex min-h-11 items-center gap-3 rounded-[18px] border px-3.5 py-2.5"
-    style={{
-      ...getInsetControlSurface(uiScheme),
-    }}
-  >
-    <label
-      className="w-9 shrink-0 text-[11px] font-bold transition-colors duration-200"
-      style={{ color: uiScheme.mutedText }}
-    >
-      {label}
-    </label>
-    <div className="relative flex flex-1 items-center">
-      <Slider
-        value={[value]}
-        onValueChange={(v) => onChange(v[0])}
-        min={min}
-        max={max}
-        step={step}
-        className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-white [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-all [&_[role=slider]]:duration-200 [&_[role=slider]]:ease-out [&_[role=slider]]:hover:scale-110 [&_[role=slider]]:active:scale-95"
-      />
+  <div className="group space-y-3">
+    <div className="flex items-center justify-between gap-3 px-1">
+      <label
+        className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70"
+        style={{ color: uiScheme.mutedText }}
+      >
+        {label}
+      </label>
+      <div className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-black tabular-nums text-primary">
+        {format(value)}
+      </div>
     </div>
-    <div
-      className="flex h-8 min-w-[58px] items-center justify-center rounded-[14px] px-2 text-xs font-bold tabular-nums tracking-tight transition-colors duration-200"
-      style={{
-        color: uiScheme.fg,
-        background: uiScheme.cardBg,
-        border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
-        boxShadow: `0 8px 16px -14px ${withOpacity(uiScheme.fg, 0.18)}`,
-      }}
-    >
-      {format(value)}
+    <div className="flex items-center gap-3.5">
+      <span
+        className="w-6 shrink-0 text-center text-[10px] font-black tabular-nums opacity-40"
+        style={{ color: uiScheme.mutedText }}
+      >
+        {min}%
+      </span>
+      <div className="relative flex flex-1 items-center px-1">
+        <Slider
+          value={[value]}
+          onValueChange={(v) => onChange(v[0])}
+          min={min}
+          max={max}
+          step={step}
+          className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-background [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-transform [&_[role=slider]]:active:scale-125 [&_[role=track]]:h-1.5 [&_[role=track]]:bg-muted/30 [&_[data-orientation=horizontal]_[role=range]]:bg-primary/80"
+        />
+      </div>
+      <span
+        className="w-6 shrink-0 text-center text-[10px] font-black tabular-nums opacity-40"
+        style={{ color: uiScheme.mutedText }}
+      >
+        +{max}%
+      </span>
     </div>
   </div>
+);
+
+const TTSSectionCard = ({
+  title,
+  description,
+  uiScheme,
+  children,
+}: {
+  title: string;
+  description?: string;
+  uiScheme: ThemeColors;
+  children: React.ReactNode;
+}) => (
+  <section
+    className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card"
+    style={{
+      borderColor: withOpacity(uiScheme.cardBorder, 0.18),
+    }}
+  >
+    <div className="flex items-center justify-between gap-3">
+      <div className="space-y-0.5">
+        <h3 className="text-sm font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+          {title}
+        </h3>
+        {description ? (
+          <p className="text-[11px] font-medium leading-relaxed opacity-60" style={{ color: uiScheme.mutedText }}>
+            {description}
+          </p>
+        ) : null}
+      </div>
+    </div>
+    <div className="pt-1">{children}</div>
+  </section>
 );
 
 // 复用的控制按钮 - 增强交互反馈和动画
@@ -257,19 +279,11 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="paper-motion-interactive h-11 w-11 rounded-[18px] hover:scale-[1.04] active:scale-95
-        motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+      className="h-10 w-10 rounded-xl transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5 active:scale-90"
       style={{
         color: getButtonColor(),
-        background: active ? uiScheme.cardBg : withOpacity(uiScheme.cardBg, 0.68),
-        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.24) : withOpacity(uiScheme.cardBorder, 0.14)}`,
-        boxShadow: disabled
-          ? 'none'
-          : active
-            ? `0 10px 20px -16px ${withOpacity(uiScheme.fg, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.28)`
-            : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.4 : 1,
+        opacity: disabled ? 0.3 : 1,
       }}
     >
       {children}
@@ -362,7 +376,7 @@ export function TTSControls({
   const rootRef = useRef<HTMLDivElement>(null);
   const autoDockTimerRef = useRef<number | null>(null);
 
-  const styles = useThemeStyles(uiScheme, state !== 'stopped');
+  const styles = useThemeStyles(uiScheme);
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
@@ -585,6 +599,13 @@ export function TTSControls({
           ? uiScheme.link
           : uiScheme.mutedText;
   const sleepTimerActive = sleepTimer?.mode && sleepTimer.mode !== 'off';
+  const closePanel = useCallback(() => {
+    setExpanded(false);
+  }, []);
+
+  const preserveReaderSelection = (event: React.PointerEvent) => {
+    event.preventDefault();
+  };
 
   useEffect(() => {
     onExpandedChange?.(expanded);
@@ -686,39 +707,38 @@ export function TTSControls({
   const panelBodyMaxHeight = isToolbar
     ? 'calc(min(72vh, 720px) - 72px)'
     : `${floatingPopupMaxHeight - 120}px`;
+  const sheetPanelStyle = {
+    background: uiScheme.cardBg,
+    borderLeft: `1px solid ${withOpacity(uiScheme.cardBorder, 0.22)}`,
+    color: uiScheme.fg,
+    boxShadow: `-10px 0 28px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
+  } as const;
 
   const renderStatusContent = (withDragHandle = false) => ttsStatus ? (
     <div
-      className="paper-panel-soft flex items-center gap-3 rounded-[18px] border px-3.5 py-2.5"
-      style={{
-        background: uiScheme.cardBg,
-        borderColor: `${statusColor}25`,
-        color: uiScheme.fg,
-      }}
+      className="flex items-center gap-2.5 px-1 py-1"
+      style={{ color: uiScheme.fg }}
     >
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="relative mt-1 flex h-2 w-2 shrink-0 items-center justify-center">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center">
           <span
             className="absolute h-full w-full animate-ping rounded-full"
-            style={{ background: statusColor, opacity: 0.4 }}
+            style={{ background: statusColor, opacity: 0.3 }}
           />
           <span
-            className="relative h-2 w-2 rounded-full"
-            style={{
-              background: statusColor,
-              boxShadow: `0 0 8px ${statusColor}`,
-            }}
+            className="relative h-1.5 w-1.5 rounded-full"
+            style={{ background: statusColor }}
           />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold leading-tight" style={{ color: uiScheme.fg }}>
+          <p className="truncate text-[11px] font-bold leading-tight">
             {ttsStatus.headline}
+            {ttsStatus.detail && (
+              <span className="ml-1.5 font-medium opacity-50" style={{ color: uiScheme.mutedText }}>
+                {ttsStatus.detail}
+              </span>
+            )}
           </p>
-          {ttsStatus.detail && (
-            <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-relaxed" style={{ color: uiScheme.mutedText }}>
-              {ttsStatus.detail}
-            </p>
-          )}
         </div>
       </div>
       {withDragHandle && (
@@ -727,22 +747,325 @@ export function TTSControls({
           onPointerDown={handleDragHandlePointerDown}
           onPointerUp={handleDragHandlePointerUp}
           onPointerCancel={handleDragHandlePointerCancel}
-          className="paper-motion-interactive -mr-1 inline-flex h-9 w-9 shrink-0 touch-none select-none items-center justify-center rounded-full border-0 bg-transparent p-0 hover:scale-[1.03] active:scale-95"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
           style={{
             color: isDragging ? uiScheme.link : uiScheme.mutedText,
-            background: 'transparent',
-            borderColor: 'transparent',
-            boxShadow: 'none',
             cursor: isDragging ? 'grabbing' : 'grab',
           }}
-          aria-label="拖动朗读控制面板位置"
-          title="按住拖动控制面板"
+          title="拖动控制面板"
         >
-          <GripVertical className="h-3.5 w-3.5" />
+          <GripVertical className="h-3 w-3" />
         </button>
       )}
     </div>
   ) : null;
+
+  if (isToolbar) {
+    return (
+      <Sheet open={expanded} onOpenChange={setExpanded}>
+        <SheetTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              data-reader-interactive="true"
+              data-reader-tts-trigger="true"
+              type="button"
+              title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+              aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
+              aria-expanded={expanded}
+              aria-haspopup="dialog"
+              className={
+                triggerClassName ??
+                'paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.95rem] border p-0 align-middle hover:scale-[1.03] active:scale-95 focus-visible:border-transparent! focus-visible:ring-0! sm:h-11 sm:w-11 sm:rounded-[1.05rem]'
+              }
+              style={{
+                ...(
+                  triggerStyle ?? {
+                    color: isActive ? uiScheme.link : uiScheme.buttonText,
+                    ...getGlassSurface(uiScheme, {
+                      elevated: isActive,
+                      accentBorder: isActive
+                        ? withOpacity(uiScheme.link, 0.30)
+                        : 'transparent',
+                      accentGlow: isActive
+                        ? withOpacity(uiScheme.link, 0.28)
+                        : withOpacity(uiScheme.fg, 0.14),
+                    }),
+                  }
+                ),
+                opacity: isPending ? 0.72 : 1,
+              }}
+            />
+          }
+        >
+          <Volume2 className="relative z-10 h-4 w-4" />
+        </SheetTrigger>
+
+        <SheetContent
+          side="right"
+          showCloseButton
+          finalFocus={false}
+          container={overlayContainer}
+          data-reader-interactive="true"
+          data-reader-tts-popup="true"
+          className="flex flex-col border-l-0 p-0 sm:w-[380px] sm:max-w-[380px]"
+          style={sheetPanelStyle}
+        >
+          <div aria-live="polite" aria-atomic="true" className="sr-only">
+            {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
+          </div>
+
+          <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-24">
+            <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
+            <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
+
+            <div className="relative min-w-0">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                  <Volume2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                    朗读控制
+                  </SheetTitle>
+                  <SheetDescription
+                    className="mt-1 text-[11px] font-medium opacity-60"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    调整最贴近当前阅读节奏的声音
+                  </SheetDescription>
+                </div>
+              </div>
+            </div>
+          </SheetHeader>
+
+          <div className="flex-1 space-y-6 overflow-y-auto px-6 pb-12 pt-6">
+            {resumePromptVisible && (
+              <section
+                className="rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm"
+                style={{
+                  background: withOpacity(uiScheme.link, 0.07),
+                  borderColor: withOpacity(uiScheme.link, 0.18),
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                    style={{
+                      background: uiScheme.cardBg,
+                      color: uiScheme.link,
+                    }}
+                  >
+                    <AlertCircle className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
+                      继续朗读
+                    </p>
+                    <p className="mt-0.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
+                      {resumePromptMessage}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => void onResume?.()}
+                    className="h-10 shrink-0 rounded-[1.1rem] px-3.5 text-xs font-bold active:scale-[0.96]"
+                    style={{
+                      color: uiScheme.link,
+                      background: uiScheme.cardBg,
+                      border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
+                    }}
+                  >
+                    继续
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            {ttsStatus ? renderStatusContent() : null}
+
+            <TTSSectionCard
+              title="播放控制"
+              description="从当前位置开始、暂停或切换到相邻句子。"
+              uiScheme={uiScheme}
+            >
+              <div
+                className="flex items-center justify-center gap-2 rounded-2xl bg-black/5 p-2 dark:bg-white/5"
+              >
+                <ControlButton
+                  onClick={onPrev}
+                  disabled={!isActive || isPending}
+                  title="上一句"
+                  active={isActive}
+                  uiScheme={uiScheme}
+                >
+                  <SkipBack className="h-5 w-5" />
+                </ControlButton>
+
+                <div className="relative flex items-center justify-center">
+                  {isPlaying && (
+                    <div
+                      className="absolute inset-0 animate-ping rounded-full opacity-20"
+                      style={{ background: uiScheme.cardBg }}
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleStartClick}
+                    disabled={isPending}
+                    title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                    className="h-12 w-12 rounded-full shadow-lg transition-all active:scale-90"
+                    style={{
+                      background: uiScheme.fg,
+                      color: uiScheme.cardBg,
+                      cursor: isPending ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : isPaused ? (
+                      <Play className="ml-0.5 h-5 w-5 fill-current" />
+                    ) : isPlaying ? (
+                      <Pause className="h-5 w-5 fill-current" />
+                    ) : (
+                      <Play className="ml-0.5 h-5 w-5 fill-current" />
+                    )}
+                  </Button>
+                </div>
+
+                <ControlButton
+                  onClick={onNext}
+                  disabled={!isActive || isPending}
+                  title="下一句"
+                  active={isActive}
+                  uiScheme={uiScheme}
+                >
+                  <SkipForward className="h-5 w-5" />
+                </ControlButton>
+
+                <ControlButton
+                  onClick={handleStopClick}
+                  disabled={!isActive || isPending}
+                  title="停止"
+                  active={isActive}
+                  uiScheme={uiScheme}
+                >
+                  <Square className="h-5 w-5" />
+                </ControlButton>
+              </div>
+
+              <div className="pt-5">
+                <VoiceSlider
+                  label="语速"
+                  value={localRate}
+                  onChange={handleRateChange}
+                  min={-50}
+                  max={100}
+                  step={10}
+                  format={formatRate}
+                  uiScheme={uiScheme}
+                />
+              </div>
+            </TTSSectionCard>
+
+            <TTSSectionCard
+              title="高亮方式"
+              description="选择朗读时跟随词语或整句。"
+              uiScheme={uiScheme}
+            >
+              <div className="flex gap-2">
+                {([
+                  ['word', '词语'],
+                  ['sentence', '句子'],
+                ] as const).map(([mode, label]) => {
+                  const active = settings.highlightMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => handleHighlightModeChange(mode)}
+                      className="flex-1 rounded-[1.25rem] px-3 py-2.5 text-xs font-bold transition-all active:scale-[0.96]"
+                      style={{
+                        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
+                        background: active ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
+                        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1)}`,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </TTSSectionCard>
+
+            <TTSSectionCard
+              title="睡眠定时"
+              description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
+              uiScheme={uiScheme}
+            >
+              <div className="grid grid-cols-4 gap-2">
+                {[15, 30, 60].map((minutes) => {
+                  const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
+                  return (
+                    <Button
+                      key={minutes}
+                      type="button"
+                      variant="ghost"
+                      onClick={() => onSleepTimerMinutes?.(minutes)}
+                      className="h-10 rounded-[1.15rem] text-xs font-bold transition-all active:scale-[0.96]"
+                      style={{
+                        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
+                        background: active ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
+                        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1)}`,
+                      }}
+                    >
+                      {minutes}分
+                    </Button>
+                  );
+                })}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onClearSleepTimer?.()}
+                  disabled={!sleepTimerActive}
+                  className="h-10 rounded-[1.15rem] text-xs font-bold"
+                  style={{
+                    color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}40`,
+                    background: withOpacity(uiScheme.buttonBg, 0.2),
+                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                  }}
+                >
+                  取消
+                </Button>
+              </div>
+            </TTSSectionCard>
+
+            {showSettingsPanel && (
+              <TTSSectionCard
+                title="语音偏好"
+                description="选择发音人、情绪风格与输出声音。"
+                uiScheme={uiScheme}
+              >
+                <VoiceSelector
+                  settings={settings}
+                  voices={voices}
+                  voicesLoading={voicesLoading}
+                  voicesError={voicesError}
+                  onReloadVoices={onReloadVoices}
+                  onUpdateSettings={onUpdateSettings}
+                  uiScheme={uiScheme}
+                  overlayContainer={overlayContainer}
+                />
+              </TTSSectionCard>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <>
@@ -751,7 +1074,8 @@ export function TTSControls({
           type="button"
           aria-label="关闭朗读控制弹层"
           className="fixed inset-0 z-[59] cursor-default bg-transparent"
-          onClick={() => setExpanded(false)}
+          onPointerDown={preserveReaderSelection}
+          onClick={closePanel}
         />
       )}
 
@@ -846,31 +1170,26 @@ export function TTSControls({
               )}
 
               <div
-                className="flex items-center justify-between gap-3 border-b px-4 py-3"
-                style={{
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.18),
-                }}
+                className="flex items-center justify-between gap-3 px-4 py-3.5"
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-bold leading-tight" style={{ color: uiScheme.fg }}>
-                    朗读控制
-                  </p>
-                  <p className="mt-0.5 text-[11px] font-medium leading-tight" style={{ color: uiScheme.mutedText }}>
-                    播放、定时与语速
-                  </p>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Volume2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-tight" style={{ color: uiScheme.fg }}>
+                      朗读控制
+                    </p>
+                  </div>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={() => setExpanded(false)}
-                  className="paper-motion-interactive h-9 w-9 shrink-0 rounded-full hover:scale-[1.03] active:scale-95"
-                  style={{
-                    color: uiScheme.mutedText,
-                    background: withOpacity(uiScheme.muted, 0.72),
-                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
-                    boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.18)}`,
-                  }}
+                  onPointerDown={preserveReaderSelection}
+                  onClick={closePanel}
+                  className="h-8 w-8 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                  style={{ color: uiScheme.mutedText }}
                   aria-label="关闭朗读控制面板"
                   title="关闭"
                 >
@@ -879,16 +1198,15 @@ export function TTSControls({
               </div>
 
               <div 
-                className="space-y-3 overflow-y-auto px-4 pb-4 pt-3" 
+                className="space-y-4 overflow-y-auto px-4 pb-4 pt-3"
                 style={{ maxHeight: panelBodyMaxHeight }}
               >
                 {resumePromptVisible && (
                   <section
-                    className="paper-panel-soft rounded-[18px] border px-3.5 py-3"
+                    className="rounded-2xl border px-3.5 py-3"
                     style={{
                       background: withOpacity(uiScheme.link, 0.07),
                       borderColor: withOpacity(uiScheme.link, 0.18),
-                      boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.2)}`,
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -902,18 +1220,15 @@ export function TTSControls({
                         <AlertCircle className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
+                        <p className="text-[13px] font-bold" style={{ color: uiScheme.fg }}>
                           继续朗读
-                        </p>
-                        <p className="mt-0.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
-                          {resumePromptMessage}
                         </p>
                       </div>
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={() => void onResume?.()}
-                        className="paper-motion-interactive h-9 shrink-0 rounded-full px-3 text-xs font-bold hover:scale-[1.02] active:scale-95"
+                        className="h-8 shrink-0 rounded-lg px-3 text-[11px] font-bold transition-all active:scale-95"
                         style={{
                           color: uiScheme.link,
                           background: uiScheme.cardBg,
@@ -928,47 +1243,33 @@ export function TTSControls({
 
                 {isToolbar && ttsStatus && !detailsExpanded && <div>{renderStatusContent()}</div>}
 
-                <section className="paper-panel-soft flex flex-col gap-3 rounded-[24px] border p-3.5" style={styles.section}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col">
-                      <label className="text-[11px] font-bold" style={{ color: uiScheme.mutedText }}>
-                        快捷控制
-                      </label>
-                      <p className="mt-0.5 text-[13px] font-semibold" style={{ color: uiScheme.fg }}>
-                        播放与速度
-                      </p>
-                    </div>
+                <div className="flex flex-col gap-4 px-1 py-1">
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+                      快捷控制
+                    </h3>
                     {showSettingsPanel && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="paper-motion-interactive h-9 rounded-full px-3 text-xs font-bold hover:scale-[1.02] active:scale-95"
+                        className="h-7 rounded-lg px-2 text-[10px] font-black uppercase tracking-wide transition-all hover:bg-black/5 dark:hover:bg-white/5"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: detailsExpanded ? withOpacity(uiScheme.link, 0.1) : withOpacity(uiScheme.muted, 0.76),
-                          border: `1px solid ${withOpacity(detailsExpanded ? uiScheme.link : uiScheme.cardBorder, 0.16)}`,
-                          boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.18)}`,
                         }}
                       >
-                        <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
-                        更多设置
+                        {detailsExpanded ? '收起设置' : '更多设置'}
                         {detailsExpanded ? (
-                          <ChevronUp className="ml-1 h-3.5 w-3.5" />
+                          <ChevronUp className="ml-1 h-3 w-3" />
                         ) : (
-                          <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                          <ChevronDown className="ml-1 h-3 w-3" />
                         )}
                       </Button>
                     )}
                   </div>
 
-                  <div
-                    className="flex items-center justify-center gap-2 rounded-[20px] border px-2.5 py-2.5"
-                    style={{
-                      ...getInsetControlSurface(uiScheme),
-                    }}
-                  >
+                  <div className="flex items-center justify-center gap-2 rounded-2xl bg-black/5 p-2 dark:bg-white/5">
                     <ControlButton
                       onClick={onPrev}
                       disabled={!isActive || isPending}
@@ -980,35 +1281,27 @@ export function TTSControls({
                     </ControlButton>
 
                     <div className="relative flex items-center justify-center">
-                      {isPlaying && (
-                        <div
-                          className="absolute inset-0 animate-ping rounded-full opacity-20"
-                          style={{ background: uiScheme.cardBg }}
-                        />
-                      )}
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={handleStartClick}
                         disabled={isPending}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        className="paper-motion-interactive h-14 w-14 rounded-full hover:scale-[1.03] active:scale-95 focus-visible:outline-none"
+                        className="h-11 w-11 rounded-full shadow-lg transition-all active:scale-90"
                         style={{
-                          ...getPrimaryActionSurface(uiScheme, isPending),
+                          background: uiScheme.fg,
+                          color: uiScheme.cardBg,
                           cursor: isPending ? 'not-allowed' : 'pointer',
                         }}
                       >
                         {isPending ? (
-                          <Loader2
-                            className="h-6 w-6 animate-spin"
-                            style={{ color: uiScheme.fg }}
-                          />
+                          <Loader2 className="h-5 w-5 animate-spin" />
                         ) : isPaused ? (
-                          <Play className="ml-0.5 h-6 w-6 fill-current" />
+                          <Play className="ml-0.5 h-5 w-5 fill-current" />
                         ) : isPlaying ? (
-                          <Pause className="h-6 w-6 fill-current" />
+                          <Pause className="h-5 w-5 fill-current" />
                         ) : (
-                          <Play className="ml-0.5 h-6 w-6 fill-current" />
+                          <Play className="ml-0.5 h-5 w-5 fill-current" />
                         )}
                       </Button>
                     </div>
@@ -1034,63 +1327,46 @@ export function TTSControls({
                     </ControlButton>
                   </div>
 
-                  <VoiceSlider
-                    label="语速"
-                    value={localRate}
-                    onChange={handleRateChange}
-                    min={-50}
-                    max={100}
-                    step={10}
-                    format={formatRate}
-                    uiScheme={uiScheme}
-                  />
+                  <div className="px-3 pb-1">
+                    <VoiceSlider
+                      label="语速"
+                      value={localRate}
+                      onChange={handleRateChange}
+                      min={-50}
+                      max={100}
+                      step={10}
+                      format={formatRate}
+                      uiScheme={uiScheme}
+                    />
+                  </div>
 
                   {detailsExpanded && (
-                    <div
-                      className="paper-reveal-soft paper-field rounded-[18px] border p-3"
-                      style={{
-                        ...getInsetControlSurface(uiScheme),
-                        borderColor: withOpacity(uiScheme.cardBorder, 0.16),
-                      }}
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-bold" style={{ color: uiScheme.fg }}>
-                            高亮方式
-                          </p>
-                          <p className="mt-0.5 text-[11px] font-medium" style={{ color: uiScheme.mutedText }}>
-                            朗读时标记当前内容
-                          </p>
-                        </div>
-                        <div
-                          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-                          style={{ background: uiScheme.cardBg, color: uiScheme.mutedText }}
-                        >
-                          {settings.highlightMode === 'sentence' ? '句子' : '词语'}
-                        </div>
+                    <div className="paper-reveal-soft space-y-3 px-1 pt-2">
+                      <div className="flex items-center justify-between gap-3 px-3">
+                        <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+                          高亮方式
+                        </h3>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="flex gap-1 rounded-xl p-1" style={{ background: withOpacity(uiScheme.muted, 0.4) }}>
                         {([
                           ['word', '词语'],
                           ['sentence', '句子'],
                         ] as const).map(([mode, label]) => {
                           const active = settings.highlightMode === mode;
                           return (
-                            <Button
+                            <button
                               key={mode}
                               type="button"
-                              variant="ghost"
                               onClick={() => handleHighlightModeChange(mode)}
-                              className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
+                              className="flex-1 rounded-lg py-2 text-[11px] font-bold transition-all"
                               style={{
-                                color: active ? uiScheme.link : uiScheme.fg,
-                                background: active ? uiScheme.cardBg : withOpacity(uiScheme.cardBg, 0.64),
-                                border: `1px solid ${active ? withOpacity(uiScheme.link, 0.34) : withOpacity(uiScheme.cardBorder, 0.12)}`,
-                                boxShadow: active ? `0 8px 16px -12px ${withOpacity(uiScheme.link, 0.34)}` : 'none',
+                                color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.4),
+                                background: active ? uiScheme.cardBg : 'transparent',
+                                boxShadow: active ? `0 2px 8px ${withOpacity(uiScheme.fg, 0.1)}` : 'none',
                               }}
                             >
                               {label}
-                            </Button>
+                            </button>
                           );
                         })}
                       </div>
@@ -1098,41 +1374,19 @@ export function TTSControls({
                   )}
 
                   {detailsExpanded && (
-                    <div
-                      className="paper-reveal-soft paper-field rounded-[18px] border p-3"
-                      style={{
-                        ...getInsetControlSurface(uiScheme),
-                        borderColor: sleepTimerActive ? withOpacity(uiScheme.link, 0.2) : withOpacity(uiScheme.cardBorder, 0.16),
-                      }}
-                    >
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="flex h-8 w-8 items-center justify-center rounded-[14px]"
-                            style={{
-                              background: sleepTimerActive ? withOpacity(uiScheme.link, 0.1) : uiScheme.cardBg,
-                              color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
-                              border: `1px solid ${withOpacity(sleepTimerActive ? uiScheme.link : uiScheme.cardBorder, 0.14)}`,
-                            }}
-                          >
-                            <Clock className="h-4 w-4" />
-                          </div>
-                          <p className="text-sm font-bold" style={{ color: uiScheme.fg }}>
-                            睡眠定时
-                          </p>
-                        </div>
-                        <div
-                          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-                          style={{
-                            background: sleepTimerActive ? withOpacity(uiScheme.link, 0.1) : uiScheme.cardBg,
-                            color: sleepTimerActive ? uiScheme.link : uiScheme.mutedText,
-                          }}
-                        >
-                          {sleepTimerActive ? sleepTimer?.label : '未设置'}
-                        </div>
+                    <div className="paper-reveal-soft space-y-3 px-1">
+                      <div className="flex items-center justify-between gap-3 px-3">
+                        <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+                          睡眠定时
+                        </h3>
+                        {sleepTimerActive && (
+                          <span className="text-[10px] font-black text-primary uppercase">
+                            {sleepTimer?.label}
+                          </span>
+                        )}
                       </div>
 
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-4 gap-1.5">
                         {[15, 30, 60].map((minutes) => {
                           const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                           return (
@@ -1141,12 +1395,10 @@ export function TTSControls({
                               type="button"
                               variant="ghost"
                               onClick={() => onSleepTimerMinutes?.(minutes)}
-                              className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
+                              className="h-9 rounded-xl text-[11px] font-bold transition-all"
                               style={{
-                                color: active ? uiScheme.link : uiScheme.fg,
-                                background: active ? uiScheme.cardBg : withOpacity(uiScheme.cardBg, 0.64),
-                                border: `1px solid ${active ? withOpacity(uiScheme.link, 0.34) : withOpacity(uiScheme.cardBorder, 0.12)}`,
-                                boxShadow: active ? `0 8px 16px -12px ${withOpacity(uiScheme.link, 0.34)}` : 'none',
+                                color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
+                                background: active ? withOpacity(uiScheme.link, 0.12) : withOpacity(uiScheme.muted, 0.4),
                               }}
                             >
                               {minutes}分
@@ -1158,11 +1410,10 @@ export function TTSControls({
                           variant="ghost"
                           onClick={() => onClearSleepTimer?.()}
                           disabled={!sleepTimerActive}
-                          className="h-9 rounded-xl text-xs font-bold transition-all duration-200"
+                          className="h-9 rounded-xl text-[11px] font-bold"
                           style={{
-                            color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}60`,
-                            background: uiScheme.cardBg,
-                            border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                            color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}40`,
+                            background: withOpacity(uiScheme.muted, 0.2),
                           }}
                         >
                           取消
@@ -1170,25 +1421,21 @@ export function TTSControls({
                       </div>
                     </div>
                   )}
-                </section>
-
-                {showSettingsPanel && detailsExpanded && (
-                  <section
-                    className="paper-reveal-soft flex flex-col gap-2 rounded-[22px] border p-3"
-                    style={styles.section}
-                  >
-                    <VoiceSelector
-                      settings={settings}
-                      voices={voices}
-                      voicesLoading={voicesLoading}
-                      voicesError={voicesError}
-                      onReloadVoices={onReloadVoices}
-                      onUpdateSettings={onUpdateSettings}
-                      uiScheme={uiScheme}
-                      overlayContainer={overlayContainer}
-                    />
-                  </section>
-                )}
+                  {showSettingsPanel && detailsExpanded && (
+                    <div className="paper-reveal-soft px-1">
+                      <VoiceSelector
+                        settings={settings}
+                        voices={voices}
+                        voicesLoading={voicesLoading}
+                        voicesError={voicesError}
+                        onReloadVoices={onReloadVoices}
+                        onUpdateSettings={onUpdateSettings}
+                        uiScheme={uiScheme}
+                        overlayContainer={overlayContainer}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {!isToolbar && (

@@ -75,11 +75,11 @@ export function CategorySelector({
         showCloseButton
         className="flex w-[380px] flex-col border-l border-border/60 p-0 sm:max-w-[380px]"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+          backgroundColor: 'var(--shelf-surface)',
         }}
       >
         {/* 头部区域 */}
-        <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-28">
+        <SheetHeader className="relative overflow-hidden border-b border-border/40 bg-[var(--shelf-surface-raised)] px-6 py-8 pr-28">
           <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
           <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 

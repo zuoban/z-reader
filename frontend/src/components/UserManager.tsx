@@ -182,14 +182,13 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
         side="right"
         className="flex flex-col border-l-0 p-0 sm:w-[380px] sm:max-w-[380px] sm:[&_[data-slot=sheet-close]]:right-4 sm:[&_[data-slot=sheet-close]]:top-4 sm:[&_[data-slot=sheet-close]]:h-9 sm:[&_[data-slot=sheet-close]]:w-9 sm:[&_[data-slot=sheet-close]]:rounded-full sm:[&_[data-slot=sheet-close]]:border-0 sm:[&_[data-slot=sheet-close]]:bg-muted/40 sm:[&_[data-slot=sheet-close]]:shadow-none"
         style={{
-          backgroundColor: 'var(--background)',
+          backgroundColor: 'var(--shelf-surface)',
           boxShadow: '20px 0 60px -20px var(--paper-shadow)',
         }}
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <SheetHeader
-            className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-20"
-            style={{ backgroundColor: '#ffffff' }}
+            className="relative overflow-hidden border-b border-border/40 bg-[var(--shelf-surface-raised)] px-6 py-8 pr-20"
           >
             <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
             <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
@@ -422,7 +421,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
           className="max-w-[400px] gap-0 overflow-hidden rounded-[1.75rem] border-border/50 p-0 shadow-2xl [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/45 [&_[data-slot=dialog-close]]:shadow-none"
           showCloseButton={!loading}
         >
-          <div className="relative overflow-hidden border-b border-border/45 bg-white px-6 py-7 pr-16">
+          <div className="relative overflow-hidden border-b border-border/45 bg-[var(--shelf-surface-raised)] px-6 py-7 pr-16">
             <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
             <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-accent/10" />
             <DialogHeader className="relative space-y-2">

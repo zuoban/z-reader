@@ -1,6 +1,15 @@
 'use client';
 
-import { CalendarClock, Clock, HardDrive, MoreVertical, Tag, Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
+import {
+  CalendarClock,
+  ChevronRight,
+  Clock,
+  HardDrive,
+  MoreVertical,
+  Tag,
+  Trash2,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +26,30 @@ interface BookCardDropdownProps {
   isDeleting: boolean;
   onCategoryClick: () => void;
   onDeleteClick: () => void;
+}
+
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(4.5rem,1fr)_auto] items-center gap-3 text-[11px]">
+      <div className="flex min-w-0 items-center gap-2 text-foreground/58">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary/72">
+          {icon}
+        </span>
+        <span className="truncate">{label}</span>
+      </div>
+      <span className="max-w-[9.5rem] truncate text-right font-semibold tabular-nums text-foreground">
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export function BookCardDropdown({
@@ -39,53 +72,41 @@ export function BookCardDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        sideOffset={10}
-        className="w-72 rounded-2xl border border-border/60 bg-background/95 p-3 shadow-xl backdrop-blur-sm"
+        alignOffset={-4}
+        sideOffset={12}
+        className="w-[17rem] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-2.5 shadow-[0_24px_60px_-34px_var(--paper-shadow),0_10px_28px_-24px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_78%,transparent)] ring-1 ring-primary/8"
+        style={{ backgroundColor: 'var(--shelf-surface-raised)' }}
       >
-        <div className="px-2 pb-3 pt-1.5">
-          <div className="mb-2.5 flex items-center justify-between">
-            <span className="text-[10px] font-bold tracking-[0.1em] text-foreground/80 uppercase">
+        <div className="rounded-[1rem] border border-primary/10 bg-[var(--shelf-surface-soft)] px-3 py-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[10px] font-bold tracking-[0.16em] text-foreground/78 uppercase">
               书籍详情
             </span>
-            <div className="flex h-5 items-center rounded-full bg-primary/10 px-2 text-[9px] font-bold text-primary">
+            <div className="flex h-6 items-center rounded-full border border-primary/16 bg-primary/12 px-2.5 text-[10px] font-bold tracking-[0.08em] text-primary">
               {formatLabel}
             </div>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-2 text-foreground/50">
-                <HardDrive className="h-3.5 w-3.5" />
-                <span>大小</span>
-              </div>
-              <span className="font-medium text-foreground/80 tabular-nums">
-                {sizeLabel || '未知'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-2 text-foreground/50">
-                <CalendarClock className="h-3.5 w-3.5" />
-                <span>上传日期</span>
-              </div>
-              <span className="font-medium text-foreground/80 tabular-nums">
-                {uploadedAtLabel}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-2 text-foreground/50">
-                <Clock className="h-3.5 w-3.5" />
-                <span>上次阅读</span>
-              </div>
-              <span className="font-medium text-foreground/80 tabular-nums">
-                {lastReadLabel}
-              </span>
-            </div>
+          <div className="space-y-2">
+            <DetailRow
+              icon={<HardDrive className="h-3.5 w-3.5" />}
+              label="大小"
+              value={sizeLabel || '未知'}
+            />
+            <DetailRow
+              icon={<CalendarClock className="h-3.5 w-3.5" />}
+              label="上传日期"
+              value={uploadedAtLabel}
+            />
+            <DetailRow
+              icon={<Clock className="h-3.5 w-3.5" />}
+              label="上次阅读"
+              value={lastReadLabel}
+            />
           </div>
         </div>
 
-        <div className="mx-1 my-1.5 h-px bg-border/40" />
+        <DropdownMenuSeparator className="my-2 bg-primary/10" />
 
         <div className="space-y-1">
           <DropdownMenuItem
@@ -93,12 +114,13 @@ export function BookCardDropdown({
               e.stopPropagation();
               onCategoryClick();
             }}
-            className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all hover:bg-primary/8 hover:text-primary focus:bg-primary/8 focus:text-primary"
+            className="group flex cursor-pointer items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-[13px] font-semibold text-foreground transition-all hover:bg-[var(--shelf-surface-hover)] hover:text-primary focus:bg-[var(--shelf-surface-hover)] focus:text-primary"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-105 group-focus:scale-105">
               <Tag className="h-4 w-4 text-primary" />
             </div>
             <span>设置分类</span>
+            <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground/45 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -108,12 +130,13 @@ export function BookCardDropdown({
             }}
             disabled={isDeleting}
             variant="destructive"
-            className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all hover:bg-destructive/8 focus:bg-destructive/8"
+            className="group flex cursor-pointer items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-[13px] font-semibold transition-all hover:bg-destructive/10 focus:bg-destructive/10"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-destructive/10 transition-transform group-hover:scale-105 group-focus:scale-105">
               <Trash2 className="h-4 w-4 text-destructive" />
             </div>
             <span>{isDeleting ? '删除中...' : '删除图书'}</span>
+            <ChevronRight className="ml-auto h-4 w-4 text-destructive/45 transition-transform group-hover:translate-x-0.5" />
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

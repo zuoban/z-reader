@@ -3,6 +3,7 @@
 import type { ComponentProps } from 'react';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type ButtonVariant = ComponentProps<typeof Button>['variant'];
@@ -59,7 +60,7 @@ export function ConfirmDialog({
       <div
         aria-modal="true"
         role="alertdialog"
-        className="paper-motion-panel paper-stack relative z-10 grid w-full max-w-sm gap-4 overflow-hidden rounded-[1.5rem] border border-border bg-background p-5 text-sm text-popover-foreground shadow-md outline-none ring-1 ring-foreground/5"
+        className="paper-motion-panel paper-stack relative z-10 grid w-full max-w-sm overflow-hidden rounded-[1.5rem] border border-border/65 bg-background text-sm text-popover-foreground shadow-[0_28px_72px_-36px_var(--paper-shadow)] outline-none ring-1 ring-foreground/5"
         style={{
           backgroundColor: 'var(--background)',
           backdropFilter: 'none',
@@ -67,25 +68,30 @@ export function ConfirmDialog({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex flex-col gap-1.5">
-          <h2 className="font-heading text-base font-semibold leading-tight tracking-tight text-foreground">
-            {title}
-          </h2>
-          <p className="text-sm leading-6 text-muted-foreground">
-            {description}
-          </p>
+        <div className="flex gap-3 px-5 pb-5 pt-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
+            <h2 className="font-heading text-base font-semibold leading-tight tracking-tight text-foreground">
+              {title}
+            </h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
+          </div>
         </div>
-        <div className="-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/60 bg-background p-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-border/55 bg-muted/25 p-4 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
-            className="min-w-20"
+            className="h-9 min-w-20 rounded-xl"
             onClick={() => onOpenChange(false)}
           >
             {cancelLabel}
           </Button>
           <Button
             variant={confirmVariant}
-            className="min-w-24"
+            className="h-9 min-w-24 rounded-xl"
             onClick={onConfirm}
             disabled={confirmDisabled}
           >

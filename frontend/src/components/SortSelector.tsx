@@ -25,10 +25,11 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          'group relative grid h-11 w-full sm:w-[13.75rem] max-w-full cursor-pointer grid-cols-[1.25rem_1fr_1.25rem] items-center gap-2 whitespace-nowrap rounded-full border border-border/45 bg-background/70 px-4 text-[13px] font-semibold text-foreground shadow-[0_10px_24px_-20px_var(--paper-shadow)] transition-all duration-200',
-          'hover:border-border/60 hover:bg-background/85 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/15',
-          open && 'border-border/60 bg-background/85 text-foreground'
+          'group relative grid h-11 w-full sm:w-[13.75rem] max-w-full cursor-pointer grid-cols-[1.25rem_1fr_1.25rem] items-center gap-2 whitespace-nowrap rounded-full border border-primary/14 bg-[var(--shelf-surface-raised)] px-4 text-[13px] font-semibold text-foreground shadow-[0_10px_24px_-20px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)] transition-all duration-200',
+          'hover:border-primary/24 hover:bg-[var(--shelf-surface-raised)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/15',
+          open && 'border-primary/24 bg-[var(--shelf-surface-raised)] text-foreground'
         )}
+        style={{ backgroundColor: 'var(--shelf-surface-raised)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <ArrowUpDown className="h-4 w-4 opacity-65 transition-opacity group-hover:opacity-85" />
@@ -42,9 +43,9 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="min-w-[160px] rounded-[1.25rem] border-border bg-background p-1.5 shadow-md"
+        className="min-w-[160px] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_22px_54px_-34px_var(--paper-shadow),0_8px_24px_-22px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_78%,transparent)] ring-1 ring-primary/8"
         style={{
-          backgroundColor: 'var(--background)',
+          backgroundColor: 'var(--shelf-surface-raised)',
           backdropFilter: 'none',
           WebkitBackdropFilter: 'none',
         }}
@@ -57,10 +58,10 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
               setOpen(false);
             }}
             className={cn(
-              'paper-motion-interactive cursor-pointer rounded-[1.15rem] px-3 py-2 pr-8 text-sm focus:bg-muted/50 focus:text-foreground',
+              'paper-motion-interactive cursor-pointer rounded-[1.15rem] px-3 py-2 pr-8 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
               value === option.value
-                ? 'bg-muted/50 font-semibold text-foreground'
-                : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                ? 'bg-[var(--shelf-surface-selected)] font-semibold text-foreground'
+                : 'text-foreground/62 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
             )}
           >
             <span className="min-w-0 flex-1 truncate">{option.label}</span>

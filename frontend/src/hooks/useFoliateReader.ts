@@ -5,8 +5,12 @@ import type { RefObject } from "react";
 
 import { api } from "@/lib/api";
 import type { FoliateView, TOCItem } from "@/lib/types";
-import type { Progress } from "@/lib/api";
 import { PRESET_STYLES, type ReaderTheme } from "@/hooks/useReaderTheme";
+
+interface ReaderProgress {
+  cfi: string;
+  percentage: number;
+}
 
 interface UseFoliateReaderOptions {
   bookId: string;
@@ -14,7 +18,7 @@ interface UseFoliateReaderOptions {
   viewRef: RefObject<FoliateView | null>;
   isAuthenticated: boolean;
   progressLoading: boolean;
-  progress: Progress | null;
+  progress: ReaderProgress | null;
   theme: ReaderTheme;
   getStylesheet: () => string;
   updateProgress: (cfi: string, percentage: number) => void;

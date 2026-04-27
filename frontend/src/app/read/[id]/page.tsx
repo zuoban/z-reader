@@ -51,6 +51,7 @@ export default function ReadPage() {
   const themeSettingsOpenRef = useRef(themeSettingsOpen);
   const tocListRef = useRef<HTMLDivElement>(null);
   const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
+  const cleanupReaderRef = useRef<() => void>(() => {});
   const handlePageRef = useCallback((node: HTMLDivElement | null) => {
     pageRef.current = node;
     setOverlayContainer(node);
@@ -114,120 +115,6 @@ export default function ReadPage() {
     [restoreTTSHighlight],
   );
 
-  // 合并多个 ref 同步更新，减少独立 useEffect 数量
-  useEffect(() => {
-    progressRef.current = progress;
-    themeRef.current = theme;
-    getStylesheetRef.current = getStylesheet;
-    updateProgressRef.current = updateProgress;
-    loadingRef.current = loading;
-    tocOpenRef.current = tocOpen;
-    themeSettingsOpenRef.current = themeSettingsOpen;
-  }, [
-    progress,
-    theme,
-    getStylesheet,
-    updateProgress,
-    loading,
-    tocOpen,
-    themeSettingsOpen,
-  ]);
-
-  const applyRendererPreferences = useCallback(
-    (renderer?: FoliateView["renderer"] | null) => {
-      if (!renderer) return;
-
-      const currentTheme = themeRef.current;
-      renderer.setAttribute("margin", "0");
-      renderer.setAttribute("flow", currentTheme.flow);
-      renderer.setAttribute("gap", `${currentTheme.gap}%`);
-      renderer.setAttribute(
-        "max-inline-size",
-        `${currentTheme.maxInlineSize}px`,
-      );
-
-      if (currentTheme.animated) {
-        renderer.setAttribute("animated", "");
-      } else {
-        renderer.removeAttribute("animated");
-      }
-    },
-    [],
-  );
-
-  const updatePageLabel = useCallback(
-    (pageItem?: { label?: string }, location?: { current?: number }) => {
-      const renderer = viewRef.current?.renderer;
-      const rawPages = renderer?.pages;
-      const rawPage = renderer?.page;
-
-      if (
-        typeof rawPages === "number" &&
-        typeof rawPage === "number" &&
-        Number.isFinite(rawPages) &&
-        Number.isFinite(rawPage) &&
-        rawPages > 2
-      ) {
-        const totalPages = Math.max(rawPages - 2, 1);
-        const currentPage = Math.min(Math.max(rawPage, 1), totalPages);
-        setCurrentPageLabel(`${currentPage} / ${totalPages}`);
-        return;
-      }
-
-      if (pageItem?.label) {
-        setCurrentPageLabel(`${pageItem.label}`);
-        return;
-      }
-
-      if (typeof location?.current === "number") {
-        setCurrentPageLabel(`位置 ${location.current}`);
-        return;
-      }
-
-      setCurrentPageLabel("");
-    },
-    [],
-  );
-
-  // 清理书籍内容中的内联样式，确保主题样式生效
-  const cleanInlineStyles = useCallback(
-    (doc: Document) => {
-      const STYLE_ID = "z-reader-dark-overrides";
-      const styleEl = doc.getElementById(STYLE_ID) as HTMLStyleElement | null;
-
-      if (themeRef.current.preset !== "dark") {
-        styleEl?.remove();
-        return;
-      }
-
-      const preset = PRESET_STYLES.dark;
-
-      // 注入强制覆盖的 CSS 到书籍文档
-      let darkStyleEl = styleEl;
-      if (!darkStyleEl) {
-        darkStyleEl = doc.createElement("style");
-        darkStyleEl.id = STYLE_ID;
-        doc.head.appendChild(darkStyleEl);
-      }
-      darkStyleEl.textContent = `
-      * {
-        color: ${preset.fg} !important;
-      }
-      a:link, a:visited {
-        color: ${preset.link} !important;
-      }
-    `;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (viewRef.current && !loading) {
-      viewRef.current.renderer?.setStyles?.(getStylesheet());
-      applyRendererPreferences(viewRef.current.renderer);
-    }
-  }, [applyRendererPreferences, loading, theme, getStylesheet]);
-
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push("/login");
@@ -289,33 +176,15 @@ export default function ReadPage() {
   }, [handleReaderClick]);
 
   const handleBack = useCallback(() => {
-    destroyedRef.current = true;
     saveNow();
-    cleanupHeaderInteractionDocuments();
+    cleanupReaderRef.current();
 
     if (document.fullscreenElement === pageRef.current) {
       void document.exitFullscreen();
     }
 
-    const view = viewRef.current;
-    viewRef.current = null;
-    if (view) {
-      try {
-        view.close?.();
-        if (view.parentNode) {
-          view.parentNode.removeChild(view as unknown as Node);
-        }
-      } catch (err) {
-        console.error("Failed to cleanup view during back navigation:", err);
-      }
-    }
-
-    if (containerRef.current) {
-      containerRef.current.innerHTML = "";
-    }
-
     router.push("/shelf");
-  }, [cleanupHeaderInteractionDocuments, saveNow, router]);
+  }, [saveNow, router]);
 
   const {
     isTouchReader,
@@ -331,197 +200,40 @@ export default function ReadPage() {
     onStopTTS: stopTTS,
   });
 
-  const initReader = useCallback(async () => {
-    if (!containerRef.current || destroyedRef.current) return;
-
-    try {
-      setLoadingMsg("加载阅读器...");
-
-      // 检查脚本是否已加载，避免重复创建
-      if (!customElements.get("foliate-view") && !scriptLoadedRef.current) {
-        scriptLoadedRef.current = true; // 标记为正在加载
-
-        const script = document.createElement("script");
-        script.src = "/foliate/view.js";
-        script.type = "module";
-
-        const loadPromise = new Promise<void>((resolve, reject) => {
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error("加载阅读器脚本失败"));
-        });
-
-        document.head.appendChild(script);
-        await loadPromise;
-
-        let retries = 0;
-        while (!customElements.get("foliate-view") && retries < 50) {
-          await new Promise((r) => setTimeout(r, 100));
-          retries++;
-        }
-
-        if (!customElements.get("foliate-view")) {
-          throw new Error("阅读器组件注册失败");
-        }
-      } else {
-        // 脚本已加载或正在加载中，等待注册完成
-        let retries = 0;
-        while (!customElements.get("foliate-view") && retries < 50) {
-          await new Promise((r) => setTimeout(r, 100));
-          retries++;
-        }
-      }
-
-      if (destroyedRef.current) return;
-      setLoadingMsg("创建视图...");
-
-      const view = document.createElement(
-        "foliate-view",
-      ) as unknown as FoliateView;
-      view.style.height = "100%";
-      view.style.width = "100%";
-      view.style.display = "block";
-      containerRef.current.innerHTML = "";
-      containerRef.current.appendChild(view as unknown as Node);
-      viewRef.current = view;
-
-      view.addEventListener?.("load", (e: CustomEvent) => {
-        if (destroyedRef.current || !viewRef.current) return;
-        try {
-          const book = view.book;
-          setToc(book?.toc || []);
-          setBookTitle(book?.metadata?.title || "");
-          setLoading(false);
-
-          // 给 iframe 的 document 绑定键盘事件，解决点击正文后快捷键失效的问题
-          const doc = e.detail?.doc;
-          if (doc) {
-            bindReaderDocument(doc);
-            bindHeaderInteractionDocument(doc);
-            // 清理内联样式，确保夜间模式主题生效
-            cleanInlineStyles(doc);
-          }
-        } catch (err) {
-          console.error("Failed to handle book load event:", err);
-        }
-      });
-
-      view.addEventListener?.("relocate", (e: CustomEvent) => {
-        if (destroyedRef.current || !viewRef.current) return;
-        try {
-          const { cfi, fraction, tocItem, pageItem, location } = e.detail;
-
-          const pctRaw = Number(((fraction || 0) * 100).toFixed(2));
-          setPercentage(pctRaw);
-
-          if (cfi) {
-            updateProgressRef.current(cfi, pctRaw);
-          }
-
-          if (tocItem?.label) {
-            setCurrentChapter(tocItem.label);
-          }
-
-          updatePageLabel(pageItem, location);
-
-          // 翻页后清理新文档的内联样式
-          const doc = e.detail?.doc;
-          if (doc) {
-            bindReaderDocument(doc);
-            bindHeaderInteractionDocument(doc);
-            cleanInlineStyles(doc);
-          }
-        } catch (err) {
-          console.error("Failed to handle relocate event:", err);
-        }
-      });
-
-      if (destroyedRef.current) return;
-      setLoadingMsg("获取书籍...");
-
-      const file = await api.createBookFile(bookId);
-
-      if (destroyedRef.current) return;
-      setLoadingMsg("打开书籍...");
-
-      try {
-        await view.open?.(file);
-      } catch (err) {
-        console.error("Failed to open book:", err);
-        throw new Error(
-          `打开书籍失败：${err instanceof Error ? err.message : "未知错误"}`,
-        );
-      }
-
-      if (destroyedRef.current) return;
-
-      view.renderer?.setStyles?.(getStylesheetRef.current());
-      applyRendererPreferences(view.renderer);
-
-      const savedProgress = progressRef.current;
-      await view.init?.({
-        lastLocation: savedProgress?.cfi ?? null,
-        showTextStart: false,
-      });
-    } catch (err) {
-      if (!destroyedRef.current) {
-        setError(err instanceof Error ? err.message : "加载书籍失败");
-        setLoading(false);
-      }
-    }
-  }, [
-    applyRendererPreferences,
-    bindHeaderInteractionDocument,
-    bindReaderDocument,
+  const {
+    toc,
+    bookTitle,
+    percentage,
+    currentChapter,
+    currentPageLabel,
+    error,
+    loading,
+    loadingMsg,
+    cleanupReader,
+  } = useFoliateReader({
     bookId,
-    cleanInlineStyles,
-    updatePageLabel,
-  ]);
-
-  useEffect(() => {
-    // 主题变化时，重新清理所有已绑定文档的内联样式
-    const contents = viewRef.current?.renderer?.getContents?.() ?? [];
-    contents.forEach(({ doc }) => {
-      if (!doc) return;
-      cleanInlineStyles(doc);
-    });
-  }, [cleanInlineStyles, loading]);
-
-  useEffect(() => {
-    if (!isAuthenticated || progressLoading) return;
-
-    destroyedRef.current = false;
-    const container = containerRef.current;
-    void initReader();
-
-    return () => {
-      destroyedRef.current = true;
-      cleanupHeaderInteractionDocuments();
-
-      const view = viewRef.current;
-      viewRef.current = null;
-
-      if (view) {
-        try {
-          // 先调用 close 方法，再移除 DOM 元素
-          view.close?.();
-          if (view.parentNode) {
-            view.parentNode.removeChild(view as unknown as Node);
-          }
-        } catch (err) {
-          console.error("Failed to cleanup view on unmount:", err);
-        }
-      }
-
-      if (container) {
-        container.innerHTML = "";
-      }
-    };
-  }, [
-    cleanupHeaderInteractionDocuments,
-    initReader,
+    containerRef,
+    viewRef,
     isAuthenticated,
     progressLoading,
-  ]);
+    progress,
+    theme,
+    getStylesheet,
+    updateProgress,
+    bindReaderDocument,
+    bindHeaderInteractionDocument,
+    cleanupHeaderInteractionDocuments,
+  });
+
+  useEffect(() => {
+    cleanupReaderRef.current = cleanupReader;
+  }, [cleanupReader]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+    tocOpenRef.current = tocOpen;
+    themeSettingsOpenRef.current = themeSettingsOpen;
+  }, [loading, tocOpen, themeSettingsOpen]);
 
   useEffect(() => {
     if (!tocOpen || !currentChapter) return;
@@ -536,9 +248,15 @@ export default function ReadPage() {
   }, [tocOpen, currentChapter, scrollToCurrentChapter]);
 
   useEffect(() => {
-    if (loading || tocOpen || themeSettingsOpen) {
+    if (!(loading || tocOpen || themeSettingsOpen)) return;
+
+    const frame = window.requestAnimationFrame(() => {
       setIsHeaderVisible(true);
-    }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [loading, themeSettingsOpen, tocOpen]);
 
   if (authLoading || !isAuthenticated) {

@@ -169,6 +169,7 @@ export function BookCard({
     ? Math.max(0, Math.min(progressPercentage, 100))
     : null;
   const progressDisplay = progressValue !== null ? progressValue.toFixed(1) : '';
+  const hasProgress = progressValue !== null && progressValue > 0;
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
@@ -178,6 +179,19 @@ export function BookCard({
   const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
   const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
   const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
+  const progressMeter = hasProgress ? (
+    <div className="flex items-center gap-1.5">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+          style={{ width: `${progressValue}%` }}
+        />
+      </div>
+      <span className="shrink-0 tabular-nums text-[10px] font-semibold tracking-tight text-foreground/70">
+        {progressDisplay}%
+      </span>
+    </div>
+  ) : null;
 
   useEffect(() => {
     let url: string | null = null;
@@ -223,22 +237,17 @@ export function BookCard({
                 </PerspectiveBook>
               </div>
             </div>
-            {progressValue !== null && progressValue > 0 && (
+            {hasProgress && !isMobile && (
               <div className="absolute inset-x-0 bottom-0 z-20 px-2.5 pb-2 sm:px-3 sm:pb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
-                    <div
-                      className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-                      style={{ width: `${progressValue}%` }}
-                    />
-                  </div>
-                  <span className="shrink-0 tabular-nums text-[10px] font-semibold tracking-tight text-foreground/70">
-                    {progressDisplay}%
-                  </span>
-                </div>
+                {progressMeter}
               </div>
             )}
           </div>
+          {hasProgress && isMobile && (
+            <div className="border-t border-border/35 bg-card px-3.5 py-2">
+              {progressMeter}
+            </div>
+          )}
           <div className="flex flex-col border-t border-border/40 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5">
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">

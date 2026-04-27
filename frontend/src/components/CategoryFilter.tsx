@@ -26,6 +26,7 @@ interface CategoryFilterProps {
   onSelectCategory: (id: string | null) => void;
   bookCounts: Record<string, number>;
   className?: string;
+  mobileIconOnly?: boolean;
 }
 
 export function CategoryFilter({
@@ -34,6 +35,7 @@ export function CategoryFilter({
   onSelectCategory,
   bookCounts,
   className,
+  mobileIconOnly,
 }: CategoryFilterProps) {
   const totalBooks = bookCounts.all ?? 0;
   const uncategorizedBooks = bookCounts[UNCATEGORIZED_FILTER_ID] ?? 0;
@@ -69,19 +71,18 @@ export function CategoryFilter({
       <SelectTrigger
         aria-label="书籍分类筛选"
         className={cn(
-          'grid h-11 w-full sm:w-[13.75rem] max-w-full grid-cols-[1.25rem_1fr_1.25rem] items-center gap-2 rounded-full border border-primary/14 bg-[var(--shelf-surface-raised)] px-4 text-[13px] font-semibold text-foreground shadow-[0_10px_24px_-20px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)]',
-          'hover:border-primary/24 hover:bg-[var(--shelf-surface-raised)]',
-          'focus:ring-2 focus:ring-primary/15 [&>span]:justify-self-center [&>span]:text-center [&>svg:last-child]:h-4 [&>svg:last-child]:w-4 [&>svg:last-child]:justify-self-end [&>svg:last-child]:opacity-55',
+          'group relative flex h-9 w-full max-w-full items-center gap-2 rounded-xl border border-primary/12 bg-shelf-surface-soft px-3 text-sm text-foreground/80 transition-all duration-200 hover:border-primary/22 hover:bg-shelf-surface-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 sm:w-[11rem]',
+          mobileIconOnly && 'sm:hidden w-9 justify-center px-0 [&>span]:hidden [&>svg:last-child]:hidden',
+          !mobileIconOnly && '[&>span]:truncate [&>span]:text-left [&>span]:font-medium',
           className
         )}
-        style={{ backgroundColor: 'var(--shelf-surface-raised)' }}
       >
-        <Tag className="h-4 w-4 shrink-0 opacity-65" />
-        <SelectValue />
+        <Tag className="h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
+        {!mobileIconOnly && <SelectValue />}
       </SelectTrigger>
       <SelectContent
         align="start"
-        className="min-w-[12rem] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_22px_54px_-34px_var(--paper-shadow),0_8px_24px_-22px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_78%,transparent)] ring-1 ring-primary/8"
+        className="min-w-[12rem] rounded-xl border border-primary/14 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_10px_30px_-16px_var(--paper-shadow),0_4px_12px_-8px_var(--paper-shadow-soft)] ring-1 ring-primary/6"
         style={{
           backgroundColor: 'var(--shelf-surface-raised)',
           backdropFilter: 'none',
@@ -93,9 +94,9 @@ export function CategoryFilter({
             key={item.id}
             value={item.id}
             className={cn(
-              'cursor-pointer rounded-[1.15rem] py-2 pl-3 pr-8 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
+              'cursor-pointer rounded-lg px-3 py-2 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
               value === item.id
-                ? 'bg-[var(--shelf-surface-selected)] font-semibold text-foreground'
+                ? 'bg-[var(--shelf-surface-selected)] font-medium text-foreground'
                 : 'text-foreground/62 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
             )}
           >
@@ -104,10 +105,10 @@ export function CategoryFilter({
               {item.count > 0 && (
                 <span
                   className={cn(
-                    'ml-auto inline-flex min-w-[1.45rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums',
+                    'ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md px-1.5 text-[11px] font-semibold leading-none tabular-nums',
                     value === item.id
-                      ? 'bg-foreground text-background'
-                      : 'bg-primary/10 text-primary/78'
+                      ? 'bg-foreground/15 text-foreground'
+                      : 'bg-primary/8 text-primary/70'
                   )}
                 >
                   {item.count}

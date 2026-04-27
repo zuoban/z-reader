@@ -178,7 +178,7 @@ export function UserManager({ currentUser, buttonClassName, triggerLabel }: User
         }
       >
         <UserCog className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-        {triggerLabel && <span>{triggerLabel}</span>}
+        {triggerLabel && <span className="hidden sm:inline">{triggerLabel}</span>}
       </SheetTrigger>
       <SheetContent
         side="right"

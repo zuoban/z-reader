@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useProgress } from '@/hooks/useProgress';
 import { api } from '@/lib/api';
+import type { Progress } from '@/lib/api';
 
-const MOCK_PROGRESS = (overrides: Partial<{ cfi: string; percentage: number }> = {}) => ({
+const MOCK_PROGRESS = (overrides: Partial<Progress> = {}): Progress => ({
   book_id: 'book-1',
   user_id: 'user-1',
   cfi: '',
@@ -30,7 +31,6 @@ describe('useProgress', () => {
   });
 
   it('loads progress on mount', async () => {
-    const mockProgress = { cfi: 'epubcfi(/6/2)', percentage: 30 };
     vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: 'epubcfi(/6/2)', percentage: 30 }));
 
     const { result } = renderHook(() =>
@@ -86,7 +86,7 @@ describe('useProgress', () => {
 
   it('debounced save after delay', async () => {
     vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: 'epubcfi(/2)', percentage: 10 }));
-    vi.mocked(api.saveProgress).mockResolvedValue({} as any);
+    vi.mocked(api.saveProgress).mockResolvedValue(MOCK_PROGRESS());
 
     const { result } = renderHook(() =>
       useProgress({ bookId: 'book-1', autoSaveInterval: 200, debounceDelay: 100 }),
@@ -113,7 +113,7 @@ describe('useProgress', () => {
 
   it('saveNow forces immediate save', async () => {
     vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: '', percentage: 0 }));
-    vi.mocked(api.saveProgress).mockResolvedValue({} as any);
+    vi.mocked(api.saveProgress).mockResolvedValue(MOCK_PROGRESS());
 
     const { result } = renderHook(() =>
       useProgress({ bookId: 'book-1', autoSaveInterval: 999999, debounceDelay: 5000 }),
@@ -140,7 +140,7 @@ describe('useProgress', () => {
 
   it('skips save when change is less than 1%', async () => {
     vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: 'epubcfi(/6/2)', percentage: 50 }));
-    vi.mocked(api.saveProgress).mockResolvedValue({} as any);
+    vi.mocked(api.saveProgress).mockResolvedValue(MOCK_PROGRESS());
 
     const { result } = renderHook(() =>
       useProgress({ bookId: 'book-1', autoSaveInterval: 999999, debounceDelay: 100 }),
@@ -179,7 +179,7 @@ describe('useProgress', () => {
 
   it('custom debounce delay does not cause immediate save', async () => {
     vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: '', percentage: 0 }));
-    vi.mocked(api.saveProgress).mockResolvedValue({} as any);
+    vi.mocked(api.saveProgress).mockResolvedValue(MOCK_PROGRESS());
 
     const { result } = renderHook(() =>
       useProgress({ bookId: 'book-1', autoSaveInterval: 999999, debounceDelay: 5000 }),

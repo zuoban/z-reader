@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useShelfData } from '@/hooks/useShelfData';
 import { api } from '@/lib/api';
+import type { Book } from '@/lib/api';
 
 // Mock the API
 vi.mock('@/lib/api', () => ({
@@ -27,7 +28,7 @@ vi.mock('@/lib/book-preview', () => ({
   extractBookPreview: vi.fn().mockResolvedValue({ title: 'Test Book', author: 'Test Author' }),
 }));
 
-const mockBook = (overrides: Partial<Parameters<typeof api.listBooks> extends [any] ? any : any> = {}) => ({
+const mockBook = (overrides: Partial<Book> = {}): Book => ({
   id: 'book-1',
   user_id: 'user-1',
   title: 'Test Book',

@@ -1,12 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { api, auth, ApiError, getAuthHeaders, AUTH_EXPIRED_EVENT } from '@/lib/api';
-
-// Mock fetch globally
-const originalFetch = globalThis.fetch;
+import { api, auth, ApiError, getAuthHeaders } from '@/lib/api';
 
 function mockFetch(response: Partial<Response> & { body?: unknown; ok?: boolean }) {
   const { body, ok = true, status = 200, headers = {} } = response;
-  const responseInit: ResponseInit = { status, headers };
 
   return vi.fn().mockResolvedValue({
     ok,

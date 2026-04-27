@@ -217,9 +217,13 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	removeFileIfExists(filepath.Join(h.cfg.UploadDir, book.Filename))
+	if path, err := resolveUploadPath(h.cfg.UploadDir, book.Filename); err == nil {
+		removeFileIfExists(path)
+	}
 	if book.CoverPath != "" {
-		removeFileIfExists(filepath.Join(h.cfg.UploadDir, book.CoverPath))
+		if path, err := resolveUploadPath(h.cfg.UploadDir, book.CoverPath); err == nil {
+			removeFileIfExists(path)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
@@ -243,16 +247,8 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	}
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
-	filePath := filepath.Join(h.cfg.UploadDir, book.Filename)
-
-	// 路径遍历保护：验证解析后的文件路径在 UploadDir 范围内
-	uploadDirAbs, err := filepath.Abs(h.cfg.UploadDir)
+	filePath, err := resolveUploadPath(h.cfg.UploadDir, book.Filename)
 	if err != nil {
-		response.InternalError(c, "获取上传目录失败")
-		return
-	}
-	resolved, err := filepath.Abs(filePath)
-	if err != nil || !strings.HasPrefix(resolved, uploadDirAbs+string(filepath.Separator)) {
 		response.Forbidden(c, "文件访问被拒绝")
 		return
 	}
@@ -425,7 +421,16 @@ func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*mo
 			continue
 		}
 
-		storedHash, err := hashFile(filepath.Join(h.cfg.UploadDir, books[i].Filename))
+		path, pathErr := resolveUploadPath(h.cfg.UploadDir, books[i].Filename)
+		if pathErr != nil {
+			logger.Warn("Skipped invalid stored book path during duplicate check",
+				slog.String("book_id", books[i].ID),
+				slog.Any("error", pathErr),
+			)
+			continue
+		}
+
+		storedHash, err := hashFile(path)
 		if err != nil {
 			logger.Warn("Failed to hash existing book during duplicate check",
 				slog.String("book_id", books[i].ID),
@@ -609,8 +614,13 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	if book.CoverPath != "" {
+		coverPath, err := resolveUploadPath(h.cfg.UploadDir, book.CoverPath)
+		if err != nil {
+			response.Forbidden(c, "封面访问被拒绝")
+			return
+		}
 		setPrivateCache(c, bookCoverCacheMaxAge)
-		c.File(filepath.Join(h.cfg.UploadDir, book.CoverPath))
+		c.File(coverPath)
 		return
 	}
 
@@ -619,8 +629,12 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		return
 	}
 
-	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
-	coverData, contentType, err := extractEPUBCover(filepath)
+	bookPath, err := resolveUploadPath(h.cfg.UploadDir, book.Filename)
+	if err != nil {
+		response.Forbidden(c, "文件访问被拒绝")
+		return
+	}
+	coverData, contentType, err := extractEPUBCover(bookPath)
 	if err != nil {
 		response.NotFound(c, "封面不存在")
 		return
@@ -695,7 +709,11 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	}
 
 	coverFilename := id + ".cover" + ext
-	coverPath := filepath.Join(h.cfg.UploadDir, coverFilename)
+	coverPath, err := resolveUploadPath(h.cfg.UploadDir, coverFilename)
+	if err != nil {
+		response.Forbidden(c, "封面保存被拒绝")
+		return
+	}
 	previousCoverPath := book.CoverPath
 	if err := c.SaveUploadedFile(file, coverPath); err != nil {
 		response.InternalError(c, "保存封面失败")
@@ -710,7 +728,9 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 		return
 	}
 	if previousCoverPath != "" && previousCoverPath != coverFilename {
-		os.Remove(filepath.Join(h.cfg.UploadDir, previousCoverPath))
+		if path, err := resolveUploadPath(h.cfg.UploadDir, previousCoverPath); err == nil {
+			os.Remove(path)
+		}
 	}
 
 	c.JSON(http.StatusOK, book)
@@ -800,4 +820,28 @@ func writeNotModifiedIfETagMatches(c *gin.Context, rawETag string) bool {
 func hashBytes(data []byte) string {
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
+}
+
+func resolveUploadPath(uploadDir string, name string) (string, error) {
+	if strings.TrimSpace(name) == "" {
+		return "", fmt.Errorf("empty upload path")
+	}
+
+	uploadDirAbs, err := filepath.Abs(uploadDir)
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.Abs(filepath.Join(uploadDirAbs, name))
+	if err != nil {
+		return "", err
+	}
+
+	rel, err := filepath.Rel(uploadDirAbs, resolved)
+	if err != nil {
+		return "", err
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+		return "", fmt.Errorf("upload path escapes base directory")
+	}
+	return resolved, nil
 }

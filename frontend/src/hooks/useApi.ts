@@ -7,6 +7,7 @@ import {
   DEFAULT_TIMEOUT,
   normalizeRequestError,
 } from '@/lib/config';
+import { ApiError, auth, AUTH_EXPIRED_EVENT } from '@/lib/api';
 
 interface UseApiOptions<T> {
   onSuccess?: (data: T) => void;
@@ -22,6 +23,23 @@ interface UseApiReturn<T> {
   reset: () => void;
 }
 
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return auth.getToken();
+}
+
+function handleUnauthorized(res: Response): void {
+  if (res.status !== 401 || typeof window === 'undefined') return;
+  auth.removeToken();
+  window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+}
+
+async function parseApiError(res: Response): Promise<ApiError> {
+  const body = await res.json().catch(() => null) as { error?: string; message?: string } | null;
+  const message = body?.message || body?.error || `请求失败，状态码：${res.status}`;
+  return new ApiError(message, res.status);
+}
+
 export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -31,7 +49,7 @@ export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
     setIsLoading(true);
     setError(null);
 
-    const token = localStorage.getItem('token');
+    const token = getToken();
     const timeout = options?.signal ? undefined : (defaultOptions?.timeout ?? DEFAULT_TIMEOUT);
     const { controller, timeoutId } = timeout ? createAbortController(timeout) : { controller: new AbortController(), timeoutId: undefined as NodeJS.Timeout | undefined };
 
@@ -49,8 +67,8 @@ export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(errData.message || errData.error || `请求失败，状态码：${res.status}`);
+        handleUnauthorized(res);
+        throw await parseApiError(res);
       }
 
       const result = await res.json() as T;
@@ -86,7 +104,7 @@ export function useApiMutation<T, P = void>(defaultOptions?: UseApiOptions<T>) {
     setIsLoading(true);
     setError(null);
 
-    const token = localStorage.getItem('token');
+    const token = getToken();
     const timeout = defaultOptions?.timeout ?? DEFAULT_TIMEOUT;
     const { controller, timeoutId } = createAbortController(timeout);
 
@@ -105,8 +123,8 @@ export function useApiMutation<T, P = void>(defaultOptions?: UseApiOptions<T>) {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(errData.message || errData.error || `请求失败，状态码：${res.status}`);
+        handleUnauthorized(res);
+        throw await parseApiError(res);
       }
 
       const result = await res.json() as T;

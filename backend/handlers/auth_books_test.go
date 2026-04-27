@@ -318,6 +318,21 @@ func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
 	}
 }
 
+func TestResolveUploadPathRejectsTraversal(t *testing.T) {
+	uploadDir := t.TempDir()
+	if _, err := resolveUploadPath(uploadDir, "../secret.epub"); err == nil {
+		t.Fatal("expected traversal path to be rejected")
+	}
+
+	resolved, err := resolveUploadPath(uploadDir, "book.epub")
+	if err != nil {
+		t.Fatalf("expected normal path to resolve, got %v", err)
+	}
+	if filepath.Dir(resolved) != uploadDir {
+		t.Fatalf("expected resolved path to stay in upload dir, got %q", resolved)
+	}
+}
+
 func TestValidateUploadedBook(t *testing.T) {
 	tests := []struct {
 		name    string

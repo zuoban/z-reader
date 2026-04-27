@@ -80,19 +80,22 @@ export default function ShelfPage() {
     >
       {/* 统一头部面板：品牌 + 操作 */}
       <div
-        className="paper-reveal shelf-header rounded-2xl overflow-hidden"
+        className="paper-reveal shelf-header shelf-header-glass"
         style={delay(0)}
       >
         {/* 品牌 + 操作按钮行 */}
-        <div className="flex items-center justify-between px-3 py-2.5 sm:px-5 sm:py-3.5">
+        <div className="relative z-10 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0 flex-1">
             <BrandMark size="sm" className="hidden sm:block" priority />
             <BrandMark size="sm" className="w-[120px] sm:hidden" priority />
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {user?.role === 'admin' && (
-              <UserManager currentUser={user} buttonClassName="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9" />
+              <>
+                <UserManager currentUser={user} buttonClassName="shelf-icon-btn" />
+                <span className="shelf-btn-divider" />
+              </>
             )}
             <FileUploadAction
               accept={SUPPORTED_FORMATS_ACCEPT}
@@ -104,39 +107,43 @@ export default function ShelfPage() {
               buttonVariant="ghost"
               buttonSize="sm"
               buttonClassName={cn(
-                'shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9',
+                'shelf-icon-btn',
                 isUploading && 'bg-primary/10 text-primary opacity-100 hover:bg-primary/12'
               )}
             >
               {isUploading ? (
                 <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
               ) : (
-                <Upload className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
+                <Upload className="h-4 w-4" />
               )}
             </FileUploadAction>
+
+            <span className="shelf-btn-divider" />
 
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
               title={isDark ? '切换亮色模式' : '切换暗色模式'}
-              className="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9 cursor-pointer"
+              className="shelf-icon-btn cursor-pointer"
             >
               {isDark ? (
-                <Sun className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
+                <Sun className="h-4 w-4" />
               ) : (
-                <Moon className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
+                <Moon className="h-4 w-4" />
               )}
             </Button>
+
+            <span className="shelf-btn-divider" />
 
             <Button
               variant="ghost"
               size="sm"
               onClick={logout}
               title="退出"
-              className="shelf-icon-btn h-8 w-8 sm:h-9 sm:w-9 cursor-pointer"
+              className="shelf-icon-btn cursor-pointer"
             >
-              <LogOut className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>

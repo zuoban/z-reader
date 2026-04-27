@@ -483,13 +483,68 @@ foliate-view::part(filter) {
   }
 
   .shelf-header {
-    background: color-mix(in srgb, var(--card) 96%, var(--background));
+    background:
+      linear-gradient(180deg,
+        color-mix(in srgb, var(--glass-tint) 100%, transparent) 0%,
+        transparent 40%),
+      color-mix(in srgb, var(--card) 96%, var(--background));
     border: 1px solid var(--border);
     border-radius: 1.25rem;
     box-shadow:
-      0 6px 24px -14px var(--paper-shadow),
-      0 1px 6px -4px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
+      0 12px 36px -16px var(--paper-shadow),
+      0 4px 12px -6px var(--paper-shadow-soft),
+      0 1px 3px -2px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 65%, transparent),
+      inset 0 -1px 0 color-mix(in srgb, var(--paper-edge) 15%, transparent);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shelf-header::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    left: -10%;
+    width: 60%;
+    height: 80%;
+    background: var(--ambient-orb-1);
+    opacity: 0.6;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .shelf-header::after {
+    content: "";
+    position: absolute;
+    top: -30%;
+    right: -5%;
+    width: 50%;
+    height: 70%;
+    background: var(--ambient-orb-2);
+    opacity: 0.5;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .shelf-header-glass::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 1.5rem;
+    right: 1.5rem;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--glass-specular) 50%, transparent) 15%,
+      color-mix(in srgb, var(--glass-specular) 80%, transparent) 50%,
+      color-mix(in srgb, var(--glass-specular) 50%, transparent) 85%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 2;
   }
 
   .shelf-bands {
@@ -758,10 +813,37 @@ foliate-view::part(filter) {
   }
 
   .shelf-icon-btn {
-    @apply h-9 w-9 shrink-0 rounded-md p-0 text-muted-foreground transition-colors duration-200;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    @apply h-9 w-9 shrink-0 p-0 text-muted-foreground;
+    background: transparent !important;
+    border: none !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: none !important;
+    transition:
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+    will-change: transform;
+  }
+
+  .shelf-icon-btn:hover {
+    @apply text-foreground;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-tint) 80%, transparent) 0%,
+      color-mix(in srgb, var(--muted) 35%, transparent) 100%
+    ) !important;
+    box-shadow:
+      0 2px 8px -2px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent) !important;
+    transform: scale(1.06);
+  }
+
+  .shelf-icon-btn:active {
+    transform: scale(0.94);
+    background: color-mix(in srgb, var(--muted) 50%, transparent) !important;
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--paper-shadow-soft) 60%, transparent) !important;
+    transition-duration: 80ms;
   }
 
   .liquid-glass-specular {
@@ -780,8 +862,13 @@ foliate-view::part(filter) {
     z-index: 1;
   }
 
-  .shelf-icon-btn:hover {
-    @apply text-foreground bg-muted/50;
+  .shelf-btn-divider {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--border) 50%, transparent);
+    flex-shrink: 0;
+    align-self: center;
   }
 
   .spinner-border {

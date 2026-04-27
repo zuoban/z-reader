@@ -1,7 +1,6 @@
 'use client';
 
 import { Tag } from 'lucide-react';
-import type { Category } from '@/lib/api';
 import {
   Select,
   SelectContent,
@@ -22,7 +21,7 @@ function truncateLabel(label: string) {
 }
 
 interface CategoryFilterProps {
-  categories: Category[];
+  categories: string[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
   bookCounts: Record<string, number>;
@@ -50,9 +49,9 @@ export function CategoryFilter({
     },
     ...categories
       .map((category) => ({
-        id: category.id,
-        label: category.name,
-        count: bookCounts[category.id] || 0,
+        id: category,
+        label: category,
+        count: bookCounts[category] || 0,
       }))
       .filter((item) => item.count > 0),
   ];

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { Book, Category } from '@/lib/api';
+import type { Book } from '@/lib/api';
 import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
@@ -51,6 +51,16 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'author', label: '作者' },
 ];
 
+function deriveCategories(items: Book[]): string[] {
+  return Array.from(
+    new Set(
+      items
+        .map((book) => book.category?.trim())
+        .filter((category): category is string => Boolean(category))
+    )
+  ).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+}
+
 function getSortTimestamp(date?: string): number {
   if (!date) return 0;
   const timestamp = Date.parse(date);
@@ -83,7 +93,6 @@ function formatFileSize(bytes: number): string {
 
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -99,13 +108,11 @@ export function useShelfData(isAuthenticated: boolean) {
   const loadBooks = useCallback(async () => {
     setIsLoadingBooks(true);
     try {
-      const [bookData, progressData, categoryData] = await Promise.all([
+      const [bookData, progressData] = await Promise.all([
         api.listBooks(),
         api.listProgress().catch(() => []),
-        api.listCategories().catch(() => []),
       ]);
       setBooks(bookData || []);
-      setCategories(categoryData || []);
       setProgressByBookId(
         Object.fromEntries(
           (progressData || []).map((progress) => [progress.book_id, progress.percentage])
@@ -113,7 +120,6 @@ export function useShelfData(isAuthenticated: boolean) {
       );
     } catch {
       setBooks([]);
-      setCategories([]);
       setProgressByBookId({});
     } finally {
       setIsLoadingBooks(false);
@@ -130,9 +136,11 @@ export function useShelfData(isAuthenticated: boolean) {
     return () => window.clearTimeout(timeoutId);
   }, [isAuthenticated, loadBooks]);
 
+  const categories = useMemo(() => deriveCategories(books), [books]);
+
   useEffect(() => {
     if (!selectedCategoryId || selectedCategoryId === UNCATEGORIZED_FILTER_ID) return;
-    if (!categories.some((category) => category.id === selectedCategoryId)) {
+    if (!categories.includes(selectedCategoryId)) {
       setSelectedCategoryId(null);
     }
   }, [categories, selectedCategoryId]);

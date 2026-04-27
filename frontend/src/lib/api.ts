@@ -20,14 +20,6 @@ export interface Book {
   last_read_at?: string;
 }
 
-export interface Category {
-  id: string;
-  user_id: string;
-  name: string;
-  sort_order: number;
-  created_at: string;
-}
-
 export interface Progress {
   book_id: string;
   user_id: string;
@@ -331,10 +323,6 @@ export const api = {
     }).catch(() => {
       // Ignore unload-time failures.
     });
-  },
-
-  listCategories: async (): Promise<Category[]> => {
-    return fetchApi<Category[]>('/api/categories');
   },
 
 };

@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, Tag } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { Category } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +20,7 @@ import { cn } from '@/lib/utils';
 interface CategorySelectorProps {
   bookId: string;
   currentCategory?: string;
-  categories: Category[];
+  categories: string[];
   bookCounts: Record<string, number>;
   onUpdate: () => void;
   open: boolean;
@@ -137,25 +136,25 @@ export function CategorySelector({
               </p>
               {categories.map((cat) => (
                 <button
-                  key={cat.id}
+                  key={cat}
                   type="button"
-                  onClick={() => saveCategory(cat.name)}
+                  onClick={() => saveCategory(cat)}
                   disabled={loading}
                   className={cn(
                     'flex w-full cursor-pointer items-center justify-between gap-3 rounded-[1.25rem] border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
-                    currentCategory?.trim() === cat.name
+                    currentCategory?.trim() === cat
                       ? 'border-foreground/20 bg-muted/45 text-foreground'
                       : 'border-border/50 bg-background hover:bg-muted/45'
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    {currentCategory?.trim() === cat.name && (
+                    {currentCategory?.trim() === cat && (
                       <Check className="h-4 w-4 shrink-0" />
                     )}
-                    <span className="truncate font-medium">{cat.name}</span>
+                    <span className="truncate font-medium">{cat}</span>
                   </div>
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {bookCounts[cat.id] || 0}
+                    {bookCounts[cat] || 0}
                   </span>
                 </button>
               ))}

@@ -15,7 +15,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { Book, Category } from '@/lib/api';
+import type { Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ const PerspectiveBook = dynamic(
 interface BookCardProps {
   book: Book;
   index: number;
-  categories: Category[];
+  categories: string[];
   bookCounts: Record<string, number>;
   onRead: () => void;
   onDelete: () => void;

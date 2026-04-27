@@ -83,7 +83,6 @@ func main() {
 	booksHandler := handlers.NewBooksHandler(cfg, db)
 	progressHandler := handlers.NewProgressHandler(db)
 	ttsHandler := handlers.NewTTSHandler()
-	categoriesHandler := handlers.NewCategoriesHandler(cfg, db)
 	usersHandler := handlers.NewUsersHandler(db)
 
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
@@ -114,8 +113,6 @@ func main() {
 		api.GET("/tts", ttsHandler.TTS)
 		api.POST("/ssml", ttsHandler.SSML)
 		api.GET("/voices", ttsHandler.VoiceList)
-
-		api.GET("/categories", categoriesHandler.List)
 
 		users := api.Group("/users")
 		users.Use(middleware.AdminRequired())

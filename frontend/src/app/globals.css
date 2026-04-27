@@ -466,10 +466,6 @@ foliate-view::part(filter) {
     transition-timing-function: var(--paper-ease-out);
   }
 
-  .shelf-stage {
-    position: relative;
-  }
-
   .shelf-container {
     background: color-mix(in srgb, var(--card) 96%, var(--background));
     border: 1px solid var(--border);
@@ -478,12 +474,10 @@ foliate-view::part(filter) {
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 50%, transparent);
   }
 
-  .shelf-stage-bg {
-    /* Deprecated */
-  }
-
   .shelf-header {
     background:
+      var(--ambient-orb-1),
+      var(--ambient-orb-2),
       linear-gradient(180deg,
         color-mix(in srgb, var(--glass-tint) 100%, transparent) 0%,
         transparent 40%),
@@ -503,34 +497,6 @@ foliate-view::part(filter) {
   .shelf-header::before {
     content: "";
     position: absolute;
-    top: -40%;
-    left: -10%;
-    width: 60%;
-    height: 80%;
-    background: var(--ambient-orb-1);
-    opacity: 0.6;
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-
-  .shelf-header::after {
-    content: "";
-    position: absolute;
-    top: -30%;
-    right: -5%;
-    width: 50%;
-    height: 70%;
-    background: var(--ambient-orb-2);
-    opacity: 0.5;
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-
-  .shelf-header-glass::after {
-    content: "";
-    position: absolute;
     top: 0;
     left: 1.5rem;
     right: 1.5rem;
@@ -547,27 +513,10 @@ foliate-view::part(filter) {
     z-index: 2;
   }
 
-  .shelf-bands {
-    /* Removed — fixed-position bands don't align with dynamic book grid rows */
-  }
-
   .reading-status-panel {
     background: color-mix(in srgb, var(--card) 96%, var(--background));
     border: 1px solid var(--border);
     box-shadow: 0 4px 20px -4px var(--paper-shadow-soft);
-  }
-
-  .book-shadow {
-    box-shadow:
-      0 10px 20px var(--paper-shadow-soft),
-      0 24px 46px var(--paper-shadow);
-  }
-
-  .book-shadow-hover {
-    box-shadow:
-      0 16px 28px var(--paper-shadow-soft),
-      0 34px 56px var(--paper-shadow);
-    transform: translateY(-3px);
   }
 
   .shelf-book-card {
@@ -585,31 +534,6 @@ foliate-view::part(filter) {
   .shelf-book-card:active {
     box-shadow:
       0 2px 8px -4px var(--paper-shadow-soft);
-  }
-
-  .reading-grid {
-    background-image:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%),
-      linear-gradient(90deg, color-mix(in srgb, var(--border) 16%, transparent) 1px, transparent 1px),
-      linear-gradient(color-mix(in srgb, var(--border) 10%, transparent) 1px, transparent 1px);
-    background-size: auto, 32px 32px, 32px 32px;
-    background-position: 0 0, center center, center center;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-book-appear {
-    animation: fadeIn 0.4s ease-out forwards;
   }
 
   @keyframes paperPanelIn {
@@ -726,48 +650,6 @@ foliate-view::part(filter) {
     filter: blur(10px);
     opacity: 0.34;
     pointer-events: none;
-  }
-
-  @keyframes soundWave {
-
-    0%,
-    100% {
-      transform: scaleY(0.4);
-      opacity: 0.5;
-    }
-
-    50% {
-      transform: scaleY(1);
-      opacity: 0.9;
-    }
-  }
-
-  @keyframes glowPulse {
-
-    0%,
-    100% {
-      opacity: 0.4;
-      transform: scale(1);
-    }
-
-    50% {
-      opacity: 0.7;
-      transform: scale(1.02);
-    }
-  }
-
-  @keyframes indicatorPulse {
-
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    50% {
-      opacity: 0.7;
-      transform: scale(1.15);
-    }
   }
 
   @keyframes loginFloat {

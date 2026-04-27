@@ -2,49 +2,36 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  MOBILE_CARD_WIDTH,
+  MOBILE_COVER_HEIGHT,
+  MOBILE_BOOK_SCALE,
+  DESKTOP_CARD_WIDTH,
+  DESKTOP_COVER_HEIGHT,
+  DESKTOP_BOOK_SCALE,
+  SPELL_BOOK_WIDTH,
+  SPELL_BOOK_HEIGHT,
+} from '@/lib/card-constants';
 
 interface BookCardSkeletonProps {
   isMobile?: boolean;
 }
 
-// 标准书籍封面宽高比（49:60），用于骨架屏预览尺寸计算
-const SPELL_BOOK_WIDTH = 150;
-const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
-
-// 与 BookCard 保持一致的卡片尺寸
-const MOBILE_CARD_WIDTH = 172;
-const MOBILE_CARD_SCALE = 1;
-const MOBILE_COVER_HEIGHT = 210;
-
-const DESKTOP_CARD_WIDTH = 218;
-const DESKTOP_CARD_SCALE = 0.83;
-const DESKTOP_COVER_HEIGHT = 242;
-
 export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
-  const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
-  const cardFrameWidth = Math.round(cardWidth * cardScale);
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
-  const bookScale = isMobile ? 0.86 : 1;
+  const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
   const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
   const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
 
   return (
     <div
       className="flex w-full items-center justify-start"
-      style={{
-        width: isMobile ? '100%' : cardFrameWidth,
-      }}
     >
-      <div style={{ transform: `scale(${cardScale})`, transformOrigin: 'center' }}>
-        <div
-          className="paper-panel paper-stack relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card"
-          style={{
-            width: isMobile ? '100%' : cardWidth,
-            boxShadow:
-              '0 12px 24px -24px rgba(64,36,20,0.24), 0 6px 16px -18px rgba(64,36,20,0.14)',
-          }}
-        >
+      <div
+        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card"
+        style={{ width: isMobile ? '100%' : cardWidth }}
+      >
           <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
           {/* Cover skeleton */}
           <div
@@ -117,7 +104,6 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }
@@ -126,7 +112,7 @@ export function BookCardSkeletonGrid({ count = 6 }: { count?: number }) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(186px,1fr))] sm:gap-x-7 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(204px,1fr))] lg:gap-x-8 lg:gap-y-12">
+    <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-x-6 sm:gap-y-10 lg:grid-cols-[repeat(auto-fill,minmax(196px,1fr))] lg:gap-x-8 lg:gap-y-12">
       {Array.from({ length: count }).map((_, index) => (
         <BookCardSkeleton key={index} isMobile={isMobile} />
       ))}

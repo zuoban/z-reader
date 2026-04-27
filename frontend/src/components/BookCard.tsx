@@ -13,6 +13,16 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  MOBILE_CARD_WIDTH,
+  MOBILE_COVER_HEIGHT,
+  MOBILE_BOOK_SCALE,
+  DESKTOP_CARD_WIDTH,
+  DESKTOP_COVER_HEIGHT,
+  DESKTOP_BOOK_SCALE,
+  SPELL_BOOK_WIDTH,
+  SPELL_BOOK_HEIGHT,
+} from '@/lib/card-constants';
 
 const PerspectiveBook = dynamic(
   () => import('@/registry/spell-ui/perspective-book').then((m) => ({ default: m.PerspectiveBook })),
@@ -31,17 +41,6 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
   progressPercentage?: number | null;
 }
-
-const MOBILE_CARD_WIDTH = 172;
-const MOBILE_CARD_SCALE = 1;
-const MOBILE_COVER_HEIGHT = 210;
-
-const DESKTOP_CARD_WIDTH = 218;
-const DESKTOP_CARD_SCALE = 0.83;
-const DESKTOP_COVER_HEIGHT = 242;
-
-const SPELL_BOOK_WIDTH = 150;
-const SPELL_BOOK_HEIGHT = Math.round((SPELL_BOOK_WIDTH * 60) / 49);
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -175,10 +174,8 @@ export function BookCard({
   const categoryLabel = book.category?.trim() ?? '';
 
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
-  const cardScale = isMobile ? MOBILE_CARD_SCALE : DESKTOP_CARD_SCALE;
-  const cardFrameWidth = Math.round(cardWidth * cardScale);
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
-  const bookScale = isMobile ? 0.86 : 1;
+  const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
   const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
   const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
 
@@ -204,18 +201,11 @@ export function BookCard({
       className="paper-reveal flex items-center justify-start"
       style={{ '--paper-delay': `${Math.min(index * 55, 260)}ms` } as CSSProperties}
     >
-      <div
-        style={{
-          transform: `scale(${cardScale})`,
-          transformOrigin: 'center',
-          width: isMobile ? '100%' : cardWidth,
-        }}
+      <Card
+        className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card p-0 gap-0 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+        style={{ width: isMobile ? '100%' : cardWidth }}
+        onClick={onRead}
       >
-        <Card
-          className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card p-0 gap-0 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
-          style={{ width: isMobile ? '100%' : cardWidth }}
-          onClick={onRead}
-        >
           <div
             className="relative overflow-hidden bg-gradient-to-b from-muted/60 to-muted/30 dark:from-muted/40 dark:to-muted/20"
             style={{ height: coverHeight }}
@@ -304,7 +294,6 @@ export function BookCard({
             </div>
           </div>
         </Card>
-      </div>
       <CategorySelector
         bookId={book.id}
         currentCategory={book.category}

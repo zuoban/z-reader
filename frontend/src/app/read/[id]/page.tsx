@@ -8,7 +8,6 @@ import {
   lazy,
   Suspense,
 } from "react";
-import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -16,34 +15,22 @@ import { FoliateView, TOCItem } from "@/lib/types";
 import { useProgress } from "@/hooks/useProgress";
 import {
   useReaderTheme,
-  ThemeColors,
   PRESET_STYLES,
 } from "@/hooks/useReaderTheme";
 import { useReaderControls } from "@/hooks/useReaderControls";
 import { useTTS } from "@/hooks/useTTS";
 import { ThemeSettings } from "@/components/ThemeSettings";
+import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
+import { ReaderResumePrompt } from "@/components/reader/ReaderResumePrompt";
+import { ReaderStatusBar } from "@/components/reader/ReaderStatusBar";
+import {
+  ReaderAuthLoading,
+  ReaderErrorState,
+  ReaderLoadingOverlay,
+} from "@/components/reader/ReaderStateViews";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  AlertCircle,
-  ChevronLeft,
-  List,
-  LocateFixed,
-} from "lucide-react";
-import {
-  floatingSheetActionButtonClass,
-  getFloatingSheetActionButtonStyle,
-  withOpacity,
-} from "@/lib/reader-ui";
-import { cn } from "@/lib/utils";
+import { ChevronLeft } from "lucide-react";
+import { withOpacity } from "@/lib/reader-ui";
 
 // 延迟加载 TTS 组件，首屏不加载
 const TTSControls = lazy(() =>
@@ -583,44 +570,16 @@ export default function ReadPage() {
   }, [loading, themeSettingsOpen, tocOpen]);
 
   if (authLoading || !isAuthenticated) {
-    return (
-      <div
-        className="h-screen flex items-center justify-center"
-        style={{ background: uiScheme.bg }}
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="w-10 h-10 border-2 rounded-full animate-spin"
-            style={{
-              borderColor: `${uiScheme.fg}20`,
-              borderTopColor: uiScheme.fg,
-            }}
-          />
-          <p
-            className="text-sm font-medium"
-            style={{ color: uiScheme.mutedText }}
-          >
-            加载中...
-          </p>
-        </div>
-      </div>
-    );
+    return <ReaderAuthLoading uiScheme={uiScheme} />;
   }
 
   if (error) {
     return (
-      <div
-        className="h-screen flex flex-col items-center justify-center gap-4 p-8"
-        style={{ background: uiScheme.bg }}
-      >
-        <div className="w-16 h-20 rounded border-2 border-destructive/30 flex items-center justify-center bg-destructive/5">
-          <span className="text-destructive text-2xl font-semibold">!</span>
-        </div>
-        <p className="text-base font-medium text-destructive">{error}</p>
-        <Button onClick={handleBack} variant="outline" className="mt-2">
-          返回书库
-        </Button>
-      </div>
+      <ReaderErrorState
+        error={error}
+        uiScheme={uiScheme}
+        onBack={handleBack}
+      />
     );
   }
 
@@ -651,11 +610,6 @@ export default function ReadPage() {
     background: uiScheme.bg,
     borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.3 : 0.4)}`,
   } as const;
-  const mobileResumeCardStyle = {
-    background: uiScheme.cardBg,
-    border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
-    boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
-  };
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "1.25rem";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)";
@@ -710,101 +664,19 @@ export default function ReadPage() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
 
-                <Sheet open={tocOpen} onOpenChange={setTocOpen}>
-                  <SheetTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="目录"
-                        className={toolbarButtonClass}
-                        style={getToolbarButtonStyle(tocOpen)}
-                      />
-                    }
-                  >
-                    <List className="h-4 w-4" />
-                  </SheetTrigger>
-                <SheetContent
-                  side="left"
-                  container={overlayContainer}
-                  className="max-w-sm border-r-0 p-0 sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
-                  style={{
-                    background: uiScheme.cardBg,
-                    boxShadow: `20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
-                  }}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => {
-                      scrollToCurrentChapter("smooth");
-                    }}
-                    disabled={!currentChapter}
-                    title={
-                      currentChapter
-                        ? `定位到当前章节：${currentChapter}`
-                        : "暂未识别当前章节"
-                    }
-                    aria-label="定位到当前章节"
-                    className={floatingSheetActionButtonClass}
-                    style={getFloatingSheetActionButtonStyle({
-                      uiScheme,
-                      enabled: Boolean(currentChapter),
-                      side: "right",
-                    })}
-                  >
-                    <LocateFixed className="h-4 w-4" />
-                  </Button>
-
-                  <SheetHeader className="relative overflow-hidden border-b border-border/40 px-5 py-6 pr-28">
-                    <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
-                    <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-accent/10" />
-                    
-                    <div className="relative flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                        <List className="h-4.5 w-4.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <SheetTitle className="text-lg font-bold tracking-tight" style={{ color: uiScheme.fg }}>
-                          书籍目录
-                        </SheetTitle>
-                        <SheetDescription
-                          className="mt-0.5 text-[10px] font-medium opacity-60 text-muted-foreground"
-                          style={{ color: uiScheme.mutedText }}
-                        >
-                          快速穿梭于书页的脉络之间
-                        </SheetDescription>
-                      </div>
-                    </div>
-                  </SheetHeader>
-
-                  <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-116px)] sm:h-[calc(100vh-104px)]">
-                    <div
-                      ref={tocListRef}
-                      className="space-y-1 px-4 pb-8 pt-1.5"
-                    >
-                      {toc.length > 0 ? (
-                        toc.map((item, idx) => (
-                          <MemoizedTOCNode
-                            key={idx}
-                            item={item}
-                            onGoTo={goTo}
-                            currentChapter={currentChapter}
-                            uiScheme={uiScheme}
-                          />
-                        ))
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-30">
-                          <List className="h-12 w-12 stroke-[1]" style={{ color: uiScheme.mutedText }} />
-                          <p className="mt-4 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
-                            未检测到目录结构
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </SheetContent>
-              </Sheet>
+                <ReaderTOCSheet
+                  open={tocOpen}
+                  onOpenChange={setTocOpen}
+                  toc={toc}
+                  tocListRef={tocListRef}
+                  currentChapter={currentChapter}
+                  uiScheme={uiScheme}
+                  overlayContainer={overlayContainer}
+                  triggerClassName={toolbarButtonClass}
+                  triggerStyle={getToolbarButtonStyle(tocOpen)}
+                  onLocateCurrent={() => scrollToCurrentChapter("smooth")}
+                  onGoTo={goTo}
+                />
               </div>
 
               {/* 中间标题区域 */}
@@ -876,57 +748,12 @@ export default function ReadPage() {
             style={{ background: uiScheme.bg }}
           >
             {loading && (
-              <div
-                className="absolute z-20 flex flex-col items-center justify-center"
-                style={{
-                  top: readerContentInsetTop,
-                  right: 0,
-                  bottom: statusBarReservedSpace,
-                  left: 0,
-                  background: `
-                    linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)
-                  `,
-                }}
-              >
-                <div
-                  className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8"
-                  style={{
-                    background: uiScheme.cardBg,
-                    borderColor: withOpacity(uiScheme.cardBorder, 0.78),
-                    boxShadow: `0 24px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
-                  }}
-                >
-                  <div
-                    className="flex h-20 w-16 items-center justify-center rounded-[1.25rem] border"
-                    style={{
-                      background: withOpacity(uiScheme.buttonBg, 0.52),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.72),
-                    }}
-                  >
-                    <div
-                      className="h-10 w-10 animate-spin rounded-full border-2"
-                      style={{
-                        borderColor: withOpacity(uiScheme.link, 0.2),
-                        borderTopColor: uiScheme.link,
-                      }}
-                    />
-                  </div>
-                  <div className="text-center">
-                    <p
-                      className="text-sm font-medium tracking-tight"
-                      style={{ color: uiScheme.fg }}
-                    >
-                      {loadingMsg}
-                    </p>
-                    <p
-                      className="mt-1 text-xs"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      正在准备阅读环境与书籍内容
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <ReaderLoadingOverlay
+                loadingMsg={loadingMsg}
+                readerContentInsetTop={readerContentInsetTop}
+                statusBarReservedSpace={statusBarReservedSpace}
+                uiScheme={uiScheme}
+              />
             )}
 
             <div
@@ -944,188 +771,24 @@ export default function ReadPage() {
             </div>
 
             {isTouchReader && resumePromptVisible && (
-              <div
-                data-reader-interactive="true"
-                className="pointer-events-none absolute inset-x-0 z-40 flex justify-center px-4 sm:hidden"
-                style={{
-                  bottom: "calc(env(safe-area-inset-bottom, 0px) + 3.25rem)",
-                }}
-              >
-                <div
-                  className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3"
-                  style={mobileResumeCardStyle}
-                >
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                    style={{
-                      background: withOpacity(uiScheme.link, 0.14),
-                      color: uiScheme.link,
-                    }}
-                  >
-                    <AlertCircle className="h-4.5 w-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: uiScheme.fg }}
-                    >
-                      朗读已暂停
-                    </p>
-                    <p
-                      className="mt-0.5 line-clamp-2 text-xs leading-5"
-                      style={{ color: uiScheme.mutedText }}
-                    >
-                      {resumePromptMessage}
-                    </p>
-                  </div>
-                  <Button
-                    data-reader-interactive="true"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void resumeTTS()}
-                    className="h-10 shrink-0 rounded-xl px-3.5 text-sm font-semibold"
-                    style={{
-                      color: uiScheme.link,
-                      border: `1px solid ${withOpacity(uiScheme.link, 0.18)}`,
-                    }}
-                  >
-                    继续
-                  </Button>
-                </div>
-              </div>
+              <ReaderResumePrompt
+                message={resumePromptMessage}
+                uiScheme={uiScheme}
+                onResume={resumeTTS}
+              />
             )}
           </div>
 
-          <div
-            className="absolute inset-x-0 bottom-0 z-30 flex justify-center"
-            style={{ 
-              paddingBottom: statusBarSafeAreaPaddingBottom,
-              ...statusBarContainerStyle,
-            }}
-          >
-            <div
-              className="relative flex h-9 w-full items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]"
-            >
-              {/* 左侧：进度数字 */}
-              <div className="flex w-16 shrink-0 items-center">
-                <span
-                  className="font-mono font-bold tabular-nums tracking-tight"
-                  style={{
-                    color: withOpacity(uiScheme.fg, 0.6),
-                  }}
-                >
-                  {percentage.toFixed(1)}%
-                </span>
-              </div>
- 
-              {/* 中间：当前章节 */}
-              <div className="flex min-w-0 flex-1 items-center justify-center truncate px-4 text-center">
-                <span 
-                  className="truncate font-bold tracking-tight"
-                  style={{
-                    color: withOpacity(uiScheme.fg, 0.5),
-                  }}
-                >
-                  {currentChapter || "—"}
-                </span>
-              </div>
- 
-              {/* 右侧：页码 */}
-              <div className="flex w-16 shrink-0 items-center justify-end">
-                <span
-                  className="font-mono font-bold tabular-nums tracking-tight"
-                  style={{ color: withOpacity(uiScheme.fg, 0.6) }}
-                >
-                  {currentPageLabel || "—"}
-                </span>
-              </div>
-            </div>
-          </div>
+          <ReaderStatusBar
+            percentage={percentage}
+            currentChapter={currentChapter}
+            currentPageLabel={currentPageLabel}
+            containerStyle={statusBarContainerStyle}
+            safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
+            uiScheme={uiScheme}
+          />
         </div>
       </div>
     </div>
   );
 }
-
-function TOCNode({
-  item,
-  onGoTo,
-  depth = 0,
-  currentChapter,
-  uiScheme,
-}: {
-  item: TOCItem;
-  onGoTo: (href: string) => void;
-  depth?: number;
-  currentChapter: string;
-  uiScheme: ThemeColors;
-}) {
-  const isCurrentChapter = currentChapter === item.label;
-
-  return (
-    <div className="relative">
-      {depth > 0 && (
-        <div 
-          className="absolute top-0 bottom-0 w-px bg-primary/5"
-          style={{ left: `${(depth - 1) * 14 + 20}px` }}
-        />
-      )}
-      
-      <button
-        data-current-chapter={isCurrentChapter ? "true" : undefined}
-        onClick={() => onGoTo(item.href)}
-        className={cn(
-          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all active:scale-[0.98] sm:py-2.5",
-          isCurrentChapter ? "shadow-sm shadow-primary/5" : "hover:bg-primary/5"
-        )}
-        style={{
-          marginLeft: depth > 0 ? `${depth * 14}px` : "0px",
-          background: isCurrentChapter
-            ? withOpacity(uiScheme.buttonBg, 0.8)
-            : "transparent",
-          border: `1px solid ${isCurrentChapter ? withOpacity(uiScheme.cardBorder, 0.4) : "transparent"}`,
-        }}
-      >
-        {isCurrentChapter && (
-          <div className="absolute -left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-        )}
-        
-        <span 
-          className={cn(
-            "truncate text-[12px] leading-5 transition-colors sm:text-[13px]",
-            isCurrentChapter ? "font-bold" : "font-medium opacity-70 group-hover:opacity-100"
-          )}
-          style={{ color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText }}
-        >
-          {item.label}
-        </span>
-      </button>
-
-      {item.subitems && item.subitems.length > 0 && (
-        <div className="space-y-0">
-          {item.subitems.map((sub, idx) => (
-            <MemoizedTOCNode
-              key={idx}
-              item={sub}
-              onGoTo={onGoTo}
-              depth={depth + 1}
-              currentChapter={currentChapter}
-              uiScheme={uiScheme}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const MemoizedTOCNode = React.memo(TOCNode, (prevProps, nextProps) => {
-  return (
-    prevProps.item.href === nextProps.item.href &&
-    prevProps.item.label === nextProps.item.label &&
-    prevProps.item.subitems?.length === nextProps.item.subitems?.length &&
-    prevProps.depth === nextProps.depth &&
-    prevProps.currentChapter === nextProps.currentChapter &&
-    prevProps.uiScheme.fg === nextProps.uiScheme.fg
-  );
-});

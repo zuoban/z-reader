@@ -30,14 +30,13 @@ export function FileUploadAction({
   buttonSize = 'default',
 }: FileUploadActionProps) {
   return (
-    <div className={cn('relative min-w-0', wrapperClassName)}>
+    <div className={cn('relative min-w-0', wrapperClassName)} data-tooltip={title}>
       <input
         type="file"
         accept={accept}
         onChange={onChange}
         disabled={disabled}
         className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-0"
-        title={title}
         aria-label={title}
       />
       <Button

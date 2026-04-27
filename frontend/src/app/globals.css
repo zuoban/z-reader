@@ -491,7 +491,8 @@ foliate-view::part(filter) {
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 65%, transparent),
       inset 0 -1px 0 color-mix(in srgb, var(--paper-edge) 15%, transparent);
     position: relative;
-    overflow: hidden;
+    z-index: 30;
+    overflow: visible;
   }
 
   .shelf-header::before {
@@ -721,11 +722,72 @@ foliate-view::part(filter) {
     transform: scale(1.06);
   }
 
+  .shelf-tooltip:hover .shelf-icon-btn,
+  .shelf-tooltip:focus-within .shelf-icon-btn {
+    @apply text-foreground;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-tint) 80%, transparent) 0%,
+      color-mix(in srgb, var(--muted) 35%, transparent) 100%
+    ) !important;
+    box-shadow:
+      0 2px 8px -2px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent) !important;
+    transform: scale(1.06);
+  }
+
   .shelf-icon-btn:active {
     transform: scale(0.94);
     background: color-mix(in srgb, var(--muted) 50%, transparent) !important;
     box-shadow: inset 0 1px 2px color-mix(in srgb, var(--paper-shadow-soft) 60%, transparent) !important;
     transition-duration: 80ms;
+  }
+
+  .shelf-tooltip:active .shelf-icon-btn {
+    transform: scale(0.94);
+    background: color-mix(in srgb, var(--muted) 50%, transparent) !important;
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--paper-shadow-soft) 60%, transparent) !important;
+    transition-duration: 80ms;
+  }
+
+  .shelf-tooltip {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .shelf-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.5rem);
+    z-index: 80;
+    max-width: 10rem;
+    min-width: max-content;
+    transform: translateX(-50%) translateY(-0.25rem) scale(0.96);
+    transform-origin: top center;
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--card) 96%, var(--background));
+    box-shadow:
+      0 12px 26px -18px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 55%, transparent);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    opacity: 0;
+    padding: 0.5rem 0.65rem;
+    pointer-events: none;
+    white-space: nowrap;
+    transition:
+      opacity var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .shelf-tooltip:hover::after,
+  .shelf-tooltip:focus-within::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
   }
 
   .liquid-glass-specular {

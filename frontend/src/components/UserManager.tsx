@@ -171,7 +171,6 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
           <Button
             variant="ghost"
             size="sm"
-            title="用户管理"
             aria-label="用户管理"
             className={cn(buttonClassName, 'cursor-pointer')}
           />

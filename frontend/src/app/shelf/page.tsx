@@ -14,7 +14,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
-import { AppScreen, BrandMark, LoadingSpinner } from '@/components/AppShell';
+import { AppScreen, LoadingSpinner } from '@/components/AppShell';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryFilter } from '@/components/CategoryFilter';
@@ -26,9 +26,23 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
+const SHELF_TITLE = '我的书架';
 
 function delay(ms: number): CSSProperties {
   return { '--paper-delay': `${ms}ms` } as CSSProperties;
+}
+
+function ShelfTitle() {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_55%,transparent)] sm:h-11 sm:w-11">
+        <BookOpen className="h-5 w-5 sm:h-5.5 sm:w-5.5" aria-hidden="true" />
+      </div>
+      <h1 className="truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">
+        {SHELF_TITLE}
+      </h1>
+    </div>
+  );
 }
 
 export default function ShelfPage() {
@@ -78,22 +92,23 @@ export default function ShelfPage() {
       ambient="shelf"
       contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
     >
-      {/* 统一头部面板：品牌 + 操作 */}
+      {/* 统一头部面板：标题 + 操作 */}
       <div
         className="paper-reveal shelf-header"
         style={delay(0)}
       >
-        {/* 品牌 + 操作按钮行 */}
+        {/* 标题 + 操作按钮行 */}
         <div className="relative z-10 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0 flex-1">
-            <BrandMark size="sm" className="hidden sm:block" priority />
-            <BrandMark size="sm" className="w-[120px] sm:hidden" priority />
+            <ShelfTitle />
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {user?.role === 'admin' && (
               <>
-                <UserManager currentUser={user} buttonClassName="shelf-icon-btn" />
+                <span className="shelf-tooltip" data-tooltip="用户管理">
+                  <UserManager currentUser={user} buttonClassName="shelf-icon-btn" />
+                </span>
                 <span className="shelf-btn-divider" />
               </>
             )}
@@ -103,7 +118,7 @@ export default function ShelfPage() {
               disabled={isUploading}
               title="上传书籍"
               statusLabel={isUploading ? '上传中' : undefined}
-              wrapperClassName="overflow-visible"
+              wrapperClassName="shelf-tooltip overflow-visible"
               buttonVariant="ghost"
               buttonSize="sm"
               buttonClassName={cn(
@@ -124,8 +139,9 @@ export default function ShelfPage() {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              title={isDark ? '切换亮色模式' : '切换暗色模式'}
-              className="shelf-icon-btn cursor-pointer"
+              aria-label={isDark ? '切换亮色模式' : '切换暗色模式'}
+              data-tooltip={isDark ? '切换亮色模式' : '切换暗色模式'}
+              className="shelf-icon-btn shelf-tooltip cursor-pointer"
             >
               {isDark ? (
                 <Sun className="h-4 w-4" />
@@ -140,8 +156,9 @@ export default function ShelfPage() {
               variant="ghost"
               size="sm"
               onClick={logout}
-              title="退出"
-              className="shelf-icon-btn cursor-pointer"
+              aria-label="退出"
+              data-tooltip="退出"
+              className="shelf-icon-btn shelf-tooltip cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
             </Button>

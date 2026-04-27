@@ -83,6 +83,8 @@ function formatFileSize(bytes: number): string {
 
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -97,10 +99,22 @@ export function useShelfData(isAuthenticated: boolean) {
   const loadBooks = useCallback(async () => {
     setIsLoadingBooks(true);
     try {
-      const data = await api.listBooks();
-      setBooks(data || []);
+      const [bookData, progressData, categoryData] = await Promise.all([
+        api.listBooks(),
+        api.listProgress().catch(() => []),
+        api.listCategories().catch(() => []),
+      ]);
+      setBooks(bookData || []);
+      setCategories(categoryData || []);
+      setProgressByBookId(
+        Object.fromEntries(
+          (progressData || []).map((progress) => [progress.book_id, progress.percentage])
+        )
+      );
     } catch {
       setBooks([]);
+      setCategories([]);
+      setProgressByBookId({});
     } finally {
       setIsLoadingBooks(false);
     }
@@ -115,24 +129,6 @@ export function useShelfData(isAuthenticated: boolean) {
 
     return () => window.clearTimeout(timeoutId);
   }, [isAuthenticated, loadBooks]);
-
-  const categories = useMemo<Category[]>(() => {
-    const names = Array.from(
-      new Set(
-        books
-          .map((book) => book.category?.trim())
-          .filter((category): category is string => !!category)
-      )
-    ).sort((a, b) => a.localeCompare(b, 'zh-CN'));
-
-    return names.map((name, index) => ({
-      id: name,
-      user_id: '',
-      name,
-      sort_order: index + 1,
-      created_at: '',
-    }));
-  }, [books]);
 
   useEffect(() => {
     if (!selectedCategoryId || selectedCategoryId === UNCATEGORIZED_FILTER_ID) return;
@@ -213,6 +209,11 @@ export function useShelfData(isAuthenticated: boolean) {
     try {
       await api.deleteBook(id);
       setBooks((prev) => prev.filter((book) => book.id !== id));
+      setProgressByBookId((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '删除失败');
     } finally {
@@ -222,6 +223,7 @@ export function useShelfData(isAuthenticated: boolean) {
 
   return {
     books,
+    progressByBookId,
     categories,
     isLoadingBooks,
     selectedCategoryId,

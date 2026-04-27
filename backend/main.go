@@ -107,6 +107,7 @@ func main() {
 		api.GET("/books/:id/file", booksHandler.GetFile)
 		api.GET("/books/:id/cover", booksHandler.GetCover)
 
+		api.GET("/progress", progressHandler.List)
 		api.GET("/progress/:id", progressHandler.Get)
 		api.POST("/progress/:id", progressHandler.Save)
 

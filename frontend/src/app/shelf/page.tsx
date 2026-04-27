@@ -37,6 +37,7 @@ export default function ShelfPage() {
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
+    progressByBookId,
     categories,
     isLoadingBooks,
     selectedCategoryId,
@@ -219,6 +220,7 @@ export default function ShelfPage() {
                     onUpdate={loadBooks}
                     isDeleting={deletingId === book.id}
                     formatSize={formatFileSize}
+                    progressPercentage={progressByBookId[book.id] ?? null}
                   />
                 ))}
               </div>

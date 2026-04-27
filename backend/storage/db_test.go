@@ -70,6 +70,102 @@ func TestSaveProgressUpdatesBookLastReadAt(t *testing.T) {
 	}
 }
 
+func TestListProgressFiltersByUser(t *testing.T) {
+	db := openTestDB(t)
+
+	books := []*models.Book{
+		{
+			ID:        "book-a",
+			UserID:    "user-a",
+			Title:     "Alpha",
+			Filename:  "book-a.epub",
+			Format:    "epub",
+			Size:      128,
+			CreatedAt: time.Now().UTC(),
+		},
+		{
+			ID:        "book-b",
+			UserID:    "user-a",
+			Title:     "Beta",
+			Filename:  "book-b.epub",
+			Format:    "epub",
+			Size:      128,
+			CreatedAt: time.Now().UTC(),
+		},
+		{
+			ID:        "book-c",
+			UserID:    "user-b",
+			Title:     "Gamma",
+			Filename:  "book-c.epub",
+			Format:    "epub",
+			Size:      128,
+			CreatedAt: time.Now().UTC(),
+		},
+	}
+	for _, book := range books {
+		if err := db.SaveBook(book); err != nil {
+			t.Fatalf("failed to save book: %v", err)
+		}
+	}
+
+	progressItems := []struct {
+		userID   string
+		progress *models.Progress
+	}{
+		{
+			userID: "user-a",
+			progress: &models.Progress{
+				BookID:     "book-a",
+				CFI:        "epubcfi(/6/2[chapter1]!/4/2/6)",
+				Percentage: 12.5,
+				UpdatedAt:  time.Now().UTC().Truncate(time.Second),
+			},
+		},
+		{
+			userID: "user-a",
+			progress: &models.Progress{
+				BookID:     "book-b",
+				CFI:        "epubcfi(/6/4[chapter2]!/4/2/6)",
+				Percentage: 42,
+				UpdatedAt:  time.Now().UTC().Truncate(time.Second),
+			},
+		},
+		{
+			userID: "user-b",
+			progress: &models.Progress{
+				BookID:     "book-c",
+				CFI:        "epubcfi(/6/6[chapter3]!/4/2/6)",
+				Percentage: 88,
+				UpdatedAt:  time.Now().UTC().Truncate(time.Second),
+			},
+		},
+	}
+	for _, item := range progressItems {
+		if err := db.SaveProgress(item.progress, item.userID); err != nil {
+			t.Fatalf("failed to save progress: %v", err)
+		}
+	}
+
+	got, err := db.ListProgress("user-a")
+	if err != nil {
+		t.Fatalf("ListProgress returned error: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected two progress records, got %+v", got)
+	}
+
+	seen := map[string]bool{}
+	for _, progress := range got {
+		if progress.UserID != "user-a" {
+			t.Fatalf("expected only user-a progress, got %+v", progress)
+		}
+		seen[progress.BookID] = true
+	}
+	if !seen["book-a"] || !seen["book-b"] {
+		t.Fatalf("expected book-a and book-b progress, got %+v", got)
+	}
+}
+
 func TestGetSessionReturnsNilForExpiredSession(t *testing.T) {
 	db := openTestDB(t)
 
@@ -253,29 +349,20 @@ func TestListBooksFiltersByUser(t *testing.T) {
 	}
 }
 
-func TestNormalizeBookCategoriesMigratesLegacyCategoryID(t *testing.T) {
+func TestNormalizeBookCategoriesTrimsNames(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"
-	categoryID := "category-a"
+	category := " 科幻 "
 
-	if err := db.SaveCategory(&models.Category{
-		ID:        categoryID,
-		UserID:    userID,
-		Name:      "科幻",
-		SortOrder: 1,
-		CreatedAt: time.Now().UTC(),
-	}); err != nil {
-		t.Fatalf("failed to save category: %v", err)
-	}
 	if err := db.SaveBook(&models.Book{
-		ID:         "book-a",
-		UserID:     userID,
-		Title:      "Alpha",
-		Filename:   "book-a.epub",
-		Format:     "epub",
-		Size:       128,
-		CategoryID: &categoryID,
-		CreatedAt:  time.Now().UTC(),
+		ID:        "book-a",
+		UserID:    userID,
+		Title:     "Alpha",
+		Filename:  "book-a.epub",
+		Format:    "epub",
+		Size:      128,
+		Category:  &category,
+		CreatedAt: time.Now().UTC(),
 	}); err != nil {
 		t.Fatalf("failed to save book: %v", err)
 	}
@@ -289,10 +376,7 @@ func TestNormalizeBookCategoriesMigratesLegacyCategoryID(t *testing.T) {
 		t.Fatalf("GetBook returned error: %v", err)
 	}
 	if got == nil || got.Category == nil || *got.Category != "科幻" {
-		t.Fatalf("expected migrated category 科幻, got %+v", got)
-	}
-	if got.CategoryID != nil {
-		t.Fatalf("expected legacy category id to be cleared, got %+v", got.CategoryID)
+		t.Fatalf("expected normalized category 科幻, got %+v", got)
 	}
 }
 
@@ -349,7 +433,39 @@ func TestListCategoriesDerivesNamesFromBooks(t *testing.T) {
 		t.Fatalf("expected 2 categories, got %+v", got)
 	}
 	if got[0].Name != "文学" || got[0].ID != "文学" || got[1].Name != "科幻" {
-		t.Fatalf("unexpected derived categories: %+v", got)
+		t.Fatalf("unexpected categories: %+v", got)
+	}
+
+	if got[0].UserID != userID || got[1].UserID != userID {
+		t.Fatalf("expected categories scoped to %s, got %+v", userID, got)
+	}
+}
+
+func TestListCategoriesAllowsSameNameForDifferentUsers(t *testing.T) {
+	db := openTestDB(t)
+	category := "科幻"
+
+	for _, userID := range []string{"user-a", "user-b"} {
+		if err := db.SaveBook(&models.Book{
+			ID:        "book-" + userID,
+			UserID:    userID,
+			Title:     "Alpha",
+			Filename:  "book.epub",
+			Format:    "epub",
+			Size:      128,
+			Category:  &category,
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatalf("failed to save book: %v", err)
+		}
+	}
+
+	got, err := db.ListCategories("user-b")
+	if err != nil {
+		t.Fatalf("ListCategories returned error: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != category || got[0].UserID != "user-b" {
+		t.Fatalf("expected user-b category only, got %+v", got)
 	}
 }
 

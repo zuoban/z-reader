@@ -308,6 +308,10 @@ export const api = {
     return fetchApi<Progress>(`/api/progress/${bookId}`);
   },
 
+  listProgress: async (): Promise<Progress[]> => {
+    return fetchApi<Progress[]>('/api/progress');
+  },
+
   saveProgress: async (bookId: string, cfi: string, percentage: number): Promise<Progress> => {
     return fetchApi<Progress>(`/api/progress/${bookId}`, {
       method: 'POST',

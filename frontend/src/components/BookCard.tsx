@@ -45,6 +45,7 @@ interface BookCardProps {
   onUpdate: () => void;
   isDeleting: boolean;
   formatSize: (bytes: number) => string;
+  progressPercentage?: number | null;
 }
 
 const MOBILE_CARD_WIDTH = 172;
@@ -182,17 +183,19 @@ export function BookCard({
   onUpdate,
   isDeleting,
   formatSize,
+  progressPercentage = null,
 }: BookCardProps) {
   const isMobile = useIsMobile();
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
-  const progressValue = progress !== null ? Math.max(0, Math.min(progress, 100)) : null;
+  const progressValue = progressPercentage !== null
+    ? Math.max(0, Math.min(progressPercentage, 100))
+    : null;
   const progressDisplay = progressValue !== null ? progressValue.toFixed(1) : '';
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
@@ -220,27 +223,6 @@ export function BookCard({
     return () => {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
-    };
-  }, [book.id]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    api.getProgress(book.id)
-      .then((progress) => {
-        if (!cancelled && progress?.percentage !== undefined) {
-          setProgress(progress.percentage);
-        }
-      })
-      .catch(() => {
-        // 404 或无进度数据时静默处理
-        if (!cancelled) {
-          setProgress(null);
-        }
-      });
-
-    return () => {
-      cancelled = true;
     };
   }, [book.id]);
 

@@ -24,6 +24,21 @@ type ProgressRequest struct {
 	Percentage float64 `json:"percentage"`
 }
 
+func (h *ProgressHandler) List(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	progress, err := h.db.ListProgress(userID)
+	if err != nil {
+		response.InternalError(c, "获取阅读进度失败")
+		return
+	}
+
+	c.JSON(http.StatusOK, progress)
+}
+
 func (h *ProgressHandler) Get(c *gin.Context) {
 	id := c.Param("id")
 	userID, ok := currentUserID(c)

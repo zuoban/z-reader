@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/json"
 	"sort"
 	"strings"
@@ -14,11 +15,10 @@ import (
 )
 
 var (
-	BooksBucket      = []byte("books")
-	ProgressBucket   = []byte("progress")
-	SessionsBucket   = []byte("sessions")
-	CategoriesBucket = []byte("categories")
-	UsersBucket      = []byte("users")
+	BooksBucket    = []byte("books")
+	ProgressBucket = []byte("progress")
+	SessionsBucket = []byte("sessions")
+	UsersBucket    = []byte("users")
 )
 
 type DB struct {
@@ -36,7 +36,6 @@ func Open(path string) (*DB, error) {
 			BooksBucket,
 			ProgressBucket,
 			SessionsBucket,
-			CategoriesBucket,
 			UsersBucket,
 		} {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -49,9 +48,6 @@ func Open(path string) (*DB, error) {
 		return nil, err
 	}
 
-	if err := (&DB{db}).NormalizeCategorySortOrders(); err != nil {
-		return nil, err
-	}
 	if err := (&DB{db}).NormalizeBookCategories(); err != nil {
 		return nil, err
 	}
@@ -121,9 +117,6 @@ func (db *DB) AssignUnownedDataToAdmin() error {
 		if err := assignUnownedBooks(tx, adminID); err != nil {
 			return err
 		}
-		if err := assignUnownedCategories(tx, adminID); err != nil {
-			return err
-		}
 		if err := assignUnownedProgress(tx, adminID); err != nil {
 			return err
 		}
@@ -143,25 +136,6 @@ func assignUnownedBooks(tx *bbolt.Tx, userID string) error {
 		}
 		book.UserID = userID
 		data, err := json.Marshal(book)
-		if err != nil {
-			return err
-		}
-		return b.Put(k, data)
-	})
-}
-
-func assignUnownedCategories(tx *bbolt.Tx, userID string) error {
-	b := tx.Bucket(CategoriesBucket)
-	return b.ForEach(func(k, v []byte) error {
-		var category models.Category
-		if err := json.Unmarshal(v, &category); err != nil {
-			return err
-		}
-		if category.UserID != "" {
-			return nil
-		}
-		category.UserID = userID
-		data, err := json.Marshal(category)
 		if err != nil {
 			return err
 		}
@@ -294,9 +268,6 @@ func (db *DB) DeleteUserData(userID string) error {
 		if err := deleteBooksByUser(tx, userID); err != nil {
 			return err
 		}
-		if err := deleteCategoriesByUser(tx, userID); err != nil {
-			return err
-		}
 		return deleteProgressByUser(tx, userID)
 	})
 }
@@ -310,29 +281,6 @@ func deleteBooksByUser(tx *bbolt.Tx, userID string) error {
 			return err
 		}
 		if book.UserID == userID {
-			keysToDelete = append(keysToDelete, append([]byte(nil), k...))
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	for _, key := range keysToDelete {
-		if err := b.Delete(key); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func deleteCategoriesByUser(tx *bbolt.Tx, userID string) error {
-	b := tx.Bucket(CategoriesBucket)
-	var keysToDelete [][]byte
-	if err := b.ForEach(func(k, v []byte) error {
-		var category models.Category
-		if err := json.Unmarshal(v, &category); err != nil {
-			return err
-		}
-		if category.UserID == userID {
 			keysToDelete = append(keysToDelete, append([]byte(nil), k...))
 		}
 		return nil
@@ -370,17 +318,22 @@ func deleteProgressByUser(tx *bbolt.Tx, userID string) error {
 func (db *DB) SaveBook(book *models.Book) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(BooksBucket)
+		book.Category = normalizeCategoryName(book.Category)
 		data, err := json.Marshal(book)
 		if err != nil {
 			return err
 		}
-		return b.Put([]byte(book.ID), data)
+		if err := b.Put([]byte(book.ID), data); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
 func (db *DB) CreateBook(book *models.Book) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(BooksBucket)
+		book.Category = normalizeCategoryName(book.Category)
 		if book.ContentHash != "" {
 			if err := b.ForEach(func(k, v []byte) error {
 				var existing models.Book
@@ -402,7 +355,10 @@ func (db *DB) CreateBook(book *models.Book) error {
 		if err != nil {
 			return err
 		}
-		return b.Put([]byte(book.ID), data)
+		if err := b.Put([]byte(book.ID), data); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
@@ -568,6 +524,26 @@ func (db *DB) GetProgress(bookID string, userID string) (*models.Progress, error
 	return &progress, nil
 }
 
+func (db *DB) ListProgress(userID string) ([]models.Progress, error) {
+	items := []models.Progress{}
+	prefix := []byte(userID + ":")
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(ProgressBucket)
+		c := b.Cursor()
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			var progress models.Progress
+			if err := json.Unmarshal(v, &progress); err != nil {
+				return err
+			}
+			if progress.UserID == userID {
+				items = append(items, progress)
+			}
+		}
+		return nil
+	})
+	return items, err
+}
+
 func (db *DB) SaveSession(session *models.Session) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
@@ -634,17 +610,6 @@ func (db *DB) CleanExpiredSessions() error {
 	})
 }
 
-func (db *DB) SaveCategory(category *models.Category) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(CategoriesBucket)
-		data, err := json.Marshal(category)
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(category.ID), data)
-	})
-}
-
 func normalizeCategoryName(value *string) *string {
 	if value == nil {
 		return nil
@@ -657,20 +622,7 @@ func normalizeCategoryName(value *string) *string {
 }
 
 func migrateBookCategories(tx *bbolt.Tx) error {
-	categoriesB := tx.Bucket(CategoriesBucket)
 	booksB := tx.Bucket(BooksBucket)
-	categoriesByID := map[string]models.Category{}
-
-	if err := categoriesB.ForEach(func(k, v []byte) error {
-		var category models.Category
-		if err := json.Unmarshal(v, &category); err != nil {
-			return err
-		}
-		categoriesByID[string(k)] = category
-		return nil
-	}); err != nil {
-		return err
-	}
 
 	return booksB.ForEach(func(k, v []byte) error {
 		var book models.Book
@@ -679,13 +631,7 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 		}
 
 		nextCategory := normalizeCategoryName(book.Category)
-		if nextCategory == nil && book.CategoryID != nil {
-			if category, ok := categoriesByID[*book.CategoryID]; ok {
-				nextCategory = normalizeCategoryName(&category.Name)
-			}
-		}
-
-		changed := book.CategoryID != nil
+		changed := false
 		if (book.Category == nil) != (nextCategory == nil) {
 			changed = true
 		} else if book.Category != nil && nextCategory != nil && *book.Category != *nextCategory {
@@ -696,7 +642,6 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 		}
 
 		book.Category = nextCategory
-		book.CategoryID = nil
 		data, err := json.Marshal(book)
 		if err != nil {
 			return err
@@ -707,36 +652,6 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 
 func (db *DB) NormalizeBookCategories() error {
 	return db.Update(migrateBookCategories)
-}
-
-func (db *DB) GetCategory(id string) (*models.Category, error) {
-	var category models.Category
-	err := db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(CategoriesBucket)
-		data := b.Get([]byte(id))
-		if data == nil {
-			return ErrNotFound
-		}
-		return json.Unmarshal(data, &category)
-	})
-	if err != nil {
-		if err == ErrNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &category, nil
-}
-
-func (db *DB) GetCategoryForUser(id string, userID string) (*models.Category, error) {
-	category, err := db.GetCategory(id)
-	if err != nil || category == nil {
-		return category, err
-	}
-	if category.UserID != userID {
-		return nil, nil
-	}
-	return category, nil
 }
 
 func (db *DB) ListCategories(userID string) ([]models.Category, error) {
@@ -778,112 +693,4 @@ func (db *DB) ListCategories(userID string) ([]models.Category, error) {
 		categories[index].SortOrder = index + 1
 	}
 	return categories, err
-}
-
-func (db *DB) NormalizeCategorySortOrders() error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(CategoriesBucket)
-		categoriesByUser := map[string][]models.Category{}
-
-		if err := b.ForEach(func(_, v []byte) error {
-			var category models.Category
-			if err := json.Unmarshal(v, &category); err != nil {
-				return err
-			}
-			categoriesByUser[category.UserID] = append(categoriesByUser[category.UserID], category)
-			return nil
-		}); err != nil {
-			return err
-		}
-
-		for _, categories := range categoriesByUser {
-			if len(categories) == 0 {
-				continue
-			}
-
-			sort.Slice(categories, func(i, j int) bool {
-				leftOrder := categories[i].SortOrder
-				rightOrder := categories[j].SortOrder
-
-				if leftOrder <= 0 {
-					leftOrder = int(^uint(0) >> 1)
-				}
-				if rightOrder <= 0 {
-					rightOrder = int(^uint(0) >> 1)
-				}
-				if leftOrder != rightOrder {
-					return leftOrder < rightOrder
-				}
-				if !categories[i].CreatedAt.Equal(categories[j].CreatedAt) {
-					return categories[i].CreatedAt.Before(categories[j].CreatedAt)
-				}
-				return categories[i].Name < categories[j].Name
-			})
-
-			for index := range categories {
-				categories[index].SortOrder = index + 1
-				data, err := json.Marshal(categories[index])
-				if err != nil {
-					return err
-				}
-				if err := b.Put([]byte(categories[index].ID), data); err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	})
-}
-
-func (db *DB) DeleteCategory(id string, userID string) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		categoriesB := tx.Bucket(CategoriesBucket)
-		categoryData := categoriesB.Get([]byte(id))
-		if categoryData == nil {
-			return ErrNotFound
-		}
-		var category models.Category
-		if err := json.Unmarshal(categoryData, &category); err != nil {
-			return err
-		}
-		if category.UserID != userID {
-			return ErrNotFound
-		}
-
-		booksB := tx.Bucket(BooksBucket)
-		var booksToUpdate [][]byte
-
-		err := booksB.ForEach(func(k, v []byte) error {
-			var book models.Book
-			if err := json.Unmarshal(v, &book); err != nil {
-				return err
-			}
-			if book.UserID == userID && book.CategoryID != nil && *book.CategoryID == id {
-				booksToUpdate = append(booksToUpdate, append([]byte(nil), k...))
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		for _, key := range booksToUpdate {
-			data := booksB.Get(key)
-			var book models.Book
-			if err := json.Unmarshal(data, &book); err != nil {
-				return err
-			}
-			book.CategoryID = nil
-			updatedData, err := json.Marshal(book)
-			if err != nil {
-				return err
-			}
-			if err := booksB.Put(key, updatedData); err != nil {
-				return err
-			}
-		}
-
-		return categoriesB.Delete([]byte(id))
-	})
 }

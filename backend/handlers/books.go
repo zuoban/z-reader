@@ -524,7 +524,6 @@ func (h *BooksHandler) Update(c *gin.Context) {
 			return
 		}
 		book.Category = category
-		book.CategoryID = nil
 	}
 
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
@@ -555,7 +554,6 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 	}
 
 	book.Category = nil
-	book.CategoryID = nil
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	if err := h.db.SaveBook(book); err != nil {

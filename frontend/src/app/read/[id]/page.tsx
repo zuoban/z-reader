@@ -207,7 +207,7 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "relative flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded-lg transition-colors duration-150 ease-out hover:bg-black/5 sm:h-10 sm:w-10 sm:min-h-10 sm:min-w-10";
+    "relative flex h-8 w-8 min-h-8 min-w-8 items-center justify-center rounded-lg transition-colors duration-150 ease-out hover:bg-black/5 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,

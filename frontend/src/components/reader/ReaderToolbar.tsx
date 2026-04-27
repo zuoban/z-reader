@@ -113,14 +113,14 @@ export function ReaderToolbar({
           "transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms cubic-bezier(0.32, 0.72, 0, 1)",
       }}
     >
-      <div className="flex items-center justify-between h-12 px-3 pointer-events-auto sm:h-14 sm:px-4">
+      <div className="flex items-center justify-between h-10 px-3 pointer-events-auto sm:h-12 sm:px-4">
         <div className="flex items-center gap-1 sm:gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
             title="返回书库"
-            className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 sm:h-10 sm:w-10 ${toolbarButtonClass}`}
+            className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150 sm:h-9 sm:w-9 ${toolbarButtonClass}`}
             style={{
               color: uiScheme.buttonText,
               ...getToolbarButtonStyle(false),
@@ -129,7 +129,7 @@ export function ReaderToolbar({
               boxShadow: "none",
             }}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
 
           <ReaderTOCSheet

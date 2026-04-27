@@ -328,24 +328,18 @@ export function BookCard({
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="w-64 rounded-[1.25rem] border-border bg-background p-2 shadow-md"
-                    style={{
-                      backgroundColor: 'var(--background)',
-                      backdropFilter: 'none',
-                      WebkitBackdropFilter: 'none',
-                    }}
+                    className="w-72 rounded-2xl border border-border/60 bg-background/95 p-3 shadow-xl backdrop-blur-sm"
                   >
-                    <div className="px-3 pb-3 pt-2">
+                    <div className="px-2 pb-3 pt-1.5">
                       <div className="mb-2.5 flex items-center justify-between">
                         <span className="text-[10px] font-bold tracking-[0.1em] text-foreground/80 uppercase">
                           书籍详情
                         </span>
-                        <div className="flex h-5 items-center rounded-full bg-foreground/6 px-2 text-[9px] font-bold text-foreground/70">
+                        <div className="flex h-5 items-center rounded-full bg-primary/10 px-2 text-[9px] font-bold text-primary">
                           {formatLabel}
                         </div>
                       </div>
-                      <div className="mb-3 h-px bg-border/55" />
-                      
+
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between text-[11px]">
                           <div className="flex items-center gap-2 text-foreground/50">
@@ -356,7 +350,7 @@ export function BookCard({
                             {sizeLabel || '未知'}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center justify-between text-[11px]">
                           <div className="flex items-center gap-2 text-foreground/50">
                             <CalendarClock className="h-3.5 w-3.5" />
@@ -366,7 +360,7 @@ export function BookCard({
                             {uploadedAtLabel}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center justify-between text-[11px]">
                           <div className="flex items-center gap-2 text-foreground/50">
                             <Clock className="h-3.5 w-3.5" />
@@ -379,22 +373,22 @@ export function BookCard({
                       </div>
                     </div>
 
-                    <div className="mx-3 h-px bg-border/55" />
+                    <div className="mx-1 my-1.5 h-px bg-border/40" />
 
-                    <div className="space-y-1 pt-2">
+                    <div className="space-y-1">
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           setCategoryDialogOpen(true);
                         }}
-                        className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all hover:bg-primary/5 hover:text-primary focus:bg-primary/5 focus:text-primary"
+                        className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all hover:bg-primary/8 hover:text-primary focus:bg-primary/8 focus:text-primary"
                       >
-                        <Tag className="h-4 w-4 opacity-70" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                          <Tag className="h-4 w-4 text-primary" />
+                        </div>
                         <span>设置分类</span>
                       </DropdownMenuItem>
-                      
-                      <DropdownMenuSeparator className="mx-1 my-1 opacity-50" />
-                      
+
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
@@ -402,9 +396,11 @@ export function BookCard({
                         }}
                         disabled={isDeleting}
                         variant="destructive"
-                        className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all hover:bg-destructive/5 focus:bg-destructive/5"
+                        className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all hover:bg-destructive/8 focus:bg-destructive/8"
                       >
-                        <Trash2 className="h-4 w-4 opacity-70" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </div>
                         <span>{isDeleting ? '删除中...' : '删除图书'}</span>
                       </DropdownMenuItem>
                     </div>

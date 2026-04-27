@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, RefObject } from "react";
-import { ChevronDown, ChevronUp, Library } from "lucide-react";
+import { Expand, Library, Shrink } from "lucide-react";
 
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,6 @@ interface ReaderToolbarProps {
   onLocateCurrentChapter: () => void;
   onGoTo: (href: string) => void;
   onBack: () => void;
-  onExpand: () => void;
-  onCollapse: () => void;
   uiScheme: ThemeColors;
   toolbarButtonClass: string;
   getToolbarButtonStyle: (active?: boolean) => CSSProperties;
@@ -49,8 +47,6 @@ export function ReaderToolbar({
   onLocateCurrentChapter,
   onGoTo,
   onBack,
-  onExpand,
-  onCollapse,
   uiScheme,
   toolbarButtonClass,
   getToolbarButtonStyle,
@@ -82,16 +78,29 @@ export function ReaderToolbar({
       >
         <div className="flex h-9 items-center justify-between px-3 pointer-events-auto sm:h-9 sm:px-4">
           <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              aria-label="收起顶部操作栏"
-              className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-black/5 ${toolbarButtonClass}`}
-              style={{ color: uiScheme.buttonText }}
-              title="收起顶部操作栏"
-              type="button"
-              onClick={onCollapse}
-            >
-              <ChevronUp className="h-4 w-4" />
-            </button>
+            {isFullscreenSupported ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void onToggleFullscreen()}
+                title={isFullscreen ? "退出全屏" : "进入全屏"}
+                aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
+                className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
+                style={{
+                  color: isFullscreen ? uiScheme.link : uiScheme.buttonText,
+                  ...getToolbarButtonStyle(isFullscreen),
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                }}
+              >
+                {isFullscreen ? (
+                  <Shrink className="h-4 w-4" />
+                ) : (
+                  <Expand className="h-4 w-4" />
+                )}
+              </Button>
+            ) : null}
             <Button
               variant="ghost"
               size="icon"
@@ -145,31 +154,10 @@ export function ReaderToolbar({
                 border: "none",
                 boxShadow: "none",
               }}
-              isFullscreenSupported={isFullscreenSupported}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={onToggleFullscreen}
             />
           </div>
         </div>
       </header>
-
-      {!visible && (
-        <button
-          aria-label="展开顶部操作栏"
-          className="absolute left-1.5 z-50 flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-black/5 sm:left-2"
-          data-reader-interactive="true"
-          style={{
-            top: `calc(${headerSafeAreaPaddingTop} + 0.25rem)`,
-            background: "transparent",
-            color: uiScheme.buttonText,
-          }}
-          title="展开顶部操作栏"
-          type="button"
-          onClick={onExpand}
-        >
-          <ChevronDown className="h-5 w-5" />
-        </button>
-      )}
     </>
   );
 }

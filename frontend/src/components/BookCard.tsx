@@ -4,12 +4,11 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import type { CSSProperties } from 'react';
 import { useEffect, useState } from 'react';
-import { BookOpen, Tag, UserRound } from 'lucide-react';
+import { Tag, UserRound } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
-import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -285,20 +284,6 @@ export function BookCard({
                   onCategoryClick={() => setCategoryDialogOpen(true)}
                   onDeleteClick={() => setDeleteConfirmOpen(true)}
                 />
-              </div>
-              <div className="flex">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRead();
-                  }}
-                  className="h-9 w-full shrink-0 gap-1.5 rounded-[1rem] bg-primary px-4 text-[12px] font-semibold tracking-[0.03em] text-primary-foreground transition-[transform,background-color,box-shadow] duration-200 hover:bg-primary/90 hover:shadow-[0_4px_14px_-2px_color-mix(in_srgb,var(--primary)_40%,transparent)] active:scale-[0.985] sm:h-8 sm:px-4 sm:text-[11.5px] cursor-pointer"
-                >
-                  <BookOpen className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
-                  <span>阅读</span>
-                </Button>
               </div>
             </div>
           </div>

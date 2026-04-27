@@ -384,6 +384,14 @@ export default function ReadPage() {
     onStopTTS: stopTTS,
   });
 
+  const handleToggleFullscreen = useCallback(async () => {
+    const enteringFullscreen = document.fullscreenElement !== pageRef.current;
+    await toggleFullscreen();
+    if (enteringFullscreen) {
+      hideHeader();
+    }
+  }, [hideHeader, toggleFullscreen]);
+
   const {
     toc,
     bookTitle,
@@ -532,8 +540,6 @@ export default function ReadPage() {
           onLocateCurrentChapter={() => scrollToCurrentChapter("smooth")}
           onGoTo={goTo}
           onBack={handleBack}
-          onExpand={showHeader}
-          onCollapse={hideHeader}
           uiScheme={uiScheme}
           toolbarButtonClass={toolbarButtonClass}
           getToolbarButtonStyle={getToolbarButtonStyle}
@@ -545,7 +551,7 @@ export default function ReadPage() {
           onThemeSettingsOpenChange={setThemeSettingsOpen}
           isFullscreenSupported={isFullscreenSupported}
           isFullscreen={isFullscreen}
-          onToggleFullscreen={toggleFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
         />
 
         <div className="flex min-h-0 flex-1 flex-col">
@@ -639,6 +645,8 @@ export default function ReadPage() {
             containerStyle={statusBarContainerStyle}
             safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
             uiScheme={uiScheme}
+            toolbarVisible={isHeaderVisible}
+            onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
             overlayContainer={overlayContainer}
             tts={{
               state: ttsState,

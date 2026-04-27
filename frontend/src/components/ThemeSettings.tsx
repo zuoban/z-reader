@@ -27,7 +27,7 @@ import {
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
-import { Expand, RotateCcw, Settings, Shrink } from "lucide-react";
+import { RotateCcw, Settings } from "lucide-react";
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "editorial",
@@ -76,9 +76,6 @@ interface ThemeSettingsProps {
   overlayContainer?: HTMLElement | null;
   triggerClassName?: string;
   triggerStyle?: CSSProperties;
-  isFullscreenSupported?: boolean;
-  isFullscreen?: boolean;
-  onToggleFullscreen?: () => void | Promise<void>;
 }
 
 interface SectionProps {
@@ -215,9 +212,6 @@ export function ThemeSettings({
   overlayContainer,
   triggerClassName,
   triggerStyle,
-  isFullscreenSupported = false,
-  isFullscreen = false,
-  onToggleFullscreen,
 }: ThemeSettingsProps) {
   const resetFeedbackTimeoutRef = useRef<number | null>(null);
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
@@ -276,31 +270,6 @@ export function ThemeSettings({
         className="flex flex-col border-l-0 p-0 sm:w-[380px] sm:max-w-[380px]"
         style={panelStyle}
       >
-        {isFullscreenSupported && onToggleFullscreen ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => void onToggleFullscreen()}
-            title={isFullscreen ? "退出全屏" : "进入全屏"}
-            aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
-            className={floatingSheetActionButtonClass}
-            style={getFloatingSheetActionButtonStyle({
-              uiScheme,
-              enabled: true,
-              side: "right",
-              offsetSlots: 2,
-              tone: isFullscreen ? "accent" : "neutral",
-            })}
-          >
-            {isFullscreen ? (
-              <Shrink className="h-4 w-4" />
-            ) : (
-              <Expand className="h-4 w-4" />
-            )}
-          </Button>
-        ) : null}
-
         <Button
           type="button"
           variant="ghost"

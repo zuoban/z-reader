@@ -37,9 +37,10 @@ import { cn } from '@/lib/utils';
 interface UserManagerProps {
   currentUser?: User | null;
   buttonClassName?: string;
+  triggerLabel?: string;
 }
 
-export function UserManager({ currentUser, buttonClassName }: UserManagerProps) {
+export function UserManager({ currentUser, buttonClassName, triggerLabel }: UserManagerProps) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [username, setUsername] = useState('');
@@ -177,6 +178,7 @@ export function UserManager({ currentUser, buttonClassName }: UserManagerProps) 
         }
       >
         <UserCog className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+        {triggerLabel && <span>{triggerLabel}</span>}
       </SheetTrigger>
       <SheetContent
         side="right"

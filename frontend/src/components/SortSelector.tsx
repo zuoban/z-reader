@@ -14,9 +14,10 @@ import { SORT_OPTIONS, SortOption } from '@/hooks/useShelfData';
 interface SortSelectorProps {
   value: SortOption;
   onChange: (value: SortOption) => void;
+  className?: string;
 }
 
-export function SortSelector({ value, onChange }: SortSelectorProps) {
+export function SortSelector({ value, onChange, className }: SortSelectorProps) {
   const [open, setOpen] = useState(false);
 
   const currentOption = SORT_OPTIONS.find((opt) => opt.value === value);
@@ -27,7 +28,8 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
         className={cn(
           'group relative grid h-11 w-full sm:w-[13.75rem] max-w-full cursor-pointer grid-cols-[1.25rem_1fr_1.25rem] items-center gap-2 whitespace-nowrap rounded-full border border-primary/14 bg-[var(--shelf-surface-raised)] px-4 text-[13px] font-semibold text-foreground shadow-[0_10px_24px_-20px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)] transition-all duration-200',
           'hover:border-primary/24 hover:bg-[var(--shelf-surface-raised)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/15',
-          open && 'border-primary/24 bg-[var(--shelf-surface-raised)] text-foreground'
+          open && 'border-primary/24 bg-[var(--shelf-surface-raised)] text-foreground',
+          className
         )}
         style={{ backgroundColor: 'var(--shelf-surface-raised)' }}
         onClick={(e) => e.stopPropagation()}

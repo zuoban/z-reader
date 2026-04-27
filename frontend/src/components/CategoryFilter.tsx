@@ -25,6 +25,7 @@ interface CategoryFilterProps {
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
   bookCounts: Record<string, number>;
+  className?: string;
 }
 
 export function CategoryFilter({
@@ -32,6 +33,7 @@ export function CategoryFilter({
   selectedCategoryId,
   onSelectCategory,
   bookCounts,
+  className,
 }: CategoryFilterProps) {
   const totalBooks = bookCounts.all ?? 0;
   const uncategorizedBooks = bookCounts[UNCATEGORIZED_FILTER_ID] ?? 0;
@@ -69,7 +71,8 @@ export function CategoryFilter({
         className={cn(
           'grid h-11 w-full sm:w-[13.75rem] max-w-full grid-cols-[1.25rem_1fr_1.25rem] items-center gap-2 rounded-full border border-primary/14 bg-[var(--shelf-surface-raised)] px-4 text-[13px] font-semibold text-foreground shadow-[0_10px_24px_-20px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)]',
           'hover:border-primary/24 hover:bg-[var(--shelf-surface-raised)]',
-          'focus:ring-2 focus:ring-primary/15 [&>span]:justify-self-center [&>span]:text-center [&>svg:last-child]:h-4 [&>svg:last-child]:w-4 [&>svg:last-child]:justify-self-end [&>svg:last-child]:opacity-55'
+          'focus:ring-2 focus:ring-primary/15 [&>span]:justify-self-center [&>span]:text-center [&>svg:last-child]:h-4 [&>svg:last-child]:w-4 [&>svg:last-child]:justify-self-end [&>svg:last-child]:opacity-55',
+          className
         )}
         style={{ backgroundColor: 'var(--shelf-surface-raised)' }}
       >

@@ -44,7 +44,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'Z Reader',
-  description: 'A refined online EPUB reading experience',
+  description: 'A refined online reading experience for your digital library',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -58,12 +58,12 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: 'Z Reader',
     title: 'Z Reader',
-    description: 'A refined online EPUB reading experience',
+    description: 'A refined online reading experience for your digital library',
   },
   twitter: {
     card: 'summary',
     title: 'Z Reader',
-    description: 'A refined online EPUB reading experience',
+    description: 'A refined online reading experience for your digital library',
   },
   icons: {
     shortcut: [

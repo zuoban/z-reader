@@ -719,6 +719,106 @@ foliate-view::part(filter) {
     will-change: transform;
   }
 
+  .shelf-menu-item {
+    @apply h-10 w-full gap-3 rounded-[1.15rem] px-3 text-sm font-semibold text-muted-foreground;
+    justify-content: flex-start !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    transition:
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .shelf-menu-item:hover {
+    @apply text-foreground;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-tint) 90%, transparent) 0%,
+      color-mix(in srgb, var(--muted) 42%, transparent) 100%
+    ) !important;
+    border-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
+    box-shadow:
+      0 8px 18px -16px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 48%, transparent) !important;
+    transform: translateX(1px);
+  }
+
+  .shelf-menu-item:focus-visible {
+    color: var(--foreground) !important;
+    border-color: color-mix(in srgb, var(--primary) 28%, transparent) !important;
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 45%, transparent) !important;
+  }
+
+  .shelf-menu-item:active {
+    transform: scale(0.985);
+    background: color-mix(in srgb, var(--muted) 52%, transparent) !important;
+    transition-duration: 80ms;
+  }
+
+  .shelf-menu-item svg {
+    @apply shrink-0;
+  }
+
+  .shelf-menu-item span {
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 1023px) {
+    .shelf-menu-item {
+      @apply h-9 justify-center gap-1.5 rounded-xl px-1.5 text-[11px];
+      text-align: center;
+    }
+
+    .shelf-menu-item:hover {
+      transform: translateY(-1px);
+    }
+
+    .shelf-menu-item:active {
+      transform: scale(0.985);
+    }
+
+    .shelf-menu-item span {
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .shelf-menu-item {
+      @apply gap-1 px-1 text-[10px];
+    }
+  }
+
+  @media (max-width: 640px) {
+    .shelf-header {
+      border-radius: 1.35rem;
+    }
+
+    .shelf-header .shelf-menu-item svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+
+    .shelf-header [role="combobox"],
+    .shelf-header [data-slot="dropdown-menu-trigger"] {
+      height: 2.25rem;
+      grid-template-columns: 1rem minmax(0, 1fr) 1rem;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding-left: 0.65rem;
+      padding-right: 0.65rem;
+      font-size: 0.75rem;
+    }
+  }
+
   .shelf-icon-btn:hover {
     @apply text-foreground;
     background: linear-gradient(

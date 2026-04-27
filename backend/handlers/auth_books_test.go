@@ -274,6 +274,50 @@ func TestBooksDeleteRemovesCoverAndProgress(t *testing.T) {
 	}
 }
 
+func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	uploadDir := t.TempDir()
+	db := openHandlerTestDB(t)
+	userID := "user-a"
+	book := &models.Book{
+		ID:          "book-cache",
+		UserID:      userID,
+		Title:       "Cached Book",
+		Filename:    "book-cache.epub",
+		Format:      "epub",
+		Size:        8,
+		ContentHash: "abc123",
+		CreatedAt:   time.Now().UTC(),
+	}
+	if err := db.SaveBook(book); err != nil {
+		t.Fatalf("failed to save book: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(uploadDir, book.Filename), []byte("book"), 0600); err != nil {
+		t.Fatalf("failed to write book file: %v", err)
+	}
+
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
+	ctx.Request.Header.Set("If-None-Match", `"abc123"`)
+
+	handler.GetFile(ctx)
+
+	if recorder.Code != http.StatusNotModified {
+		t.Fatalf("expected status 304, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if got := recorder.Header().Get("ETag"); got != `"abc123"` {
+		t.Fatalf("expected ETag header, got %q", got)
+	}
+	if got := recorder.Header().Get("Cache-Control"); got != "private, max-age=3600" {
+		t.Fatalf("expected private cache header, got %q", got)
+	}
+}
+
 func TestValidateUploadedBook(t *testing.T) {
 	tests := []struct {
 		name    string

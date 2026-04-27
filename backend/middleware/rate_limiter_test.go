@@ -41,6 +41,28 @@ func TestRateLimiterDifferentIPsAreIndependent(t *testing.T) {
 	}
 }
 
+func TestRateLimiterCleansExpiredVisitors(t *testing.T) {
+	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
+	now := start
+	rl := NewRateLimiter(1, time.Minute)
+	rl.cleanupInterval = time.Second
+	rl.now = func() time.Time { return now }
+
+	if !rl.Allow("10.0.0.1") {
+		t.Fatal("first request should be allowed")
+	}
+	now = now.Add(2 * time.Minute)
+	if !rl.Allow("10.0.0.2") {
+		t.Fatal("different IP should be allowed")
+	}
+
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	if _, ok := rl.visitors["10.0.0.1"]; ok {
+		t.Fatal("expired visitor should be cleaned")
+	}
+}
+
 func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	rl := NewRateLimiter(1, 5*time.Minute)
 	// First request allowed

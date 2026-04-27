@@ -38,6 +38,8 @@ const (
 	maxEPUBMetadataBytes = 2 * 1024 * 1024
 	maxEPUBCoverBytes    = 20 * 1024 * 1024
 	multipartOverhead    = 1 * 1024 * 1024
+	bookFileCacheMaxAge  = 60 * 60
+	bookCoverCacheMaxAge = 24 * 60 * 60
 )
 
 type BooksHandler struct {
@@ -255,6 +257,10 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 		return
 	}
 
+	setPrivateCache(c, bookFileCacheMaxAge)
+	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
+		return
+	}
 	c.File(filePath)
 }
 
@@ -603,6 +609,7 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
 	if book.CoverPath != "" {
+		setPrivateCache(c, bookCoverCacheMaxAge)
 		c.File(filepath.Join(h.cfg.UploadDir, book.CoverPath))
 		return
 	}
@@ -619,6 +626,10 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		return
 	}
 
+	setPrivateCache(c, bookCoverCacheMaxAge)
+	if writeNotModifiedIfETagMatches(c, hashBytes(coverData)) {
+		return
+	}
 	c.Header("Content-Type", contentType)
 	c.Data(http.StatusOK, contentType, coverData)
 }
@@ -769,4 +780,24 @@ func limitUploadBody(c *gin.Context, maxBytes int64) {
 
 func isRequestBodyTooLarge(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "request body too large")
+}
+
+func setPrivateCache(c *gin.Context, maxAgeSeconds int) {
+	c.Header("Cache-Control", fmt.Sprintf("private, max-age=%d", maxAgeSeconds))
+}
+
+func writeNotModifiedIfETagMatches(c *gin.Context, rawETag string) bool {
+	etag := `"` + rawETag + `"`
+	c.Header("ETag", etag)
+	if c.GetHeader("If-None-Match") != etag {
+		return false
+	}
+	c.Status(http.StatusNotModified)
+	c.Writer.WriteHeaderNow()
+	return true
+}
+
+func hashBytes(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }

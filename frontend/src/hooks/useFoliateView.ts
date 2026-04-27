@@ -34,6 +34,7 @@ interface UseFoliateViewOptions {
   bindReaderDocument: (doc: Document) => void;
   bindHeaderInteractionDocument: (doc: Document) => void;
   cleanupHeaderInteractionDocuments: () => void;
+  onImageOpen?: (image: { src: string; alt: string }) => void;
 }
 
 export function useFoliateView({
@@ -49,6 +50,7 @@ export function useFoliateView({
   bindReaderDocument,
   bindHeaderInteractionDocument,
   cleanupHeaderInteractionDocuments,
+  onImageOpen,
 }: UseFoliateViewOptions) {
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [bookTitle, setBookTitle] = useState("");
@@ -64,14 +66,17 @@ export function useFoliateView({
   const themeRef = useRef(theme);
   const getStylesheetRef = useRef(getStylesheet);
   const updateProgressRef = useRef(updateProgress);
+  const onImageOpenRef = useRef(onImageOpen);
   const scriptLoadedRef = useRef(false);
+  const imageDocCleanupsRef = useRef<Map<Document, () => void>>(new Map());
 
   useEffect(() => {
     progressRef.current = progress;
     themeRef.current = theme;
     getStylesheetRef.current = getStylesheet;
     updateProgressRef.current = updateProgress;
-  }, [getStylesheet, progress, theme, updateProgress]);
+    onImageOpenRef.current = onImageOpen;
+  }, [getStylesheet, onImageOpen, progress, theme, updateProgress]);
 
   const applyRendererPreferences = useCallback((renderer?: FoliateView["renderer"] | null) => {
     if (!renderer) return;
@@ -147,9 +152,105 @@ export function useFoliateView({
     `;
   }, []);
 
+  const bindImageZoomDocument = useCallback((doc: Document) => {
+    if (imageDocCleanupsRef.current.has(doc)) return;
+    const docWindow = doc.defaultView;
+    if (!docWindow) return;
+
+    const images = Array.from(
+      doc.querySelectorAll<Element>("img, image"),
+    );
+
+    images.forEach((image) => {
+      image.setAttribute("data-reader-interactive", "true");
+      const style = image.getAttribute("style") ?? "";
+      image.setAttribute("style", `${style}; cursor: zoom-in;`);
+    });
+
+    const getZoomImage = (target: EventTarget | null) => {
+      if (!(target instanceof docWindow.Element)) return null;
+      const image = target.closest("img, image");
+      if (!image) return null;
+
+      const src =
+        image instanceof docWindow.HTMLImageElement
+          ? image.currentSrc || image.src
+          : image.getAttribute("href") ||
+            image.getAttribute("xlink:href") ||
+            "";
+
+      if (!src) return null;
+
+      const alt =
+        image instanceof docWindow.HTMLImageElement
+          ? image.alt
+          : image.getAttribute("aria-label") || image.getAttribute("title") || "";
+
+      return {
+        src: new URL(src, doc.baseURI).toString(),
+        alt,
+      };
+    };
+
+    const openImage = (event: Event) => {
+      const image = getZoomImage(event.target);
+      if (!image) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      onImageOpenRef.current?.(image);
+    };
+
+    let pointerStart: { x: number; y: number } | null = null;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!getZoomImage(event.target)) return;
+      pointerStart = { x: event.clientX, y: event.clientY };
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (!pointerStart) return;
+      const moved =
+        Math.abs(event.clientX - pointerStart.x) > 8 ||
+        Math.abs(event.clientY - pointerStart.y) > 8;
+      pointerStart = null;
+      if (!moved) {
+        openImage(event);
+      }
+    };
+
+    const handleClick = (event: MouseEvent) => {
+      openImage(event);
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      const target = event.target;
+      if (!getZoomImage(target)) return;
+      event.stopPropagation();
+    };
+
+    doc.addEventListener("pointerdown", handlePointerDown, true);
+    doc.addEventListener("pointerup", handlePointerUp, true);
+    doc.addEventListener("click", handleClick, true);
+    doc.addEventListener("touchstart", handleTouchStart, true);
+    imageDocCleanupsRef.current.set(doc, () => {
+      doc.removeEventListener("pointerdown", handlePointerDown, true);
+      doc.removeEventListener("pointerup", handlePointerUp, true);
+      doc.removeEventListener("click", handleClick, true);
+      doc.removeEventListener("touchstart", handleTouchStart, true);
+    });
+  }, []);
+
+  const cleanupImageZoomDocuments = useCallback(() => {
+    imageDocCleanupsRef.current.forEach((cleanup) => cleanup());
+    imageDocCleanupsRef.current.clear();
+  }, []);
+
   const cleanupReader = useCallback(() => {
     destroyedRef.current = true;
     cleanupHeaderInteractionDocuments();
+    cleanupImageZoomDocuments();
 
     const view = viewRef.current;
     viewRef.current = null;
@@ -168,7 +269,12 @@ export function useFoliateView({
     if (containerRef.current) {
       containerRef.current.innerHTML = "";
     }
-  }, [cleanupHeaderInteractionDocuments, containerRef, viewRef]);
+  }, [
+    cleanupHeaderInteractionDocuments,
+    cleanupImageZoomDocuments,
+    containerRef,
+    viewRef,
+  ]);
 
   const initReader = useCallback(async () => {
     if (!containerRef.current || destroyedRef.current) return;
@@ -216,6 +322,7 @@ export function useFoliateView({
           const doc = e.detail?.doc;
           if (doc) {
             bindReaderDocument(doc);
+            bindImageZoomDocument(doc);
             bindHeaderInteractionDocument(doc);
             cleanInlineStyles(doc);
           }
@@ -245,6 +352,7 @@ export function useFoliateView({
           const doc = e.detail?.doc;
           if (doc) {
             bindReaderDocument(doc);
+            bindImageZoomDocument(doc);
             bindHeaderInteractionDocument(doc);
             cleanInlineStyles(doc);
           }
@@ -291,6 +399,7 @@ export function useFoliateView({
   }, [
     applyRendererPreferences,
     bindHeaderInteractionDocument,
+    bindImageZoomDocument,
     bindReaderDocument,
     bookId,
     cleanInlineStyles,

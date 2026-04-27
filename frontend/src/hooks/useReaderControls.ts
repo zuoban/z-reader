@@ -88,6 +88,10 @@ export function useReaderControls({
   }, [pageRef]);
 
   const keyboardHandler = useCallback((e: KeyboardEvent) => {
+    if (pageRef.current?.dataset.readerImageZoomOpen === 'true') {
+      return;
+    }
+
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
       return;
     }

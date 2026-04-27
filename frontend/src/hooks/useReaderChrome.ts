@@ -18,7 +18,6 @@ export function useReaderChrome() {
     currentChapter: "",
   });
   const tocListRef = useRef<HTMLDivElement>(null);
-  const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
   const locateFrameRef = useRef<number | null>(null);
   const showHeaderFrameRef = useRef<number | null>(null);
 
@@ -90,38 +89,20 @@ export function useReaderChrome() {
     [scheduleCurrentChapterScroll, scheduleHeaderShow],
   );
 
-  const handleReaderClick = useCallback((event: Event) => {
-    const state = stateRef.current;
-    if (state.loading || state.tocOpen || state.themeSettingsOpen) {
-      return;
-    }
-
-    if (
-      event.target instanceof Element &&
-      event.target.closest('[data-reader-interactive="true"]')
-    ) {
-      return;
-    }
-
-    setIsHeaderVisible((visible) => !visible);
+  const showHeader = useCallback(() => {
+    setIsHeaderVisible(true);
   }, []);
 
-  const bindHeaderInteractionDocument = useCallback(
-    (doc: Document) => {
-      if (headerInteractionDocsRef.current.has(doc)) return;
+  const hideHeader = useCallback(() => {
+    const state = stateRef.current;
+    if (state.loading || state.tocOpen || state.themeSettingsOpen) return;
 
-      doc.addEventListener("click", handleReaderClick);
-      headerInteractionDocsRef.current.add(doc);
-    },
-    [handleReaderClick],
-  );
+    setIsHeaderVisible(false);
+  }, []);
 
-  const cleanupHeaderInteractionDocuments = useCallback(() => {
-    headerInteractionDocsRef.current.forEach((doc) => {
-      doc.removeEventListener("click", handleReaderClick);
-    });
-    headerInteractionDocsRef.current.clear();
-  }, [handleReaderClick]);
+  const bindHeaderInteractionDocument = useCallback(() => {}, []);
+
+  const cleanupHeaderInteractionDocuments = useCallback(() => {}, []);
 
   useEffect(() => {
     return () => {
@@ -138,7 +119,8 @@ export function useReaderChrome() {
   return {
     isHeaderVisible,
     tocListRef,
-    handleReaderClick,
+    showHeader,
+    hideHeader,
     scrollToCurrentChapter,
     bindHeaderInteractionDocument,
     cleanupHeaderInteractionDocuments,

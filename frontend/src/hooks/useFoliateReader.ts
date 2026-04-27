@@ -18,6 +18,7 @@ interface UseFoliateReaderOptions {
   bindReaderDocument: (doc: Document) => void;
   bindHeaderInteractionDocument: (doc: Document) => void;
   cleanupHeaderInteractionDocuments: () => void;
+  onImageOpen?: (image: { src: string; alt: string }) => void;
 }
 
 export function useFoliateReader(options: UseFoliateReaderOptions) {

@@ -5,22 +5,15 @@ import {
   useRef,
   useState,
   useCallback,
-  lazy,
-  Suspense,
 } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { api } from "@/lib/api";
-import { FoliateView, TOCItem } from "@/lib/types";
+import { FoliateView } from "@/lib/types";
 import { useProgress } from "@/hooks/useProgress";
-import {
-  useReaderTheme,
-  PRESET_STYLES,
-} from "@/hooks/useReaderTheme";
+import { useReaderTheme } from "@/hooks/useReaderTheme";
 import { useReaderControls } from "@/hooks/useReaderControls";
 import { useTTS } from "@/hooks/useTTS";
-import { ThemeSettings } from "@/components/ThemeSettings";
-import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
+import { useFoliateReader } from "@/hooks/useFoliateReader";
 import { ReaderResumePrompt } from "@/components/reader/ReaderResumePrompt";
 import { ReaderStatusBar } from "@/components/reader/ReaderStatusBar";
 import {
@@ -28,14 +21,8 @@ import {
   ReaderErrorState,
   ReaderLoadingOverlay,
 } from "@/components/reader/ReaderStateViews";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { withOpacity } from "@/lib/reader-ui";
-
-// 延迟加载 TTS 组件，首屏不加载
-const TTSControls = lazy(() =>
-  import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
-);
 
 export default function ReadPage() {
   const router = useRouter();
@@ -51,32 +38,17 @@ export default function ReadPage() {
   const { theme, setTheme, getStylesheet, getUIScheme } = useReaderTheme();
   const uiScheme = getUIScheme();
 
-  const [toc, setToc] = useState<TOCItem[]>([]);
-  const [bookTitle, setBookTitle] = useState("");
-  const [percentage, setPercentage] = useState(0);
-  const [currentChapter, setCurrentChapter] = useState("");
-  const [currentPageLabel, setCurrentPageLabel] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMsg, setLoadingMsg] = useState("初始化中...");
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
-  const progressRef = useRef(progress);
-  const destroyedRef = useRef(false);
-  const themeRef = useRef(theme);
-  const getStylesheetRef = useRef(getStylesheet);
-  const updateProgressRef = useRef(updateProgress);
-  const loadingRef = useRef(loading);
+  const loadingRef = useRef(true);
   const tocOpenRef = useRef(tocOpen);
   const themeSettingsOpenRef = useRef(themeSettingsOpen);
-  // 缓存脚本加载状态，避免重复创建 script 标签
-  const scriptLoadedRef = useRef(false);
   const tocListRef = useRef<HTMLDivElement>(null);
   const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
   const handlePageRef = useCallback((node: HTMLDivElement | null) => {
@@ -633,114 +605,53 @@ export default function ReadPage() {
       />
 
       <div className="relative flex h-full min-h-0 flex-col">
-        <header
-          data-reader-interactive="true"
-          className={`pointer-events-none absolute inset-x-0 top-0 z-50 sm:px-4 ${
-            isHeaderVisible
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
-          }`}
-          style={{
-            background: uiScheme.bg,
-            paddingTop: headerSafeAreaPaddingTop,
-            transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
+        <ReaderToolbar
+          visible={isHeaderVisible}
+          bookTitle={bookTitle}
+          toc={toc}
+          tocOpen={tocOpen}
+          onTocOpenChange={setTocOpen}
+          tocListRef={tocListRef}
+          currentChapter={currentChapter}
+          onLocateCurrentChapter={() => scrollToCurrentChapter("smooth")}
+          onGoTo={goTo}
+          onBack={handleBack}
+          uiScheme={uiScheme}
+          isDarkPreset={isDarkPreset}
+          toolbarButtonClass={toolbarButtonClass}
+          toolbarStyle={unifiedToolbarStyle}
+          getToolbarButtonStyle={getToolbarButtonStyle}
+          headerSafeAreaPaddingTop={headerSafeAreaPaddingTop}
+          overlayContainer={overlayContainer}
+          tts={{
+            state: ttsState,
+            settings: ttsSettings,
+            voices,
+            voicesLoading,
+            voicesError,
+            reloadVoices,
+            start: startTTS,
+            stop: stopTTS,
+            next: nextTTS,
+            prev: prevTTS,
+            updateSettings: updateTTSSettings,
+            resumePromptVisible,
+            resumePromptMessage,
+            status: ttsStatus,
+            sleepTimer,
+            setSleepTimerForMinutes,
+            clearSleepTimer,
+            resume: resumeTTS,
+            onExpandedChange: handleTTSExpandedChange,
           }}
-        >
-          <div className="flex justify-center px-3 pt-2 sm:px-4 sm:pt-3">
-            <div
-              className="pointer-events-auto grid h-[3.25rem] w-full max-w-xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 rounded-[1.25rem] px-1.5 py-1 sm:h-[3.75rem] sm:max-w-2xl sm:gap-2 sm:rounded-[1.5rem] sm:px-2"
-              style={unifiedToolbarStyle}
-            >
-              {/* 左侧按钮组 */}
-              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBack}
-                  title="返回书库"
-                  className={toolbarButtonClass}
-                  style={getToolbarButtonStyle(false)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <ReaderTOCSheet
-                  open={tocOpen}
-                  onOpenChange={setTocOpen}
-                  toc={toc}
-                  tocListRef={tocListRef}
-                  currentChapter={currentChapter}
-                  uiScheme={uiScheme}
-                  overlayContainer={overlayContainer}
-                  triggerClassName={toolbarButtonClass}
-                  triggerStyle={getToolbarButtonStyle(tocOpen)}
-                  onLocateCurrent={() => scrollToCurrentChapter("smooth")}
-                  onGoTo={goTo}
-                />
-              </div>
-
-              {/* 中间标题区域 */}
-              <div className="flex min-w-0 flex-1 items-center justify-center px-2 sm:px-4">
-                <span
-                  className="truncate text-[13px] font-semibold leading-none sm:text-[14px]"
-                  style={{ color: withOpacity(uiScheme.fg, isDarkPreset ? 0.78 : 0.72) }}
-                >
-                  {bookTitle || "阅读中"}
-                </span>
-              </div>
-
-              {/* 右侧按钮组 */}
-              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-              <Suspense fallback={null}>
-                <TTSControls
-                  state={ttsState}
-                  settings={ttsSettings}
-                  voices={voices}
-                  voicesLoading={voicesLoading}
-                  voicesError={voicesError}
-                  onReloadVoices={reloadVoices}
-                  onStart={startTTS}
-                  onStop={stopTTS}
-                  onNext={nextTTS}
-                  onPrev={prevTTS}
-                  onUpdateSettings={updateTTSSettings}
-                  uiScheme={uiScheme}
-                  variant="toolbar"
-                  triggerClassName={toolbarButtonClass}
-                  triggerStyle={{
-                    ...getToolbarButtonStyle(ttsState !== "stopped"),
-                    background: "transparent",
-                    border: "1px solid transparent",
-                    boxShadow: "none",
-                  }}
-                  resumePromptVisible={resumePromptVisible}
-                  resumePromptMessage={resumePromptMessage}
-                  ttsStatus={ttsStatus}
-                  sleepTimer={sleepTimer}
-                  onSleepTimerMinutes={setSleepTimerForMinutes}
-                  onClearSleepTimer={clearSleepTimer}
-                  onResume={resumeTTS}
-                  onExpandedChange={handleTTSExpandedChange}
-                  overlayContainer={overlayContainer}
-                />
-              </Suspense>
-              <ThemeSettings
-                theme={theme}
-                setTheme={setTheme}
-                uiScheme={uiScheme}
-                open={themeSettingsOpen}
-                onOpenChange={setThemeSettingsOpen}
-                overlayContainer={overlayContainer}
-                triggerClassName={toolbarButtonClass}
-                triggerStyle={getToolbarButtonStyle(themeSettingsOpen)}
-                isFullscreenSupported={isFullscreenSupported}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={toggleFullscreen}
-              />
-              </div>
-            </div>
-          </div>
-        </header>
+          theme={theme}
+          setTheme={setTheme}
+          themeSettingsOpen={themeSettingsOpen}
+          onThemeSettingsOpenChange={setThemeSettingsOpen}
+          isFullscreenSupported={isFullscreenSupported}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+        />
 
         <div className="flex min-h-0 flex-1 flex-col">
           <div

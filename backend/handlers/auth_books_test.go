@@ -835,3 +835,278 @@ func TestUsersHandlerUpdateRejectsLastAdminDemote(t *testing.T) {
 		t.Fatalf("expected status 400, got %d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
+
+func TestUsersHandlerCreateRejectsShortPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	handler := NewUsersHandler(db)
+
+	body := bytes.NewBufferString(`{"username":"newuser","password":"short"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/users", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUsersHandlerCreateRejectsEmptyUsername(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	handler := NewUsersHandler(db)
+
+	body := bytes.NewBufferString(`{"username":"  ","password":"secret123"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/users", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUsersHandlerCreateRejectsInvalidRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	handler := NewUsersHandler(db)
+
+	body := bytes.NewBufferString(`{"username":"newuser","password":"secret123","role":"superadmin"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/users", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUsersHandlerCreateDefaultsToUserRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	handler := NewUsersHandler(db)
+
+	body := bytes.NewBufferString(`{"username":"newuser","password":"secret123"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/users", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var resp userResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Role != models.UserRoleUser {
+		t.Fatalf("expected default role user, got %s", resp.Role)
+	}
+}
+
+func TestUsersHandlerCreateAcceptsAdminRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	handler := NewUsersHandler(db)
+
+	body := bytes.NewBufferString(`{"username":"newadmin","password":"secret123","role":"admin"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/users", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var resp userResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Role != models.UserRoleAdmin {
+		t.Fatalf("expected role admin, got %s", resp.Role)
+	}
+}
+
+func TestUsersHandlerUpdateChangesPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	hash, _ := storage.HashPassword("oldpass")
+	user := &models.User{
+		ID:           "update-user",
+		Username:     "updateuser",
+		PasswordHash: hash,
+		Role:         models.UserRoleUser,
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
+	}
+	db.SaveUser(user)
+
+	handler := NewUsersHandler(db)
+	body := bytes.NewBufferString(`{"password":"newpassword123"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPatch, "/api/users/update-user", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Params = gin.Params{{Key: "id", Value: "update-user"}}
+
+	handler.Update(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	got, _ := db.GetUser("update-user")
+	if got == nil {
+		t.Fatal("expected user to exist")
+	}
+	if storage.CheckPassword(got.PasswordHash, "newpassword123") == false {
+		t.Fatal("expected password to be updated")
+	}
+	if storage.CheckPassword(got.PasswordHash, "oldpass") == true {
+		t.Fatal("expected old password to no longer work")
+	}
+}
+
+func TestUsersHandlerUpdateChangesRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	hash, _ := storage.HashPassword("pass123")
+	db.SaveUser(&models.User{
+		ID:           "role-user",
+		Username:     "roleuser",
+		PasswordHash: hash,
+		Role:         models.UserRoleUser,
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
+	})
+	// Create another admin so we can promote
+	db.SaveUser(&models.User{
+		ID:           "other-admin",
+		Username:     "otheradmin",
+		PasswordHash: hash,
+		Role:         models.UserRoleAdmin,
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
+	})
+
+	handler := NewUsersHandler(db)
+	body := bytes.NewBufferString(`{"role":"admin"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPatch, "/api/users/role-user", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Params = gin.Params{{Key: "id", Value: "role-user"}}
+
+	handler.Update(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	var resp userResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Role != models.UserRoleAdmin {
+		t.Fatalf("expected role admin, got %s", resp.Role)
+	}
+}
+
+func TestUsersHandlerUpdateReturnsNotFoundForMissingUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	handler := NewUsersHandler(db)
+
+	body := bytes.NewBufferString(`{"password":"newpass123"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPatch, "/api/users/nonexistent", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Params = gin.Params{{Key: "id", Value: "nonexistent"}}
+
+	handler.Update(ctx)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUsersHandlerUpdateRejectsShortPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	hash, _ := storage.HashPassword("pass123")
+	db.SaveUser(&models.User{
+		ID:           "short-pass-user",
+		Username:     "shortpass",
+		PasswordHash: hash,
+		Role:         models.UserRoleUser,
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
+	})
+
+	handler := NewUsersHandler(db)
+	body := bytes.NewBufferString(`{"password":"short"}`)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPatch, "/api/users/short-pass-user", body)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Params = gin.Params{{Key: "id", Value: "short-pass-user"}}
+
+	handler.Update(ctx)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUsersHandlerDeleteReturnsNotFoundForMissingUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	hash, _ := storage.HashPassword("admin123")
+	db.SaveUser(&models.User{
+		ID:           "delete-admin",
+		Username:     "deladmin",
+		PasswordHash: hash,
+		Role:         models.UserRoleAdmin,
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
+	})
+
+	handler := NewUsersHandler(db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", "delete-admin")
+	ctx.Params = gin.Params{{Key: "id", Value: "nonexistent"}}
+	ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/users/nonexistent", nil)
+
+	handler.Delete(ctx)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}

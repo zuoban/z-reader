@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
@@ -99,6 +99,51 @@ export function useShelfData(isAuthenticated: boolean) {
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
+  const enrichingBooksRef = useRef(new Set<string>());
+
+  const enrichBookMetadata = useCallback(
+    async (bookId: string, file: File) => {
+      try {
+        const preview = await extractBookPreview(file);
+        const updated = await api.updateBook(bookId, {
+          title: preview.title,
+          author: preview.author,
+        });
+
+        if (preview.cover) {
+          const coverFileName = file.name.replace(/\.[^.]+$/, '.png');
+          const finalBook = await api.uploadCover(bookId, preview.cover, coverFileName);
+          setBooks((prevBooks) => {
+            const bookExists = prevBooks.some((item) => item.id === bookId);
+            if (!bookExists) return prevBooks;
+            return sortBooks(
+              prevBooks.map((item) => (item.id === bookId ? finalBook : item)),
+              sortBy
+            );
+          });
+          return;
+        }
+
+        setBooks((prevBooks) => {
+          const bookExists = prevBooks.some((item) => item.id === bookId);
+          if (!bookExists) return prevBooks;
+          return sortBooks(
+            prevBooks.map((item) => (item.id === bookId ? updated : item)),
+            sortBy
+          );
+        });
+      } catch (previewErr) {
+        console.warn('Failed to enrich uploaded book:', previewErr);
+      } finally {
+        enrichingBooksRef.current.delete(bookId);
+      }
+    },
+    [sortBy]
+  );
+
+  const abortEnrichment = useCallback((bookId: string) => {
+    enrichingBooksRef.current.delete(bookId);
+  }, []);
 
   const setSortBy = useCallback((option: SortOption) => {
     setSortByState(option);
@@ -180,41 +225,20 @@ export function useShelfData(isAuthenticated: boolean) {
       const book = await api.uploadBook(file);
       setBooks((prev) => sortBooks([...prev, book], sortBy));
 
-      void (async () => {
-        try {
-          const preview = await extractBookPreview(file);
-          const updated = await api.updateBook(book.id, {
-            title: preview.title,
-            author: preview.author,
-          });
-
-          if (preview.cover) {
-            const coverFileName = file.name.replace(/\.[^.]+$/, '.png');
-            const finalBook = await api.uploadCover(book.id, preview.cover, coverFileName);
-            setBooks((prevBooks) =>
-              sortBooks(prevBooks.map((item) => (item.id === book.id ? finalBook : item)), sortBy)
-            );
-            return;
-          }
-
-          setBooks((prevBooks) =>
-            sortBooks(prevBooks.map((item) => (item.id === book.id ? updated : item)), sortBy)
-          );
-        } catch (previewErr) {
-          console.warn('Failed to enrich uploaded book:', previewErr);
-        }
-      })();
+      enrichingBooksRef.current.add(book.id);
+      void enrichBookMetadata(book.id, file);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '上传失败');
     } finally {
       setIsUploading(false);
       e.target.value = '';
     }
-  }, [sortBy]);
+  }, [sortBy, enrichBookMetadata]);
 
   const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id);
     try {
+      abortEnrichment(id);
       await api.deleteBook(id);
       setBooks((prev) => prev.filter((book) => book.id !== id));
       setProgressByBookId((prev) => {
@@ -227,7 +251,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setDeletingId(null);
     }
-  }, []);
+  }, [abortEnrichment]);
 
   return {
     books,

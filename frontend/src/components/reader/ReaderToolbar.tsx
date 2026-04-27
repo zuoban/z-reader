@@ -30,7 +30,6 @@ interface ReaderToolbarProps {
   uiScheme: ThemeColors;
   isDarkPreset: boolean;
   toolbarButtonClass: string;
-  toolbarStyle: CSSProperties;
   getToolbarButtonStyle: (active?: boolean) => CSSProperties;
   headerSafeAreaPaddingTop: string;
   overlayContainer?: HTMLElement | null;
@@ -87,7 +86,6 @@ export function ReaderToolbar({
   uiScheme,
   isDarkPreset,
   toolbarButtonClass,
-  toolbarStyle,
   getToolbarButtonStyle,
   headerSafeAreaPaddingTop,
   overlayContainer,
@@ -112,100 +110,109 @@ export function ReaderToolbar({
         background: uiScheme.bg,
         paddingTop: headerSafeAreaPaddingTop,
         transition:
-          "transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)",
+          "transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms cubic-bezier(0.32, 0.72, 0, 1)",
       }}
     >
-      <div className="flex justify-center px-3 pt-2 sm:px-4 sm:pt-3">
-        <div
-          className="pointer-events-auto grid h-[3.25rem] w-full max-w-xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 rounded-[1.25rem] px-1.5 py-1 sm:h-[3.75rem] sm:max-w-2xl sm:gap-2 sm:rounded-[1.5rem] sm:px-2"
-          style={toolbarStyle}
+      <div className="flex items-center justify-between h-12 px-3 pointer-events-auto sm:h-14 sm:px-4">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            title="返回书库"
+            className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 sm:h-10 sm:w-10 ${toolbarButtonClass}`}
+            style={{
+              color: uiScheme.buttonText,
+              ...getToolbarButtonStyle(false),
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+            }}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
+          <ReaderTOCSheet
+            open={tocOpen}
+            onOpenChange={onTocOpenChange}
+            toc={toc}
+            tocListRef={tocListRef}
+            currentChapter={currentChapter}
+            uiScheme={uiScheme}
+            overlayContainer={overlayContainer}
+            triggerClassName={toolbarButtonClass}
+            triggerStyle={{
+              ...getToolbarButtonStyle(tocOpen),
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+            }}
+            onLocateCurrent={onLocateCurrentChapter}
+            onGoTo={onGoTo}
+          />
+        </div>
+
+        <span
+          className="absolute left-1/2 -translate-x-1/2 truncate max-w-[50%] text-[13px] font-medium leading-none sm:text-[14px]"
+          style={{
+            color: withOpacity(uiScheme.fg, isDarkPreset ? 0.7 : 0.65),
+          }}
         >
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              title="返回书库"
-              className={toolbarButtonClass}
-              style={getToolbarButtonStyle(false)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+          {bookTitle || "阅读中"}
+        </span>
 
-            <ReaderTOCSheet
-              open={tocOpen}
-              onOpenChange={onTocOpenChange}
-              toc={toc}
-              tocListRef={tocListRef}
-              currentChapter={currentChapter}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Suspense fallback={null}>
+            <TTSControls
+              state={tts.state}
+              settings={tts.settings}
+              voices={tts.voices}
+              voicesLoading={tts.voicesLoading}
+              voicesError={tts.voicesError}
+              onReloadVoices={tts.reloadVoices}
+              onStart={tts.start}
+              onStop={tts.stop}
+              onNext={tts.next}
+              onPrev={tts.prev}
+              onUpdateSettings={tts.updateSettings}
               uiScheme={uiScheme}
-              overlayContainer={overlayContainer}
+              variant="toolbar"
               triggerClassName={toolbarButtonClass}
-              triggerStyle={getToolbarButtonStyle(tocOpen)}
-              onLocateCurrent={onLocateCurrentChapter}
-              onGoTo={onGoTo}
-            />
-          </div>
-
-          <div className="flex min-w-0 flex-1 items-center justify-center px-2 sm:px-4">
-            <span
-              className="truncate text-[13px] font-semibold leading-none sm:text-[14px]"
-              style={{
-                color: withOpacity(uiScheme.fg, isDarkPreset ? 0.78 : 0.72),
+              triggerStyle={{
+                ...getToolbarButtonStyle(tts.state !== "stopped"),
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
               }}
-            >
-              {bookTitle || "阅读中"}
-            </span>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <Suspense fallback={null}>
-              <TTSControls
-                state={tts.state}
-                settings={tts.settings}
-                voices={tts.voices}
-                voicesLoading={tts.voicesLoading}
-                voicesError={tts.voicesError}
-                onReloadVoices={tts.reloadVoices}
-                onStart={tts.start}
-                onStop={tts.stop}
-                onNext={tts.next}
-                onPrev={tts.prev}
-                onUpdateSettings={tts.updateSettings}
-                uiScheme={uiScheme}
-                variant="toolbar"
-                triggerClassName={toolbarButtonClass}
-                triggerStyle={{
-                  ...getToolbarButtonStyle(tts.state !== "stopped"),
-                  background: "transparent",
-                  border: "1px solid transparent",
-                  boxShadow: "none",
-                }}
-                resumePromptVisible={tts.resumePromptVisible}
-                resumePromptMessage={tts.resumePromptMessage}
-                ttsStatus={tts.status}
-                sleepTimer={tts.sleepTimer}
-                onSleepTimerMinutes={tts.setSleepTimerForMinutes}
-                onClearSleepTimer={tts.clearSleepTimer}
-                onResume={tts.resume}
-                onExpandedChange={tts.onExpandedChange}
-                overlayContainer={overlayContainer}
-              />
-            </Suspense>
-            <ThemeSettings
-              theme={theme}
-              setTheme={setTheme}
-              uiScheme={uiScheme}
-              open={themeSettingsOpen}
-              onOpenChange={onThemeSettingsOpenChange}
+              resumePromptVisible={tts.resumePromptVisible}
+              resumePromptMessage={tts.resumePromptMessage}
+              ttsStatus={tts.status}
+              sleepTimer={tts.sleepTimer}
+              onSleepTimerMinutes={tts.setSleepTimerForMinutes}
+              onClearSleepTimer={tts.clearSleepTimer}
+              onResume={tts.resume}
+              onExpandedChange={tts.onExpandedChange}
               overlayContainer={overlayContainer}
-              triggerClassName={toolbarButtonClass}
-              triggerStyle={getToolbarButtonStyle(themeSettingsOpen)}
-              isFullscreenSupported={isFullscreenSupported}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={onToggleFullscreen}
             />
-          </div>
+          </Suspense>
+          <ThemeSettings
+            theme={theme}
+            setTheme={setTheme}
+            uiScheme={uiScheme}
+            open={themeSettingsOpen}
+            onOpenChange={onThemeSettingsOpenChange}
+            overlayContainer={overlayContainer}
+            triggerClassName={toolbarButtonClass}
+            triggerStyle={{
+              ...getToolbarButtonStyle(themeSettingsOpen),
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+            }}
+            isFullscreenSupported={isFullscreenSupported}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={onToggleFullscreen}
+          />
         </div>
       </div>
     </header>

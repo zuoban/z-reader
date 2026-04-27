@@ -207,28 +207,12 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "relative flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-[0.95rem] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out hover:scale-[1.03] active:scale-95 sm:h-11 sm:w-11 sm:min-h-11 sm:min-w-11 sm:rounded-[1.05rem]";
+    "relative flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded-lg transition-colors duration-150 ease-out hover:bg-black/5 sm:h-10 sm:w-10 sm:min-h-10 sm:min-w-10";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
-    background: active
-      ? withOpacity(uiScheme.link, isDarkPreset ? 0.18 : 0.11)
-      : "transparent",
-    border: `1px solid ${active
-      ? withOpacity(uiScheme.link, 0.30)
-      : "transparent"}`,
-    boxShadow: active
-      ? `0 8px 18px -12px ${withOpacity(uiScheme.link, 0.46)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.54)}`
-      : "none",
     transition: "all 150ms ease-out",
   });
-  const unifiedToolbarStyle = {
-    background: withOpacity(uiScheme.cardBg, isDarkPreset ? 0.88 : 0.76),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.42 : 0.54)}`,
-    boxShadow: `0 18px 42px -30px ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.76 : 0.42)}, inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.82)}`,
-    backdropFilter: "blur(18px) saturate(1.15)",
-    WebkitBackdropFilter: "blur(18px) saturate(1.15)",
-  } as const;
   const statusBarContainerStyle = {
     background: uiScheme.bg,
     borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.3 : 0.4)}`,
@@ -247,11 +231,7 @@ export default function ReadPage() {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `
-            radial-gradient(ellipse 70% 50% at 20% 0%, ${withOpacity(uiScheme.link, 0.09)} 0%, transparent 60%),
-            radial-gradient(ellipse 50% 40% at 80% 0%, ${withOpacity(uiScheme.headerBorder, 0.18)} 0%, transparent 50%),
-            linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.94)} 0%, ${uiScheme.bg} 22%, ${uiScheme.bg} 100%)
-          `,
+          background: `linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.96)} 0%, ${uiScheme.bg} 16%, ${uiScheme.bg} 100%)`,
         }}
       />
 
@@ -270,7 +250,6 @@ export default function ReadPage() {
           uiScheme={uiScheme}
           isDarkPreset={isDarkPreset}
           toolbarButtonClass={toolbarButtonClass}
-          toolbarStyle={unifiedToolbarStyle}
           getToolbarButtonStyle={getToolbarButtonStyle}
           headerSafeAreaPaddingTop={headerSafeAreaPaddingTop}
           overlayContainer={overlayContainer}

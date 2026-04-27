@@ -59,7 +59,7 @@ export function useReaderControls({
     if (typeof document === 'undefined') return;
 
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === pageRef.current);
+      setIsFullscreen(Boolean(pageRef.current && document.fullscreenElement === pageRef.current));
     };
 
     handleFullscreenChange();

@@ -35,10 +35,8 @@ import {
 import {
   AlertCircle,
   ChevronLeft,
-  Expand,
   List,
   LocateFixed,
-  Shrink,
 } from "lucide-react";
 import {
   floatingSheetActionButtonClass,
@@ -821,25 +819,6 @@ export default function ReadPage() {
 
               {/* 右侧按钮组 */}
               <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-              {isFullscreenSupported && (
-                <Button
-                  data-reader-interactive="true"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => void toggleFullscreen()}
-                  title={isFullscreen ? "退出全屏" : "进入全屏"}
-                  aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
-                  className={toolbarButtonClass}
-                  style={getToolbarButtonStyle(false)}
-                >
-                  {isFullscreen ? (
-                    <Shrink className="h-4 w-4" />
-                  ) : (
-                    <Expand className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-
               <Suspense fallback={null}>
                 <TTSControls
                   state={ttsState}
@@ -882,6 +861,9 @@ export default function ReadPage() {
                 overlayContainer={overlayContainer}
                 triggerClassName={toolbarButtonClass}
                 triggerStyle={getToolbarButtonStyle(themeSettingsOpen)}
+                isFullscreenSupported={isFullscreenSupported}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={toggleFullscreen}
               />
               </div>
             </div>

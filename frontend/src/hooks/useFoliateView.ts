@@ -46,7 +46,7 @@ interface UseFoliateViewOptions {
   viewRef: RefObject<FoliateView | null>;
   isAuthenticated: boolean;
   progressLoading: boolean;
-  progress: { cfi: string; percentage: number } | null;
+  progress: { cfi: string; percentage: number; updated_at?: string; remote?: boolean } | null;
   theme: ReaderTheme;
   getStylesheet: () => string;
   updateProgress: (cfi: string, percentage: number) => void;
@@ -88,6 +88,7 @@ export function useFoliateView({
   const updateProgressRef = useRef(updateProgress);
   const onImageOpenRef = useRef(onImageOpen);
   const scriptLoadedRef = useRef(false);
+  const appliedRemoteProgressRef = useRef<string | null>(null);
   const imageDocCleanupsRef = useRef<Map<Document, () => void>>(new Map());
 
   useEffect(() => {
@@ -407,6 +408,7 @@ export function useFoliateView({
       applyRendererPreferences(view.renderer);
 
       const savedProgress = progressRef.current;
+      appliedRemoteProgressRef.current = savedProgress?.updated_at ?? null;
       await view.init?.({
         lastLocation: savedProgress?.cfi ?? null,
         showTextStart: false,
@@ -435,6 +437,14 @@ export function useFoliateView({
       applyRendererPreferences(viewRef.current.renderer);
     }
   }, [applyRendererPreferences, getStylesheet, loading, theme, viewRef]);
+
+  useEffect(() => {
+    if (loading || !progress?.remote || !progress.updated_at || !progress.cfi) return;
+    if (appliedRemoteProgressRef.current === progress.updated_at) return;
+
+    appliedRemoteProgressRef.current = progress.updated_at;
+    void viewRef.current?.goTo?.(progress.cfi);
+  }, [loading, progress, viewRef]);
 
   useEffect(() => {
     const contents = viewRef.current?.renderer?.getContents?.() ?? [];

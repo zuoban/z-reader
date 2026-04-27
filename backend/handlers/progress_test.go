@@ -108,6 +108,53 @@ func TestProgressSaveUpdatesExistingRecord(t *testing.T) {
 	}
 }
 
+func TestProgressSaveRejectsStaleExpectedUpdatedAt(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db, userID := setupProgressTestDB(t)
+
+	initialUpdatedAt := time.Now().UTC().Truncate(time.Second)
+	initial := &models.Progress{
+		BookID:     "book-progress",
+		CFI:        "epubcfi(/6/2!/4/2/6)",
+		Percentage: 10,
+		DeviceID:   "device-a",
+		UpdatedAt:  initialUpdatedAt,
+	}
+	if err := db.SaveProgress(initial, userID); err != nil {
+		t.Fatalf("failed to save initial progress: %v", err)
+	}
+
+	handler := NewProgressHandler(db)
+	payload, _ := json.Marshal(map[string]interface{}{
+		"cfi":                 "epubcfi(/6/4!/4/2/8)",
+		"percentage":          50,
+		"device_id":           "device-b",
+		"expected_updated_at": initialUpdatedAt.Add(-time.Minute).Format(time.RFC3339),
+	})
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", bytes.NewBuffer(payload))
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Save(ctx)
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	got, err := db.GetProgress("book-progress", userID)
+	if err != nil {
+		t.Fatalf("GetProgress returned error: %v", err)
+	}
+	if got == nil || got.CFI != initial.CFI || got.DeviceID != "device-a" {
+		t.Fatalf("expected stale save to leave original progress, got %+v", got)
+	}
+}
+
 func TestProgressSaveRejectsMissingCFI(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

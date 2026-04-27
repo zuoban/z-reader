@@ -13,6 +13,14 @@ const MOCK_PROGRESS = (overrides: Partial<Progress> = {}): Progress => ({
   ...overrides,
 });
 vi.mock('@/lib/api', () => ({
+  ApiError: class ApiError extends Error {
+    status: number;
+
+    constructor(message: string, status: number) {
+      super(message);
+      this.status = status;
+    }
+  },
   api: {
     getProgress: vi.fn(),
     saveProgress: vi.fn(),
@@ -24,6 +32,7 @@ describe('useProgress', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -85,7 +94,7 @@ describe('useProgress', () => {
   });
 
   it('debounced save after delay', async () => {
-    vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: 'epubcfi(/2)', percentage: 10 }));
+    vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: 'epubcfi(/2)', percentage: 10, updated_at: '2024-01-01T00:00:00Z' }));
     vi.mocked(api.saveProgress).mockResolvedValue(MOCK_PROGRESS());
 
     const { result } = renderHook(() =>
@@ -108,7 +117,10 @@ describe('useProgress', () => {
     });
 
     expect(api.saveProgress).toHaveBeenCalledTimes(1);
-    expect(api.saveProgress).toHaveBeenCalledWith('book-1', 'epubcfi(/6/4)', 50);
+    expect(api.saveProgress).toHaveBeenCalledWith('book-1', 'epubcfi(/6/4)', 50, {
+      expectedUpdatedAt: '2024-01-01T00:00:00Z',
+      deviceId: expect.any(String),
+    });
   });
 
   it('saveNow forces immediate save', async () => {
@@ -135,7 +147,10 @@ describe('useProgress', () => {
       result.current.saveNow();
     });
 
-    expect(api.saveProgress).toHaveBeenCalledWith('book-1', 'epubcfi(/6/4)', 50);
+    expect(api.saveProgress).toHaveBeenCalledWith('book-1', 'epubcfi(/6/4)', 50, {
+      expectedUpdatedAt: undefined,
+      deviceId: expect.any(String),
+    });
   });
 
   it('skips save when change is less than 1%', async () => {

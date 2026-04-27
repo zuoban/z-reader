@@ -11,7 +11,7 @@ interface UseFoliateReaderOptions {
   viewRef: RefObject<FoliateView | null>;
   isAuthenticated: boolean;
   progressLoading: boolean;
-  progress: { cfi: string; percentage: number } | null;
+  progress: { cfi: string; percentage: number; updated_at?: string; remote?: boolean } | null;
   theme: ReaderTheme;
   getStylesheet: () => string;
   updateProgress: (cfi: string, percentage: number) => void;

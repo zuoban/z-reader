@@ -20,8 +20,10 @@ func NewProgressHandler(db *storage.DB) *ProgressHandler {
 }
 
 type ProgressRequest struct {
-	CFI        string  `json:"cfi"`
-	Percentage float64 `json:"percentage"`
+	CFI               string     `json:"cfi" form:"cfi"`
+	Percentage        float64    `json:"percentage" form:"percentage"`
+	DeviceID          string     `json:"device_id" form:"device_id"`
+	ExpectedUpdatedAt *time.Time `json:"expected_updated_at" form:"expected_updated_at"`
 }
 
 func (h *ProgressHandler) List(c *gin.Context) {
@@ -103,12 +105,25 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		UserID:     userID,
 		CFI:        req.CFI,
 		Percentage: req.Percentage,
+		DeviceID:   req.DeviceID,
 		UpdatedAt:  time.Now(),
 	}
 
-	if err := h.db.SaveProgress(progress, userID); err != nil {
+	if err := h.db.SaveProgressIfCurrent(progress, userID, req.ExpectedUpdatedAt); err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
+			return
+		}
+		if err == storage.ErrProgressConflict {
+			current, getErr := h.db.GetProgress(id, userID)
+			if getErr != nil {
+				response.InternalError(c, "获取最新阅读进度失败")
+				return
+			}
+			c.JSON(http.StatusConflict, gin.H{
+				"error":    "阅读进度已在其他设备更新",
+				"progress": current,
+			})
 			return
 		}
 		response.InternalError(c, "保存阅读进度失败")

@@ -15,12 +15,12 @@ import (
 )
 
 var (
-	BooksBucket      = []byte("books")
-	ProgressBucket   = []byte("progress")
-	SessionsBucket   = []byte("sessions")
-	UsersBucket      = []byte("users")
-	UserBooksIndex   = []byte("user_books_index")   // userId -> JSON []bookId
-	UsernameIndex    = []byte("username_index")      // normalizedUsername -> userId
+	BooksBucket    = []byte("books")
+	ProgressBucket = []byte("progress")
+	SessionsBucket = []byte("sessions")
+	UsersBucket    = []byte("users")
+	UserBooksIndex = []byte("user_books_index") // userId -> JSON []bookId
+	UsernameIndex  = []byte("username_index")   // normalizedUsername -> userId
 )
 
 type DB struct {
@@ -571,15 +571,14 @@ func (db *DB) DeleteProgress(bookID string, userID string) error {
 }
 
 func (db *DB) SaveProgress(progress *models.Progress, userID string) error {
+	return db.SaveProgressIfCurrent(progress, userID, nil)
+}
+
+func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, expectedUpdatedAt *time.Time) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		progress.UserID = userID
 
 		progressBucket := tx.Bucket(ProgressBucket)
-		data, err := json.Marshal(progress)
-		if err != nil {
-			return err
-		}
-
 		booksBucket := tx.Bucket(BooksBucket)
 		bookData := booksBucket.Get([]byte(progress.BookID))
 		if bookData == nil {
@@ -593,9 +592,31 @@ func (db *DB) SaveProgress(progress *models.Progress, userID string) error {
 		if book.UserID != userID {
 			return ErrNotFound
 		}
+
+		key := progressKey(userID, progress.BookID)
+		currentData := progressBucket.Get(key)
+		if expectedUpdatedAt != nil {
+			if currentData == nil {
+				return ErrProgressConflict
+			}
+
+			var current models.Progress
+			if err := json.Unmarshal(currentData, &current); err != nil {
+				return err
+			}
+			if !current.UpdatedAt.Equal(*expectedUpdatedAt) {
+				return ErrProgressConflict
+			}
+		}
+
 		book.LastReadAt = &progress.UpdatedAt
 
 		updatedBookData, err := json.Marshal(&book)
+		if err != nil {
+			return err
+		}
+
+		data, err := json.Marshal(progress)
 		if err != nil {
 			return err
 		}
@@ -604,7 +625,7 @@ func (db *DB) SaveProgress(progress *models.Progress, userID string) error {
 			return err
 		}
 
-		return progressBucket.Put(progressKey(userID, progress.BookID), data)
+		return progressBucket.Put(key, data)
 	})
 }
 

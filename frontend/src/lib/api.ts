@@ -25,6 +25,7 @@ export interface Progress {
   user_id: string;
   cfi: string;
   percentage: number;
+  device_id?: string;
   updated_at: string;
 }
 
@@ -38,11 +39,13 @@ export interface User {
 
 export class ApiError extends Error {
   status: number;
+  details?: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, details?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -99,7 +102,7 @@ export function handleAuthResponse(res: Response): void {
 
 async function parseApiError(res: Response, fallback: string): Promise<ApiError> {
   const body = await res.json().catch(() => null) as { error?: string; message?: string } | null;
-  return new ApiError(body?.error || body?.message || fallback, res.status);
+  return new ApiError(body?.error || body?.message || fallback, res.status, body);
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
@@ -304,21 +307,57 @@ export const api = {
     return fetchApi<Progress[]>('/api/progress');
   },
 
-  saveProgress: async (bookId: string, cfi: string, percentage: number): Promise<Progress> => {
+  saveProgress: async (
+    bookId: string,
+    cfi: string,
+    percentage: number,
+    options: { expectedUpdatedAt?: string; deviceId?: string } = {},
+  ): Promise<Progress> => {
+    const body: {
+      cfi: string;
+      percentage: number;
+      expected_updated_at?: string;
+      device_id?: string;
+    } = { cfi, percentage };
+    if (options.expectedUpdatedAt) {
+      body.expected_updated_at = options.expectedUpdatedAt;
+    }
+    if (options.deviceId) {
+      body.device_id = options.deviceId;
+    }
+
     return fetchApi<Progress>(`/api/progress/${bookId}`, {
       method: 'POST',
-      body: JSON.stringify({ cfi, percentage }),
+      body: JSON.stringify(body),
     });
   },
 
-  saveProgressOnUnload: (bookId: string, cfi: string, percentage: number): void => {
+  saveProgressOnUnload: (
+    bookId: string,
+    cfi: string,
+    percentage: number,
+    options: { expectedUpdatedAt?: string; deviceId?: string } = {},
+  ): void => {
+    const body: {
+      cfi: string;
+      percentage: number;
+      expected_updated_at?: string;
+      device_id?: string;
+    } = { cfi, percentage };
+    if (options.expectedUpdatedAt) {
+      body.expected_updated_at = options.expectedUpdatedAt;
+    }
+    if (options.deviceId) {
+      body.device_id = options.deviceId;
+    }
+
     void fetch(`${API_BASE}/api/progress/${bookId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),
       },
-      body: JSON.stringify({ cfi, percentage }),
+      body: JSON.stringify(body),
       keepalive: true,
     }).catch(() => {
       // Ignore unload-time failures.

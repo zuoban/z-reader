@@ -183,13 +183,21 @@ describe('api.saveProgress', () => {
     });
     localStorage.setItem('token', 'token');
 
-    await api.saveProgress('1', 'epubcfi(/6/4)', 75);
+    await api.saveProgress('1', 'epubcfi(/6/4)', 75, {
+      expectedUpdatedAt: '2024-01-01T00:00:00Z',
+      deviceId: 'device-1',
+    });
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/progress/1'),
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ cfi: 'epubcfi(/6/4)', percentage: 75 }),
+        body: JSON.stringify({
+          cfi: 'epubcfi(/6/4)',
+          percentage: 75,
+          expected_updated_at: '2024-01-01T00:00:00Z',
+          device_id: 'device-1',
+        }),
       }),
     );
   });

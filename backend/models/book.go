@@ -22,6 +22,7 @@ type Progress struct {
 	UserID     string    `json:"user_id"`
 	CFI        string    `json:"cfi"`
 	Percentage float64   `json:"percentage"`
+	DeviceID   string    `json:"device_id,omitempty"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 

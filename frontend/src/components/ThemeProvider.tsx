@@ -4,11 +4,12 @@ import { useEffect, type ReactNode } from 'react';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { isDark } = useShelfTheme();
+  const { isDark, preset } = useShelfTheme();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
-  }, [isDark]);
+    document.documentElement.dataset.readerPreset = preset;
+  }, [isDark, preset]);
 
   return <>{children}</>;
 }

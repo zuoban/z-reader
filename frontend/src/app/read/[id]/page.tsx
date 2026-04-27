@@ -387,6 +387,7 @@ export default function ReadPage() {
   const {
     toc,
     bookTitle,
+    bookAuthor,
     percentage,
     currentChapter,
     currentPageLabel,
@@ -501,7 +502,7 @@ export default function ReadPage() {
     borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.3 : 0.4)}`,
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = "1.25rem";
+  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.15rem)";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)";
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
@@ -522,6 +523,7 @@ export default function ReadPage() {
         <ReaderToolbar
           visible={isHeaderVisible}
           bookTitle={bookTitle}
+          bookAuthor={bookAuthor}
           toc={toc}
           tocOpen={tocOpen}
           onTocOpenChange={setTocOpen}
@@ -533,32 +535,10 @@ export default function ReadPage() {
           onExpand={showHeader}
           onCollapse={hideHeader}
           uiScheme={uiScheme}
-          isDarkPreset={isDarkPreset}
           toolbarButtonClass={toolbarButtonClass}
           getToolbarButtonStyle={getToolbarButtonStyle}
           headerSafeAreaPaddingTop={headerSafeAreaPaddingTop}
           overlayContainer={overlayContainer}
-          tts={{
-            state: ttsState,
-            settings: ttsSettings,
-            voices,
-            voicesLoading,
-            voicesError,
-            reloadVoices,
-            start: startTTS,
-            stop: stopTTS,
-            next: nextTTS,
-            prev: prevTTS,
-            updateSettings: updateTTSSettings,
-            resumePromptVisible,
-            resumePromptMessage,
-            status: ttsStatus,
-            sleepTimer,
-            setSleepTimerForMinutes,
-            clearSleepTimer,
-            resume: resumeTTS,
-            onExpandedChange: handleTTSExpandedChange,
-          }}
           theme={theme}
           setTheme={setTheme}
           themeSettingsOpen={themeSettingsOpen}
@@ -659,6 +639,28 @@ export default function ReadPage() {
             containerStyle={statusBarContainerStyle}
             safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
             uiScheme={uiScheme}
+            overlayContainer={overlayContainer}
+            tts={{
+              state: ttsState,
+              settings: ttsSettings,
+              voices,
+              voicesLoading,
+              voicesError,
+              reloadVoices,
+              start: startTTS,
+              stop: stopTTS,
+              next: nextTTS,
+              prev: prevTTS,
+              updateSettings: updateTTSSettings,
+              resumePromptVisible,
+              resumePromptMessage,
+              status: ttsStatus,
+              sleepTimer,
+              setSleepTimerForMinutes,
+              clearSleepTimer,
+              resume: resumeTTS,
+              onExpandedChange: handleTTSExpandedChange,
+            }}
           />
         </div>
       </div>

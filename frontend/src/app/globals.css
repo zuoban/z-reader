@@ -162,6 +162,94 @@
   --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
 }
 
+:root[data-reader-preset="sepia"] {
+  --background: #f1e2c8;
+  --foreground: #433427;
+  --card: #f8ecda;
+  --card-foreground: #433427;
+  --popover: #f8ecda;
+  --popover-foreground: #433427;
+  --primary: #7c6ef8;
+  --primary-foreground: #ffffff;
+  --secondary: #ecddbd;
+  --secondary-foreground: #4f3d2d;
+  --muted: #ecddbd;
+  --muted-foreground: #7c6751;
+  --accent: #8a6f55;
+  --accent-foreground: #ffffff;
+  --border: #d9c39b;
+  --input: #ead8b6;
+  --ring: #7c6ef8;
+  --sidebar: #f1e2c8;
+  --sidebar-foreground: #433427;
+  --sidebar-primary: #7c6ef8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #8a6f55;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(124, 103, 81, 0.24);
+  --sidebar-ring: #7c6ef8;
+  --paper-shadow: rgba(92, 70, 43, 0.16);
+  --paper-shadow-soft: rgba(92, 70, 43, 0.08);
+  --paper-edge: rgba(255, 249, 237, 0.82);
+  --paper-crease: rgba(124, 103, 81, 0.10);
+  --paper-speck: rgba(124, 103, 81, 0.05);
+  --glass-specular: rgba(255, 249, 237, 0.62);
+  --glass-tint: rgba(124, 110, 248, 0.05);
+  --glass-edge: rgba(255, 249, 237, 0.48);
+  --shelf-surface: #f8ecda;
+  --shelf-surface-raised: #fbf0df;
+  --shelf-surface-soft: #f4e6cf;
+  --shelf-surface-hover: color-mix(in srgb, var(--primary) 8%, #f8ecda);
+  --shelf-surface-selected: color-mix(in srgb, var(--primary) 11%, #f8ecda);
+  --ambient-orb-1: radial-gradient(ellipse 60% 50% at 20% 10%, rgba(124, 110, 248, 0.07) 0%, transparent 70%);
+  --ambient-orb-2: radial-gradient(ellipse 50% 60% at 80% 5%, rgba(138, 111, 85, 0.08) 0%, transparent 70%);
+  --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(217, 195, 155, 0.12) 0%, transparent 60%);
+}
+
+:root[data-reader-preset="green"] {
+  --background: #e5ede0;
+  --foreground: #24352b;
+  --card: #f2f6ee;
+  --card-foreground: #24352b;
+  --popover: #f2f6ee;
+  --popover-foreground: #24352b;
+  --primary: #4a7557;
+  --primary-foreground: #ffffff;
+  --secondary: #d9e4d4;
+  --secondary-foreground: #24352b;
+  --muted: #dfe9da;
+  --muted-foreground: #5b6e5f;
+  --accent: #6c8b72;
+  --accent-foreground: #ffffff;
+  --border: #cbd8c7;
+  --input: #d9e4d4;
+  --ring: #4a7557;
+  --sidebar: #e5ede0;
+  --sidebar-foreground: #24352b;
+  --sidebar-primary: #4a7557;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #6c8b72;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(74, 117, 87, 0.22);
+  --sidebar-ring: #4a7557;
+  --paper-shadow: rgba(46, 78, 56, 0.14);
+  --paper-shadow-soft: rgba(46, 78, 56, 0.07);
+  --paper-edge: rgba(255, 255, 255, 0.76);
+  --paper-crease: rgba(74, 117, 87, 0.09);
+  --paper-speck: rgba(74, 117, 87, 0.05);
+  --glass-specular: rgba(255, 255, 255, 0.58);
+  --glass-tint: rgba(74, 117, 87, 0.05);
+  --glass-edge: rgba(255, 255, 255, 0.44);
+  --shelf-surface: #f2f6ee;
+  --shelf-surface-raised: #f6f9f3;
+  --shelf-surface-soft: #eaf1e5;
+  --shelf-surface-hover: color-mix(in srgb, var(--primary) 8%, #f2f6ee);
+  --shelf-surface-selected: color-mix(in srgb, var(--primary) 11%, #f2f6ee);
+  --ambient-orb-1: radial-gradient(ellipse 60% 50% at 20% 10%, rgba(74, 117, 87, 0.09) 0%, transparent 70%);
+  --ambient-orb-2: radial-gradient(ellipse 50% 60% at 80% 5%, rgba(108, 139, 114, 0.08) 0%, transparent 70%);
+  --ambient-orb-3: radial-gradient(ellipse 70% 40% at 50% 100%, rgba(203, 216, 199, 0.14) 0%, transparent 60%);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -10,6 +10,25 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function normalizeMetadataText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeMetadataText(item))
+      .filter(Boolean)
+      .join("、");
+  }
+  if (value && typeof value === "object") {
+    const record = value as { name?: unknown; label?: unknown; text?: unknown };
+    return (
+      normalizeMetadataText(record.name) ||
+      normalizeMetadataText(record.label) ||
+      normalizeMetadataText(record.text)
+    );
+  }
+  return "";
+}
+
 async function waitForFoliateView() {
   let retries = 0;
   while (!customElements.get("foliate-view") && retries < 50) {
@@ -54,6 +73,7 @@ export function useFoliateView({
 }: UseFoliateViewOptions) {
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [bookTitle, setBookTitle] = useState("");
+  const [bookAuthor, setBookAuthor] = useState("");
   const [percentage, setPercentage] = useState(0);
   const [currentChapter, setCurrentChapter] = useState("");
   const [currentPageLabel, setCurrentPageLabel] = useState("");
@@ -316,7 +336,8 @@ export function useFoliateView({
         try {
           const book = view.book;
           setToc(book?.toc || []);
-          setBookTitle(book?.metadata?.title || "");
+          setBookTitle(normalizeMetadataText(book?.metadata?.title));
+          setBookAuthor(normalizeMetadataText(book?.metadata?.author));
           setLoading(false);
 
           const doc = e.detail?.doc;
@@ -437,6 +458,7 @@ export function useFoliateView({
   return {
     toc,
     bookTitle,
+    bookAuthor,
     percentage,
     currentChapter,
     currentPageLabel,

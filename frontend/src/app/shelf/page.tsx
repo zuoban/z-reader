@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen,
+  Library,
   LogOut,
   Moon,
   Plus,
@@ -36,7 +37,7 @@ function ShelfTitle() {
   return (
     <div className="flex min-w-0 items-center gap-3.5">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_55%,transparent)] sm:h-12 sm:w-12">
-        <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
+        <Library className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
       </div>
       <h1 className="truncate font-heading text-2xl font-semibold text-foreground sm:text-3xl lg:text-2xl">
         {SHELF_TITLE}

@@ -1,27 +1,41 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { ReaderTheme } from '@/hooks/useReaderTheme';
 
 interface ShelfTheme {
+  preset: ReaderTheme['preset'];
   isDark: boolean;
+}
+
+const STORAGE_KEY = 'z-reader-theme';
+
+function normalizePreset(value: unknown): ReaderTheme['preset'] {
+  return value === 'dark' || value === 'sepia' || value === 'green' || value === 'light'
+    ? value
+    : 'light';
 }
 
 function readShelfTheme(): ShelfTheme {
   try {
-    const raw = localStorage.getItem('z-reader-theme');
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { isDark: parsed?.preset === 'dark' };
+      const preset = normalizePreset(parsed?.preset);
+      return { preset, isDark: preset === 'dark' };
     }
   } catch {
     // ignore
   }
-  return { isDark: false };
+  return { preset: 'light', isDark: false };
 }
 
-function writeShelfTheme(isDark: boolean) {
+function writeShelfThemePreset(preset: ReaderTheme['preset']) {
   try {
-    localStorage.setItem('z-reader-theme', JSON.stringify({ preset: isDark ? 'dark' : 'light' }));
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const current = raw ? JSON.parse(raw) : {};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, preset }));
+    window.dispatchEvent(new StorageEvent('storage'));
     window.dispatchEvent(new Event('z-reader-theme-change'));
   } catch {
     // ignore
@@ -45,8 +59,9 @@ export function useShelfTheme(): ShelfTheme & { toggleTheme: () => void } {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    writeShelfTheme(!theme.isDark);
-    setTheme({ isDark: !theme.isDark });
+    const preset = theme.isDark ? 'light' : 'dark';
+    writeShelfThemePreset(preset);
+    setTheme({ preset, isDark: preset === 'dark' });
   }, [theme.isDark]);
 
   return { ...theme, toggleTheme };

@@ -139,6 +139,7 @@ export const DEFAULT_READER_THEME: ReaderTheme = {
 const STORAGE_KEY = "z-reader-theme";
 
 let cachedTheme: ReaderTheme | null = null;
+let cachedThemeRaw: string | null = null;
 
 function normalizeReaderTheme(theme: ReaderTheme): ReaderTheme {
   return {
@@ -155,32 +156,41 @@ function normalizeReaderTheme(theme: ReaderTheme): ReaderTheme {
 function subscribe(callback: () => void) {
   const handler = () => {
     cachedTheme = null;
+    cachedThemeRaw = null;
     callback();
   };
   window.addEventListener("storage", handler);
-  return () => window.removeEventListener("storage", handler);
+  window.addEventListener("z-reader-theme-change", handler);
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener("z-reader-theme-change", handler);
+  };
 }
 
 function getSnapshot(): ReaderTheme {
-  if (cachedTheme) return cachedTheme;
   if (typeof window === "undefined") {
     cachedTheme = normalizeReaderTheme(DEFAULT_READER_THEME);
+    cachedThemeRaw = null;
     return cachedTheme;
   }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
+    if (cachedTheme && cachedThemeRaw === saved) return cachedTheme;
+
     if (saved) {
       const parsed = normalizeReaderTheme({
         ...DEFAULT_READER_THEME,
         ...JSON.parse(saved),
       } as ReaderTheme);
       cachedTheme = parsed;
+      cachedThemeRaw = saved;
       return parsed;
     }
   } catch (err) {
     console.error("Failed to load theme from localStorage:", err);
   }
   cachedTheme = normalizeReaderTheme(DEFAULT_READER_THEME);
+  cachedThemeRaw = null;
   return cachedTheme;
 }
 
@@ -196,8 +206,10 @@ export function useReaderTheme() {
   const setTheme = useCallback(
     (newTheme: Partial<ReaderTheme>) => {
       const updated = normalizeReaderTheme({ ...theme, ...newTheme });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      const raw = JSON.stringify(updated);
+      localStorage.setItem(STORAGE_KEY, raw);
       cachedTheme = updated;
+      cachedThemeRaw = raw;
       window.dispatchEvent(new StorageEvent("storage"));
       window.dispatchEvent(new CustomEvent("z-reader-theme-change"));
     },

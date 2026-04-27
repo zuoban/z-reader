@@ -26,6 +26,8 @@ interface ReaderTOCSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   toc: TOCItem[];
+  bookTitle: string;
+  bookAuthor: string;
   tocListRef: RefObject<HTMLDivElement | null>;
   currentChapter: string;
   uiScheme: ThemeColors;
@@ -40,6 +42,8 @@ export function ReaderTOCSheet({
   open,
   onOpenChange,
   toc,
+  bookTitle,
+  bookAuthor,
   tocListRef,
   currentChapter,
   uiScheme,
@@ -65,12 +69,12 @@ export function ReaderTOCSheet({
         <List className="h-4 w-4" />
       </SheetTrigger>
       <SheetContent
-        side="left"
+        side="right"
         container={overlayContainer}
-        className="max-w-sm border-r-0 p-0 sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
+        className="max-w-sm border-l-0 p-0 sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
         style={{
           background: uiScheme.cardBg,
-          boxShadow: `20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
+          boxShadow: `-20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
         }}
       >
         <Button
@@ -104,16 +108,18 @@ export function ReaderTOCSheet({
             </div>
             <div className="min-w-0 flex-1">
               <SheetTitle
-                className="text-lg font-bold tracking-tight"
+                className="truncate text-lg font-bold tracking-tight"
                 style={{ color: uiScheme.fg }}
+                title={bookTitle || "阅读中"}
               >
-                书籍目录
+                {bookTitle || "阅读中"}
               </SheetTitle>
               <SheetDescription
-                className="mt-0.5 text-[10px] font-medium opacity-60 text-muted-foreground"
+                className="mt-0.5 truncate text-[10px] font-medium opacity-60 text-muted-foreground"
                 style={{ color: uiScheme.mutedText }}
+                title={bookAuthor ? `作者：${bookAuthor}` : "书籍目录"}
               >
-                快速穿梭于书页的脉络之间
+                {bookAuthor ? `作者：${bookAuthor}` : "书籍目录"}
               </SheetDescription>
             </div>
           </div>

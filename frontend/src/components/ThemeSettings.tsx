@@ -6,13 +6,6 @@ import type { CSSProperties, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -106,10 +99,6 @@ interface SliderFieldProps {
   max: number;
   step: number;
   uiScheme: ThemeColors;
-}
-
-function getFlowLabel(flow: ReaderTheme["flow"]) {
-  return flow === "paginated" ? "翻页" : "滚动";
 }
 
 function SectionCard({
@@ -239,14 +228,6 @@ export function ThemeSettings({
     color: uiScheme.fg,
     boxShadow: `-10px 0 28px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
   } as const;
-  const selectStyle = {
-    color: uiScheme.fg,
-    borderColor: withOpacity(uiScheme.cardBorder, 0.22),
-    background: withOpacity(uiScheme.cardBg, 0.65),
-  } as const;
-
-  const currentPreset = PRESETS.find((preset) => preset.key === theme.preset) ?? PRESETS[0];
-
   useEffect(() => {
     return () => {
       if (resetFeedbackTimeoutRef.current !== null) {

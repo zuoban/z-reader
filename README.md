@@ -89,6 +89,7 @@ npm run dev
 | `DB_PATH` | 数据库路径 | `./data.db` |
 | `MAX_UPLOAD_BYTES` | 单个上传文件最大字节数 | `268435456` |
 | `ALLOWED_ORIGINS` | 允许访问后端的前端来源，逗号分隔 | `http://localhost:3000,http://localhost:8080` |
+| `TRUSTED_PROXIES` | 可信反向代理 IP/CIDR，影响登录限流等客户端 IP 判断 | `127.0.0.1,::1` |
 | `NEXT_SERVER_API_URL` | Next.js 开发/SSR 代理到后端时使用的地址 | `http://127.0.0.1:8080` |
 | `NEXT_PUBLIC_API_URL` | 浏览器端直连后端时使用的地址，可选 | 空 |
 | `TTS_CACHE_DIR` | TTS 磁盘缓存目录 | `./data/tts-cache` |

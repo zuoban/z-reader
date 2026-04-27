@@ -53,7 +53,7 @@ jobs:
 
       - name: Run frontend lint
         working-directory: frontend
-        run: npm run lint
+        run: npm run lint:strict
 
   docker-build:
     name: Docker Build Check

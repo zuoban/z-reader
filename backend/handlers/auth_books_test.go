@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"mime/multipart"
@@ -393,6 +394,29 @@ func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
 	}
 }
 
+func TestBooksUploadRejectsOversizedRequestBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	handler := NewBooksHandler(&config.Config{
+		UploadDir:      uploadDir,
+		MaxUploadBytes: 8,
+	}, db)
+
+	content := append([]byte{'P', 'K', 3, 4}, bytes.Repeat([]byte("x"), int(multipartOverhead)+16)...)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", "user-a")
+	ctx.Request = newMultipartUploadRequest(t, "too-large.epub", content)
+
+	handler.Upload(ctx)
+
+	if recorder.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected status 413, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestValidateUploadedCover(t *testing.T) {
 	pngHeader := []byte{
 		0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n',
@@ -406,6 +430,72 @@ func TestValidateUploadedCover(t *testing.T) {
 	err := validateUploadedCover(newMultipartFileHeader(t, "cover.png", []byte("not-an-image")), ".png")
 	if err == nil {
 		t.Fatalf("expected invalid PNG cover to fail validation")
+	}
+}
+
+func TestExtractEPUBCoverDetectsContentType(t *testing.T) {
+	epubPath := filepath.Join(t.TempDir(), "cover.epub")
+	pngHeader := []byte{
+		0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n',
+		0, 0, 0, 0, 'I', 'H', 'D', 'R',
+	}
+	writeZipFile(t, epubPath, map[string][]byte{
+		"OEBPS/cover.png": pngHeader,
+	})
+
+	data, contentType, err := extractEPUBCover(epubPath)
+	if err != nil {
+		t.Fatalf("extractEPUBCover returned error: %v", err)
+	}
+	if contentType != "image/png" {
+		t.Fatalf("expected image/png content type, got %q", contentType)
+	}
+	if !bytes.Equal(data, pngHeader) {
+		t.Fatal("expected extracted cover bytes to match input")
+	}
+}
+
+func TestReadZipFileWithLimitRejectsOversizedEntry(t *testing.T) {
+	zipPath := filepath.Join(t.TempDir(), "oversized.zip")
+	writeZipFile(t, zipPath, map[string][]byte{
+		"content.opf": []byte("12345"),
+	})
+
+	reader, err := zip.OpenReader(zipPath)
+	if err != nil {
+		t.Fatalf("failed to open zip: %v", err)
+	}
+	defer reader.Close()
+
+	if len(reader.File) != 1 {
+		t.Fatalf("expected 1 zip entry, got %d", len(reader.File))
+	}
+	if _, err := readZipFileWithLimit(reader.File[0], 4); err == nil {
+		t.Fatal("expected oversized zip entry to be rejected")
+	}
+}
+
+func writeZipFile(t *testing.T, path string, files map[string][]byte) {
+	t.Helper()
+
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("failed to create zip file: %v", err)
+	}
+	defer file.Close()
+
+	writer := zip.NewWriter(file)
+	for name, content := range files {
+		entry, err := writer.Create(name)
+		if err != nil {
+			t.Fatalf("failed to create zip entry: %v", err)
+		}
+		if _, err := entry.Write(content); err != nil {
+			t.Fatalf("failed to write zip entry: %v", err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("failed to close zip writer: %v", err)
 	}
 }
 

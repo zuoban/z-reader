@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { api, auth } from '@/lib/api';
+import { api, auth, AUTH_EXPIRED_EVENT } from '@/lib/api';
 import type { User } from '@/lib/api';
 
 export function useAuth() {
@@ -38,6 +38,17 @@ export function useAuth() {
 
     return () => window.clearTimeout(timeoutId);
   }, [checkAuth]);
+
+  useEffect(() => {
+    function handleAuthExpired() {
+      setIsAuthenticated(false);
+      setUser(null);
+      router.push('/login');
+    }
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, [router]);
 
   async function login(username: string, password: string) {
     const res = await api.login(username, password);

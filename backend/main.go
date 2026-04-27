@@ -63,6 +63,10 @@ func main() {
 	}()
 
 	r := gin.Default()
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		logger.Error("Failed to configure trusted proxies", "error", err)
+		os.Exit(1)
+	}
 	server := &http.Server{
 		Addr:    ":" + cfg.AppPort,
 		Handler: r,

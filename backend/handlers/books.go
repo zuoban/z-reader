@@ -34,6 +34,12 @@ var supportedBookFormats = map[string]string{
 	".pdf":  "pdf",
 }
 
+const (
+	maxEPUBMetadataBytes = 2 * 1024 * 1024
+	maxEPUBCoverBytes    = 20 * 1024 * 1024
+	multipartOverhead    = 1 * 1024 * 1024
+)
+
 type BooksHandler struct {
 	cfg *config.Config
 	db  *storage.DB
@@ -89,8 +95,13 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	limitUploadBody(c, h.cfg.MaxUploadBytes)
 	file, err := c.FormFile("file")
 	if err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+			return
+		}
 		response.BadRequest(c, "请选择文件")
 		return
 	}
@@ -554,13 +565,7 @@ func extractEPUBMetadata(path string) (*epubMetadata, error) {
 	var meta epubMetadata
 	for _, f := range r.File {
 		if strings.HasSuffix(f.Name, ".opf") || f.Name == "OEBPS/content.opf" {
-			rc, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer rc.Close()
-
-			data, err := io.ReadAll(rc)
+			data, err := readZipFileWithLimit(f, maxEPUBMetadataBytes)
 			if err != nil {
 				return nil, err
 			}
@@ -608,14 +613,14 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	}
 
 	filepath := filepath.Join(h.cfg.UploadDir, book.Filename)
-	coverData, err := extractEPUBCover(filepath)
+	coverData, contentType, err := extractEPUBCover(filepath)
 	if err != nil {
 		response.NotFound(c, "封面不存在")
 		return
 	}
 
-	c.Header("Content-Type", "image/jpeg")
-	c.Data(http.StatusOK, "image/jpeg", coverData)
+	c.Header("Content-Type", contentType)
+	c.Data(http.StatusOK, contentType, coverData)
 }
 
 func (h *BooksHandler) UploadCover(c *gin.Context) {
@@ -635,8 +640,13 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 		return
 	}
 
+	limitUploadBody(c, h.cfg.MaxUploadBytes)
 	file, err := c.FormFile("file")
 	if err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+			return
+		}
 		response.BadRequest(c, "请选择文件")
 		return
 	}
@@ -695,15 +705,15 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	c.JSON(http.StatusOK, book)
 }
 
-func extractEPUBCover(path string) ([]byte, error) {
+func extractEPUBCover(path string) ([]byte, string, error) {
 	r, err := zip.OpenReader(path)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer r.Close()
 
 	coverNames := []string{
-		"OEBPS/cover.jpg", "OEBPS/cover.jpeg", "OEBPS/cover.png",
+		"OEBPS/cover.jpg", "OEBPS/cover.jpeg", "OEBPS/cover.png", "OEBPS/cover.webp",
 		"cover.jpg", "cover.jpeg", "cover.png",
 		"OEBPS/Images/cover.jpg", "OEBPS/Images/cover.jpeg",
 	}
@@ -712,19 +722,51 @@ func extractEPUBCover(path string) ([]byte, error) {
 		name := strings.ToLower(f.Name)
 		for _, coverName := range coverNames {
 			if strings.ToLower(coverName) == name || strings.Contains(name, "cover") {
-				rc, err := f.Open()
+				data, err := readZipFileWithLimit(f, maxEPUBCoverBytes)
 				if err != nil {
-					continue
+					return nil, "", err
 				}
-				data, err := io.ReadAll(rc)
-				rc.Close()
-				if err != nil {
-					return nil, err
+				contentType := http.DetectContentType(data)
+				if !strings.HasPrefix(contentType, "image/") {
+					return nil, "", fmt.Errorf("封面格式无效")
 				}
-				return data, nil
+				return data, contentType, nil
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("封面不存在")
+	return nil, "", fmt.Errorf("封面不存在")
+}
+
+func readZipFileWithLimit(file *zip.File, maxBytes int64) ([]byte, error) {
+	if file.UncompressedSize64 > uint64(maxBytes) {
+		return nil, fmt.Errorf("zip 条目超过读取限制")
+	}
+
+	rc, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+
+	limited := io.LimitReader(rc, maxBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("zip 条目超过读取限制")
+	}
+	return data, nil
+}
+
+func limitUploadBody(c *gin.Context, maxBytes int64) {
+	if maxBytes <= 0 || c.Request == nil || c.Request.Body == nil {
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes+multipartOverhead)
+}
+
+func isRequestBodyTooLarge(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "request body too large")
 }

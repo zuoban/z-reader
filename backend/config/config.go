@@ -15,6 +15,7 @@ type Config struct {
 	DBPath         string
 	MaxUploadBytes int64
 	AllowedOrigins []string
+	TrustedProxies []string
 }
 
 // getLocalIP 获取局域网 IP 地址
@@ -104,6 +105,7 @@ func Load() (*Config, error) {
 		DBPath:         getEnv("DB_PATH", "./data.db"),
 		MaxUploadBytes: getEnvInt64("MAX_UPLOAD_BYTES", 256*1024*1024),
 		AllowedOrigins: getAllowedOrigins(),
+		TrustedProxies: getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
 	}, nil
 }
 

@@ -44,6 +44,18 @@ export interface User {
   updated_at: string;
 }
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export const AUTH_EXPIRED_EVENT = 'z-reader-auth-expired';
+
 function getToken(): string | null {
   if (typeof window === 'undefined' || !window.localStorage?.getItem) return null;
   return localStorage.getItem('token');
@@ -77,6 +89,18 @@ function setCurrentUser(user: User): void {
   localStorage.setItem('user', JSON.stringify(user));
 }
 
+function handleUnauthorized(res: Response): void {
+  if (res.status !== 401) return;
+  removeToken();
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+}
+
+async function parseApiError(res: Response, fallback: string): Promise<ApiError> {
+  const body = await res.json().catch(() => null) as { error?: string; message?: string } | null;
+  return new ApiError(body?.error || body?.message || fallback, res.status);
+}
+
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
   const token = getToken();
   const { controller, timeoutId } = createAbortController(timeout);
@@ -95,8 +119,8 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
     });
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: '未知错误' }));
-      throw new Error(error.error || error.message || '请求失败');
+      handleUnauthorized(res);
+      throw await parseApiError(res, '请求失败');
     }
 
     return res.json();
@@ -123,6 +147,7 @@ async function authedFetch(path: string, options: RequestInit = {}, timeout?: nu
       headers,
       signal: controller.signal,
     });
+    handleUnauthorized(res);
     return res;
   } catch (error) {
     throw normalizeRequestError(error);
@@ -206,8 +231,7 @@ export const api = {
     });
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: '未知错误' }));
-      throw new Error(error.error || error.message || '上传失败');
+      throw await parseApiError(res, '上传失败');
     }
 
     return res.json();
@@ -257,8 +281,7 @@ export const api = {
     });
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: '未知错误' }));
-      throw new Error(error.error || error.message || '上传封面失败');
+      throw await parseApiError(res, '上传封面失败');
     }
 
     return res.json();

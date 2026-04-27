@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buildAzureSSML, TTSSettings, Voice } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
@@ -138,19 +137,6 @@ export function VoiceSelector({
       stopPreview();
     }
   }, [isPreviewing, buildSSML, stopPreview]);
-
-  const styles = {
-    selectTrigger: {
-      borderColor: `${uiScheme.cardBorder}36`,
-      background: `${uiScheme.buttonBg}8c`,
-      color: uiScheme.fg,
-      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28)`,
-    },
-    selectContent: {
-      backgroundColor: `${uiScheme.cardBg}f6`,
-      borderColor: `${uiScheme.cardBorder}68`,
-    },
-  };
 
   return (
     <div className="flex flex-col gap-3.5 px-1 py-1">

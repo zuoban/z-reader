@@ -19,6 +19,7 @@ services:
       - UPLOAD_DIR=/app/uploads
       - DB_PATH=/app/data/data.db
       - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-268435456}
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-127.0.0.1,::1}
       - TTS_CACHE_DIR=/app/data/tts-cache
       - TTS_CACHE_MAX_BYTES=${TTS_CACHE_MAX_BYTES:-67108864}
       - TTS_CACHE_MAX_ITEMS=${TTS_CACHE_MAX_ITEMS:-128}

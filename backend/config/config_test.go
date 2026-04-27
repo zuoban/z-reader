@@ -38,6 +38,7 @@ func TestLoadRequiresPassword(t *testing.T) {
 func TestLoadReadsUploadLimit(t *testing.T) {
 	t.Setenv("APP_PASSWORD", "secret")
 	t.Setenv("MAX_UPLOAD_BYTES", "1024")
+	t.Setenv("TRUSTED_PROXIES", "127.0.0.1, 10.0.0.0/8")
 	t.Setenv("APP_PORT", "")
 	t.Setenv("UPLOAD_DIR", "")
 	t.Setenv("DB_PATH", "")
@@ -50,5 +51,10 @@ func TestLoadReadsUploadLimit(t *testing.T) {
 
 	if cfg.MaxUploadBytes != 1024 {
 		t.Fatalf("expected MaxUploadBytes=1024, got %d", cfg.MaxUploadBytes)
+	}
+
+	wantProxies := []string{"127.0.0.1", "10.0.0.0/8"}
+	if !reflect.DeepEqual(cfg.TrustedProxies, wantProxies) {
+		t.Fatalf("expected TrustedProxies=%#v, got %#v", wantProxies, cfg.TrustedProxies)
 	}
 }

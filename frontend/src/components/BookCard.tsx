@@ -8,7 +8,6 @@ import {
   BookOpen,
   CalendarClock,
   Clock,
-  FileText,
   HardDrive,
   MoreVertical,
   Tag,

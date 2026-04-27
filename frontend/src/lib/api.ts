@@ -89,11 +89,20 @@ function setCurrentUser(user: User): void {
   localStorage.setItem('user', JSON.stringify(user));
 }
 
+export function getAuthHeaders(): HeadersInit {
+  const token = getToken();
+  return token ? { Authorization: token } : {};
+}
+
 function handleUnauthorized(res: Response): void {
   if (res.status !== 401) return;
   removeToken();
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+}
+
+export function handleAuthResponse(res: Response): void {
+  handleUnauthorized(res);
 }
 
 async function parseApiError(res: Response, fallback: string): Promise<ApiError> {
@@ -102,12 +111,11 @@ async function parseApiError(res: Response, fallback: string): Promise<ApiError>
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
-  const token = getToken();
   const { controller, timeoutId } = createAbortController(timeout);
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: token } : {}),
+    ...getAuthHeaders(),
     ...options.headers,
   };
 
@@ -133,11 +141,10 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
 
 /** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
 async function authedFetch(path: string, options: RequestInit = {}, timeout?: number): Promise<Response> {
-  const token = getToken();
   const { controller, timeoutId } = createAbortController(timeout);
 
   const headers: HeadersInit = {
-    ...(token ? { Authorization: token } : {}),
+    ...getAuthHeaders(),
     ...options.headers,
   };
 
@@ -309,12 +316,11 @@ export const api = {
   },
 
   saveProgressOnUnload: (bookId: string, cfi: string, percentage: number): void => {
-    const token = getToken();
     void fetch(`${API_BASE}/api/progress/${bookId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: token } : {}),
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ cfi, percentage }),
       keepalive: true,

@@ -1,6 +1,7 @@
 'use client';
 
 import { API_BASE, createAbortController, isAbortLikeError } from '@/lib/config';
+import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
 
 export type TTSState = 'stopped' | 'playing' | 'paused';
 export type TTSHighlightMode = 'word' | 'sentence';
@@ -59,6 +60,7 @@ export const FALLBACK_ZH_VOICES: Voice[] = [
 ];
 
 const TTS_SETTINGS_KEY = 'z-reader-tts-settings';
+const MAX_BACKEND_SSML_BYTES = 32 * 1024;
 
 const DEFAULT_SETTINGS: TTSSettings = {
   rate: 0,
@@ -66,6 +68,17 @@ const DEFAULT_SETTINGS: TTSSettings = {
   style: 'general',
   highlightMode: 'word',
 };
+
+function getUTF8ByteLength(value: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(value).length;
+  }
+  return value.length;
+}
+
+function isSSMLTooLarge(ssml: string): boolean {
+  return getUTF8ByteLength(ssml) > MAX_BACKEND_SSML_BYTES;
+}
 
 export function loadTTSSettings(): TTSSettings {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
@@ -664,6 +677,11 @@ export class BackendTTS {
       this.marks = [{ name: '0', text: stripSSML(ssml) }];
     }
 
+    if (isSSMLTooLarge(ssml)) {
+      this.logMetric('speak.skipped-too-large', { ssmlBytes: getUTF8ByteLength(ssml) });
+      throw new Error('当前段落过长，无法直接朗读');
+    }
+
     // 检查缓存，如果命中则无需取消任何请求
     const cached = this.audioCache.get(ssml);
     if (cached) {
@@ -740,7 +758,6 @@ export class BackendTTS {
   }
 
   private async fetchAudioBlob(ssml: string): Promise<{ blob: Blob; audioUrl: string }> {
-    const token = localStorage.getItem('token');
     const { controller, timeoutId } = createAbortController(60000);
 
     this.abortController = controller;
@@ -750,7 +767,7 @@ export class BackendTTS {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: token } : {}),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           ssml: ssml,
@@ -759,6 +776,7 @@ export class BackendTTS {
         signal: controller.signal,
       });
 
+      handleAuthResponse(response);
       if (!response.ok) {
         throw new Error(`语音合成失败，状态码：${response.status}`);
       }
@@ -851,6 +869,10 @@ export class BackendTTS {
 
   async preload(ssml: string, marks?: TTSMark[]): Promise<void> {
     if (!ssml) return;
+    if (isSSMLTooLarge(ssml)) {
+      this.logMetric('preload.skipped-too-large', { ssmlBytes: getUTF8ByteLength(ssml) });
+      return;
+    }
     
     if (this.audioCache.has(ssml)) return;
     
@@ -950,14 +972,12 @@ export class BackendTTS {
   }
 
   private async fetchAudioBlobWithController(ssml: string, controller: AbortController): Promise<Blob> {
-    const token = localStorage.getItem('token');
-
     try {
       const response = await fetch(`${API_BASE}/api/ssml`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: token } : {}),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           ssml: ssml,
@@ -966,6 +986,7 @@ export class BackendTTS {
         signal: controller.signal,
       });
 
+      handleAuthResponse(response);
       if (!response.ok) {
         throw new Error(`语音合成失败，状态码：${response.status}`);
       }

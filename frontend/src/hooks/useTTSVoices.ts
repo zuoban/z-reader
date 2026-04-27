@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE, createAbortController } from '@/lib/config';
+import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
 import { mergeVoicesWithFallback, Voice } from '@/lib/tts';
 
 export function useTTSVoices(preferredVoiceName: string) {
@@ -15,18 +16,21 @@ export function useTTSVoices(preferredVoiceName: string) {
     setVoicesLoading(true);
     setVoicesError(null);
 
-    const token = localStorage.getItem('token');
-
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const { controller, timeoutId } = createAbortController(12000);
 
       try {
         const response = await fetch(`${API_BASE}/api/voices`, {
-          headers: token ? { Authorization: token } : {},
+          headers: getAuthHeaders(),
           signal: controller.signal,
         });
 
+        handleAuthResponse(response);
         if (!response.ok) {
+          if (response.status === 401) {
+            setVoicesLoading(false);
+            return;
+          }
           throw new Error(`voice_list_${response.status}`);
         }
 

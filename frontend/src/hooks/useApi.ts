@@ -7,7 +7,7 @@ import {
   DEFAULT_TIMEOUT,
   normalizeRequestError,
 } from '@/lib/config';
-import { ApiError, auth, AUTH_EXPIRED_EVENT } from '@/lib/api';
+import { ApiError, getAuthHeaders, handleAuthResponse } from '@/lib/api';
 
 interface UseApiOptions<T> {
   onSuccess?: (data: T) => void;
@@ -21,17 +21,6 @@ interface UseApiReturn<T> {
   isLoading: boolean;
   execute: (path: string, options?: RequestInit) => Promise<T | null>;
   reset: () => void;
-}
-
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return auth.getToken();
-}
-
-function handleUnauthorized(res: Response): void {
-  if (res.status !== 401 || typeof window === 'undefined') return;
-  auth.removeToken();
-  window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
 }
 
 async function parseApiError(res: Response): Promise<ApiError> {
@@ -49,13 +38,12 @@ export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
     setIsLoading(true);
     setError(null);
 
-    const token = getToken();
     const timeout = options?.signal ? undefined : (defaultOptions?.timeout ?? DEFAULT_TIMEOUT);
     const { controller, timeoutId } = timeout ? createAbortController(timeout) : { controller: new AbortController(), timeoutId: undefined as NodeJS.Timeout | undefined };
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: token } : {}),
+      ...getAuthHeaders(),
       ...options?.headers,
     };
 
@@ -67,7 +55,7 @@ export function useApi<T>(defaultOptions?: UseApiOptions<T>): UseApiReturn<T> {
       });
 
       if (!res.ok) {
-        handleUnauthorized(res);
+        handleAuthResponse(res);
         throw await parseApiError(res);
       }
 
@@ -104,13 +92,12 @@ export function useApiMutation<T, P = void>(defaultOptions?: UseApiOptions<T>) {
     setIsLoading(true);
     setError(null);
 
-    const token = getToken();
     const timeout = defaultOptions?.timeout ?? DEFAULT_TIMEOUT;
     const { controller, timeoutId } = createAbortController(timeout);
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: token } : {}),
+      ...getAuthHeaders(),
       ...options?.headers,
     };
 
@@ -123,7 +110,7 @@ export function useApiMutation<T, P = void>(defaultOptions?: UseApiOptions<T>) {
       });
 
       if (!res.ok) {
-        handleUnauthorized(res);
+        handleAuthResponse(res);
         throw await parseApiError(res);
       }
 

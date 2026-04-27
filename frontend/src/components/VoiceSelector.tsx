@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { buildAzureSSML, TTSSettings, Voice } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
+import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 
 // 性别标签
@@ -92,12 +93,11 @@ export function VoiceSelector({
       const { controller, timeoutId } = createAbortController(30000);
       abortControllerRef.current = controller;
 
-      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE}/api/ssml`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: token } : {}),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           ssml,
@@ -109,6 +109,7 @@ export function VoiceSelector({
       clearTimeout(timeoutId);
       abortControllerRef.current = null;
 
+      handleAuthResponse(response);
       if (!response.ok) {
         throw new Error(`语音试听失败，状态码：${response.status}`);
       }

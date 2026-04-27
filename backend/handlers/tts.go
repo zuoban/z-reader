@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,6 +14,12 @@ import (
 
 type TTSHandler struct{}
 
+const (
+	maxTTSTextRunes    = 2000
+	maxSSMLBytes       = 32 * 1024
+	maxSSMLRequestBody = 64 * 1024
+)
+
 func NewTTSHandler() *TTSHandler {
 	return &TTSHandler{}
 }
@@ -21,6 +28,10 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 	text := c.Query("t")
 	if text == "" {
 		response.BadRequest(c, "参数 't' 不能为空")
+		return
+	}
+	if utf8.RuneCountInString(text) > maxTTSTextRunes {
+		response.BadRequest(c, "朗读文本过长")
 		return
 	}
 
@@ -61,14 +72,24 @@ type SSMLRequest struct {
 }
 
 func (h *TTSHandler) SSML(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSSMLRequestBody)
+
 	var req SSMLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求体必须是有效 JSON")
 		return
 	}
 
 	if req.Ssml == "" {
 		response.BadRequest(c, "参数 'ssml' 不能为空")
+		return
+	}
+	if len(req.Ssml) > maxSSMLBytes {
+		response.BadRequest(c, "SSML 内容过长")
 		return
 	}
 

@@ -12,6 +12,7 @@ import { FoliateView } from "@/lib/types";
 import { useProgress } from "@/hooks/useProgress";
 import { useReaderTheme } from "@/hooks/useReaderTheme";
 import { useReaderControls } from "@/hooks/useReaderControls";
+import { useReaderChrome } from "@/hooks/useReaderChrome";
 import { useTTS } from "@/hooks/useTTS";
 import { useFoliateReader } from "@/hooks/useFoliateReader";
 import { ReaderResumePrompt } from "@/components/reader/ReaderResumePrompt";
@@ -40,17 +41,11 @@ export default function ReadPage() {
 
   const [tocOpen, setTocOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
-  const loadingRef = useRef(true);
-  const tocOpenRef = useRef(tocOpen);
-  const themeSettingsOpenRef = useRef(themeSettingsOpen);
-  const tocListRef = useRef<HTMLDivElement>(null);
-  const headerInteractionDocsRef = useRef<Set<Document>>(new Set());
   const cleanupReaderRef = useRef<() => void>(() => {});
   const handlePageRef = useCallback((node: HTMLDivElement | null) => {
     pageRef.current = node;
@@ -63,26 +58,15 @@ export default function ReadPage() {
     }
   }, []);
 
-  const scrollToCurrentChapter = useCallback(
-    (behavior: ScrollBehavior = "smooth") => {
-      const activeItem = tocListRef.current?.querySelector(
-        '[data-current-chapter="true"]',
-      );
-
-      if (!(activeItem instanceof HTMLElement)) {
-        return false;
-      }
-
-      activeItem.scrollIntoView({
-        block: "center",
-        inline: "nearest",
-        behavior,
-      });
-
-      return true;
-    },
-    [],
-  );
+  const {
+    isHeaderVisible,
+    tocListRef,
+    handleReaderClick,
+    scrollToCurrentChapter,
+    bindHeaderInteractionDocument,
+    cleanupHeaderInteractionDocuments,
+    syncChromeState,
+  } = useReaderChrome();
 
   const {
     state: ttsState,
@@ -139,42 +123,6 @@ export default function ReadPage() {
     }
   }, []);
 
-  const handleReaderClick = useCallback((event: Event) => {
-    if (
-      loadingRef.current ||
-      tocOpenRef.current ||
-      themeSettingsOpenRef.current
-    ) {
-      return;
-    }
-
-    if (
-      event.target instanceof Element &&
-      event.target.closest('[data-reader-interactive="true"]')
-    ) {
-      return;
-    }
-
-    setIsHeaderVisible((visible) => !visible);
-  }, []);
-
-  const bindHeaderInteractionDocument = useCallback(
-    (doc: Document) => {
-      if (headerInteractionDocsRef.current.has(doc)) return;
-
-      doc.addEventListener("click", handleReaderClick);
-      headerInteractionDocsRef.current.add(doc);
-    },
-    [handleReaderClick],
-  );
-
-  const cleanupHeaderInteractionDocuments = useCallback(() => {
-    headerInteractionDocsRef.current.forEach((doc) => {
-      doc.removeEventListener("click", handleReaderClick);
-    });
-    headerInteractionDocsRef.current.clear();
-  }, [handleReaderClick]);
-
   const handleBack = useCallback(() => {
     saveNow();
     cleanupReaderRef.current();
@@ -230,34 +178,19 @@ export default function ReadPage() {
   }, [cleanupReader]);
 
   useEffect(() => {
-    loadingRef.current = loading;
-    tocOpenRef.current = tocOpen;
-    themeSettingsOpenRef.current = themeSettingsOpen;
-  }, [loading, tocOpen, themeSettingsOpen]);
-
-  useEffect(() => {
-    if (!tocOpen || !currentChapter) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      scrollToCurrentChapter("smooth");
+    syncChromeState({
+      loading,
+      tocOpen,
+      themeSettingsOpen,
+      currentChapter,
     });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [tocOpen, currentChapter, scrollToCurrentChapter]);
-
-  useEffect(() => {
-    if (!(loading || tocOpen || themeSettingsOpen)) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setIsHeaderVisible(true);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [loading, themeSettingsOpen, tocOpen]);
+  }, [
+    currentChapter,
+    loading,
+    syncChromeState,
+    themeSettingsOpen,
+    tocOpen,
+  ]);
 
   if (authLoading || !isAuthenticated) {
     return <ReaderAuthLoading uiScheme={uiScheme} />;

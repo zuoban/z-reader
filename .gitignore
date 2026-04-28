@@ -55,3 +55,4 @@ frontend/playwright-report/
 .gocache/
 .gomodcache/
 backend/data/tts-cache
+.nezha/

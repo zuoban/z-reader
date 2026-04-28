@@ -26,6 +26,17 @@ type Progress struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+type Bookmark struct {
+	ID         string    `json:"id"`
+	BookID     string    `json:"book_id"`
+	UserID     string    `json:"user_id"`
+	CFI        string    `json:"cfi"`
+	Percentage float64   `json:"percentage"`
+	Chapter    string    `json:"chapter,omitempty"`
+	Note       string    `json:"note,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 type Session struct {
 	Token     string    `json:"token"`
 	UserID    string    `json:"user_id"`

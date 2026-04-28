@@ -28,6 +28,8 @@ import {
   ReaderLoadingOverlay,
 } from "@/components/reader/ReaderStateViews";
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
+import { api } from "@/lib/api";
+import type { Bookmark } from "@/lib/api";
 import { withOpacity } from "@/lib/reader-ui";
 
 const MIN_IMAGE_SCALE = 1;
@@ -78,6 +80,9 @@ export default function ReadPage() {
   const uiScheme = getUIScheme();
 
   const [tocOpen, setTocOpen] = useState(false);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [isSavingBookmark, setIsSavingBookmark] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
   const [zoomedImage, setZoomedImage] = useState<{ src: string; alt: string } | null>(null);
@@ -178,6 +183,24 @@ export default function ReadPage() {
       viewRef.current.goTo?.(href);
     }
   }, []);
+
+  const loadBookmarks = useCallback(async () => {
+    try {
+      const items = await api.listBookmarks(bookId);
+      setBookmarks(items);
+    } catch (err) {
+      console.error("Failed to load bookmarks:", err);
+    }
+  }, [bookId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void loadBookmarks();
+  }, [isAuthenticated, loadBookmarks]);
+
+  const getCurrentCFI = useCallback(() => {
+    return viewRef.current?.lastLocation?.cfi || progress?.cfi || "";
+  }, [progress?.cfi]);
 
   const handlePrev = useCallback(() => {
     if (viewRef.current) {
@@ -419,6 +442,41 @@ export default function ReadPage() {
     onImageOpen: handleImageOpen,
   });
 
+  const handleCreateBookmark = useCallback(async () => {
+    const cfi = getCurrentCFI();
+    if (!cfi || isSavingBookmark) return;
+
+    setIsSavingBookmark(true);
+    try {
+      const bookmark = await api.createBookmark(bookId, {
+        cfi,
+        percentage,
+        chapter: currentChapter,
+      });
+      setBookmarks((items) => [...items, bookmark]);
+      setBookmarksOpen(true);
+    } catch (err) {
+      console.error("Failed to create bookmark:", err);
+    } finally {
+      setIsSavingBookmark(false);
+    }
+  }, [bookId, currentChapter, getCurrentCFI, isSavingBookmark, percentage]);
+
+  const handleGoToBookmark = useCallback((bookmark: Bookmark) => {
+    viewRef.current?.goTo?.(bookmark.cfi);
+    setBookmarksOpen(false);
+  }, []);
+
+  const handleDeleteBookmark = useCallback(async (bookmarkId: string) => {
+    setBookmarks((items) => items.filter((item) => item.id !== bookmarkId));
+    try {
+      await api.deleteBookmark(bookId, bookmarkId);
+    } catch (err) {
+      console.error("Failed to delete bookmark:", err);
+      void loadBookmarks();
+    }
+  }, [bookId, loadBookmarks]);
+
   useEffect(() => {
     if (!pageRef.current) return;
 
@@ -473,12 +531,14 @@ export default function ReadPage() {
     syncChromeState({
       loading,
       tocOpen,
+      bookmarksOpen,
       themeSettingsOpen,
       currentChapter,
     });
   }, [
     currentChapter,
     loading,
+    bookmarksOpen,
     syncChromeState,
     themeSettingsOpen,
     tocOpen,
@@ -535,11 +595,20 @@ export default function ReadPage() {
           toc={toc}
           tocOpen={tocOpen}
           onTocOpenChange={setTocOpen}
+          bookmarksOpen={bookmarksOpen}
+          onBookmarksOpenChange={setBookmarksOpen}
+          bookmarks={bookmarks}
+          canCreateBookmark={Boolean(getCurrentCFI())}
+          isSavingBookmark={isSavingBookmark}
+          onCreateBookmark={handleCreateBookmark}
+          onGoToBookmark={handleGoToBookmark}
+          onDeleteBookmark={handleDeleteBookmark}
           tocListRef={tocListRef}
           currentChapter={currentChapter}
           onLocateCurrentChapter={() => scrollToCurrentChapter("smooth")}
           onGoTo={goTo}
           onBack={handleBack}
+          onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
           uiScheme={uiScheme}
           toolbarButtonClass={toolbarButtonClass}
           getToolbarButtonStyle={getToolbarButtonStyle}
@@ -645,8 +714,6 @@ export default function ReadPage() {
             containerStyle={statusBarContainerStyle}
             safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
             uiScheme={uiScheme}
-            toolbarVisible={isHeaderVisible}
-            onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
             overlayContainer={overlayContainer}
             tts={{
               state: ttsState,

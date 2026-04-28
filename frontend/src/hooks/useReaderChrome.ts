@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface ReaderChromeState {
   loading: boolean;
   tocOpen: boolean;
+  bookmarksOpen: boolean;
   themeSettingsOpen: boolean;
   currentChapter: string;
 }
@@ -14,6 +15,7 @@ export function useReaderChrome() {
   const stateRef = useRef<ReaderChromeState>({
     loading: true,
     tocOpen: false,
+    bookmarksOpen: false,
     themeSettingsOpen: false,
     currentChapter: "",
   });
@@ -81,6 +83,7 @@ export function useReaderChrome() {
       if (
         nextState.loading ||
         nextState.tocOpen ||
+        nextState.bookmarksOpen ||
         nextState.themeSettingsOpen
       ) {
         scheduleHeaderShow();
@@ -95,7 +98,7 @@ export function useReaderChrome() {
 
   const hideHeader = useCallback(() => {
     const state = stateRef.current;
-    if (state.loading || state.tocOpen || state.themeSettingsOpen) return;
+    if (state.loading || state.tocOpen || state.bookmarksOpen || state.themeSettingsOpen) return;
 
     setIsHeaderVisible(false);
   }, []);

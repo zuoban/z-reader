@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"go.etcd.io/bbolt"
+
 	"z-reader/backend/models"
 )
 
@@ -263,7 +265,7 @@ func TestSaveProgressReturnsNotFoundForMissingBook(t *testing.T) {
 	}
 }
 
-func TestDeleteBookDataRemovesBookAndProgress(t *testing.T) {
+func TestDeleteBookDataRemovesBookProgressAndBookmarks(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"
 
@@ -289,6 +291,15 @@ func TestDeleteBookDataRemovesBookAndProgress(t *testing.T) {
 	if err := db.SaveProgress(progress, userID); err != nil {
 		t.Fatalf("failed to save progress: %v", err)
 	}
+	if err := db.SaveBookmark(&models.Bookmark{
+		ID:         "bookmark-a",
+		BookID:     book.ID,
+		CFI:        "epubcfi(/6/4[chapter2]!/4/2/6)",
+		Percentage: 45,
+		CreatedAt:  time.Now().UTC(),
+	}, userID); err != nil {
+		t.Fatalf("failed to save bookmark: %v", err)
+	}
 
 	if err := db.DeleteBookData(book.ID, userID); err != nil {
 		t.Fatalf("DeleteBookData returned error: %v", err)
@@ -308,6 +319,20 @@ func TestDeleteBookDataRemovesBookAndProgress(t *testing.T) {
 	}
 	if gotProgress != nil {
 		t.Fatalf("expected progress to be deleted, got %+v", gotProgress)
+	}
+
+	gotBookmarks, err := db.ListBookmarks(book.ID, userID)
+	if err != ErrNotFound {
+		t.Fatalf("expected ErrNotFound, got bookmarks=%+v err=%v", gotBookmarks, err)
+	}
+
+	if err := db.View(func(tx *bbolt.Tx) error {
+		if data := tx.Bucket(BookmarksBucket).Get(bookmarkKey(userID, book.ID, "bookmark-a")); data != nil {
+			t.Fatalf("expected bookmark data to be deleted, got %s", string(data))
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("failed to inspect bookmark bucket: %v", err)
 	}
 }
 

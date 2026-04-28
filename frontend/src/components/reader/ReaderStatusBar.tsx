@@ -2,7 +2,6 @@
 
 import { lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TTSSettings, TTSState, Voice } from "@/lib/tts";
@@ -19,8 +18,6 @@ interface ReaderStatusBarProps {
   containerStyle: CSSProperties;
   safeAreaPaddingBottom: string;
   uiScheme: ThemeColors;
-  toolbarVisible: boolean;
-  onToggleToolbar: () => void;
   overlayContainer?: HTMLElement | null;
   tts: {
     state: TTSState;
@@ -61,8 +58,6 @@ export function ReaderStatusBar({
   containerStyle,
   safeAreaPaddingBottom,
   uiScheme,
-  toolbarVisible,
-  onToggleToolbar,
   overlayContainer,
   tts,
 }: ReaderStatusBarProps) {
@@ -75,22 +70,7 @@ export function ReaderStatusBar({
       }}
     >
       <div className="relative flex h-9 w-full items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]">
-        <div className="flex w-24 shrink-0 items-center gap-2">
-          <button
-            aria-label={toolbarVisible ? "收起顶部操作栏" : "展开顶部操作栏"}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-black/5"
-            data-reader-interactive="true"
-            style={{ color: withOpacity(uiScheme.fg, 0.6) }}
-            title={toolbarVisible ? "收起顶部操作栏" : "展开顶部操作栏"}
-            type="button"
-            onClick={onToggleToolbar}
-          >
-            {toolbarVisible ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
+        <div className="flex w-24 shrink-0 items-center">
           <span
             className="font-mono font-bold tabular-nums tracking-tight"
             style={{ color: withOpacity(uiScheme.fg, 0.6) }}

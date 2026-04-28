@@ -1,12 +1,14 @@
 "use client";
 
 import type { CSSProperties, RefObject } from "react";
-import { Expand, Library, Shrink } from "lucide-react";
+import { ChevronRight, Expand, Library, Shrink } from "lucide-react";
 
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
+import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
+import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
 
 interface ReaderToolbarProps {
@@ -16,11 +18,20 @@ interface ReaderToolbarProps {
   toc: TOCItem[];
   tocOpen: boolean;
   onTocOpenChange: (open: boolean) => void;
+  bookmarksOpen: boolean;
+  onBookmarksOpenChange: (open: boolean) => void;
+  bookmarks: Bookmark[];
+  canCreateBookmark: boolean;
+  isSavingBookmark: boolean;
+  onCreateBookmark: () => void;
+  onGoToBookmark: (bookmark: Bookmark) => void;
+  onDeleteBookmark: (bookmarkId: string) => void;
   tocListRef: RefObject<HTMLDivElement | null>;
   currentChapter: string;
   onLocateCurrentChapter: () => void;
   onGoTo: (href: string) => void;
   onBack: () => void;
+  onToggleToolbar: () => void;
   uiScheme: ThemeColors;
   toolbarButtonClass: string;
   getToolbarButtonStyle: (active?: boolean) => CSSProperties;
@@ -42,11 +53,20 @@ export function ReaderToolbar({
   toc,
   tocOpen,
   onTocOpenChange,
+  bookmarksOpen,
+  onBookmarksOpenChange,
+  bookmarks,
+  canCreateBookmark,
+  isSavingBookmark,
+  onCreateBookmark,
+  onGoToBookmark,
+  onDeleteBookmark,
   tocListRef,
   currentChapter,
   onLocateCurrentChapter,
   onGoTo,
   onBack,
+  onToggleToolbar,
   uiScheme,
   toolbarButtonClass,
   getToolbarButtonStyle,
@@ -60,8 +80,41 @@ export function ReaderToolbar({
   isFullscreen,
   onToggleFullscreen,
 }: ReaderToolbarProps) {
+  const toggleToolbarButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onToggleToolbar}
+      title={visible ? "收起顶部操作栏" : "展开顶部操作栏"}
+      aria-label={visible ? "收起顶部操作栏" : "展开顶部操作栏"}
+      className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
+      style={{
+        color: uiScheme.buttonText,
+        ...getToolbarButtonStyle(false),
+        background: "transparent",
+        border: "none",
+        boxShadow: "none",
+      }}
+    >
+      <ChevronRight
+        className={`h-4 w-4 transition-transform duration-200 ease-out ${
+          visible ? "rotate-90" : "rotate-0"
+        }`}
+      />
+    </Button>
+  );
+
   return (
     <>
+      {!visible ? (
+        <div
+          data-reader-interactive="true"
+          className="pointer-events-auto absolute left-3 z-[60] sm:left-8"
+          style={{ top: headerSafeAreaPaddingTop }}
+        >
+          {toggleToolbarButton}
+        </div>
+      ) : null}
       <header
         data-reader-interactive="true"
         className={`pointer-events-none absolute inset-x-0 top-0 z-50 sm:px-4 ${
@@ -78,6 +131,23 @@ export function ReaderToolbar({
       >
         <div className="flex h-9 items-center justify-between px-3 pointer-events-auto sm:h-9 sm:px-4">
           <div className="flex items-center gap-1 sm:gap-2">
+            {toggleToolbarButton}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              title="返回书库"
+              className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
+              style={{
+                color: uiScheme.buttonText,
+                ...getToolbarButtonStyle(false),
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+              }}
+            >
+              <Library className="h-4 w-4" />
+            </Button>
             {isFullscreenSupported ? (
               <Button
                 variant="ghost"
@@ -101,22 +171,6 @@ export function ReaderToolbar({
                 )}
               </Button>
             ) : null}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              title="返回书库"
-              className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
-              style={{
-                color: uiScheme.buttonText,
-                ...getToolbarButtonStyle(false),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
-            >
-              <Library className="h-4 w-4" />
-            </Button>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
@@ -139,6 +193,26 @@ export function ReaderToolbar({
               }}
               onLocateCurrent={onLocateCurrentChapter}
               onGoTo={onGoTo}
+            />
+            <ReaderBookmarksSheet
+              open={bookmarksOpen}
+              onOpenChange={onBookmarksOpenChange}
+              bookmarks={bookmarks}
+              bookTitle={bookTitle}
+              uiScheme={uiScheme}
+              overlayContainer={overlayContainer}
+              triggerClassName={toolbarButtonClass}
+              triggerStyle={{
+                ...getToolbarButtonStyle(bookmarksOpen),
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+              }}
+              canCreate={canCreateBookmark}
+              isSaving={isSavingBookmark}
+              onCreate={onCreateBookmark}
+              onGoTo={onGoToBookmark}
+              onDelete={onDeleteBookmark}
             />
             <ThemeSettings
               theme={theme}

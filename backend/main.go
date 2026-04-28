@@ -82,6 +82,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(cfg, db)
 	booksHandler := handlers.NewBooksHandler(cfg, db)
 	progressHandler := handlers.NewProgressHandler(db)
+	bookmarksHandler := handlers.NewBookmarksHandler(db)
 	ttsHandler := handlers.NewTTSHandler()
 	usersHandler := handlers.NewUsersHandler(db)
 
@@ -105,6 +106,9 @@ func main() {
 		api.DELETE("/books/:id", booksHandler.Delete)
 		api.GET("/books/:id/file", booksHandler.GetFile)
 		api.GET("/books/:id/cover", booksHandler.GetCover)
+		api.GET("/books/:id/bookmarks", bookmarksHandler.List)
+		api.POST("/books/:id/bookmarks", bookmarksHandler.Create)
+		api.DELETE("/books/:id/bookmarks/:bookmarkID", bookmarksHandler.Delete)
 
 		api.GET("/progress", progressHandler.List)
 		api.GET("/progress/:id", progressHandler.Get)

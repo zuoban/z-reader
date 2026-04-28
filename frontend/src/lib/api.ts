@@ -29,6 +29,17 @@ export interface Progress {
   updated_at: string;
 }
 
+export interface Bookmark {
+  id: string;
+  book_id: string;
+  user_id: string;
+  cfi: string;
+  percentage: number;
+  chapter?: string;
+  note?: string;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -364,6 +375,23 @@ export const api = {
     });
   },
 
+  listBookmarks: async (bookId: string): Promise<Bookmark[]> => {
+    return fetchApi<Bookmark[]>(`/api/books/${bookId}/bookmarks`);
+  },
+
+  createBookmark: async (
+    bookId: string,
+    data: { cfi: string; percentage: number; chapter?: string; note?: string },
+  ): Promise<Bookmark> => {
+    return fetchApi<Bookmark>(`/api/books/${bookId}/bookmarks`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteBookmark: async (bookId: string, bookmarkId: string): Promise<void> => {
+    await fetchApi(`/api/books/${bookId}/bookmarks/${bookmarkId}`, { method: 'DELETE' });
+  },
 };
 
 export const auth = {

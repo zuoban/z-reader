@@ -15,12 +15,13 @@ import (
 )
 
 var (
-	BooksBucket    = []byte("books")
-	ProgressBucket = []byte("progress")
-	SessionsBucket = []byte("sessions")
-	UsersBucket    = []byte("users")
-	UserBooksIndex = []byte("user_books_index") // userId -> JSON []bookId
-	UsernameIndex  = []byte("username_index")   // normalizedUsername -> userId
+	BooksBucket     = []byte("books")
+	ProgressBucket  = []byte("progress")
+	BookmarksBucket = []byte("bookmarks")
+	SessionsBucket  = []byte("sessions")
+	UsersBucket     = []byte("users")
+	UserBooksIndex  = []byte("user_books_index") // userId -> JSON []bookId
+	UsernameIndex   = []byte("username_index")   // normalizedUsername -> userId
 )
 
 type DB struct {
@@ -37,6 +38,7 @@ func Open(path string) (*DB, error) {
 		for _, bucket := range [][]byte{
 			BooksBucket,
 			ProgressBucket,
+			BookmarksBucket,
 			SessionsBucket,
 			UsersBucket,
 			UserBooksIndex,
@@ -307,7 +309,10 @@ func (db *DB) DeleteUserData(userID string) error {
 		if err := deleteBooksByUser(tx, userID); err != nil {
 			return err
 		}
-		return deleteProgressByUser(tx, userID)
+		if err := deleteProgressByUser(tx, userID); err != nil {
+			return err
+		}
+		return deleteBookmarksByUser(tx, userID)
 	})
 }
 
@@ -330,6 +335,26 @@ func deleteBooksByUser(tx *bbolt.Tx, userID string) error {
 
 func deleteProgressByUser(tx *bbolt.Tx, userID string) error {
 	b := tx.Bucket(ProgressBucket)
+	prefix := userID + ":"
+	var keysToDelete [][]byte
+	if err := b.ForEach(func(k, v []byte) error {
+		if strings.HasPrefix(string(k), prefix) {
+			keysToDelete = append(keysToDelete, append([]byte(nil), k...))
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, key := range keysToDelete {
+		if err := b.Delete(key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteBookmarksByUser(tx *bbolt.Tx, userID string) error {
+	b := tx.Bucket(BookmarksBucket)
 	prefix := userID + ":"
 	var keysToDelete [][]byte
 	if err := b.ForEach(func(k, v []byte) error {
@@ -555,12 +580,40 @@ func (db *DB) DeleteBookData(id string, userID string) error {
 		removeBookFromUserIndex(idxB, id, userID)
 
 		progressBucket := tx.Bucket(ProgressBucket)
-		return progressBucket.Delete(progressKey(userID, id))
+		if err := progressBucket.Delete(progressKey(userID, id)); err != nil {
+			return err
+		}
+
+		bookmarksBucket := tx.Bucket(BookmarksBucket)
+		prefix := bookmarkBookPrefix(userID, id)
+		var bookmarkKeys [][]byte
+		if err := bookmarksBucket.ForEach(func(k, v []byte) error {
+			if bytes.HasPrefix(k, prefix) {
+				bookmarkKeys = append(bookmarkKeys, append([]byte(nil), k...))
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		for _, key := range bookmarkKeys {
+			if err := bookmarksBucket.Delete(key); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
 func progressKey(userID string, bookID string) []byte {
 	return []byte(userID + ":" + bookID)
+}
+
+func bookmarkKey(userID string, bookID string, bookmarkID string) []byte {
+	return []byte(userID + ":" + bookID + ":" + bookmarkID)
+}
+
+func bookmarkBookPrefix(userID string, bookID string) []byte {
+	return []byte(userID + ":" + bookID + ":")
 }
 
 func (db *DB) DeleteProgress(bookID string, userID string) error {
@@ -666,6 +719,92 @@ func (db *DB) ListProgress(userID string) ([]models.Progress, error) {
 		return nil
 	})
 	return items, err
+}
+
+func (db *DB) ListBookmarks(bookID string, userID string) ([]models.Bookmark, error) {
+	items := []models.Bookmark{}
+	err := db.View(func(tx *bbolt.Tx) error {
+		booksBucket := tx.Bucket(BooksBucket)
+		bookData := booksBucket.Get([]byte(bookID))
+		if bookData == nil {
+			return ErrNotFound
+		}
+		var book models.Book
+		if err := json.Unmarshal(bookData, &book); err != nil {
+			return err
+		}
+		if book.UserID != userID {
+			return ErrNotFound
+		}
+
+		b := tx.Bucket(BookmarksBucket)
+		prefix := bookmarkBookPrefix(userID, bookID)
+		c := b.Cursor()
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			var bookmark models.Bookmark
+			if err := json.Unmarshal(v, &bookmark); err != nil {
+				return err
+			}
+			if bookmark.UserID == userID && bookmark.BookID == bookID {
+				items = append(items, bookmark)
+			}
+		}
+		return nil
+	})
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CreatedAt.Before(items[j].CreatedAt)
+	})
+	return items, err
+}
+
+func (db *DB) SaveBookmark(bookmark *models.Bookmark, userID string) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		bookmark.UserID = userID
+
+		booksBucket := tx.Bucket(BooksBucket)
+		bookData := booksBucket.Get([]byte(bookmark.BookID))
+		if bookData == nil {
+			return ErrNotFound
+		}
+		var book models.Book
+		if err := json.Unmarshal(bookData, &book); err != nil {
+			return err
+		}
+		if book.UserID != userID {
+			return ErrNotFound
+		}
+
+		data, err := json.Marshal(bookmark)
+		if err != nil {
+			return err
+		}
+		b := tx.Bucket(BookmarksBucket)
+		return b.Put(bookmarkKey(userID, bookmark.BookID, bookmark.ID), data)
+	})
+}
+
+func (db *DB) DeleteBookmark(bookID string, bookmarkID string, userID string) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		booksBucket := tx.Bucket(BooksBucket)
+		bookData := booksBucket.Get([]byte(bookID))
+		if bookData == nil {
+			return ErrNotFound
+		}
+		var book models.Book
+		if err := json.Unmarshal(bookData, &book); err != nil {
+			return err
+		}
+		if book.UserID != userID {
+			return ErrNotFound
+		}
+
+		b := tx.Bucket(BookmarksBucket)
+		key := bookmarkKey(userID, bookID, bookmarkID)
+		if b.Get(key) == nil {
+			return ErrNotFound
+		}
+		return b.Delete(key)
+	})
 }
 
 func (db *DB) SaveSession(session *models.Session) error {

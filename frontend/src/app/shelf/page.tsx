@@ -114,7 +114,7 @@ export default function ShelfPage() {
                 操作
               </div>
               {/* Mobile: compact icon row */}
-              <div className="grid grid-cols-4 gap-2 lg:hidden">
+              <div className="grid grid-cols-4 gap-2 sm:hidden">
                 {user?.role === 'admin' && (
                   <UserManager
                     currentUser={user}

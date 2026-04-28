@@ -35,9 +35,6 @@ docker run -d \
   --name z-reader \
   -p 80:80 \
   -e APP_PASSWORD=change_me \
-  -e MAX_UPLOAD_BYTES=268435456 \
-  -v ./uploads:/app/uploads \
-  -v ./data:/app/data \
   ghcr.io/zuoban/z-reader:latest
 ```
 

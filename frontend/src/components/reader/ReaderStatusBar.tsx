@@ -12,6 +12,8 @@ interface ReaderStatusBarProps {
   containerStyle: CSSProperties;
   safeAreaPaddingBottom: string;
   uiScheme: ThemeColors;
+  isToolbarVisible: boolean;
+  onToggleToolbar: () => void;
 }
 
 export function ReaderStatusBar({
@@ -21,12 +23,21 @@ export function ReaderStatusBar({
   containerStyle,
   safeAreaPaddingBottom,
   uiScheme,
+  isToolbarVisible,
+  onToggleToolbar,
 }: ReaderStatusBarProps) {
   return (
-    <div
-      className="absolute inset-x-0 bottom-0 z-30 flex justify-center"
+    <button
+      type="button"
+      data-reader-interactive="true"
+      onClick={onToggleToolbar}
+      title={isToolbarVisible ? "收起顶部操作栏" : "展开顶部操作栏"}
+      aria-label={isToolbarVisible ? "收起顶部操作栏" : "展开顶部操作栏"}
+      aria-pressed={isToolbarVisible}
+      className="absolute inset-x-0 bottom-0 z-30 flex cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-colors duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
       style={{
         paddingBottom: safeAreaPaddingBottom,
+        color: "inherit",
         ...containerStyle,
       }}
     >
@@ -58,6 +69,6 @@ export function ReaderStatusBar({
           </span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

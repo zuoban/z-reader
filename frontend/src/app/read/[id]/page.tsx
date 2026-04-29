@@ -612,7 +612,6 @@ export default function ReadPage() {
           onLocateCurrentChapter={() => scrollToCurrentChapter("smooth")}
           onGoTo={goTo}
           onBack={handleBack}
-          onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
           uiScheme={uiScheme}
           toolbarButtonClass={toolbarButtonClass}
           getToolbarButtonStyle={getToolbarButtonStyle}
@@ -739,6 +738,8 @@ export default function ReadPage() {
             containerStyle={statusBarContainerStyle}
             safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
             uiScheme={uiScheme}
+            isToolbarVisible={isHeaderVisible}
+            onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
           />
         </div>
       </div>

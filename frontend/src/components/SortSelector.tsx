@@ -28,20 +28,20 @@ export function SortSelector({ value, onChange, className, mobileIconOnly }: Sor
       <DropdownMenuTrigger
         aria-label="书籍排序方式"
         className={cn(
-          'group relative flex h-9 w-full max-w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-primary/16 bg-card/92 px-10 text-sm text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus:outline-none focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:w-[11rem]',
-          mobileIconOnly && 'sm:hidden w-9 justify-center px-0',
+          'group relative flex h-11 w-full max-w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-primary/16 bg-card/92 px-11 text-sm text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus:outline-none focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:w-[11rem]',
+          mobileIconOnly && 'sm:hidden w-11 justify-center px-0',
           open && 'border-primary/34 bg-[var(--shelf-surface-selected)] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)]',
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <ArrowUpDown className="absolute left-3 h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
+        <ArrowUpDown className="absolute left-4 h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
         {!mobileIconOnly && (
           <>
             <span className="min-w-0 truncate text-center font-medium">{currentOption?.label}</span>
             <ChevronDown
               className={cn(
-                'absolute right-3 h-3.5 w-3.5 shrink-0 text-primary/40 transition-all duration-200 group-hover:text-primary/60',
+                'absolute right-4 h-3.5 w-3.5 shrink-0 text-primary/40 transition-all duration-200 group-hover:text-primary/60',
                 open && 'rotate-180 text-primary/70'
               )}
             />

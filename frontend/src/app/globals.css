@@ -1005,6 +1005,68 @@ foliate-view::part(filter) {
     text-overflow: ellipsis;
   }
 
+  @media (min-width: 1024px) {
+    .shelf-sidebar-collapsed {
+      border-radius: 1.7rem;
+    }
+
+    .shelf-sidebar-collapsed .shelf-collapse-toggle {
+      background: color-mix(in srgb, var(--shelf-surface-raised) 82%, transparent) !important;
+      border-color: color-mix(in srgb, var(--primary) 16%, transparent) !important;
+      color: color-mix(in srgb, var(--foreground) 70%, var(--muted-foreground)) !important;
+      box-shadow:
+        0 10px 22px -18px var(--paper-shadow-soft),
+        inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 64%, transparent) !important;
+    }
+
+    .shelf-sidebar-collapsed .shelf-collapse-toggle:hover,
+    .shelf-sidebar-collapsed .shelf-collapse-toggle:focus-visible {
+      background: color-mix(in srgb, var(--primary) 9%, var(--shelf-surface-raised)) !important;
+      border-color: color-mix(in srgb, var(--primary) 26%, transparent) !important;
+      color: var(--primary) !important;
+      transform: translateY(-1px);
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item {
+      @apply h-11 w-11 justify-center rounded-2xl p-0;
+      margin-inline: auto;
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item::before {
+      left: 50%;
+      height: 2.75rem;
+      width: 2.75rem;
+      background: color-mix(in srgb, var(--muted) 46%, transparent);
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item svg {
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item span {
+      @apply sr-only;
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item:hover::before,
+    .shelf-sidebar-collapsed .shelf-menu-item:focus-visible::before {
+      background: color-mix(in srgb, var(--primary) 12%, var(--shelf-surface-raised));
+      box-shadow:
+        0 10px 22px -18px var(--paper-shadow-soft),
+        inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 60%, transparent);
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item:hover {
+      transform: translateY(-1px);
+    }
+
+    .shelf-sidebar-collapsed .shelf-menu-item:active {
+      transform: scale(0.96);
+    }
+  }
+
   @media (max-width: 1023px) {
     .shelf-menu-item {
       @apply h-12 justify-start gap-2 rounded-2xl py-0 pl-11 pr-2.5 text-[12px];

@@ -90,6 +90,7 @@ export default function RootLayout({
     <html
       lang="zh-CN"
       className={`${inter.variable} ${notoSansSC.variable} ${notoSerifSC.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background font-sans">
         <ThemeProvider>

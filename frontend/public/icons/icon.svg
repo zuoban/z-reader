@@ -1,66 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 200" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
-    <linearGradient id="deskBg" x1="18" y1="12" x2="170" y2="188" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#efe7d9"/>
-      <stop offset="1" stop-color="#d8c7ae"/>
+    <linearGradient id="appBg" x1="74" y1="54" x2="438" y2="458" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#243A82"/>
+      <stop offset="0.52" stop-color="#172553"/>
+      <stop offset="1" stop-color="#080C18"/>
     </linearGradient>
-    <linearGradient id="sheetTop" x1="42" y1="34" x2="146" y2="164" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fffdf8"/>
-      <stop offset="1" stop-color="#f1e6d3"/>
+    <linearGradient id="bookStroke" x1="158" y1="112" x2="374" y2="402" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#AFC0FF"/>
+      <stop offset="1" stop-color="#4F6EF7"/>
     </linearGradient>
-    <linearGradient id="sheetBottom" x1="52" y1="42" x2="154" y2="172" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f6ecdc"/>
-      <stop offset="1" stop-color="#dfcdb2"/>
+    <linearGradient id="zGlow" x1="142" y1="180" x2="258" y2="324" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C8D5FF"/>
     </linearGradient>
-    <linearGradient id="spine" x1="96" y1="38" x2="96" y2="162" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ceb288"/>
-      <stop offset="1" stop-color="#b38f60"/>
-    </linearGradient>
-    <linearGradient id="titleInk" x1="64" y1="0" x2="118" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#5b4533"/>
-      <stop offset="1" stop-color="#7a5f45"/>
-    </linearGradient>
-    <filter id="paperShadow" x="18" y="16" width="156" height="170" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#7f6241" flood-opacity="0.22"/>
+    <filter id="cardShadow" x="34" y="34" width="444" height="444" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="30" flood-color="#4F6EF7" flood-opacity="0.26"/>
     </filter>
-    <filter id="softShadow" x="28" y="24" width="136" height="150" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#8d7350" flood-opacity="0.14"/>
+    <filter id="zShadow" x="100" y="146" width="196" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#8FA8FF" flood-opacity="0.34"/>
     </filter>
   </defs>
 
-  <rect x="6" y="8" width="180" height="184" rx="40" fill="url(#deskBg)"/>
-  <path d="M24 34C42 22 65 18 97 18C129 18 151 24 168 36" stroke="#f8f2e8" stroke-opacity=".75" stroke-width="1.4" stroke-linecap="round"/>
-  <path d="M28 168C54 176 79 180 108 180C133 180 151 176 166 168" stroke="#bca17a" stroke-opacity=".34" stroke-width="1.2" stroke-linecap="round"/>
-  <circle cx="38" cy="46" r="1.2" fill="#fff8ef" fill-opacity=".65"/>
-  <circle cx="148" cy="40" r=".9" fill="#fff8ef" fill-opacity=".5"/>
-  <circle cx="158" cy="148" r="1.1" fill="#b99869" fill-opacity=".24"/>
-  <circle cx="40" cy="154" r=".95" fill="#b99869" fill-opacity=".2"/>
-
-  <g filter="url(#paperShadow)">
-    <path d="M48 32H128C140.15 32 150 41.85 150 54V144C150 156.15 140.15 166 128 166H48C35.85 166 26 156.15 26 144V54C26 41.85 35.85 32 48 32Z" fill="url(#sheetBottom)" opacity=".72"/>
+  <rect width="512" height="512" rx="112" fill="#080C18"/>
+  <g filter="url(#cardShadow)">
+    <rect x="72" y="72" width="368" height="368" rx="88" fill="url(#appBg)"/>
+    <rect x="74" y="74" width="364" height="364" rx="86" stroke="#8FA8FF" stroke-opacity="0.2" stroke-width="4"/>
   </g>
 
-  <g filter="url(#softShadow)">
-    <path d="M56 28H136C146.49 28 155 36.51 155 47V146C155 156.49 146.49 165 136 165H56C45.51 165 37 156.49 37 146V47C37 36.51 45.51 28 56 28Z" fill="url(#sheetTop)"/>
-    <path d="M56 28H136C146.49 28 155 36.51 155 47V146C155 156.49 146.49 165 136 165H56C45.51 165 37 156.49 37 146V47C37 36.51 45.51 28 56 28Z" stroke="#f8f1e6" stroke-opacity=".78"/>
-    <path d="M52 34H132C142.49 34 151 42.51 151 53V152C151 162.49 142.49 171 132 171H52C41.51 171 33 162.49 33 152V53C33 42.51 41.51 34 52 34Z" stroke="#b4976f" stroke-opacity=".25"/>
+  <path d="M169 128H320C351.48 128 377 153.52 377 185V382H217C185.52 382 160 356.48 160 325V137C160 132.03 164.03 128 169 128Z" fill="#EEF4FF" fill-opacity="0.07"/>
+  <path d="M181 143H312C338.51 143 360 164.49 360 191V360H228C201.49 360 180 338.51 180 312V144.5C180 143.67 180.67 143 181.5 143H181Z" stroke="url(#bookStroke)" stroke-opacity="0.7" stroke-width="7"/>
+  <path d="M256 104V406" stroke="#C5D2FF" stroke-opacity="0.64" stroke-width="7" stroke-linecap="round"/>
+  <path d="M295 196H337" stroke="#8FA8FF" stroke-opacity="0.36" stroke-width="7" stroke-linecap="round"/>
+  <path d="M295 236H350" stroke="#8FA8FF" stroke-opacity="0.27" stroke-width="7" stroke-linecap="round"/>
+  <path d="M295 276H334" stroke="#8FA8FF" stroke-opacity="0.22" stroke-width="7" stroke-linecap="round"/>
+  <path d="M153 355H236" stroke="#8FA8FF" stroke-opacity="0.28" stroke-width="7" stroke-linecap="round"/>
+
+  <g filter="url(#zShadow)">
+    <path d="M150 197H224L144 326H232" stroke="url(#zGlow)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-
-  <path d="M96 40V158" stroke="url(#spine)" stroke-width="2.5" stroke-linecap="round" opacity=".95"/>
-  <path d="M97.5 44V156" stroke="#f7ead4" stroke-width=".8" stroke-linecap="round" opacity=".55"/>
-
-  <path d="M50 56H86" stroke="#8c6d4b" stroke-opacity=".2" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M50 64H80" stroke="#8c6d4b" stroke-opacity=".16" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M106 56H142" stroke="#8c6d4b" stroke-opacity=".2" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M106 64H136" stroke="#8c6d4b" stroke-opacity=".16" stroke-width="1.2" stroke-linecap="round"/>
-
-  <text x="68" y="112" text-anchor="middle" font-family="serif" font-size="46" font-weight="700" fill="url(#titleInk)">Z</text>
-  <path d="M108 90H136" stroke="#6f563f" stroke-opacity=".28" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M108 98H130" stroke="#6f563f" stroke-opacity=".2" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M108 116H138" stroke="#6f563f" stroke-opacity=".24" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M108 124H132" stroke="#6f563f" stroke-opacity=".18" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M108 132H126" stroke="#6f563f" stroke-opacity=".14" stroke-width="1.5" stroke-linecap="round"/>
-
-  <path d="M56 144H136" stroke="#b49160" stroke-opacity=".38" stroke-width="1.2" stroke-linecap="round"/>
-  <text x="96" y="153" text-anchor="middle" font-family="serif" font-size="11" letter-spacing="3" fill="#9f7b4e" fill-opacity=".82">READER</text>
+  <path d="M150 197H224L144 326H232" stroke="#8FA8FF" stroke-opacity="0.2" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

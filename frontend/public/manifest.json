@@ -1,11 +1,11 @@
 {
   "name": "Z Reader",
   "short_name": "Z Reader",
-  "description": "A refined online EPUB reading experience",
+  "description": "A quiet multi-format ebook reader for your personal library",
   "start_url": "/shelf",
   "display": "standalone",
-  "background_color": "#f2eadc",
-  "theme_color": "#e3d2b5",
+  "background_color": "#080c18",
+  "theme_color": "#4f6ef7",
   "orientation": "portrait",
   "icons": [
     {

@@ -21,15 +21,13 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
   const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
-  const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
-  const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
 
   return (
     <div
       className="flex w-full items-center justify-start"
     >
       <div
-        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-[1.75rem] border border-border/65 bg-card"
+        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-2xl border border-border/65 bg-card"
         style={{ width: isMobile ? '100%' : cardWidth }}
       >
           <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
@@ -46,13 +44,15 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
-                className="shrink-0"
-                style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
+                className="relative shrink-0 -translate-y-2"
+                style={{
+                  height: SPELL_BOOK_HEIGHT,
+                  width: SPELL_BOOK_WIDTH,
+                  transform: `scale(${bookScale})`,
+                  transformOrigin: 'center center'
+                }}
               >
                 <div className="flex h-full w-full items-center justify-center">
-                  <div
-                    style={{ transform: `scale(${bookScale})`, transformOrigin: 'center center' }}
-                  >
                     <div 
                       className="paper-cover-frame relative overflow-hidden rounded-[4px] border border-border/50 bg-muted/80 shadow-[0_10px_18px_-18px_rgba(64,36,20,0.18)]"
                       style={{ width: SPELL_BOOK_WIDTH, height: SPELL_BOOK_HEIGHT }}
@@ -76,7 +76,6 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                       </div>
                       <div className="absolute inset-0 rounded-[4px] bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent_20%,transparent_84%,rgba(71,46,28,0.07))]" />
                     </div>
-                  </div>
                 </div>
               </div>
             </div>

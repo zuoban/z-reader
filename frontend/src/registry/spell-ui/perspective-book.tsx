@@ -25,7 +25,7 @@ const defaultColorClasses =
 
 function getCoverClasses(className?: string) {
   return cn(
-    "absolute inset-y-0 left-0 flex size-full flex-col overflow-hidden pl-[8%] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-[#00000014] after:shadow-[0_1.8px_3.6px_#0000000d,_0_10.8px_21.6px_#00000014,_inset_0_-.9px_#0000001a,_inset_0_1.8px_1.8px_#ffffff1a,_inset_3.6px_0_3.6px_#0000001a]",
+    "absolute inset-y-0 left-0 flex size-full flex-col overflow-hidden after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-solid after:border-[#00000014] after:shadow-[0_1.8px_3.6px_#0000000d,_0_10.8px_21.6px_#00000014,_inset_0_-.9px_#0000001a,_inset_0_1.8px_1.8px_#ffffff1a,_inset_3.6px_0_3.6px_#0000001a]",
     className || defaultColorClasses
   );
 }
@@ -87,15 +87,15 @@ export function PerspectiveBook({
             borderRadius: '6px 4px 4px 6px',
           }}
         >
+          <div className="size-full">{children}</div>
           <div
-            className="absolute left-0 top-0 h-full opacity-40"
+            className="pointer-events-none absolute left-0 top-0 h-full opacity-40"
             style={{
               minWidth: '8.2%',
               background:
                 'linear-gradient(90deg, hsla(0, 0%, 100%, 0), hsla(0, 0%, 100%, 0) 12%, hsla(0, 0%, 100%, .25) 29.25%, hsla(0, 0%, 100%, 0) 50.5%, hsla(0, 0%, 100%, 0) 75.25%, hsla(0, 0%, 100%, .25) 91%, hsla(0, 0%, 100%, 0)), linear-gradient(90deg, rgba(0, 0, 0, .03), rgba(0, 0, 0, .1) 12%, transparent 30%, rgba(0, 0, 0, .02) 50%, rgba(0, 0, 0, .2) 73.5%, rgba(0, 0, 0, .5) 75.25%, rgba(0, 0, 0, .15) 85.25%, transparent)',
             }}
           />
-          <div className="size-full">{children}</div>
           {textured && (
             <div
               className="book-cover-texture pointer-events-none absolute inset-0 rotate-180 bg-cover bg-no-repeat mix-blend-hard-light opacity-50 brightness-110"

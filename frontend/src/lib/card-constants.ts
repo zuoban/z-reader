@@ -1,6 +1,6 @@
 export const MOBILE_CARD_WIDTH = 172;
 export const MOBILE_COVER_HEIGHT = 210;
-export const MOBILE_BOOK_SCALE = 0.86;
+export const MOBILE_BOOK_SCALE = 0.82;
 
 export const DESKTOP_CARD_WIDTH = 184;
 export const DESKTOP_COVER_HEIGHT = 228;

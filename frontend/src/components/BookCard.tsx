@@ -176,8 +176,6 @@ export function BookCard({
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
   const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
-  const bookPreviewWidth = Math.round(SPELL_BOOK_WIDTH * bookScale);
-  const bookPreviewHeight = Math.round(SPELL_BOOK_HEIGHT * bookScale);
   const progressMeter = hasProgress ? (
     <div className="flex items-center gap-1.5">
       <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
@@ -215,7 +213,7 @@ export function BookCard({
       style={{ '--paper-delay': `${Math.min(index * 55, 260)}ms` } as CSSProperties}
     >
       <Card
-        className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card p-0 gap-0 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+        className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
         style={{ width: isMobile ? '100%' : cardWidth }}
         onClick={onRead}
       >
@@ -229,7 +227,12 @@ export function BookCard({
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
                 className="relative shrink-0 -translate-y-2"
-                style={{ height: bookPreviewHeight, width: bookPreviewWidth }}
+                style={{
+                  height: SPELL_BOOK_HEIGHT,
+                  width: SPELL_BOOK_WIDTH,
+                  transform: `scale(${bookScale})`,
+                  transformOrigin: 'center center'
+                }}
               >
                 <PerspectiveBook size="sm" textured={!coverUrl}>
                   <BookCoverFace coverUrl={coverUrl} titleLabel={titleLabel} />

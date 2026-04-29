@@ -146,6 +146,14 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
   }
 }
 
+async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T> {
+  const text = await res.text();
+  if (!text) {
+    throw new ApiError(fallback, res.status);
+  }
+  return JSON.parse(text) as T;
+}
+
 /** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
 async function authedFetch(path: string, options: RequestInit = {}, timeout?: number): Promise<Response> {
   const { controller, timeoutId } = createAbortController(timeout);
@@ -248,8 +256,7 @@ export const api = {
       throw await parseApiError(res, '上传失败');
     }
 
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
+    return parseJsonResponse<Book>(res, '上传成功但响应为空');
   },
 
   deleteBook: async (id: string): Promise<void> => {
@@ -299,8 +306,7 @@ export const api = {
       throw await parseApiError(res, '上传封面失败');
     }
 
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
+    return parseJsonResponse<Book>(res, '上传封面成功但响应为空');
   },
 
   fetchCover: async (id: string): Promise<Blob | null> => {

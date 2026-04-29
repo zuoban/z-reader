@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -35,14 +36,18 @@ function delay(ms: number): CSSProperties {
 
 function ShelfTitle() {
   return (
-    <div className="flex min-w-0 items-center gap-3.5">
+    <Link
+      href="/"
+      aria-label="返回 Z Reader 落地页"
+      className="group flex min-w-0 items-center gap-3.5 rounded-lg outline-none transition-opacity hover:opacity-88 focus-visible:ring-2 focus-visible:ring-primary/30"
+    >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_55%,transparent)] sm:h-12 sm:w-12">
         <Library className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
       </div>
       <h1 className="truncate font-heading text-2xl font-semibold text-foreground sm:text-3xl lg:text-2xl">
         {SHELF_TITLE}
       </h1>
-    </div>
+    </Link>
   );
 }
 

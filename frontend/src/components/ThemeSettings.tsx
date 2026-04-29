@@ -216,12 +216,6 @@ export function ThemeSettings({
   const resetFeedbackTimeoutRef = useRef<number | null>(null);
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
   const [resetFeedbackCount, setResetFeedbackCount] = useState(0);
-  const panelStyle = {
-    background: uiScheme.cardBg,
-    borderLeft: `1px solid ${withOpacity(uiScheme.cardBorder, 0.22)}`,
-    color: uiScheme.fg,
-    boxShadow: `-10px 0 28px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
-  } as const;
   useEffect(() => {
     return () => {
       if (resetFeedbackTimeoutRef.current !== null) {

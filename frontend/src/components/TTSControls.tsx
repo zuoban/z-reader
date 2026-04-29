@@ -707,12 +707,6 @@ export function TTSControls({
   const panelBodyMaxHeight = isToolbar
     ? 'calc(min(72vh, 720px) - 72px)'
     : `${floatingPopupMaxHeight - 120}px`;
-  const sheetPanelStyle = {
-    background: uiScheme.cardBg,
-    borderLeft: `1px solid ${withOpacity(uiScheme.cardBorder, 0.22)}`,
-    color: uiScheme.fg,
-    boxShadow: `-10px 0 28px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
-  } as const;
 
   const renderStatusContent = (withDragHandle = false) => ttsStatus ? (
     <div

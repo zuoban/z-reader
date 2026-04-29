@@ -51,7 +51,6 @@ export function ReaderBookmarksSheet({
   open,
   onOpenChange,
   bookmarks,
-  bookTitle,
   uiScheme,
   overlayContainer,
   triggerClassName,

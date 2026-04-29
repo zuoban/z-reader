@@ -71,28 +71,30 @@ export function CategorySelector({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="right"
+        side="bottom"
         showCloseButton
-        className="flex w-[380px] flex-col border-l border-border/60 p-0 sm:max-w-[380px]"
+        finalFocus={false}
+        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
           backgroundColor: 'var(--shelf-surface)',
+          borderColor: 'color-mix(in srgb, var(--border), transparent 40%)',
+          boxShadow: '0 -12px 48px -12px var(--paper-shadow)',
         }}
       >
-        {/* 头部区域 */}
-        <SheetHeader className="relative overflow-hidden border-b border-border/40 bg-[var(--shelf-surface-raised)] px-6 py-8 pr-28">
+        <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
           <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
           <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 
           <div className="relative min-w-0">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                <Tag className="h-5 w-5" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                <Tag className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-bold tracking-tight">
+                <SheetTitle className="text-2xl font-bold tracking-tight">
                   设置分类
                 </SheetTitle>
-                <SheetDescription className="mt-1 text-[11px] font-medium opacity-60">
+                <SheetDescription className="mt-1 text-xs font-medium opacity-60">
                   为这本书选择已有分类，或输入新的分类名称
                 </SheetDescription>
               </div>
@@ -101,11 +103,10 @@ export function CategorySelector({
         </SheetHeader>
 
         <form
-          className="flex flex-1 flex-col overflow-hidden p-6"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-8 pt-4"
           onSubmit={handleSubmit}
         >
-          {/* 输入区域 */}
-          <div className="space-y-3">
+          <div className="space-y-7 overflow-y-auto pb-4 pr-1">
             <div className="flex items-center justify-between pl-1">
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                 分类名称

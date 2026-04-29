@@ -8,6 +8,7 @@ interface ReaderChromeState {
   bookmarksOpen: boolean;
   themeSettingsOpen: boolean;
   currentChapter: string;
+  currentChapterHref: string;
 }
 
 export function useReaderChrome() {
@@ -18,6 +19,7 @@ export function useReaderChrome() {
     bookmarksOpen: false,
     themeSettingsOpen: false,
     currentChapter: "",
+    currentChapterHref: "",
   });
   const tocListRef = useRef<HTMLDivElement>(null);
   const locateFrameRef = useRef<number | null>(null);
@@ -75,7 +77,8 @@ export function useReaderChrome() {
         nextState.tocOpen &&
         nextState.currentChapter &&
         (!previous.tocOpen ||
-          previous.currentChapter !== nextState.currentChapter)
+          previous.currentChapter !== nextState.currentChapter ||
+          previous.currentChapterHref !== nextState.currentChapterHref)
       ) {
         scheduleCurrentChapterScroll();
       }

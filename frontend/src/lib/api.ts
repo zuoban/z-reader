@@ -137,7 +137,8 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
       throw await parseApiError(res, '请求失败');
     }
 
-    return res.json();
+    const text = await res.text();
+    return text ? JSON.parse(text) : (null as T);
   } catch (error) {
     throw normalizeRequestError(error);
   } finally {
@@ -247,7 +248,8 @@ export const api = {
       throw await parseApiError(res, '上传失败');
     }
 
-    return res.json();
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
   },
 
   deleteBook: async (id: string): Promise<void> => {
@@ -297,7 +299,8 @@ export const api = {
       throw await parseApiError(res, '上传封面失败');
     }
 
-    return res.json();
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
   },
 
   fetchCover: async (id: string): Promise<Blob | null> => {

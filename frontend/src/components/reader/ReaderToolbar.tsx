@@ -35,6 +35,7 @@ interface ReaderToolbarProps {
   onDeleteBookmark: (bookmarkId: string) => void;
   tocListRef: RefObject<HTMLDivElement | null>;
   currentChapter: string;
+  currentChapterHref: string;
   onLocateCurrentChapter: () => void;
   onGoTo: (href: string) => void;
   onBack: () => void;
@@ -100,6 +101,7 @@ export function ReaderToolbar({
   onDeleteBookmark,
   tocListRef,
   currentChapter,
+  currentChapterHref,
   onLocateCurrentChapter,
   onGoTo,
   onBack,
@@ -273,6 +275,7 @@ export function ReaderToolbar({
               bookAuthor={bookAuthor}
               tocListRef={tocListRef}
               currentChapter={currentChapter}
+              currentChapterHref={currentChapterHref}
               uiScheme={uiScheme}
               overlayContainer={overlayContainer}
               triggerClassName={toolbarButtonClass}

@@ -80,87 +80,89 @@ export function ReaderBookmarksSheet({
         <Bookmark className="h-4 w-4" />
       </SheetTrigger>
       <SheetContent
-        side="right"
+        side="bottom"
+        showCloseButton
+        finalFocus={false}
         container={overlayContainer}
-        className="max-w-sm border-l-0 p-0 sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
+        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
           background: uiScheme.cardBg,
-          boxShadow: `-20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
+          borderColor: withOpacity(uiScheme.cardBorder, 0.22),
+          color: uiScheme.fg,
+          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}`,
         }}
       >
-        <SheetHeader className="relative overflow-hidden border-b border-border/40 px-5 py-6 pr-28">
-          <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
-          <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-accent/10" />
+        <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
+          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
+          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 
-          <div className="relative flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm shadow-primary/5">
-              <Bookmark className="h-4.5 w-4.5" />
+          <div className="relative flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+              <Bookmark className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle
-                className="truncate text-lg font-bold tracking-tight"
-                style={{ color: uiScheme.fg }}
-                title={bookTitle || "书签"}
-              >
+              <SheetTitle className="text-2xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
                 书签
               </SheetTitle>
               <SheetDescription
-                className="mt-0.5 truncate text-[10px] font-medium opacity-60 text-muted-foreground"
+                className="mt-1 text-xs font-medium opacity-60"
                 style={{ color: uiScheme.mutedText }}
-                title={bookTitle || "当前书籍"}
               >
-                {bookTitle || "当前书籍"}
+                记录那些值得回味的阅读瞬间
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <div className="border-b border-border/40 px-4 py-3">
+        <div className="px-8 py-2">
           <Button
             type="button"
             onClick={onCreate}
             disabled={!canCreate || isSaving}
-            className="h-9 w-full rounded-lg"
+            className="h-11 w-full rounded-2xl text-sm font-bold shadow-sm transition-all active:scale-[0.98]"
             title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
           >
-            <BookmarkPlus className="h-4 w-4" />
-            {isSaving ? "保存中" : "添加当前位置"}
+            <BookmarkPlus className="mr-2 h-4.5 w-4.5" />
+            {isSaving ? "保存中" : "添加当前书签"}
           </Button>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-154px)] sm:h-[calc(100vh-154px)]">
-          <div className="space-y-2 px-4 py-3">
+        <ScrollArea className="max-h-[min(50vh,400px)] px-2">
+          <div className="space-y-3 px-6 pb-12 pt-4">
             {bookmarks.length > 0 ? (
               bookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-lg border px-3 py-2.5 transition-colors"
+                  className="group rounded-[1.25rem] border px-4 py-3.5 transition-all hover:bg-black/5 dark:hover:bg-white/5"
                   style={{
-                    background: withOpacity(uiScheme.bg, 0.62),
-                    borderColor: withOpacity(uiScheme.cardBorder, 0.35),
+                    background: withOpacity(uiScheme.buttonBg, 0.3),
+                    borderColor: withOpacity(uiScheme.cardBorder, 0.15),
                   }}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-center gap-4">
                     <button
                       type="button"
-                      className="min-w-0 flex-1 cursor-pointer text-left"
-                      onClick={() => onGoTo(bookmark)}
+                      className="min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
+                      onClick={() => {
+                        onGoTo(bookmark);
+                        onOpenChange(false);
+                      }}
                     >
                       <div
-                        className="flex items-center gap-1.5 text-xs font-semibold"
+                        className="flex items-center gap-2 text-[13px] font-bold"
                         style={{ color: uiScheme.fg }}
                       >
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <MapPin className="h-3.5 w-3.5 shrink-0 opacity-60" />
                         <span className="truncate">
                           {bookmark.chapter || "未识别章节"}
                         </span>
                       </div>
                       <div
-                        className="mt-1 flex items-center gap-2 text-[11px]"
+                        className="mt-1 flex items-center gap-2 text-[11px] font-medium opacity-50"
                         style={{ color: uiScheme.mutedText }}
                       >
-                        <span>{formatPercent(bookmark.percentage)}</span>
-                        <span aria-hidden="true">/</span>
+                        <span className="tabular-nums">{formatPercent(bookmark.percentage)}</span>
+                        <span className="h-1 w-1 rounded-full bg-current opacity-30" />
                         <span>{formatDate(bookmark.created_at)}</span>
                       </div>
                     </button>
@@ -168,13 +170,16 @@ export function ReaderBookmarksSheet({
                       variant="ghost"
                       size="icon-sm"
                       type="button"
-                      onClick={() => onDelete(bookmark.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(bookmark.id);
+                      }}
                       title="删除书签"
                       aria-label="删除书签"
-                      className="h-8 w-8 rounded-lg opacity-80 transition-opacity group-hover:opacity-100"
+                      className="h-9 w-9 shrink-0 rounded-xl transition-all hover:bg-destructive/10 hover:text-destructive active:scale-90"
                       style={{ color: uiScheme.mutedText }}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

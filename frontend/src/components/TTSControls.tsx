@@ -803,34 +803,39 @@ export function TTSControls({
         </SheetTrigger>
 
         <SheetContent
-          side="right"
+          side="bottom"
           showCloseButton
           finalFocus={false}
           container={overlayContainer}
           data-reader-interactive="true"
           data-reader-tts-popup="true"
-          className="flex flex-col border-l-0 p-0 sm:w-[380px] sm:max-w-[380px]"
-          style={sheetPanelStyle}
+          className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+          style={{
+            background: uiScheme.cardBg,
+            borderColor: withOpacity(uiScheme.cardBorder, 0.22),
+            color: uiScheme.fg,
+            boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}`,
+          }}
         >
           <div aria-live="polite" aria-atomic="true" className="sr-only">
             {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
           </div>
 
-          <SheetHeader className="relative overflow-hidden border-b border-border/40 px-6 py-8 pr-24">
+          <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
             <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
             <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 
             <div className="relative min-w-0">
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                  <Volume2 className="h-5 w-5" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                  <Volume2 className="h-6 w-6" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                  <SheetTitle className="text-2xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
                     朗读控制
                   </SheetTitle>
                   <SheetDescription
-                    className="mt-1 text-[11px] font-medium opacity-60"
+                    className="mt-1 text-xs font-medium opacity-60"
                     style={{ color: uiScheme.mutedText }}
                   >
                     调整最贴近当前阅读节奏的声音
@@ -840,7 +845,7 @@ export function TTSControls({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 pb-12 pt-6">
+          <div className="flex-1 space-y-7 overflow-y-auto px-8 pb-12 pt-4">
             {resumePromptVisible && (
               <section
                 className="rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm"

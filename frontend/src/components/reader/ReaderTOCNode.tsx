@@ -12,6 +12,7 @@ interface ReaderTOCNodeProps {
   onGoTo: (href: string) => void;
   depth?: number;
   currentChapter: string;
+  currentChapterHref: string;
   uiScheme: ThemeColors;
 }
 
@@ -20,9 +21,12 @@ function ReaderTOCNode({
   onGoTo,
   depth = 0,
   currentChapter,
+  currentChapterHref,
   uiScheme,
 }: ReaderTOCNodeProps) {
-  const isCurrentChapter = currentChapter === item.label;
+  const isCurrentChapter = currentChapterHref
+    ? currentChapterHref === item.href
+    : currentChapter === item.label;
 
   return (
     <div className="relative">
@@ -76,6 +80,7 @@ function ReaderTOCNode({
               onGoTo={onGoTo}
               depth={depth + 1}
               currentChapter={currentChapter}
+              currentChapterHref={currentChapterHref}
               uiScheme={uiScheme}
             />
           ))}
@@ -94,6 +99,7 @@ export const MemoizedReaderTOCNode = React.memo(
       prevProps.item.subitems?.length === nextProps.item.subitems?.length &&
       prevProps.depth === nextProps.depth &&
       prevProps.currentChapter === nextProps.currentChapter &&
+      prevProps.currentChapterHref === nextProps.currentChapterHref &&
       prevProps.uiScheme.fg === nextProps.uiScheme.fg
     );
   },

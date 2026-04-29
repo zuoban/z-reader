@@ -421,6 +421,7 @@ export default function ReadPage() {
     bookAuthor,
     percentage,
     currentChapter,
+    currentChapterHref,
     currentPageLabel,
     error,
     loading,
@@ -534,9 +535,11 @@ export default function ReadPage() {
       bookmarksOpen,
       themeSettingsOpen,
       currentChapter,
+      currentChapterHref,
     });
   }, [
     currentChapter,
+    currentChapterHref,
     loading,
     bookmarksOpen,
     syncChromeState,
@@ -605,6 +608,7 @@ export default function ReadPage() {
           onDeleteBookmark={handleDeleteBookmark}
           tocListRef={tocListRef}
           currentChapter={currentChapter}
+          currentChapterHref={currentChapterHref}
           onLocateCurrentChapter={() => scrollToCurrentChapter("smooth")}
           onGoTo={goTo}
           onBack={handleBack}

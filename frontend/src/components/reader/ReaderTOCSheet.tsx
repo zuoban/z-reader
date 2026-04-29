@@ -4,7 +4,6 @@ import type { CSSProperties, RefObject } from "react";
 import { List, LocateFixed } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
 import {
@@ -30,6 +30,7 @@ interface ReaderTOCSheetProps {
   bookAuthor: string;
   tocListRef: RefObject<HTMLDivElement | null>;
   currentChapter: string;
+  currentChapterHref: string;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
   triggerClassName: string;
@@ -46,6 +47,7 @@ export function ReaderTOCSheet({
   bookAuthor,
   tocListRef,
   currentChapter,
+  currentChapterHref,
   uiScheme,
   overlayContainer,
   triggerClassName,
@@ -69,12 +71,16 @@ export function ReaderTOCSheet({
         <List className="h-4 w-4" />
       </SheetTrigger>
       <SheetContent
-        side="right"
+        side="bottom"
+        showCloseButton
+        finalFocus={false}
         container={overlayContainer}
-        className="max-w-sm border-l-0 p-0 sm:w-85 sm:[&_[data-slot=sheet-close]]:top-4"
+        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
           background: uiScheme.cardBg,
-          boxShadow: `-20px 0 60px -20px ${withOpacity(uiScheme.cardBorder, 0.28)}`,
+          borderColor: withOpacity(uiScheme.cardBorder, 0.22),
+          color: uiScheme.fg,
+          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}`,
         }}
       >
         <Button
@@ -88,45 +94,51 @@ export function ReaderTOCSheet({
               : "暂未识别当前章节"
           }
           aria-label="定位到当前章节"
-          className={floatingSheetActionButtonClass}
-          style={getFloatingSheetActionButtonStyle({
-            uiScheme,
-            enabled: Boolean(currentChapter),
-            side: "right",
-          })}
+          className={cn(
+            floatingSheetActionButtonClass,
+            "sm:[&_svg]:h-4 sm:[&_svg]:w-4"
+          )}
+          style={{
+            ...getFloatingSheetActionButtonStyle({
+              uiScheme,
+              enabled: Boolean(currentChapter),
+              side: "right",
+            }),
+            top: "max(0.75rem, env(safe-area-inset-top, 0px))",
+          }}
         >
           <LocateFixed className="h-4 w-4" />
         </Button>
 
-        <SheetHeader className="relative overflow-hidden border-b border-border/40 px-5 py-6 pr-28">
-          <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
-          <div className="absolute -bottom-7 -right-8 h-20 w-20 rounded-full bg-accent/10" />
+        <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-28">
+          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
+          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 
-          <div className="relative flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm shadow-primary/5">
-              <List className="h-4.5 w-4.5" />
+          <div className="relative flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+              <List className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
               <SheetTitle
-                className="truncate text-lg font-bold tracking-tight"
+                className="truncate text-2xl font-bold tracking-tight"
                 style={{ color: uiScheme.fg }}
                 title={bookTitle || "阅读中"}
               >
-                {bookTitle || "阅读中"}
+                目录
               </SheetTitle>
               <SheetDescription
-                className="mt-0.5 truncate text-[10px] font-medium opacity-60 text-muted-foreground"
+                className="mt-1 truncate text-xs font-medium opacity-60 text-muted-foreground"
                 style={{ color: uiScheme.mutedText }}
                 title={bookAuthor ? `作者：${bookAuthor}` : "书籍目录"}
               >
-                {bookAuthor ? `作者：${bookAuthor}` : "书籍目录"}
+                {bookTitle || "当前书籍"}
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-env(safe-area-inset-top,0px)-116px)] sm:h-[calc(100vh-104px)]">
-          <div ref={tocListRef} className="space-y-1 px-4 pb-8 pt-1.5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [-webkit-overflow-scrolling:touch]">
+          <div ref={tocListRef} className="space-y-1 px-6 pb-12 pt-4">
             {toc.length > 0 ? (
               toc.map((item, idx) => (
                 <MemoizedReaderTOCNode
@@ -134,6 +146,7 @@ export function ReaderTOCSheet({
                   item={item}
                   onGoTo={onGoTo}
                   currentChapter={currentChapter}
+                  currentChapterHref={currentChapterHref}
                   uiScheme={uiScheme}
                 />
               ))
@@ -152,7 +165,7 @@ export function ReaderTOCSheet({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );

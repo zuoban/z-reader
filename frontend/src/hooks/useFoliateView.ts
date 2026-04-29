@@ -76,6 +76,7 @@ export function useFoliateView({
   const [bookAuthor, setBookAuthor] = useState("");
   const [percentage, setPercentage] = useState(0);
   const [currentChapter, setCurrentChapter] = useState("");
+  const [currentChapterHref, setCurrentChapterHref] = useState("");
   const [currentPageLabel, setCurrentPageLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -367,6 +368,7 @@ export function useFoliateView({
 
           if (tocItem?.label) {
             setCurrentChapter(tocItem.label);
+            setCurrentChapterHref(tocItem.href || "");
           }
 
           updatePageLabel(pageItem, location);
@@ -471,6 +473,7 @@ export function useFoliateView({
     bookAuthor,
     percentage,
     currentChapter,
+    currentChapterHref,
     currentPageLabel,
     error,
     loading,

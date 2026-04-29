@@ -181,29 +181,32 @@ export function UserManager({ currentUser, buttonClassName, triggerLabel }: User
         {triggerLabel && <span className="hidden sm:inline">{triggerLabel}</span>}
       </SheetTrigger>
       <SheetContent
-        side="right"
-        className="flex flex-col border-l-0 p-0 sm:w-[380px] sm:max-w-[380px] sm:[&_[data-slot=sheet-close]]:right-4 sm:[&_[data-slot=sheet-close]]:top-4 sm:[&_[data-slot=sheet-close]]:h-9 sm:[&_[data-slot=sheet-close]]:w-9 sm:[&_[data-slot=sheet-close]]:rounded-full sm:[&_[data-slot=sheet-close]]:border-0 sm:[&_[data-slot=sheet-close]]:bg-muted/40 sm:[&_[data-slot=sheet-close]]:shadow-none"
+        side="bottom"
+        showCloseButton
+        finalFocus={false}
+        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
         style={{
           backgroundColor: 'var(--shelf-surface)',
-          boxShadow: '20px 0 60px -20px var(--paper-shadow)',
+          borderColor: 'color-mix(in srgb, var(--border), transparent 40%)',
+          boxShadow: '0 -12px 48px -12px var(--paper-shadow)',
         }}
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <SheetHeader
-            className="relative overflow-hidden border-b border-border/40 bg-[var(--shelf-surface-raised)] px-6 py-8 pr-20"
+            className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24"
           >
             <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
             <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 
             <div className="relative flex items-center gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                <ShieldCheck className="h-5 w-5" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
+                <ShieldCheck className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-bold tracking-tight text-foreground">
+                <SheetTitle className="text-2xl font-bold tracking-tight text-foreground">
                   用户管理
                 </SheetTitle>
-                <SheetDescription className="mt-1 text-[11px] font-medium text-muted-foreground/70">
+                <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground/70">
                   集中维护账号权限与安全设置
                 </SheetDescription>
               </div>
@@ -211,7 +214,7 @@ export function UserManager({ currentUser, buttonClassName, triggerLabel }: User
           </SheetHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex-1 space-y-6 px-6 pb-12 pt-6">
+            <div className="flex-1 space-y-7 px-8 pb-12 pt-4">
               <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold tracking-tight text-foreground">账号概览</h3>

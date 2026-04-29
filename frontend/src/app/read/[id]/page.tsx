@@ -621,6 +621,27 @@ export default function ReadPage() {
           isFullscreenSupported={isFullscreenSupported}
           isFullscreen={isFullscreen}
           onToggleFullscreen={handleToggleFullscreen}
+          tts={{
+            state: ttsState,
+            settings: ttsSettings,
+            voices,
+            voicesLoading,
+            voicesError,
+            reloadVoices,
+            start: startTTS,
+            stop: stopTTS,
+            next: nextTTS,
+            prev: prevTTS,
+            updateSettings: updateTTSSettings,
+            resumePromptVisible,
+            resumePromptMessage,
+            status: ttsStatus,
+            sleepTimer,
+            setSleepTimerForMinutes,
+            clearSleepTimer,
+            resume: resumeTTS,
+            onExpandedChange: handleTTSExpandedChange,
+          }}
         />
 
         <div className="flex min-h-0 flex-1 flex-col">
@@ -714,28 +735,6 @@ export default function ReadPage() {
             containerStyle={statusBarContainerStyle}
             safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
             uiScheme={uiScheme}
-            overlayContainer={overlayContainer}
-            tts={{
-              state: ttsState,
-              settings: ttsSettings,
-              voices,
-              voicesLoading,
-              voicesError,
-              reloadVoices,
-              start: startTTS,
-              stop: stopTTS,
-              next: nextTTS,
-              prev: prevTTS,
-              updateSettings: updateTTSSettings,
-              resumePromptVisible,
-              resumePromptMessage,
-              status: ttsStatus,
-              sleepTimer,
-              setSleepTimerForMinutes,
-              clearSleepTimer,
-              resume: resumeTTS,
-              onExpandedChange: handleTTSExpandedChange,
-            }}
           />
         </div>
       </div>

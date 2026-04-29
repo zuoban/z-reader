@@ -1,15 +1,9 @@
 "use client";
 
-import { lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import type { TTSSettings, TTSState, Voice } from "@/lib/tts";
 import { withOpacity } from "@/lib/reader-ui";
-
-const TTSControls = lazy(() =>
-  import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
-);
 
 interface ReaderStatusBarProps {
   percentage: number;
@@ -18,37 +12,6 @@ interface ReaderStatusBarProps {
   containerStyle: CSSProperties;
   safeAreaPaddingBottom: string;
   uiScheme: ThemeColors;
-  overlayContainer?: HTMLElement | null;
-  tts: {
-    state: TTSState;
-    settings: TTSSettings;
-    voices: Voice[];
-    voicesLoading: boolean;
-    voicesError: string | null;
-    reloadVoices: () => void | Promise<void>;
-    start: () => void | Promise<void>;
-    stop: () => void;
-    next: () => void | Promise<void>;
-    prev: () => void | Promise<void>;
-    updateSettings: (settings: Partial<TTSSettings>) => void;
-    resumePromptVisible: boolean;
-    resumePromptMessage: string;
-    status: {
-      headline: string;
-      detail?: string;
-      tone?: "idle" | "active" | "warning" | "error";
-    };
-    sleepTimer: {
-      mode: "off" | "minutes";
-      minutes?: number;
-      endsAt?: number;
-      label: string;
-    };
-    setSleepTimerForMinutes: (minutes: number) => void;
-    clearSleepTimer: () => void;
-    resume: () => void | Promise<void>;
-    onExpandedChange: (expanded: boolean) => void;
-  };
 }
 
 export function ReaderStatusBar({
@@ -58,8 +21,6 @@ export function ReaderStatusBar({
   containerStyle,
   safeAreaPaddingBottom,
   uiScheme,
-  overlayContainer,
-  tts,
 }: ReaderStatusBarProps) {
   return (
     <div
@@ -88,46 +49,13 @@ export function ReaderStatusBar({
           </span>
         </div>
 
-        <div className="flex w-24 shrink-0 items-center justify-end gap-2">
+        <div className="flex w-24 shrink-0 items-center justify-end">
           <span
             className="font-mono font-bold tabular-nums tracking-tight"
             style={{ color: withOpacity(uiScheme.fg, 0.6) }}
           >
             {currentPageLabel || "—"}
           </span>
-          <Suspense fallback={null}>
-            <TTSControls
-              state={tts.state}
-              settings={tts.settings}
-              voices={tts.voices}
-              voicesLoading={tts.voicesLoading}
-              voicesError={tts.voicesError}
-              onReloadVoices={tts.reloadVoices}
-              onStart={tts.start}
-              onStop={tts.stop}
-              onNext={tts.next}
-              onPrev={tts.prev}
-              onUpdateSettings={tts.updateSettings}
-              uiScheme={uiScheme}
-              variant="toolbar"
-              triggerClassName="relative flex h-7 w-7 min-h-7 min-w-7 items-center justify-center rounded-lg p-0 transition-colors duration-150 ease-out hover:bg-black/5"
-              triggerStyle={{
-                color: tts.state !== "stopped" ? uiScheme.link : withOpacity(uiScheme.fg, 0.6),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
-              resumePromptVisible={tts.resumePromptVisible}
-              resumePromptMessage={tts.resumePromptMessage}
-              ttsStatus={tts.status}
-              sleepTimer={tts.sleepTimer}
-              onSleepTimerMinutes={tts.setSleepTimerForMinutes}
-              onClearSleepTimer={tts.clearSleepTimer}
-              onResume={tts.resume}
-              onExpandedChange={tts.onExpandedChange}
-              overlayContainer={overlayContainer}
-            />
-          </Suspense>
         </div>
       </div>
     </div>

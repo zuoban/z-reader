@@ -1,5 +1,6 @@
 "use client";
 
+import { lazy, Suspense } from "react";
 import type { CSSProperties, RefObject } from "react";
 import { ChevronRight, Expand, Library, Shrink } from "lucide-react";
 
@@ -9,7 +10,13 @@ import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
+import { withOpacity } from "@/lib/reader-ui";
+import type { TTSSettings, TTSState, Voice } from "@/lib/tts";
 import type { TOCItem } from "@/lib/types";
+
+const TTSControls = lazy(() =>
+  import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
+);
 
 interface ReaderToolbarProps {
   visible: boolean;
@@ -44,6 +51,36 @@ interface ReaderToolbarProps {
   isFullscreenSupported: boolean;
   isFullscreen: boolean;
   onToggleFullscreen: () => void | Promise<void>;
+  tts: {
+    state: TTSState;
+    settings: TTSSettings;
+    voices: Voice[];
+    voicesLoading: boolean;
+    voicesError: string | null;
+    reloadVoices: () => void | Promise<void>;
+    start: () => void | Promise<void>;
+    stop: () => void;
+    next: () => void | Promise<void>;
+    prev: () => void | Promise<void>;
+    updateSettings: (settings: Partial<TTSSettings>) => void;
+    resumePromptVisible: boolean;
+    resumePromptMessage: string;
+    status: {
+      headline: string;
+      detail?: string;
+      tone?: "idle" | "active" | "warning" | "error";
+    };
+    sleepTimer: {
+      mode: "off" | "minutes";
+      minutes?: number;
+      endsAt?: number;
+      label: string;
+    };
+    setSleepTimerForMinutes: (minutes: number) => void;
+    clearSleepTimer: () => void;
+    resume: () => void | Promise<void>;
+    onExpandedChange: (expanded: boolean) => void;
+  };
 }
 
 export function ReaderToolbar({
@@ -79,6 +116,7 @@ export function ReaderToolbar({
   isFullscreenSupported,
   isFullscreen,
   onToggleFullscreen,
+  tts,
 }: ReaderToolbarProps) {
   const toggleToolbarButton = (
     <Button
@@ -107,13 +145,33 @@ export function ReaderToolbar({
   return (
     <>
       {!visible ? (
-        <div
+        <button
+          type="button"
           data-reader-interactive="true"
-          className="pointer-events-auto absolute left-3 z-[60] sm:left-8"
-          style={{ top: headerSafeAreaPaddingTop }}
+          onClick={onToggleToolbar}
+          title="展开顶部操作栏"
+          aria-label="展开顶部操作栏"
+          className="pointer-events-auto absolute inset-x-0 top-0 z-[60] flex cursor-pointer items-start px-3 text-left transition-colors duration-150 hover:bg-black/[0.03] active:bg-black/[0.05] sm:px-8"
+          style={{
+            paddingTop: headerSafeAreaPaddingTop,
+            background: `linear-gradient(180deg, ${uiScheme.bg} 0%, ${withOpacity(uiScheme.bg, 0.82)} 72%, transparent 100%)`,
+          }}
         >
-          {toggleToolbarButton}
-        </div>
+          <span className="flex h-11 w-full items-center">
+            <span
+              className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
+              style={{
+                color: uiScheme.buttonText,
+                ...getToolbarButtonStyle(false),
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+              }}
+            >
+              <ChevronRight className="h-4 w-4 rotate-0 transition-transform duration-200 ease-out" />
+            </span>
+          </span>
+        </button>
       ) : null}
       <header
         data-reader-interactive="true"
@@ -174,6 +232,39 @@ export function ReaderToolbar({
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            <Suspense fallback={null}>
+              <TTSControls
+                state={tts.state}
+                settings={tts.settings}
+                voices={tts.voices}
+                voicesLoading={tts.voicesLoading}
+                voicesError={tts.voicesError}
+                onReloadVoices={tts.reloadVoices}
+                onStart={tts.start}
+                onStop={tts.stop}
+                onNext={tts.next}
+                onPrev={tts.prev}
+                onUpdateSettings={tts.updateSettings}
+                uiScheme={uiScheme}
+                variant="toolbar"
+                triggerClassName={toolbarButtonClass}
+                triggerStyle={{
+                  ...getToolbarButtonStyle(tts.state !== "stopped"),
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                }}
+                resumePromptVisible={tts.resumePromptVisible}
+                resumePromptMessage={tts.resumePromptMessage}
+                ttsStatus={tts.status}
+                sleepTimer={tts.sleepTimer}
+                onSleepTimerMinutes={tts.setSleepTimerForMinutes}
+                onClearSleepTimer={tts.clearSleepTimer}
+                onResume={tts.resume}
+                onExpandedChange={tts.onExpandedChange}
+                overlayContainer={overlayContainer}
+              />
+            </Suspense>
             <ReaderTOCSheet
               open={tocOpen}
               onOpenChange={onTocOpenChange}

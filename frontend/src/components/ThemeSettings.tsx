@@ -294,7 +294,7 @@ export function ThemeSettings({
               side: "right",
               tone: "neutral",
             }),
-            top: 'calc(10rem + 12px)', // Adjust top position to avoid overlapping with close button
+            top: "max(0.75rem, env(safe-area-inset-top, 0px))",
             boxShadow: isResetFeedbackVisible
               ? `0 0 0 4px ${withOpacity(uiScheme.link, 0.12)}, 0 10px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.28)}`
               : undefined,

@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "run": "cd \"$HELMOR_WORKSPACE_PATH\" && [ -f .env ] || cp .env.example .env; trap 'kill 0' EXIT; make dev & cd frontend && [ -d node_modules ] || npm install; npm run dev"
+  }
+}

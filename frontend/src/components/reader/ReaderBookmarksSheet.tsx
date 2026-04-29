@@ -4,7 +4,6 @@ import type { CSSProperties } from "react";
 import { Bookmark, BookmarkPlus, MapPin, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -84,7 +83,7 @@ export function ReaderBookmarksSheet({
         showCloseButton
         finalFocus={false}
         container={overlayContainer}
-        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
           background: uiScheme.cardBg,
           borderColor: withOpacity(uiScheme.cardBorder, 0.22),
@@ -92,7 +91,7 @@ export function ReaderBookmarksSheet({
           boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}`,
         }}
       >
-        <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
+        <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
           <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
           <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
 
@@ -114,7 +113,7 @@ export function ReaderBookmarksSheet({
           </div>
         </SheetHeader>
 
-        <div className="px-8 py-2">
+        <div className="shrink-0 px-8 py-2">
           <Button
             type="button"
             onClick={onCreate}
@@ -127,7 +126,7 @@ export function ReaderBookmarksSheet({
           </Button>
         </div>
 
-        <ScrollArea className="max-h-[min(50vh,400px)] px-2">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [-webkit-overflow-scrolling:touch]">
           <div className="space-y-3 px-6 pb-12 pt-4">
             {bookmarks.length > 0 ? (
               bookmarks.map((bookmark) => (
@@ -199,7 +198,7 @@ export function ReaderBookmarksSheet({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -6,7 +6,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +59,7 @@ export function CategoryFilter({
       .filter((item) => item.count > 0),
   ];
   const value = selectedCategoryId ?? ALL_FILTER_ID;
+  const selectedItem = filterItems.find((item) => item.id === value) ?? filterItems[0];
 
   return (
     <Select
@@ -71,18 +71,27 @@ export function CategoryFilter({
       <SelectTrigger
         aria-label="书籍分类筛选"
         className={cn(
-          'group relative flex h-9 w-full max-w-full items-center gap-2 rounded-xl border border-primary/12 bg-shelf-surface-soft px-3 text-sm text-foreground/80 transition-all duration-200 hover:border-primary/22 hover:bg-shelf-surface-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 sm:w-[11rem]',
+          'group relative flex h-9 w-full max-w-full items-center justify-center gap-2 rounded-lg border border-primary/16 bg-card/92 px-10 text-sm text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus:outline-none focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 data-[state=open]:border-primary/34 data-[state=open]:bg-[var(--shelf-surface-selected)] data-[state=open]:text-foreground data-[state=open]:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)] data-[state=open]:[&>svg:last-child]:rotate-180 data-[state=open]:[&>svg:last-child]:text-primary/70 sm:w-[11rem] [&>svg:last-child]:absolute [&>svg:last-child]:right-3 [&>svg:last-child]:shrink-0 [&>svg:last-child]:text-primary/40 [&>svg:last-child]:opacity-100 [&>svg:last-child]:transition-all [&>svg:last-child]:duration-200 [&>svg:last-child]:group-hover:text-primary/60',
           mobileIconOnly && 'sm:hidden w-9 justify-center px-0 [&>span]:hidden [&>svg:last-child]:hidden',
-          !mobileIconOnly && '[&>span]:truncate [&>span]:text-left [&>span]:font-medium',
+          !mobileIconOnly && '[&>span]:min-w-0 [&>span]:truncate [&>span]:text-center [&>span]:font-medium',
           className
         )}
       >
-        <Tag className="h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
-        {!mobileIconOnly && <SelectValue />}
+        <Tag className="absolute left-3 h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
+        {!mobileIconOnly && (
+          <span className="inline-flex items-center justify-center gap-2">
+            <span className="truncate">{selectedItem.label}</span>
+            {selectedItem.count > 0 && (
+              <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md bg-foreground/10 px-1.5 text-[11px] font-semibold leading-none text-foreground/78 tabular-nums">
+                {selectedItem.count}
+              </span>
+            )}
+          </span>
+        )}
       </SelectTrigger>
       <SelectContent
         align="start"
-        className="min-w-[12rem] rounded-xl border border-primary/14 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_10px_30px_-16px_var(--paper-shadow),0_4px_12px_-8px_var(--paper-shadow-soft)] ring-1 ring-primary/6"
+        className="min-w-[12rem] rounded-lg border border-primary/16 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_18px_44px_-24px_var(--paper-shadow),0_6px_16px_-10px_var(--paper-shadow-soft)] ring-1 ring-white/50 dark:ring-white/10"
         style={{
           backgroundColor: 'var(--shelf-surface-raised)',
           backdropFilter: 'none',
@@ -94,7 +103,7 @@ export function CategoryFilter({
             key={item.id}
             value={item.id}
             className={cn(
-              'cursor-pointer rounded-lg px-3 py-2 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
+              'cursor-pointer rounded-md px-3 py-2 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
               value === item.id
                 ? 'bg-[var(--shelf-surface-selected)] font-medium text-foreground'
                 : 'text-foreground/62 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'

@@ -651,20 +651,31 @@ foliate-view::part(filter) {
   }
 
   .shelf-book-card {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--card) 98%, var(--background)) 0%,
+        color-mix(in srgb, var(--card) 94%, var(--muted)) 100%
+      );
     box-shadow:
-      0 4px 16px -4px var(--paper-shadow-soft),
-      0 1px 4px -1px var(--paper-shadow-soft);
+      0 18px 42px -26px var(--paper-shadow),
+      0 8px 18px -14px var(--paper-shadow-soft),
+      0 1px 0 color-mix(in srgb, var(--paper-edge) 72%, transparent) inset,
+      0 -1px 0 color-mix(in srgb, var(--border) 42%, transparent) inset;
   }
 
   .shelf-book-card:hover {
     box-shadow:
-      0 12px 32px -8px var(--paper-shadow),
-      0 4px 12px -4px var(--paper-shadow-soft);
+      0 24px 54px -28px var(--paper-shadow),
+      0 12px 22px -16px var(--paper-shadow-soft),
+      0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent),
+      0 1px 0 color-mix(in srgb, var(--paper-edge) 78%, transparent) inset;
   }
 
   .shelf-book-card:active {
     box-shadow:
-      0 2px 8px -4px var(--paper-shadow-soft);
+      0 8px 22px -18px var(--paper-shadow-soft),
+      0 1px 0 color-mix(in srgb, var(--paper-edge) 58%, transparent) inset;
   }
 
   @keyframes paperPanelIn {

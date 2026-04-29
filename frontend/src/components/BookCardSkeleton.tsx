@@ -27,19 +27,20 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
       className="flex w-full items-center justify-start"
     >
       <div
-        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-2xl border border-border/65 bg-card"
+        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/55 bg-card ring-1 ring-white/45 dark:ring-white/10"
         style={{ width: isMobile ? '100%' : cardWidth }}
       >
           <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
           {/* Cover skeleton */}
           <div
-            className="relative overflow-hidden bg-muted/45 dark:bg-muted/30"
+            className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_10%,transparent),transparent_36%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_72%,var(--background))_0%,color-mix(in_srgb,var(--card)_92%,var(--muted))_100%)] dark:bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_52%,var(--background))_0%,color-mix(in_srgb,var(--card)_86%,var(--muted))_100%)]"
             style={{ height: coverHeight }}
           >
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent_24%,transparent_74%,rgba(66,43,25,0.08))]" />
+            <div className="pointer-events-none absolute inset-x-8 bottom-5 h-7 rounded-full bg-foreground/10 blur-xl" />
             {isMobile && (
               <>
-                <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-border/60" />
+                <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-border/55" />
               </>
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
@@ -83,7 +84,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col border-t border-border/50 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5"
+            className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,var(--card)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card))_100%)] px-4 pb-3.5 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4"
           >
             <div className="space-y-2">
               {/* Title skeleton */}

@@ -285,12 +285,12 @@ export default function ShelfPage() {
                         selectedCategoryId={selectedCategoryId}
                         onSelectCategory={setSelectedCategoryId}
                         bookCounts={bookCounts}
-                        className="h-11 min-w-0 flex-1 rounded-full"
+                        className="h-11 min-w-0 flex-1 rounded-lg"
                       />
                       <SortSelector
                         value={sortBy}
                         onChange={setSortBy}
-                        className="h-11 min-w-0 flex-1 rounded-full"
+                        className="h-11 min-w-0 flex-1 rounded-lg"
                       />
                     </div>
                   )}
@@ -299,7 +299,7 @@ export default function ShelfPage() {
                       <SortSelector
                         value={sortBy}
                         onChange={setSortBy}
-                        className="h-11 min-w-0 flex-1 rounded-full"
+                        className="h-11 min-w-0 flex-1 rounded-lg"
                       />
                     </div>
                   )}

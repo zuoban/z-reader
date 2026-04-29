@@ -213,20 +213,22 @@ export function BookCard({
       style={{ '--paper-delay': `${Math.min(index * 55, 260)}ms` } as CSSProperties}
     >
       <Card
-        className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:border-primary/30 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none"
+        className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border/55 bg-card p-0 gap-0 ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/28 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none dark:ring-white/10"
         style={{ width: isMobile ? '100%' : cardWidth }}
         onClick={onRead}
       >
           <div
-            className="relative overflow-hidden bg-gradient-to-b from-muted/60 to-muted/30 dark:from-muted/40 dark:to-muted/20"
+            className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_12%,transparent),transparent_36%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_76%,var(--background))_0%,color-mix(in_srgb,var(--card)_92%,var(--muted))_100%)] dark:bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_56%,var(--background))_0%,color-mix(in_srgb,var(--card)_86%,var(--muted))_100%)]"
             style={{ height: coverHeight }}
           >
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)] dark:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.26),transparent)]" />
+            <div className="pointer-events-none absolute inset-x-8 bottom-5 h-7 rounded-full bg-foreground/10 blur-xl transition-opacity duration-300 group-hover/card:opacity-80" />
             {isMobile && (
-              <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-border/60" />
+              <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-border/55" />
             )}
             <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
               <div
-                className="relative shrink-0 -translate-y-2"
+                className="relative shrink-0 -translate-y-2 transition-transform duration-300 ease-out group-hover/card:-translate-y-3"
                 style={{
                   height: SPELL_BOOK_HEIGHT,
                   width: SPELL_BOOK_WIDTH,
@@ -240,21 +242,21 @@ export function BookCard({
               </div>
             </div>
             {hasProgress && !isMobile && (
-              <div className="absolute inset-x-0 bottom-0 z-20 px-2.5 pb-2 sm:px-3 sm:pb-2.5">
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-card/92 via-card/58 to-transparent px-3 pb-3 pt-5">
                 {progressMeter}
               </div>
             )}
           </div>
           {hasProgress && isMobile && (
-            <div className="border-t border-border/35 bg-card px-3.5 py-2">
+            <div className="border-t border-border/30 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,transparent),color-mix(in_srgb,var(--muted)_18%,var(--card)))] px-4 py-2.5">
               {progressMeter}
             </div>
           )}
-          <div className="flex flex-col border-t border-border/40 bg-card px-3.5 pb-3 pt-3 sm:px-4 sm:pb-3.5 sm:pt-3.5">
+          <div className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,var(--card)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card))_100%)] px-4 pb-3.5 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4">
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-w-0 font-heading text-[14px] font-semibold leading-[21px] tracking-[-0.02em] text-foreground"
+                  className="min-w-0 font-heading text-[14px] font-semibold leading-[21px] text-foreground"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,

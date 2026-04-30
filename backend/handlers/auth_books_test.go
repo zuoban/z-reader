@@ -110,15 +110,64 @@ func TestAuthLoginAcceptsStoredUser(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if response.Token == "" {
-		t.Fatal("expected login token")
+	if response.Token != "" {
+		t.Fatal("expected login token to be omitted")
 	}
-	session, err := db.GetSession(response.Token)
+	cookies := recorder.Result().Cookies()
+	var sessionToken string
+	for _, cookie := range cookies {
+		if cookie.Name == sessionCookieName {
+			sessionToken = cookie.Value
+			if !cookie.HttpOnly {
+				t.Fatal("expected session cookie to be HttpOnly")
+			}
+			break
+		}
+	}
+	if sessionToken == "" {
+		t.Fatal("expected session cookie")
+	}
+	session, err := db.GetSession(sessionToken)
 	if err != nil {
 		t.Fatalf("GetSession returned error: %v", err)
 	}
 	if session == nil || session.UserID != user.ID || session.Role != models.UserRoleUser {
 		t.Fatalf("unexpected session: %+v", session)
+	}
+}
+
+func TestAuthLogoutAcceptsSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	session := &models.Session{
+		Token:     "cookie-session-token",
+		CreatedAt: time.Now().UTC(),
+		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
+	}
+	if err := db.SaveSession(session); err != nil {
+		t.Fatalf("failed to save session: %v", err)
+	}
+
+	handler := NewAuthHandler(&config.Config{}, db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	req := httptest.NewRequest(http.MethodPost, "/api/logout", nil)
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: session.Token})
+	ctx.Request = req
+
+	handler.Logout(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	got, err := db.GetSession(session.Token)
+	if err != nil {
+		t.Fatalf("GetSession returned error: %v", err)
+	}
+	if got != nil {
+		t.Fatalf("expected session to be deleted, got %+v", got)
 	}
 }
 

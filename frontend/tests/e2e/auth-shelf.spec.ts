@@ -8,15 +8,7 @@ const user = {
   updated_at: '2026-04-27T00:00:00Z',
 };
 
-async function mockAuthenticatedShelf(page: import('@playwright/test').Page) {
-  await page.route('**/api/auth/verify', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ valid: true, user }),
-    });
-  });
-
+async function mockShelfData(page: import('@playwright/test').Page) {
   await page.route('**/api/books', async (route) => {
     await route.fulfill({
       status: 200,
@@ -50,13 +42,35 @@ test('redirects unauthenticated shelf visitors to login', async ({ page }) => {
 });
 
 test('logs in and shows the empty shelf', async ({ page }) => {
-  await mockAuthenticatedShelf(page);
+  let authenticated = false;
 
-  await page.route('**/api/login', async (route) => {
+  await page.route('**/api/auth/verify', async (route) => {
+    if (!authenticated) {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ token: 'test-token', user }),
+      body: JSON.stringify({ valid: true, user }),
+    });
+  });
+  await mockShelfData(page);
+
+  await page.route('**/api/login', async (route) => {
+    authenticated = true;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: {
+        'Set-Cookie': 'z_reader_session=test-token; Path=/; HttpOnly; SameSite=Lax',
+      },
+      body: JSON.stringify({ user }),
     });
   });
 

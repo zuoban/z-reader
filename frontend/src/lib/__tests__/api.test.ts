@@ -3,6 +3,7 @@ import { api, auth, ApiError, getAuthHeaders } from '@/lib/api';
 
 function mockFetch(response: Partial<Response> & { body?: unknown; ok?: boolean }) {
   const { body, ok = true, status = 200, headers = {} } = response;
+  const responseBody = body ?? {};
 
   return vi.fn().mockResolvedValue({
     ok,
@@ -11,7 +12,8 @@ function mockFetch(response: Partial<Response> & { body?: unknown; ok?: boolean 
       get: (key: string) => (headers as Record<string, string>)[key] ?? null,
       ...headers,
     },
-    json: () => Promise.resolve(body ?? {}),
+    json: () => Promise.resolve(responseBody),
+    text: () => Promise.resolve(JSON.stringify(responseBody)),
     blob: () => Promise.resolve(new Blob(['test'])),
   } as Response);
 }
@@ -94,18 +96,19 @@ describe('api.login', () => {
     vi.restoreAllMocks();
   });
 
-  it('sets token and user on success', async () => {
+  it('caches user and clears legacy token on success', async () => {
     const user = { id: '1', username: 'test', role: 'user', created_at: '', updated_at: '' };
+    localStorage.setItem('token', 'legacy-token');
     globalThis.fetch = mockFetch({
-      body: { token: 'new-token', user },
+      body: { user },
       ok: true,
     });
 
     const result = await api.login('test', 'password');
 
-    expect(result.token).toBe('new-token');
     expect(result.user).toEqual(user);
-    expect(auth.getToken()).toBe('new-token');
+    expect(auth.getToken()).toBeNull();
+    expect(auth.getCurrentUser()).toEqual(user);
   });
 });
 

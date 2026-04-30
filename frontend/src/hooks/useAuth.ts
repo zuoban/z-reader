@@ -12,13 +12,6 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(() => auth.getCurrentUser());
 
   const checkAuth = useCallback(async () => {
-    if (!auth.isLoggedIn()) {
-      setIsAuthenticated(false);
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const res = await api.verify();
       setIsAuthenticated(true);

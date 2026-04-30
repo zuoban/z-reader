@@ -29,9 +29,14 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string       `json:"token"`
+	Token string       `json:"token,omitempty"`
 	User  userResponse `json:"user"`
 }
+
+const (
+	sessionCookieName = "z_reader_session"
+	sessionDuration   = 7 * 24 * time.Hour
+)
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
@@ -62,7 +67,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Username:  user.Username,
 		Role:      user.Role,
 		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 
 	if err := h.db.SaveSession(session); err != nil {
@@ -70,18 +75,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token, User: publicUser(*user)})
+	setSessionCookie(c, token, session.ExpiresAt)
+	c.JSON(http.StatusOK, LoginResponse{User: publicUser(*user)})
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	token := strings.TrimSpace(c.GetHeader("Authorization"))
-	if token == "" {
-		response.BadRequest(c, "缺少登录凭证")
-		return
-	}
-
-	token = strings.TrimPrefix(token, "Bearer ")
-	token = strings.TrimSpace(token)
+	token := sessionTokenFromRequest(c)
 	if token == "" {
 		response.BadRequest(c, "缺少登录凭证")
 		return
@@ -92,6 +91,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
+	clearSessionCookie(c)
 	response.Success(c, "已退出登录")
 }
 
@@ -102,4 +102,46 @@ func (h *AuthHandler) Verify(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"valid": true, "user": user})
+}
+
+func sessionTokenFromRequest(c *gin.Context) string {
+	token := strings.TrimSpace(c.GetHeader("Authorization"))
+	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+	if token != "" {
+		return token
+	}
+
+	cookieToken, err := c.Cookie(sessionCookieName)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(cookieToken)
+}
+
+func setSessionCookie(c *gin.Context, token string, expiresAt time.Time) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		sessionCookieName,
+		token,
+		int(time.Until(expiresAt).Seconds()),
+		"/",
+		"",
+		isSecureRequest(c),
+		true,
+	)
+}
+
+func clearSessionCookie(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(sessionCookieName, "", -1, "/", "", isSecureRequest(c), true)
+}
+
+func isSecureRequest(c *gin.Context) bool {
+	if c.Request == nil {
+		return false
+	}
+	if c.Request.TLS != nil {
+		return true
+	}
+	return strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https")
 }

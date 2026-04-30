@@ -78,6 +78,11 @@ function removeToken(): void {
   localStorage.removeItem('user');
 }
 
+function removeLegacyToken(): void {
+  if (typeof window === 'undefined' || !window.localStorage?.removeItem) return;
+  localStorage.removeItem('token');
+}
+
 function getCurrentUser(): User | null {
   if (typeof window === 'undefined' || !window.localStorage?.getItem) return null;
   const raw = localStorage.getItem('user');
@@ -128,6 +133,7 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
+      credentials: options.credentials ?? 'include',
       headers,
       signal: controller.signal,
     });
@@ -166,6 +172,7 @@ async function authedFetch(path: string, options: RequestInit = {}, timeout?: nu
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
+      credentials: options.credentials ?? 'include',
       headers,
       signal: controller.signal,
     });
@@ -179,12 +186,12 @@ async function authedFetch(path: string, options: RequestInit = {}, timeout?: nu
 }
 
 export const api = {
-  login: async (username: string, password: string): Promise<{ token: string; user: User }> => {
-    const res = await fetchApi<{ token: string; user: User }>('/api/login', {
+  login: async (username: string, password: string): Promise<{ token?: string; user: User }> => {
+    const res = await fetchApi<{ token?: string; user: User }>('/api/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
-    setToken(res.token);
+    removeLegacyToken();
     setCurrentUser(res.user);
     return res;
   },
@@ -373,6 +380,7 @@ export const api = {
 
     void fetch(`${API_BASE}/api/progress/${bookId}`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),
@@ -409,5 +417,5 @@ export const auth = {
   removeToken,
   getCurrentUser,
   setCurrentUser,
-  isLoggedIn: () => !!getToken(),
+  isLoggedIn: () => !!getToken() || !!getCurrentUser(),
 };

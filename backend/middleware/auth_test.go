@@ -110,6 +110,25 @@ func TestAuthRequiredAcceptsTokenWithoutBearerPrefix(t *testing.T) {
 	}
 }
 
+func TestAuthRequiredAcceptsSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openMiddlewareTestDB(t)
+	_, session := setupAuthTestUser(t, db)
+
+	middleware := AuthRequired(db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/test", nil)
+	ctx.Request.AddCookie(&http.Cookie{Name: sessionCookieName, Value: session.Token})
+
+	middleware(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestAuthRequiredRejectsMissingHeader(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

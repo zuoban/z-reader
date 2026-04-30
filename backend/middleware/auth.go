@@ -10,18 +10,15 @@ import (
 	"z-reader/backend/storage"
 )
 
+const sessionCookieName = "z_reader_session"
+
 func AuthRequired(db *storage.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		token := sessionTokenFromRequest(c)
+		if token == "" {
 			response.Unauthorized(c, "请先登录")
 			c.Abort()
 			return
-		}
-
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == authHeader {
-			token = authHeader
 		}
 
 		session, err := db.GetSession(token)
@@ -66,6 +63,20 @@ func AuthRequired(db *storage.DB) gin.HandlerFunc {
 		})
 		c.Next()
 	}
+}
+
+func sessionTokenFromRequest(c *gin.Context) string {
+	token := strings.TrimSpace(c.GetHeader("Authorization"))
+	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+	if token != "" {
+		return token
+	}
+
+	cookieToken, err := c.Cookie(sessionCookieName)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(cookieToken)
 }
 
 func AdminRequired() gin.HandlerFunc {

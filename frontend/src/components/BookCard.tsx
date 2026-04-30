@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Tag, UserRound } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -39,6 +39,48 @@ interface BookCardProps {
   isDeleting: boolean;
   formatSize: (bytes: number) => string;
   progressPercentage?: number | null;
+  searchQuery?: string;
+}
+
+function HighlightedText({
+  text,
+  query,
+}: {
+  text: string;
+  query?: string;
+}) {
+  const normalizedQuery = query?.trim().toLowerCase();
+  if (!normalizedQuery) return text;
+
+  const normalizedText = text.toLowerCase();
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = normalizedText.indexOf(normalizedQuery);
+
+  while (matchIndex !== -1) {
+    if (matchIndex > cursor) {
+      parts.push(text.slice(cursor, matchIndex));
+    }
+
+    const matchEnd = matchIndex + normalizedQuery.length;
+    parts.push(
+      <mark
+        key={`${matchIndex}-${matchEnd}`}
+        className="rounded-[0.35rem] bg-primary/14 px-0.5 text-inherit decoration-primary/40"
+      >
+        {text.slice(matchIndex, matchEnd)}
+      </mark>
+    );
+
+    cursor = matchEnd;
+    matchIndex = normalizedText.indexOf(normalizedQuery, cursor);
+  }
+
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor));
+  }
+
+  return <>{parts}</>;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -154,6 +196,7 @@ export function BookCard({
   isDeleting,
   formatSize,
   progressPercentage = null,
+  searchQuery,
 }: BookCardProps) {
   const isMobile = useIsMobile();
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -266,17 +309,21 @@ export function BookCard({
                   }}
                   title={titleLabel}
                 >
-                  {titleLabel}
+                  <HighlightedText text={titleLabel} query={searchQuery} />
                 </h3>
                 <div className="-mr-6 mt-1.5 flex min-h-5 items-center justify-between gap-2 text-[10.5px] font-medium leading-4 text-muted-foreground sm:-mr-5">
                   <span className="inline-flex min-w-0 items-center gap-1">
                     <UserRound className="h-3 w-3 shrink-0 text-muted-foreground/55" />
-                    <span className="truncate">{authorLabel}</span>
+                    <span className="truncate">
+                      <HighlightedText text={authorLabel} query={searchQuery} />
+                    </span>
                   </span>
                   {categoryLabel && (
                     <span className="hidden shrink-0 items-center gap-0.5 text-foreground/55 sm:inline-flex">
                       <Tag className="h-3 w-3 shrink-0 text-muted-foreground/55" />
-                      <span className="max-w-[5.5rem] truncate sm:max-w-[4.5rem]">{categoryLabel}</span>
+                      <span className="max-w-[5.5rem] truncate sm:max-w-[4.5rem]">
+                        <HighlightedText text={categoryLabel} query={searchQuery} />
+                      </span>
                     </span>
                   )}
                 </div>

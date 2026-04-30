@@ -567,6 +567,7 @@ export default function ShelfPage() {
                       isDeleting={deletingId === book.id}
                       formatSize={formatFileSize}
                       progressPercentage={progressByBookId[book.id] ?? null}
+                      searchQuery={searchQuery}
                     />
                   ))}
                 </div>

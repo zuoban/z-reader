@@ -141,15 +141,29 @@ const STORAGE_KEY = "z-reader-theme";
 let cachedTheme: ReaderTheme | null = null;
 let cachedThemeRaw: string | null = null;
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function normalizeReaderTheme(theme: ReaderTheme): ReaderTheme {
   return {
     ...theme,
-    pagePaddingX: DEFAULT_READER_THEME.pagePaddingX,
-    pagePaddingY: DEFAULT_READER_THEME.pagePaddingY,
-    paragraphSpacing: DEFAULT_READER_THEME.paragraphSpacing,
-    maxInlineSize: DEFAULT_READER_THEME.maxInlineSize,
-    gap: DEFAULT_READER_THEME.gap,
-    animated: DEFAULT_READER_THEME.animated,
+    fontSize: clamp(Number(theme.fontSize) || DEFAULT_READER_THEME.fontSize, 12, 32),
+    lineHeight: clamp(Number(theme.lineHeight) || DEFAULT_READER_THEME.lineHeight, 1.2, 2.2),
+    pagePaddingX: clamp(Number(theme.pagePaddingX) || DEFAULT_READER_THEME.pagePaddingX, 8, 56),
+    pagePaddingY: clamp(Number(theme.pagePaddingY) || DEFAULT_READER_THEME.pagePaddingY, 8, 48),
+    paragraphSpacing: clamp(
+      Number(theme.paragraphSpacing) || DEFAULT_READER_THEME.paragraphSpacing,
+      0.6,
+      2.2
+    ),
+    maxInlineSize: clamp(
+      Number(theme.maxInlineSize) || DEFAULT_READER_THEME.maxInlineSize,
+      520,
+      1400
+    ),
+    gap: clamp(Number(theme.gap) || DEFAULT_READER_THEME.gap, 0, 12),
+    animated: Boolean(theme.animated),
   };
 }
 

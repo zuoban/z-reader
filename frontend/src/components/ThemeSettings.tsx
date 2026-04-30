@@ -70,6 +70,7 @@ const PRESETS = [
 const SETTINGS_SECTIONS = [
   { id: "appearance", label: "外观" },
   { id: "layout", label: "排版" },
+  { id: "advanced", label: "高级" },
 ] as const;
 
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]["id"];
@@ -253,10 +254,17 @@ function ReaderPreview({
           fontFamily: fontStack,
           fontSize: `${Math.min(Math.max(theme.fontSize, 14), 22)}px`,
           lineHeight: theme.lineHeight,
+          paddingInline: `${Math.min(theme.pagePaddingX, 28)}px`,
+          paddingBlock: `${Math.min(theme.pagePaddingY, 24)}px`,
         }}
       >
         <p className="font-semibold">文字应该安静地留在页面里。</p>
-        <p style={{ color: withOpacity(preset.fg, 0.76) }}>
+        <p
+          style={{
+            color: withOpacity(preset.fg, 0.76),
+            marginBlock: `${Math.min(theme.paragraphSpacing, 1.8)}em 0`,
+          }}
+        >
           调整字号、行距与字体时，先在这里感受一小段阅读节奏，再回到正文继续。
         </p>
       </div>
@@ -390,7 +398,7 @@ export function ThemeSettings({
 
         <div className="flex-1 overflow-y-auto px-8 pb-12 pt-4">
           <div
-            className="mb-5 grid grid-cols-2 gap-1 rounded-[1.25rem] p-1"
+            className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] p-1"
             role="tablist"
             aria-label="阅读设置分类"
             style={{ background: withOpacity(uiScheme.buttonBg, 0.22) }}
@@ -578,6 +586,68 @@ export function ThemeSettings({
                 uiScheme={uiScheme}
               />
             </div>
+            </SectionCard>
+          )}
+
+          {activeSection === "advanced" && (
+            <SectionCard
+              title="高级排版"
+              description="微调版心与留白，适合长时间阅读时慢慢打磨。"
+              uiScheme={uiScheme}
+            >
+              <div className="space-y-8" role="tabpanel" aria-label="高级排版设置">
+                <SliderField
+                  label="左右页边距"
+                  valueLabel={`${theme.pagePaddingX}px`}
+                  minLabel="8"
+                  maxLabel="56"
+                  value={[theme.pagePaddingX]}
+                  onValueChange={([value]) => setTheme({ pagePaddingX: value })}
+                  min={8}
+                  max={56}
+                  step={2}
+                  uiScheme={uiScheme}
+                />
+
+                <SliderField
+                  label="上下页边距"
+                  valueLabel={`${theme.pagePaddingY}px`}
+                  minLabel="8"
+                  maxLabel="48"
+                  value={[theme.pagePaddingY]}
+                  onValueChange={([value]) => setTheme({ pagePaddingY: value })}
+                  min={8}
+                  max={48}
+                  step={2}
+                  uiScheme={uiScheme}
+                />
+
+                <SliderField
+                  label="段落间距"
+                  valueLabel={`${theme.paragraphSpacing.toFixed(2)}em`}
+                  minLabel="0.6"
+                  maxLabel="2.2"
+                  value={[theme.paragraphSpacing]}
+                  onValueChange={([value]) => setTheme({ paragraphSpacing: value })}
+                  min={0.6}
+                  max={2.2}
+                  step={0.05}
+                  uiScheme={uiScheme}
+                />
+
+                <SliderField
+                  label="最大行宽"
+                  valueLabel={`${theme.maxInlineSize}px`}
+                  minLabel="520"
+                  maxLabel="1400"
+                  value={[theme.maxInlineSize]}
+                  onValueChange={([value]) => setTheme({ maxInlineSize: value })}
+                  min={520}
+                  max={1400}
+                  step={20}
+                  uiScheme={uiScheme}
+                />
+              </div>
             </SectionCard>
           )}
         </div>

@@ -341,9 +341,9 @@ export function BookCard({
             {isMobile && (
               <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-border/55" />
             )}
-            <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
+            <div className="relative z-10 flex h-full items-center justify-center p-1.5 sm:p-3">
               <div
-                className="relative shrink-0 -translate-y-2 transition-transform duration-300 ease-out group-hover/card:-translate-y-3"
+                className="relative shrink-0 -translate-y-1.5 transition-transform duration-300 ease-out group-hover/card:-translate-y-2 sm:-translate-y-2 sm:group-hover/card:-translate-y-3"
                 style={{
                   height: SPELL_BOOK_HEIGHT,
                   width: SPELL_BOOK_WIDTH,
@@ -363,21 +363,21 @@ export function BookCard({
             )}
           </div>
           {hasProgress && isMobile && (
-            <div className="border-t border-border/30 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,transparent),color-mix(in_srgb,var(--muted)_18%,var(--card)))] px-4 py-2.5">
+            <div className="border-t border-border/30 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,transparent),color-mix(in_srgb,var(--muted)_18%,var(--card)))] px-3 py-2 sm:px-4 sm:py-2.5">
               {progressMeter}
             </div>
           )}
-          <div className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,var(--card)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card))_100%)] px-4 pb-3.5 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4">
+          <div className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,var(--card)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card))_100%)] px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-w-0 font-heading text-[14px] font-semibold leading-[21px] text-foreground"
+                  className="min-w-0 font-heading text-[13px] font-semibold leading-[19px] text-foreground sm:text-[14px] sm:leading-[21px]"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    height: '42px',
+                    height: isMobile ? '38px' : '42px',
                   }}
                   title={titleLabel}
                 >

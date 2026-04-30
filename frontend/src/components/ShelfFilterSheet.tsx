@@ -57,6 +57,12 @@ export function ShelfFilterSheet({
 
   function selectCategory(id: string) {
     onSelectCategory(id === ALL_FILTER_ID ? null : id);
+    setOpen(false);
+  }
+
+  function selectSort(value: SortOption) {
+    onSortChange(value);
+    setOpen(false);
   }
 
   return (
@@ -129,7 +135,7 @@ export function ShelfFilterSheet({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => onSortChange(option.value)}
+                    onClick={() => selectSort(option.value)}
                     className={cn(
                       'flex h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors',
                       active

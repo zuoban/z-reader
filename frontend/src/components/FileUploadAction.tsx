@@ -1,7 +1,8 @@
 'use client';
 
-import type { ChangeEvent, ComponentProps, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import { useId, useRef } from 'react';
+import type { ChangeEvent, ComponentProps, KeyboardEvent, ReactNode } from 'react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface FileUploadActionProps {
@@ -29,26 +30,43 @@ export function FileUploadAction({
   buttonVariant = 'default',
   buttonSize = 'default',
 }: FileUploadActionProps) {
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLLabelElement>) {
+    if (disabled || (event.key !== 'Enter' && event.key !== ' ')) return;
+
+    event.preventDefault();
+    inputRef.current?.click();
+  }
+
   return (
     <div className={cn('relative min-w-0', wrapperClassName)} data-tooltip={title}>
       <input
+        id={inputId}
+        ref={inputRef}
         type="file"
         accept={accept}
         onChange={onChange}
         disabled={disabled}
-        className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-0"
+        className="sr-only"
         aria-label={title}
       />
-      <Button
-        variant={buttonVariant}
-        size={buttonSize}
-        className={cn('pointer-events-none', buttonClassName)}
-        disabled={disabled}
-        aria-hidden="true"
-        tabIndex={-1}
+      <label
+        htmlFor={disabled ? undefined : inputId}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label={title}
+        aria-disabled={disabled}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          buttonVariants({ variant: buttonVariant, size: buttonSize }),
+          disabled && 'pointer-events-none opacity-50',
+          buttonClassName
+        )}
       >
         {children}
-      </Button>
+      </label>
       {statusLabel && (
         <span className="paper-chip pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-primary shadow-sm">
           {statusLabel}

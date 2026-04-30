@@ -133,7 +133,7 @@ export function ReaderToolbar({
             "transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
-        <div className="flex h-9 items-center justify-between px-3 pointer-events-auto sm:h-9 sm:px-4">
+        <div className="flex h-12 items-center justify-between px-2 pointer-events-auto sm:h-11 sm:px-4">
           <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"

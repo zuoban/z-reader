@@ -65,10 +65,11 @@ export function BookCardDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="更多操作"
-        className="absolute right-[-14px] top-[-4px] flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[0.95rem] border-0 bg-transparent text-foreground/46 shadow-none outline-none transition-[color,transform,opacity] duration-200 hover:text-foreground/82 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem] sm:opacity-0 sm:group-hover/card:opacity-100"
+        title="更多操作"
+        className="absolute right-[-14px] top-[-8px] flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-card/72 text-foreground/54 shadow-none outline-none transition-[background-color,border-color,color,transform,opacity] duration-200 hover:border-primary/14 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground/88 focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95 sm:right-[-16px] sm:top-[-9px] sm:h-9 sm:w-9 sm:bg-card/48 sm:opacity-70 sm:group-hover/card:opacity-100"
         onClick={(e) => e.stopPropagation()}
       >
-        <MoreVertical className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:opacity-90" />
+        <MoreVertical className="h-4 w-4 sm:h-3.5 sm:w-3.5 sm:opacity-90" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

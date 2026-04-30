@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CircleAlert, LockKeyhole, MoveRight, UserRound } from 'lucide-react';
+import { CircleAlert, Eye, EyeOff, LockKeyhole, MoveRight, UserRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandMark, LoadingSpinner, LoadingState } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const { isLoading, isAuthenticated, login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,19 +94,26 @@ export default function LoginPage() {
               <div className="relative">
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入访问密码"
                   autoComplete="current-password"
-                  className="paper-control h-[52px] rounded-2xl px-4 pr-10 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  className="paper-control h-[52px] rounded-2xl px-4 pr-12 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
-                <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-opacity duration-300 group-focus-within:opacity-80">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-                    <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.3" />
-                  </svg>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-muted-foreground/55 transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                  aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                  title={showPassword ? '隐藏密码' : '显示密码'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 

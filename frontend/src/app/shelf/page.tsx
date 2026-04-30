@@ -98,7 +98,7 @@ export default function ShelfPage() {
     handleDelete,
     searchQuery,
     setSearchQuery,
-    uploadFile,
+    uploadFiles,
     formatFileSize,
     sortBy,
     setSortBy,
@@ -150,7 +150,7 @@ export default function ShelfPage() {
     setIsDraggingBookFile(false);
 
     if (isUploading) return;
-    void uploadFile(event.dataTransfer.files?.[0]);
+    void uploadFiles(event.dataTransfer.files);
   }
 
   if (isLoading || !isAuthenticated) {
@@ -256,6 +256,7 @@ export default function ShelfPage() {
                   onChange={handleUpload}
                   disabled={isUploading}
                   title="上传书籍"
+                  multiple
                   statusLabel={isUploading ? '上传中' : undefined}
                   wrapperClassName="flex justify-center overflow-visible"
                   buttonVariant="ghost"
@@ -320,6 +321,7 @@ export default function ShelfPage() {
                   onChange={handleUpload}
                   disabled={isUploading}
                   title="上传书籍"
+                  multiple
                   statusLabel={isUploading ? '上传中' : undefined}
                   wrapperClassName="overflow-visible"
                   buttonVariant="ghost"
@@ -388,6 +390,7 @@ export default function ShelfPage() {
                   onChange={handleUpload}
                   disabled={isUploading}
                   title="上传书籍"
+                  multiple
                   wrapperClassName="w-full sm:w-auto"
                   buttonClassName="h-12 w-full rounded-2xl border border-primary/15 bg-primary px-8 text-sm font-semibold tracking-[0.04em] text-primary-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:w-auto sm:px-10"
                 >
@@ -409,7 +412,7 @@ export default function ShelfPage() {
               <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
                 <div className="rounded-2xl bg-card/92 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow)]">
                   <Upload className="mx-auto h-8 w-8 text-primary" />
-                  <p className="mt-3 font-heading text-xl font-semibold">松开以导入图书</p>
+                  <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
                   <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
                 </div>
               </div>
@@ -526,7 +529,7 @@ export default function ShelfPage() {
                 <div className="pointer-events-none absolute inset-0 z-30 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/45 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
                   <div className="rounded-2xl bg-card/92 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow)]">
                     <Upload className="mx-auto h-8 w-8 text-primary" />
-                    <p className="mt-3 font-heading text-xl font-semibold">松开以导入图书</p>
+                    <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
                     <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
                   </div>
                 </div>

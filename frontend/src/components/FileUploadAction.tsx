@@ -16,6 +16,7 @@ interface FileUploadActionProps {
   buttonClassName?: string;
   buttonVariant?: ComponentProps<typeof Button>['variant'];
   buttonSize?: ComponentProps<typeof Button>['size'];
+  multiple?: boolean;
 }
 
 export function FileUploadAction({
@@ -29,6 +30,7 @@ export function FileUploadAction({
   buttonClassName,
   buttonVariant = 'default',
   buttonSize = 'default',
+  multiple = false,
 }: FileUploadActionProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +49,7 @@ export function FileUploadAction({
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple={multiple}
         onChange={onChange}
         disabled={disabled}
         className="sr-only"

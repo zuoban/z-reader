@@ -263,6 +263,31 @@ describe('useShelfData', () => {
     expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
   });
 
+  it('uploads multiple supported files', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.uploadBook)
+      .mockResolvedValueOnce(mockBook({ id: 'book-a', title: 'Book A' }))
+      .mockResolvedValueOnce(mockBook({ id: 'book-b', title: 'Book B' }));
+    vi.mocked(api.updateBook).mockResolvedValue(mockBook());
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const firstFile = new File(['a'], 'a.epub', { type: 'application/epub+zip' });
+    const secondFile = new File(['b'], 'b.pdf', { type: 'application/pdf' });
+
+    await act(async () => {
+      await result.current.uploadFiles([firstFile, secondFile]);
+    });
+
+    expect(api.uploadBook).toHaveBeenCalledTimes(2);
+    expect(result.current.books).toHaveLength(2);
+  });
+
   it('handles upload error', async () => {
     vi.mocked(api.listBooks).mockResolvedValue([]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
@@ -302,6 +327,29 @@ describe('useShelfData', () => {
 
     expect(api.uploadBook).not.toHaveBeenCalled();
     expect(result.current.isUploading).toBe(false);
+  });
+
+  it('skips unsupported files during batch upload', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'supported' }));
+    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'supported' }));
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const supportedFile = new File(['book'], 'book.azw3', { type: 'application/octet-stream' });
+    const unsupportedFile = new File(['notes'], 'notes.txt', { type: 'text/plain' });
+
+    await act(async () => {
+      await result.current.uploadFiles([supportedFile, unsupportedFile]);
+    });
+
+    expect(api.uploadBook).toHaveBeenCalledTimes(1);
+    expect(api.uploadBook).toHaveBeenCalledWith(supportedFile);
   });
 
   it('handles delete success', async () => {

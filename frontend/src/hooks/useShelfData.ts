@@ -96,6 +96,10 @@ function getFileExtension(file: File) {
   return file.name.split('.').pop()?.toLowerCase() ?? '';
 }
 
+function isSupportedUploadFile(file: File) {
+  return SUPPORTED_UPLOAD_EXTENSIONS.includes(getFileExtension(file));
+}
+
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
   const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
@@ -238,35 +242,62 @@ export function useShelfData(isAuthenticated: boolean) {
     return counts;
   }, [books]);
 
-  const uploadFile = useCallback(async (file: File | null | undefined) => {
-    if (!file) return;
+  const uploadFiles = useCallback(async (fileList: File[] | FileList | null | undefined) => {
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
 
-    const extension = getFileExtension(file);
-    if (!SUPPORTED_UPLOAD_EXTENSIONS.includes(extension)) {
+    const supportedFiles = files.filter(isSupportedUploadFile);
+    const unsupportedCount = files.length - supportedFiles.length;
+
+    if (supportedFiles.length === 0) {
       toast.error('仅支持 EPUB、MOBI、AZW3 或 PDF');
       return;
     }
 
+    if (unsupportedCount > 0) {
+      toast.error(`已跳过 ${unsupportedCount} 个不支持的文件`);
+    }
+
     setIsUploading(true);
 
-    try {
-      const book = await api.uploadBook(file);
-      setBooks((prev) => sortBooks([...prev, book], sortBy));
-      toast.success('图书已添加');
+    let successCount = 0;
+    let failedCount = 0;
 
-      enrichingBooksRef.current.add(book.id);
-      void enrichBookMetadata(book.id, file);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : '上传失败');
-    } finally {
-      setIsUploading(false);
+    for (const file of supportedFiles) {
+      try {
+        const book = await api.uploadBook(file);
+        successCount += 1;
+        setBooks((prev) => sortBooks([...prev, book], sortBy));
+
+        enrichingBooksRef.current.add(book.id);
+        void enrichBookMetadata(book.id, file);
+      } catch (err) {
+        failedCount += 1;
+        console.error('Failed to upload book:', err);
+      }
     }
+
+    if (successCount > 0 && failedCount === 0) {
+      toast.success(successCount === 1 ? '图书已添加' : `已添加 ${successCount} 本图书`);
+    } else if (successCount > 0) {
+      toast.error(`已添加 ${successCount} 本，${failedCount} 本失败`);
+    } else {
+      toast.error('上传失败');
+    }
+
+    setIsUploading(false);
   }, [sortBy, enrichBookMetadata]);
 
+  const uploadFile = useCallback(async (file: File | null | undefined) => {
+    if (!file) return;
+
+    await uploadFiles([file]);
+  }, [uploadFiles]);
+
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    await uploadFile(e.target.files?.[0]);
+    await uploadFiles(e.target.files);
     e.target.value = '';
-  }, [uploadFile]);
+  }, [uploadFiles]);
 
   const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id);
@@ -302,6 +333,7 @@ export function useShelfData(isAuthenticated: boolean) {
     searchQuery,
     setSearchQuery,
     uploadFile,
+    uploadFiles,
     handleUpload,
     handleDelete,
     formatFileSize,

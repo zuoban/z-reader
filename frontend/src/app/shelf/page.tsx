@@ -103,6 +103,7 @@ export default function ShelfPage() {
     selectedCategoryId,
     setSelectedCategoryId,
     isUploading,
+    uploadProgress,
     deletingId,
     isDeletingMany,
     isUpdatingManyCategories,
@@ -127,6 +128,11 @@ export default function ShelfPage() {
       ? '未分类'
       : selectedCategoryId;
   const hasActiveShelfFilter = Boolean(searchQuery.trim() || activeCategoryLabel);
+  const uploadStatusLabel = uploadProgress
+    ? `上传 ${uploadProgress.current}/${uploadProgress.total}`
+    : isUploading
+      ? '上传中'
+      : undefined;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -372,7 +378,7 @@ export default function ShelfPage() {
                   disabled={isUploading}
                   title="上传书籍"
                   multiple
-                  statusLabel={isUploading ? '上传中' : undefined}
+                  statusLabel={uploadStatusLabel}
                   wrapperClassName="flex justify-center overflow-visible"
                   buttonVariant="ghost"
                   buttonSize="icon"
@@ -386,7 +392,7 @@ export default function ShelfPage() {
                   ) : (
                     <Upload className="h-4 w-4" />
                   )}
-                  <span className="hidden">{isUploading ? '上传中' : '上传书籍'}</span>
+                  <span className="hidden">{uploadStatusLabel ?? '上传书籍'}</span>
                 </FileUploadAction>
 
                 <Button
@@ -449,7 +455,7 @@ export default function ShelfPage() {
                   disabled={isUploading}
                   title="上传书籍"
                   multiple
-                  statusLabel={isUploading ? '上传中' : undefined}
+                  statusLabel={uploadStatusLabel}
                   wrapperClassName="overflow-visible"
                   buttonVariant="ghost"
                   buttonSize="sm"
@@ -463,7 +469,7 @@ export default function ShelfPage() {
                   ) : (
                     <Upload className="h-4 w-4" />
                   )}
-                  <span>{isUploading ? '上传中' : '上传书籍'}</span>
+                  <span>{uploadStatusLabel ?? '上传书籍'}</span>
                 </FileUploadAction>
 
                 <Button
@@ -556,7 +562,7 @@ export default function ShelfPage() {
                   {isUploading ? (
                     <>
                       <LoadingSpinner inverted className="mr-2.5 h-4 w-4 border-background/30" />
-                      添加中...
+                      {uploadStatusLabel ?? '添加中...'}
                     </>
                   ) : (
                     <>

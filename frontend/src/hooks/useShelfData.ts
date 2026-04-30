@@ -11,6 +11,11 @@ const STORAGE_KEY = 'z-reader-shelf-sort';
 const SUPPORTED_UPLOAD_EXTENSIONS = ['epub', 'mobi', 'azw3', 'pdf'];
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
+export interface UploadProgress {
+  current: number;
+  total: number;
+}
+
 const VALID_SORT_OPTIONS: SortOption[] = ['recent_read', 'title', 'recent_added', 'author'];
 
 function readShelfSort(): SortOption {
@@ -107,6 +112,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeletingMany, setIsDeletingMany] = useState(false);
   const [isUpdatingManyCategories, setIsUpdatingManyCategories] = useState(false);
@@ -264,11 +270,13 @@ export function useShelfData(isAuthenticated: boolean) {
     }
 
     setIsUploading(true);
+    setUploadProgress({ current: 0, total: supportedFiles.length });
 
     let successCount = 0;
     let failedCount = 0;
 
-    for (const file of supportedFiles) {
+    for (const [index, file] of supportedFiles.entries()) {
+      setUploadProgress({ current: index + 1, total: supportedFiles.length });
       try {
         const book = await api.uploadBook(file);
         successCount += 1;
@@ -290,6 +298,7 @@ export function useShelfData(isAuthenticated: boolean) {
       toast.error('上传失败');
     }
 
+    setUploadProgress(null);
     setIsUploading(false);
   }, [sortBy, enrichBookMetadata]);
 
@@ -405,6 +414,7 @@ export function useShelfData(isAuthenticated: boolean) {
     selectedCategoryId,
     setSelectedCategoryId,
     isUploading,
+    uploadProgress,
     deletingId,
     isDeletingMany,
     isUpdatingManyCategories,

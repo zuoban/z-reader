@@ -224,6 +224,7 @@ export function useShelfData(isAuthenticated: boolean) {
     try {
       const book = await api.uploadBook(file);
       setBooks((prev) => sortBooks([...prev, book], sortBy));
+      toast.success('图书已添加');
 
       enrichingBooksRef.current.add(book.id);
       void enrichBookMetadata(book.id, file);
@@ -246,6 +247,7 @@ export function useShelfData(isAuthenticated: boolean) {
         delete next[id];
         return next;
       });
+      toast.success('图书已删除');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '删除失败');
     } finally {

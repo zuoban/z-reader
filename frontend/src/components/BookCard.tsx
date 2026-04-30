@@ -274,7 +274,7 @@ export function BookCard({
                     <span className="truncate">{authorLabel}</span>
                   </span>
                   {categoryLabel && (
-                    <span className="inline-flex shrink-0 items-center gap-0.5 text-foreground/55">
+                    <span className="hidden shrink-0 items-center gap-0.5 text-foreground/55 sm:inline-flex">
                       <Tag className="h-3 w-3 shrink-0 text-muted-foreground/55" />
                       <span className="max-w-[5.5rem] truncate sm:max-w-[4.5rem]">{categoryLabel}</span>
                     </span>

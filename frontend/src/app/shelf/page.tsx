@@ -24,6 +24,7 @@ import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
+import { ShelfFilterSheet } from '@/components/ShelfFilterSheet';
 import { SortSelector } from '@/components/SortSelector';
 import { UserManager } from '@/components/UserManager';
 import { Button } from '@/components/ui/button';
@@ -365,32 +366,14 @@ export default function ShelfPage() {
                     categories.length === 0 && 'sm:min-w-[13rem]'
                   )}
                 >
-                  {/* Mobile: compact labeled controls */}
-                  {categories.length > 0 && (
-                    <div className="flex w-full min-w-0 items-center gap-2 sm:hidden">
-                      <CategoryFilter
-                        categories={categories}
-                        selectedCategoryId={selectedCategoryId}
-                        onSelectCategory={setSelectedCategoryId}
-                        bookCounts={bookCounts}
-                        className="h-11 min-w-0 flex-1 rounded-lg"
-                      />
-                      <SortSelector
-                        value={sortBy}
-                        onChange={setSortBy}
-                        className="h-11 min-w-0 flex-1 rounded-lg"
-                      />
-                    </div>
-                  )}
-                  {categories.length === 0 && (
-                    <div className="flex w-full min-w-0 items-center gap-2 sm:hidden">
-                      <SortSelector
-                        value={sortBy}
-                        onChange={setSortBy}
-                        className="h-11 min-w-0 flex-1 rounded-lg"
-                      />
-                    </div>
-                  )}
+                  <ShelfFilterSheet
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    onSelectCategory={setSelectedCategoryId}
+                    bookCounts={bookCounts}
+                    sortBy={sortBy}
+                    onSortChange={setSortBy}
+                  />
                   {/* Desktop: full dropdowns */}
                   <div className="hidden w-full flex-row items-center gap-2 sm:flex">
                     {categories.length > 0 && (

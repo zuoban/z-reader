@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -27,10 +29,20 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setUsernameError('');
+    setPasswordError('');
+
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername || !password) {
+      if (!trimmedUsername) setUsernameError('请输入用户名');
+      if (!password) setPasswordError('请输入访问密码');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await login(username, password);
+      await login(trimmedUsername, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
     }
@@ -75,12 +87,22 @@ export default function LoginPage() {
                 id="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (usernameError) setUsernameError('');
+                }}
                 placeholder="请输入用户名"
                 autoComplete="username"
                 autoFocus
+                aria-invalid={Boolean(usernameError)}
+                aria-describedby={usernameError ? 'username-error' : undefined}
                 className="paper-control h-[52px] rounded-2xl px-4 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
               />
+              {usernameError && (
+                <p id="username-error" className="px-1 text-xs font-medium text-destructive">
+                  {usernameError}
+                </p>
+              )}
             </div>
 
             <div className="group space-y-2">
@@ -96,9 +118,14 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
                   placeholder="请输入访问密码"
                   autoComplete="current-password"
+                  aria-invalid={Boolean(passwordError)}
+                  aria-describedby={passwordError ? 'password-error' : undefined}
                   className="paper-control h-[52px] rounded-2xl px-4 pr-12 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
                 <button
@@ -115,6 +142,11 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              {passwordError && (
+                <p id="password-error" className="px-1 text-xs font-medium text-destructive">
+                  {passwordError}
+                </p>
+              )}
             </div>
 
             {error && (

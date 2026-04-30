@@ -593,14 +593,6 @@ export default function ShelfPage() {
                     categories.length === 0 && 'sm:min-w-[13rem]'
                   )}
                 >
-                  <ShelfFilterSheet
-                    categories={categories}
-                    selectedCategoryId={selectedCategoryId}
-                    onSelectCategory={changeSelectedCategory}
-                    bookCounts={bookCounts}
-                    sortBy={sortBy}
-                    onSortChange={setSortBy}
-                  />
                   <div className="relative w-full sm:max-w-[22rem]">
                     <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/55" />
                     <Input
@@ -609,7 +601,7 @@ export default function ShelfPage() {
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名、作者、文件名"
                       aria-label="搜索书架"
-                      className="h-11 rounded-lg border-primary/16 bg-card/92 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)]"
+                      className="h-11 rounded-xl border-primary/16 bg-card/92 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)]"
                     />
                     {searchQuery && (
                       <button
@@ -639,12 +631,20 @@ export default function ShelfPage() {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-2 sm:order-last">
+                  <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:order-last sm:flex sm:w-auto">
+                    <ShelfFilterSheet
+                      categories={categories}
+                      selectedCategoryId={selectedCategoryId}
+                      onSelectCategory={changeSelectedCategory}
+                      bookCounts={bookCounts}
+                      sortBy={sortBy}
+                      onSortChange={setSortBy}
+                    />
                     <Button
                       type="button"
                       variant="ghost"
                       className={cn(
-                        'group h-11 rounded-xl border border-primary/16 bg-card/92 px-4 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0',
+                        'group h-11 min-w-[6.25rem] rounded-xl border border-primary/16 bg-card/92 px-3 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:px-4',
                         selectionMode && 'border-primary/28 bg-[var(--shelf-surface-selected)] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)]'
                       )}
                       onClick={toggleSelectionMode}

@@ -596,6 +596,37 @@ foliate-view::part(filter) {
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 48%, transparent);
   }
 
+  @media (max-width: 639px) {
+    .shelf-toolbar {
+      gap: 0.5rem;
+      border-radius: 1.25rem;
+      padding: 0.65rem;
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--glass-tint) 28%, transparent) 0%,
+          transparent 100%
+        ),
+        color-mix(in srgb, var(--card) 94%, var(--background));
+      box-shadow:
+        0 8px 18px -18px var(--paper-shadow-soft),
+        inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 52%, transparent);
+    }
+
+    .shelf-header {
+      border-radius: 1.25rem;
+      box-shadow:
+        0 12px 30px -24px var(--paper-shadow),
+        0 6px 14px -14px var(--paper-shadow-soft),
+        inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 62%, transparent);
+    }
+
+    .shelf-mobile-action {
+      height: 2.5rem;
+      width: 2.5rem;
+    }
+  }
+
   @media (min-width: 640px) {
     .shelf-toolbar {
       align-items: center;

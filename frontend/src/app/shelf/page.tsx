@@ -642,11 +642,22 @@ export default function ShelfPage() {
                   <div className="flex items-center gap-2 sm:order-last">
                     <Button
                       type="button"
-                      variant={selectionMode ? 'secondary' : 'outline'}
-                      className="h-11 rounded-lg px-3"
+                      variant="ghost"
+                      className={cn(
+                        'group h-11 rounded-xl border border-primary/16 bg-card/92 px-4 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0',
+                        selectionMode && 'border-primary/28 bg-[var(--shelf-surface-selected)] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)]'
+                      )}
                       onClick={toggleSelectionMode}
                     >
-                      <CheckSquare className="h-4 w-4" />
+                      <span
+                        className={cn(
+                          'flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 text-primary/64 transition-colors group-hover:bg-primary/10 group-hover:text-primary/80',
+                          selectionMode && 'bg-primary/12 text-primary'
+                        )}
+                        aria-hidden="true"
+                      >
+                        <CheckSquare className="h-4 w-4" />
+                      </span>
                       <span>{selectionMode ? '退出选择' : '选择'}</span>
                     </Button>
                   </div>

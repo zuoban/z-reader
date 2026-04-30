@@ -5,6 +5,7 @@ import type { CSSProperties, DragEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  AlertCircle,
   BookOpen,
   Library,
   LogOut,
@@ -87,6 +88,7 @@ export default function ShelfPage() {
     progressByBookId,
     categories,
     isLoadingBooks,
+    loadError,
     selectedCategoryId,
     setSelectedCategoryId,
     isUploading,
@@ -103,6 +105,12 @@ export default function ShelfPage() {
     sortBy,
     setSortBy,
   } = useShelfData(isAuthenticated);
+  const activeCategoryLabel = selectedCategoryId === null
+    ? null
+    : selectedCategoryId === 'uncategorized'
+      ? '未分类'
+      : selectedCategoryId;
+  const hasActiveShelfFilter = Boolean(searchQuery.trim() || activeCategoryLabel);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -377,7 +385,28 @@ export default function ShelfPage() {
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
-        {!isLoadingBooks && books.length === 0 ? (
+        {!isLoadingBooks && loadError ? (
+          <div className="paper-reveal" style={delay(120)}>
+            <div className="shelf-container flex min-h-[28rem] flex-col items-center justify-center rounded-2xl px-6 py-12 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+                <AlertCircle className="h-7 w-7" />
+              </div>
+              <h2 className="mt-5 font-heading text-2xl font-semibold text-foreground">
+                书架暂时无法加载
+              </h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                请确认后端服务可用后重试。错误信息：{loadError}
+              </p>
+              <Button
+                type="button"
+                className="mt-6 h-11 rounded-lg px-5"
+                onClick={() => void loadBooks()}
+              >
+                重新加载
+              </Button>
+            </div>
+          </div>
+        ) : !isLoadingBooks && books.length === 0 ? (
           <div className="paper-reveal relative" style={delay(120)}>
             <EmptyState
               icon={BookOpen}
@@ -457,6 +486,23 @@ export default function ShelfPage() {
                       </button>
                     )}
                   </div>
+                  {hasActiveShelfFilter && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground sm:ml-auto sm:mr-2">
+                      <span className="rounded-md bg-foreground/8 px-2 py-1 text-foreground/70">
+                        找到 {filteredBooks.length} 本
+                      </span>
+                      {activeCategoryLabel && (
+                        <span className="rounded-md bg-primary/10 px-2 py-1 text-primary/80">
+                          {activeCategoryLabel}
+                        </span>
+                      )}
+                      {searchQuery.trim() && (
+                        <span className="max-w-[12rem] truncate rounded-md bg-foreground/8 px-2 py-1 text-foreground/70">
+                          {searchQuery.trim()}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {/* Desktop: full dropdowns */}
                   <div className="hidden w-full flex-row items-center gap-2 sm:flex sm:w-auto sm:shrink-0">
                     {categories.length > 0 && (

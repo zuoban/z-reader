@@ -463,6 +463,20 @@ describe('useShelfData', () => {
     expect(result.current.progressByBookId).toEqual({});
   });
 
+  it('exposes load error when books fail to load', async () => {
+    vi.mocked(api.listBooks).mockRejectedValue(new Error('Backend unavailable'));
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    expect(result.current.books).toHaveLength(0);
+    expect(result.current.loadError).toBe('Backend unavailable');
+  });
+
   it('clears selected category when it no longer exists', async () => {
     const books = [mockBook({ id: '1', category: '科幻' })];
     vi.mocked(api.listBooks).mockResolvedValue(books);

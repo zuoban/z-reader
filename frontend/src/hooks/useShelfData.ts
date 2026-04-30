@@ -104,6 +104,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
   const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -162,6 +163,7 @@ export function useShelfData(isAuthenticated: boolean) {
 
   const loadBooks = useCallback(async () => {
     setIsLoadingBooks(true);
+    setLoadError(null);
     try {
       const [bookData, progressData] = await Promise.all([
         api.listBooks(),
@@ -173,9 +175,10 @@ export function useShelfData(isAuthenticated: boolean) {
           (progressData || []).map((progress) => [progress.book_id, progress.percentage])
         )
       );
-    } catch {
+    } catch (err) {
       setBooks([]);
       setProgressByBookId({});
+      setLoadError(err instanceof Error ? err.message : '书架加载失败');
     } finally {
       setIsLoadingBooks(false);
     }
@@ -323,6 +326,7 @@ export function useShelfData(isAuthenticated: boolean) {
     progressByBookId,
     categories,
     isLoadingBooks,
+    loadError,
     selectedCategoryId,
     setSelectedCategoryId,
     isUploading,

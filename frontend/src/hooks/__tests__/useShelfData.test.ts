@@ -474,6 +474,66 @@ describe('useShelfData', () => {
     expect(api.updateBooksCategory).not.toHaveBeenCalled();
   });
 
+  it('renames a category and keeps selected category in sync', async () => {
+    const books = [
+      mockBook({ id: 'book-1', title: 'One', category: '旧分类' }),
+      mockBook({ id: 'book-2', title: 'Two', category: '旧分类' }),
+      mockBook({ id: 'book-3', title: 'Three', category: '其他' }),
+    ];
+    vi.mocked(api.listBooks).mockResolvedValue(books);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.updateBooksCategory).mockResolvedValue({
+      books: [
+        mockBook({ id: 'book-1', title: 'One', category: '新分类' }),
+        mockBook({ id: 'book-2', title: 'Two', category: '新分类' }),
+      ],
+    });
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    act(() => {
+      result.current.setSelectedCategoryId('旧分类');
+    });
+
+    await act(async () => {
+      await result.current.handleRenameCategory('旧分类', '新分类');
+    });
+
+    expect(api.updateBooksCategory).toHaveBeenCalledWith(['book-1', 'book-2'], '新分类');
+    expect(result.current.selectedCategoryId).toBe('新分类');
+    expect(result.current.books.filter((book) => book.category === '新分类')).toHaveLength(2);
+  });
+
+  it('clears selected category after clearing it from category manager', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([
+      mockBook({ id: 'book-1', category: '旧分类' }),
+    ]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.updateBooksCategory).mockResolvedValue({
+      books: [mockBook({ id: 'book-1', category: undefined })],
+    });
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    act(() => {
+      result.current.setSelectedCategoryId('旧分类');
+    });
+
+    await act(async () => {
+      await result.current.handleRenameCategory('旧分类', null);
+    });
+
+    expect(result.current.selectedCategoryId).toBeNull();
+  });
+
   it('handles delete error', async () => {
     const book = mockBook();
     vi.mocked(api.listBooks).mockResolvedValue([book]);

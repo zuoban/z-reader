@@ -29,6 +29,7 @@ import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryFilter } from '@/components/CategoryFilter';
+import { CategoryManagerSheet } from '@/components/CategoryManagerSheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
@@ -85,6 +86,7 @@ export default function ShelfPage() {
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(() => new Set());
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
 
@@ -111,6 +113,7 @@ export default function ShelfPage() {
     handleDelete,
     handleDeleteMany,
     handleUpdateCategoryMany,
+    handleRenameCategory,
     searchQuery,
     setSearchQuery,
     uploadFiles,
@@ -199,6 +202,10 @@ export default function ShelfPage() {
       setSelectionMode(false);
       setBatchCategoryOpen(false);
     }
+  }
+
+  async function saveManagedCategory(category: string, nextCategory: string | null) {
+    await handleRenameCategory(category, nextCategory);
   }
 
   function handleShelfDragEnter(event: DragEvent<HTMLElement>) {
@@ -326,7 +333,12 @@ export default function ShelfPage() {
                 操作
               </div>
               {/* Mobile: compact icon row */}
-              <div className="grid grid-cols-4 gap-2 sm:hidden">
+              <div
+                className={cn(
+                  'grid gap-2 sm:hidden',
+                  user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'
+                )}
+              >
                 {user?.role === 'admin' && (
                   <UserManager
                     currentUser={user}
@@ -361,6 +373,17 @@ export default function ShelfPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => setCategoryManagerOpen(true)}
+                  aria-label="分类管理"
+                  className="shelf-mobile-action cursor-pointer"
+                >
+                  <Tag className="h-4 w-4" />
+                  <span className="hidden">分类管理</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={toggleTheme}
                   aria-label={isDark ? '切换亮色模式' : '切换暗色模式'}
                   className="shelf-mobile-action cursor-pointer"
@@ -388,7 +411,8 @@ export default function ShelfPage() {
               {/* Desktop: sidebar menu items */}
               <div
                 className={cn(
-                  'hidden grid-cols-2 gap-2 sm:grid sm:grid-cols-4 lg:flex lg:flex-col lg:gap-1.5',
+                  'hidden grid-cols-2 gap-2 sm:grid lg:flex lg:flex-col lg:gap-1.5',
+                  user?.role === 'admin' ? 'sm:grid-cols-5' : 'sm:grid-cols-4',
                   isSidebarCollapsed && 'lg:items-center lg:gap-2.5'
                 )}
               >
@@ -422,6 +446,17 @@ export default function ShelfPage() {
                   )}
                   <span>{isUploading ? '上传中' : '上传书籍'}</span>
                 </FileUploadAction>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCategoryManagerOpen(true)}
+                  aria-label="分类管理"
+                  className="shelf-menu-item cursor-pointer"
+                >
+                  <Tag className="h-4 w-4" />
+                  <span>分类管理</span>
+                </Button>
 
                 <Button
                   variant="ghost"
@@ -728,6 +763,14 @@ export default function ShelfPage() {
           bookCounts={bookCounts}
           loading={isUpdatingManyCategories}
           onSave={saveBatchCategory}
+        />
+        <CategoryManagerSheet
+          open={categoryManagerOpen}
+          onOpenChange={setCategoryManagerOpen}
+          categories={categories}
+          bookCounts={bookCounts}
+          loading={isUpdatingManyCategories}
+          onRenameCategory={saveManagedCategory}
         />
       </main>
       </div>

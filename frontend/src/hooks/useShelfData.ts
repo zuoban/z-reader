@@ -380,6 +380,22 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, [sortBy]);
 
+  const handleRenameCategory = useCallback(async (category: string, nextCategory: string | null) => {
+    const currentCategory = category.trim();
+    if (!currentCategory) return { successCount: 0, failedCount: 0 };
+
+    const ids = books
+      .filter((book) => book.category?.trim() === currentCategory)
+      .map((book) => book.id);
+    const result = await handleUpdateCategoryMany(ids, nextCategory);
+
+    if (result.successCount > 0 && selectedCategoryId === currentCategory) {
+      setSelectedCategoryId(nextCategory?.trim() || null);
+    }
+
+    return result;
+  }, [books, handleUpdateCategoryMany, selectedCategoryId]);
+
   return {
     books,
     progressByBookId,
@@ -403,6 +419,7 @@ export function useShelfData(isAuthenticated: boolean) {
     handleDelete,
     handleDeleteMany,
     handleUpdateCategoryMany,
+    handleRenameCategory,
     formatFileSize,
     sortBy,
     setSortBy,

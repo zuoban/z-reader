@@ -81,6 +81,7 @@ export default function ReadPage() {
 
   const [tocOpen, setTocOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
@@ -533,6 +534,7 @@ export default function ReadPage() {
       loading,
       tocOpen,
       bookmarksOpen,
+      shortcutsOpen,
       themeSettingsOpen,
       currentChapter,
       currentChapterHref,
@@ -543,6 +545,7 @@ export default function ReadPage() {
     loading,
     bookmarksOpen,
     syncChromeState,
+    shortcutsOpen,
     themeSettingsOpen,
     tocOpen,
   ]);
@@ -604,6 +607,8 @@ export default function ReadPage() {
           onTocOpenChange={setTocOpen}
           bookmarksOpen={bookmarksOpen}
           onBookmarksOpenChange={setBookmarksOpen}
+          shortcutsOpen={shortcutsOpen}
+          onShortcutsOpenChange={setShortcutsOpen}
           bookmarks={bookmarks}
           canCreateBookmark={Boolean(getCurrentCFI())}
           isSavingBookmark={isSavingBookmark}

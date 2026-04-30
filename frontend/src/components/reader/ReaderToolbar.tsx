@@ -7,6 +7,7 @@ import { Expand, Library, Shrink } from "lucide-react";
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
 import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
+import { ReaderShortcutsSheet } from "@/components/reader/ReaderShortcutsSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
@@ -26,6 +27,8 @@ interface ReaderToolbarProps {
   onTocOpenChange: (open: boolean) => void;
   bookmarksOpen: boolean;
   onBookmarksOpenChange: (open: boolean) => void;
+  shortcutsOpen: boolean;
+  onShortcutsOpenChange: (open: boolean) => void;
   bookmarks: Bookmark[];
   canCreateBookmark: boolean;
   isSavingBookmark: boolean;
@@ -91,6 +94,8 @@ export function ReaderToolbar({
   onTocOpenChange,
   bookmarksOpen,
   onBookmarksOpenChange,
+  shortcutsOpen,
+  onShortcutsOpenChange,
   bookmarks,
   canCreateBookmark,
   isSavingBookmark,
@@ -250,6 +255,19 @@ export function ReaderToolbar({
               }}
               onLocateCurrent={onLocateCurrentChapter}
               onGoTo={onGoTo}
+            />
+            <ReaderShortcutsSheet
+              open={shortcutsOpen}
+              onOpenChange={onShortcutsOpenChange}
+              uiScheme={uiScheme}
+              overlayContainer={overlayContainer}
+              triggerClassName={`${toolbarButtonClass} hidden sm:flex`}
+              triggerStyle={{
+                ...getToolbarButtonStyle(shortcutsOpen),
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+              }}
             />
             <ThemeSettings
               theme={theme}

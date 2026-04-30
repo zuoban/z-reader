@@ -147,9 +147,28 @@ export default function ShelfPage() {
   }, [books, selectedBookIds]);
 
   const selectedCount = selectedExistingIds.length;
-  const filteredBookIds = filteredBooks.map((book) => book.id);
+  const filteredBookIds = useMemo(
+    () => filteredBooks.map((book) => book.id),
+    [filteredBooks]
+  );
   const allVisibleSelected =
     filteredBookIds.length > 0 && filteredBookIds.every((id) => selectedBookIds.has(id));
+
+  function clearSelectionWhenFiltering() {
+    if (selectionMode && selectedBookIds.size > 0) {
+      setSelectedBookIds(new Set());
+    }
+  }
+
+  function changeSearchQuery(value: string) {
+    setSearchQuery(value);
+    clearSelectionWhenFiltering();
+  }
+
+  function changeSelectedCategory(categoryId: string | null) {
+    setSelectedCategoryId(categoryId);
+    clearSelectionWhenFiltering();
+  }
 
   function toggleSelectionMode() {
     setSelectionMode((enabled) => {
@@ -571,7 +590,7 @@ export default function ShelfPage() {
                   <ShelfFilterSheet
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}
-                    onSelectCategory={setSelectedCategoryId}
+                    onSelectCategory={changeSelectedCategory}
                     bookCounts={bookCounts}
                     sortBy={sortBy}
                     onSortChange={setSortBy}
@@ -581,7 +600,7 @@ export default function ShelfPage() {
                     <Input
                       type="search"
                       value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
+                      onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名、作者、文件名"
                       aria-label="搜索书架"
                       className="h-11 rounded-lg border-primary/16 bg-card/92 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)]"
@@ -589,7 +608,7 @@ export default function ShelfPage() {
                     {searchQuery && (
                       <button
                         type="button"
-                        onClick={() => setSearchQuery('')}
+                        onClick={() => changeSearchQuery('')}
                         aria-label="清空搜索"
                         className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                       >
@@ -631,7 +650,7 @@ export default function ShelfPage() {
                       <CategoryFilter
                         categories={categories}
                         selectedCategoryId={selectedCategoryId}
-                        onSelectCategory={setSelectedCategoryId}
+                        onSelectCategory={changeSelectedCategory}
                         bookCounts={bookCounts}
                         className="sm:w-[13rem]"
                       />
@@ -704,8 +723,8 @@ export default function ShelfPage() {
                     variant="outline"
                     className="mt-5 h-10 rounded-lg px-4"
                     onClick={() => {
-                      setSearchQuery('');
-                      setSelectedCategoryId(null);
+                      changeSearchQuery('');
+                      changeSelectedCategory(null);
                     }}
                   >
                     清空筛选

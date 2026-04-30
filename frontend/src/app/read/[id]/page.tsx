@@ -579,7 +579,9 @@ export default function ReadPage() {
 
   return (
     <div
+      id="main-content"
       ref={handlePageRef}
+      tabIndex={-1}
       className="fixed inset-0 overflow-hidden overscroll-none"
       style={{ background: uiScheme.bg }}
     >

@@ -40,7 +40,11 @@ export function AppScreen({
   return (
     <div className={cn('relative min-h-screen overflow-hidden bg-background text-foreground', className)}>
       <AmbientLayer variant={ambient} />
-      <div className={cn('relative z-10 min-h-screen', contentClassName)}>
+      <div
+        id="main-content"
+        tabIndex={-1}
+        className={cn('relative z-10 min-h-screen outline-none', contentClassName)}
+      >
         {children}
       </div>
     </div>

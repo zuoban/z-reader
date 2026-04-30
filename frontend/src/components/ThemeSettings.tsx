@@ -67,6 +67,13 @@ const PRESETS = [
   fg: string;
 }>;
 
+const SETTINGS_SECTIONS = [
+  { id: "appearance", label: "外观" },
+  { id: "layout", label: "排版" },
+] as const;
+
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number]["id"];
+
 interface ThemeSettingsProps {
   theme: ReaderTheme;
   setTheme: (theme: Partial<ReaderTheme>) => void;
@@ -216,6 +223,7 @@ export function ThemeSettings({
   const resetFeedbackTimeoutRef = useRef<number | null>(null);
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
   const [resetFeedbackCount, setResetFeedbackCount] = useState(0);
+  const [activeSection, setActiveSection] = useState<SettingsSection>("appearance");
   useEffect(() => {
     return () => {
       if (resetFeedbackTimeoutRef.current !== null) {
@@ -326,99 +334,135 @@ export function ThemeSettings({
           </div>
         </SheetHeader>
 
-        <div className="flex-1 space-y-7 overflow-y-auto px-8 pb-12 pt-4">
-          <SectionCard
-            title="视觉基调"
-            description="环境光决定了眼睛的舒适阈值。"
-            uiScheme={uiScheme}
+        <div className="flex-1 overflow-y-auto px-8 pb-12 pt-4">
+          <div
+            className="mb-5 grid grid-cols-2 gap-1 rounded-[1.25rem] p-1"
+            role="tablist"
+            aria-label="阅读设置分类"
+            style={{ background: withOpacity(uiScheme.buttonBg, 0.22) }}
           >
-            <div className="grid grid-cols-2 gap-3">
-              {PRESETS.map((preset) => {
-                const isActive = theme.preset === preset.key;
+            {SETTINGS_SECTIONS.map((section) => {
+              const active = activeSection === section.id;
 
-                return (
-                  <button
-                    key={preset.key}
-                    type="button"
-                    onClick={() => setTheme({ preset: preset.key })}
-                    className="group relative overflow-hidden rounded-[1.5rem] border p-3 text-left transition-all duration-300 cursor-pointer active:scale-[0.96]"
-                    style={{
-                      background: isActive
-                        ? withOpacity(uiScheme.link, 0.08)
-                        : withOpacity(uiScheme.cardBg, 0.2),
-                      borderColor: isActive
-                        ? withOpacity(uiScheme.link, 0.4)
-                        : withOpacity(uiScheme.cardBorder, 0.12),
-                    }}
-                  >
-                    <div
-                      className="relative h-14 overflow-hidden rounded-[1.15rem] px-3 py-2.5 shadow-sm transition-transform group-hover:scale-[1.02]"
-                      style={{
-                        background: preset.bg,
-                        border: `1px solid ${
-                          preset.key === "dark"
-                            ? "rgba(255,255,255,0.08)"
-                            : "rgba(0,0,0,0.04)"
-                        }`,
-                      }}
-                    >
-                      <div className="space-y-1.5">
-                        <div
-                          className="h-1 rounded-full"
-                          style={{ background: preset.fg, width: "70%", opacity: 0.6 }}
-                        />
-                        <div
-                          className="h-1 rounded-full"
-                          style={{ background: preset.fg, width: "85%", opacity: 0.3 }}
-                        />
-                        <div
-                          className="h-1 rounded-full"
-                          style={{ background: preset.fg, width: "50%", opacity: 0.15 }}
-                        />
-                      </div>
-                      
-                      {isActive && (
-                        <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span
-                        className="text-[11px] font-bold tracking-wide"
-                        style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.6) }}
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveSection(section.id)}
+                  className="h-10 rounded-[1rem] text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                  style={{
+                    background: active ? withOpacity(uiScheme.buttonBg, 0.86) : "transparent",
+                    color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.58),
+                    boxShadow: active
+                      ? `0 8px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.45)}`
+                      : "none",
+                  }}
+                >
+                  {section.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeSection === "appearance" && (
+            <div className="space-y-7" role="tabpanel" aria-label="外观设置">
+              <SectionCard
+                title="视觉基调"
+                description="环境光决定了眼睛的舒适阈值。"
+                uiScheme={uiScheme}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  {PRESETS.map((preset) => {
+                    const isActive = theme.preset === preset.key;
+
+                    return (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        onClick={() => setTheme({ preset: preset.key })}
+                        className="group relative overflow-hidden rounded-[1.5rem] border p-3 text-left transition-all duration-300 cursor-pointer active:scale-[0.96]"
+                        style={{
+                          background: isActive
+                            ? withOpacity(uiScheme.link, 0.08)
+                            : withOpacity(uiScheme.cardBg, 0.2),
+                          borderColor: isActive
+                            ? withOpacity(uiScheme.link, 0.4)
+                            : withOpacity(uiScheme.cardBorder, 0.12),
+                        }}
                       >
-                        {preset.label}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </SectionCard>
+                        <div
+                          className="relative h-14 overflow-hidden rounded-[1.15rem] px-3 py-2.5 shadow-sm transition-transform group-hover:scale-[1.02]"
+                          style={{
+                            background: preset.bg,
+                            border: `1px solid ${
+                              preset.key === "dark"
+                                ? "rgba(255,255,255,0.08)"
+                                : "rgba(0,0,0,0.04)"
+                            }`,
+                          }}
+                        >
+                          <div className="space-y-1.5">
+                            <div
+                              className="h-1 rounded-full"
+                              style={{ background: preset.fg, width: "70%", opacity: 0.6 }}
+                            />
+                            <div
+                              className="h-1 rounded-full"
+                              style={{ background: preset.fg, width: "85%", opacity: 0.3 }}
+                            />
+                            <div
+                              className="h-1 rounded-full"
+                              style={{ background: preset.fg, width: "50%", opacity: 0.15 }}
+                            />
+                          </div>
 
-          <SectionCard
-            title="阅读引擎"
-            description="翻页模拟纸质，滚动契合现代习惯。"
-            uiScheme={uiScheme}
-          >
-            <div className="flex gap-2">
-              {(["paginated", "scrolled"] as const).map((flow) => (
-                <ValuePill
-                  key={flow}
-                  label={flow === "paginated" ? "翻页模式" : "滚动模式"}
-                  active={theme.flow === flow}
-                  onClick={() => setTheme({ flow })}
-                  uiScheme={uiScheme}
-                />
-              ))}
-            </div>
-          </SectionCard>
+                          {isActive && (
+                            <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                          )}
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span
+                            className="text-[11px] font-bold tracking-wide"
+                            style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.6) }}
+                          >
+                            {preset.label}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
 
-          <SectionCard
-            title="版式美学"
-            description="精调每一处间隙，让文字自然呼吸。"
-            uiScheme={uiScheme}
-          >
-            <div className="space-y-8">
+              <SectionCard
+                title="阅读引擎"
+                description="翻页模拟纸质，滚动契合现代习惯。"
+                uiScheme={uiScheme}
+              >
+                <div className="flex gap-2">
+                  {(["paginated", "scrolled"] as const).map((flow) => (
+                    <ValuePill
+                      key={flow}
+                      label={flow === "paginated" ? "翻页模式" : "滚动模式"}
+                      active={theme.flow === flow}
+                      onClick={() => setTheme({ flow })}
+                      uiScheme={uiScheme}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {activeSection === "layout" && (
+            <SectionCard
+              title="版式美学"
+              description="精调每一处间隙，让文字自然呼吸。"
+              uiScheme={uiScheme}
+            >
+              <div className="space-y-8" role="tabpanel" aria-label="排版设置">
               <div className="space-y-3">
                 <Label className="pl-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                   字型选择
@@ -478,7 +522,8 @@ export function ThemeSettings({
                 uiScheme={uiScheme}
               />
             </div>
-          </SectionCard>
+            </SectionCard>
+          )}
         </div>
       </SheetContent>
     </Sheet>

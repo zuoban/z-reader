@@ -210,6 +210,60 @@ function SliderField({
   );
 }
 
+function ReaderPreview({
+  theme,
+  uiScheme,
+}: {
+  theme: ReaderTheme;
+  uiScheme: ThemeColors;
+}) {
+  const preset = PRESET_STYLES[theme.preset];
+  const fontStack = FONT_FAMILY_OPTIONS[theme.fontFamily].stack;
+
+  return (
+    <section
+      className="mb-5 overflow-hidden rounded-[1.5rem] border p-4 shadow-sm"
+      aria-label="阅读效果预览"
+      style={{
+        background: preset.bg,
+        borderColor: withOpacity(uiScheme.cardBorder, 0.22),
+        color: preset.fg,
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span
+          className="text-[10px] font-black uppercase tracking-[0.18em]"
+          style={{ color: withOpacity(preset.fg, 0.48) }}
+        >
+          Preview
+        </span>
+        <span
+          className="rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums"
+          style={{
+            background: withOpacity(preset.fg, 0.08),
+            color: withOpacity(preset.fg, 0.58),
+          }}
+        >
+          {theme.fontSize}px · {theme.lineHeight.toFixed(2)}
+        </span>
+      </div>
+      <div
+        className="space-y-3"
+        style={{
+          fontFamily: fontStack,
+          fontSize: `${Math.min(Math.max(theme.fontSize, 14), 22)}px`,
+          lineHeight: theme.lineHeight,
+        }}
+      >
+        <p className="font-semibold">文字应该安静地留在页面里。</p>
+        <p style={{ color: withOpacity(preset.fg, 0.76) }}>
+          调整字号、行距与字体时，先在这里感受一小段阅读节奏，再回到正文继续。
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function ThemeSettings({
   theme,
   setTheme,
@@ -365,6 +419,8 @@ export function ThemeSettings({
               );
             })}
           </div>
+
+          <ReaderPreview theme={theme} uiScheme={uiScheme} />
 
           {activeSection === "appearance" && (
             <div className="space-y-7" role="tabpanel" aria-label="外观设置">

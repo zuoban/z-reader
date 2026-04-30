@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Check, Tag, UserRound } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -240,6 +240,38 @@ export function BookCard({
     </div>
   ) : null;
 
+  function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: Element) {
+    if (!(target instanceof Element)) return false;
+
+    const interactiveTarget = target.closest(
+      'a, button, input, select, textarea, [role="button"], [role="menuitem"]'
+    );
+
+    return Boolean(interactiveTarget && interactiveTarget !== currentTarget);
+  }
+
+  function activateCard() {
+    if (selectionMode) {
+      onSelectionToggle?.();
+      return;
+    }
+
+    onRead();
+  }
+
+  function handleCardClick(event: MouseEvent<HTMLDivElement>) {
+    if (isNestedInteractiveTarget(event.target, event.currentTarget)) return;
+    activateCard();
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (isNestedInteractiveTarget(event.target, event.currentTarget)) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    event.preventDefault();
+    activateCard();
+  }
+
   useEffect(() => {
     let url: string | null = null;
     let cancelled = false;
@@ -268,7 +300,11 @@ export function BookCard({
           selected && "border-primary/45 ring-2 ring-primary/22"
         )}
         style={{ width: isMobile ? '100%' : cardWidth }}
-        onClick={selectionMode ? onSelectionToggle : onRead}
+        onClick={handleCardClick}
+        onKeyDown={handleCardKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
         aria-pressed={selectionMode ? selected : undefined}
       >
           {selectionMode && (

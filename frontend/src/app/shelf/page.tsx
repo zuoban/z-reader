@@ -664,45 +664,11 @@ export default function ShelfPage() {
                 </div>
               </div>
             )}
-            {selectionMode && !isLoadingBooks && filteredBooks.length > 0 && (
-              <div className="paper-reveal shelf-toolbar flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" style={delay(105)}>
-                <div className="text-sm font-medium text-muted-foreground">
-                  已选择 <span className="font-bold text-foreground">{selectedCount}</span> 本
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 rounded-lg px-4"
-                    onClick={toggleVisibleSelection}
-                  >
-                    {allVisibleSelected ? '取消当前视图' : '选择当前视图'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 rounded-lg px-4"
-                    disabled={selectedCount === 0 || isUpdatingManyCategories}
-                    onClick={() => setBatchCategoryOpen(true)}
-                  >
-                    <Tag className="h-4 w-4" />
-                    设置分类
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="h-10 rounded-lg px-4"
-                    disabled={selectedCount === 0 || isDeletingMany}
-                    onClick={() => setBatchDeleteOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    删除所选
-                  </Button>
-                </div>
-              </div>
-            )}
             <section
-              className="paper-reveal shelf-container relative rounded-2xl"
+              className={cn(
+                'paper-reveal shelf-container relative rounded-2xl',
+                selectionMode && filteredBooks.length > 0 && 'mb-28 sm:mb-24'
+              )}
               style={delay(150)}
             >
               {isLoadingBooks ? (
@@ -763,6 +729,62 @@ export default function ShelfPage() {
                 </div>
               )}
             </section>
+            {selectionMode && !isLoadingBooks && filteredBooks.length > 0 && (
+              <div
+                className="paper-reveal pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] z-40 mx-auto max-w-[46rem] sm:inset-x-6 lg:left-auto lg:right-8 lg:max-w-[48rem]"
+                style={delay(105)}
+              >
+                <div className="shelf-toolbar pointer-events-auto gap-2 rounded-2xl border-primary/18 bg-card/96 shadow-[0_18px_52px_-30px_var(--paper-shadow),0_6px_18px_-14px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)]">
+                  <div className="flex min-w-0 items-center justify-between gap-3 sm:min-w-[8rem]">
+                    <div className="min-w-0 text-sm font-medium text-muted-foreground">
+                      已选择 <span className="font-bold text-foreground">{selectedCount}</span> 本
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground hover:text-foreground sm:hidden"
+                      onClick={toggleSelectionMode}
+                      aria-label="退出选择模式"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-1 sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
+                      onClick={toggleVisibleSelection}
+                    >
+                      <span className="truncate">
+                        {allVisibleSelected ? '取消当前' : '选当前'}
+                      </span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
+                      disabled={selectedCount === 0 || isUpdatingManyCategories}
+                      onClick={() => setBatchCategoryOpen(true)}
+                    >
+                      <Tag className="h-4 w-4 shrink-0" />
+                      <span className="truncate">分类</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
+                      disabled={selectedCount === 0 || isDeletingMany}
+                      onClick={() => setBatchDeleteOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" />
+                      <span className="truncate">删除</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         <ConfirmDialog

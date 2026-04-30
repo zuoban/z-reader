@@ -109,6 +109,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeletingMany, setIsDeletingMany] = useState(false);
+  const [isUpdatingManyCategories, setIsUpdatingManyCategories] = useState(false);
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
   const [searchQuery, setSearchQuery] = useState('');
   const enrichingBooksRef = useRef(new Set<string>());
@@ -357,6 +358,45 @@ export function useShelfData(isAuthenticated: boolean) {
     return { successCount: deletedIds.length, failedCount };
   }, [abortEnrichment]);
 
+  const handleUpdateCategoryMany = useCallback(async (ids: string[], category: string | null) => {
+    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+    const nextCategory = category?.trim() || null;
+    if (uniqueIds.length === 0) return { successCount: 0, failedCount: 0 };
+
+    if (nextCategory !== null && nextCategory.length > 50) {
+      toast.error('分类不能超过 50 个字符');
+      return { successCount: 0, failedCount: uniqueIds.length };
+    }
+
+    setIsUpdatingManyCategories(true);
+    const results = await Promise.allSettled(
+      uniqueIds.map((id) => api.updateBook(id, { category: nextCategory }))
+    );
+    const updatedBooks = results
+      .filter((result): result is PromiseFulfilledResult<Book> => result.status === 'fulfilled')
+      .map((result) => result.value);
+    const failedCount = uniqueIds.length - updatedBooks.length;
+
+    if (updatedBooks.length > 0) {
+      const updatedById = new Map(updatedBooks.map((book) => [book.id, book]));
+      setBooks((prev) => sortBooks(
+        prev.map((book) => updatedById.get(book.id) ?? book),
+        sortBy
+      ));
+    }
+
+    if (updatedBooks.length > 0 && failedCount === 0) {
+      toast.success(nextCategory ? `已设置为「${nextCategory}」` : '已清空所选分类');
+    } else if (updatedBooks.length > 0) {
+      toast.error(`已更新 ${updatedBooks.length} 本，${failedCount} 本失败`);
+    } else {
+      toast.error('设置分类失败');
+    }
+
+    setIsUpdatingManyCategories(false);
+    return { successCount: updatedBooks.length, failedCount };
+  }, [sortBy]);
+
   return {
     books,
     progressByBookId,
@@ -368,6 +408,7 @@ export function useShelfData(isAuthenticated: boolean) {
     isUploading,
     deletingId,
     isDeletingMany,
+    isUpdatingManyCategories,
     filteredBooks,
     bookCounts,
     loadBooks,
@@ -378,6 +419,7 @@ export function useShelfData(isAuthenticated: boolean) {
     handleUpload,
     handleDelete,
     handleDeleteMany,
+    handleUpdateCategoryMany,
     formatFileSize,
     sortBy,
     setSortBy,

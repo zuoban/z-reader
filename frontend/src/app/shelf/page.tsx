@@ -16,6 +16,7 @@ import {
   Plus,
   Search,
   Sun,
+  Tag,
   Trash2,
   Upload,
   X,
@@ -24,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
 import { AppScreen, LoadingSpinner } from '@/components/AppShell';
+import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryFilter } from '@/components/CategoryFilter';
@@ -82,6 +84,7 @@ export default function ShelfPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(() => new Set());
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
 
@@ -100,12 +103,14 @@ export default function ShelfPage() {
     isUploading,
     deletingId,
     isDeletingMany,
+    isUpdatingManyCategories,
     filteredBooks,
     bookCounts,
     loadBooks,
     handleUpload,
     handleDelete,
     handleDeleteMany,
+    handleUpdateCategoryMany,
     searchQuery,
     setSearchQuery,
     uploadFiles,
@@ -148,6 +153,7 @@ export default function ShelfPage() {
       if (enabled) {
         setSelectedBookIds(new Set());
         setBatchDeleteOpen(false);
+        setBatchCategoryOpen(false);
       }
       return !enabled;
     });
@@ -184,6 +190,15 @@ export default function ShelfPage() {
       setSelectionMode(false);
     }
     setBatchDeleteOpen(false);
+  }
+
+  async function saveBatchCategory(category: string | null) {
+    const result = await handleUpdateCategoryMany(selectedExistingIds, category);
+    if (result.successCount > 0) {
+      setSelectedBookIds(new Set());
+      setSelectionMode(false);
+      setBatchCategoryOpen(false);
+    }
   }
 
   function handleShelfDragEnter(event: DragEvent<HTMLElement>) {
@@ -611,6 +626,16 @@ export default function ShelfPage() {
                   </Button>
                   <Button
                     type="button"
+                    variant="outline"
+                    className="h-10 rounded-lg px-4"
+                    disabled={selectedCount === 0 || isUpdatingManyCategories}
+                    onClick={() => setBatchCategoryOpen(true)}
+                  >
+                    <Tag className="h-4 w-4" />
+                    设置分类
+                  </Button>
+                  <Button
+                    type="button"
                     variant="destructive"
                     className="h-10 rounded-lg px-4"
                     disabled={selectedCount === 0 || isDeletingMany}
@@ -694,6 +719,15 @@ export default function ShelfPage() {
           confirmLabel={isDeletingMany ? '删除中' : '确认删除'}
           confirmDisabled={selectedCount === 0 || isDeletingMany}
           onConfirm={confirmBatchDelete}
+        />
+        <BatchCategorySheet
+          open={batchCategoryOpen}
+          onOpenChange={setBatchCategoryOpen}
+          selectedCount={selectedCount}
+          categories={categories}
+          bookCounts={bookCounts}
+          loading={isUpdatingManyCategories}
+          onSave={saveBatchCategory}
         />
       </main>
       </div>

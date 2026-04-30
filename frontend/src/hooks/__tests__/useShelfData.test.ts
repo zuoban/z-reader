@@ -427,6 +427,50 @@ describe('useShelfData', () => {
     expect(result.current.books.map((book) => book.id)).toEqual(['book-2']);
   });
 
+  it('updates categories for multiple books', async () => {
+    const books = [
+      mockBook({ id: 'book-1', title: 'One' }),
+      mockBook({ id: 'book-2', title: 'Two' }),
+    ];
+    vi.mocked(api.listBooks).mockResolvedValue(books);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.updateBook)
+      .mockResolvedValueOnce(mockBook({ id: 'book-1', title: 'One', category: '科幻' }))
+      .mockResolvedValueOnce(mockBook({ id: 'book-2', title: 'Two', category: '科幻' }));
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const updateResult = await act(async () => {
+      return result.current.handleUpdateCategoryMany(['book-1', 'book-2'], '科幻');
+    });
+
+    expect(updateResult).toEqual({ successCount: 2, failedCount: 0 });
+    expect(result.current.books.every((book) => book.category === '科幻')).toBe(true);
+    expect(api.updateBook).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects too long batch category names', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([mockBook()]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const updateResult = await act(async () => {
+      return result.current.handleUpdateCategoryMany(['book-1'], 'x'.repeat(51));
+    });
+
+    expect(updateResult).toEqual({ successCount: 0, failedCount: 1 });
+    expect(api.updateBook).not.toHaveBeenCalled();
+  });
+
   it('handles delete error', async () => {
     const book = mockBook();
     vi.mocked(api.listBooks).mockResolvedValue([book]);

@@ -108,6 +108,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeletingMany, setIsDeletingMany] = useState(false);
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
   const [searchQuery, setSearchQuery] = useState('');
   const enrichingBooksRef = useRef(new Set<string>());
@@ -321,6 +322,41 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, [abortEnrichment]);
 
+  const handleDeleteMany = useCallback(async (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+    if (uniqueIds.length === 0) return { successCount: 0, failedCount: 0 };
+
+    setIsDeletingMany(true);
+    uniqueIds.forEach(abortEnrichment);
+
+    const results = await Promise.allSettled(uniqueIds.map((id) => api.deleteBook(id)));
+    const deletedIds = uniqueIds.filter((_, index) => results[index].status === 'fulfilled');
+    const failedCount = uniqueIds.length - deletedIds.length;
+
+    if (deletedIds.length > 0) {
+      const deletedSet = new Set(deletedIds);
+      setBooks((prev) => prev.filter((book) => !deletedSet.has(book.id)));
+      setProgressByBookId((prev) => {
+        const next = { ...prev };
+        deletedSet.forEach((id) => {
+          delete next[id];
+        });
+        return next;
+      });
+    }
+
+    if (deletedIds.length > 0 && failedCount === 0) {
+      toast.success(`已删除 ${deletedIds.length} 本图书`);
+    } else if (deletedIds.length > 0) {
+      toast.error(`已删除 ${deletedIds.length} 本，${failedCount} 本失败`);
+    } else {
+      toast.error('删除失败');
+    }
+
+    setIsDeletingMany(false);
+    return { successCount: deletedIds.length, failedCount };
+  }, [abortEnrichment]);
+
   return {
     books,
     progressByBookId,
@@ -331,6 +367,7 @@ export function useShelfData(isAuthenticated: boolean) {
     setSelectedCategoryId,
     isUploading,
     deletingId,
+    isDeletingMany,
     filteredBooks,
     bookCounts,
     loadBooks,
@@ -340,6 +377,7 @@ export function useShelfData(isAuthenticated: boolean) {
     uploadFiles,
     handleUpload,
     handleDelete,
+    handleDeleteMany,
     formatFileSize,
     sortBy,
     setSortBy,

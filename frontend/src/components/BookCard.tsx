@@ -4,7 +4,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Tag, UserRound } from 'lucide-react';
+import { Check, Tag, UserRound } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { CategorySelector } from '@/components/CategorySelector';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import {
   MOBILE_CARD_WIDTH,
   MOBILE_COVER_HEIGHT,
@@ -40,6 +41,9 @@ interface BookCardProps {
   formatSize: (bytes: number) => string;
   progressPercentage?: number | null;
   searchQuery?: string;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectionToggle?: () => void;
 }
 
 function HighlightedText({
@@ -197,6 +201,9 @@ export function BookCard({
   formatSize,
   progressPercentage = null,
   searchQuery,
+  selectionMode = false,
+  selected = false,
+  onSelectionToggle,
 }: BookCardProps) {
   const isMobile = useIsMobile();
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -256,10 +263,27 @@ export function BookCard({
       style={{ '--paper-delay': `${Math.min(index * 55, 260)}ms` } as CSSProperties}
     >
       <Card
-        className="group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border/55 bg-card p-0 gap-0 ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/28 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none dark:ring-white/10"
+        className={cn(
+          "group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border/55 bg-card p-0 gap-0 ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/28 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none dark:ring-white/10",
+          selected && "border-primary/45 ring-2 ring-primary/22"
+        )}
         style={{ width: isMobile ? '100%' : cardWidth }}
-        onClick={onRead}
+        onClick={selectionMode ? onSelectionToggle : onRead}
+        aria-pressed={selectionMode ? selected : undefined}
       >
+          {selectionMode && (
+            <div
+              className={cn(
+                "absolute left-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-xl border shadow-sm transition-colors",
+                selected
+                  ? "border-primary/30 bg-primary text-primary-foreground"
+                  : "border-border/70 bg-card/88 text-muted-foreground"
+              )}
+              aria-hidden="true"
+            >
+              {selected && <Check className="h-4 w-4" />}
+            </div>
+          )}
           <div
             className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_12%,transparent),transparent_36%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_76%,var(--background))_0%,color-mix(in_srgb,var(--card)_92%,var(--muted))_100%)] dark:bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_56%,var(--background))_0%,color-mix(in_srgb,var(--card)_86%,var(--muted))_100%)]"
             style={{ height: coverHeight }}
@@ -327,15 +351,17 @@ export function BookCard({
                     </span>
                   )}
                 </div>
-                <BookCardDropdown
-                  formatLabel={formatLabel}
-                  sizeLabel={sizeLabel}
-                  uploadedAtLabel={uploadedAtLabel}
-                  lastReadLabel={lastReadLabel}
-                  isDeleting={isDeleting}
-                  onCategoryClick={() => setCategoryDialogOpen(true)}
-                  onDeleteClick={() => setDeleteConfirmOpen(true)}
-                />
+                {!selectionMode && (
+                  <BookCardDropdown
+                    formatLabel={formatLabel}
+                    sizeLabel={sizeLabel}
+                    uploadedAtLabel={uploadedAtLabel}
+                    lastReadLabel={lastReadLabel}
+                    isDeleting={isDeleting}
+                    onCategoryClick={() => setCategoryDialogOpen(true)}
+                    onDeleteClick={() => setDeleteConfirmOpen(true)}
+                  />
+                )}
               </div>
             </div>
           </div>

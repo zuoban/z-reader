@@ -374,6 +374,59 @@ describe('useShelfData', () => {
     expect(api.deleteBook).toHaveBeenCalledWith('book-1');
   });
 
+  it('handles batch delete success', async () => {
+    const books = [
+      mockBook({ id: 'book-1', title: 'One' }),
+      mockBook({ id: 'book-2', title: 'Two' }),
+      mockBook({ id: 'book-3', title: 'Three' }),
+    ];
+    vi.mocked(api.listBooks).mockResolvedValue(books);
+    vi.mocked(api.listProgress).mockResolvedValue([
+      { book_id: 'book-1', user_id: 'u1', cfi: 'cfi-1', percentage: 10, updated_at: '' },
+      { book_id: 'book-2', user_id: 'u1', cfi: 'cfi-2', percentage: 20, updated_at: '' },
+    ]);
+    vi.mocked(api.deleteBook).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.handleDeleteMany(['book-1', 'book-2']);
+    });
+
+    expect(result.current.books.map((book) => book.id)).toEqual(['book-3']);
+    expect(result.current.progressByBookId).toEqual({});
+    expect(api.deleteBook).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps failed books after partial batch delete failure', async () => {
+    const books = [
+      mockBook({ id: 'book-1', title: 'One' }),
+      mockBook({ id: 'book-2', title: 'Two' }),
+    ];
+    vi.mocked(api.listBooks).mockResolvedValue(books);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.deleteBook)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('Delete failed'));
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const batchResult = await act(async () => {
+      return result.current.handleDeleteMany(['book-1', 'book-2']);
+    });
+
+    expect(batchResult).toEqual({ successCount: 1, failedCount: 1 });
+    expect(result.current.books.map((book) => book.id)).toEqual(['book-2']);
+  });
+
   it('handles delete error', async () => {
     const book = mockBook();
     vi.mocked(api.listBooks).mockResolvedValue([book]);

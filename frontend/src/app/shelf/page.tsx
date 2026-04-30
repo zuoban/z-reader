@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import type { CSSProperties, DragEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   BookOpen,
+  CheckSquare,
   Library,
   LogOut,
   Moon,
@@ -15,6 +16,7 @@ import {
   Plus,
   Search,
   Sun,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
@@ -25,6 +27,7 @@ import { AppScreen, LoadingSpinner } from '@/components/AppShell';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { CategoryFilter } from '@/components/CategoryFilter';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { ShelfFilterSheet } from '@/components/ShelfFilterSheet';
@@ -76,6 +79,9 @@ export default function ShelfPage() {
   const router = useRouter();
   const [isDraggingBookFile, setIsDraggingBookFile] = useState(false);
   const dragDepthRef = useRef(0);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(() => new Set());
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
 
@@ -93,11 +99,13 @@ export default function ShelfPage() {
     setSelectedCategoryId,
     isUploading,
     deletingId,
+    isDeletingMany,
     filteredBooks,
     bookCounts,
     loadBooks,
     handleUpload,
     handleDelete,
+    handleDeleteMany,
     searchQuery,
     setSearchQuery,
     uploadFiles,
@@ -124,6 +132,59 @@ export default function ShelfPage() {
       String(isSidebarCollapsed)
     );
   }, [isSidebarCollapsed]);
+
+  const selectedExistingIds = useMemo(() => {
+    const existingIds = new Set(books.map((book) => book.id));
+    return Array.from(selectedBookIds).filter((id) => existingIds.has(id));
+  }, [books, selectedBookIds]);
+
+  const selectedCount = selectedExistingIds.length;
+  const filteredBookIds = filteredBooks.map((book) => book.id);
+  const allVisibleSelected =
+    filteredBookIds.length > 0 && filteredBookIds.every((id) => selectedBookIds.has(id));
+
+  function toggleSelectionMode() {
+    setSelectionMode((enabled) => {
+      if (enabled) {
+        setSelectedBookIds(new Set());
+        setBatchDeleteOpen(false);
+      }
+      return !enabled;
+    });
+  }
+
+  function toggleBookSelection(bookId: string) {
+    setSelectedBookIds((current) => {
+      const next = new Set(current);
+      if (next.has(bookId)) {
+        next.delete(bookId);
+      } else {
+        next.add(bookId);
+      }
+      return next;
+    });
+  }
+
+  function toggleVisibleSelection() {
+    setSelectedBookIds((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) {
+        filteredBookIds.forEach((id) => next.delete(id));
+      } else {
+        filteredBookIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  async function confirmBatchDelete() {
+    const result = await handleDeleteMany(selectedExistingIds);
+    if (result.successCount > 0) {
+      setSelectedBookIds(new Set());
+      setSelectionMode(false);
+    }
+    setBatchDeleteOpen(false);
+  }
 
   function handleShelfDragEnter(event: DragEvent<HTMLElement>) {
     if (!event.dataTransfer.types.includes('Files')) return;
@@ -503,6 +564,17 @@ export default function ShelfPage() {
                       )}
                     </div>
                   )}
+                  <div className="flex items-center gap-2 sm:order-last">
+                    <Button
+                      type="button"
+                      variant={selectionMode ? 'secondary' : 'outline'}
+                      className="h-11 rounded-lg px-3"
+                      onClick={toggleSelectionMode}
+                    >
+                      <CheckSquare className="h-4 w-4" />
+                      <span>{selectionMode ? '退出选择' : '选择'}</span>
+                    </Button>
+                  </div>
                   {/* Desktop: full dropdowns */}
                   <div className="hidden w-full flex-row items-center gap-2 sm:flex sm:w-auto sm:shrink-0">
                     {categories.length > 0 && (
@@ -520,6 +592,33 @@ export default function ShelfPage() {
                       className="sm:ml-auto sm:w-[13rem]"
                     />
                   </div>
+                </div>
+              </div>
+            )}
+            {selectionMode && !isLoadingBooks && filteredBooks.length > 0 && (
+              <div className="paper-reveal shelf-toolbar flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" style={delay(105)}>
+                <div className="text-sm font-medium text-muted-foreground">
+                  已选择 <span className="font-bold text-foreground">{selectedCount}</span> 本
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-lg px-4"
+                    onClick={toggleVisibleSelection}
+                  >
+                    {allVisibleSelected ? '取消当前视图' : '选择当前视图'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="h-10 rounded-lg px-4"
+                    disabled={selectedCount === 0 || isDeletingMany}
+                    onClick={() => setBatchDeleteOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    删除所选
+                  </Button>
                 </div>
               </div>
             )}
@@ -568,6 +667,9 @@ export default function ShelfPage() {
                       formatSize={formatFileSize}
                       progressPercentage={progressByBookId[book.id] ?? null}
                       searchQuery={searchQuery}
+                      selectionMode={selectionMode}
+                      selected={selectedBookIds.has(book.id)}
+                      onSelectionToggle={() => toggleBookSelection(book.id)}
                     />
                   ))}
                 </div>
@@ -584,6 +686,15 @@ export default function ShelfPage() {
             </section>
           </div>
         )}
+        <ConfirmDialog
+          open={batchDeleteOpen}
+          onOpenChange={setBatchDeleteOpen}
+          title="删除所选图书"
+          description={`确定删除选中的 ${selectedCount} 本图书吗？删除后将无法恢复。`}
+          confirmLabel={isDeletingMany ? '删除中' : '确认删除'}
+          confirmDisabled={selectedCount === 0 || isDeletingMany}
+          onConfirm={confirmBatchDelete}
+        />
       </main>
       </div>
     </AppScreen>

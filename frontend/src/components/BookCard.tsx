@@ -297,7 +297,8 @@ export function BookCard({
       <Card
         className={cn(
           "group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border/55 bg-card p-0 gap-0 ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/28 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none dark:ring-white/10",
-          selected && "border-primary/45 ring-2 ring-primary/22"
+          selectionMode && "border-primary/24 bg-primary/[0.025] shadow-[0_14px_34px_-26px_var(--paper-shadow)] hover:border-primary/42",
+          selected && "border-primary/55 bg-primary/[0.055] ring-2 ring-primary/28 shadow-[0_18px_44px_-28px_var(--paper-shadow)]"
         )}
         style={{ width: isMobile ? '100%' : cardWidth }}
         onClick={handleCardClick}
@@ -308,17 +309,28 @@ export function BookCard({
         aria-pressed={selectionMode ? selected : undefined}
       >
           {selectionMode && (
-            <div
-              className={cn(
-                "absolute left-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-xl border shadow-sm transition-colors",
-                selected
-                  ? "border-primary/30 bg-primary text-primary-foreground"
-                  : "border-border/70 bg-card/88 text-muted-foreground"
-              )}
-              aria-hidden="true"
-            >
-              {selected && <Check className="h-4 w-4" />}
-            </div>
+            <>
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-0 z-20 rounded-lg transition-colors",
+                  selected
+                    ? "bg-primary/[0.035] ring-2 ring-inset ring-primary/30"
+                    : "bg-primary/[0.018] ring-1 ring-inset ring-primary/16"
+                )}
+                aria-hidden="true"
+              />
+              <div
+                className={cn(
+                  "absolute left-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm transition-[background-color,border-color,color,transform,box-shadow]",
+                  selected
+                    ? "scale-105 border-primary/34 bg-primary text-primary-foreground shadow-[0_8px_20px_-12px_var(--primary)]"
+                    : "border-primary/22 bg-card/94 text-primary/55 shadow-[0_6px_18px_-14px_var(--paper-shadow)]"
+                )}
+                aria-hidden="true"
+              >
+                <Check className={cn("h-4 w-4 transition-opacity", selected ? "opacity-100" : "opacity-0")} />
+              </div>
+            </>
           )}
           <div
             className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_12%,transparent),transparent_36%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_76%,var(--background))_0%,color-mix(in_srgb,var(--card)_92%,var(--muted))_100%)] dark:bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_56%,var(--background))_0%,color-mix(in_srgb,var(--card)_86%,var(--muted))_100%)]"

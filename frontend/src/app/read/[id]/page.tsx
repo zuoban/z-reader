@@ -574,7 +574,9 @@ export default function ReadPage() {
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.15rem)";
-  const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)";
+  const statusBarReservedSpace = isHeaderVisible
+    ? "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)"
+    : "calc(env(safe-area-inset-bottom, 0px) + 1.75rem)";
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
   return (

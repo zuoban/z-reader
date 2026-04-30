@@ -126,6 +126,41 @@ describe('useShelfData', () => {
     expect(result.current.filteredBooks[0].title).toBe('No Category');
   });
 
+  it('searches books by title, author, and filename', async () => {
+    const books = [
+      mockBook({ id: '1', title: '三体', author: '刘慈欣', filename: 'three-body.epub' }),
+      mockBook({ id: '2', title: 'Clean Code', author: 'Robert Martin', filename: 'clean.pdf' }),
+      mockBook({ id: '3', title: '写作是门手艺', author: '刘军强', filename: 'writing.epub' }),
+    ];
+    vi.mocked(api.listBooks).mockResolvedValue(books);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    act(() => {
+      result.current.setSearchQuery('liu');
+    });
+
+    expect(result.current.filteredBooks).toHaveLength(0);
+
+    act(() => {
+      result.current.setSearchQuery('刘');
+    });
+
+    expect(result.current.filteredBooks.map((book) => book.title)).toEqual(['三体', '写作是门手艺']);
+
+    act(() => {
+      result.current.setSearchQuery('clean.pdf');
+    });
+
+    expect(result.current.filteredBooks).toHaveLength(1);
+    expect(result.current.filteredBooks[0].title).toBe('Clean Code');
+  });
+
   it('derives categories from books', async () => {
     const books = [
       mockBook({ id: '1', category: '科幻' }),
@@ -246,6 +281,26 @@ describe('useShelfData', () => {
       await result.current.handleUpload(fakeEvent);
     });
 
+    expect(result.current.isUploading).toBe(false);
+  });
+
+  it('rejects unsupported upload formats', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const fakeFile = new File(['test'], 'notes.txt', { type: 'text/plain' });
+
+    await act(async () => {
+      await result.current.uploadFile(fakeFile);
+    });
+
+    expect(api.uploadBook).not.toHaveBeenCalled();
     expect(result.current.isUploading).toBe(false);
   });
 

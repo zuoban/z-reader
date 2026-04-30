@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
-import { useEffect, useState } from 'react';
+import type { CSSProperties, DragEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen,
@@ -12,8 +12,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Search,
   Sun,
   Upload,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
@@ -28,6 +30,7 @@ import { ShelfFilterSheet } from '@/components/ShelfFilterSheet';
 import { SortSelector } from '@/components/SortSelector';
 import { UserManager } from '@/components/UserManager';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
@@ -70,6 +73,8 @@ function ShelfTitle({ collapsed = false }: { collapsed?: boolean }) {
 
 export default function ShelfPage() {
   const router = useRouter();
+  const [isDraggingBookFile, setIsDraggingBookFile] = useState(false);
+  const dragDepthRef = useRef(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
 
@@ -91,6 +96,9 @@ export default function ShelfPage() {
     loadBooks,
     handleUpload,
     handleDelete,
+    searchQuery,
+    setSearchQuery,
+    uploadFile,
     formatFileSize,
     sortBy,
     setSortBy,
@@ -108,6 +116,42 @@ export default function ShelfPage() {
       String(isSidebarCollapsed)
     );
   }, [isSidebarCollapsed]);
+
+  function handleShelfDragEnter(event: DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes('Files')) return;
+
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingBookFile(true);
+  }
+
+  function handleShelfDragOver(event: DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes('Files')) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = isUploading ? 'none' : 'copy';
+  }
+
+  function handleShelfDragLeave(event: DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes('Files')) return;
+
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) {
+      setIsDraggingBookFile(false);
+    }
+  }
+
+  function handleShelfDrop(event: DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes('Files')) return;
+
+    event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDraggingBookFile(false);
+
+    if (isUploading) return;
+    void uploadFile(event.dataTransfer.files?.[0]);
+  }
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -324,9 +368,15 @@ export default function ShelfPage() {
           </div>
         </aside>
 
-      <main className="min-w-0 flex-1">
+      <main
+        className="min-w-0 flex-1"
+        onDragEnter={handleShelfDragEnter}
+        onDragOver={handleShelfDragOver}
+        onDragLeave={handleShelfDragLeave}
+        onDrop={handleShelfDrop}
+      >
         {!isLoadingBooks && books.length === 0 ? (
-          <div className="paper-reveal" style={delay(120)}>
+          <div className="paper-reveal relative" style={delay(120)}>
             <EmptyState
               icon={BookOpen}
               title="书架还是空的"
@@ -355,6 +405,15 @@ export default function ShelfPage() {
                 </FileUploadAction>
               }
             />
+            {isDraggingBookFile && (
+              <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
+                <div className="rounded-2xl bg-card/92 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow)]">
+                  <Upload className="mx-auto h-8 w-8 text-primary" />
+                  <p className="mt-3 font-heading text-xl font-semibold">松开以导入图书</p>
+                  <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
@@ -374,8 +433,29 @@ export default function ShelfPage() {
                     sortBy={sortBy}
                     onSortChange={setSortBy}
                   />
+                  <div className="relative w-full sm:max-w-[22rem]">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/55" />
+                    <Input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="搜索书名、作者、文件名"
+                      aria-label="搜索书架"
+                      className="h-11 rounded-lg border-primary/16 bg-card/92 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)]"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        aria-label="清空搜索"
+                        className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                   {/* Desktop: full dropdowns */}
-                  <div className="hidden w-full flex-row items-center gap-2 sm:flex">
+                  <div className="hidden w-full flex-row items-center gap-2 sm:flex sm:w-auto sm:shrink-0">
                     {categories.length > 0 && (
                       <CategoryFilter
                         categories={categories}
@@ -402,6 +482,27 @@ export default function ShelfPage() {
                 <div className="px-3 py-5 sm:px-6 sm:py-8 lg:px-7 lg:py-9">
                   <BookCardSkeletonGrid count={6} />
                 </div>
+              ) : filteredBooks.length === 0 ? (
+                <div className="flex min-h-[22rem] flex-col items-center justify-center px-6 py-12 text-center">
+                  <Search className="h-10 w-10 text-primary/55" />
+                  <h2 className="mt-4 font-heading text-2xl font-semibold text-foreground">
+                    没找到匹配的书
+                  </h2>
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                    换个关键词，或清空搜索和分类筛选后再看看。
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-5 h-10 rounded-lg px-4"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategoryId(null);
+                    }}
+                  >
+                    清空筛选
+                  </Button>
+                </div>
               ) : (
                 <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-6 px-3 py-5 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-x-6 sm:gap-y-10 sm:px-6 sm:py-8 lg:grid-cols-[repeat(auto-fill,minmax(196px,1fr))] lg:gap-x-8 lg:gap-y-12 lg:px-8 lg:py-9">
                   {filteredBooks.map((book, index) => (
@@ -419,6 +520,15 @@ export default function ShelfPage() {
                       progressPercentage={progressByBookId[book.id] ?? null}
                     />
                   ))}
+                </div>
+              )}
+              {isDraggingBookFile && (
+                <div className="pointer-events-none absolute inset-0 z-30 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/45 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
+                  <div className="rounded-2xl bg-card/92 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow)]">
+                    <Upload className="mx-auto h-8 w-8 text-primary" />
+                    <p className="mt-3 font-heading text-xl font-semibold">松开以导入图书</p>
+                    <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
+                  </div>
                 </div>
               )}
             </section>

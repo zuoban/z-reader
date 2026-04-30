@@ -8,6 +8,7 @@ import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
+const SUPPORTED_UPLOAD_EXTENSIONS = ['epub', 'mobi', 'azw3', 'pdf'];
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
 const VALID_SORT_OPTIONS: SortOption[] = ['recent_read', 'title', 'recent_added', 'author'];
@@ -91,6 +92,10 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
 }
 
+function getFileExtension(file: File) {
+  return file.name.split('.').pop()?.toLowerCase() ?? '';
+}
+
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
   const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
@@ -99,6 +104,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
+  const [searchQuery, setSearchQuery] = useState('');
   const enrichingBooksRef = useRef(new Set<string>());
 
   const enrichBookMetadata = useCallback(
@@ -191,13 +197,30 @@ export function useShelfData(isAuthenticated: boolean) {
   }, [categories, selectedCategoryId]);
 
   const filteredBooks = useMemo(() => {
-    const sorted = sortBooks(books, sortBy);
+    const query = searchQuery.trim().toLowerCase();
+    const searched = query
+      ? books.filter((book) => {
+          const haystack = [
+            book.title,
+            book.author,
+            book.filename,
+            book.category,
+            book.format,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+          return haystack.includes(query);
+        })
+      : books;
+    const sorted = sortBooks(searched, sortBy);
     if (!selectedCategoryId) return sorted;
     if (selectedCategoryId === UNCATEGORIZED_FILTER_ID) {
       return sorted.filter((book) => !book.category?.trim());
     }
     return sorted.filter((book) => book.category?.trim() === selectedCategoryId);
-  }, [books, selectedCategoryId, sortBy]);
+  }, [books, searchQuery, selectedCategoryId, sortBy]);
 
   const bookCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -215,9 +238,14 @@ export function useShelfData(isAuthenticated: boolean) {
     return counts;
   }, [books]);
 
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const uploadFile = useCallback(async (file: File | null | undefined) => {
     if (!file) return;
+
+    const extension = getFileExtension(file);
+    if (!SUPPORTED_UPLOAD_EXTENSIONS.includes(extension)) {
+      toast.error('仅支持 EPUB、MOBI、AZW3 或 PDF');
+      return;
+    }
 
     setIsUploading(true);
 
@@ -232,9 +260,13 @@ export function useShelfData(isAuthenticated: boolean) {
       toast.error(err instanceof Error ? err.message : '上传失败');
     } finally {
       setIsUploading(false);
-      e.target.value = '';
     }
   }, [sortBy, enrichBookMetadata]);
+
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await uploadFile(e.target.files?.[0]);
+    e.target.value = '';
+  }, [uploadFile]);
 
   const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id);
@@ -267,6 +299,9 @@ export function useShelfData(isAuthenticated: boolean) {
     filteredBooks,
     bookCounts,
     loadBooks,
+    searchQuery,
+    setSearchQuery,
+    uploadFile,
     handleUpload,
     handleDelete,
     formatFileSize,

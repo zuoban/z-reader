@@ -270,6 +270,23 @@ export const api = {
     await fetchApi(`/api/books/${id}`, { method: 'DELETE' });
   },
 
+  deleteBooks: async (ids: string[]): Promise<{ deleted_ids: string[] }> => {
+    return fetchApi<{ deleted_ids: string[] }>('/api/books/batch/delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    });
+  },
+
+  updateBooksCategory: async (
+    ids: string[],
+    category: string | null
+  ): Promise<{ books: Book[] }> => {
+    return fetchApi<{ books: Book[] }>('/api/books/batch/category', {
+      method: 'POST',
+      body: JSON.stringify({ ids, category }),
+    });
+  },
+
   getBookUrl: (id: string): string => {
     return `${API_BASE}/api/books/${id}/file`;
   },

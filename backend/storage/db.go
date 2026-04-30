@@ -557,51 +557,104 @@ func (db *DB) ListBooks(userID string) ([]models.Book, error) {
 	return books, err
 }
 
+func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, error) {
+	booksBucket := tx.Bucket(BooksBucket)
+	bookData := booksBucket.Get([]byte(id))
+	if bookData == nil {
+		return nil, ErrNotFound
+	}
+	var book models.Book
+	if err := json.Unmarshal(bookData, &book); err != nil {
+		return nil, err
+	}
+	if book.UserID != userID {
+		return nil, ErrNotFound
+	}
+	if err := booksBucket.Delete([]byte(id)); err != nil {
+		return nil, err
+	}
+
+	idxB := tx.Bucket(UserBooksIndex)
+	if err := removeBookFromUserIndex(idxB, id, userID); err != nil {
+		return nil, err
+	}
+
+	progressBucket := tx.Bucket(ProgressBucket)
+	if err := progressBucket.Delete(progressKey(userID, id)); err != nil {
+		return nil, err
+	}
+
+	bookmarksBucket := tx.Bucket(BookmarksBucket)
+	prefix := bookmarkBookPrefix(userID, id)
+	var bookmarkKeys [][]byte
+	if err := bookmarksBucket.ForEach(func(k, v []byte) error {
+		if bytes.HasPrefix(k, prefix) {
+			bookmarkKeys = append(bookmarkKeys, append([]byte(nil), k...))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	for _, key := range bookmarkKeys {
+		if err := bookmarksBucket.Delete(key); err != nil {
+			return nil, err
+		}
+	}
+	return &book, nil
+}
+
 func (db *DB) DeleteBookData(id string, userID string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		booksBucket := tx.Bucket(BooksBucket)
-		bookData := booksBucket.Get([]byte(id))
-		if bookData == nil {
-			return ErrNotFound
-		}
-		var book models.Book
-		if err := json.Unmarshal(bookData, &book); err != nil {
-			return err
-		}
-		if book.UserID != userID {
-			return ErrNotFound
-		}
-		if err := booksBucket.Delete([]byte(id)); err != nil {
-			return err
-		}
+		_, err := deleteBookDataInTx(tx, id, userID)
+		return err
+	})
+}
 
-		// Remove from user_books index
-		idxB := tx.Bucket(UserBooksIndex)
-		removeBookFromUserIndex(idxB, id, userID)
-
-		progressBucket := tx.Bucket(ProgressBucket)
-		if err := progressBucket.Delete(progressKey(userID, id)); err != nil {
-			return err
-		}
-
-		bookmarksBucket := tx.Bucket(BookmarksBucket)
-		prefix := bookmarkBookPrefix(userID, id)
-		var bookmarkKeys [][]byte
-		if err := bookmarksBucket.ForEach(func(k, v []byte) error {
-			if bytes.HasPrefix(k, prefix) {
-				bookmarkKeys = append(bookmarkKeys, append([]byte(nil), k...))
-			}
-			return nil
-		}); err != nil {
-			return err
-		}
-		for _, key := range bookmarkKeys {
-			if err := bookmarksBucket.Delete(key); err != nil {
+func (db *DB) DeleteBooksData(ids []string, userID string) ([]models.Book, error) {
+	deletedBooks := []models.Book{}
+	err := db.Update(func(tx *bbolt.Tx) error {
+		for _, id := range uniqueNonEmptyStrings(ids) {
+			book, err := deleteBookDataInTx(tx, id, userID)
+			if err != nil {
 				return err
 			}
+			deletedBooks = append(deletedBooks, *book)
 		}
 		return nil
 	})
+	return deletedBooks, err
+}
+
+func (db *DB) UpdateBooksCategory(ids []string, userID string, category *string) ([]models.Book, error) {
+	updatedBooks := []models.Book{}
+	err := db.Update(func(tx *bbolt.Tx) error {
+		booksBucket := tx.Bucket(BooksBucket)
+		normalizedCategory := normalizeCategoryName(category)
+		for _, id := range uniqueNonEmptyStrings(ids) {
+			bookData := booksBucket.Get([]byte(id))
+			if bookData == nil {
+				return ErrNotFound
+			}
+			var book models.Book
+			if err := json.Unmarshal(bookData, &book); err != nil {
+				return err
+			}
+			if book.UserID != userID {
+				return ErrNotFound
+			}
+			book.Category = normalizedCategory
+			data, err := json.Marshal(&book)
+			if err != nil {
+				return err
+			}
+			if err := booksBucket.Put([]byte(book.ID), data); err != nil {
+				return err
+			}
+			updatedBooks = append(updatedBooks, book)
+		}
+		return nil
+	})
+	return updatedBooks, err
 }
 
 func progressKey(userID string, bookID string) []byte {
@@ -893,6 +946,20 @@ func setBookIDsForUser(idxB *bbolt.Bucket, userID string, ids []string) error {
 		return err
 	}
 	return idxB.Put([]byte(userID), data)
+}
+
+func uniqueNonEmptyStrings(values []string) []string {
+	seen := make(map[string]bool, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		result = append(result, value)
+	}
+	return result
 }
 
 func addBookToUserIndex(idxB *bbolt.Bucket, bookID string, userID string) error {

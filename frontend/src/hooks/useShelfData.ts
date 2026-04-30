@@ -329,12 +329,9 @@ export function useShelfData(isAuthenticated: boolean) {
 
     setIsDeletingMany(true);
     uniqueIds.forEach(abortEnrichment);
-
-    const results = await Promise.allSettled(uniqueIds.map((id) => api.deleteBook(id)));
-    const deletedIds = uniqueIds.filter((_, index) => results[index].status === 'fulfilled');
-    const failedCount = uniqueIds.length - deletedIds.length;
-
-    if (deletedIds.length > 0) {
+    try {
+      const result = await api.deleteBooks(uniqueIds);
+      const deletedIds = result.deleted_ids ?? uniqueIds;
       const deletedSet = new Set(deletedIds);
       setBooks((prev) => prev.filter((book) => !deletedSet.has(book.id)));
       setProgressByBookId((prev) => {
@@ -344,18 +341,14 @@ export function useShelfData(isAuthenticated: boolean) {
         });
         return next;
       });
-    }
-
-    if (deletedIds.length > 0 && failedCount === 0) {
       toast.success(`已删除 ${deletedIds.length} 本图书`);
-    } else if (deletedIds.length > 0) {
-      toast.error(`已删除 ${deletedIds.length} 本，${failedCount} 本失败`);
-    } else {
-      toast.error('删除失败');
+      return { successCount: deletedIds.length, failedCount: 0 };
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '删除失败');
+      return { successCount: 0, failedCount: uniqueIds.length };
+    } finally {
+      setIsDeletingMany(false);
     }
-
-    setIsDeletingMany(false);
-    return { successCount: deletedIds.length, failedCount };
   }, [abortEnrichment]);
 
   const handleUpdateCategoryMany = useCallback(async (ids: string[], category: string | null) => {
@@ -369,32 +362,22 @@ export function useShelfData(isAuthenticated: boolean) {
     }
 
     setIsUpdatingManyCategories(true);
-    const results = await Promise.allSettled(
-      uniqueIds.map((id) => api.updateBook(id, { category: nextCategory }))
-    );
-    const updatedBooks = results
-      .filter((result): result is PromiseFulfilledResult<Book> => result.status === 'fulfilled')
-      .map((result) => result.value);
-    const failedCount = uniqueIds.length - updatedBooks.length;
-
-    if (updatedBooks.length > 0) {
+    try {
+      const result = await api.updateBooksCategory(uniqueIds, nextCategory);
+      const updatedBooks = result.books ?? [];
       const updatedById = new Map(updatedBooks.map((book) => [book.id, book]));
       setBooks((prev) => sortBooks(
         prev.map((book) => updatedById.get(book.id) ?? book),
         sortBy
       ));
-    }
-
-    if (updatedBooks.length > 0 && failedCount === 0) {
       toast.success(nextCategory ? `已设置为「${nextCategory}」` : '已清空所选分类');
-    } else if (updatedBooks.length > 0) {
-      toast.error(`已更新 ${updatedBooks.length} 本，${failedCount} 本失败`);
-    } else {
-      toast.error('设置分类失败');
+      return { successCount: updatedBooks.length, failedCount: 0 };
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '设置分类失败');
+      return { successCount: 0, failedCount: uniqueIds.length };
+    } finally {
+      setIsUpdatingManyCategories(false);
     }
-
-    setIsUpdatingManyCategories(false);
-    return { successCount: updatedBooks.length, failedCount };
   }, [sortBy]);
 
   return {

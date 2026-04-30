@@ -229,6 +229,51 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
 }
 
+func (h *BooksHandler) BatchDelete(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var req batchBookIDsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求内容无效")
+		return
+	}
+	if len(req.IDs) == 0 {
+		response.BadRequest(c, "请选择要删除的图书")
+		return
+	}
+
+	deletedBooks, err := h.db.DeleteBooksData(req.IDs, userID)
+	if err != nil {
+		if err == storage.ErrNotFound {
+			response.NotFound(c, "部分图书不存在")
+			return
+		}
+		response.InternalError(c, "删除图书失败")
+		return
+	}
+
+	for _, book := range deletedBooks {
+		if path, err := resolveUploadPath(h.cfg.UploadDir, book.Filename); err == nil {
+			removeFileIfExists(path)
+		}
+		if book.CoverPath != "" {
+			if path, err := resolveUploadPath(h.cfg.UploadDir, book.CoverPath); err == nil {
+				removeFileIfExists(path)
+			}
+		}
+	}
+
+	deletedIDs := make([]string, 0, len(deletedBooks))
+	for _, book := range deletedBooks {
+		deletedIDs = append(deletedIDs, book.ID)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted_ids": deletedIDs})
+}
+
 func (h *BooksHandler) GetFile(c *gin.Context) {
 	id := c.Param("id")
 	userID, ok := currentUserID(c)
@@ -290,6 +335,15 @@ func (o *optionalString) UnmarshalJSON(data []byte) error {
 type bookUpdateRequest struct {
 	Title    optionalString `json:"title"`
 	Author   optionalString `json:"author"`
+	Category optionalString `json:"category"`
+}
+
+type batchBookIDsRequest struct {
+	IDs []string `json:"ids"`
+}
+
+type batchBookCategoryRequest struct {
+	IDs      []string       `json:"ids"`
 	Category optionalString `json:"category"`
 }
 
@@ -534,6 +588,49 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, book)
+}
+
+func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var req batchBookCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求内容无效")
+		return
+	}
+	if len(req.IDs) == 0 {
+		response.BadRequest(c, "请选择要设置分类的图书")
+		return
+	}
+	if !req.Category.Set {
+		response.BadRequest(c, "缺少分类字段")
+		return
+	}
+
+	category := normalizeBookCategory(req.Category.Value)
+	if category != nil && len([]rune(*category)) > 50 {
+		response.BadRequest(c, "分类不能超过 50 个字符")
+		return
+	}
+
+	books, err := h.db.UpdateBooksCategory(req.IDs, userID, category)
+	if err != nil {
+		if err == storage.ErrNotFound {
+			response.NotFound(c, "部分图书不存在")
+			return
+		}
+		response.InternalError(c, "设置分类失败")
+		return
+	}
+
+	for i := range books {
+		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"books": books})
 }
 
 func (h *BooksHandler) RemoveCategory(c *gin.Context) {

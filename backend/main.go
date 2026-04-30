@@ -100,6 +100,8 @@ func main() {
 		api.GET("/books", booksHandler.List)
 		api.GET("/books/:id", booksHandler.Get)
 		api.POST("/books", booksHandler.Upload)
+		api.POST("/books/batch/delete", booksHandler.BatchDelete)
+		api.POST("/books/batch/category", booksHandler.BatchUpdateCategory)
 		api.PATCH("/books/:id", booksHandler.Update)
 		api.DELETE("/books/:id/category", booksHandler.RemoveCategory)
 		api.POST("/books/:id/cover", booksHandler.UploadCover)

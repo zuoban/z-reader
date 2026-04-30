@@ -11,7 +11,9 @@ vi.mock('@/lib/api', () => ({
     listProgress: vi.fn(),
     uploadBook: vi.fn(),
     deleteBook: vi.fn(),
+    deleteBooks: vi.fn(),
     updateBook: vi.fn(),
+    updateBooksCategory: vi.fn(),
     uploadCover: vi.fn(),
   },
 }));
@@ -356,7 +358,7 @@ describe('useShelfData', () => {
     const book = mockBook();
     vi.mocked(api.listBooks).mockResolvedValue([book]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    vi.mocked(api.deleteBook).mockResolvedValue(undefined);
+    vi.mocked(api.deleteBooks).mockResolvedValue({ deleted_ids: ['book-1', 'book-2'] });
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -399,19 +401,17 @@ describe('useShelfData', () => {
 
     expect(result.current.books.map((book) => book.id)).toEqual(['book-3']);
     expect(result.current.progressByBookId).toEqual({});
-    expect(api.deleteBook).toHaveBeenCalledTimes(2);
+    expect(api.deleteBooks).toHaveBeenCalledWith(['book-1', 'book-2']);
   });
 
-  it('keeps failed books after partial batch delete failure', async () => {
+  it('keeps books after batch delete failure', async () => {
     const books = [
       mockBook({ id: 'book-1', title: 'One' }),
       mockBook({ id: 'book-2', title: 'Two' }),
     ];
     vi.mocked(api.listBooks).mockResolvedValue(books);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    vi.mocked(api.deleteBook)
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error('Delete failed'));
+    vi.mocked(api.deleteBooks).mockRejectedValue(new Error('Delete failed'));
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -423,8 +423,8 @@ describe('useShelfData', () => {
       return result.current.handleDeleteMany(['book-1', 'book-2']);
     });
 
-    expect(batchResult).toEqual({ successCount: 1, failedCount: 1 });
-    expect(result.current.books.map((book) => book.id)).toEqual(['book-2']);
+    expect(batchResult).toEqual({ successCount: 0, failedCount: 2 });
+    expect(result.current.books.map((book) => book.id)).toEqual(['book-1', 'book-2']);
   });
 
   it('updates categories for multiple books', async () => {
@@ -434,9 +434,12 @@ describe('useShelfData', () => {
     ];
     vi.mocked(api.listBooks).mockResolvedValue(books);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    vi.mocked(api.updateBook)
-      .mockResolvedValueOnce(mockBook({ id: 'book-1', title: 'One', category: '科幻' }))
-      .mockResolvedValueOnce(mockBook({ id: 'book-2', title: 'Two', category: '科幻' }));
+    vi.mocked(api.updateBooksCategory).mockResolvedValue({
+      books: [
+        mockBook({ id: 'book-1', title: 'One', category: '科幻' }),
+        mockBook({ id: 'book-2', title: 'Two', category: '科幻' }),
+      ],
+    });
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -450,7 +453,7 @@ describe('useShelfData', () => {
 
     expect(updateResult).toEqual({ successCount: 2, failedCount: 0 });
     expect(result.current.books.every((book) => book.category === '科幻')).toBe(true);
-    expect(api.updateBook).toHaveBeenCalledTimes(2);
+    expect(api.updateBooksCategory).toHaveBeenCalledWith(['book-1', 'book-2'], '科幻');
   });
 
   it('rejects too long batch category names', async () => {
@@ -468,7 +471,7 @@ describe('useShelfData', () => {
     });
 
     expect(updateResult).toEqual({ successCount: 0, failedCount: 1 });
-    expect(api.updateBook).not.toHaveBeenCalled();
+    expect(api.updateBooksCategory).not.toHaveBeenCalled();
   });
 
   it('handles delete error', async () => {

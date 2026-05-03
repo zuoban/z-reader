@@ -40,7 +40,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-const SUPPORTED_FORMATS_ACCEPT = '.epub,.mobi,.azw3,.pdf,application/pdf';
+const SUPPORTED_FORMATS_ACCEPT = [
+  '.epub',
+  '.mobi',
+  '.azw3',
+  '.pdf',
+  'application/epub+zip',
+  'application/pdf',
+  'application/x-mobipocket-ebook',
+].join(',');
 const SHELF_TITLE = '我的书架';
 const SHELF_SIDEBAR_COLLAPSED_KEY = 'z-reader:shelf-sidebar-collapsed';
 
@@ -174,6 +182,11 @@ export default function ShelfPage() {
   function changeSelectedCategory(categoryId: string | null) {
     setSelectedCategoryId(categoryId);
     clearSelectionWhenFiltering();
+  }
+
+  function clearShelfFilters() {
+    changeSearchQuery('');
+    changeSelectedCategory(null);
   }
 
   function toggleSelectionMode() {
@@ -446,6 +459,7 @@ export default function ShelfPage() {
                     currentUser={user}
                     triggerLabel="用户管理"
                     buttonClassName="shelf-menu-item"
+                    triggerTitle="用户管理"
                   />
                 )}
 
@@ -456,7 +470,7 @@ export default function ShelfPage() {
                   title="上传书籍"
                   multiple
                   statusLabel={uploadStatusLabel}
-                  wrapperClassName="overflow-visible"
+                  wrapperClassName="shelf-tooltip overflow-visible"
                   buttonVariant="ghost"
                   buttonSize="sm"
                   buttonClassName={cn(
@@ -477,7 +491,9 @@ export default function ShelfPage() {
                   size="sm"
                   onClick={() => setCategoryManagerOpen(true)}
                   aria-label="分类管理"
-                  className="shelf-menu-item cursor-pointer"
+                  title="分类管理"
+                  data-tooltip="分类管理"
+                  className="shelf-menu-item shelf-tooltip cursor-pointer"
                 >
                   <Tag className="h-4 w-4" />
                   <span>分类管理</span>
@@ -488,7 +504,9 @@ export default function ShelfPage() {
                   size="sm"
                   onClick={toggleTheme}
                   aria-label={isDark ? '切换亮色模式' : '切换暗色模式'}
-                  className="shelf-menu-item cursor-pointer"
+                  title={isDark ? '切换亮色模式' : '切换暗色模式'}
+                  data-tooltip={isDark ? '亮色模式' : '暗色模式'}
+                  className="shelf-menu-item shelf-tooltip cursor-pointer"
                 >
                   {isDark ? (
                     <Sun className="h-4 w-4" />
@@ -503,7 +521,9 @@ export default function ShelfPage() {
                   size="sm"
                   onClick={logout}
                   aria-label="退出"
-                  className="shelf-menu-item cursor-pointer text-muted-foreground hover:text-destructive"
+                  title="退出登录"
+                  data-tooltip="退出登录"
+                  className="shelf-menu-item shelf-tooltip cursor-pointer text-muted-foreground hover:text-destructive"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>退出登录</span>
@@ -629,6 +649,14 @@ export default function ShelfPage() {
                           {searchQuery.trim()}
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={clearShelfFilters}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/12 bg-card/80 px-2 text-[11px] font-semibold text-primary/78 transition-colors hover:border-primary/24 hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/18"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        清空
+                      </button>
                     </div>
                   )}
                   <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:order-last sm:flex sm:w-auto">
@@ -706,8 +734,7 @@ export default function ShelfPage() {
                     variant="outline"
                     className="mt-5 h-10 rounded-lg px-4"
                     onClick={() => {
-                      changeSearchQuery('');
-                      changeSelectedCategory(null);
+                      clearShelfFilters();
                     }}
                   >
                     清空筛选
@@ -773,9 +800,13 @@ export default function ShelfPage() {
                       variant="outline"
                       className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
                       onClick={toggleVisibleSelection}
+                      title={allVisibleSelected ? '取消选择当前视图' : '选择当前视图'}
                     >
-                      <span className="truncate">
+                      <span className="truncate sm:hidden">
                         {allVisibleSelected ? '取消当前' : '选当前'}
+                      </span>
+                      <span className="hidden truncate sm:inline">
+                        {allVisibleSelected ? '取消当前视图' : '选择当前视图'}
                       </span>
                     </Button>
                     <Button
@@ -784,9 +815,11 @@ export default function ShelfPage() {
                       className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
+                      title="设置分类"
                     >
                       <Tag className="h-4 w-4 shrink-0" />
-                      <span className="truncate">分类</span>
+                      <span className="truncate sm:hidden">分类</span>
+                      <span className="hidden truncate sm:inline">设置分类</span>
                     </Button>
                     <Button
                       type="button"
@@ -794,9 +827,11 @@ export default function ShelfPage() {
                       className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
+                      title="删除所选"
                     >
                       <Trash2 className="h-4 w-4 shrink-0" />
-                      <span className="truncate">删除</span>
+                      <span className="truncate sm:hidden">删除</span>
+                      <span className="hidden truncate sm:inline">删除所选</span>
                     </Button>
                   </div>
                 </div>

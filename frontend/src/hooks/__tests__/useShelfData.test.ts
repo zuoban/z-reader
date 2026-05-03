@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { toast } from 'sonner';
 import { useShelfData } from '@/hooks/useShelfData';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
@@ -308,12 +309,14 @@ describe('useShelfData', () => {
       await result.current.handleUpload(fakeEvent);
     });
 
+    expect(toast.error).toHaveBeenCalledWith('Upload failed');
     expect(result.current.isUploading).toBe(false);
   });
 
-  it('rejects unsupported upload formats', async () => {
+  it('passes unsupported upload formats to the API for backend validation', async () => {
     vi.mocked(api.listBooks).mockResolvedValue([]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.uploadBook).mockRejectedValue(new Error('支持的格式：EPUB、MOBI、AZW3、PDF'));
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -327,14 +330,38 @@ describe('useShelfData', () => {
       await result.current.uploadFile(fakeFile);
     });
 
-    expect(api.uploadBook).not.toHaveBeenCalled();
+    expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
+    expect(toast.error).toHaveBeenCalledWith('支持的格式：EPUB、MOBI、AZW3、PDF');
     expect(result.current.isUploading).toBe(false);
   });
 
-  it('skips unsupported files during batch upload', async () => {
+  it('uploads epub files when the filename is unusual', async () => {
     vi.mocked(api.listBooks).mockResolvedValue([]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'supported' }));
+    vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'epub-by-mime' }));
+    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'epub-by-mime' }));
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const fakeFile = new File(['book'], 'download', { type: 'application/epub+zip' });
+
+    await act(async () => {
+      await result.current.uploadFile(fakeFile);
+    });
+
+    expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
+  });
+
+  it('uploads every selected file and lets the backend reject unsupported files', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.uploadBook)
+      .mockResolvedValueOnce(mockBook({ id: 'supported' }))
+      .mockRejectedValueOnce(new Error('支持的格式：EPUB、MOBI、AZW3、PDF'));
     vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'supported' }));
 
     const { result } = renderHook(() => useShelfData(true));
@@ -350,8 +377,9 @@ describe('useShelfData', () => {
       await result.current.uploadFiles([supportedFile, unsupportedFile]);
     });
 
-    expect(api.uploadBook).toHaveBeenCalledTimes(1);
+    expect(api.uploadBook).toHaveBeenCalledTimes(2);
     expect(api.uploadBook).toHaveBeenCalledWith(supportedFile);
+    expect(api.uploadBook).toHaveBeenCalledWith(unsupportedFile);
   });
 
   it('handles delete success', async () => {

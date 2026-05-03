@@ -117,8 +117,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	format, ok := supportedBookFormats[ext]
+	format, ext, ok := inferUploadedBookFormat(file)
 	if !ok {
 		response.BadRequest(c, "支持的格式：EPUB、MOBI、AZW3、PDF")
 		return
@@ -128,27 +127,30 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	contentHash, err := hashUploadedFile(file)
+	bookID := uuid.New().String()
+	filename := bookID + ext
+	filepath := filepath.Join(h.cfg.UploadDir, filename)
+
+	if err := saveUploadedBookFile(file, format, filepath); err != nil {
+		response.InternalError(c, "保存文件失败")
+		return
+	}
+
+	contentHash, err := hashFile(filepath)
 	if err != nil {
+		removeFileIfExists(filepath)
 		response.InternalError(c, "读取上传文件失败")
 		return
 	}
 	existing, err := h.findDuplicateBook(userID, contentHash)
 	if err != nil {
+		removeFileIfExists(filepath)
 		response.InternalError(c, "检查重复图书失败")
 		return
 	}
 	if existing != nil {
+		removeFileIfExists(filepath)
 		response.Conflict(c, duplicateBookMessage(existing))
-		return
-	}
-
-	bookID := uuid.New().String()
-	filename := bookID + ext
-	filepath := filepath.Join(h.cfg.UploadDir, filename)
-
-	if err := c.SaveUploadedFile(file, filepath); err != nil {
-		response.InternalError(c, "保存文件失败")
 		return
 	}
 
@@ -297,6 +299,25 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 		response.Forbidden(c, "文件访问被拒绝")
 		return
 	}
+	if book.Format == "epub" {
+		normalized, err := normalizeStoredEPUBFile(filePath)
+		if err != nil {
+			response.InternalError(c, "读取书籍失败")
+			return
+		}
+		if normalized {
+			if info, statErr := os.Stat(filePath); statErr == nil {
+				book.Size = info.Size()
+			}
+			if contentHash, hashErr := hashFile(filePath); hashErr == nil {
+				book.ContentHash = contentHash
+			}
+			if err := h.db.SaveBook(book); err != nil {
+				response.InternalError(c, "更新书籍失败")
+				return
+			}
+		}
+	}
 
 	setPrivateCache(c, bookFileCacheMaxAge)
 	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
@@ -366,6 +387,46 @@ func normalizeBookFormat(format string, filename string) string {
 	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
 }
 
+func inferUploadedBookFormat(file *multipart.FileHeader) (string, string, bool) {
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if format, ok := supportedBookFormats[ext]; ok {
+		return format, ext, true
+	}
+
+	if format, ext, ok := inferBookFormatFromContentType(file.Header.Get("Content-Type")); ok {
+		return format, ext, true
+	}
+
+	header, err := readUploadedFileHeader(file, 512)
+	if err != nil {
+		return "", "", false
+	}
+	if bytes.HasPrefix(header, []byte("%PDF-")) {
+		return "pdf", ".pdf", true
+	}
+	if hasMobiSignature(header) {
+		return "mobi", ".mobi", true
+	}
+	if isValidEPUBFile(file) {
+		return "epub", ".epub", true
+	}
+
+	return "", "", false
+}
+
+func inferBookFormatFromContentType(contentType string) (string, string, bool) {
+	switch strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0])) {
+	case "application/epub+zip":
+		return "epub", ".epub", true
+	case "application/pdf":
+		return "pdf", ".pdf", true
+	case "application/x-mobipocket-ebook":
+		return "mobi", ".mobi", true
+	default:
+		return "", "", false
+	}
+}
+
 func validateUploadedBook(file *multipart.FileHeader, format string) error {
 	header, err := readUploadedFileHeader(file, 512)
 	if err != nil {
@@ -378,7 +439,7 @@ func validateUploadedBook(file *multipart.FileHeader, format string) error {
 			return fmt.Errorf("上传文件与 PDF 格式不匹配")
 		}
 	case "epub":
-		if !isZIPHeader(header) {
+		if !isValidEPUBFile(file) {
 			return fmt.Errorf("上传文件与 EPUB 格式不匹配")
 		}
 	case "mobi", "azw3":
@@ -459,6 +520,122 @@ func hashFile(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+func saveUploadedBookFile(file *multipart.FileHeader, format string, path string) error {
+	if format == "epub" {
+		if ok, err := saveNormalizedEPUBFile(file, path); ok || err != nil {
+			return err
+		}
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	return err
+}
+
+func saveNormalizedEPUBFile(file *multipart.FileHeader, path string) (bool, error) {
+	src, err := file.Open()
+	if err != nil {
+		return false, err
+	}
+	defer src.Close()
+
+	reader, err := zip.NewReader(src, file.Size)
+	if err != nil {
+		return false, nil
+	}
+
+	root, ok := epubPackageRoot(reader)
+	if !ok {
+		return false, nil
+	}
+
+	if err := writeNormalizedEPUBZip(reader, root, path); err != nil {
+		return true, err
+	}
+
+	return true, nil
+}
+
+func normalizeStoredEPUBFile(path string) (bool, error) {
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		return false, nil
+	}
+	defer reader.Close()
+
+	root, ok := epubPackageRoot(&reader.Reader)
+	if !ok {
+		return false, nil
+	}
+
+	tmpPath := path + ".normalized"
+	if err := writeNormalizedEPUBZip(&reader.Reader, root, tmpPath); err != nil {
+		removeFileIfExists(tmpPath)
+		return false, err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		removeFileIfExists(tmpPath)
+		return false, err
+	}
+
+	return true, nil
+}
+
+func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string) error {
+	dst, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	writer := zip.NewWriter(dst)
+	for _, entry := range reader.File {
+		normalizedName, ok := stripEPUBPackageRoot(entry.Name, root)
+		if !ok || normalizedName == "" || strings.HasSuffix(normalizedName, "/") {
+			continue
+		}
+		if strings.HasPrefix(normalizedName, "../") || strings.Contains(normalizedName, "/../") {
+			continue
+		}
+
+		header := entry.FileHeader
+		header.Name = normalizedName
+		if header.Name == "mimetype" {
+			header.Method = zip.Store
+		}
+
+		entryReader, err := entry.Open()
+		if err != nil {
+			return err
+		}
+		target, err := writer.CreateHeader(&header)
+		if err != nil {
+			entryReader.Close()
+			return err
+		}
+		if _, err := io.Copy(target, entryReader); err != nil {
+			entryReader.Close()
+			return err
+		}
+		if err := entryReader.Close(); err != nil {
+			return err
+		}
+	}
+
+	return writer.Close()
+}
+
 func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*models.Book, error) {
 	existing, err := h.db.FindBookByContentHash(userID, contentHash)
 	if err != nil || existing != nil {
@@ -512,12 +689,75 @@ func duplicateBookMessage(book *models.Book) string {
 	return fmt.Sprintf("《%s》已在书架中，请勿重复上传", book.Title)
 }
 
-func isZIPHeader(header []byte) bool {
-	return len(header) >= 4 &&
-		header[0] == 'P' &&
-		header[1] == 'K' &&
-		(header[2] == 3 || header[2] == 5 || header[2] == 7) &&
-		(header[3] == 4 || header[3] == 6 || header[3] == 8)
+func isValidEPUBFile(file *multipart.FileHeader) bool {
+	src, err := file.Open()
+	if err != nil {
+		return false
+	}
+	defer src.Close()
+
+	reader, err := zip.NewReader(src, file.Size)
+	if err != nil {
+		return false
+	}
+
+	hasMimetype := false
+	hasContainer := false
+	for _, entry := range reader.File {
+		name := normalizeEPUBZipEntryName(entry.Name)
+		switch name {
+		case "mimetype":
+			data, err := readZipFileWithLimit(entry, 128)
+			if err != nil {
+				return false
+			}
+			hasMimetype = strings.TrimSpace(string(data)) == "application/epub+zip"
+		case "meta-inf/container.xml":
+			hasContainer = true
+		}
+	}
+
+	return hasMimetype || hasContainer
+}
+
+func normalizeEPUBZipEntryName(name string) string {
+	normalized := strings.ToLower(strings.TrimLeft(name, "/"))
+	parts := strings.Split(normalized, "/")
+	if len(parts) > 1 && strings.HasSuffix(parts[0], ".epub") {
+		return strings.Join(parts[1:], "/")
+	}
+	return normalized
+}
+
+func epubPackageRoot(reader *zip.Reader) (string, bool) {
+	roots := make(map[string]bool)
+	for _, entry := range reader.File {
+		name := strings.ToLower(strings.TrimLeft(entry.Name, "/"))
+		parts := strings.Split(name, "/")
+		if len(parts) <= 1 || !strings.HasSuffix(parts[0], ".epub") {
+			continue
+		}
+		stripped := strings.Join(parts[1:], "/")
+		if stripped == "mimetype" || stripped == "meta-inf/container.xml" {
+			roots[parts[0]+"/"] = true
+		}
+	}
+
+	if len(roots) != 1 {
+		return "", false
+	}
+	for root := range roots {
+		return root, true
+	}
+	return "", false
+}
+
+func stripEPUBPackageRoot(name string, root string) (string, bool) {
+	trimmed := strings.TrimLeft(name, "/")
+	if len(trimmed) < len(root) || !strings.EqualFold(trimmed[:len(root)], root) {
+		return "", false
+	}
+	return strings.TrimLeft(trimmed[len(root):], "/"), true
 }
 
 func hasMobiSignature(header []byte) bool {

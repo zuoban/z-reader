@@ -38,9 +38,15 @@ interface UserManagerProps {
   currentUser?: User | null;
   buttonClassName?: string;
   triggerLabel?: string;
+  triggerTitle?: string;
 }
 
-export function UserManager({ currentUser, buttonClassName, triggerLabel }: UserManagerProps) {
+export function UserManager({
+  currentUser,
+  buttonClassName,
+  triggerLabel,
+  triggerTitle,
+}: UserManagerProps) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [username, setUsername] = useState('');
@@ -173,7 +179,9 @@ export function UserManager({ currentUser, buttonClassName, triggerLabel }: User
             variant="ghost"
             size="sm"
             aria-label="用户管理"
-            className={cn(buttonClassName, 'cursor-pointer')}
+            title={triggerTitle ?? triggerLabel ?? '用户管理'}
+            data-tooltip={triggerTitle ?? triggerLabel ?? '用户管理'}
+            className={cn(buttonClassName, triggerTitle && 'shelf-tooltip', 'cursor-pointer')}
           />
         }
       >

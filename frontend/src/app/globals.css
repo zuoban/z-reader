@@ -1237,6 +1237,20 @@ foliate-view::part(filter) {
     transform: translateX(-50%) translateY(0) scale(1);
   }
 
+  @media (min-width: 1024px) {
+    .shelf-sidebar-collapsed .shelf-tooltip::after {
+      left: calc(100% + 0.65rem);
+      top: 50%;
+      transform: translateY(-50%) translateX(-0.25rem) scale(0.96);
+      transform-origin: left center;
+    }
+
+    .shelf-sidebar-collapsed .shelf-tooltip:hover::after,
+    .shelf-sidebar-collapsed .shelf-tooltip:focus-within::after {
+      transform: translateY(-50%) translateX(0) scale(1);
+    }
+  }
+
   .liquid-glass-specular {
     position: relative;
   }

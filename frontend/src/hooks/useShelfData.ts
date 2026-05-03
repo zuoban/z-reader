@@ -8,7 +8,6 @@ import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
-const SUPPORTED_UPLOAD_EXTENSIONS = ['epub', 'mobi', 'azw3', 'pdf'];
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
 export interface UploadProgress {
@@ -95,14 +94,6 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}K`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
-}
-
-function getFileExtension(file: File) {
-  return file.name.split('.').pop()?.toLowerCase() ?? '';
-}
-
-function isSupportedUploadFile(file: File) {
-  return SUPPORTED_UPLOAD_EXTENSIONS.includes(getFileExtension(file));
 }
 
 export function useShelfData(isAuthenticated: boolean) {
@@ -257,26 +248,22 @@ export function useShelfData(isAuthenticated: boolean) {
     const files = Array.from(fileList ?? []);
     if (files.length === 0) return;
 
-    const supportedFiles = files.filter(isSupportedUploadFile);
-    const unsupportedCount = files.length - supportedFiles.length;
+    const uploadableFiles = files.filter((file) => file.size > 0);
 
-    if (supportedFiles.length === 0) {
-      toast.error('仅支持 EPUB、MOBI、AZW3 或 PDF');
+    if (uploadableFiles.length === 0) {
+      toast.error('请选择 EPUB、MOBI、AZW3 或 PDF 文件');
       return;
     }
 
-    if (unsupportedCount > 0) {
-      toast.error(`已跳过 ${unsupportedCount} 个不支持的文件`);
-    }
-
     setIsUploading(true);
-    setUploadProgress({ current: 0, total: supportedFiles.length });
+    setUploadProgress({ current: 0, total: uploadableFiles.length });
 
     let successCount = 0;
     let failedCount = 0;
+    const failureMessages: string[] = [];
 
-    for (const [index, file] of supportedFiles.entries()) {
-      setUploadProgress({ current: index + 1, total: supportedFiles.length });
+    for (const [index, file] of uploadableFiles.entries()) {
+      setUploadProgress({ current: index + 1, total: uploadableFiles.length });
       try {
         const book = await api.uploadBook(file);
         successCount += 1;
@@ -286,6 +273,9 @@ export function useShelfData(isAuthenticated: boolean) {
         void enrichBookMetadata(book.id, file);
       } catch (err) {
         failedCount += 1;
+        if (err instanceof Error && err.message.trim()) {
+          failureMessages.push(err.message.trim());
+        }
         console.error('Failed to upload book:', err);
       }
     }
@@ -295,7 +285,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } else if (successCount > 0) {
       toast.error(`已添加 ${successCount} 本，${failedCount} 本失败`);
     } else {
-      toast.error('上传失败');
+      toast.error(failureMessages[0] ?? '上传失败');
     }
 
     setUploadProgress(null);

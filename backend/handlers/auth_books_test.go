@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -391,7 +392,17 @@ func TestValidateUploadedBook(t *testing.T) {
 	}{
 		{name: "pdf ok", format: "pdf", content: []byte("%PDF-1.7 test")},
 		{name: "pdf mismatch", format: "pdf", content: []byte("not-a-pdf"), wantErr: true},
-		{name: "epub ok", format: "epub", content: []byte{'P', 'K', 3, 4, 0, 0}},
+		{name: "epub ok", format: "epub", content: zipBytes(t, map[string][]byte{
+			"mimetype":               []byte("application/epub+zip"),
+			"META-INF/container.xml": []byte("<container/>"),
+		})},
+		{name: "macos packaged epub ok", format: "epub", content: zipBytes(t, map[string][]byte{
+			"笔记的方法.epub/mimetype":               []byte("application/epub+zip"),
+			"笔记的方法.epub/META-INF/container.xml": []byte("<container/>"),
+		})},
+		{name: "epub rejects plain zip", format: "epub", content: zipBytes(t, map[string][]byte{
+			"readme.txt": []byte("not an epub"),
+		}), wantErr: true},
 		{name: "mobi ok", format: "mobi", content: append(make([]byte, 60), []byte("BOOKMOBI")...)},
 		{name: "azw3 mismatch", format: "azw3", content: []byte("plain-text"), wantErr: true},
 	}
@@ -407,6 +418,68 @@ func TestValidateUploadedBook(t *testing.T) {
 	}
 }
 
+func TestInferBookFormatFromContentType(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		wantFormat  string
+		wantExt     string
+		wantOK      bool
+	}{
+		{
+			name:        "epub with charset",
+			contentType: "application/epub+zip; charset=binary",
+			wantFormat:  "epub",
+			wantExt:     ".epub",
+			wantOK:      true,
+		},
+		{
+			name:        "pdf",
+			contentType: "application/pdf",
+			wantFormat:  "pdf",
+			wantExt:     ".pdf",
+			wantOK:      true,
+		},
+		{
+			name:        "unsupported",
+			contentType: "application/zip",
+			wantOK:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotFormat, gotExt, gotOK := inferBookFormatFromContentType(tt.contentType)
+			if gotFormat != tt.wantFormat || gotExt != tt.wantExt || gotOK != tt.wantOK {
+				t.Fatalf(
+					"inferBookFormatFromContentType() = %q, %q, %v; want %q, %q, %v",
+					gotFormat,
+					gotExt,
+					gotOK,
+					tt.wantFormat,
+					tt.wantExt,
+					tt.wantOK,
+				)
+			}
+		})
+	}
+}
+
+func TestInferUploadedBookFormatFromContent(t *testing.T) {
+	file := newMultipartFileHeader(t, "download", validEPUBBytes(t))
+
+	gotFormat, gotExt, gotOK := inferUploadedBookFormat(file)
+
+	if gotFormat != "epub" || gotExt != ".epub" || !gotOK {
+		t.Fatalf(
+			"inferUploadedBookFormat() = %q, %q, %v; want epub, .epub, true",
+			gotFormat,
+			gotExt,
+			gotOK,
+		)
+	}
+}
+
 func TestBooksUploadRejectsDuplicateContent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -414,7 +487,7 @@ func TestBooksUploadRejectsDuplicateContent(t *testing.T) {
 	uploadDir := t.TempDir()
 	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
 	userID := "user-a"
-	content := []byte{'P', 'K', 3, 4, 0, 0}
+	content := validEPUBBytes(t)
 
 	firstRecorder := httptest.NewRecorder()
 	firstCtx, _ := gin.CreateTestContext(firstRecorder)
@@ -465,7 +538,7 @@ func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
 	uploadDir := t.TempDir()
 	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
 	userID := "user-a"
-	content := []byte{'P', 'K', 3, 4, 0, 0}
+	content := validEPUBBytes(t)
 	legacyBook := &models.Book{
 		ID:        "legacy-book",
 		UserID:    userID,
@@ -499,6 +572,86 @@ func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
 	}
 	if got == nil || got.ContentHash == "" {
 		t.Fatalf("expected legacy book hash to be backfilled, got %+v", got)
+	}
+}
+
+func TestBooksUploadNormalizesMacOSPackagedEPUB(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	userID := "user-a"
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Request = newMultipartUploadRequest(t, "笔记的方法.epub.zip", macOSPackagedEPUBBytes(t))
+
+	handler.Upload(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected upload status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	books, err := db.ListBooks(userID)
+	if err != nil {
+		t.Fatalf("ListBooks returned error: %v", err)
+	}
+	if len(books) != 1 {
+		t.Fatalf("expected 1 uploaded book, got %d", len(books))
+	}
+	if books[0].Format != "epub" || filepath.Ext(books[0].Filename) != ".epub" {
+		t.Fatalf("expected normalized epub book, got %+v", books[0])
+	}
+
+	reader, err := zip.OpenReader(filepath.Join(uploadDir, books[0].Filename))
+	if err != nil {
+		t.Fatalf("failed to open saved epub: %v", err)
+	}
+	defer reader.Close()
+
+	names := make(map[string]bool)
+	for _, entry := range reader.File {
+		names[entry.Name] = true
+		if strings.HasPrefix(entry.Name, "笔记的方法.epub/") {
+			t.Fatalf("expected packaged epub root to be stripped, got entry %q", entry.Name)
+		}
+	}
+	if !names["mimetype"] || !names["META-INF/container.xml"] {
+		t.Fatalf("expected saved epub root entries, got %#v", names)
+	}
+}
+
+func TestNormalizeStoredEPUBFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "book.epub")
+	if err := os.WriteFile(path, macOSPackagedEPUBBytes(t), 0600); err != nil {
+		t.Fatalf("failed to write packaged epub: %v", err)
+	}
+
+	normalized, err := normalizeStoredEPUBFile(path)
+	if err != nil {
+		t.Fatalf("normalizeStoredEPUBFile returned error: %v", err)
+	}
+	if !normalized {
+		t.Fatal("expected stored packaged epub to be normalized")
+	}
+
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		t.Fatalf("failed to open normalized epub: %v", err)
+	}
+	defer reader.Close()
+
+	names := make(map[string]bool)
+	for _, entry := range reader.File {
+		names[entry.Name] = true
+		if strings.HasPrefix(entry.Name, "笔记的方法.epub/") {
+			t.Fatalf("expected packaged epub root to be stripped, got entry %q", entry.Name)
+		}
+	}
+	if !names["mimetype"] || !names["META-INF/container.xml"] {
+		t.Fatalf("expected normalized epub root entries, got %#v", names)
 	}
 }
 
@@ -605,6 +758,44 @@ func writeZipFile(t *testing.T, path string, files map[string][]byte) {
 	if err := writer.Close(); err != nil {
 		t.Fatalf("failed to close zip writer: %v", err)
 	}
+}
+
+func zipBytes(t *testing.T, files map[string][]byte) []byte {
+	t.Helper()
+
+	var body bytes.Buffer
+	writer := zip.NewWriter(&body)
+	for name, content := range files {
+		entry, err := writer.Create(name)
+		if err != nil {
+			t.Fatalf("failed to create zip entry: %v", err)
+		}
+		if _, err := entry.Write(content); err != nil {
+			t.Fatalf("failed to write zip entry: %v", err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("failed to close zip writer: %v", err)
+	}
+	return body.Bytes()
+}
+
+func validEPUBBytes(t *testing.T) []byte {
+	t.Helper()
+
+	return zipBytes(t, map[string][]byte{
+		"mimetype":               []byte("application/epub+zip"),
+		"META-INF/container.xml": []byte("<container/>"),
+	})
+}
+
+func macOSPackagedEPUBBytes(t *testing.T) []byte {
+	t.Helper()
+
+	return zipBytes(t, map[string][]byte{
+		"笔记的方法.epub/mimetype":               []byte("application/epub+zip"),
+		"笔记的方法.epub/META-INF/container.xml": []byte("<container/>"),
+	})
 }
 
 func newMultipartUploadRequest(t *testing.T, filename string, content []byte) *http.Request {

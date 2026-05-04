@@ -75,8 +75,8 @@ test('logs in and shows the empty shelf', async ({ page }) => {
   });
 
   await page.goto('/login');
-  await page.getByLabel('用户名').fill('admin');
-  await page.getByLabel('密码').fill('secret');
+  await page.getByPlaceholder('请输入用户名').fill('admin');
+  await page.getByPlaceholder('请输入访问密码').fill('secret');
   await page.getByRole('button', { name: /进入/ }).click();
 
   await expect(page).toHaveURL(/\/shelf$/);

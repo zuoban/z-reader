@@ -718,6 +718,27 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return false;
   }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, isSpeakableSSML, logTTS]);
 
+  const realignAndSpeakNext = useCallback(async (): Promise<boolean> => {
+    const view = viewRef.current;
+    const range = currentMarkRef.current?.range ?? view?.lastLocation?.range;
+    if (!view || !range) return false;
+
+    const inited = await ensureTTS();
+    if (!inited) return false;
+
+    try {
+      view.tts?.from?.(range);
+    } catch (err) {
+      logTTS('continuation-realign-failed', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
+      return false;
+    }
+
+    logTTS('continuation-realign-next');
+    return getNextAndSpeak();
+  }, [ensureTTS, getNextAndSpeak, logTTS, viewRef]);
+
   const getPrevAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) return false;
 
@@ -764,6 +785,22 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     return false;
   }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, isSpeakableSSML, logTTS]);
 
+  const resumePausedSpeech = useCallback(async (): Promise<boolean> => {
+    const view = viewRef.current;
+    const inited = await ensureTTS();
+
+    if (inited && view?.tts?.resume) {
+      const ssml = view.tts.resume();
+      if (isSpeakableSSML(ssml)) {
+        const success = await speakSSML(ssml, true);
+        if (success) return true;
+      }
+    }
+
+    await ttsInstance.current.resume();
+    return ttsInstance.current.getState() === 'playing';
+  }, [ensureTTS, isSpeakableSSML, speakSSML, viewRef]);
+
   const start = useCallback(async () => {
     if (state === 'playing') {
       shouldResumeOnForegroundRef.current = false;
@@ -775,7 +812,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
     if (state === 'paused') {
       try {
-        await ttsInstance.current.resume();
+        const resumed = await resumePausedSpeech();
+        if (!resumed) {
+          throw new Error('resume returned no playable audio');
+        }
+        isPlayingRef.current = true;
+        retryContinuationRef.current = false;
         shouldResumeOnForegroundRef.current = true;
         setResumePromptVisible(false);
         dismissResumePrompt();
@@ -852,6 +894,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     getNextAndSpeak,
     isSpeakableSSML,
     requestWakeLock,
+    resumePausedSpeech,
     speakSSML,
     state,
     syncHighlightAfterResume,
@@ -971,7 +1014,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     });
     try {
       if (currentState === 'paused') {
-        await ttsInstance.current.resume();
+        const resumed = await resumePausedSpeech();
+        if (!resumed) {
+          throw new Error('resume returned no playable audio');
+        }
+        isPlayingRef.current = true;
+        retryContinuationRef.current = false;
       }
       if (stateRef.current !== 'stopped') {
         await requestWakeLock();
@@ -1000,7 +1048,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         resumeInFlightRef.current = false;
       }, 400);
     }
-  }, [dismissResumePrompt, logTTS, requestWakeLock, syncHighlightAfterResume]);
+  }, [dismissResumePrompt, logTTS, requestWakeLock, resumePausedSpeech, syncHighlightAfterResume]);
 
   useTTSResumePrompt({
     resumePromptVisible,
@@ -1018,6 +1066,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       stateRef.current = newState;
       logTTS('state-change', { state: newState });
       if (newState === 'playing') {
+        isPlayingRef.current = true;
         shouldResumeOnForegroundRef.current = true;
         setResumePromptVisible(false);
         dismissResumePrompt();
@@ -1038,6 +1087,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
         releaseWakeLock();
       }
       if (newState === 'stopped') {
+        isPlayingRef.current = false;
         shouldResumeOnForegroundRef.current = false;
         setResumePromptVisible(false);
         updateVisibleStatus({
@@ -1057,14 +1107,19 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       }
     });
     ttsInstance.current.onEndCallback(async () => {
-      if (!isPlayingRef.current) return;
+      if (!isPlayingRef.current && stateRef.current !== 'playing') return;
+      isPlayingRef.current = true;
 
-      const success = await getNextAndSpeakRef.current();
+      let success = await getNextAndSpeakRef.current();
+      if (!success) {
+        success = await realignAndSpeakNext();
+      }
       if (!success && !retryContinuationRef.current) {
         logTTS('continuation-retry');
         retryContinuationRef.current = true;
         await new Promise((resolve) => window.setTimeout(resolve, 220));
-        const retrySuccess = await getNextAndSpeakRef.current();
+        const retrySuccess =
+          (await getNextAndSpeakRef.current()) || (await realignAndSpeakNext());
         if (retrySuccess) {
           retryContinuationRef.current = false;
           return;
@@ -1119,6 +1174,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     dismissResumePrompt,
     logTTS,
     onHighlight,
+    realignAndSpeakNext,
     releaseWakeLock,
     saveTTSSession,
     settings.highlightMode,

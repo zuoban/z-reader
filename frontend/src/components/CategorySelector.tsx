@@ -119,7 +119,7 @@ export function CategorySelector({
 
         <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
           <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-5 pt-4 [-webkit-overflow-scrolling:touch]">
-            <div className="rounded-[1.75rem] border border-border/45 bg-card/42 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
+            <div className="glass-form-panel rounded-[1.75rem] p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                   新标签

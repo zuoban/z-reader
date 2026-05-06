@@ -595,7 +595,7 @@ export default function ShelfPage() {
             />
             {isDraggingBookFile && (
               <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
-                <div className="rounded-2xl bg-card/92 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow)]">
+                <div className="rounded-2xl border border-primary/16 bg-card/58 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
                   <Upload className="mx-auto h-8 w-8 text-primary" />
                   <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
                   <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
@@ -765,7 +765,7 @@ export default function ShelfPage() {
               )}
               {isDraggingBookFile && (
                 <div className="pointer-events-none absolute inset-0 z-30 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/45 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
-                  <div className="rounded-2xl bg-card/92 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow)]">
+                  <div className="rounded-2xl border border-primary/16 bg-card/58 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
                     <Upload className="mx-auto h-8 w-8 text-primary" />
                     <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
                     <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>

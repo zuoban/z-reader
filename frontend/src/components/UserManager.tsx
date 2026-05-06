@@ -225,7 +225,7 @@ export function UserManager({
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="flex-1 space-y-7 px-8 pb-12 pt-4">
-              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54">
+              <section className="glass-section-card space-y-4 rounded-[1.75rem] p-5">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold tracking-tight text-foreground">账号概览</h3>
                   <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70">
@@ -244,7 +244,7 @@ export function UserManager({
               </section>
 
               {/* Create User Section */}
-              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54">
+              <section className="glass-section-card space-y-4 rounded-[1.75rem] p-5">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2.5">
                     <UserPlus className="h-4 w-4 text-primary" />
@@ -311,7 +311,7 @@ export function UserManager({
               </section>
 
               {/* User List Section */}
-              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54">
+              <section className="glass-section-card space-y-4 rounded-[1.75rem] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2.5">

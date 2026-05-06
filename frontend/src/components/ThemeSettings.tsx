@@ -114,7 +114,7 @@ function SectionCard({
 }: SectionProps) {
   return (
     <section
-      className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54"
+      className="glass-section-card space-y-4 rounded-[1.75rem] p-5"
       style={{
         background:
           `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.045)} 0%, transparent 36%), ${withOpacity(uiScheme.cardBg, 0.72)}`,

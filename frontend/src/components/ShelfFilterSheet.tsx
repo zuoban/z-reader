@@ -72,7 +72,7 @@ export function ShelfFilterSheet({
           <Button
             type="button"
             variant="ghost"
-            className="h-11 w-full justify-between rounded-xl border border-primary/16 bg-card/92 px-4 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:hidden"
+            className="shelf-filter-trigger h-11 w-full justify-between rounded-xl px-4 text-sm font-semibold sm:hidden"
           />
         }
       >

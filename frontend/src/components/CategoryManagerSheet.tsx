@@ -144,7 +144,7 @@ export function CategoryManagerSheet({
                 })}
               </div>
 
-              <div className="rounded-[1.75rem] border border-border/45 bg-card/42 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
+              <div className="glass-form-panel rounded-[1.75rem] p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                     重命名

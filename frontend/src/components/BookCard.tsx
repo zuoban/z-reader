@@ -214,11 +214,11 @@ export function BookCard({
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
-  const progressValue = progressPercentage !== null
+  const normalizedProgressValue = progressPercentage !== null
     ? Math.max(0, Math.min(progressPercentage, 100))
     : null;
-  const progressDisplay = progressValue !== null ? progressValue.toFixed(1) : '';
-  const hasProgress = progressValue !== null && progressValue > 0;
+  const progressValue = normalizedProgressValue ?? 0;
+  const progressDisplay = progressValue.toFixed(1);
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
@@ -226,7 +226,7 @@ export function BookCard({
   const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
   const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
-  const progressMeter = hasProgress ? (
+  const progressMeter = (
     <div className="flex items-center gap-1.5">
       <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
         <div
@@ -238,7 +238,7 @@ export function BookCard({
         {progressDisplay}%
       </span>
     </div>
-  ) : null;
+  );
 
   function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: Element) {
     if (!(target instanceof Element)) return false;
@@ -356,13 +356,13 @@ export function BookCard({
                 </PerspectiveBook>
               </div>
             </div>
-            {hasProgress && !isMobile && (
+            {!isMobile && (
               <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-card/88 via-card/52 to-transparent px-3 pb-3 pt-5 backdrop-blur-sm">
                 {progressMeter}
               </div>
             )}
           </div>
-          {hasProgress && isMobile && (
+          {isMobile && (
             <div className="border-t border-border/30 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_96%,transparent),color-mix(in_srgb,var(--muted)_18%,var(--card)))] px-3 py-2 sm:px-4 sm:py-2.5">
               {progressMeter}
             </div>

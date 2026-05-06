@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import {
   Sheet,
   SheetContent,
@@ -172,55 +171,50 @@ const useThemeStyles = (uiScheme: ThemeColors) => ({
   },
 });
 
-// 复用的 Slider 控件 - 优化交互反馈
-interface VoiceSliderProps {
-  label: string;
+const RATE_OPTIONS = [
+  { label: '1倍', value: 0 },
+  { label: '1.25倍', value: 25 },
+  { label: '1.5倍', value: 50 },
+  { label: '1.75倍', value: 75 },
+  { label: '2倍', value: 100 },
+] as const;
+
+interface RateButtonsProps {
   value: number;
   onChange: (value: number) => void;
-  min: number;
-  max: number;
-  step: number;
-  format: (v: number) => string;
   uiScheme: ThemeColors;
 }
 
-const VoiceSlider = ({ label, value, onChange, min, max, step, format, uiScheme }: VoiceSliderProps) => (
-  <div className="group space-y-3">
-    <div className="flex items-center justify-between gap-3 px-1">
-      <label
-        className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70"
-        style={{ color: uiScheme.mutedText }}
-      >
-        {label}
-      </label>
-      <div className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-black tabular-nums text-primary">
-        {format(value)}
-      </div>
-    </div>
-    <div className="flex items-center gap-3.5">
-      <span
-        className="w-6 shrink-0 text-center text-[10px] font-black tabular-nums opacity-40"
-        style={{ color: uiScheme.mutedText }}
-      >
-        {min}%
-      </span>
-      <div className="relative flex flex-1 items-center px-1">
-        <Slider
-          value={[value]}
-          onValueChange={(v) => onChange(v[0])}
-          min={min}
-          max={max}
-          step={step}
-          className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-background [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-transform [&_[role=slider]]:active:scale-125 [&_[role=track]]:h-1.5 [&_[role=track]]:bg-muted/30 [&_[data-orientation=horizontal]_[role=range]]:bg-primary/80"
-        />
-      </div>
-      <span
-        className="w-6 shrink-0 text-center text-[10px] font-black tabular-nums opacity-40"
-        style={{ color: uiScheme.mutedText }}
-      >
-        +{max}%
-      </span>
-    </div>
+const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
+  <div className="grid grid-cols-5 gap-1.5">
+    {RATE_OPTIONS.map((option) => {
+      const active = value === option.value;
+
+      return (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className="h-10 rounded-[1.05rem] px-1 text-[11px] font-black tabular-nums transition-all hover:scale-[1.03] active:scale-[0.96]"
+          style={{
+            color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.52),
+            background: active
+              ? withOpacity(uiScheme.buttonBg, 0.82)
+              : withOpacity(uiScheme.buttonBg, 0.2),
+            border: `1px solid ${
+              active
+                ? withOpacity(uiScheme.cardBorder, 0.42)
+                : withOpacity(uiScheme.cardBorder, 0.12)
+            }`,
+            boxShadow: active
+              ? `0 8px 18px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.18)`
+              : 'inset 0 1px 0 rgba(255,255,255,0.1)',
+          }}
+        >
+          {option.label}
+        </button>
+      );
+    })}
   </div>
 );
 
@@ -368,7 +362,6 @@ export function TTSControls({
   const [expanded, setExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [localRate, setLocalRate] = useState(settings.rate);
   const [position, setPosition] = useState({ x: 22, y: 12 });
   const [isDragging, setIsDragging] = useState(false);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -413,10 +406,6 @@ export function TTSControls({
     window.addEventListener('resize', syncViewport);
     return () => window.removeEventListener('resize', syncViewport);
   }, []);
-
-  useEffect(() => {
-    setLocalRate(settings.rate);
-  }, [settings]);
 
   useEffect(() => {
     positionRef.current = position;
@@ -590,17 +579,11 @@ export function TTSControls({
   };
 
   const handleRateChange = (value: number) => {
-    setLocalRate(value);
     onUpdateSettings({ rate: value });
   };
 
   const handleHighlightModeChange = (highlightMode: TTSHighlightMode) => {
     onUpdateSettings({ highlightMode });
-  };
-
-  const formatRate = (rate: number) => {
-    if (rate === 0) return '正常';
-    return `${rate > 0 ? '+' : ''}${rate}%`;
   };
 
   const statusTone = ttsStatus?.tone ?? (isActive ? 'active' : 'idle');
@@ -979,14 +962,9 @@ export function TTSControls({
               </div>
 
               <div className="pt-5">
-                <VoiceSlider
-                  label="语速"
-                  value={localRate}
+                <RateButtons
+                  value={settings.rate}
                   onChange={handleRateChange}
-                  min={-50}
-                  max={100}
-                  step={10}
-                  format={formatRate}
                   uiScheme={uiScheme}
                 />
               </div>
@@ -1361,14 +1339,9 @@ export function TTSControls({
                   </div>
 
                   <div className="px-3 pb-1">
-                    <VoiceSlider
-                      label="语速"
-                      value={localRate}
+                    <RateButtons
+                      value={settings.rate}
                       onChange={handleRateChange}
-                      min={-50}
-                      max={100}
-                      step={10}
-                      format={formatRate}
                       uiScheme={uiScheme}
                     />
                   </div>

@@ -13,6 +13,7 @@ import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
 import type { TTSSettings, TTSState, Voice } from "@/lib/tts";
 import type { TOCItem } from "@/lib/types";
+import { withOpacity } from "@/lib/reader-ui";
 
 const TTSControls = lazy(() =>
   import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
@@ -132,7 +133,10 @@ export function ReaderToolbar({
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
         }`}
         style={{
-          background: uiScheme.bg,
+          background:
+            `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.9)} 0%, ${withOpacity(uiScheme.bg, 0.72)} 72%, transparent 100%)`,
+          backdropFilter: "blur(20px) saturate(1.18)",
+          WebkitBackdropFilter: "blur(20px) saturate(1.18)",
           paddingTop: headerSafeAreaPaddingTop,
           transition:
             "transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms cubic-bezier(0.32, 0.72, 0, 1)",

@@ -84,9 +84,10 @@ export function ReaderLoadingOverlay({
       }}
     >
       <div
-        className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8"
+        className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8 backdrop-blur-xl"
         style={{
-          background: uiScheme.cardBg,
+          background:
+            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.88)}`,
           borderColor: withOpacity(uiScheme.cardBorder, 0.78),
           boxShadow: `0 24px 56px -28px ${withOpacity(uiScheme.cardBorder, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.42)`,
         }}

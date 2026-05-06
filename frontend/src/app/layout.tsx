@@ -106,10 +106,14 @@ export default function RootLayout({
               position="top-center"
               toastOptions={{
                 style: {
-                  background: 'var(--card)',
+                  background:
+                    'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--card) 86%, transparent)',
                   color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
+                  border: '1px solid color-mix(in srgb, var(--border), transparent 35%)',
                   borderRadius: '1rem',
+                  boxShadow:
+                    '0 20px 44px -28px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 46%, transparent)',
+                  backdropFilter: 'blur(20px) saturate(1.25)',
                 },
               }}
             />

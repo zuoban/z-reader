@@ -41,13 +41,13 @@ function ReaderTOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all active:scale-[0.98] sm:py-2.5",
-          isCurrentChapter ? "shadow-sm shadow-primary/5" : "hover:bg-primary/5",
+          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left backdrop-blur-lg transition-all active:scale-[0.98] sm:py-2.5",
+          isCurrentChapter ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" : "hover:scale-[1.01]",
         )}
         style={{
           marginLeft: depth > 0 ? `${depth * 14}px` : "0px",
           background: isCurrentChapter
-            ? withOpacity(uiScheme.buttonBg, 0.8)
+            ? `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.58)}`
             : "transparent",
           border: `1px solid ${
             isCurrentChapter ? withOpacity(uiScheme.cardBorder, 0.4) : "transparent"

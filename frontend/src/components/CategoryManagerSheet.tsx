@@ -78,9 +78,11 @@ export function CategoryManagerSheet({
         finalFocus={false}
         className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
-          backgroundColor: 'var(--shelf-surface)',
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface) 92%, var(--background))',
           borderColor: 'color-mix(in srgb, var(--border), transparent 40%)',
-          boxShadow: '0 -12px 48px -12px var(--paper-shadow)',
+          boxShadow:
+            '0 -12px 48px -12px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 46%, transparent)',
         }}
       >
         <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
@@ -121,10 +123,10 @@ export function CategoryManagerSheet({
                       onClick={() => chooseCategory(category)}
                       disabled={loading}
                       className={cn(
-                        'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm font-semibold transition-all disabled:cursor-not-allowed',
+                        'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm font-semibold shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] backdrop-blur-lg transition-all disabled:cursor-not-allowed disabled:opacity-55',
                         active
-                          ? 'border-primary/35 bg-primary/10 text-primary shadow-sm shadow-primary/10'
-                          : 'border-border/55 bg-background/80 text-muted-foreground hover:border-primary/25 hover:bg-primary/5 hover:text-foreground'
+                          ? 'border-primary/42 bg-[var(--shelf-surface-selected)] text-primary ring-1 ring-primary/14 shadow-primary/10'
+                          : 'border-border/55 bg-card/52 text-muted-foreground hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
                       )}
                       title={category}
                     >
@@ -142,7 +144,7 @@ export function CategoryManagerSheet({
                 })}
               </div>
 
-              <div className="rounded-[1.75rem] border border-border/45 bg-background/70 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_60%,transparent)]">
+              <div className="rounded-[1.75rem] border border-border/45 bg-card/42 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                     重命名
@@ -158,13 +160,13 @@ export function CategoryManagerSheet({
                     maxLength={50}
                     placeholder="先选择一个分类"
                     disabled={loading || !selectedCategory}
-                    className="h-11 rounded-[1.2rem] border-border/60 bg-muted/35 pr-10 text-sm transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+                    className="h-11 rounded-[1.2rem] border-border/60 bg-muted/35 pr-10 text-sm transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5 disabled:opacity-60"
                   />
                   {nextCategory && (
                     <button
                       type="button"
                       onClick={() => setNextCategory('')}
-                      className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground/45 transition-colors hover:bg-background hover:text-muted-foreground"
+                      className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground/45 transition-colors hover:bg-card/70 hover:text-muted-foreground"
                       title="清空输入"
                       aria-label="清空输入"
                     >
@@ -182,7 +184,7 @@ export function CategoryManagerSheet({
           )}
         </div>
 
-        <div className="mt-auto flex shrink-0 flex-col gap-2 border-t border-border/40 px-8 py-5 sm:flex-row sm:items-center sm:justify-end">
+        <div className="mt-auto flex shrink-0 flex-col gap-2 border-t border-border/40 bg-card/22 px-8 py-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
             variant="destructive"

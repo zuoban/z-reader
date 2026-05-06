@@ -114,8 +114,10 @@ function SectionCard({
 }: SectionProps) {
   return (
     <section
-      className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card"
+      className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54"
       style={{
+        background:
+          `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.045)} 0%, transparent 36%), ${withOpacity(uiScheme.cardBg, 0.72)}`,
         borderColor: withOpacity(uiScheme.cardBorder, 0.18),
       }}
     >
@@ -333,10 +335,11 @@ export function ThemeSettings({
         container={overlayContainer}
         className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
-          background: uiScheme.cardBg,
+          background:
+            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
           borderColor: withOpacity(uiScheme.cardBorder, 0.22),
           color: uiScheme.fg,
-          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}`,
+          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
         }}
       >
         <Button
@@ -398,10 +401,13 @@ export function ThemeSettings({
 
         <div className="flex-1 overflow-y-auto px-8 pb-12 pt-4">
           <div
-            className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] p-1"
+            className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] border backdrop-blur-xl p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
             role="tablist"
             aria-label="阅读设置分类"
-            style={{ background: withOpacity(uiScheme.buttonBg, 0.22) }}
+            style={{
+              background: withOpacity(uiScheme.buttonBg, 0.22),
+              borderColor: withOpacity(uiScheme.cardBorder, 0.16),
+            }}
           >
             {SETTINGS_SECTIONS.map((section) => {
               const active = activeSection === section.id;

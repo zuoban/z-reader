@@ -25,7 +25,7 @@ export function EmptyState({
     <div className="flex min-h-[58vh] items-center justify-center">
       <section
         className={cn(
-          'paper-panel paper-stack relative w-full max-w-2xl rounded-[2.25rem] px-6 py-12 text-center sm:px-14 sm:py-16',
+          'paper-panel paper-stack relative w-full max-w-2xl rounded-[2.25rem] px-6 py-12 text-center backdrop-blur-xl sm:px-14 sm:py-16',
           className
         )}
       >

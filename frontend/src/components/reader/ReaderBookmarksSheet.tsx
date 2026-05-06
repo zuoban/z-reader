@@ -84,10 +84,11 @@ export function ReaderBookmarksSheet({
         container={overlayContainer}
         className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
-          background: uiScheme.cardBg,
+          background:
+            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
           borderColor: withOpacity(uiScheme.cardBorder, 0.22),
           color: uiScheme.fg,
-          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}`,
+          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
         }}
       >
         <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
@@ -131,9 +132,10 @@ export function ReaderBookmarksSheet({
               bookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-[1.25rem] border px-4 py-3.5 transition-all hover:bg-black/5 dark:hover:bg-white/5"
+                  className="group rounded-[1.25rem] border px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-xl transition-all hover:scale-[1.01]"
                   style={{
-                    background: withOpacity(uiScheme.buttonBg, 0.3),
+                    background:
+                      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.28)}`,
                     borderColor: withOpacity(uiScheme.cardBorder, 0.15),
                   }}
                 >

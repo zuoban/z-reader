@@ -296,7 +296,7 @@ export function BookCard({
     >
       <Card
         className={cn(
-          "group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border/55 bg-card p-0 gap-0 ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/28 hover:bg-card active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none dark:ring-white/10",
+          "group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border/55 p-0 gap-0 ring-1 ring-white/45 backdrop-blur-xl transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/28 active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none dark:ring-white/10",
           selectionMode && "border-primary/24 bg-primary/[0.025] shadow-[0_14px_34px_-26px_var(--paper-shadow)] hover:border-primary/42",
           selected && "border-primary/55 bg-primary/[0.055] ring-2 ring-primary/28 shadow-[0_18px_44px_-28px_var(--paper-shadow)]"
         )}
@@ -357,7 +357,7 @@ export function BookCard({
               </div>
             </div>
             {hasProgress && !isMobile && (
-              <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-card/92 via-card/58 to-transparent px-3 pb-3 pt-5">
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-card/88 via-card/52 to-transparent px-3 pb-3 pt-5 backdrop-blur-sm">
                 {progressMeter}
               </div>
             )}
@@ -367,7 +367,7 @@ export function BookCard({
               {progressMeter}
             </div>
           )}
-          <div className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,var(--card)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card))_100%)] px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
+          <div className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--glass-tint)_72%,transparent)_0%,color-mix(in_srgb,var(--glass-deep)_78%,transparent)_100%)] px-3 pb-3 pt-3 backdrop-blur-md sm:px-4 sm:pb-4 sm:pt-4">
             <div className="space-y-2">
               <div className="relative pr-6 sm:pr-5">
                 <h3

@@ -79,7 +79,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'paper-motion-menu paper-menu relative z-[120] max-h-96 min-w-[8rem] overflow-hidden rounded-xl text-popover-foreground',
+        'paper-motion-menu paper-menu relative z-[120] max-h-96 min-w-[8rem] overflow-hidden rounded-xl text-popover-foreground backdrop-blur-2xl',
         className
       )}
       position={position}
@@ -141,7 +141,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-muted', className)}
+    className={cn('-mx-1 my-1 h-px bg-[color-mix(in_srgb,var(--border)_64%,transparent)]', className)}
     {...props}
   />
 ));

@@ -75,10 +75,13 @@ export function BookCardDropdown({
         align="end"
         alignOffset={-4}
         sideOffset={12}
-        className="w-[17rem] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-2.5 shadow-[0_24px_60px_-34px_var(--paper-shadow),0_10px_28px_-24px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_78%,transparent)] ring-1 ring-primary/8"
-        style={{ backgroundColor: 'var(--shelf-surface-raised)' }}
+        className="w-[17rem] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-2.5 shadow-[0_24px_60px_-34px_var(--paper-shadow),0_10px_28px_-24px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_72%,transparent)] ring-1 ring-primary/8 backdrop-blur-2xl"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface-raised) 92%, var(--background))',
+        }}
       >
-        <div className="rounded-[1rem] border border-primary/10 bg-[var(--shelf-surface-soft)] px-3 py-3">
+        <div className="rounded-[1rem] border border-primary/10 bg-[color-mix(in_srgb,var(--shelf-surface-soft)_88%,var(--background))] px-3 py-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-[10px] font-bold tracking-[0.16em] text-foreground/78 uppercase">
               书籍详情

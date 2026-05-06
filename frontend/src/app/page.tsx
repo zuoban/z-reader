@@ -67,22 +67,22 @@ export default function Home() {
         <section className="relative isolate min-h-[92svh] overflow-hidden px-5 pb-14 pt-5 sm:px-8 lg:px-10">
           <div className="absolute inset-0 -z-10">
             <div className="absolute inset-x-0 top-0 h-[72%] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_12%,transparent)_0%,transparent_78%)]" />
-            <div className="absolute left-1/2 top-[48%] h-[34rem] w-[min(86rem,118vw)] -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border border-border/55 bg-card/58 shadow-[0_38px_90px_-64px_var(--paper-shadow)]" />
-            <div className="absolute left-[56%] top-[47%] h-[28rem] w-[min(74rem,102vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.25rem] border border-primary/14 bg-background/84 shadow-[0_24px_64px_-50px_var(--paper-shadow)]">
-              <div className="flex h-12 items-center justify-between border-b border-border/70 px-4">
+            <div className="paper-panel absolute left-1/2 top-[48%] h-[34rem] w-[min(86rem,118vw)] -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border border-border/55 bg-card/58 shadow-[0_38px_90px_-64px_var(--paper-shadow)] backdrop-blur-2xl" />
+            <div className="paper-panel absolute left-[56%] top-[47%] h-[28rem] w-[min(74rem,102vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.25rem] border border-primary/14 bg-background/70 shadow-[0_24px_64px_-50px_var(--paper-shadow)] backdrop-blur-2xl">
+              <div className="flex h-12 items-center justify-between border-b border-border/60 px-4 backdrop-blur-xl">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#ef6f61]" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#e5bd4d]" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#4cae7b]" />
                 </div>
-                <div className="hidden h-7 w-52 items-center gap-2 rounded-lg border border-border/70 bg-card/80 px-3 text-xs text-muted-foreground sm:flex">
+                <div className="paper-field hidden h-7 w-52 items-center gap-2 rounded-lg border border-border/60 bg-card/58 px-3 text-xs text-muted-foreground backdrop-blur-lg sm:flex">
                   <Search className="h-3.5 w-3.5" />
                   搜索书名、作者
                 </div>
               </div>
               <div className="grid h-[calc(100%-3rem)] grid-cols-[4.5rem_1fr]">
-                <aside className="border-r border-border/70 bg-muted/35 px-3 py-5">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <aside className="border-r border-border/55 bg-muted/28 px-3 py-5 backdrop-blur-xl">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_14px_26px_-18px_var(--paper-shadow)]">
                     <LibraryBig className="h-5 w-5" />
                   </div>
                   <div className="mt-5 space-y-3">
@@ -90,8 +90,8 @@ export default function Home() {
                       <div
                         key={index}
                         className={cn(
-                          'flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 text-muted-foreground',
-                          index === 0 && 'bg-card text-primary'
+                          'flex h-10 w-10 items-center justify-center rounded-xl border border-border/55 text-muted-foreground backdrop-blur-lg',
+                          index === 0 && 'bg-card/70 text-primary'
                         )}
                       >
                         <Icon className="h-4 w-4" />
@@ -100,17 +100,17 @@ export default function Home() {
                   </div>
                 </aside>
                 <div className="grid grid-cols-2 gap-5 p-5 opacity-70 sm:grid-cols-[1.15fr_0.85fr]">
-                  <div className="rounded-xl border border-border/70 bg-card/72 p-5">
+                  <div className="paper-panel rounded-xl border border-border/60 bg-card/58 p-5 backdrop-blur-xl">
                     <div className="mb-5 flex items-center justify-between">
                       <div>
                         <p className="text-xs font-semibold text-primary">Reading Now</p>
                         <p className="mt-1 font-heading text-2xl font-semibold">纸页宇宙</p>
                       </div>
-                      <span className="rounded-lg bg-[#e7f5ec] px-2.5 py-1 text-xs font-semibold text-[#2f7b55]">
+                      <span className="rounded-lg border border-primary/12 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                         62%
                       </span>
                     </div>
-                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/35 p-5">
+                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/28 p-5 backdrop-blur-lg">
                       {readerLines.map((width) => (
                         <div
                           key={width}
@@ -121,7 +121,7 @@ export default function Home() {
                   </div>
                   <div className="hidden grid-cols-3 gap-3 sm:grid">
                     {shelfBooks.map((book) => (
-                      <div key={book.title} className="min-w-0 rounded-xl border border-border/70 bg-card/72 p-3">
+                      <div key={book.title} className="paper-panel min-w-0 rounded-xl border border-border/60 bg-card/58 p-3 backdrop-blur-xl">
                         <div className={cn('aspect-[3/4] rounded-lg shadow-[0_20px_30px_-24px_var(--paper-shadow)]', book.accent)} />
                         <p className="mt-3 truncate text-sm font-semibold">{book.title}</p>
                         <p className="truncate text-xs text-muted-foreground">{book.author}</p>
@@ -140,7 +140,7 @@ export default function Home() {
               <BrandMark size="sm" priority />
               <Link
                 href={primaryHref}
-                className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-10 rounded-lg px-4')}
+                className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-10 rounded-lg px-4 backdrop-blur-lg')}
               >
                 {primaryLabel}
                 <ArrowRight className="h-4 w-4" />
@@ -168,7 +168,7 @@ export default function Home() {
                   </Link>
                   <Link
                     href="/login"
-                    className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-12 rounded-lg px-6 text-sm font-semibold')}
+                  className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-12 rounded-lg px-6 text-sm font-semibold backdrop-blur-lg')}
                   >
                     管理藏书
                   </Link>
@@ -183,7 +183,7 @@ export default function Home() {
             {featureItems.map((item) => (
               <article
                 key={item.title}
-                className="rounded-xl border border-border/70 bg-card/72 p-5 shadow-[0_18px_48px_-42px_var(--paper-shadow)]"
+                className="paper-panel rounded-xl border border-border/60 bg-card/58 p-5 shadow-[0_18px_48px_-42px_var(--paper-shadow)] backdrop-blur-xl"
               >
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <item.icon className="h-5 w-5" />

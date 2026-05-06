@@ -18,7 +18,8 @@ export function ReaderResumePrompt({
   onResume,
 }: ReaderResumePromptProps) {
   const cardStyle = {
-    background: uiScheme.cardBg,
+    background:
+      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.88)}`,
     border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
     boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
   };
@@ -32,7 +33,7 @@ export function ReaderResumePrompt({
       }}
     >
       <div
-        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3"
+        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3 backdrop-blur-xl"
         style={cardStyle}
       >
         <div

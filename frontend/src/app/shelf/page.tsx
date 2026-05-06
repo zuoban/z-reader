@@ -303,7 +303,7 @@ export default function ShelfPage() {
       <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:gap-6">
         <aside
           className={cn(
-            'paper-reveal shelf-header transition-[width] duration-300 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:shrink-0 lg:self-start lg:overflow-y-auto',
+            'paper-reveal shelf-header backdrop-blur-2xl transition-[width] duration-300 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:shrink-0 lg:self-start lg:overflow-y-auto',
             isSidebarCollapsed ? 'lg:w-[6.5rem]' : 'lg:w-[18rem]',
             isSidebarCollapsed && 'shelf-sidebar-collapsed'
           )}
@@ -337,7 +337,7 @@ export default function ShelfPage() {
                   title={isSidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
                   onClick={() => setIsSidebarCollapsed((value) => !value)}
                   className={cn(
-                    'shelf-collapse-toggle relative z-20 hidden h-11 w-11 cursor-pointer rounded-2xl border border-primary/12 bg-card/88 text-muted-foreground shadow-[0_8px_18px_-16px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_60%,transparent)] transition-all hover:border-primary/24 hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25 lg:flex',
+                    'shelf-collapse-toggle relative z-20 hidden h-11 w-11 cursor-pointer rounded-2xl border border-primary/12 bg-card/55 text-muted-foreground shadow-[0_8px_18px_-16px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] backdrop-blur-xl transition-all hover:border-primary/24 hover:bg-card/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25 lg:flex',
                     isSidebarCollapsed && 'lg:h-9 lg:w-9 lg:rounded-xl'
                   )}
                 >
@@ -543,7 +543,7 @@ export default function ShelfPage() {
       >
         {!isLoadingBooks && loadError ? (
           <div className="paper-reveal" style={delay(120)}>
-            <div className="shelf-container flex min-h-[28rem] flex-col items-center justify-center rounded-2xl px-6 py-12 text-center">
+            <div className="shelf-container flex min-h-[28rem] flex-col items-center justify-center rounded-2xl px-6 py-12 text-center backdrop-blur-2xl">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
                 <AlertCircle className="h-7 w-7" />
               </div>
@@ -606,7 +606,7 @@ export default function ShelfPage() {
         ) : (
           <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
             {!isLoadingBooks && books.length > 0 && (
-              <div className="paper-reveal shelf-toolbar" style={delay(90)}>
+              <div className="paper-reveal shelf-toolbar backdrop-blur-xl" style={delay(90)}>
                 <div
                   className={cn(
                     'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
@@ -621,7 +621,7 @@ export default function ShelfPage() {
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名、作者、文件名"
                       aria-label="搜索书架"
-                      className="h-11 rounded-xl border-primary/16 bg-card/92 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)]"
+                      className="h-11 rounded-xl border-primary/16 bg-card/58 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] backdrop-blur-xl"
                     />
                     {searchQuery && (
                       <button
@@ -652,7 +652,7 @@ export default function ShelfPage() {
                       <button
                         type="button"
                         onClick={clearShelfFilters}
-                        className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/12 bg-card/80 px-2 text-[11px] font-semibold text-primary/78 transition-colors hover:border-primary/24 hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/18"
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/12 bg-card/58 px-2 text-[11px] font-semibold text-primary/78 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_44%,transparent)] backdrop-blur-md transition-colors hover:border-primary/24 hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/18"
                       >
                         <X className="h-3.5 w-3.5" />
                         清空
@@ -672,8 +672,8 @@ export default function ShelfPage() {
                       type="button"
                       variant="ghost"
                       className={cn(
-                        'group h-11 min-w-[6.25rem] rounded-xl border border-primary/16 bg-card/92 px-3 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:px-4',
-                        selectionMode && 'border-primary/28 bg-[var(--shelf-surface-selected)] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--paper-edge)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)]'
+                        'group h-11 min-w-[6.25rem] rounded-xl border border-primary/16 bg-card/58 px-3 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] backdrop-blur-xl transition-all duration-200 hover:border-primary/30 hover:bg-card/70 hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:px-4',
+                        selectionMode && 'border-primary/28 bg-[var(--shelf-surface-selected)] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)]'
                       )}
                       onClick={toggleSelectionMode}
                     >
@@ -711,7 +711,7 @@ export default function ShelfPage() {
             )}
             <section
               className={cn(
-                'paper-reveal shelf-container relative rounded-2xl',
+                'paper-reveal shelf-container relative rounded-2xl backdrop-blur-2xl',
                 selectionMode && filteredBooks.length > 0 && 'mb-28 sm:mb-24'
               )}
               style={delay(150)}
@@ -778,7 +778,7 @@ export default function ShelfPage() {
                 className="paper-reveal pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] z-40 mx-auto max-w-[46rem] sm:inset-x-6 lg:left-auto lg:right-8 lg:max-w-[48rem]"
                 style={delay(105)}
               >
-                <div className="shelf-toolbar pointer-events-auto gap-2 rounded-2xl border-primary/18 bg-card/96 shadow-[0_18px_52px_-30px_var(--paper-shadow),0_6px_18px_-14px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_70%,transparent)]">
+                <div className="shelf-toolbar pointer-events-auto gap-2 rounded-2xl border-primary/18 bg-card/70 shadow-[0_18px_52px_-30px_var(--paper-shadow),0_6px_18px_-14px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)] backdrop-blur-xl">
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:min-w-[8rem]">
                     <div className="min-w-0 text-sm font-medium text-muted-foreground">
                       已选择 <span className="font-bold text-foreground">{selectedCount}</span> 本

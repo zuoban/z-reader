@@ -56,20 +56,21 @@ export function ConfirmDialog({
       role="presentation"
       onClick={() => onOpenChange(false)}
     >
-      <div className="paper-motion-veil absolute inset-0 bg-black/45" />
+      <div className="paper-motion-veil absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <div
         aria-modal="true"
         role="alertdialog"
-        className="paper-motion-panel paper-stack relative z-10 grid w-full max-w-sm overflow-hidden rounded-[1.5rem] border border-border/65 bg-background text-sm text-popover-foreground shadow-[0_28px_72px_-36px_var(--paper-shadow)] outline-none ring-1 ring-foreground/5"
+        className="paper-motion-panel paper-panel paper-stack relative z-10 grid w-full max-w-sm overflow-hidden rounded-[1.5rem] border border-border/65 text-sm text-popover-foreground shadow-[0_28px_72px_-36px_var(--paper-shadow)] outline-none ring-1 ring-foreground/5 backdrop-blur-xl"
         style={{
-          backgroundColor: 'var(--background)',
-          backdropFilter: 'none',
-          WebkitBackdropFilter: 'none',
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 20%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--popover) 90%, var(--background))',
+          boxShadow:
+            '0 28px 72px -36px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 48%, transparent)',
         }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex gap-3 px-5 pb-5 pt-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 text-destructive shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_35%,transparent)] backdrop-blur-lg">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
@@ -81,7 +82,7 @@ export function ConfirmDialog({
             </p>
           </div>
         </div>
-        <div className="flex flex-col-reverse gap-2 border-t border-border/55 bg-muted/25 p-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-border/45 bg-card/24 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl sm:flex-row sm:justify-end">
           <Button
             variant="outline"
             className="h-9 min-w-20 rounded-xl"

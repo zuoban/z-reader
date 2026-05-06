@@ -91,11 +91,10 @@ export function CategoryFilter({
       </SelectTrigger>
       <SelectContent
         align="start"
-        className="min-w-[12rem] rounded-lg border border-primary/16 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_18px_44px_-24px_var(--paper-shadow),0_6px_16px_-10px_var(--paper-shadow-soft)] ring-1 ring-white/50 dark:ring-white/10"
+        className="min-w-[12rem] rounded-lg border border-primary/16 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_18px_44px_-24px_var(--paper-shadow),0_6px_16px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] ring-1 ring-white/50 backdrop-blur-2xl dark:ring-white/10"
         style={{
-          backgroundColor: 'var(--shelf-surface-raised)',
-          backdropFilter: 'none',
-          WebkitBackdropFilter: 'none',
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface-raised) 92%, var(--background))',
         }}
       >
         {filterItems.map((item) => (

@@ -194,9 +194,11 @@ export function UserManager({
         finalFocus={false}
         className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
         style={{
-          backgroundColor: 'var(--shelf-surface)',
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface) 92%, var(--background))',
           borderColor: 'color-mix(in srgb, var(--border), transparent 40%)',
-          boxShadow: '0 -12px 48px -12px var(--paper-shadow)',
+          boxShadow:
+            '0 -12px 48px -12px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 46%, transparent)',
         }}
       >
         <div className="flex min-h-0 flex-1 flex-col">
@@ -223,7 +225,7 @@ export function UserManager({
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="flex-1 space-y-7 px-8 pb-12 pt-4">
-              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card">
+              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold tracking-tight text-foreground">账号概览</h3>
                   <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70">
@@ -231,18 +233,18 @@ export function UserManager({
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="flex items-center justify-center gap-1.5 rounded-[1.25rem] border border-border/20 bg-muted/35 px-3 py-2.5 text-xs font-bold text-foreground">
+                  <div className="flex items-center justify-center gap-1.5 rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-foreground backdrop-blur-lg">
                   <UserCog className="h-3 w-3" />
                   {users.length} 位用户
                   </div>
-                  <div className="flex items-center justify-center rounded-[1.25rem] border border-border/20 bg-muted/35 px-3 py-2.5 text-xs font-bold text-muted-foreground">
+                  <div className="flex items-center justify-center rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-muted-foreground backdrop-blur-lg">
                   {users.filter((user) => user.role === 'admin').length} 名管理员
                   </div>
                 </div>
               </section>
 
               {/* Create User Section */}
-              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card">
+              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2.5">
                     <UserPlus className="h-4 w-4 text-primary" />
@@ -264,7 +266,7 @@ export function UserManager({
                         onChange={(event) => setUsername(event.target.value)}
                         placeholder="请输入用户名"
                         disabled={loading}
-                        className="h-11 rounded-[1.25rem] border-border/60 bg-background transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                        className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all focus:bg-muted/40 focus:ring-4 focus:ring-primary/5"
                       />
                     </div>
                     <div className="space-y-2">
@@ -278,7 +280,7 @@ export function UserManager({
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="至少 6 位"
                         disabled={loading}
-                        className="h-11 rounded-[1.25rem] border-border/60 bg-background transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                        className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all focus:bg-muted/40 focus:ring-4 focus:ring-primary/5"
                       />
                     </div>
                     <div className="space-y-2">
@@ -288,7 +290,7 @@ export function UserManager({
                         onValueChange={(value) => setRole(value as User['role'])}
                         disabled={loading}
                       >
-                        <SelectTrigger className="h-11 rounded-[1.25rem] border-border/60 bg-background transition-all hover:bg-muted/40">
+                        <SelectTrigger className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all hover:bg-muted/45">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/60 shadow-xl">
@@ -309,7 +311,7 @@ export function UserManager({
               </section>
 
               {/* User List Section */}
-              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card p-5 shadow-sm transition-all hover:bg-card">
+              <section className="space-y-4 rounded-[1.75rem] border border-border/40 bg-card/42 p-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_42%,transparent)] backdrop-blur-xl transition-all hover:bg-card/54">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2.5">
@@ -328,7 +330,7 @@ export function UserManager({
                     return (
                       <div
                         key={user.id}
-                        className="group flex flex-col gap-4 rounded-[1.5rem] border border-border/20 bg-muted/20 p-4 transition-all hover:border-border/40 hover:bg-muted/30"
+                        className="group flex flex-col gap-4 rounded-[1.5rem] border border-border/25 bg-muted/20 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-lg transition-all hover:border-border/45 hover:bg-muted/30"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2.5">
@@ -378,7 +380,7 @@ export function UserManager({
                               title="重置密码"
                               onClick={() => openResetPasswordDialog(user)}
                               disabled={loading}
-                              className="h-9 w-9 rounded-xl text-muted-foreground/55 transition-all hover:bg-muted hover:text-foreground"
+                              className="h-9 w-9 rounded-xl text-muted-foreground/55 transition-all hover:bg-muted/45 hover:text-foreground"
                             >
                               <KeyRound className="h-4 w-4" />
                             </Button>
@@ -434,7 +436,7 @@ export function UserManager({
           className="max-w-[400px] gap-0 overflow-hidden rounded-[1.75rem] border-border/50 p-0 shadow-2xl [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/45 [&_[data-slot=dialog-close]]:shadow-none"
           showCloseButton={!loading}
         >
-          <div className="relative overflow-hidden border-b border-border/45 bg-[var(--shelf-surface-raised)] px-6 py-7 pr-16">
+          <div className="relative overflow-hidden border-b border-border/45 bg-card/38 px-6 py-7 pr-16 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_38%,transparent)] backdrop-blur-xl">
             <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
             <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-accent/10" />
             <DialogHeader className="relative space-y-2">
@@ -448,7 +450,7 @@ export function UserManager({
           </div>
           
           <form
-            className="space-y-6 bg-card p-6"
+            className="space-y-6 bg-card/40 p-6 backdrop-blur-xl"
             onSubmit={(event) => {
               event.preventDefault();
               void handleResetPassword();
@@ -467,11 +469,11 @@ export function UserManager({
                 autoComplete="new-password"
                 disabled={loading}
                 autoFocus
-                className="h-11 rounded-[1.25rem] border-border/60 bg-background transition-all focus:bg-background focus:ring-4 focus:ring-primary/5"
+                className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all focus:bg-muted/40 focus:ring-4 focus:ring-primary/5"
               />
             </div>
             
-            <DialogFooter className="-mx-6 -mb-6 flex-row items-center justify-end gap-2 border-t border-border/45 bg-background px-6 py-4">
+            <DialogFooter className="-mx-6 -mb-6 flex-row items-center justify-end gap-2 border-t border-border/45 bg-card/24 px-6 py-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl">
               <Button
                 type="submit"
                 className="h-9 rounded-xl px-5 text-[13px] font-semibold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98]"

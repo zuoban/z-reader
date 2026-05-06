@@ -13,6 +13,7 @@ import { buildAzureSSML, TTSSettings, Voice } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
+import { withOpacity } from '@/lib/reader-ui';
 
 // 性别标签
 const GENDER_LABELS: Record<string, string> = {
@@ -51,6 +52,12 @@ export function VoiceSelector({
   // 当前选中语音支持的风格
   const selectedVoice = voices.find(v => v.Name === settings.voiceName);
   const availableStyles = selectedVoice?.StyleList || [];
+  const compactGlassStyle = {
+    background:
+      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.045)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.26)}`,
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.14)}`,
+    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.16)`,
+  };
 
   const handleVoiceChange = useCallback((value: string) => {
     onUpdateSettings({ voiceName: value });
@@ -152,8 +159,8 @@ export function VoiceSelector({
               size="sm"
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
-              className="h-7.5 rounded-lg px-2 text-[10px] font-bold transition-all hover:bg-black/5 dark:hover:bg-white/5"
-              style={{ color: uiScheme.mutedText }}
+              className="h-7.5 rounded-lg px-2 text-[10px] font-bold backdrop-blur-lg transition-all hover:scale-[1.03]"
+              style={{ ...compactGlassStyle, color: uiScheme.mutedText }}
             >
               {voicesLoading ? '加载中' : '重载'}
             </Button>
@@ -163,8 +170,8 @@ export function VoiceSelector({
             variant="ghost"
             size="sm"
             onClick={handlePreview}
-            className="h-7.5 rounded-lg px-2 text-[10px] font-bold transition-all hover:bg-black/5 dark:hover:bg-white/5"
-            style={{ color: isPreviewing ? uiScheme.link : uiScheme.mutedText }}
+            className="h-7.5 rounded-lg px-2 text-[10px] font-bold backdrop-blur-lg transition-all hover:scale-[1.03]"
+            style={{ ...compactGlassStyle, color: isPreviewing ? uiScheme.link : uiScheme.mutedText }}
           >
             {isPreviewing ? '停止' : '试听'}
           </Button>
@@ -177,6 +184,8 @@ export function VoiceSelector({
           style={{
             color: voicesError ? uiScheme.link : uiScheme.mutedText,
             borderColor: `${uiScheme.cardBorder}24`,
+            background:
+              `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.22)}`,
           }}
         >
           {voicesLoading ? '正在加载声音列表...' : voicesError}
@@ -188,8 +197,8 @@ export function VoiceSelector({
           <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 w-full rounded-xl border-0 bg-black/5 px-3.5 text-[13px] font-medium shadow-none transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
-              style={{ color: uiScheme.fg }}
+              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none backdrop-blur-lg transition-all hover:scale-[1.01]"
+              style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
                 <span className="shrink-0 text-[10px] font-black uppercase opacity-40">语音</span>
@@ -200,8 +209,11 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[300px] rounded-2xl border-border/40 shadow-2xl"
-              style={{ background: uiScheme.cardBg }}
+              className="max-w-[300px] rounded-2xl border-border/40 shadow-2xl backdrop-blur-2xl"
+              style={{
+                background:
+                  `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,
+              }}
             >
               {zhVoices.map((voice) => (
                 <SelectItem
@@ -226,8 +238,8 @@ export function VoiceSelector({
           >
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 w-full rounded-xl border-0 bg-black/5 px-3.5 text-[13px] font-medium shadow-none transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
-              style={{ color: uiScheme.fg }}
+              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none backdrop-blur-lg transition-all hover:scale-[1.01]"
+              style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
                 <span className="shrink-0 text-[10px] font-black uppercase opacity-40">风格</span>
@@ -238,8 +250,11 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[260px] rounded-xl border-border/40 shadow-2xl"
-              style={{ background: uiScheme.cardBg }}
+              className="max-w-[260px] rounded-xl border-border/40 shadow-2xl backdrop-blur-2xl"
+              style={{
+                background:
+                  `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,
+              }}
             >
               <SelectItem
                 value="__clear__"

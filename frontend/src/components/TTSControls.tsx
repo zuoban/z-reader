@@ -428,9 +428,13 @@ export function TTSControls({
 
   const handleStartClick = async () => {
     if (isPending) return;
+    const shouldCloseAfterStart = !isPlaying;
     setIsPending(true);
     try {
       await onStart();
+      if (shouldCloseAfterStart) {
+        setExpanded(false);
+      }
     } finally {
       setTimeout(() => setIsPending(false), 300);
     }

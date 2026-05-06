@@ -28,6 +28,7 @@ import {
   ReaderLoadingOverlay,
 } from "@/components/reader/ReaderStateViews";
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
+import { TTSControls } from "@/components/TTSControls";
 import { api } from "@/lib/api";
 import type { Bookmark } from "@/lib/api";
 import { withOpacity } from "@/lib/reader-ui";
@@ -172,6 +173,12 @@ export default function ReadPage() {
     },
     [restoreTTSHighlight],
   );
+
+  useEffect(() => {
+    if (ttsState === "playing") {
+      hideHeader();
+    }
+  }, [hideHeader, ttsState]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -752,6 +759,47 @@ export default function ReadPage() {
             uiScheme={uiScheme}
             isToolbarVisible={isHeaderVisible}
             onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
+            compactTrailingAction={
+              <TTSControls
+                state={ttsState}
+                settings={ttsSettings}
+                voices={voices}
+                voicesLoading={voicesLoading}
+                voicesError={voicesError}
+                onReloadVoices={reloadVoices}
+                onStart={startTTS}
+                onStop={stopTTS}
+                onNext={nextTTS}
+                onPrev={prevTTS}
+                onUpdateSettings={updateTTSSettings}
+                uiScheme={uiScheme}
+                variant="toolbar"
+                triggerClassName="paper-motion-interactive inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all hover:scale-[1.04] active:scale-95 focus-visible:ring-2 focus-visible:ring-inset"
+                triggerStyle={{
+                  color:
+                    ttsState !== "stopped"
+                      ? uiScheme.link
+                      : withOpacity(uiScheme.fg, 0.58),
+                  background: withOpacity(uiScheme.cardBg, 0.72),
+                  borderColor: withOpacity(
+                    ttsState !== "stopped" ? uiScheme.link : uiScheme.cardBorder,
+                    0.24,
+                  ),
+                  boxShadow:
+                    `0 12px 28px -22px ${withOpacity(uiScheme.cardBorder, 0.55)}`,
+                  backdropFilter: "blur(16px)",
+                }}
+                resumePromptVisible={resumePromptVisible}
+                resumePromptMessage={resumePromptMessage}
+                ttsStatus={ttsStatus}
+                sleepTimer={sleepTimer}
+                onSleepTimerMinutes={setSleepTimerForMinutes}
+                onClearSleepTimer={clearSleepTimer}
+                onResume={resumeTTS}
+                onExpandedChange={handleTTSExpandedChange}
+                overlayContainer={overlayContainer}
+              />
+            }
           />
         </div>
       </div>

@@ -38,6 +38,8 @@ export interface FoliateView {
     setStyles?: (css: string) => void;
     next?: () => Promise<void>;
     prev?: () => Promise<void>;
+    nextSection?: () => Promise<void>;
+    prevSection?: () => Promise<void>;
     getContents?: () => Array<{ doc: Document; index: number }>;
     page?: number;
     pages?: number;

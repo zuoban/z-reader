@@ -668,6 +668,48 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     updateVisibleStatus,
   ]);
 
+  const navigateToAdjacentTTSDocument = useCallback(async (
+    direction: 'next' | 'prev',
+  ): Promise<boolean> => {
+    const view = viewRef.current;
+    if (!view) return false;
+
+    const beforeContent = view.renderer?.getContents?.()[0];
+    const beforeDoc = beforeContent?.doc ?? view.tts?.doc;
+    const beforeIndex = beforeContent?.index;
+
+    if (direction === 'next' && view.renderer?.nextSection) {
+      await view.renderer.nextSection();
+    } else if (direction === 'prev' && view.renderer?.prevSection) {
+      await view.renderer.prevSection();
+    } else if (direction === 'next') {
+      await view.next?.();
+    } else {
+      await view.prev?.();
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, NAV_RETRY_DELAY_MS));
+
+    const afterContent = view.renderer?.getContents?.()[0];
+    const afterDoc = afterContent?.doc;
+    const afterIndex = afterContent?.index;
+    const changedDocument = Boolean(afterDoc && beforeDoc && afterDoc !== beforeDoc);
+    const changedIndex =
+      typeof afterIndex === 'number' &&
+      typeof beforeIndex === 'number' &&
+      afterIndex !== beforeIndex;
+
+    if (!changedDocument && !changedIndex) {
+      logTTS('tts-section-navigation-unchanged', {
+        direction,
+        index: afterIndex ?? null,
+      });
+      return false;
+    }
+
+    return true;
+  }, [logTTS, viewRef]);
+
   const getNextAndSpeak = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
       return false;
@@ -685,15 +727,17 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
       if (!ssml) {
         try {
-          await view.next?.();
-          await new Promise(r => setTimeout(r, NAV_RETRY_DELAY_MS));
+          const navigated = await navigateToAdjacentTTSDocument('next');
+          if (!navigated) {
+            return false;
+          }
 
           inited = await ensureTTS();
           if (inited) {
             ssml = view.tts?.start?.();
           }
         } catch (err) {
-          console.error('Failed to navigate to next page:', err);
+          console.error('Failed to navigate to next TTS section:', err);
           return false;
         }
       }
@@ -716,7 +760,15 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     }
 
     return false;
-  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, isSpeakableSSML, logTTS]);
+  }, [
+    viewRef,
+    ensureTTS,
+    navigateToAdjacentTTSDocument,
+    speakSSML,
+    clearReaderHighlight,
+    isSpeakableSSML,
+    logTTS,
+  ]);
 
   const realignAndSpeakNext = useCallback(async (): Promise<boolean> => {
     const view = viewRef.current;

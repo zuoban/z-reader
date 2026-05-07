@@ -584,10 +584,8 @@ export default function ReadPage() {
     backdropFilter: "blur(24px) saturate(1.3)",
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.15rem)";
-  const statusBarReservedSpace = isHeaderVisible
-    ? "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)"
-    : "calc(env(safe-area-inset-bottom, 0px) + 1.75rem)";
+  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 3rem)";
+  const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)";
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
   return (
@@ -774,20 +772,20 @@ export default function ReadPage() {
                 onUpdateSettings={updateTTSSettings}
                 uiScheme={uiScheme}
                 variant="toolbar"
-                triggerClassName="paper-motion-interactive inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all hover:scale-[1.04] active:scale-95 focus-visible:ring-2 focus-visible:ring-inset"
+                triggerClassName="paper-motion-interactive inline-flex size-7! min-h-7! min-w-7! shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all hover:scale-[1.03] active:scale-95 focus-visible:ring-2 focus-visible:ring-inset [&_svg]:size-3.5!"
                 triggerStyle={{
                   color:
                     ttsState !== "stopped"
                       ? uiScheme.link
                       : withOpacity(uiScheme.fg, 0.58),
-                  background: withOpacity(uiScheme.cardBg, 0.72),
+                  background: withOpacity(uiScheme.cardBg, 0.62),
                   borderColor: withOpacity(
                     ttsState !== "stopped" ? uiScheme.link : uiScheme.cardBorder,
-                    0.24,
+                    0.18,
                   ),
                   boxShadow:
-                    `0 12px 28px -22px ${withOpacity(uiScheme.cardBorder, 0.55)}`,
-                  backdropFilter: "blur(16px)",
+                    `0 8px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.42)}`,
+                  backdropFilter: "blur(14px)",
                 }}
                 resumePromptVisible={resumePromptVisible}
                 resumePromptMessage={resumePromptMessage}

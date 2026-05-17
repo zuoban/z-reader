@@ -11,8 +11,6 @@ import {
   Library,
   LogOut,
   Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Search,
   Sun,
@@ -50,38 +48,33 @@ const SUPPORTED_FORMATS_ACCEPT = [
   'application/x-mobipocket-ebook',
 ].join(',');
 const SHELF_TITLE = '我的书架';
-const SHELF_SIDEBAR_COLLAPSED_KEY = 'z-reader:shelf-sidebar-collapsed';
 
 function delay(ms: number): CSSProperties {
   return { '--paper-delay': `${ms}ms` } as CSSProperties;
 }
 
-function ShelfTitle({ collapsed = false }: { collapsed?: boolean }) {
+function ShelfTitle() {
   return (
     <Link
       href="/"
       aria-label="返回 Z Reader 落地页"
-      className={cn(
-        'group flex min-w-0 items-center gap-3.5 rounded-lg outline-none transition-opacity hover:opacity-88 focus-visible:ring-2 focus-visible:ring-primary/30',
-        collapsed && 'lg:justify-center lg:gap-0'
-      )}
+      className="group flex min-w-0 items-center gap-3.5 rounded-xl outline-none transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/30"
     >
       <div
-        className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_55%,transparent)] sm:h-12 sm:w-12',
-          collapsed && 'lg:h-10 lg:w-10 lg:rounded-[1rem]'
-        )}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/18 bg-primary/10 text-primary shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_60%,transparent)] transition-transform duration-300 group-hover:scale-105 sm:h-12 sm:w-12"
       >
         <Library className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
       </div>
-      <h1
-        className={cn(
-          'truncate font-heading text-2xl font-semibold text-foreground sm:text-3xl lg:text-2xl',
-          collapsed && 'lg:sr-only'
-        )}
-      >
-        {SHELF_TITLE}
-      </h1>
+      <div className="flex flex-col min-w-0">
+        <h1
+          className="truncate font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl lg:text-xl"
+        >
+          {SHELF_TITLE}
+        </h1>
+        <span className="text-[10px] font-bold tracking-[0.2em] text-primary/60 uppercase">
+          Digital Library
+        </span>
+      </div>
     </Link>
   );
 }
@@ -95,11 +88,6 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-
-    return window.localStorage.getItem(SHELF_SIDEBAR_COLLAPSED_KEY) === 'true';
-  });
   const { isLoading, isAuthenticated, user, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
@@ -147,13 +135,6 @@ export default function ShelfPage() {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      SHELF_SIDEBAR_COLLAPSED_KEY,
-      String(isSidebarCollapsed)
-    );
-  }, [isSidebarCollapsed]);
 
   const selectedExistingIds = useMemo(() => {
     const existingIds = new Set(books.map((book) => book.id));
@@ -286,9 +267,21 @@ export default function ShelfPage() {
     return (
       <AppScreen ambient="shelf">
         <div className="flex min-h-screen items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <LoadingSpinner />
-            <p className="text-sm font-medium text-muted-foreground">加载中...</p>
+          <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+            <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px] animate-pulse" />
+            <div className="absolute -right-[10%] -bottom-[10%] h-[40%] w-[40%] rounded-full bg-accent/10 blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+          <div className="relative flex flex-col items-center gap-6">
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping opacity-20 bg-primary rounded-full blur-xl" />
+              <LoadingSpinner className="relative h-12 w-12 border-primary/30" />
+            </div>
+            <div className="flex flex-col items-center gap-1.5">
+              <p className="text-sm font-bold tracking-widest text-foreground/80 uppercase">Loading Library</p>
+              <div className="h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
+                <div className="h-full bg-primary animate-[shimmer_2s_infinite]" style={{ width: '40%' }} />
+              </div>
+            </div>
           </div>
         </div>
       </AppScreen>
@@ -298,244 +291,99 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+      contentClassName="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-10"
     >
-      <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:gap-6">
-        <aside
-          className={cn(
-            'paper-reveal shelf-header backdrop-blur-2xl transition-[width] duration-300 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:shrink-0 lg:self-start lg:overflow-y-auto',
-            isSidebarCollapsed ? 'lg:w-[6.5rem]' : 'lg:w-[18rem]',
-            isSidebarCollapsed && 'shelf-sidebar-collapsed'
-          )}
-          style={delay(0)}
-        >
-          <div
-            className={cn(
-              'relative z-10 flex flex-col px-3.5 py-3.5 sm:px-5 sm:py-5 lg:px-4 lg:py-5',
-              isSidebarCollapsed && 'lg:px-3 lg:py-4'
-            )}
-          >
-            <div
-              className={cn(
-                'flex flex-col gap-3 border-b border-border/25 pb-3.5 sm:pb-4 lg:border-border/35',
-                isSidebarCollapsed && 'lg:items-center lg:gap-2 lg:pb-3'
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+        <div className="absolute left-[5%] top-[10%] h-[30%] w-[30%] rounded-full bg-primary/5 blur-[100px]" />
+        <div className="absolute right-[5%] bottom-[10%] h-[30%] w-[30%] rounded-full bg-accent/5 blur-[100px]" />
+      </div>
+
+      <header className="paper-reveal sticky top-0 z-50 mb-6 w-full px-1 pt-1 lg:mb-10 lg:px-2 lg:pt-2" style={delay(0)}>
+        <div className="shelf-header flex h-16 items-center justify-between px-4 backdrop-blur-3xl sm:h-20 sm:px-8 lg:h-22 lg:px-10">
+          <div className="flex items-center gap-6">
+            <ShelfTitle />
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="hidden items-center gap-2 border-r border-border/15 pr-4 sm:flex sm:gap-3.5">
+              {user?.role === 'admin' && (
+                <UserManager
+                  currentUser={user}
+                  triggerLabel="用户管理"
+                  buttonClassName="shelf-icon-btn"
+                  triggerTitle="用户管理"
+                />
               )}
-            >
-              <div
-                className={cn(
-                  'flex items-center justify-between gap-2',
-                  isSidebarCollapsed && 'lg:flex-col lg:justify-center'
+
+              <FileUploadAction
+                accept={SUPPORTED_FORMATS_ACCEPT}
+                onChange={handleUpload}
+                disabled={isUploading}
+                title="上传书籍"
+                multiple
+                statusLabel={uploadStatusLabel}
+                wrapperClassName="shelf-tooltip overflow-visible"
+                buttonVariant="ghost"
+                buttonSize="sm"
+                buttonClassName={cn(
+                  'shelf-icon-btn',
+                  isUploading && 'bg-primary/10 text-primary opacity-100'
                 )}
               >
-                <ShelfTitle collapsed={isSidebarCollapsed} />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={isSidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-                  aria-pressed={isSidebarCollapsed}
-                  title={isSidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-                  onClick={() => setIsSidebarCollapsed((value) => !value)}
-                  className={cn(
-                    'shelf-collapse-toggle relative z-20 hidden h-11 w-11 cursor-pointer rounded-2xl border border-primary/12 bg-card/55 text-muted-foreground shadow-[0_8px_18px_-16px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] backdrop-blur-xl transition-all hover:border-primary/24 hover:bg-card/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25 lg:flex',
-                    isSidebarCollapsed && 'lg:h-9 lg:w-9 lg:rounded-xl'
-                  )}
-                >
-                  {isSidebarCollapsed ? (
-                    <PanelLeftOpen className="h-4 w-4" />
-                  ) : (
-                    <PanelLeftClose className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p
-                className={cn(
-                  'hidden text-sm leading-6 text-muted-foreground sm:block lg:text-xs lg:leading-5',
-                  isSidebarCollapsed && 'lg:hidden'
+                {isUploading ? (
+                  <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
+                ) : (
+                  <Upload className="h-4 w-4" />
                 )}
+                <span className="hidden">{uploadStatusLabel ?? '上传书籍'}</span>
+              </FileUploadAction>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCategoryManagerOpen(true)}
+                aria-label="分类管理"
+                title="分类管理"
+                data-tooltip="分类管理"
+                className="shelf-icon-btn shelf-tooltip cursor-pointer"
               >
-                管理藏书、分类和阅读偏好
-              </p>
+                <Tag className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                aria-label={isDark ? '亮色模式' : '暗色模式'}
+                title={isDark ? '亮色模式' : '暗色模式'}
+                data-tooltip={isDark ? '亮色模式' : '暗色模式'}
+                className="shelf-icon-btn shelf-tooltip cursor-pointer"
+              >
+                {isDark ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
             </div>
 
-            <nav
-              className={cn('mt-3 lg:mt-4', isSidebarCollapsed && 'lg:mt-3')}
-              aria-label="书架菜单"
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              aria-label="退出登录"
+              title="退出登录"
+              data-tooltip="退出登录"
+              className="shelf-icon-btn shelf-tooltip flex cursor-pointer text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:h-11 sm:w-11"
             >
-              <div
-                className={cn(
-                  'hidden px-1.5 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground/70 uppercase mb-1 lg:block',
-                  isSidebarCollapsed && 'lg:sr-only'
-                )}
-              >
-                操作
-              </div>
-              {/* Mobile: compact icon row */}
-              <div
-                className={cn(
-                  'grid gap-2 sm:hidden',
-                  user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'
-                )}
-              >
-                {user?.role === 'admin' && (
-                  <UserManager
-                    currentUser={user}
-                    triggerLabel="用户管理"
-                    buttonClassName="shelf-mobile-action"
-                  />
-                )}
-
-                <FileUploadAction
-                  accept={SUPPORTED_FORMATS_ACCEPT}
-                  onChange={handleUpload}
-                  disabled={isUploading}
-                  title="上传书籍"
-                  multiple
-                  statusLabel={uploadStatusLabel}
-                  wrapperClassName="flex justify-center overflow-visible"
-                  buttonVariant="ghost"
-                  buttonSize="icon"
-                  buttonClassName={cn(
-                    'shelf-mobile-action',
-                    isUploading && 'text-primary'
-                  )}
-                >
-                  {isUploading ? (
-                    <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  <span className="hidden">{uploadStatusLabel ?? '上传书籍'}</span>
-                </FileUploadAction>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setCategoryManagerOpen(true)}
-                  aria-label="分类管理"
-                  className="shelf-mobile-action cursor-pointer"
-                >
-                  <Tag className="h-4 w-4" />
-                  <span className="hidden">分类管理</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  aria-label={isDark ? '切换亮色模式' : '切换暗色模式'}
-                  className="shelf-mobile-action cursor-pointer"
-                >
-                  {isDark ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                  <span className="hidden">{isDark ? '亮色模式' : '暗色模式'}</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={logout}
-                  aria-label="退出"
-                  className="shelf-mobile-action cursor-pointer hover:text-destructive"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden">退出登录</span>
-                </Button>
-              </div>
-
-              {/* Desktop: sidebar menu items */}
-              <div
-                className={cn(
-                  'hidden grid-cols-2 gap-2 sm:grid lg:flex lg:flex-col lg:gap-1.5',
-                  user?.role === 'admin' ? 'sm:grid-cols-5' : 'sm:grid-cols-4',
-                  isSidebarCollapsed && 'lg:items-center lg:gap-2.5'
-                )}
-              >
-                {user?.role === 'admin' && (
-                  <UserManager
-                    currentUser={user}
-                    triggerLabel="用户管理"
-                    buttonClassName="shelf-menu-item"
-                    triggerTitle="用户管理"
-                  />
-                )}
-
-                <FileUploadAction
-                  accept={SUPPORTED_FORMATS_ACCEPT}
-                  onChange={handleUpload}
-                  disabled={isUploading}
-                  title="上传书籍"
-                  multiple
-                  statusLabel={uploadStatusLabel}
-                  wrapperClassName="shelf-tooltip overflow-visible"
-                  buttonVariant="ghost"
-                  buttonSize="sm"
-                  buttonClassName={cn(
-                    'shelf-menu-item',
-                    isUploading && 'bg-primary/10 text-primary opacity-100 hover:bg-primary/12'
-                  )}
-                >
-                  {isUploading ? (
-                    <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  <span>{uploadStatusLabel ?? '上传书籍'}</span>
-                </FileUploadAction>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCategoryManagerOpen(true)}
-                  aria-label="分类管理"
-                  title="分类管理"
-                  data-tooltip="分类管理"
-                  className="shelf-menu-item shelf-tooltip cursor-pointer"
-                >
-                  <Tag className="h-4 w-4" />
-                  <span>分类管理</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleTheme}
-                  aria-label={isDark ? '切换亮色模式' : '切换暗色模式'}
-                  title={isDark ? '切换亮色模式' : '切换暗色模式'}
-                  data-tooltip={isDark ? '亮色模式' : '暗色模式'}
-                  className="shelf-menu-item shelf-tooltip cursor-pointer"
-                >
-                  {isDark ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                  <span>{isDark ? '亮色模式' : '暗色模式'}</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={logout}
-                  aria-label="退出"
-                  title="退出登录"
-                  data-tooltip="退出登录"
-                  className="shelf-menu-item shelf-tooltip cursor-pointer text-muted-foreground hover:text-destructive"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>退出登录</span>
-                </Button>
-              </div>
-            </nav>
-
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
-        </aside>
+        </div>
+      </header>
 
       <main
-        className="min-w-0 flex-1"
+        className="relative z-10 flex-1"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
@@ -604,144 +452,164 @@ export default function ShelfPage() {
             )}
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
+          <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
             {!isLoadingBooks && books.length > 0 && (
-              <div className="paper-reveal shelf-toolbar backdrop-blur-xl" style={delay(90)}>
+              <div className="paper-reveal shelf-toolbar backdrop-blur-2xl px-4 py-3 sm:px-5 sm:py-4" style={delay(90)}>
                 <div
                   className={cn(
-                    'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+                    'flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
                     categories.length === 0 && 'sm:min-w-[13rem]'
                   )}
                 >
-                  <div className="relative w-full sm:max-w-[22rem]">
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/55" />
+                  <div className="relative w-full sm:max-w-[24rem]">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/45 transition-colors group-focus-within:text-primary/70" />
                     <Input
                       type="search"
                       value={searchQuery}
                       onChange={(event) => changeSearchQuery(event.target.value)}
-                      placeholder="搜索书名、作者、文件名"
+                      placeholder="搜索书名、作者或关键词..."
                       aria-label="搜索书架"
-                      className="h-11 rounded-xl border-primary/16 bg-card/58 pl-10 pr-10 text-sm shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] backdrop-blur-xl"
+                      className="h-11 rounded-xl border-primary/12 bg-card/45 pl-10 pr-10 text-sm shadow-[0_2px_12px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] backdrop-blur-xl transition-all hover:border-primary/25 focus:border-primary/40 focus:bg-card/60 focus:ring-0 focus:ring-offset-0"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => changeSearchQuery('')}
                         aria-label="清空搜索"
-                        className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                        className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/60 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                       >
                         <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
-                  {hasActiveShelfFilter && (
-                    <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground sm:ml-auto sm:mr-2">
-                      <span className="rounded-md bg-foreground/8 px-2 py-1 text-foreground/70">
-                        找到 {filteredBooks.length} 本
-                      </span>
-                      {activeCategoryLabel && (
-                        <span className="rounded-md bg-primary/10 px-2 py-1 text-primary/80">
-                          {activeCategoryLabel}
+
+                  <div className="flex items-center gap-3 sm:ml-auto">
+                    {hasActiveShelfFilter && (
+                      <div className="hidden flex-wrap items-center gap-2 text-[11px] font-bold sm:flex">
+                        <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-foreground/60 border border-border/10">
+                          {filteredBooks.length} 结果
                         </span>
-                      )}
-                      {searchQuery.trim() && (
-                        <span className="max-w-[12rem] truncate rounded-md bg-foreground/8 px-2 py-1 text-foreground/70">
-                          {searchQuery.trim()}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={clearShelfFilters}
-                        className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/12 bg-card/58 px-2 text-[11px] font-semibold text-primary/78 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_44%,transparent)] backdrop-blur-md transition-colors hover:border-primary/24 hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/18"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        清空
-                      </button>
-                    </div>
-                  )}
-                  <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:order-last sm:flex sm:w-auto">
-                    <ShelfFilterSheet
-                      categories={categories}
-                      selectedCategoryId={selectedCategoryId}
-                      onSelectCategory={changeSelectedCategory}
-                      bookCounts={bookCounts}
-                      sortBy={sortBy}
-                      onSortChange={setSortBy}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={cn(
-                        'group h-11 min-w-[6.25rem] rounded-xl border border-primary/16 bg-card/58 px-3 text-sm font-semibold text-foreground/82 shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)_inset,0_8px_18px_-16px_var(--paper-shadow-soft)] backdrop-blur-xl transition-all duration-200 hover:border-primary/30 hover:bg-card/70 hover:text-foreground hover:shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_76%,transparent)_inset,0_12px_24px_-18px_var(--paper-shadow)] focus-visible:border-primary/38 focus-visible:ring-2 focus-visible:ring-primary/18 focus-visible:ring-offset-0 sm:px-4',
-                        selectionMode && 'border-primary/28 bg-[var(--shelf-surface-selected)] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--glass-specular)_80%,transparent)_inset,0_14px_28px_-20px_var(--paper-shadow)]'
-                      )}
-                      onClick={toggleSelectionMode}
-                    >
-                      <span
-                        className={cn(
-                          'flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 text-primary/64 transition-colors group-hover:bg-primary/10 group-hover:text-primary/80',
-                          selectionMode && 'bg-primary/12 text-primary'
-                        )}
-                        aria-hidden="true"
-                      >
-                        <CheckSquare className="h-4 w-4" />
-                      </span>
-                      <span>{selectionMode ? '退出选择' : '选择'}</span>
-                    </Button>
-                  </div>
-                  {/* Desktop: full dropdowns */}
-                  <div className="hidden w-full flex-row items-center gap-2 sm:flex sm:w-auto sm:shrink-0">
-                    {categories.length > 0 && (
-                      <CategoryFilter
-                        categories={categories}
-                        selectedCategoryId={selectedCategoryId}
-                        onSelectCategory={changeSelectedCategory}
-                        bookCounts={bookCounts}
-                        className="sm:w-[13rem]"
-                      />
+                        <button
+                          type="button"
+                          onClick={clearShelfFilters}
+                          className="inline-flex h-7 items-center gap-1.5 rounded-full border border-primary/12 bg-card/60 px-3 text-primary/70 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_44%,transparent)] backdrop-blur-md transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary active:scale-95"
+                        >
+                          <X className="h-3 w-3" />
+                          <span>重置筛选</span>
+                        </button>
+                      </div>
                     )}
-                    <SortSelector
-                      value={sortBy}
-                      onChange={setSortBy}
-                      className="sm:ml-auto sm:w-[13rem]"
-                    />
+
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto">
+                      <div className="hidden flex-row items-center gap-2 lg:flex lg:shrink-0">
+                        {categories.length > 0 && (
+                          <CategoryFilter
+                            categories={categories}
+                            selectedCategoryId={selectedCategoryId}
+                            onSelectCategory={changeSelectedCategory}
+                            bookCounts={bookCounts}
+                            className="sm:w-[11rem]"
+                          />
+                        )}
+                        <SortSelector
+                          value={sortBy}
+                          onChange={setSortBy}
+                          className="sm:w-[11rem]"
+                        />
+                      </div>
+                      
+                      <div className="flex items-center gap-2 lg:hidden">
+                        <ShelfFilterSheet
+                          categories={categories}
+                          selectedCategoryId={selectedCategoryId}
+                          onSelectCategory={changeSelectedCategory}
+                          bookCounts={bookCounts}
+                          sortBy={sortBy}
+                          onSortChange={setSortBy}
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className={cn(
+                          'group h-11 min-w-[6rem] rounded-xl border border-primary/12 bg-card/45 px-3 text-sm font-bold text-foreground/70 shadow-[0_2px_12px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 hover:bg-card/70 hover:text-foreground active:scale-[0.98] sm:px-4',
+                          selectionMode && 'border-primary/40 bg-primary/5 text-primary shadow-none'
+                        )}
+                        onClick={toggleSelectionMode}
+                      >
+                        <CheckSquare className={cn(
+                          "h-4 w-4 transition-colors",
+                          selectionMode ? "text-primary" : "text-primary/50 group-hover:text-primary/80"
+                        )} />
+                        <span>{selectionMode ? '取消' : '选择'}</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
+
+            {hasActiveShelfFilter && (
+              <div className="flex flex-wrap items-center gap-2 px-1 sm:hidden">
+                <span className="text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase">
+                  当前筛选
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                   <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-bold text-foreground/60 border border-border/10">
+                    {filteredBooks.length} 结果
+                  </span>
+                  {activeCategoryLabel && (
+                    <span className="rounded-full bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary/70 border border-primary/10">
+                      {activeCategoryLabel}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={clearShelfFilters}
+                    className="flex h-5 items-center gap-1 rounded-full border border-primary/15 bg-card/60 px-2 text-[9px] font-bold text-primary/80 transition-active active:scale-95"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                    重置
+                  </button>
+                </div>
+              </div>
+            )}
+
             <section
               className={cn(
-                'paper-reveal shelf-container relative rounded-2xl backdrop-blur-2xl',
-                selectionMode && filteredBooks.length > 0 && 'mb-28 sm:mb-24'
+                'paper-reveal shelf-container relative rounded-3xl backdrop-blur-3xl transition-all duration-500',
+                selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
               )}
               style={delay(150)}
             >
               {isLoadingBooks ? (
-                <div className="px-3 py-5 sm:px-6 sm:py-8 lg:px-7 lg:py-9">
+                <div className="px-4 py-6 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
                   <BookCardSkeletonGrid count={6} />
                 </div>
               ) : filteredBooks.length === 0 ? (
-                <div className="flex min-h-[22rem] flex-col items-center justify-center px-6 py-12 text-center">
-                  <Search className="h-10 w-10 text-primary/55" />
-                  <h2 className="mt-4 font-heading text-2xl font-semibold text-foreground">
-                    没找到匹配的书
+                <div className="flex min-h-[26rem] flex-col items-center justify-center px-8 py-16 text-center">
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 animate-pulse blur-2xl bg-primary/10 rounded-full" />
+                    <Search className="relative h-12 w-12 text-primary/30" />
+                  </div>
+                  <h2 className="font-heading text-2xl font-bold text-foreground tracking-tight">
+                    未找到相关书籍
                   </h2>
-                  <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                    换个关键词，或清空搜索和分类筛选后再看看。
+                  <p className="mt-2.5 max-w-sm text-sm leading-relaxed text-muted-foreground/80">
+                    尝试使用不同的关键词搜索，或重置当前的分类筛选与排序。
                   </p>
                   <Button
                     type="button"
                     variant="outline"
-                    className="mt-5 h-10 rounded-lg px-4"
-                    onClick={() => {
-                      clearShelfFilters();
-                    }}
+                    className="mt-8 h-11 rounded-xl px-6 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-bold"
+                    onClick={clearShelfFilters}
                   >
-                    清空筛选
+                    重置所有筛选
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-x-3 gap-y-4 px-3 py-4 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-x-6 sm:gap-y-10 sm:px-6 sm:py-8 lg:grid-cols-[repeat(auto-fill,minmax(196px,1fr))] lg:gap-x-8 lg:gap-y-12 lg:px-8 lg:py-9">
+                <div className="relative z-0 grid grid-cols-2 gap-x-4 gap-y-6 px-4 py-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-x-8 sm:gap-y-12 sm:px-8 sm:py-10 lg:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] lg:gap-x-10 lg:gap-y-14 lg:px-10 lg:py-12">
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
@@ -764,74 +632,79 @@ export default function ShelfPage() {
                 </div>
               )}
               {isDraggingBookFile && (
-                <div className="pointer-events-none absolute inset-0 z-30 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/45 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
-                  <div className="rounded-2xl border border-primary/16 bg-card/58 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
-                    <Upload className="mx-auto h-8 w-8 text-primary" />
-                    <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
-                    <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
+                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/80 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-md">
+                  <div className="rounded-3xl border border-primary/15 bg-card/60 px-10 py-8 shadow-[0_24px_54px_-30px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_50%,transparent)] backdrop-blur-2xl">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
+                      <Upload className="h-8 w-8" />
+                    </div>
+                    <p className="font-heading text-2xl font-bold tracking-tight">松开即可导入</p>
+                    <p className="mt-1.5 text-sm text-muted-foreground/80">支持 EPUB, PDF, MOBI, AZW3</p>
                   </div>
                 </div>
               )}
             </section>
+
             {selectionMode && !isLoadingBooks && filteredBooks.length > 0 && (
               <div
-                className="paper-reveal pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] z-40 mx-auto max-w-[46rem] sm:inset-x-6 lg:left-auto lg:right-8 lg:max-w-[48rem]"
+                className="paper-reveal pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
                 style={delay(105)}
               >
-                <div className="shelf-toolbar pointer-events-auto gap-2 rounded-2xl border-primary/18 bg-card/70 shadow-[0_18px_52px_-30px_var(--paper-shadow),0_6px_18px_-14px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)] backdrop-blur-xl">
-                  <div className="flex min-w-0 items-center justify-between gap-3 sm:min-w-[8rem]">
-                    <div className="min-w-0 text-sm font-medium text-muted-foreground">
-                      已选择 <span className="font-bold text-foreground">{selectedCount}</span> 本
+                <div className="shelf-toolbar pointer-events-auto flex items-center gap-4 rounded-2xl border-primary/25 bg-card/80 px-4 py-3 shadow-[0_24px_64px_-24px_var(--paper-shadow),0_8px_24px_-12px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)] backdrop-blur-2xl sm:px-6 sm:py-3.5">
+                  <div className="flex min-w-0 items-center gap-3.5 border-r border-border/15 pr-4 sm:pr-6">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <CheckSquare className="h-4.5 w-4.5" />
                     </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-bold tracking-[0.15em] text-muted-foreground/60 uppercase">已选中</span>
+                      <span className="truncate text-sm font-bold text-foreground">
+                        {selectedCount} <span className="text-[11px] font-medium text-muted-foreground ml-0.5">本书籍</span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2.5 sm:flex sm:flex-1 sm:items-center sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 min-w-0 rounded-xl px-2.5 text-xs font-bold border-border/40 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      onClick={toggleVisibleSelection}
+                    >
+                      {allVisibleSelected ? '取消全选' : '选择本页'}
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 min-w-0 rounded-xl px-2.5 text-xs font-bold border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      disabled={selectedCount === 0 || isUpdatingManyCategories}
+                      onClick={() => setBatchCategoryOpen(true)}
+                    >
+                      <Tag className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline ml-2">批量分类</span>
+                      <span className="sm:hidden ml-1.5">分类</span>
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="h-10 min-w-0 rounded-xl px-2.5 text-xs font-bold shadow-sm transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      disabled={selectedCount === 0 || isDeletingMany}
+                      onClick={() => setBatchDeleteOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline ml-2">批量删除</span>
+                      <span className="sm:hidden ml-1.5">删除</span>
+                    </Button>
+
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground hover:text-foreground sm:hidden"
+                      className="hidden sm:flex h-9 w-9 ml-2 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
                       onClick={toggleSelectionMode}
-                      aria-label="退出选择模式"
+                      aria-label="退出选择"
                     >
                       <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-1 sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
-                      onClick={toggleVisibleSelection}
-                      title={allVisibleSelected ? '取消选择当前视图' : '选择当前视图'}
-                    >
-                      <span className="truncate sm:hidden">
-                        {allVisibleSelected ? '取消当前' : '选当前'}
-                      </span>
-                      <span className="hidden truncate sm:inline">
-                        {allVisibleSelected ? '取消当前视图' : '选择当前视图'}
-                      </span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
-                      disabled={selectedCount === 0 || isUpdatingManyCategories}
-                      onClick={() => setBatchCategoryOpen(true)}
-                      title="设置分类"
-                    >
-                      <Tag className="h-4 w-4 shrink-0" />
-                      <span className="truncate sm:hidden">分类</span>
-                      <span className="hidden truncate sm:inline">设置分类</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      className="h-10 min-w-0 rounded-lg px-2 text-xs sm:px-4 sm:text-sm"
-                      disabled={selectedCount === 0 || isDeletingMany}
-                      onClick={() => setBatchDeleteOpen(true)}
-                      title="删除所选"
-                    >
-                      <Trash2 className="h-4 w-4 shrink-0" />
-                      <span className="truncate sm:hidden">删除</span>
-                      <span className="hidden truncate sm:inline">删除所选</span>
                     </Button>
                   </div>
                 </div>
@@ -866,7 +739,6 @@ export default function ShelfPage() {
           onRenameCategory={saveManagedCategory}
         />
       </main>
-      </div>
     </AppScreen>
   );
 }

@@ -8,8 +8,8 @@ import {
   AlertCircle,
   BookOpen,
   CheckSquare,
-  Library,
   LogOut,
+  Menu,
   Moon,
   Plus,
   Search,
@@ -19,6 +19,12 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
@@ -58,23 +64,16 @@ function ShelfTitle() {
     <Link
       href="/"
       aria-label="返回 Z Reader 落地页"
-      className="group flex min-w-0 items-center gap-3.5 rounded-xl outline-none transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/30"
+      className="group flex min-w-0 flex-col items-start gap-0 outline-none transition-transform duration-200 hover:scale-[1.01] active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-primary/30 rounded-xl py-0.5"
     >
-      <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/18 bg-primary/10 text-primary shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_60%,transparent)] transition-transform duration-300 group-hover:scale-105 sm:h-12 sm:w-12"
+      <h1
+        className="font-heading text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl lg:text-lg"
       >
-        <Library className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
-      </div>
-      <div className="flex flex-col min-w-0">
-        <h1
-          className="truncate font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl lg:text-xl"
-        >
-          {SHELF_TITLE}
-        </h1>
-        <span className="text-[10px] font-bold tracking-[0.2em] text-primary/60 uppercase">
-          Digital Library
-        </span>
-      </div>
+        {SHELF_TITLE}
+      </h1>
+      <span className="text-[9.5px] font-medium tracking-[0.18em] text-muted-foreground/50 uppercase">
+        Digital Library
+      </span>
     </Link>
   );
 }
@@ -273,8 +272,8 @@ export default function ShelfPage() {
           </div>
           <div className="relative flex flex-col items-center gap-6">
             <div className="relative">
-              <div className="absolute inset-0 animate-ping opacity-20 bg-primary rounded-full blur-xl" />
-              <LoadingSpinner className="relative h-12 w-12 border-primary/30" />
+              <div className="absolute inset-0 animate-ping opacity-15 bg-primary rounded-full blur-xl" />
+              <LoadingSpinner className="relative h-11 w-11 border-primary/25" />
             </div>
             <div className="flex flex-col items-center gap-1.5">
               <p className="text-sm font-bold tracking-widest text-foreground/80 uppercase">Loading Library</p>
@@ -291,25 +290,24 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-10"
+      contentClassName="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-5 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-10"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
         <div className="absolute left-[5%] top-[10%] h-[30%] w-[30%] rounded-full bg-primary/5 blur-[100px]" />
         <div className="absolute right-[5%] bottom-[10%] h-[30%] w-[30%] rounded-full bg-accent/5 blur-[100px]" />
       </div>
 
-      <header className="paper-reveal sticky top-0 z-50 mb-6 w-full px-1 pt-1 lg:mb-10 lg:px-2 lg:pt-2" style={delay(0)}>
-        <div className="shelf-header flex h-16 items-center justify-between px-4 backdrop-blur-3xl sm:h-20 sm:px-8 lg:h-22 lg:px-10">
-          <div className="flex items-center gap-6">
+      <header className="sticky top-0 z-50 mb-6 w-full pt-1 lg:mb-10 lg:px-2 lg:pt-2">
+        <div className="shelf-header flex h-16 items-center justify-between px-0 sm:h-20 sm:px-8 lg:h-22 lg:px-10">
+          <div className="flex items-center gap-5">
             <ShelfTitle />
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
             <div className="hidden items-center gap-2 border-r border-border/15 pr-4 sm:flex sm:gap-3.5">
               {user?.role === 'admin' && (
                 <UserManager
                   currentUser={user}
-                  triggerLabel="用户管理"
                   buttonClassName="shelf-icon-btn"
                   triggerTitle="用户管理"
                 />
@@ -367,17 +365,52 @@ export default function ShelfPage() {
               </Button>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={logout}
-              aria-label="退出登录"
-              title="退出登录"
-              data-tooltip="退出登录"
-              className="shelf-icon-btn shelf-tooltip flex cursor-pointer text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:h-11 sm:w-11"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div role="button" className="shelf-icon-btn p-2 cursor-pointer" tabIndex={0} aria-label="菜单">
+                    <Menu className="h-4 w-4" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={10}
+                  className="shelf-account-menu w-44 min-w-44 rounded-2xl p-1.5"
+                >
+                  {user?.role === 'admin' && (
+                    <div className="sm:hidden">
+                      <UserManager
+                        currentUser={user}
+                        buttonClassName="shelf-account-menu-item shelf-account-menu-button w-full justify-start"
+                        triggerLabel="用户管理"
+                        triggerLabelClassName="inline"
+                      />
+                    </div>
+                  )}
+                  <DropdownMenuItem
+                    className="shelf-account-menu-item sm:hidden"
+                    onClick={() => setCategoryManagerOpen(true)}
+                  >
+                    <Tag className="h-4 w-4" /> 分类管理
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="shelf-account-menu-item sm:hidden" onClick={toggleTheme}>
+                    {isDark ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    {isDark ? '亮色模式' : '暗色模式'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="shelf-account-menu-item shelf-account-menu-danger"
+                  >
+                    <LogOut className="h-4 w-4" /> 退出登录
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
           </div>
         </div>
       </header>
@@ -390,8 +423,8 @@ export default function ShelfPage() {
         onDrop={handleShelfDrop}
       >
         {!isLoadingBooks && loadError ? (
-          <div className="paper-reveal" style={delay(120)}>
-            <div className="shelf-container flex min-h-[28rem] flex-col items-center justify-center rounded-2xl px-6 py-12 text-center backdrop-blur-2xl">
+          <div>
+            <div className="shelf-container flex min-h-[28rem] flex-col items-center justify-center rounded-2xl px-6 py-12 text-center ">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
                 <AlertCircle className="h-7 w-7" />
               </div>
@@ -411,7 +444,7 @@ export default function ShelfPage() {
             </div>
           </div>
         ) : !isLoadingBooks && books.length === 0 ? (
-          <div className="paper-reveal relative" style={delay(120)}>
+          <div className="relative">
             <EmptyState
               icon={BookOpen}
               title="书架还是空的"
@@ -425,7 +458,7 @@ export default function ShelfPage() {
                   title="上传书籍"
                   multiple
                   wrapperClassName="w-full sm:w-auto"
-                  buttonClassName="h-12 w-full rounded-2xl border border-primary/15 bg-primary px-8 text-sm font-semibold tracking-[0.04em] text-primary-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary/92 active:scale-[0.985] sm:w-auto sm:px-10"
+                  buttonClassName="h-11 w-full rounded-xl border border-primary/12 bg-primary px-8 text-sm font-semibold tracking-[0.02em] text-primary-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/18 hover:bg-primary/92 active:scale-[0.985] sm:w-auto sm:px-10"
                 >
                   {isUploading ? (
                     <>
@@ -442,8 +475,8 @@ export default function ShelfPage() {
               }
             />
             {isDraggingBookFile && (
-              <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-sm sm:flex">
-                <div className="rounded-2xl border border-primary/16 bg-card/58 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)]  sm:flex">
+                <div className="rounded-2xl border border-primary/16 bg-card/58 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] ">
                   <Upload className="mx-auto h-8 w-8 text-primary" />
                   <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
                   <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
@@ -454,7 +487,7 @@ export default function ShelfPage() {
         ) : (
           <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
             {!isLoadingBooks && books.length > 0 && (
-              <div className="paper-reveal shelf-toolbar backdrop-blur-2xl px-4 py-3 sm:px-5 sm:py-4" style={delay(90)}>
+              <div className="shelf-toolbar py-2.5 sm:px-4 sm:py-3">
                 <div
                   className={cn(
                     'flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
@@ -462,21 +495,21 @@ export default function ShelfPage() {
                   )}
                 >
                   <div className="relative w-full sm:max-w-[24rem]">
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/45 transition-colors group-focus-within:text-primary/70" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 transition-colors group-focus-within:text-primary/60" />
                     <Input
                       type="search"
                       value={searchQuery}
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名、作者或关键词..."
                       aria-label="搜索书架"
-                      className="h-11 rounded-xl border-primary/12 bg-card/45 pl-10 pr-10 text-sm shadow-[0_2px_12px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] backdrop-blur-xl transition-all hover:border-primary/25 focus:border-primary/40 focus:bg-card/60 focus:ring-0 focus:ring-offset-0"
+                      className="h-9 rounded-md border border-border/40 bg-background pl-9.5 pr-9 text-sm shadow-none transition-all hover:border-border/60 focus:border-primary/40 focus:ring-0 placeholder:text-muted-foreground/60"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => changeSearchQuery('')}
                         aria-label="清空搜索"
-                        className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/60 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                        className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted/60 hover:text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -485,23 +518,23 @@ export default function ShelfPage() {
 
                   <div className="flex items-center gap-3 sm:ml-auto">
                     {hasActiveShelfFilter && (
-                      <div className="hidden flex-wrap items-center gap-2 text-[11px] font-bold sm:flex">
-                        <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-foreground/60 border border-border/10">
-                          {filteredBooks.length} 结果
+                      <div className="hidden flex-wrap items-center gap-2 text-[11px] font-medium sm:flex">
+                        <span className="rounded-md bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground/70">
+                          {filteredBooks.length} 本
                         </span>
                         <button
                           type="button"
                           onClick={clearShelfFilters}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-full border border-primary/12 bg-card/60 px-3 text-primary/70 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_44%,transparent)] backdrop-blur-md transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary active:scale-95"
+                          className="inline-flex h-6 items-center gap-1 rounded-md border border-border/15 bg-card/40 px-2 text-xs text-muted-foreground/70  transition-all hover:border-border/25 hover:bg-card/60 hover:text-foreground/80 active:scale-95"
                         >
-                          <X className="h-3 w-3" />
-                          <span>重置筛选</span>
+                          <X className="h-2.5 w-2.5" />
+                          <span>重置</span>
                         </button>
                       </div>
                     )}
 
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto">
-                      <div className="hidden flex-row items-center gap-2 lg:flex lg:shrink-0">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto">
+                      <div className="hidden flex-row items-center gap-1.5 lg:flex lg:shrink-0">
                         {categories.length > 0 && (
                           <CategoryFilter
                             categories={categories}
@@ -518,7 +551,7 @@ export default function ShelfPage() {
                         />
                       </div>
                       
-                      <div className="flex items-center gap-2 lg:hidden">
+                      <div className="flex items-center gap-1.5 lg:hidden">
                         <ShelfFilterSheet
                           categories={categories}
                           selectedCategoryId={selectedCategoryId}
@@ -533,14 +566,14 @@ export default function ShelfPage() {
                         type="button"
                         variant="ghost"
                         className={cn(
-                          'group h-11 min-w-[6rem] rounded-xl border border-primary/12 bg-card/45 px-3 text-sm font-bold text-foreground/70 shadow-[0_2px_12px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 hover:bg-card/70 hover:text-foreground active:scale-[0.98] sm:px-4',
-                          selectionMode && 'border-primary/40 bg-primary/5 text-primary shadow-none'
+                          'group h-9 min-w-[5.5rem] rounded-lg border border-border/15 bg-card/30 px-2.5 text-xs font-medium text-muted-foreground/70  transition-all duration-200 hover:border-border/25 hover:bg-card/50 hover:text-foreground/80 active:scale-[0.97] sm:px-3.5 sm:text-sm',
+                          selectionMode && 'border-primary/20 bg-primary/5 text-primary shadow-none'
                         )}
                         onClick={toggleSelectionMode}
                       >
                         <CheckSquare className={cn(
-                          "h-4 w-4 transition-colors",
-                          selectionMode ? "text-primary" : "text-primary/50 group-hover:text-primary/80"
+                          "h-3.5 w-3.5 transition-colors",
+                          selectionMode ? "text-primary" : "text-muted-foreground/40 group-hover:text-primary/60"
                         )} />
                         <span>{selectionMode ? '取消' : '选择'}</span>
                       </Button>
@@ -551,25 +584,25 @@ export default function ShelfPage() {
             )}
 
             {hasActiveShelfFilter && (
-              <div className="flex flex-wrap items-center gap-2 px-1 sm:hidden">
-                <span className="text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase">
-                  当前筛选
+              <div className="flex flex-wrap items-center gap-1.5 px-0.5 sm:hidden">
+                <span className="text-[9px] font-medium tracking-wider text-muted-foreground/40 uppercase">
+                  筛选
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                   <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-bold text-foreground/60 border border-border/10">
-                    {filteredBooks.length} 结果
+                <div className="flex flex-wrap gap-1">
+                   <span className="rounded-md bg-muted/40 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground/60">
+                    {filteredBooks.length} 本
                   </span>
                   {activeCategoryLabel && (
-                    <span className="rounded-full bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary/70 border border-primary/10">
+                    <span className="rounded-md bg-primary/5 px-1.5 py-0.5 text-[9px] font-medium text-primary/60">
                       {activeCategoryLabel}
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={clearShelfFilters}
-                    className="flex h-5 items-center gap-1 rounded-full border border-primary/15 bg-card/60 px-2 text-[9px] font-bold text-primary/80 transition-active active:scale-95"
+                    className="flex h-4.5 items-center gap-0.5 rounded-md border border-border/15 bg-card/40 px-1.5 text-[8px] font-medium text-muted-foreground/60 transition-all active:scale-95"
                   >
-                    <X className="h-2.5 w-2.5" />
+                    <X className="h-2 w-2" />
                     重置
                   </button>
                 </div>
@@ -578,10 +611,9 @@ export default function ShelfPage() {
 
             <section
               className={cn(
-                'paper-reveal shelf-container relative rounded-3xl backdrop-blur-3xl transition-all duration-500',
+                'shelf-container relative rounded-3xl transition-all duration-500 bg-card/40 border-0 shadow-none',
                 selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
               )}
-              style={delay(150)}
             >
               {isLoadingBooks ? (
                 <div className="px-4 py-6 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
@@ -609,7 +641,7 @@ export default function ShelfPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-x-4 gap-y-6 px-4 py-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-x-8 sm:gap-y-12 sm:px-8 sm:py-10 lg:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] lg:gap-x-10 lg:gap-y-14 lg:px-10 lg:py-12">
+                <div className="relative z-0 grid grid-cols-2 gap-x-5 gap-y-6 py-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-x-8 sm:gap-y-12 sm:px-8 sm:py-10 lg:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] lg:gap-x-10 lg:gap-y-14 lg:px-10 lg:py-12">
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
@@ -632,8 +664,8 @@ export default function ShelfPage() {
                 </div>
               )}
               {isDraggingBookFile && (
-                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/80 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] backdrop-blur-md">
-                  <div className="rounded-3xl border border-primary/15 bg-card/60 px-10 py-8 shadow-[0_24px_54px_-30px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_50%,transparent)] backdrop-blur-2xl">
+                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/80 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] ">
+                  <div className="rounded-3xl border border-primary/15 bg-card/60 px-10 py-8 shadow-[0_24px_54px_-30px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_50%,transparent)] ">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
                       <Upload className="h-8 w-8" />
                     </div>
@@ -646,10 +678,9 @@ export default function ShelfPage() {
 
             {selectionMode && !isLoadingBooks && filteredBooks.length > 0 && (
               <div
-                className="paper-reveal pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
-                style={delay(105)}
+                className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
               >
-                <div className="shelf-toolbar pointer-events-auto flex items-center gap-4 rounded-2xl border-primary/25 bg-card/80 px-4 py-3 shadow-[0_24px_64px_-24px_var(--paper-shadow),0_8px_24px_-12px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_70%,transparent)] backdrop-blur-2xl sm:px-6 sm:py-3.5">
+                <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-primary/20 bg-card/90 px-4 py-3 shadow-lg  sm:px-6 sm:py-3.5">
                   <div className="flex min-w-0 items-center gap-3.5 border-r border-border/15 pr-4 sm:pr-6">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <CheckSquare className="h-4.5 w-4.5" />
@@ -666,7 +697,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 min-w-0 rounded-xl px-2.5 text-xs font-bold border-border/40 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="h-9.5 min-w-0 rounded-xl px-2.5 text-xs font-medium border-border/35 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
                       onClick={toggleVisibleSelection}
                     >
                       {allVisibleSelected ? '取消全选' : '选择本页'}
@@ -675,7 +706,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 min-w-0 rounded-xl px-2.5 text-xs font-bold border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="h-9.5 min-w-0 rounded-xl px-2.5 text-xs font-medium border-primary/18 bg-primary/5 text-primary hover:bg-primary/10 transition-all active:scale-95 sm:px-4 sm:text-sm"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
@@ -687,7 +718,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="destructive"
-                      className="h-10 min-w-0 rounded-xl px-2.5 text-xs font-bold shadow-sm transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="h-9.5 min-w-0 rounded-xl px-2.5 text-xs font-medium shadow-sm transition-all active:scale-95 sm:px-4 sm:text-sm"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >

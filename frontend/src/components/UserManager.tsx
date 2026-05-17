@@ -38,6 +38,7 @@ interface UserManagerProps {
   currentUser?: User | null;
   buttonClassName?: string;
   triggerLabel?: string;
+  triggerLabelClassName?: string;
   triggerTitle?: string;
 }
 
@@ -45,6 +46,7 @@ export function UserManager({
   currentUser,
   buttonClassName,
   triggerLabel,
+  triggerLabelClassName,
   triggerTitle,
 }: UserManagerProps) {
   const [open, setOpen] = useState(false);
@@ -186,7 +188,11 @@ export function UserManager({
         }
       >
         <UserCog className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-        {triggerLabel && <span className="hidden sm:inline">{triggerLabel}</span>}
+        {triggerLabel && (
+          <span className={cn('hidden sm:inline', triggerLabelClassName)}>
+            {triggerLabel}
+          </span>
+        )}
       </SheetTrigger>
       <SheetContent
         side="bottom"
@@ -233,11 +239,11 @@ export function UserManager({
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="flex items-center justify-center gap-1.5 rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-foreground backdrop-blur-lg">
+                  <div className="flex items-center justify-center gap-1.5 rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-foreground ">
                   <UserCog className="h-3 w-3" />
                   {users.length} 位用户
                   </div>
-                  <div className="flex items-center justify-center rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-muted-foreground backdrop-blur-lg">
+                  <div className="flex items-center justify-center rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-muted-foreground ">
                   {users.filter((user) => user.role === 'admin').length} 名管理员
                   </div>
                 </div>
@@ -330,7 +336,7 @@ export function UserManager({
                     return (
                       <div
                         key={user.id}
-                        className="group flex flex-col gap-4 rounded-[1.5rem] border border-border/25 bg-muted/20 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-lg transition-all hover:border-border/45 hover:bg-muted/30"
+                        className="group flex flex-col gap-4 rounded-[1.5rem] border border-border/25 bg-muted/20 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  transition-all hover:border-border/45 hover:bg-muted/30"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2.5">
@@ -436,7 +442,7 @@ export function UserManager({
           className="max-w-[400px] gap-0 overflow-hidden rounded-[1.75rem] border-border/50 p-0 shadow-2xl [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/45 [&_[data-slot=dialog-close]]:shadow-none"
           showCloseButton={!loading}
         >
-          <div className="relative overflow-hidden border-b border-border/45 bg-card/38 px-6 py-7 pr-16 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_38%,transparent)] backdrop-blur-xl">
+          <div className="relative overflow-hidden border-b border-border/45 bg-card/38 px-6 py-7 pr-16 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_38%,transparent)] ">
             <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
             <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-accent/10" />
             <DialogHeader className="relative space-y-2">
@@ -450,7 +456,7 @@ export function UserManager({
           </div>
           
           <form
-            className="space-y-6 bg-card/40 p-6 backdrop-blur-xl"
+            className="space-y-6 bg-card/40 p-6 "
             onSubmit={(event) => {
               event.preventDefault();
               void handleResetPassword();
@@ -473,7 +479,7 @@ export function UserManager({
               />
             </div>
             
-            <DialogFooter className="-mx-6 -mb-6 flex-row items-center justify-end gap-2 border-t border-border/45 bg-card/24 px-6 py-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl">
+            <DialogFooter className="-mx-6 -mb-6 flex-row items-center justify-end gap-2 border-t border-border/45 bg-card/24 px-6 py-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] ">
               <Button
                 type="submit"
                 className="h-9 rounded-xl px-5 text-[13px] font-semibold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98]"

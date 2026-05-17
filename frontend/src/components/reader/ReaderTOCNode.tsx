@@ -41,7 +41,7 @@ function ReaderTOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left backdrop-blur-lg transition-all active:scale-[0.98] sm:py-2.5",
+          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left  transition-all active:scale-[0.98] sm:py-2.5",
           isCurrentChapter ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" : "hover:scale-[1.01]",
         )}
         style={{

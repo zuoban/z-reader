@@ -21,9 +21,9 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 login-ambient-bg" />
         <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_16%,transparent),transparent)]" />
-        <div className="absolute left-[9%] top-[10%] h-40 w-56 rotate-[-8deg] rounded-[2.5rem] border border-border/30 bg-card/34 shadow-[0_32px_48px_-42px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] backdrop-blur-xl" />
-        <div className="absolute bottom-[9%] right-[10%] h-44 w-64 rotate-[6deg] rounded-[2.5rem] border border-border/30 bg-card/30 shadow-[0_38px_54px_-44px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] backdrop-blur-xl" />
-        <div className="absolute left-[18%] top-[16%] h-28 w-40 rotate-[4deg] rounded-[2rem] border border-border/30 bg-card/28 shadow-[0_26px_40px_-38px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_32%,transparent)] backdrop-blur-xl" />
+        <div className="absolute left-[9%] top-[10%] h-40 w-56 rotate-[-8deg] rounded-[2.5rem] border border-border/30 bg-card/34 shadow-[0_32px_48px_-42px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] " />
+        <div className="absolute bottom-[9%] right-[10%] h-44 w-64 rotate-[6deg] rounded-[2.5rem] border border-border/30 bg-card/30 shadow-[0_38px_54px_-44px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] " />
+        <div className="absolute left-[18%] top-[16%] h-28 w-40 rotate-[4deg] rounded-[2rem] border border-border/30 bg-card/28 shadow-[0_26px_40px_-38px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_32%,transparent)] " />
       </div>
     );
   }
@@ -98,7 +98,7 @@ export function BrandMark({
   return (
     <div
       className={cn(
-        'paper-panel paper-stack rounded-2xl px-5 py-3 backdrop-blur-xl',
+        'paper-panel paper-stack rounded-2xl px-5 py-3 ',
         className
       )}
     >
@@ -156,7 +156,7 @@ export function LoadingState({
         className={cn(
           'flex flex-col items-center gap-4',
           card &&
-            'editorial-panel paper-stack min-w-[240px] rounded-[1.75rem] px-8 py-10 backdrop-blur-2xl'
+            'editorial-panel paper-stack min-w-[240px] rounded-[1.75rem] px-8 py-10 '
         )}
       >
         {content}

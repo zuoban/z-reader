@@ -279,7 +279,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-10 w-10 rounded-xl backdrop-blur-lg transition-all duration-200 hover:scale-[1.04] active:scale-90"
+      className="h-10 w-10 rounded-xl  transition-all duration-200 hover:scale-[1.04] active:scale-90"
       style={{
         color: getButtonColor(),
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -738,7 +738,7 @@ export function TTSControls({
           onPointerDown={handleDragHandlePointerDown}
           onPointerUp={handleDragHandlePointerUp}
           onPointerCancel={handleDragHandlePointerCancel}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg backdrop-blur-lg transition-all hover:scale-[1.04] active:scale-95"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg  transition-all hover:scale-[1.04] active:scale-95"
           style={{
             color: isDragging ? uiScheme.link : uiScheme.mutedText,
             cursor: isDragging ? 'grabbing' : 'grab',
@@ -892,7 +892,7 @@ export function TTSControls({
               uiScheme={uiScheme}
             >
               <div
-                className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl"
+                className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] "
                 style={{
                   background: withOpacity(uiScheme.buttonBg, 0.18),
                   borderColor: withOpacity(uiScheme.cardBorder, 0.12),
@@ -1154,7 +1154,7 @@ export function TTSControls({
             onClick={stopInteractivePropagation}
           >
             <div
-              className="paper-motion-surface paper-panel paper-stack relative overflow-hidden rounded-[28px] border p-0 shadow-2xl backdrop-blur-xl motion-reduce:transition-none"
+              className="paper-motion-surface paper-panel paper-stack relative overflow-hidden rounded-[28px] border p-0 shadow-2xl  motion-reduce:transition-none"
               style={styles.panel}
             >
               {!isToolbar && (
@@ -1187,7 +1187,7 @@ export function TTSControls({
                   size="icon"
                   onPointerDown={preserveReaderSelection}
                   onClick={closePanel}
-                  className="h-8 w-8 rounded-lg backdrop-blur-lg transition-all hover:scale-[1.04]"
+                  className="h-8 w-8 rounded-lg  transition-all hover:scale-[1.04]"
                   style={{
                     color: uiScheme.mutedText,
                     background: withOpacity(uiScheme.buttonBg, 0.16),
@@ -1257,7 +1257,7 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="h-7 rounded-lg px-2 text-[10px] font-black uppercase tracking-wide backdrop-blur-lg transition-all hover:scale-[1.03]"
+                        className="h-7 rounded-lg px-2 text-[10px] font-black uppercase tracking-wide  transition-all hover:scale-[1.03]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
                           background: withOpacity(uiScheme.buttonBg, 0.18),
@@ -1275,7 +1275,7 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl"
+                    className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] "
                     style={{
                       background: withOpacity(uiScheme.buttonBg, 0.18),
                       borderColor: withOpacity(uiScheme.cardBorder, 0.12),

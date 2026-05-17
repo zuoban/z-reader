@@ -123,7 +123,7 @@ export function CategoryManagerSheet({
                       onClick={() => chooseCategory(category)}
                       disabled={loading}
                       className={cn(
-                        'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm font-semibold shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] backdrop-blur-lg transition-all disabled:cursor-not-allowed disabled:opacity-55',
+                        'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm font-semibold shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)]  transition-all disabled:cursor-not-allowed disabled:opacity-55',
                         active
                           ? 'border-primary/42 bg-[var(--shelf-surface-selected)] text-primary ring-1 ring-primary/14 shadow-primary/10'
                           : 'border-border/55 bg-card/52 text-muted-foreground hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
@@ -184,7 +184,7 @@ export function CategoryManagerSheet({
           )}
         </div>
 
-        <div className="mt-auto flex shrink-0 flex-col gap-2 border-t border-border/40 bg-card/22 px-8 py-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-end">
+        <div className="mt-auto flex shrink-0 flex-col gap-2 border-t border-border/40 bg-card/22 px-8 py-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
             variant="destructive"

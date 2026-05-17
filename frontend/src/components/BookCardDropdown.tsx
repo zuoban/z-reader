@@ -75,7 +75,7 @@ export function BookCardDropdown({
         align="end"
         alignOffset={-4}
         sideOffset={12}
-        className="w-[17rem] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-2.5 shadow-[0_24px_60px_-34px_var(--paper-shadow),0_10px_28px_-24px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_72%,transparent)] ring-1 ring-primary/8 backdrop-blur-2xl"
+        className="w-[17rem] rounded-[1.25rem] border border-primary/12 bg-[var(--shelf-surface-raised)] p-2.5 shadow-[0_24px_60px_-34px_var(--paper-shadow),0_10px_28px_-24px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_72%,transparent)] ring-1 ring-primary/8 "
         style={{
           background:
             'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface-raised) 92%, var(--background))',

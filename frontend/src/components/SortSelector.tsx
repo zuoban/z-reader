@@ -28,21 +28,20 @@ export function SortSelector({ value, onChange, className, mobileIconOnly }: Sor
       <DropdownMenuTrigger
         aria-label="书籍排序方式"
         className={cn(
-          'shelf-filter-trigger group relative flex h-11 w-full max-w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl px-11 text-sm sm:w-[11rem]',
-          mobileIconOnly && 'sm:hidden w-11 justify-center px-0',
-          open && 'shelf-filter-trigger-open',
+          'group relative flex h-9 w-full max-w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border/40 bg-background px-9 text-sm transition-all hover:border-border/60 hover:bg-background/80 focus:ring-0',
+          mobileIconOnly && 'sm:hidden w-9 justify-center px-0',
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <ArrowUpDown className="absolute left-4 h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
+        <ArrowUpDown className="absolute left-3 h-3.5 w-3.5 shrink-0 text-foreground" />
         {!mobileIconOnly && (
           <>
-            <span className="min-w-0 truncate text-center font-medium">{currentOption?.label}</span>
+            <span className="min-w-0 truncate text-center font-medium text-foreground">{currentOption?.label}</span>
             <ChevronDown
               className={cn(
-                'absolute right-4 h-3.5 w-3.5 shrink-0 text-primary/40 transition-all duration-200 group-hover:text-primary/60',
-                open && 'rotate-180 text-primary/70'
+                'absolute right-3 h-3.5 w-3.5 shrink-0 text-foreground transition-all duration-200',
+                open && 'rotate-180'
               )}
             />
           </>
@@ -50,11 +49,7 @@ export function SortSelector({ value, onChange, className, mobileIconOnly }: Sor
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="min-w-[140px] rounded-lg border border-primary/16 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_18px_44px_-24px_var(--paper-shadow),0_6px_16px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] ring-1 ring-white/50 backdrop-blur-2xl dark:ring-white/10"
-        style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface-raised) 92%, var(--background))',
-        }}
+        className="min-w-[140px] rounded-md border border-border/40 bg-background p-1 shadow-md"
       >
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
@@ -64,10 +59,10 @@ export function SortSelector({ value, onChange, className, mobileIconOnly }: Sor
               setOpen(false);
             }}
             className={cn(
-              'cursor-pointer rounded-md px-3 py-2 pr-8 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
+              'cursor-pointer rounded-sm px-3 py-2 text-sm focus:bg-muted focus:text-foreground',
               value === option.value
-                ? 'bg-[var(--shelf-surface-selected)] font-medium text-foreground'
-                : 'text-foreground/62 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
+                ? 'bg-muted font-medium text-foreground'
+                : 'text-foreground/80 hover:bg-muted hover:text-foreground'
             )}
           >
             <span className="min-w-0 flex-1 truncate">{option.label}</span>

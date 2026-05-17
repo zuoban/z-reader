@@ -45,18 +45,18 @@ export function CategoryFilter({
       label: '全部',
       count: totalBooks,
     },
-    {
-      id: UNCATEGORIZED_FILTER_ID,
-      label: '未分类',
-      count: uncategorizedBooks,
-    },
-    ...categories
-      .map((category) => ({
+    ...[
+      {
+        id: UNCATEGORIZED_FILTER_ID,
+        label: '未分类',
+        count: uncategorizedBooks,
+      },
+      ...categories.map((category) => ({
         id: category,
         label: category,
         count: bookCounts[category] || 0,
-      }))
-      .filter((item) => item.count > 0),
+      })),
+    ].filter((item) => item.count > 0),
   ];
   const value = selectedCategoryId ?? ALL_FILTER_ID;
   const selectedItem = filterItems.find((item) => item.id === value) ?? filterItems[0];
@@ -71,13 +71,13 @@ export function CategoryFilter({
       <SelectTrigger
         aria-label="书籍分类筛选"
         className={cn(
-          'shelf-filter-trigger group relative flex h-11 w-full max-w-full items-center justify-center gap-2 rounded-xl px-11 text-sm data-[state=open]:[&>svg:last-child]:rotate-180 data-[state=open]:[&>svg:last-child]:text-primary/70 sm:w-[11rem] [&>svg:last-child]:absolute [&>svg:last-child]:right-4 [&>svg:last-child]:shrink-0 [&>svg:last-child]:text-primary/40 [&>svg:last-child]:opacity-100 [&>svg:last-child]:transition-all [&>svg:last-child]:duration-200 [&>svg:last-child]:group-hover:text-primary/60',
-          mobileIconOnly && 'sm:hidden w-11 justify-center px-0 [&>span]:hidden [&>svg:last-child]:hidden',
+          'group relative flex h-9 w-full max-w-full items-center justify-center gap-2 rounded-md border border-border/40 bg-background px-9 text-sm transition-all hover:border-border/60 hover:bg-background/80 focus:ring-0 [&>svg:last-child]:absolute [&>svg:last-child]:right-3',
+          mobileIconOnly && 'sm:hidden w-9 justify-center px-0 [&>span]:hidden [&>svg:last-child]:hidden',
           !mobileIconOnly && '[&>span]:min-w-0 [&>span]:truncate [&>span]:text-center [&>span]:font-medium',
           className
         )}
       >
-        <Tag className="absolute left-4 h-4 w-4 shrink-0 text-primary/60 transition-colors group-hover:text-primary/80" />
+        <Tag className="absolute left-3 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         {!mobileIconOnly && (
           <span className="inline-flex items-center justify-center gap-2">
             <span className="truncate">{selectedItem.label}</span>
@@ -91,29 +91,24 @@ export function CategoryFilter({
       </SelectTrigger>
       <SelectContent
         align="start"
-        className="min-w-[12rem] rounded-lg border border-primary/16 bg-[var(--shelf-surface-raised)] p-1.5 shadow-[0_18px_44px_-24px_var(--paper-shadow),0_6px_16px_-10px_var(--paper-shadow-soft),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_60%,transparent)] ring-1 ring-white/50 backdrop-blur-2xl dark:ring-white/10"
-        style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface-raised) 92%, var(--background))',
-        }}
+        className="min-w-[12rem] rounded-md border border-border/40 bg-background p-1 shadow-sm"
       >
         {filterItems.map((item) => (
           <SelectItem
             key={item.id}
             value={item.id}
             className={cn(
-              'cursor-pointer rounded-md px-3 py-2 text-sm focus:bg-[var(--shelf-surface-selected)] focus:text-foreground',
+              'cursor-pointer rounded-sm px-3 py-2 text-sm focus:bg-secondary focus:text-foreground',
               value === item.id
-                ? 'bg-[var(--shelf-surface-selected)] font-medium text-foreground'
-                : 'text-foreground/62 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
+                ? 'bg-secondary font-medium text-foreground'
+                : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
             )}
           >
             <span className="flex w-full min-w-0 items-center gap-2">
-              <span className="min-w-0 truncate">{truncateLabel(item.label)}</span>
               {item.count > 0 && (
                 <span
                   className={cn(
-                    'ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md px-1.5 text-[11px] font-semibold leading-none tabular-nums',
+                    'inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md px-1.5 text-[11px] font-semibold leading-none tabular-nums',
                     value === item.id
                       ? 'bg-foreground/15 text-foreground'
                       : 'bg-primary/8 text-primary/70'
@@ -122,6 +117,7 @@ export function CategoryFilter({
                   {item.count}
                 </span>
               )}
+              <span className="min-w-0 flex-1 truncate">{truncateLabel(item.label)}</span>
             </span>
           </SelectItem>
         ))}

@@ -159,7 +159,7 @@ export function VoiceSelector({
               size="sm"
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
-              className="h-7.5 rounded-lg px-2 text-[10px] font-bold backdrop-blur-lg transition-all hover:scale-[1.03]"
+              className="h-7.5 rounded-lg px-2 text-[10px] font-bold  transition-all hover:scale-[1.03]"
               style={{ ...compactGlassStyle, color: uiScheme.mutedText }}
             >
               {voicesLoading ? '加载中' : '重载'}
@@ -170,7 +170,7 @@ export function VoiceSelector({
             variant="ghost"
             size="sm"
             onClick={handlePreview}
-            className="h-7.5 rounded-lg px-2 text-[10px] font-bold backdrop-blur-lg transition-all hover:scale-[1.03]"
+            className="h-7.5 rounded-lg px-2 text-[10px] font-bold  transition-all hover:scale-[1.03]"
             style={{ ...compactGlassStyle, color: isPreviewing ? uiScheme.link : uiScheme.mutedText }}
           >
             {isPreviewing ? '停止' : '试听'}
@@ -197,7 +197,7 @@ export function VoiceSelector({
           <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none backdrop-blur-lg transition-all hover:scale-[1.01]"
+              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none  transition-all hover:scale-[1.01]"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
@@ -209,7 +209,7 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[300px] rounded-2xl border-border/40 shadow-2xl backdrop-blur-2xl"
+              className="max-w-[300px] rounded-2xl border-border/40 shadow-2xl "
               style={{
                 background:
                   `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,
@@ -238,7 +238,7 @@ export function VoiceSelector({
           >
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none backdrop-blur-lg transition-all hover:scale-[1.01]"
+              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none  transition-all hover:scale-[1.01]"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
@@ -250,7 +250,7 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[260px] rounded-xl border-border/40 shadow-2xl backdrop-blur-2xl"
+              className="max-w-[260px] rounded-xl border-border/40 shadow-2xl "
               style={{
                 background:
                   `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,

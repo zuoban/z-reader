@@ -47,7 +47,7 @@ export function ReaderStatusBar({
           className="flex cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 font-inherit outline-none transition-[opacity,transform] duration-200 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-inset active:scale-[0.98]"
         >
           <span
-            className="flex h-7 min-w-16 items-center justify-center rounded-full px-3 text-[11px] font-bold tabular-nums tracking-tight shadow-[0_10px_26px_-20px_rgba(0,0,0,0.45)] ring-1 backdrop-blur-md"
+            className="flex h-7 min-w-16 items-center justify-center rounded-full px-3 text-[11px] font-bold tabular-nums tracking-tight shadow-[0_10px_26px_-20px_rgba(0,0,0,0.45)] ring-1 "
             style={{
               background: withOpacity(uiScheme.cardBg, 0.72),
               color: withOpacity(uiScheme.fg, 0.58),
@@ -71,7 +71,7 @@ export function ReaderStatusBar({
       title="收起顶部操作栏"
       aria-label="收起顶部操作栏"
       aria-pressed={isToolbarVisible}
-      className="absolute inset-x-0 bottom-0 z-30 flex cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none backdrop-blur-xl transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
+      className="absolute inset-x-0 bottom-0 z-30 flex cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none  transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
       style={{
         paddingBottom: safeAreaPaddingBottom,
         color: "inherit",

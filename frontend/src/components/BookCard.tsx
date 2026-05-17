@@ -127,6 +127,7 @@ interface BookCoverFaceProps {
 }
 
 function BookCoverFace({ coverUrl, titleLabel }: BookCoverFaceProps) {
+  const isMobile = useIsMobile();
   if (coverUrl) {
     return (
       <div className="relative h-full w-full">
@@ -138,15 +139,19 @@ function BookCoverFace({ coverUrl, titleLabel }: BookCoverFaceProps) {
           sizes="(max-width: 640px) 40vw, (max-width: 1024px) 18vw, 156px"
           className="object-cover"
         />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_30%,rgba(8,12,24,0.28)_100%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(107,139,250,0.08),transparent_15%,transparent_85%,rgba(0,0,0,0.12))]" />
+        {coverUrl && !isMobile && (
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_25%,rgba(8,12,24,0.22)_100%)]" />
+        )}
+        {coverUrl && !isMobile && (
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(107,139,250,0.06),transparent_12%,transparent_88%,rgba(0,0,0,0.08))]" />
+        )}
       </div>
     );
   }
 
   return (
     <div className="paper-cover-frame relative flex size-full flex-col p-4 text-foreground">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(107,139,250,0.15)_0%,rgba(155,141,249,0.08)_50%,rgba(6,182,212,0.06)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(107,139,250,0.12)_0%,rgba(155,141,249,0.06)_50%,rgba(6,182,212,0.04)_100%)]" />
       <div className="relative flex h-full flex-col">
         <div className="flex items-start justify-between gap-2">
           <span className="paper-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-primary/70">
@@ -227,14 +232,14 @@ export function BookCard({
   const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
   const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
   const progressMeter = (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)]">
+    <div className="flex items-center gap-2.5">
+      <div className="relative h-1 w-full overflow-hidden rounded-none bg-border">
         <div
-          className="h-full rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.4)] transition-[width] duration-700 ease-out"
+          className="h-full bg-foreground transition-[width] duration-500 ease-out"
           style={{ width: `${progressValue}%` }}
         />
       </div>
-      <span className="shrink-0 tabular-nums text-[10px] font-bold tracking-tight text-foreground/60">
+      <span className="shrink-0 tabular-nums text-[11px] font-medium text-foreground">
         {progressDisplay}%
       </span>
     </div>
@@ -291,14 +296,13 @@ export function BookCard({
 
   return (
     <div
-      className="paper-reveal flex items-center justify-start"
-      style={{ '--paper-delay': `${Math.min(index * 55, 260)}ms` } as CSSProperties}
+      className="flex items-center justify-start"
     >
       <Card
         className={cn(
-          "group/card shelf-book-card relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/40 p-0 gap-0 ring-1 ring-white/30 backdrop-blur-2xl transition-all duration-300 ease-out hover:-translate-y-2 hover:border-primary/30 hover:shadow-[0_24px_48px_-20px_var(--paper-shadow)] active:translate-y-0 active:scale-[0.985] motion-reduce:transition-none dark:ring-white/10",
-          selectionMode && "border-primary/20 bg-primary/[0.015] hover:border-primary/40",
-          selected && "border-primary/50 bg-primary/[0.045] ring-2 ring-primary/30 shadow-[0_20px_40px_-24px_var(--paper-shadow)]"
+          "group/card relative flex cursor-pointer flex-col overflow-hidden rounded-none border border-border bg-card p-0 transition-none shadow-[2px_2px_0_0_rgba(0,0,0,0.1)]",
+          !isMobile && "hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.15)]",
+          selected && "border-primary"
         )}
         style={{ width: isMobile ? '100%' : cardWidth }}
         onClick={handleCardClick}
@@ -309,38 +313,25 @@ export function BookCard({
         aria-pressed={selectionMode ? selected : undefined}
       >
           {selectionMode && (
-            <>
-              <div
-                className={cn(
-                  "pointer-events-none absolute inset-0 z-20 rounded-2xl transition-colors duration-300",
-                  selected
-                    ? "bg-primary/[0.04] ring-2 ring-inset ring-primary/40"
-                    : "bg-transparent group-hover/card:bg-primary/[0.01]"
-                )}
-                aria-hidden="true"
-              />
-              <div
-                className={cn(
-                  "absolute left-3.5 top-3.5 z-30 flex h-10 w-10 items-center justify-center rounded-2xl border transition-all duration-300",
-                  selected
-                    ? "scale-105 border-primary/40 bg-primary text-primary-foreground shadow-[0_10px_24px_-10px_var(--primary)]"
-                    : "border-primary/20 bg-card/80 text-primary/40 group-hover/card:border-primary/40 group-hover/card:text-primary/70 shadow-sm"
-                )}
-                aria-hidden="true"
-              >
-                <Check className={cn("h-5 w-5 transition-all", selected ? "opacity-100 scale-100" : "opacity-0 scale-50")} />
-              </div>
-            </>
+            <div
+              className={cn(
+                "absolute right-2 top-2 z-30 flex h-5 w-5 items-center justify-center border transition-colors",
+                selected
+                  ? "border-primary bg-primary text-white"
+                  : "border-border bg-white"
+              )}
+              aria-hidden="true"
+            >
+              <Check className={cn("h-3 w-3", selected ? "opacity-100" : "opacity-0")} />
+            </div>
           )}
           <div
-            className="relative overflow-hidden bg-muted/20 dark:bg-muted/10"
+            className="relative overflow-hidden border-b border-border bg-card"
             style={{ height: coverHeight }}
           >
-            <div className="pointer-events-none absolute inset-x-10 bottom-6 h-8 rounded-full bg-foreground/5 blur-2xl transition-all duration-500 opacity-40 group-hover/card:opacity-60" />
-            
-            <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-4">
+            <div className="relative z-10 flex h-full items-start justify-center pt-4 px-4">
               <div
-                className="relative shrink-0 -translate-y-2 transition-transform duration-500 ease-out group-hover/card:-translate-y-4 sm:-translate-y-3 sm:group-hover/card:-translate-y-5"
+                className="relative shrink-0"
                 style={{
                   height: SPELL_BOOK_HEIGHT,
                   width: SPELL_BOOK_WIDTH,
@@ -355,47 +346,45 @@ export function BookCard({
             </div>
 
             {!isMobile && (
-              <div className="absolute inset-x-0 bottom-0 z-20 bg-card/60 px-4 pb-3.5 pt-4 backdrop-blur-md">
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-card px-4 pb-3 pt-3 border-t border-border">
                 {progressMeter}
               </div>
             )}
           </div>
 
           {isMobile && (
-            <div className="border-t border-border/10 bg-card/40 px-3.5 py-2.5 backdrop-blur-sm">
+            <div className="border-b border-border bg-card px-3.5 py-2 ">
               {progressMeter}
             </div>
           )}
 
-          <div className="flex flex-col border-t border-border/20 bg-card px-3.5 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-4.5">
-            <div className="space-y-2.5">
-              <div className="relative pr-7 sm:pr-6">
+          <div className="flex flex-col bg-card px-3.5 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-4">
+            <div className="space-y-1">
+              <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-w-0 font-heading text-[13.5px] font-bold leading-[1.45] text-foreground transition-colors group-hover/card:text-primary sm:text-[15px] sm:leading-[1.5]"
+                  className="min-w-0 font-heading text-[14px] font-semibold leading-[1.4] text-foreground"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    height: isMobile ? '39px' : '45px',
+                    height: 'calc(14px * 1.4 * 2)',
                   }}
                   title={titleLabel}
                 >
                   <HighlightedText text={titleLabel} query={searchQuery} />
                 </h3>
-                
-                <div className="-mr-7 mt-2 flex min-h-5 items-center justify-between gap-2.5 text-[11px] font-bold tracking-tight text-muted-foreground/70 sm:-mr-6">
+
+                <div className="mt-2 flex min-h-5 items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
                   <span className="inline-flex min-w-0 items-center gap-1.5">
-                    <UserRound className="h-3.5 w-3.5 shrink-0 opacity-60" />
                     <span className="truncate">
                       <HighlightedText text={authorLabel} query={searchQuery} />
                     </span>
                   </span>
-                  
+
                   {categoryLabel && (
-                    <span className="hidden shrink-0 items-center gap-1 text-primary/60 sm:inline-flex">
-                      <Tag className="h-3 w-3 shrink-0" />
-                      <span className="max-w-[5rem] truncate">
+                    <span className="shrink-0 items-center gap-1 sm:inline-flex">
+                      <span className="max-w-[5.5rem] truncate">
                         <HighlightedText text={categoryLabel} query={searchQuery} />
                       </span>
                     </span>

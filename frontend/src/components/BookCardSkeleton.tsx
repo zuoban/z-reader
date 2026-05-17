@@ -27,7 +27,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
       className="flex w-full items-center justify-start"
     >
       <div
-        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/55 bg-card/42 ring-1 ring-white/45 backdrop-blur-xl dark:ring-white/10"
+        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/55 bg-card/42 ring-1 ring-white/45  dark:ring-white/10"
         style={{ width: isMobile ? '100%' : cardWidth }}
       >
           <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
@@ -84,7 +84,7 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_76%,transparent)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card)_64%)_100%)] px-4 pb-3.5 pt-3.5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl sm:px-4 sm:pb-4 sm:pt-4"
+            className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_76%,transparent)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card)_64%)_100%)] px-4 pb-3.5 pt-3.5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  sm:px-4 sm:pb-4 sm:pt-4"
           >
             <div className="space-y-2">
               {/* Title skeleton */}

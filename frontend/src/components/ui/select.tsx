@@ -21,7 +21,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'paper-motion-surface flex h-9 w-full items-center justify-between whitespace-nowrap rounded-xl border border-border bg-shelf-surface-soft px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-border/40 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
       className
     )}
     {...props}
@@ -76,10 +76,10 @@ const SelectContent = React.forwardRef<
   }
 >(({ className, children, position = 'popper', container, ...props }, ref) => (
   <SelectPortal container={container}>
-    <SelectPrimitive.Content
+      <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'paper-motion-menu paper-menu relative z-[120] max-h-96 min-w-[8rem] overflow-hidden rounded-xl text-popover-foreground backdrop-blur-2xl',
+        'relative z-[120] max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-border/40 bg-background text-popover-foreground shadow-sm',
         className
       )}
       position={position}

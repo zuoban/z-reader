@@ -61,7 +61,7 @@ function DialogContent({
           data-slot="dialog-content"
           finalFocus={finalFocus}
           className={cn(
-            "paper-motion-panel paper-panel paper-stack pointer-events-auto relative grid w-full max-w-[calc(100vw-2rem)] gap-4 rounded-2xl p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5 backdrop-blur-xl sm:max-w-sm motion-reduce:duration-0",
+            "paper-motion-panel paper-panel paper-stack pointer-events-auto relative grid w-full max-w-[calc(100vw-2rem)] gap-4 rounded-2xl p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5  sm:max-w-sm motion-reduce:duration-0",
             className
           )}
           {...props}
@@ -115,7 +115,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/45 bg-card/24 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl sm:flex-row sm:justify-end",
+        "-mx-5 -mb-5 flex flex-col-reverse gap-2 border-t border-border/45 bg-card/24 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  sm:flex-row sm:justify-end",
         className
       )}
       {...props}

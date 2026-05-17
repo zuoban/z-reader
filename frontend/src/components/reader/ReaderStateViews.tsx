@@ -84,7 +84,7 @@ export function ReaderLoadingOverlay({
       }}
     >
       <div
-        className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8 backdrop-blur-xl"
+        className="paper-reveal-soft paper-panel paper-stack flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] border px-8 py-8 "
         style={{
           background:
             `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.88)}`,

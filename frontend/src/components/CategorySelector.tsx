@@ -167,59 +167,61 @@ export function CategorySelector({
                 </span>
               </div>
               <div className="flex flex-wrap gap-2.5">
-                {normalizedCategories.map((cat) => {
-                  const isSelected = selectedCategory === cat;
-                  return (
-                    <span
-                      key={cat}
-                      className={cn(
-                        'group inline-flex min-h-10 max-w-full items-center overflow-hidden rounded-full border text-sm font-semibold shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] backdrop-blur-lg transition-all',
-                        isSelected
-                          ? 'border-primary/42 bg-[var(--shelf-surface-selected)] text-primary shadow-primary/10'
-                          : 'border-border/55 bg-card/52 text-muted-foreground hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setCategoryName(cat)}
-                        disabled={loading}
-                        className="inline-flex min-w-0 items-center gap-2 px-4 py-2 text-left disabled:cursor-not-allowed"
-                        title={cat}
-                      >
-                        {isSelected ? (
-                          <Check className="h-3.5 w-3.5 shrink-0" />
-                        ) : (
-                          <Tag className="h-3.5 w-3.5 shrink-0 opacity-55" />
-                        )}
-                        <span className="truncate">{cat}</span>
-                        <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold tabular-nums opacity-70">
-                          {bookCounts[cat] || 0}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCategory(cat)}
-                        disabled={loading || !isSelected}
+                {normalizedCategories
+                  .filter((cat) => (bookCounts[cat] || 0) > 0)
+                  .map((cat) => {
+                    const isSelected = selectedCategory === cat;
+                    return (
+                      <span
+                        key={cat}
                         className={cn(
-                          'mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                          'group inline-flex min-h-10 max-w-full items-center overflow-hidden rounded-full border text-sm font-semibold transition-all',
                           isSelected
-                            ? 'text-primary/70 hover:bg-primary/10 hover:text-primary'
-                            : 'pointer-events-none text-transparent'
+                            ? 'border-primary bg-secondary text-primary'
+                            : 'border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground'
                         )}
-                        title="删除此书标签"
-                        aria-label="删除此书标签"
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  );
-                })}
+                        <button
+                          type="button"
+                          onClick={() => setCategoryName(cat)}
+                          disabled={loading}
+                          className="inline-flex min-w-0 items-center gap-2 px-4 py-2 text-left disabled:cursor-not-allowed"
+                          title={cat}
+                        >
+                          {isSelected ? (
+                            <Check className="h-3.5 w-3.5 shrink-0" />
+                          ) : (
+                            <Tag className="h-3.5 w-3.5 shrink-0" />
+                          )}
+                          <span className="truncate">{cat}</span>
+                          <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border text-[9px] font-bold tabular-nums text-muted-foreground">
+                            {bookCounts[cat] || 0}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCategory(cat)}
+                          disabled={loading || !isSelected}
+                          className={cn(
+                            'mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                            isSelected
+                              ? 'text-primary/70 hover:text-primary'
+                              : 'pointer-events-none text-transparent'
+                          )}
+                          title="删除此书标签"
+                          aria-label="删除此书标签"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    );
+                  })}
               </div>
             </div>
           </div>
 
           {/* 底部操作栏 */}
-          <div className="mt-auto flex shrink-0 items-center justify-end gap-3 border-t border-border/40 bg-card/22 px-8 py-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] backdrop-blur-xl">
+          <div className="mt-auto flex shrink-0 items-center justify-end gap-3 border-t border-border/40 bg-card/22 px-8 py-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] ">
             <Button
               type="button"
               variant="ghost"

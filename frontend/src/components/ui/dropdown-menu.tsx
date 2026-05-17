@@ -14,13 +14,24 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
   return <MenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />
 }
 
-function DropdownMenuTrigger({ children, ...props }: MenuPrimitive.Trigger.Props) {
+function DropdownMenuTrigger({
+  children,
+  asChild,
+  nativeButton,
+  ...props
+}: MenuPrimitive.Trigger.Props & { asChild?: boolean }) {
+  const childElement = React.isValidElement(children) ? children : undefined
+  const shouldUseNativeButton =
+    nativeButton ?? (asChild ? childElement?.type === "button" : true)
+
   return (
-    <MenuPrimitive.Trigger 
+    <MenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
+      nativeButton={shouldUseNativeButton}
+      render={asChild ? childElement : undefined}
       {...props}
     >
-      {children}
+      {asChild ? undefined : children}
     </MenuPrimitive.Trigger>
   )
 }
@@ -50,7 +61,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "paper-motion-menu paper-menu z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-popover/82 p-1.5 text-popover-foreground shadow-[0_24px_54px_-36px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] ring-1 ring-foreground/10 outline-none backdrop-blur-2xl data-closed:overflow-hidden",
+            "paper-motion-menu paper-menu z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-popover/82 p-1.5 text-popover-foreground shadow-[0_24px_54px_-36px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] ring-1 ring-foreground/10 outline-none  data-closed:overflow-hidden",
             className
           )}
           style={{

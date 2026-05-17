@@ -401,7 +401,7 @@ export function ThemeSettings({
 
         <div className="flex-1 overflow-y-auto px-8 pb-12 pt-4">
           <div
-            className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] border backdrop-blur-xl p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+            className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] border  p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
             role="tablist"
             aria-label="阅读设置分类"
             style={{

@@ -572,7 +572,7 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "relative flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-lg transition-all duration-150 ease-out hover:scale-[1.03] hover:border-white/12 hover:bg-white/8 sm:h-10 sm:w-10 sm:min-h-10 sm:min-w-10";
+    "relative flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]  transition-all duration-150 ease-out hover:scale-[1.03] hover:border-white/12 hover:bg-white/8 sm:h-10 sm:w-10 sm:min-h-10 sm:min-w-10";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
@@ -702,13 +702,13 @@ export default function ReadPage() {
             {zoomedImage && (
               <div
                 aria-modal="true"
-                className="fixed inset-0 z-[90] flex min-h-svh items-center justify-center bg-black/72 p-3 backdrop-blur-xl sm:p-6"
+                className="fixed inset-0 z-[90] flex min-h-svh items-center justify-center bg-black/72 p-3  sm:p-6"
                 data-reader-interactive="true"
                 role="dialog"
               >
                 <button
                   aria-label="关闭图片预览"
-                  className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-xl border border-white/16 bg-white/12 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_28px_-20px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all hover:scale-[1.04] hover:bg-white/18 sm:right-5 sm:top-5"
+                  className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-xl border border-white/16 bg-white/12 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_28px_-20px_rgba(0,0,0,0.8)]  transition-all hover:scale-[1.04] hover:bg-white/18 sm:right-5 sm:top-5"
                   type="button"
                   onClick={handleImageClose}
                 >

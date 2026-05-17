@@ -106,7 +106,7 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectCategory(item.id)}
                     className={cn(
-                      'flex h-12 items-center gap-3 rounded-xl border px-3 text-left text-sm shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] backdrop-blur-lg transition-colors',
+                      'flex h-12 items-center gap-3 rounded-xl border px-3 text-left text-sm shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)]  transition-colors',
                       active
                         ? 'border-primary/34 bg-[var(--shelf-surface-selected)] text-foreground ring-1 ring-primary/12'
                         : 'border-border/55 bg-card/58 text-foreground/72 hover:border-primary/18 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
@@ -137,7 +137,7 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectSort(option.value)}
                     className={cn(
-                      'flex h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] backdrop-blur-lg transition-colors',
+                      'flex h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)]  transition-colors',
                       active
                         ? 'border-primary/34 bg-[var(--shelf-surface-selected)] text-foreground ring-1 ring-primary/12'
                         : 'border-border/55 bg-card/58 text-foreground/72 hover:border-primary/18 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'

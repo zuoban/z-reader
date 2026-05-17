@@ -130,7 +130,7 @@ export function ReaderShortcutsSheet({
                 {group.items.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[1.25rem] border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-xl"
+                    className="rounded-[1.25rem] border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] "
                     style={{
                       background:
                         `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.24)}`,

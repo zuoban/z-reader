@@ -132,7 +132,7 @@ export function ReaderBookmarksSheet({
               bookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-[1.25rem] border px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-xl transition-all hover:scale-[1.01]"
+                  className="group rounded-[1.25rem] border px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]  transition-all hover:scale-[1.01]"
                   style={{
                     background:
                       `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.28)}`,

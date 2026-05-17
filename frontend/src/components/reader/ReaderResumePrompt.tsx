@@ -33,7 +33,7 @@ export function ReaderResumePrompt({
       }}
     >
       <div
-        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3 backdrop-blur-xl"
+        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3 "
         style={cardStyle}
       >
         <div

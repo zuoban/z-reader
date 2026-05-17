@@ -61,7 +61,7 @@ export default function LoginPage() {
   return (
     <AppScreen ambient="login">
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-5 py-6 sm:px-7 sm:py-10 lg:px-10 lg:py-12">
-        <div className="editorial-panel paper-stack w-full max-w-[460px] rounded-[2.25rem] px-6 py-8 backdrop-blur-2xl sm:px-10 sm:py-10">
+        <div className="editorial-panel paper-stack w-full max-w-[460px] rounded-[2.25rem] px-6 py-8  sm:px-10 sm:py-10">
           <div className="editorial-divider mb-8 flex flex-col items-center gap-5 pb-8">
             <BrandMark size="lg" priority />
             <div className="text-center">

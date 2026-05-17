@@ -73,7 +73,7 @@ export function BrandMark({
   const logo = (
     <>
       <Image
-        src="/icons/logo-wordmark-light.svg"
+        src="/icons/logo-wordmark.svg"
         alt="Z Reader"
         width={216}
         height={66}
@@ -81,7 +81,7 @@ export function BrandMark({
         priority={priority}
       />
       <Image
-        src="/icons/logo-wordmark.svg"
+        src="/icons/logo-wordmark-light.svg"
         alt="Z Reader"
         width={216}
         height={66}

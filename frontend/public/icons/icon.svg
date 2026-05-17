@@ -1,42 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="appBg" x1="74" y1="54" x2="438" y2="458" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#243A82"/>
-      <stop offset="0.52" stop-color="#172553"/>
-      <stop offset="1" stop-color="#080C18"/>
-    </linearGradient>
-    <linearGradient id="bookStroke" x1="158" y1="112" x2="374" y2="402" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#AFC0FF"/>
-      <stop offset="1" stop-color="#4F6EF7"/>
-    </linearGradient>
-    <linearGradient id="zGlow" x1="142" y1="180" x2="258" y2="324" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#C8D5FF"/>
-    </linearGradient>
-    <filter id="cardShadow" x="34" y="34" width="444" height="444" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="28" stdDeviation="30" flood-color="#4F6EF7" flood-opacity="0.26"/>
-    </filter>
-    <filter id="zShadow" x="100" y="146" width="196" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#8FA8FF" flood-opacity="0.34"/>
-    </filter>
-  </defs>
+  <!-- Book Cover Background -->
+  <rect x="64" y="80" width="384" height="352" rx="40" fill="#141413"/>
+  <rect x="64" y="80" width="384" height="352" rx="40" stroke="#141413" stroke-width="8"/>
 
-  <rect width="512" height="512" rx="112" fill="#080C18"/>
-  <g filter="url(#cardShadow)">
-    <rect x="72" y="72" width="368" height="368" rx="88" fill="url(#appBg)"/>
-    <rect x="74" y="74" width="364" height="364" rx="86" stroke="#8FA8FF" stroke-opacity="0.2" stroke-width="4"/>
-  </g>
+  <!-- Left Page -->
+  <path d="M256 100C200 85 100 85 85 100V400C100 385 200 385 256 400V100Z" fill="#f5f4ed"/>
+  
+  <!-- Right Page -->
+  <path d="M256 100C312 85 412 85 427 100V400C412 385 312 385 256 400V100Z" fill="#faf9f5"/>
+  
+  <!-- Spine Line -->
+  <path d="M256 100V400" stroke="#141413" stroke-width="1.5" stroke-opacity="0.1"/>
 
-  <path d="M169 128H320C351.48 128 377 153.52 377 185V382H217C185.52 382 160 356.48 160 325V137C160 132.03 164.03 128 169 128Z" fill="#EEF4FF" fill-opacity="0.07"/>
-  <path d="M181 143H312C338.51 143 360 164.49 360 191V360H228C201.49 360 180 338.51 180 312V144.5C180 143.67 180.67 143 181.5 143H181Z" stroke="url(#bookStroke)" stroke-opacity="0.7" stroke-width="7"/>
-  <path d="M256 104V406" stroke="#C5D2FF" stroke-opacity="0.64" stroke-width="7" stroke-linecap="round"/>
-  <path d="M295 196H337" stroke="#8FA8FF" stroke-opacity="0.36" stroke-width="7" stroke-linecap="round"/>
-  <path d="M295 236H350" stroke="#8FA8FF" stroke-opacity="0.27" stroke-width="7" stroke-linecap="round"/>
-  <path d="M295 276H334" stroke="#8FA8FF" stroke-opacity="0.22" stroke-width="7" stroke-linecap="round"/>
-  <path d="M153 355H236" stroke="#8FA8FF" stroke-opacity="0.28" stroke-width="7" stroke-linecap="round"/>
-
-  <g filter="url(#zShadow)">
-    <path d="M150 197H224L144 326H232" stroke="url(#zGlow)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <path d="M150 197H224L144 326H232" stroke="#8FA8FF" stroke-opacity="0.2" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- The "Z" on the Right Page - Corrected Direction -->
+  <path d="M290 180H392V212L318 318H392V350H290V318L364 212H290V180Z" fill="#141413"/>
+  
+  <!-- Subtle Page Shadows at the bottom -->
+  <path d="M85 400C100 385 200 385 256 400" stroke="#d8d5c8" stroke-width="2" fill="none"/>
+  <path d="M427 400C412 385 312 385 256 400" stroke="#d8d5c8" stroke-width="2" fill="none"/>
 </svg>

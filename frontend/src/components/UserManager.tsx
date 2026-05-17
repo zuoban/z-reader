@@ -198,40 +198,30 @@ export function UserManager({
         side="bottom"
         showCloseButton
         finalFocus={false}
-        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
-        style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface) 92%, var(--background))',
-          borderColor: 'color-mix(in srgb, var(--border), transparent 40%)',
-          boxShadow:
-            '0 -12px 48px -12px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 46%, transparent)',
-        }}
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
       >
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-col">
           <SheetHeader
-            className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24"
+            className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8"
           >
-            <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-            <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
-
-            <div className="relative flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                <ShieldCheck className="h-6 w-6" />
+            <div className="flex items-center gap-4">
+              <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+                <ShieldCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-2xl font-bold tracking-tight text-foreground">
+                <SheetTitle className="text-xl font-semibold tracking-tight text-foreground">
                   用户管理
                 </SheetTitle>
-                <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground/70">
+                <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground">
                   集中维护账号权限与安全设置
                 </SheetDescription>
               </div>
             </div>
           </SheetHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex-1 space-y-7 px-8 pb-12 pt-4">
-              <section className="glass-section-card space-y-4 rounded-[1.75rem] p-5">
+          <div className="app-sheet-body min-h-0">
+            <div className="space-y-5 px-6 py-5 sm:px-7">
+              <section className="app-surface-panel space-y-4 rounded-2xl p-5">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold tracking-tight text-foreground">账号概览</h3>
                   <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70">
@@ -239,18 +229,18 @@ export function UserManager({
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="flex items-center justify-center gap-1.5 rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-foreground ">
+                  <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 text-xs font-bold text-foreground">
                   <UserCog className="h-3 w-3" />
                   {users.length} 位用户
                   </div>
-                  <div className="flex items-center justify-center rounded-[1.25rem] border border-border/20 bg-muted/28 px-3 py-2.5 text-xs font-bold text-muted-foreground ">
+                  <div className="flex items-center justify-center rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 text-xs font-bold text-muted-foreground">
                   {users.filter((user) => user.role === 'admin').length} 名管理员
                   </div>
                 </div>
               </section>
 
               {/* Create User Section */}
-              <section className="glass-section-card space-y-4 rounded-[1.75rem] p-5">
+              <section className="app-surface-panel space-y-4 rounded-2xl p-5">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2.5">
                     <UserPlus className="h-4 w-4 text-primary" />
@@ -272,7 +262,7 @@ export function UserManager({
                         onChange={(event) => setUsername(event.target.value)}
                         placeholder="请输入用户名"
                         disabled={loading}
-                        className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all focus:bg-muted/40 focus:ring-4 focus:ring-primary/5"
+                        className="category-input h-11 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
@@ -286,7 +276,7 @@ export function UserManager({
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="至少 6 位"
                         disabled={loading}
-                        className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all focus:bg-muted/40 focus:ring-4 focus:ring-primary/5"
+                        className="category-input h-11 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
@@ -296,7 +286,7 @@ export function UserManager({
                         onValueChange={(value) => setRole(value as User['role'])}
                         disabled={loading}
                       >
-                        <SelectTrigger className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all hover:bg-muted/45">
+                        <SelectTrigger className="category-input h-11 rounded-xl transition-all hover:bg-muted/45">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/60 shadow-xl">
@@ -317,7 +307,7 @@ export function UserManager({
               </section>
 
               {/* User List Section */}
-              <section className="glass-section-card space-y-4 rounded-[1.75rem] p-5">
+              <section className="app-surface-panel space-y-4 rounded-2xl p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2.5">
@@ -336,7 +326,7 @@ export function UserManager({
                     return (
                       <div
                         key={user.id}
-                        className="group flex flex-col gap-4 rounded-[1.5rem] border border-border/25 bg-muted/20 p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  transition-all hover:border-border/45 hover:bg-muted/30"
+                        className="app-surface-panel group flex flex-col gap-4 rounded-2xl p-4 transition-all hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)]"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2.5">
@@ -370,7 +360,7 @@ export function UserManager({
                             onValueChange={(value) => handleRoleChange(user, value as User['role'])}
                             disabled={loading}
                           >
-                            <SelectTrigger className="h-9 w-[106px] rounded-xl border-border/60 bg-muted/35 text-[12px] font-semibold transition-all hover:bg-muted/55">
+                            <SelectTrigger className="category-input h-9 w-[106px] rounded-xl text-[12px] font-semibold transition-all hover:bg-muted/55">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-border/60">
@@ -439,14 +429,12 @@ export function UserManager({
         }}
       >
         <DialogContent
-          className="max-w-[400px] gap-0 overflow-hidden rounded-[1.75rem] border-border/50 p-0 shadow-2xl [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/45 [&_[data-slot=dialog-close]]:shadow-none"
+          className="app-dialog-shell max-w-[400px] gap-0 overflow-hidden rounded-[1.5rem] border p-0 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/45 [&_[data-slot=dialog-close]]:shadow-none"
           showCloseButton={!loading}
         >
-          <div className="relative overflow-hidden border-b border-border/45 bg-card/38 px-6 py-7 pr-16 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_38%,transparent)] ">
-            <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-primary/10" />
-            <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-accent/10" />
-            <DialogHeader className="relative space-y-2">
-              <DialogTitle className="text-xl font-bold tracking-tight">重置密码</DialogTitle>
+          <div className="app-dialog-header px-6 py-7 pr-16">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-xl font-semibold tracking-tight">重置密码</DialogTitle>
               <DialogDescription className="text-[13px] leading-6 text-muted-foreground/80">
                 {resetTarget
                   ? `为您选定的用户「${resetTarget.username}」设置一个更安全的新密码。`
@@ -456,7 +444,7 @@ export function UserManager({
           </div>
           
           <form
-            className="space-y-6 bg-card/40 p-6 "
+            className="space-y-6 p-6"
             onSubmit={(event) => {
               event.preventDefault();
               void handleResetPassword();
@@ -475,11 +463,11 @@ export function UserManager({
                 autoComplete="new-password"
                 disabled={loading}
                 autoFocus
-                className="h-11 rounded-[1.25rem] border-border/60 bg-muted/30 transition-all focus:bg-muted/40 focus:ring-4 focus:ring-primary/5"
+                className="category-input h-11 rounded-xl"
               />
             </div>
             
-            <DialogFooter className="-mx-6 -mb-6 flex-row items-center justify-end gap-2 border-t border-border/45 bg-card/24 px-6 py-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)] ">
+            <DialogFooter className="app-dialog-footer -mx-6 -mb-6 flex-row items-center justify-end gap-2 px-6 py-4">
               <Button
                 type="submit"
                 className="h-9 rounded-xl px-5 text-[13px] font-semibold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98]"

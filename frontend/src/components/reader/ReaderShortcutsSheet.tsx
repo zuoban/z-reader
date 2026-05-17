@@ -88,7 +88,7 @@ export function ReaderShortcutsSheet({
         showCloseButton
         finalFocus={false}
         container={overlayContainer}
-        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
         style={{
           background:
             `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
@@ -97,18 +97,17 @@ export function ReaderShortcutsSheet({
           boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
         }}
       >
-        <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-              <Keyboard className="h-6 w-6" />
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
+          <div className="flex items-center gap-4">
+            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+              <Keyboard className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-2xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+              <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
                 键盘快捷键
               </SheetTitle>
               <SheetDescription
-                className="mt-1 text-xs font-medium opacity-60"
+                className="mt-1 text-xs font-medium"
                 style={{ color: uiScheme.mutedText }}
               >
                 用键盘保持阅读节奏
@@ -117,7 +116,7 @@ export function ReaderShortcutsSheet({
           </div>
         </SheetHeader>
 
-        <div className="space-y-5 overflow-y-auto px-8 pb-10 pt-4">
+        <div className="app-sheet-body space-y-5 px-6 py-5 sm:px-7">
           {SHORTCUT_GROUPS.map((group) => (
             <section key={group.title} className="space-y-3">
               <h3

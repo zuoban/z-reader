@@ -84,13 +84,25 @@ export function ShelfFilterSheet({
         </span>
       </SheetTrigger>
 
-      <SheetContent side="bottom" className="sm:hidden">
-        <SheetHeader>
-          <SheetTitle>筛选与排序</SheetTitle>
-          <SheetDescription>调整当前书架视图</SheetDescription>
+      <SheetContent
+        side="bottom"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 max-h-[min(90svh,38rem)] rounded-[1.75rem] border p-0 sm:hidden"
+      >
+        <SheetHeader className="app-sheet-header px-6 pb-5 pt-7 pr-20">
+          <div className="flex items-center gap-4">
+            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+              <SlidersHorizontal className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="text-xl font-semibold tracking-tight">筛选与排序</SheetTitle>
+              <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground">
+                调整当前书架视图
+              </SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        <div className="space-y-6 overflow-y-auto px-5 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+        <div className="app-sheet-body space-y-6 px-6 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
           <section className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <Tag className="h-3.5 w-3.5" />
@@ -106,10 +118,8 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectCategory(item.id)}
                     className={cn(
-                      'flex h-12 items-center gap-3 rounded-xl border px-3 text-left text-sm shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)]  transition-colors',
-                      active
-                        ? 'border-primary/34 bg-[var(--shelf-surface-selected)] text-foreground ring-1 ring-primary/12'
-                        : 'border-border/55 bg-card/58 text-foreground/72 hover:border-primary/18 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
+                      'category-chip flex h-12 items-center gap-3 rounded-xl px-3 text-left text-sm transition-colors',
+                      active && 'category-chip-active'
                     )}
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">{item.label}</span>
@@ -137,10 +147,8 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectSort(option.value)}
                     className={cn(
-                      'flex h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)]  transition-colors',
-                      active
-                        ? 'border-primary/34 bg-[var(--shelf-surface-selected)] text-foreground ring-1 ring-primary/12'
-                        : 'border-border/55 bg-card/58 text-foreground/72 hover:border-primary/18 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
+                      'category-chip flex h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors',
+                      active && 'category-chip-active'
                     )}
                   >
                     {option.label}

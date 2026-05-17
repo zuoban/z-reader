@@ -75,13 +75,13 @@ export function ReaderTOCSheet({
         showCloseButton
         finalFocus={false}
         container={overlayContainer}
-        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
         style={{
           background:
-            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
+            `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
           borderColor: withOpacity(uiScheme.cardBorder, 0.22),
           color: uiScheme.fg,
-          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
+          boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
         }}
       >
         <Button
@@ -111,24 +111,21 @@ export function ReaderTOCSheet({
           <LocateFixed className="h-4 w-4" />
         </Button>
 
-        <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-28">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
-
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-              <List className="h-6 w-6" />
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-28 sm:px-7 sm:pt-8">
+          <div className="flex items-center gap-4">
+            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+              <List className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
               <SheetTitle
-                className="truncate text-2xl font-bold tracking-tight"
+                className="truncate text-xl font-semibold tracking-tight"
                 style={{ color: uiScheme.fg }}
                 title={bookTitle || "阅读中"}
               >
                 目录
               </SheetTitle>
               <SheetDescription
-                className="mt-1 truncate text-xs font-medium opacity-60 text-muted-foreground"
+                className="mt-1 truncate text-xs font-medium text-muted-foreground"
                 style={{ color: uiScheme.mutedText }}
                 title={bookAuthor ? `作者：${bookAuthor}` : "书籍目录"}
               >
@@ -138,8 +135,8 @@ export function ReaderTOCSheet({
           </div>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [-webkit-overflow-scrolling:touch]">
-          <div ref={tocListRef} className="space-y-1 px-6 pb-12 pt-4">
+        <div className="app-sheet-body min-h-0 overscroll-contain px-2">
+          <div ref={tocListRef} className="space-y-1 px-4 py-5 sm:px-5">
             {toc.length > 0 ? (
               toc.map((item, idx) => (
                 <MemoizedReaderTOCNode

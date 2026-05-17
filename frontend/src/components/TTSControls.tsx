@@ -149,14 +149,14 @@ const FloatingButton = ({
 const useThemeStyles = (uiScheme: ThemeColors) => ({
   panel: {
     background:
-      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
+      `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
     borderColor: `${uiScheme.cardBorder}40`,
-    boxShadow: `0 24px 60px -20px ${withOpacity(uiScheme.fg, 0.16)}, 0 10px 30px -15px ${withOpacity(uiScheme.fg, 0.12)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
+    boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
   },
   section: {
     background:
-      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.52)}`,
-    borderColor: `${uiScheme.cardBorder}24`,
+      `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.22)} 0%, transparent 100%), ${uiScheme.cardBg}`,
+    borderColor: `${uiScheme.cardBorder}34`,
   },
   selectTrigger: {
     background:
@@ -166,7 +166,7 @@ const useThemeStyles = (uiScheme: ThemeColors) => ({
   },
   selectContent: {
     background:
-      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,
+      `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.28)} 0%, transparent 8rem), ${uiScheme.cardBg}`,
     borderColor: `${uiScheme.cardBorder}68`,
   },
 });
@@ -230,11 +230,11 @@ const TTSSectionCard = ({
   children: React.ReactNode;
 }) => (
   <section
-    className="glass-section-card space-y-4 rounded-[1.75rem] p-5"
+    className="app-surface-panel space-y-4 rounded-2xl p-5"
     style={{
       background:
-        `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.045)} 0%, transparent 36%), ${withOpacity(uiScheme.cardBg, 0.72)}`,
-      borderColor: withOpacity(uiScheme.cardBorder, 0.18),
+        `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.2)} 0%, transparent 100%), ${uiScheme.cardBg}`,
+      borderColor: withOpacity(uiScheme.cardBorder, 0.26),
     }}
   >
     <div className="flex items-center justify-between gap-3">
@@ -742,8 +742,8 @@ export function TTSControls({
           style={{
             color: isDragging ? uiScheme.link : uiScheme.mutedText,
             cursor: isDragging ? 'grabbing' : 'grab',
-            background: withOpacity(uiScheme.buttonBg, 0.18),
-            border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+            background: withOpacity(uiScheme.buttonBg, 0.34),
+            border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
           }}
           title="拖动控制面板"
         >
@@ -802,50 +802,45 @@ export function TTSControls({
           container={overlayContainer}
           data-reader-interactive="true"
           data-reader-tts-popup="true"
-          className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+          className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
           style={{
             background:
-              `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
+              `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
             borderColor: withOpacity(uiScheme.cardBorder, 0.22),
             color: uiScheme.fg,
-            boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
+            boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
           }}
         >
           <div aria-live="polite" aria-atomic="true" className="sr-only">
             {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
           </div>
 
-          <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
-            <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-            <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
-
-            <div className="relative min-w-0">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                  <Volume2 className="h-6 w-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-2xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
-                    朗读控制
-                  </SheetTitle>
-                  <SheetDescription
-                    className="mt-1 text-xs font-medium opacity-60"
-                    style={{ color: uiScheme.mutedText }}
-                  >
-                    调整最贴近当前阅读节奏的声音
-                  </SheetDescription>
-                </div>
+          <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
+            <div className="flex items-center gap-4">
+              <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+                <Volume2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                  朗读控制
+                </SheetTitle>
+                <SheetDescription
+                  className="mt-1 text-xs font-medium"
+                  style={{ color: uiScheme.mutedText }}
+                >
+                  调整最贴近当前阅读节奏的声音
+                </SheetDescription>
               </div>
             </div>
           </SheetHeader>
 
-          <div className="flex-1 space-y-7 overflow-y-auto px-8 pb-12 pt-4">
+          <div className="app-sheet-body space-y-5 px-6 py-5 sm:px-7">
             {resumePromptVisible && (
               <section
-                className="glass-section-card rounded-[1.75rem] p-5"
+                className="app-surface-panel rounded-2xl p-5"
                 style={{
                   background:
-                    `linear-gradient(135deg, ${withOpacity(uiScheme.link, 0.1)} 0%, transparent 38%), ${withOpacity(uiScheme.cardBg, 0.68)}`,
+                    `linear-gradient(180deg, ${withOpacity(uiScheme.link, 0.08)} 0%, transparent 100%), ${uiScheme.cardBg}`,
                   borderColor: withOpacity(uiScheme.link, 0.18),
                 }}
               >
@@ -853,7 +848,7 @@ export function TTSControls({
                   <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                     style={{
-                      background: withOpacity(uiScheme.cardBg, 0.72),
+                      background: withOpacity(uiScheme.buttonBg, 0.42),
                       color: uiScheme.link,
                     }}
                   >
@@ -874,7 +869,7 @@ export function TTSControls({
                     className="h-10 shrink-0 rounded-[1.1rem] px-3.5 text-xs font-bold active:scale-[0.96]"
                     style={{
                       color: uiScheme.link,
-                      background: withOpacity(uiScheme.cardBg, 0.72),
+                      background: withOpacity(uiScheme.buttonBg, 0.42),
                       border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
                     }}
                   >
@@ -894,8 +889,8 @@ export function TTSControls({
               <div
                 className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] "
                 style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.18),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.12),
+                  background: withOpacity(uiScheme.buttonBg, 0.34),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.2),
                 }}
               >
                 <ControlButton
@@ -1154,14 +1149,14 @@ export function TTSControls({
             onClick={stopInteractivePropagation}
           >
             <div
-              className="paper-motion-surface paper-panel paper-stack relative overflow-hidden rounded-[28px] border p-0 shadow-2xl  motion-reduce:transition-none"
+              className="app-dialog-shell paper-motion-surface paper-stack relative overflow-hidden rounded-[1.5rem] border p-0 motion-reduce:transition-none"
               style={styles.panel}
             >
               {!isToolbar && (
                 <div
                   className="pointer-events-none absolute bottom-[-8px] right-5 h-4 w-4 rotate-45 border-r border-b"
                   style={{
-                    background: withOpacity(uiScheme.cardBg, 0.72),
+                    background: uiScheme.cardBg,
                     borderColor: `${uiScheme.cardBorder}72`,
                     boxShadow: `8px 8px 18px -16px ${uiScheme.cardBorder}40`,
                   }}
@@ -1190,8 +1185,8 @@ export function TTSControls({
                   className="h-8 w-8 rounded-lg  transition-all hover:scale-[1.04]"
                   style={{
                     color: uiScheme.mutedText,
-                    background: withOpacity(uiScheme.buttonBg, 0.16),
-                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                    background: withOpacity(uiScheme.buttonBg, 0.34),
+                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
                   }}
                   aria-label="关闭朗读控制面板"
                   title="关闭"
@@ -1208,7 +1203,7 @@ export function TTSControls({
                   <section
                     className="rounded-2xl border px-3.5 py-3"
                     style={{
-                      background: withOpacity(uiScheme.link, 0.07),
+                      background: `linear-gradient(180deg, ${withOpacity(uiScheme.link, 0.08)} 0%, transparent 100%), ${uiScheme.cardBg}`,
                       borderColor: withOpacity(uiScheme.link, 0.18),
                     }}
                   >
@@ -1216,7 +1211,7 @@ export function TTSControls({
                       <div
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                         style={{
-                          background: withOpacity(uiScheme.cardBg, 0.72),
+                          background: withOpacity(uiScheme.buttonBg, 0.42),
                           color: uiScheme.link,
                         }}
                       >
@@ -1234,7 +1229,7 @@ export function TTSControls({
                         className="h-8 shrink-0 rounded-lg px-3 text-[11px] font-bold transition-all active:scale-95"
                         style={{
                           color: uiScheme.link,
-                          background: withOpacity(uiScheme.cardBg, 0.72),
+                          background: withOpacity(uiScheme.buttonBg, 0.42),
                           border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
                         }}
                       >
@@ -1260,8 +1255,8 @@ export function TTSControls({
                         className="h-7 rounded-lg px-2 text-[10px] font-black uppercase tracking-wide  transition-all hover:scale-[1.03]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: withOpacity(uiScheme.buttonBg, 0.18),
-                          border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                          background: withOpacity(uiScheme.buttonBg, 0.34),
+                          border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
                         }}
                       >
                         {detailsExpanded ? '收起设置' : '更多设置'}
@@ -1277,8 +1272,8 @@ export function TTSControls({
                   <div
                     className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] "
                     style={{
-                      background: withOpacity(uiScheme.buttonBg, 0.18),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.12),
+                      background: withOpacity(uiScheme.buttonBg, 0.34),
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.2),
                     }}
                   >
                     <ControlButton

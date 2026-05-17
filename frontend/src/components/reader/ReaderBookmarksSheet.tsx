@@ -82,7 +82,7 @@ export function ReaderBookmarksSheet({
         showCloseButton
         finalFocus={false}
         container={overlayContainer}
-        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
         style={{
           background:
             `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
@@ -91,20 +91,17 @@ export function ReaderBookmarksSheet({
           boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
         }}
       >
-        <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
-
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-              <Bookmark className="h-6 w-6" />
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
+          <div className="flex items-center gap-4">
+            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+              <Bookmark className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-2xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+              <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
                 书签
               </SheetTitle>
               <SheetDescription
-                className="mt-1 text-xs font-medium opacity-60"
+                className="mt-1 text-xs font-medium"
                 style={{ color: uiScheme.mutedText }}
               >
                 记录那些值得回味的阅读瞬间
@@ -113,12 +110,12 @@ export function ReaderBookmarksSheet({
           </div>
         </SheetHeader>
 
-        <div className="shrink-0 px-8 py-2">
+        <div className="shrink-0 px-6 py-4 sm:px-7">
           <Button
             type="button"
             onClick={onCreate}
             disabled={!canCreate || isSaving}
-            className="h-11 w-full rounded-2xl text-sm font-bold shadow-sm transition-all active:scale-[0.98]"
+            className="h-11 w-full rounded-xl text-sm font-bold shadow-sm transition-all active:scale-[0.98]"
             title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
           >
             <BookmarkPlus className="mr-2 h-4.5 w-4.5" />
@@ -126,8 +123,8 @@ export function ReaderBookmarksSheet({
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [-webkit-overflow-scrolling:touch]">
-          <div className="space-y-3 px-6 pb-12 pt-4">
+        <div className="app-sheet-body min-h-0 overscroll-contain px-2">
+          <div className="space-y-3 px-4 pb-5 pt-1 sm:px-5">
             {bookmarks.length > 0 ? (
               bookmarks.map((bookmark) => (
                 <div

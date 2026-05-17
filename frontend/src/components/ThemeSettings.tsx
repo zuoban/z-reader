@@ -333,13 +333,13 @@ export function ThemeSettings({
         showCloseButton
         finalFocus={false}
         container={overlayContainer}
-        className="mx-auto flex flex-col p-0 bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 rounded-[2.5rem] border shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
         style={{
           background:
-            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
+            `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
           borderColor: withOpacity(uiScheme.cardBorder, 0.22),
           color: uiScheme.fg,
-          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
+          boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
         }}
       >
         <Button
@@ -375,31 +375,26 @@ export function ThemeSettings({
           />
         </Button>
 
-        <SheetHeader className="relative overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
-          
-          <div className="relative min-w-0">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-                <Settings className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <SheetTitle className="text-2xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
-                  阅读偏好
-                </SheetTitle>
-                <SheetDescription
-                  className="mt-1 text-xs font-medium opacity-60"
-                  style={{ color: uiScheme.mutedText }}
-                >
-                  营造最舒适的数字阅读环境
-                </SheetDescription>
-              </div>
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-24 sm:px-7 sm:pt-8">
+          <div className="flex items-center gap-4">
+            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+              <Settings className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                阅读偏好
+              </SheetTitle>
+              <SheetDescription
+                className="mt-1 text-xs font-medium"
+                style={{ color: uiScheme.mutedText }}
+              >
+                营造最舒适的数字阅读环境
+              </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-8 pb-12 pt-4">
+        <div className="app-sheet-body min-h-0 px-6 py-5 sm:px-7">
           <div
             className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] border  p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
             role="tablist"

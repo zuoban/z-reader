@@ -76,37 +76,27 @@ export function CategoryManagerSheet({
         side="bottom"
         showCloseButton
         finalFocus={false}
-        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex !h-[min(92svh,48rem)] flex-col rounded-[2.5rem] border p-0 shadow-2xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
-        style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--shelf-surface) 92%, var(--background))',
-          borderColor: 'color-mix(in srgb, var(--border), transparent 40%)',
-          boxShadow:
-            '0 -12px 48px -12px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 46%, transparent)',
-        }}
+        className="category-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
       >
-        <SheetHeader className="relative shrink-0 overflow-hidden border-b-0 px-8 pb-4 pt-10 pr-24">
-          <div className="absolute -left-8 -top-8 h-32 w-32 rounded-full bg-primary/10" />
-          <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-accent/10" />
-
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm shadow-primary/5">
-              <Tag className="h-6 w-6" />
+        <SheetHeader className="category-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
+          <div className="flex items-center gap-4">
+            <div className="category-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+              <Tag className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-2xl font-bold tracking-tight">
+              <SheetTitle className="text-xl font-semibold tracking-tight">
                 管理分类
               </SheetTitle>
-              <SheetDescription className="mt-1 text-xs font-medium opacity-60">
+              <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground">
                 重命名分类，或从图书中清空某个分类
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-5 pt-4 [-webkit-overflow-scrolling:touch]">
+        <div className="category-sheet-body min-h-0 px-6 py-5 sm:px-7">
           {normalizedCategories.length === 0 ? (
-            <div className="flex min-h-56 flex-col items-center justify-center rounded-[1.75rem] border border-border/45 bg-background/60 px-6 text-center">
+            <div className="category-form-panel flex min-h-52 flex-col items-center justify-center rounded-2xl px-6 text-center">
               <Tag className="h-9 w-9 text-primary/55" />
               <p className="mt-3 font-heading text-xl font-semibold">还没有分类</p>
               <p className="mt-1 text-sm text-muted-foreground">给图书设置分类后，这里会显示管理入口。</p>
@@ -123,10 +113,8 @@ export function CategoryManagerSheet({
                       onClick={() => chooseCategory(category)}
                       disabled={loading}
                       className={cn(
-                        'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm font-semibold shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)]  transition-all disabled:cursor-not-allowed disabled:opacity-55',
-                        active
-                          ? 'border-primary/42 bg-[var(--shelf-surface-selected)] text-primary ring-1 ring-primary/14 shadow-primary/10'
-                          : 'border-border/55 bg-card/52 text-muted-foreground hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)] hover:text-foreground'
+                        'category-chip inline-flex min-h-10 max-w-full items-center gap-2 rounded-full px-4 py-2 text-left text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-55',
+                        active && 'category-chip-active'
                       )}
                       title={category}
                     >
@@ -136,7 +124,7 @@ export function CategoryManagerSheet({
                         <Tag className="h-3.5 w-3.5 shrink-0 opacity-55" />
                       )}
                       <span className="truncate">{category}</span>
-                      <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold tabular-nums opacity-70">
+                      <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold tabular-nums opacity-65">
                         {bookCounts[category] || 0}
                       </span>
                     </button>
@@ -144,7 +132,7 @@ export function CategoryManagerSheet({
                 })}
               </div>
 
-              <div className="glass-form-panel rounded-[1.75rem] p-4">
+              <div className="category-form-panel rounded-2xl p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
                     重命名
@@ -160,7 +148,7 @@ export function CategoryManagerSheet({
                     maxLength={50}
                     placeholder="先选择一个分类"
                     disabled={loading || !selectedCategory}
-                    className="h-11 rounded-[1.2rem] border-border/60 bg-muted/35 pr-10 text-sm transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/5 disabled:opacity-60"
+                    className="category-input h-11 rounded-xl pr-10 text-sm disabled:opacity-60"
                   />
                   {nextCategory && (
                     <button
@@ -184,7 +172,7 @@ export function CategoryManagerSheet({
           )}
         </div>
 
-        <div className="mt-auto flex shrink-0 flex-col gap-2 border-t border-border/40 bg-card/22 px-8 py-5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  sm:flex-row sm:items-center sm:justify-end">
+        <div className="category-sheet-footer flex shrink-0 flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
           <Button
             type="button"
             variant="destructive"

@@ -53,7 +53,8 @@ export function FileUploadAction({
         onChange={onChange}
         disabled={disabled}
         className="sr-only"
-        aria-label={title}
+        aria-hidden="true"
+        tabIndex={-1}
       />
       <label
         htmlFor={disabled ? undefined : inputId}

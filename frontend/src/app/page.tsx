@@ -243,7 +243,7 @@ export default function Home() {
         </section>
 
         {/* 04 · 常见问题 */}
-        <section className="mb-24">
+        <section id="faq" className="mb-24 scroll-mt-12">
           <div className="mb-10 pb-4 border-b border-[#e8e6dc]">
             <p className="text-xs font-medium tracking-widest text-[#1B365D] uppercase mb-2">04 · 常见问题</p>
             <h2 className="text-4xl font-medium text-[#141413] tracking-tight">解决你的疑惑。</h2>
@@ -277,7 +277,7 @@ export default function Home() {
             <div className="flex gap-4 text-xs font-medium text-[#6b6a64]/80 mb-6 md:justify-end uppercase tracking-widest">
               <Link href="https://github.com/zuoban/z-reader" className="hover:text-[#1B365D] transition-colors">GitHub</Link>
               <span className="text-[#d8d5c8]">·</span>
-              <Link href="/help" className="hover:text-[#1B365D] transition-colors">帮助</Link>
+              <Link href="#faq" className="hover:text-[#1B365D] transition-colors">帮助</Link>
             </div>
             <p className="text-[15px] text-[#504e49] italic max-w-sm leading-relaxed">
               读书，是为了在喧嚣的世界中找到属于自己的安静角落。

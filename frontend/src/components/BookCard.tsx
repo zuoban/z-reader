@@ -4,7 +4,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Check, Tag, UserRound } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -296,15 +296,18 @@ export function BookCard({
 
   return (
     <div
-      className="flex items-center justify-start"
+      className="flex items-center justify-start lg:justify-center"
     >
       <Card
         className={cn(
-          "group/card relative flex cursor-pointer flex-col overflow-hidden rounded-none border border-border bg-card p-0 transition-none shadow-[2px_2px_0_0_rgba(0,0,0,0.1)]",
-          !isMobile && "hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.15)]",
+          "group/card paper-reveal-soft relative flex cursor-pointer flex-col overflow-hidden rounded-md border border-border/80 bg-card p-0 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] transition-[border-color,box-shadow,transform,background-color] duration-200",
+          !isMobile && "hover:-translate-y-1 hover:border-foreground/20 hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.13)]",
           selected && "border-primary"
         )}
-        style={{ width: isMobile ? '100%' : cardWidth }}
+        style={{
+          width: isMobile ? '100%' : cardWidth,
+          '--paper-delay': `${Math.min(index, 10) * 28}ms`,
+        } as CSSProperties}
         onClick={handleCardClick}
         onKeyDown={handleCardKeyDown}
         role="button"

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { CSSProperties, DragEvent } from 'react';
+import type { DragEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -54,10 +54,6 @@ const SUPPORTED_FORMATS_ACCEPT = [
   'application/x-mobipocket-ebook',
 ].join(',');
 const SHELF_TITLE = '我的书架';
-
-function delay(ms: number): CSSProperties {
-  return { '--paper-delay': `${ms}ms` } as CSSProperties;
-}
 
 function ShelfTitle() {
   return (
@@ -290,81 +286,20 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-5 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-10"
+      contentClassName="mx-auto flex min-h-screen w-full max-w-[1920px] flex-col px-5 py-4 sm:px-6 sm:py-6 lg:px-12 lg:py-7 xl:px-14 2xl:px-16"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
         <div className="absolute left-[5%] top-[10%] h-[30%] w-[30%] rounded-full bg-primary/5 blur-[100px]" />
         <div className="absolute right-[5%] bottom-[10%] h-[30%] w-[30%] rounded-full bg-accent/5 blur-[100px]" />
       </div>
 
-      <header className="sticky top-0 z-50 mb-6 w-full pt-1 lg:mb-10 lg:px-2 lg:pt-2">
-        <div className="shelf-header flex h-16 items-center justify-between px-0 sm:h-20 sm:px-8 lg:h-22 lg:px-10">
+      <header className="sticky top-0 z-50 mb-4 w-full pt-1 lg:mb-6 lg:pt-2">
+        <div className="shelf-header flex h-16 items-center justify-between px-0 sm:h-20 lg:h-18">
           <div className="flex items-center gap-5">
             <ShelfTitle />
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3.5">
-            <div className="hidden items-center gap-2 border-r border-border/15 pr-4 sm:flex sm:gap-3.5">
-              {user?.role === 'admin' && (
-                <UserManager
-                  currentUser={user}
-                  buttonClassName="shelf-icon-btn"
-                  triggerTitle="用户管理"
-                />
-              )}
-
-              <FileUploadAction
-                accept={SUPPORTED_FORMATS_ACCEPT}
-                onChange={handleUpload}
-                disabled={isUploading}
-                title="上传书籍"
-                multiple
-                statusLabel={uploadStatusLabel}
-                wrapperClassName="shelf-tooltip overflow-visible"
-                buttonVariant="ghost"
-                buttonSize="sm"
-                buttonClassName={cn(
-                  'shelf-icon-btn',
-                  isUploading && 'bg-primary/10 text-primary opacity-100'
-                )}
-              >
-                {isUploading ? (
-                  <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                <span className="hidden">{uploadStatusLabel ?? '上传书籍'}</span>
-              </FileUploadAction>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setCategoryManagerOpen(true)}
-                aria-label="分类管理"
-                title="分类管理"
-                data-tooltip="分类管理"
-                className="shelf-icon-btn shelf-tooltip cursor-pointer"
-              >
-                <Tag className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleTheme}
-                aria-label={isDark ? '亮色模式' : '暗色模式'}
-                title={isDark ? '亮色模式' : '暗色模式'}
-                data-tooltip={isDark ? '亮色模式' : '暗色模式'}
-                className="shelf-icon-btn shelf-tooltip cursor-pointer"
-              >
-                {isDark ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
             <div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -378,22 +313,43 @@ export default function ShelfPage() {
                   className="shelf-account-menu w-44 min-w-44 rounded-2xl p-1.5"
                 >
                   {user?.role === 'admin' && (
-                    <div className="sm:hidden">
-                      <UserManager
-                        currentUser={user}
-                        buttonClassName="shelf-account-menu-item shelf-account-menu-button w-full justify-start"
-                        triggerLabel="用户管理"
-                        triggerLabelClassName="inline"
-                      />
-                    </div>
+                    <UserManager
+                      currentUser={user}
+                      buttonClassName="shelf-account-menu-item shelf-account-menu-button w-full justify-start"
+                      triggerLabel="用户管理"
+                      triggerLabelClassName="inline"
+                    />
                   )}
+
+                  <FileUploadAction
+                    accept={SUPPORTED_FORMATS_ACCEPT}
+                    onChange={handleUpload}
+                    disabled={isUploading}
+                    title="上传书籍"
+                    multiple
+                    wrapperClassName="w-full"
+                    buttonVariant="ghost"
+                    buttonSize="sm"
+                    buttonClassName={cn(
+                      'shelf-account-menu-item shelf-account-menu-button w-full justify-start',
+                      isUploading && 'text-primary opacity-100'
+                    )}
+                  >
+                    {isUploading ? (
+                      <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    {uploadStatusLabel ?? '上传书籍'}
+                  </FileUploadAction>
+
                   <DropdownMenuItem
-                    className="shelf-account-menu-item sm:hidden"
+                    className="shelf-account-menu-item"
                     onClick={() => setCategoryManagerOpen(true)}
                   >
                     <Tag className="h-4 w-4" /> 分类管理
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="shelf-account-menu-item sm:hidden" onClick={toggleTheme}>
+                  <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
                     {isDark ? (
                       <Sun className="h-4 w-4" />
                     ) : (
@@ -485,16 +441,16 @@ export default function ShelfPage() {
             )}
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+          <div className="flex min-w-0 flex-col gap-4 sm:gap-6 lg:gap-5">
             {!isLoadingBooks && books.length > 0 && (
-              <div className="shelf-toolbar py-2.5 sm:px-4 sm:py-3">
+              <div className="shelf-toolbar py-2.5 sm:px-4 sm:py-3 lg:px-0">
                 <div
                   className={cn(
-                    'flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
+                    'flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:grid lg:grid-cols-[minmax(28rem,42rem)_minmax(0,1fr)] lg:gap-10',
                     categories.length === 0 && 'sm:min-w-[13rem]'
                   )}
                 >
-                  <div className="relative w-full sm:max-w-[24rem]">
+                  <div className="relative w-full sm:max-w-[24rem] lg:max-w-none">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 transition-colors group-focus-within:text-primary/60" />
                     <Input
                       type="search"
@@ -516,7 +472,7 @@ export default function ShelfPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 sm:ml-auto">
+                  <div className="flex items-center gap-3 sm:ml-auto lg:min-w-0 lg:justify-end">
                     {hasActiveShelfFilter && (
                       <div className="hidden flex-wrap items-center gap-2 text-[11px] font-medium sm:flex">
                         <span className="rounded-md bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground/70">
@@ -533,21 +489,21 @@ export default function ShelfPage() {
                       </div>
                     )}
 
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto">
-                      <div className="hidden flex-row items-center gap-1.5 lg:flex lg:shrink-0">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto lg:gap-2.5">
+                      <div className="hidden flex-row items-center gap-2 lg:flex lg:shrink-0">
                         {categories.length > 0 && (
                           <CategoryFilter
                             categories={categories}
                             selectedCategoryId={selectedCategoryId}
                             onSelectCategory={changeSelectedCategory}
                             bookCounts={bookCounts}
-                            className="sm:w-[11rem]"
+                            className="sm:w-[12.5rem]"
                           />
                         )}
                         <SortSelector
                           value={sortBy}
                           onChange={setSortBy}
-                          className="sm:w-[11rem]"
+                          className="sm:w-[12.5rem]"
                         />
                       </div>
                       
@@ -641,7 +597,7 @@ export default function ShelfPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-x-5 gap-y-6 py-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-x-8 sm:gap-y-12 sm:px-8 sm:py-10 lg:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] lg:gap-x-10 lg:gap-y-14 lg:px-10 lg:py-12">
+                <div className="relative z-0 grid grid-cols-2 gap-x-5 gap-y-6 py-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-x-8 sm:gap-y-12 sm:px-8 sm:py-10 lg:grid-cols-[repeat(auto-fill,minmax(184px,184px))] lg:justify-between lg:gap-x-8 lg:gap-y-14 lg:px-0 lg:pb-12 lg:pt-7 xl:gap-x-10 xl:pt-8 2xl:gap-y-16">
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

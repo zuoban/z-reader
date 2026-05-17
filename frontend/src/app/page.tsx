@@ -6,35 +6,12 @@ import {
   BookOpen,
   Headphones,
   LibraryBig,
-  Moon,
-  Search,
   Upload,
 } from 'lucide-react';
 import { AppScreen, BrandMark } from '@/components/AppShell';
 import { buttonVariants } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-
-const shelfBooks = [
-  {
-    title: '自控力',
-    author: '凯利・麦格尼格尔',
-    accent: 'bg-[linear-gradient(150deg,#f8fafc_0%,#e8edf4_48%,#c4cad4_100%)]',
-    label: '13.3%',
-  },
-  {
-    title: '写作是门手艺',
-    author: '刘军强',
-    accent: 'bg-[linear-gradient(150deg,#f5f0df_0%,#e2d9bd_50%,#8fa45b_100%)]',
-    label: '40.8%',
-  },
-  {
-    title: '图解 HTTP',
-    author: '上野宣',
-    accent: 'bg-[linear-gradient(150deg,#eef0ff_0%,#dce2ff_55%,#b8c5ff_100%)]',
-    label: '1.2%',
-  },
-];
 
 const featureItems = [
   {
@@ -54,8 +31,6 @@ const featureItems = [
   },
 ];
 
-const readerLines = ['w-full', 'w-[92%]', 'w-[74%]', 'w-[86%]', 'w-[62%]'];
-
 export default function Home() {
   const { isLoading, isAuthenticated } = useAuth();
   const primaryHref = !isLoading && isAuthenticated ? '/shelf' : '/login';
@@ -63,137 +38,143 @@ export default function Home() {
 
   return (
     <AppScreen className="overflow-x-hidden">
-      <main className="min-h-screen bg-[linear-gradient(180deg,color-mix(in_srgb,var(--background)_92%,#edf2ff)_0%,var(--background)_54%,color-mix(in_srgb,var(--background)_88%,#eef8f4)_100%)]">
-        <section className="relative isolate min-h-[92svh] overflow-hidden px-5 pb-14 pt-5 sm:px-8 lg:px-10">
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute inset-x-0 top-0 h-[72%] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_12%,transparent)_0%,transparent_78%)]" />
-            <div className="paper-panel absolute left-1/2 top-[48%] h-[34rem] w-[min(86rem,118vw)] -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border border-border/55 bg-card/58 shadow-[0_38px_90px_-64px_var(--paper-shadow)] backdrop-blur-2xl" />
-            <div className="paper-panel absolute left-[56%] top-[47%] h-[28rem] w-[min(74rem,102vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.25rem] border border-primary/14 bg-background/70 shadow-[0_24px_64px_-50px_var(--paper-shadow)] backdrop-blur-2xl">
-              <div className="flex h-12 items-center justify-between border-b border-border/60 px-4 backdrop-blur-xl">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#ef6f61]" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#e5bd4d]" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#4cae7b]" />
-                </div>
-                <div className="paper-field hidden h-7 w-52 items-center gap-2 rounded-lg border border-border/60 bg-card/58 px-3 text-xs text-muted-foreground backdrop-blur-lg sm:flex">
-                  <Search className="h-3.5 w-3.5" />
-                  搜索书名、作者
-                </div>
-              </div>
-              <div className="grid h-[calc(100%-3rem)] grid-cols-[4.5rem_1fr]">
-                <aside className="border-r border-border/55 bg-muted/28 px-3 py-5 backdrop-blur-xl">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_14px_26px_-18px_var(--paper-shadow)]">
-                    <LibraryBig className="h-5 w-5" />
-                  </div>
-                  <div className="mt-5 space-y-3">
-                    {[BookOpen, Headphones, Moon].map((Icon, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          'flex h-10 w-10 items-center justify-center rounded-xl border border-border/55 text-muted-foreground backdrop-blur-lg',
-                          index === 0 && 'bg-card/70 text-primary'
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                    ))}
-                  </div>
-                </aside>
-                <div className="grid grid-cols-2 gap-5 p-5 opacity-70 sm:grid-cols-[1.15fr_0.85fr]">
-                  <div className="paper-panel rounded-xl border border-border/60 bg-card/58 p-5 backdrop-blur-xl">
-                    <div className="mb-5 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold text-primary">Reading Now</p>
-                        <p className="mt-1 font-heading text-2xl font-semibold">纸页宇宙</p>
-                      </div>
-                      <span className="rounded-lg border border-primary/12 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                        62%
-                      </span>
-                    </div>
-                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/28 p-5 backdrop-blur-lg">
-                      {readerLines.map((width) => (
-                        <div
-                          key={width}
-                          className={cn('h-2 rounded-full bg-foreground/18', width)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="hidden grid-cols-3 gap-3 sm:grid">
-                    {shelfBooks.map((book) => (
-                      <div key={book.title} className="paper-panel min-w-0 rounded-xl border border-border/60 bg-card/58 p-3 backdrop-blur-xl">
-                        <div className={cn('aspect-[3/4] rounded-lg shadow-[0_20px_30px_-24px_var(--paper-shadow)]', book.accent)} />
-                        <p className="mt-3 truncate text-sm font-semibold">{book.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{book.author}</p>
-                        <p className="mt-2 text-xs font-semibold text-primary">{book.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="absolute inset-y-0 left-0 w-[68%] bg-[linear-gradient(90deg,var(--background)_0%,color-mix(in_srgb,var(--background)_92%,transparent)_64%,transparent_100%)]" />
-          </div>
+      {/* Noise Texture Overlay */}
+      <div className="pointer-events-none fixed inset-0 z-50 opacity-[0.03] mix-blend-multiply" 
+           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+      />
 
-          <div className="mx-auto flex min-h-[calc(92svh-3rem)] w-full max-w-7xl flex-col">
-            <header className="flex items-center justify-between gap-4">
-              <BrandMark size="sm" priority />
+      <main className="min-h-screen bg-[#FCFBF9] text-[#1A1A1A] transition-colors duration-500">
+        {/* Navigation */}
+        <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 md:px-12">
+          <BrandMark size="sm" priority />
+          <div className="flex items-center gap-6">
+            <Link
+              href="/login"
+              className="text-sm font-medium hover:text-primary transition-colors hidden sm:block"
+            >
+              登录
+            </Link>
+            <Link
+              href={primaryHref}
+              className={cn(
+                buttonVariants({ variant: 'outline' }),
+                "rounded-full border-[#1A1A1A] px-6 text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#FCFBF9]"
+              )}
+            >
+              {primaryLabel}
+            </Link>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="mx-auto flex max-w-7xl flex-col px-6 pt-12 pb-24 md:px-12 lg:flex-row lg:items-center lg:pt-20">
+          <div className="flex-1 lg:pr-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground mb-8">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-primary" />
+              私人多格式电子书阅读器
+            </div>
+            <h1 className="font-heading text-5xl font-medium leading-[1.1] tracking-tight sm:text-7xl lg:text-8xl">
+              安静地，<br />
+              放下一本书。
+            </h1>
+            <p className="mt-10 max-w-xl text-lg leading-relaxed text-[#4A4A4A] sm:text-xl">
+              Z Reader 是一个面向个人书架的阅读空间。把不同格式的电子书放进同一个干净的平面。阅读、续读、分类和语音伴读都围绕长时间阅读展开。
+            </p>
+            <div className="mt-12 flex flex-col gap-4 sm:flex-row">
               <Link
                 href={primaryHref}
-                className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-10 rounded-lg px-4 backdrop-blur-lg')}
+                className={cn(
+                  buttonVariants({ size: 'lg' }),
+                  "h-14 rounded-full bg-[#1A1A1A] px-10 text-[#FCFBF9] hover:bg-[#333333] transition-all duration-300"
+                )}
               >
                 {primaryLabel}
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-            </header>
+              <Link
+                href="/login"
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'lg' }),
+                  "h-14 rounded-full border-[#1A1A1A] px-8 text-[#1A1A1A] hover:bg-[#1A1A1A]/5 transition-all duration-300"
+                )}
+              >
+                管理藏书
+              </Link>
+            </div>
+          </div>
 
-            <div className="flex flex-1 items-center py-16">
-              <div className="max-w-3xl">
-                <p className="mb-5 inline-flex rounded-lg border border-border/70 bg-card/78 px-3 py-1.5 text-xs font-semibold text-primary shadow-[0_12px_26px_-22px_var(--paper-shadow)]">
-                  私人多格式电子书阅读器
-                </p>
-                <h1 className="font-heading text-5xl font-semibold leading-none text-foreground sm:text-7xl lg:text-[5.75rem]">
-                  Z Reader
-                </h1>
-                <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                  把不同格式的电子书放进一个安静的书架。阅读、续读、分类和语音伴读都围绕长时间阅读展开。
-                </p>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href={primaryHref}
-                    className={cn(buttonVariants({ size: 'lg' }), 'h-12 rounded-lg px-6 text-sm font-semibold')}
-                  >
-                    {primaryLabel}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="/login"
-                  className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-12 rounded-lg px-6 text-sm font-semibold backdrop-blur-lg')}
-                  >
-                    管理藏书
-                  </Link>
+          <div className="mt-16 flex-1 lg:mt-0 lg:pl-12 animate-in fade-in zoom-in-95 duration-1000">
+            <div className="relative aspect-[4/5] w-full max-w-lg mx-auto md:max-w-none">
+              <div className="absolute inset-0 rounded-2xl border border-black/5 bg-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)]" />
+              <div className="absolute inset-4 overflow-hidden rounded-lg border border-black/5 bg-[#FCFBF9] p-8 md:p-12">
+                <div className="mb-12 h-1 w-12 bg-primary/20" />
+                <div className="space-y-6">
+                  <div className="h-6 w-full bg-[#1A1A1A]/5 rounded" />
+                  <div className="h-6 w-[94%] bg-[#1A1A1A]/5 rounded" />
+                  <div className="h-6 w-[88%] bg-[#1A1A1A]/5 rounded" />
+                  <div className="h-6 w-[92%] bg-[#1A1A1A]/5 rounded" />
+                  <div className="h-6 w-[74%] bg-[#1A1A1A]/5 rounded" />
+                  <div className="h-6 w-[96%] bg-[#1A1A1A]/5 rounded" />
+                  <div className="h-6 w-[82%] bg-[#1A1A1A]/5 rounded" />
                 </div>
+                <div className="mt-16 flex items-center justify-between border-t border-black/5 pt-8">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-[#1A1A1A]/5" />
+                    <div className="space-y-1">
+                      <div className="h-3 w-20 bg-[#1A1A1A]/10 rounded" />
+                      <div className="h-2 w-12 bg-[#1A1A1A]/5 rounded" />
+                    </div>
+                  </div>
+                  <div className="h-6 w-12 rounded-full border border-black/5" />
+                </div>
+              </div>
+              <div className="absolute -bottom-8 -right-8 hidden h-48 w-40 rounded-xl border border-black/5 bg-white p-4 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.12)] lg:block">
+                 <div className="aspect-[3/4] rounded bg-muted/20 mb-3" />
+                 <div className="h-2 w-16 bg-[#1A1A1A]/10 rounded mb-2" />
+                 <div className="h-1.5 w-10 bg-[#1A1A1A]/5 rounded" />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="px-5 pb-8 sm:px-8 lg:px-10">
-          <div className="mx-auto grid max-w-7xl gap-3 md:grid-cols-3">
-            {featureItems.map((item) => (
-              <article
-                key={item.title}
-                className="paper-panel rounded-xl border border-border/60 bg-card/58 p-5 shadow-[0_18px_48px_-42px_var(--paper-shadow)] backdrop-blur-xl"
-              >
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <h2 className="font-heading text-xl font-semibold">{item.title}</h2>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">{item.description}</p>
-              </article>
-            ))}
+        {/* Features Section */}
+        <section className="border-t border-black/5 py-24">
+          <div className="mx-auto max-w-7xl px-6 md:px-12">
+            <div className="grid gap-12 md:grid-cols-3">
+              {featureItems.map((item, idx) => (
+                <article 
+                  key={item.title} 
+                  className={cn(
+                    "group animate-in fade-in duration-700 fill-mode-both",
+                    idx === 1 && "delay-150",
+                    idx === 2 && "delay-300"
+                  )}
+                >
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:scale-110 transition-transform duration-300">
+                    <item.icon size={22} strokeWidth={1.5} />
+                  </div>
+                  <h2 className="font-heading text-2xl font-medium mb-4">{item.title}</h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {item.description}
+                  </p>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
+
+        {/* Footer */}
+        <footer className="border-t border-black/5 py-12">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row md:px-12">
+            <div className="flex items-center gap-2">
+              <LibraryBig size={18} className="text-primary" />
+              <span className="text-sm font-medium">Z Reader</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Z Reader. 一个开源的个人阅读器项目。
+            </p>
+          </div>
+        </footer>
       </main>
     </AppScreen>
   );

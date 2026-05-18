@@ -541,17 +541,19 @@ foliate-view::part(filter) {
   }
 
   .shelf-book-card {
-    @apply bg-card/60  border border-border/40;
-    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    @apply bg-card/70 border border-border/50;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease,
+      transform 0.2s ease;
   }
 
   .shelf-book-card:hover {
-    @apply bg-card/80 border-primary/20 shadow-md;
-    transform: translateY(-4px);
+    @apply bg-card border-primary/20;
+    box-shadow: 0 18px 46px -30px var(--paper-shadow);
+    transform: translateY(-2px);
   }
 
   .shelf-book-card:active {
-    transform: translateY(-1px);
+    transform: translateY(0);
   }
 
   .dark .shelf-book-card {

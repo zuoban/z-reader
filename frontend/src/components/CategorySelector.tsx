@@ -85,31 +85,40 @@ export function CategorySelector({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        showCloseButton
+        showCloseButton={false}
         finalFocus={false}
-        className="category-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(86svh,38rem)] flex-col rounded-3xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
       >
-        <SheetHeader className="category-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
-          <div className="flex items-center gap-4">
-            <div className="category-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-              <Tag className="h-5 w-5" />
+        <SheetHeader className="relative shrink-0 border-b border-border/55 bg-transparent px-5 pb-4 pt-5 pr-16 shadow-none sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/14 bg-primary/8 text-primary">
+              <Tag className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-xl font-semibold tracking-tight">
+              <SheetTitle className="text-[19px] font-semibold tracking-tight">
                 设置分类
               </SheetTitle>
-              <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground">
+              <SheetDescription className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
                 用标签整理书架，也可以新建一个标签
               </SheetDescription>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            aria-label="关闭"
+            title="关闭"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </SheetHeader>
 
         <form className="flex min-h-0 flex-col overflow-hidden" onSubmit={handleSubmit}>
-          <div className="category-sheet-body min-h-0 px-6 py-5 sm:px-7">
-            <div className="category-form-panel rounded-2xl p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
+          <div className="min-h-0 overflow-y-auto px-5 py-4 sm:px-6">
+            <div className="rounded-2xl border border-border/55 bg-muted/28 p-3.5">
+              <div className="mb-2.5 flex items-center justify-between">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
                   新标签
                 </p>
                 <span className="text-[10px] text-muted-foreground/40">
@@ -123,7 +132,7 @@ export function CategorySelector({
                   maxLength={50}
                   placeholder="输入标签名称"
                   disabled={loading}
-                  className="category-input h-11 rounded-xl pr-10 text-sm"
+                  className="h-11 rounded-xl border-border/70 bg-background/72 pr-10 text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/12"
                 />
                 {categoryName && (
                   <button
@@ -145,16 +154,16 @@ export function CategorySelector({
               )}
             </div>
 
-            <div className="mt-6">
-              <div className="mb-3 flex items-center justify-between pl-1">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
+            <div className="mt-4">
+              <div className="mb-2.5 flex items-center justify-between px-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
                   已有标签
                 </p>
                 <span className="text-[10px] font-medium text-muted-foreground/45">
                   {normalizedCategories.length} 个
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {normalizedCategories
                   .filter((cat) => (bookCounts[cat] || 0) > 0)
                   .map((cat) => {
@@ -163,15 +172,15 @@ export function CategorySelector({
                       <span
                         key={cat}
                         className={cn(
-                          'category-chip group inline-flex min-h-10 max-w-full items-center overflow-hidden rounded-full text-sm font-semibold transition-all',
-                          isSelected && 'category-chip-active'
+                          'group inline-flex min-h-9 max-w-full items-center overflow-hidden rounded-full border border-border/65 bg-background/58 text-[13px] font-semibold text-muted-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_35%,transparent)] transition-colors',
+                          isSelected && 'border-primary/45 bg-primary/10 text-primary'
                         )}
                       >
                         <button
                           type="button"
                           onClick={() => setCategoryName(cat)}
                           disabled={loading}
-                          className="inline-flex min-w-0 items-center gap-2 px-4 py-2 text-left disabled:cursor-not-allowed"
+                          className="inline-flex min-w-0 items-center gap-2 px-3 py-1.5 text-left disabled:cursor-not-allowed"
                           title={cat}
                         >
                           {isSelected ? (
@@ -180,7 +189,7 @@ export function CategorySelector({
                             <Tag className="h-3.5 w-3.5 shrink-0" />
                           )}
                           <span className="truncate">{cat}</span>
-                          <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border text-[9px] font-bold tabular-nums text-muted-foreground">
+                          <span className="ml-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground/8 px-1 text-[9px] font-bold tabular-nums opacity-70">
                             {bookCounts[cat] || 0}
                           </span>
                         </button>
@@ -189,7 +198,7 @@ export function CategorySelector({
                           onClick={() => handleRemoveCategory(cat)}
                           disabled={loading || !isSelected}
                           className={cn(
-                            'mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                            'mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors',
                             isSelected
                               ? 'text-primary/70 hover:text-primary'
                               : 'pointer-events-none text-transparent'
@@ -206,12 +215,12 @@ export function CategorySelector({
             </div>
           </div>
 
-          <div className="category-sheet-footer flex shrink-0 items-center justify-end gap-3 px-6 py-4 sm:px-7">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/55 bg-background/40 px-5 py-3.5 sm:px-6">
             <Button
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="h-10 rounded-xl px-5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              className="h-10 rounded-xl px-4 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             >
               取消
             </Button>

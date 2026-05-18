@@ -233,13 +233,13 @@ export function BookCard({
   const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
   const progressMeter = (
     <div className="flex items-center gap-2.5">
-      <div className="relative h-1 w-full overflow-hidden rounded-none bg-border">
+      <div className="relative h-1 w-full overflow-hidden rounded-full bg-border/70">
         <div
-          className="h-full bg-foreground transition-[width] duration-500 ease-out"
+          className="h-full rounded-full bg-primary/75 transition-[width] duration-500 ease-out"
           style={{ width: `${progressValue}%` }}
         />
       </div>
-      <span className="shrink-0 tabular-nums text-[11px] font-medium text-foreground">
+      <span className="shrink-0 tabular-nums text-[10px] font-semibold text-muted-foreground">
         {progressDisplay}%
       </span>
     </div>
@@ -300,9 +300,9 @@ export function BookCard({
     >
       <Card
         className={cn(
-          "group/card paper-reveal-soft relative flex cursor-pointer flex-col overflow-hidden rounded-md border border-border/80 bg-card p-0 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] transition-[border-color,box-shadow,transform,background-color] duration-200",
-          !isMobile && "hover:-translate-y-1 hover:border-foreground/20 hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.13)]",
-          selected && "border-primary"
+          "group/card paper-reveal-soft relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/55 bg-card/78 p-0 shadow-[0_12px_32px_-28px_var(--paper-shadow)] ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-200 dark:ring-white/10",
+          !isMobile && "hover:-translate-y-0.5 hover:border-primary/25 hover:bg-card hover:shadow-[0_18px_46px_-30px_var(--paper-shadow)]",
+          selected && "border-primary/65 bg-primary/5 ring-primary/20"
         )}
         style={{
           width: isMobile ? '100%' : cardWidth,
@@ -318,10 +318,10 @@ export function BookCard({
           {selectionMode && (
             <div
               className={cn(
-                "absolute right-2 top-2 z-30 flex h-5 w-5 items-center justify-center border transition-colors",
+                "absolute right-3 top-3 z-30 flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
                 selected
                   ? "border-primary bg-primary text-white"
-                  : "border-border bg-white"
+                  : "border-border/80 bg-card/90"
               )}
               aria-hidden="true"
             >
@@ -329,10 +329,10 @@ export function BookCard({
             </div>
           )}
           <div
-            className="relative overflow-hidden border-b border-border bg-card"
+            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_32%,var(--card))_0%,var(--card)_100%)]"
             style={{ height: coverHeight }}
           >
-            <div className="relative z-10 flex h-full items-start justify-center pt-4 px-4">
+            <div className="relative z-10 flex h-full items-start justify-center px-4 pt-5">
               <div
                 className="relative shrink-0"
                 style={{
@@ -349,23 +349,23 @@ export function BookCard({
             </div>
 
             {!isMobile && (
-              <div className="absolute inset-x-0 bottom-0 z-20 bg-card px-4 pb-3 pt-3 border-t border-border">
+              <div className="absolute inset-x-3 bottom-3 z-20 rounded-full border border-border/55 bg-card/88 px-3 py-2 shadow-[0_10px_26px_-22px_var(--paper-shadow)] backdrop-blur-sm">
                 {progressMeter}
               </div>
             )}
           </div>
 
           {isMobile && (
-            <div className="border-b border-border bg-card px-3.5 py-2 ">
+            <div className="border-t border-border/45 bg-card/86 px-3.5 py-2.5">
               {progressMeter}
             </div>
           )}
 
-          <div className="flex flex-col bg-card px-3.5 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-4">
+          <div className="flex flex-col bg-card/92 px-3.5 pb-4 pt-3.5 sm:px-4 sm:pb-4 sm:pt-3.5">
             <div className="space-y-1">
               <div className="relative pr-6 sm:pr-5">
                 <h3
-                  className="min-w-0 font-heading text-[14px] font-semibold leading-[1.4] text-foreground"
+                  className="min-w-0 font-heading text-[14px] font-semibold leading-[1.4] text-foreground/92"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -378,7 +378,7 @@ export function BookCard({
                   <HighlightedText text={titleLabel} query={searchQuery} />
                 </h3>
 
-                <div className="mt-2 flex min-h-5 items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
+                <div className="mt-2 flex min-h-5 items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground/88">
                   <span className="inline-flex min-w-0 items-center gap-1.5">
                     <span className="truncate">
                       <HighlightedText text={authorLabel} query={searchQuery} />
@@ -386,7 +386,7 @@ export function BookCard({
                   </span>
 
                   {categoryLabel && (
-                    <span className="shrink-0 items-center gap-1 sm:inline-flex">
+                    <span className="shrink-0 items-center gap-1 rounded-full bg-muted/58 px-2 py-0.5 text-[10px] sm:inline-flex">
                       <span className="max-w-[5.5rem] truncate">
                         <HighlightedText text={categoryLabel} query={searchQuery} />
                       </span>

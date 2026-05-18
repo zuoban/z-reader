@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, SlidersHorizontal, Tag } from 'lucide-react';
+import { ArrowUpDown, Check, SlidersHorizontal, Tag, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -86,25 +86,35 @@ export function ShelfFilterSheet({
 
       <SheetContent
         side="bottom"
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 max-h-[min(90svh,38rem)] rounded-[1.75rem] border p-0 sm:hidden"
+        showCloseButton={false}
+        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(86svh,38rem)] flex-col rounded-3xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10 sm:hidden"
       >
-        <SheetHeader className="app-sheet-header px-6 pb-5 pt-7 pr-20">
-          <div className="flex items-center gap-4">
-            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-              <SlidersHorizontal className="h-5 w-5" />
+        <SheetHeader className="relative shrink-0 border-b border-border/55 bg-transparent px-5 pb-4 pt-5 pr-16 shadow-none">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/14 bg-primary/8 text-primary">
+              <SlidersHorizontal className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-xl font-semibold tracking-tight">筛选与排序</SheetTitle>
-              <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground">
+              <SheetTitle className="text-[19px] font-semibold tracking-tight">筛选与排序</SheetTitle>
+              <SheetDescription className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
                 调整当前书架视图
               </SheetDescription>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            aria-label="关闭"
+            title="关闭"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </SheetHeader>
 
-        <div className="app-sheet-body space-y-6 px-6 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <div className="min-h-0 space-y-5 overflow-y-auto px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+          <section className="space-y-2.5">
+            <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
               <Tag className="h-3.5 w-3.5" />
               分类
             </div>
@@ -118,23 +128,24 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectCategory(item.id)}
                     className={cn(
-                      'category-chip flex h-12 items-center gap-3 rounded-xl px-3 text-left text-sm transition-colors',
-                      active && 'category-chip-active'
+                      'flex h-11 items-center gap-3 rounded-xl border border-border/60 bg-background/56 px-3 text-left text-sm text-foreground/82 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_34%,transparent)] transition-colors hover:bg-muted/55',
+                      active && 'border-primary/42 bg-primary/10 text-primary'
                     )}
                   >
-                    <span className="min-w-0 flex-1 truncate font-medium">{item.label}</span>
-                    <span className="rounded-md bg-foreground/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-foreground/70">
+                    <span className="min-w-0 flex-1 truncate font-semibold">{item.label}</span>
+                    <span className="rounded-md bg-foreground/8 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-foreground/62">
                       {item.count}
                     </span>
-                    {active && <Check className="h-4 w-4 text-primary" />}
+                    <Check className={cn('h-4 w-4 text-primary', active ? 'opacity-100' : 'opacity-0')} />
                   </button>
                 );
               })}
             </div>
           </section>
 
-          <section className="space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <section className="space-y-2.5">
+            <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
+              <ArrowUpDown className="h-3.5 w-3.5" />
               排序
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -147,8 +158,8 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectSort(option.value)}
                     className={cn(
-                      'category-chip flex h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors',
-                      active && 'category-chip-active'
+                      'flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/56 px-3 text-sm font-semibold text-foreground/78 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_34%,transparent)] transition-colors hover:bg-muted/55',
+                      active && 'border-primary/42 bg-primary/10 text-primary'
                     )}
                   >
                     {option.label}

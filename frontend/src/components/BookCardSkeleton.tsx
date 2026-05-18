@@ -27,25 +27,17 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
       className="flex w-full items-center justify-start"
     >
       <div
-        className="paper-panel paper-stack shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-lg border border-border/55 bg-card/42 ring-1 ring-white/45  dark:ring-white/10"
+        className="shelf-book-card relative flex cursor-default flex-col overflow-hidden rounded-2xl border border-border/55 bg-card/70 shadow-[0_12px_32px_-28px_var(--paper-shadow)] ring-1 ring-white/45 dark:ring-white/10"
         style={{ width: isMobile ? '100%' : cardWidth }}
       >
-          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)]" />
           {/* Cover skeleton */}
           <div
-            className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_10%,transparent),transparent_36%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_72%,var(--background))_0%,color-mix(in_srgb,var(--card)_92%,var(--muted))_100%)] dark:bg-[radial-gradient(circle_at_50%_14%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--muted)_52%,var(--background))_0%,color-mix(in_srgb,var(--card)_86%,var(--muted))_100%)]"
+            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_32%,var(--card))_0%,var(--card)_100%)]"
             style={{ height: coverHeight }}
           >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent_24%,transparent_74%,rgba(66,43,25,0.08))]" />
-            <div className="pointer-events-none absolute inset-x-8 bottom-5 h-7 rounded-full bg-foreground/10 blur-xl" />
-            {isMobile && (
-              <>
-                <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-border/55" />
-              </>
-            )}
-            <div className="relative z-10 flex h-full items-center justify-center p-2 sm:p-3">
+            <div className="relative z-10 flex h-full items-start justify-center px-4 pt-5">
               <div
-                className="relative shrink-0 -translate-y-2"
+                className="relative shrink-0"
                 style={{
                   height: SPELL_BOOK_HEIGHT,
                   width: SPELL_BOOK_WIDTH,
@@ -80,26 +72,31 @@ export function BookCardSkeleton({ isMobile = false }: BookCardSkeletonProps) {
                 </div>
               </div>
             </div>
+            {!isMobile && (
+              <div className="absolute inset-x-3 bottom-3 z-20 rounded-full border border-border/55 bg-card/88 px-3 py-2 shadow-[0_10px_26px_-22px_var(--paper-shadow)] backdrop-blur-sm">
+                <div className="flex items-center gap-2.5">
+                  <Skeleton className="h-1 w-full rounded-full" />
+                  <Skeleton className="h-3 w-8 shrink-0 rounded-md" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Info skeleton */}
           <div
-            className="flex flex-col border-t border-border/35 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_76%,transparent)_0%,color-mix(in_srgb,var(--muted)_18%,var(--card)_64%)_100%)] px-4 pb-3.5 pt-3.5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_28%,transparent)]  sm:px-4 sm:pb-4 sm:pt-4"
+            className="flex flex-col bg-card/92 px-3.5 pb-4 pt-3.5 sm:px-4 sm:pb-4 sm:pt-3.5"
           >
             <div className="space-y-2">
               {/* Title skeleton */}
               <div className="relative pr-6 sm:pr-5">
                 <Skeleton className="min-h-[42px] min-w-0 rounded-md sm:min-h-[42px]" />
-                <Skeleton className="absolute right-[-4px] top-[-4px] h-8 w-8 rounded-[0.95rem] sm:h-[30px] sm:w-[30px] sm:rounded-[0.9rem]" />
+                <Skeleton className="absolute right-[-8px] top-[-7px] h-8 w-8 rounded-full" />
               </div>
 
               {/* Author skeleton */}
-              <div className="flex min-w-0 items-center justify-end sm:justify-between gap-1.5">
-                <div className="paper-chip hidden sm:flex min-w-0 items-center gap-1.5 rounded-full px-2 py-0.5">
-                  <Skeleton className="h-3.5 w-3.5 shrink-0 rounded-full" />
-                  <Skeleton className="h-3.5 w-24 rounded-md" />
-                </div>
-                <Skeleton className="w-full sm:w-[64px] h-8 shrink-0 rounded-lg sm:h-7" />
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <Skeleton className="h-3.5 w-24 rounded-md" />
+                <Skeleton className="h-5 w-14 shrink-0 rounded-full" />
               </div>
             </div>
           </div>

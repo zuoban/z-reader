@@ -1,172 +1,418 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { AppScreen } from '@/components/AppShell';
+import { AppScreen, BrandMark } from '@/components/AppShell';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { MoveRight, Library, RefreshCw, Headphones, LayoutGrid, ArrowDown } from 'lucide-react';
 
+// ─── Decorative Ornament Component ───
+function Ornament({ className }: { className?: string }) {
+  return (
+    <svg className={cn('opacity-20', className)} width="120" height="8" viewBox="0 0 120 8" fill="none">
+      <line x1="0" y1="4" x2="45" y2="4" stroke="currentColor" strokeWidth="0.5" />
+      <circle cx="60" cy="4" r="2" fill="currentColor" />
+      <line x1="75" y1="4" x2="120" y2="4" stroke="currentColor" strokeWidth="0.5" />
+    </svg>
+  );
+}
+
+// ─── GitHub Icon ───
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    >
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path>
+    </svg>
+  );
+}
+
+// ─── Section Number Badge ───
+function SectionNumber({ number, label }: { number: string; label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <span className="font-mono text-[10px] font-bold tracking-[0.25em] text-primary/70 uppercase">
+        {number}
+      </span>
+      <span className="h-px w-12 bg-primary/20" />
+      <span className="font-mono text-[10px] font-bold tracking-[0.25em] text-muted-foreground/50 uppercase">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ─── Simulated Device Mockups ───
+function DesktopMock({ active }: { active: boolean }) {
+  return (
+    <div className={cn(
+      "w-full h-full transition-all duration-700",
+      active ? "opacity-100" : "opacity-0"
+    )}>
+      <div className="relative w-full h-full bg-[#1a1a1e] rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+        {/* Browser Chrome */}
+        <div className="h-8 bg-[#2a2a2e] flex items-center px-3 gap-2 border-b border-white/5">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+          </div>
+          <div className="flex-1 mx-4">
+            <div className="h-5 bg-[#1a1a1e] rounded-md flex items-center px-3">
+              <span className="text-[9px] text-white/30 font-mono">localhost:3000/read/book-id</span>
+            </div>
+          </div>
+        </div>
+        {/* Reader Content */}
+        <div className="flex h-[calc(100%-2rem)]">
+          {/* Sidebar */}
+          <div className="w-48 bg-[#222226] border-r border-white/5 p-4 hidden sm:block">
+            <div className="h-3 w-20 bg-white/10 rounded mb-4" />
+            <div className="space-y-2">
+              <div className="h-2 w-full bg-white/5 rounded" />
+              <div className="h-2 w-4/5 bg-white/5 rounded" />
+              <div className="h-2 w-full bg-white/5 rounded" />
+              <div className="h-2 w-3/4 bg-white/5 rounded" />
+            </div>
+          </div>
+          {/* Main Content */}
+          <div className="flex-1 bg-[#f5f4ed] p-8 sm:p-12">
+            <div className="max-w-sm mx-auto space-y-4">
+              <div className="h-3 w-24 bg-primary/20 rounded" />
+              <div className="h-5 w-3/4 bg-foreground/80 rounded" />
+              <div className="pt-4 space-y-2">
+                <div className="h-2 w-full bg-foreground/20 rounded" />
+                <div className="h-2 w-full bg-foreground/20 rounded" />
+                <div className="h-2 w-5/6 bg-foreground/20 rounded" />
+                <div className="h-2 w-full bg-foreground/20 rounded" />
+                <div className="h-2 w-4/5 bg-foreground/20 rounded" />
+              </div>
+              <div className="pt-4 space-y-2">
+                <div className="h-2 w-full bg-foreground/20 rounded" />
+                <div className="h-2 w-3/4 bg-foreground/20 rounded" />
+                <div className="h-2 w-full bg-foreground/20 rounded" />
+                <div className="h-2 w-5/6 bg-foreground/20 rounded" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhoneMock({ active }: { active: boolean }) {
+  return (
+    <div className={cn(
+      "w-full h-full transition-all duration-700",
+      active ? "opacity-100" : "opacity-0"
+    )}>
+      <div className="relative w-full h-full bg-[#1a1a1e] rounded-[2rem] overflow-hidden border-[3px] border-white/20 shadow-2xl">
+        {/* Notch */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-[#1a1a1e] rounded-b-xl z-10" />
+        {/* Status Bar */}
+        <div className="h-10 bg-[#222226] flex items-center justify-between px-5 pt-2">
+          <div className="h-2 w-10 bg-white/20 rounded" />
+          <div className="flex gap-1">
+            <div className="h-2 w-4 bg-white/20 rounded" />
+            <div className="h-2 w-5 bg-white/20 rounded" />
+          </div>
+        </div>
+        {/* Mobile Reader */}
+        <div className="bg-[#f5f4ed] h-[calc(100%-2.5rem)] p-5">
+          <div className="space-y-3">
+            <div className="h-2 w-16 bg-primary/20 rounded" />
+            <div className="h-4 w-2/3 bg-foreground/80 rounded" />
+            <div className="pt-3 space-y-1.5">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className={cn(
+                  "h-1.5 bg-foreground/20 rounded",
+                  i === 5 ? "w-3/4" : "w-full"
+                )} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShelfMock({ active }: { active: boolean }) {
+  return (
+    <div className={cn(
+      "w-full h-full transition-all duration-700",
+      active ? "opacity-100" : "opacity-0"
+    )}>
+      <div className="relative w-full h-full bg-[#f5f4ed] rounded-xl overflow-hidden border border-border/50 shadow-2xl">
+        {/* Header */}
+        <div className="h-14 bg-card/80 backdrop-blur border-b border-border/30 flex items-center px-5 justify-between">
+          <div className="h-3 w-24 bg-primary/30 rounded" />
+          <div className="flex gap-2">
+            <div className="h-7 w-7 rounded-full bg-muted/50" />
+            <div className="h-7 w-7 rounded-full bg-muted/50" />
+          </div>
+        </div>
+        {/* Book Grid */}
+        <div className="p-5 grid grid-cols-4 gap-3">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="aspect-[2/3] rounded-lg overflow-hidden bg-muted/30 border border-border/20">
+              <div className="w-full h-full flex items-center justify-center">
+                <div className={cn(
+                  "w-3/4 h-3/4 rounded",
+                  i % 4 === 0 && "bg-primary/20",
+                  i % 4 === 1 && "bg-accent/30",
+                  i % 4 === 2 && "bg-muted/50",
+                  i % 4 === 3 && "bg-primary/10"
+                )} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Scroll Reveal Hook ───
+function useScrollReveal(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold }
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [threshold]);
+
+  return [ref, isVisible] as const;
+}
+
+// ─── Gallery Data ───
 const GALLERY_ITEMS = [
   {
-    title: '极致排版',
-    line: '基于 Foliate.js 的强大渲染能力',
-    placeholder: '[ 桌面端阅读界面预览 ]'
+    title: '桌面端阅读',
+    line: 'Foliate.js 驱动的极致排版体验',
+    mockup: 'desktop' as const
   },
   {
-    title: '移动适配',
+    title: '移动端适配',
     line: '单手操作，随时随地开启阅读',
-    placeholder: '[ 移动端阅读界面预览 ]'
+    mockup: 'phone' as const
   },
   {
     title: '图书管理',
     line: '优雅的封面瀑布流与分类归档',
-    placeholder: '[ 书架界面预览 ]'
+    mockup: 'shelf' as const
   }
 ];
 
+// ─── Main Page Component ───
 export default function Home() {
   const { isLoading, isAuthenticated } = useAuth({ redirectOnExpire: false });
-  const [mounted, setMounted] = useState(false);
-
-  // Sync labels with prototype exactly
-  const primaryHref = !isLoading && isAuthenticated ? '/shelf' : '/shelf'; // Prototype shows both
-  const primaryLabel = !isLoading && isAuthenticated ? '进入书架' : '进入书架';
-
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [isSwitching, setIsSwitching] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const activateGallery = (next: number) => {
+  const [heroRef, heroVisible] = useScrollReveal(0.1);
+  const [galleryRef, galleryVisible] = useScrollReveal();
+  const [featuresRef, featuresVisible] = useScrollReveal();
+  const [principlesRef, principlesVisible] = useScrollReveal();
+  const [ctaRef, ctaVisible] = useScrollReveal();
+  const [faqRef, faqVisible] = useScrollReveal();
+  const [footerRef, footerVisible] = useScrollReveal();
+
+  const activateGallery = useCallback((next: number) => {
     if (next === galleryIndex || isSwitching) return;
     setIsSwitching(true);
     setTimeout(() => {
       setGalleryIndex(next);
       setIsSwitching(false);
     }, 460);
-  };
+  }, [galleryIndex, isSwitching]);
 
   useEffect(() => {
-    setMounted(true);
-    // Force light theme
-    document.documentElement.classList.remove('dark');
-    
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('dark');
+    }
+
     timerRef.current = setInterval(() => {
       activateGallery((galleryIndex + 1) % GALLERY_ITEMS.length);
     }, 5000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [galleryIndex, isSwitching]);
+  }, [galleryIndex, isSwitching, activateGallery]);
 
   return (
-    <AppScreen className="overflow-x-hidden font-serif bg-[#f5f4ed]">
-      <style jsx global>{`
-        @font-face {
-          font-family: "TsangerJinKai02";
-          src: url("https://cdn.jsdelivr.net/gh/AlfredoSequeworthy/TsangerJinKai02@main/TsangerJinKai02-W04.woff2") format("woff2");
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        @font-face {
-          font-family: "TsangerJinKai02";
-          src: url("https://cdn.jsdelivr.net/gh/AlfredoSequeworthy/TsangerJinKai02@main/TsangerJinKai02-W05.woff2") format("woff2");
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
+    <AppScreen ambient="login" className="overflow-x-hidden selection:bg-primary/10">
+      <main className="relative mx-auto max-w-[1200px] px-6 md:px-12 lg:px-16">
 
-        .font-serif {
-          font-family: "TsangerJinKai02", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
-        }
-
-        .kami-gradient {
-          background: linear-gradient(135deg, rgba(27, 54, 93, 0.03) 0%, rgba(27, 54, 93, 0) 100%);
-        }
-      `}</style>
-
-      <main className="mx-auto max-w-[1120px] px-6 py-12 md:px-16 md:py-20 lg:py-24 selection:bg-[#1B365D]/10 bg-[#f5f4ed] text-[#141413]">
-        
-        {/* Navigation / Header */}
-        <header className="mb-20 border-b border-[#e8e6dc] pb-12">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4 text-[11px] font-medium tracking-[0.2em] text-[#6b6a64] uppercase">
-              <span>Edition 2026 / Personal Library</span>
-              <span className="h-px w-8 bg-[#d8d5c8]" />
-              <Link href="https://github.com/zuoban/z-reader/releases" className="text-[#1B365D] hover:opacity-70 transition-opacity">v1.0.0</Link>
+        {/* ═══════════════════════════════════════════
+            HERO SECTION — Typographic Drama
+            ═══════════════════════════════════════════ */}
+        <section
+          ref={heroRef}
+          className={cn(
+            "relative min-h-[85vh] flex flex-col justify-center pt-20 pb-32 transition-all duration-1000",
+            heroVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          )}
+        >
+          {/* Top Meta Bar */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between py-6 text-[11px] font-semibold tracking-[0.2em] text-muted-foreground/60 uppercase">
+            <div className="flex items-center gap-4">
+              <span>Edition 2026</span>
+              <span className="h-px w-6 bg-border" />
+              <span>Personal Library</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="https://github.com/zuoban/z-reader" target="_blank" className="text-[#6b6a64] hover:text-[#141413] transition-colors">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path></svg>
+            <div className="flex items-center gap-4">
+              <Link href="https://github.com/zuoban/z-reader/releases" className="text-primary hover:opacity-70 transition-opacity">
+                v1.0.0
+              </Link>
+              <Link href="https://github.com/zuoban/z-reader" target="_blank" className="text-muted-foreground hover:text-foreground transition-colors">
+                <GithubIcon className="h-4 w-4" />
               </Link>
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div className="flex items-center gap-6">
-              <Image src="/icons/icon.svg" alt="" width={64} height={64} />
-              <h1 className="text-7xl md:text-8xl font-medium tracking-tight leading-none text-[#141413]">
-                Z Reader
-              </h1>
-            </div>
-            <div className="flex gap-3">
-              <Link 
-                href="/shelf" 
-                className="flex h-12 min-w-[158px] items-center justify-center rounded-full bg-[#1B365D] px-8 text-[15px] font-medium text-[#faf9f5] hover:opacity-90 transition-all shadow-sm"
+          {/* Brand Mark */}
+          <div className="mb-12">
+            <BrandMark size="lg" priority />
+          </div>
+
+          {/* Hero Statement */}
+          <div className="relative">
+            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold text-foreground leading-[1.15] tracking-tight max-w-4xl">
+              安静地，
+              <br />
+              放下一本书。
+            </h1>
+            <Ornament className="mt-8 mb-6" />
+            <p className="font-heading text-lg md:text-xl leading-relaxed text-muted-foreground/80 max-w-2xl">
+              一个面向个人书架的阅读空间。把不同格式的电子书放进同一个干净的平面。
+            </p>
+          </div>
+
+          {/* Tech Pills */}
+          <div className="mt-10 flex flex-wrap gap-3">
+            {['EPUB', 'PDF', 'MOBI', 'AZW3'].map((fmt) => (
+              <span
+                key={fmt}
+                className="px-4 py-2 rounded-full border border-border/40 bg-card/50 text-[11px] font-semibold tracking-widest text-muted-foreground/70 uppercase"
               >
-                开始阅读
-              </Link>
+                {fmt}
+              </span>
+            ))}
+            <span className="h-6 w-px bg-border/40 self-center mx-1" />
+            {['Foliate.js', 'Next.js', 'Go'].map((tech) => (
+              <span
+                key={tech}
+                className="px-4 py-2 rounded-full border border-border/40 bg-card/50 text-[11px] font-semibold tracking-widest text-muted-foreground/70"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="mt-14 flex items-center gap-6">
+            <Button
+              nativeButton={false}
+              className="h-12 px-8 rounded-full bg-primary text-[14px] font-semibold tracking-wide text-primary-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary/92 active:scale-95"
+              render={(props) => (
+                <Link href={!isLoading && isAuthenticated ? "/shelf" : "/login"} {...props}>
+                  开始阅读
+                  <MoveRight className="ml-2 h-4 w-4" />
+                </Link>
+              )}
+            />
+          </div>
+
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center pb-8">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground/40">
+              <ArrowDown className="h-4 w-4 animate-bounce" />
             </div>
           </div>
+        </section>
 
-          <p className="mt-10 max-w-[820px] text-xl md:text-2xl leading-relaxed text-[#504e49] font-normal">
-            安静地，放下一本书。一个面向个人书架的阅读空间。把不同格式的电子书放进同一个干净的平面。
-          </p>
+        {/* ═══════════════════════════════════════════
+            GALLERY SECTION — Device Mockups
+            ═══════════════════════════════════════════ */}
+        <section
+          ref={galleryRef}
+          className={cn(
+            "py-24 md:py-32 transition-all duration-1000 delay-200",
+            galleryVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
+          <SectionNumber number="00" label="阅读体验" />
 
-          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-2 text-xs font-medium tracking-wider text-[#6b6a64] uppercase">
-            <span className="flex items-center gap-2">支持 <b className="text-[#141413]/80">EPUB / PDF / MOBI / AZW3</b></span>
-            <span className="flex items-center gap-2">驱动 <b className="text-[#141413]/80">Foliate.js / Next.js / Go</b></span>
+          <div className="mb-12">
+            <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground tracking-tight">
+              纯净、专注、跨设备。
+            </h2>
+            <p className="mt-4 max-w-xl text-base text-muted-foreground leading-relaxed">
+              无论在桌面端还是移动端，都提供最接近纸质书的纯净排版，自动同步每一页进度。
+            </p>
           </div>
-        </header>
 
-        {/* 00 · Gallery */}
-        <section className="mb-24">
-          <div className="mb-10">
-            <p className="text-xs font-medium tracking-widest text-[#1B365D] uppercase mb-2">00 · 阅读体验</p>
-            <h2 className="text-4xl font-medium text-[#141413] tracking-tight">纯净、专注、跨设备。</h2>
-            <p className="mt-4 max-w-2xl text-lg text-[#504e49] leading-relaxed">无论在桌面端还是移动端，Z Reader 都致力于提供最接近纸质书的纯净排版，并自动同步你的每一页进度。</p>
-          </div>
+          {/* Mockup Display */}
+          <div className="relative">
+            {/* Glow Effect */}
+            <div className="absolute -inset-4 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-[2rem] blur-xl opacity-60" />
 
-          <div className="relative group">
-            <div className="aspect-[16/10] w-full overflow-hidden rounded-lg border border-[#e8e6dc] bg-[#141318] flex items-center justify-center shadow-xl relative">
-              
+            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border/30 bg-[#141318] shadow-2xl">
+              <div className="absolute inset-0 p-4 sm:p-6">
+                <DesktopMock active={galleryIndex === 0 && !isSwitching} />
+                <PhoneMock active={galleryIndex === 1 && !isSwitching} />
+                <ShelfMock active={galleryIndex === 2 && !isSwitching} />
+              </div>
+            </div>
+
+            {/* Gallery Controls */}
+            <div className="mt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className={cn(
-                "transition-all duration-700 ease-in-out transform flex flex-col items-center gap-6 z-10 text-center px-12",
-                isSwitching ? "opacity-0 scale-95 blur-md" : "opacity-100 scale-100 blur-0"
+                "transition-all duration-500",
+                isSwitching ? "opacity-0 translate-x-2" : "opacity-100 translate-x-0"
               )}>
-                <span className="font-mono text-sm text-[#6b6a64]">{GALLERY_ITEMS[galleryIndex].placeholder}</span>
+                <h3 className="font-heading text-xl font-semibold text-foreground">
+                  {GALLERY_ITEMS[galleryIndex].title}
+                </h3>
+                <p className="text-sm italic text-muted-foreground/70 mt-0.5">
+                  {GALLERY_ITEMS[galleryIndex].line}
+                </p>
               </div>
-            </div>
-            
-            <div className="mt-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className={cn("transition-all duration-500", isSwitching ? "opacity-0 translate-x-2" : "opacity-100 translate-x-0")}>
-                <h3 className="text-2xl font-medium text-[#141413]">{GALLERY_ITEMS[galleryIndex].title}</h3>
-                <p className="text-base italic text-[#504e49] mt-1">{GALLERY_ITEMS[galleryIndex].line}</p>
-              </div>
+
               <div className="flex gap-2">
-                {GALLERY_ITEMS.map((_, i) => (
+                {GALLERY_ITEMS.map((item, i) => (
                   <button
                     key={i}
                     onClick={() => activateGallery(i)}
                     className={cn(
-                      "h-10 px-5 rounded-full text-xs font-medium transition-all border",
-                      galleryIndex === i 
-                        ? "bg-[#1B365D]/10 border-[#1B365D]/20 text-[#1B365D]" 
-                        : "bg-transparent border-[#e8e6dc] text-[#6b6a64] hover:border-[#d8d5c8]"
+                      "px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all border",
+                      galleryIndex === i
+                        ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-transparent border-border/40 text-muted-foreground/60 hover:border-border hover:bg-muted/20"
                     )}
                   >
-                    {GALLERY_ITEMS[i].title}
+                    {item.title}
                   </button>
                 ))}
               </div>
@@ -174,116 +420,271 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 01 · 核心功能 */}
-        <section className="mb-24">
-          <div className="mb-12 pb-4 border-b border-[#e8e6dc]">
-            <p className="text-xs font-medium tracking-widest text-[#1B365D] uppercase mb-2">01 · 核心功能</p>
-            <h2 className="text-4xl font-medium text-[#141413] tracking-tight">为深度阅读者而生。</h2>
-          </div>
+        {/* ═══════════════════════════════════════════
+            FEATURES SECTION — Editorial Spread
+            ═══════════════════════════════════════════ */}
+        <section
+          ref={featuresRef}
+          className={cn(
+            "py-24 md:py-32 transition-all duration-1000 delay-200",
+            featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
+          <SectionNumber number="01" label="核心功能" />
 
-          <div className="grid md:grid-cols-2 gap-x-16 gap-y-12">
+          <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-16">
+            为深度阅读者而生。
+          </h2>
+
+          {/* Asymmetric Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
             {[
-              { name: '全格式支持', small: 'EPUB, MOBI, AZW3, PDF', what: '统一管理你的所有电子藏书。导入即自动提取元数据与封面，建立整齐的个人图书馆。' },
-              { name: '进度云同步', small: '多端续读', what: '阅读状态实时保存至后端数据库。无论从哪台设备打开，都能立即回到上次停下的行间。' },
-              { name: '语音伴读', small: 'TTS 技术', what: '支持配置第三方 TTS 服务。当你需要闭上眼睛或正在通勤时，让书籍“读”给你听。' },
-              { name: '精细分类', small: '标签与排序', what: '灵活的分类管理系统。支持按作者、系列或自定义标签筛选，让你的书架井然有序。' }
+              {
+                icon: Library,
+                name: '全格式支持',
+                small: 'EPUB · MOBI · AZW3 · PDF',
+                what: '统一管理你的所有电子藏书。导入即自动提取元数据与封面，建立整齐的个人图书馆。'
+              },
+              {
+                icon: RefreshCw,
+                name: '进度云同步',
+                small: '多端续读',
+                what: '阅读状态实时保存至后端数据库。无论从哪台设备打开，都能立即回到上次停下的行间。'
+              },
+              {
+                icon: Headphones,
+                name: '语音伴读',
+                small: 'TTS 技术',
+                what: '支持配置第三方 TTS 服务。当你需要闭上眼睛或正在通勤时，让书籍"读"给你听。'
+              },
+              {
+                icon: LayoutGrid,
+                name: '精细分类',
+                small: '标签与排序',
+                what: '灵活的分类管理系统。支持按作者、系列或自定义标签筛选，让你的书架井然有序。'
+              }
             ].map((feature, i) => (
-              <div key={i} className="group">
-                <div className="flex items-baseline gap-4 mb-3">
-                  <h4 className="text-2xl font-medium text-[#141413] group-hover:text-[#1B365D] transition-colors">{feature.name}</h4>
-                  <span className="text-xs italic text-[#504e49]/60">{feature.small}</span>
+              <div
+                key={i}
+                className={cn(
+                  "group transition-all duration-700",
+                  featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                )}
+                style={{ transitionDelay: `${i * 100 + 300}ms` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/30 text-primary/60 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <h4 className="font-heading text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {feature.name}
+                    </h4>
+                    <span className="text-[10px] font-bold tracking-widest text-muted-foreground/40 uppercase mt-0.5">
+                      {feature.small}
+                    </span>
+                    <p className="text-[15px] leading-relaxed text-muted-foreground/75 mt-2">
+                      {feature.what}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[16px] leading-relaxed text-[#504e49]/80">{feature.what}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* 02 · 设计原则 */}
-        <section className="mb-24">
-          <div className="mb-10">
-            <p className="text-xs font-medium tracking-widest text-[#1B365D] uppercase mb-2">02 · 设计原则</p>
-            <h2 className="text-4xl font-medium text-[#141413] tracking-tight">少即是多，慢即是快。</h2>
-          </div>
+        {/* ═══════════════════════════════════════════
+            PRINCIPLES SECTION — Marginalia Style
+            ═══════════════════════════════════════════ */}
+        <section
+          ref={principlesRef}
+          className={cn(
+            "py-24 md:py-32 transition-all duration-1000 delay-200",
+            principlesVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
+          <SectionNumber number="02" label="设计原则" />
 
-          <div className="grid sm:grid-cols-2 gap-px bg-[#e8e6dc]/40 border border-[#e8e6dc]/40 rounded-lg overflow-hidden shadow-sm">
+          <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-16">
+            少即是多，慢即是快。
+          </h2>
+
+          {/* Principles as Marginalia */}
+          <div className="space-y-0">
             {[
               { n: '01', title: '隐私至上', body: '数据完全掌握在自己手中，支持私有化部署。' },
               { n: '02', title: '零干扰', body: '没有广告，没有社交推送，只有你和书。' },
               { n: '03', title: '轻量高效', body: '采用 Go 编写的后端与轻量级阅读引擎，响应迅速。' },
               { n: '04', title: '开源精神', body: '透明的代码，活跃的社区，欢迎任何形式的贡献。' }
             ].map((principle, i) => (
-              <div key={i} className="bg-[#f5f4ed] p-10 flex gap-6 items-start hover:bg-[#faf9f5] transition-colors">
-                <span className="text-2xl font-medium text-[#1B365D]/40 leading-none">{principle.n}</span>
-                <div>
-                  <h5 className="text-lg font-medium text-[#141413] mb-2">{principle.title}</h5>
-                  <p className="text-[14px] text-[#504e49] leading-relaxed">{principle.body}</p>
+              <div
+                key={i}
+                className={cn(
+                  "group flex gap-6 md:gap-10 py-8 border-t border-border/30 transition-all duration-700",
+                  principlesVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                )}
+                style={{ transitionDelay: `${i * 100 + 300}ms` }}
+              >
+                <span className="font-mono text-sm font-bold text-primary/30 leading-none pt-1 shrink-0">
+                  {principle.n}
+                </span>
+                <div className="flex-1">
+                  <h5 className="font-heading text-lg font-semibold text-foreground mb-1.5 group-hover:text-primary transition-colors">
+                    {principle.title}
+                  </h5>
+                  <p className="text-[14px] text-muted-foreground/70 leading-relaxed max-w-lg">
+                    {principle.body}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* 03 · 获取方式 */}
-        <section className="mb-24 py-24 kami-gradient border-y border-[#e8e6dc] text-center rounded-2xl">
-          <div className="max-w-2xl mx-auto px-6">
-            <span className="text-[90px] md:text-[120px] font-medium leading-none text-[#141413]/90 tracking-tighter">$0</span>
-            <p className="mt-10 text-xl text-[#504e49]/90 leading-relaxed">
-              相比于商业阅读器的订阅费用，Z Reader 提供完全免费的自部署方案。<br className="hidden md:block" />
-              <b className="text-[#1B365D] font-medium">一次部署，终身拥有。</b>
-            </p>
-            <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-5">
-              <Link href="https://github.com/zuoban/z-reader" className="h-16 min-w-[260px] flex items-center justify-center rounded-full bg-[#1B365D] px-10 text-base font-medium text-[#faf9f5] hover:opacity-90 transition-all shadow-lg hover:-translate-y-0.5">
-                查看 GitHub 源码
-              </Link>
+        {/* ═══════════════════════════════════════════
+            CTA SECTION — Invitation Card
+            ═══════════════════════════════════════════ */}
+        <section
+          ref={ctaRef}
+          className={cn(
+            "py-24 md:py-32 transition-all duration-1000 delay-200",
+            ctaVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
+          <div className="relative rounded-2xl border border-border/40 bg-card/40 overflow-hidden">
+            {/* Decorative Corner */}
+            <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04]">
+              <svg width="128" height="128" viewBox="0 0 128 128" fill="currentColor">
+                <path d="M0 0 L128 0 L128 8 L8 8 L8 128 L0 128 Z" />
+              </svg>
             </div>
-            <p className="mt-6 text-sm text-[#6b6a64]/60 italic tracking-wide">遵循 MIT 开源协议。</p>
-            <p className="mt-2 text-[13.5px] text-[#504e49]">你需要自行准备服务器环境或使用 Docker 运行。</p>
+
+            <div className="relative px-8 py-16 md:px-16 md:py-20 text-center">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-border/50 bg-background/60 mb-10">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="text-[10px] font-bold tracking-[0.3em] text-primary uppercase">
+                  Free & Open Source
+                </span>
+              </div>
+
+              {/* Statement */}
+              <h3 className="font-heading text-3xl md:text-5xl font-semibold text-foreground tracking-tight max-w-2xl mx-auto leading-tight">
+                一次部署，终身拥有。
+              </h3>
+              <p className="mt-6 font-heading text-lg text-muted-foreground/60 max-w-xl mx-auto leading-relaxed">
+                相比于商业阅读器的订阅费用，Z Reader 提供完全免费的自部署方案。
+              </p>
+
+              {/* CTA Button */}
+              <div className="mt-12">
+                <Button
+                  nativeButton={false}
+                  className="h-14 px-10 rounded-full bg-primary text-[14px] font-semibold tracking-wide text-primary-foreground shadow-xl transition-all hover:-translate-y-0.5 hover:bg-primary/92 active:scale-95 hover:shadow-2xl"
+                  render={(props) => (
+                    <Link href="https://github.com/zuoban/z-reader" {...props}>
+                      获取源代码
+                      <GithubIcon className="ml-2 h-4 w-4 opacity-70" />
+                    </Link>
+                  )}
+                />
+              </div>
+
+              {/* Footer Meta */}
+              <div className="mt-12 flex items-center justify-center gap-4 text-[10px] text-muted-foreground/30 font-bold tracking-[0.3em] uppercase">
+                <span>MIT License</span>
+                <span className="h-1 w-1 rounded-full bg-border/50" />
+                <span>GitHub</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* 04 · 常见问题 */}
-        <section id="faq" className="mb-24 scroll-mt-12">
-          <div className="mb-10 pb-4 border-b border-[#e8e6dc]">
-            <p className="text-xs font-medium tracking-widest text-[#1B365D] uppercase mb-2">04 · 常见问题</p>
-            <h2 className="text-4xl font-medium text-[#141413] tracking-tight">解决你的疑惑。</h2>
-          </div>
+        {/* ═══════════════════════════════════════════
+            FAQ SECTION — Conversation Style
+            ═══════════════════════════════════════════ */}
+        <section
+          id="faq"
+          ref={faqRef}
+          className={cn(
+            "py-24 md:py-32 scroll-mt-12 transition-all duration-1000 delay-200",
+            faqVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
+          <SectionNumber number="03" label="常见问题" />
 
-          <div className="space-y-10">
+          <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-16">
+            解决你的疑惑。
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
             {[
-              { q: '如何部署 Z Reader？', a: '最简单的方法是使用 Docker。运行 docker run -d -p 80:80 -e APP_PASSWORD=... ghcr.io/zuoban/z-reader 即可启动。' },
-              { q: '支持哪些电子书格式？', a: '目前原生支持 EPUB, MOBI, AZW3 和 PDF。对于带 DRM 加密的图书，请先移除加密后再上传。' },
-              { q: '如何启用 TTS 语音朗读？', a: '你需要在配置文件或环境变量中填入你自己的 TTS 服务凭据（如微软 Azure 或 Google Cloud TTS）。具体步骤请参考文档。' }
+              {
+                q: '如何部署 Z Reader？',
+                a: '最简单的方法是使用 Docker。运行 docker run -d -p 80:80 -e APP_PASSWORD=... ghcr.io/zuoban/z-reader 即可启动。'
+              },
+              {
+                q: '支持哪些电子书格式？',
+                a: '目前原生支持 EPUB, MOBI, AZW3 和 PDF。对于带 DRM 加密的图书，请先移除加密后再上传。'
+              },
+              {
+                q: '如何启用 TTS 语音朗读？',
+                a: '你需要在配置文件或环境变量中填入你自己的 TTS 服务凭据（如微软 Azure 或 Google Cloud TTS）。具体步骤请参考文档。'
+              },
+              {
+                q: '数据存储在哪里？',
+                a: '所有图书、元数据和进度均存储在你的本地服务器或 Docker 卷中。Z Reader 承诺不收集任何个人阅读数据。'
+              }
             ].map((item, i) => (
-              <div key={i} className="max-w-3xl">
-                <h5 className="text-xl font-medium text-[#141413] mb-3 tracking-tight">{item.q}</h5>
-                <p className="text-[15px] text-[#504e49]/80 leading-relaxed">{item.a}</p>
+              <div
+                key={i}
+                className={cn(
+                  "group rounded-xl p-6 border border-border/30 bg-card/30 hover:border-primary/20 hover:bg-card/50 transition-all duration-700",
+                  faqVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                )}
+                style={{ transitionDelay: `${i * 100 + 300}ms` }}
+              >
+                <h5 className="font-heading text-lg font-semibold text-foreground mb-2 tracking-tight group-hover:text-primary transition-colors">
+                  {item.q}
+                </h5>
+                <p className="text-[14px] text-muted-foreground/70 leading-relaxed">
+                  {item.a}
+                </p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="pt-16 border-t border-[#e8e6dc] flex flex-col md:flex-row justify-between items-start md:items-end gap-16 pb-12">
-          <div className="flex gap-6 items-start">
-            <Image src="/icons/icon.svg" alt="" width={56} height={56} />
-            <div>
-              <span className="text-4xl font-medium text-[#141413] block leading-tight tracking-tight">Z Reader</span>
-              <span className="text-base text-[#504e49] mt-1 block">面向个人书架的开源阅读器</span>
+        {/* ═══════════════════════════════════════════
+            FOOTER
+            ═══════════════════════════════════════════ */}
+        <footer
+          ref={footerRef}
+          className={cn(
+            "py-20 border-t border-border/30 transition-all duration-1000",
+            footerVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          )}
+        >
+          <div className="flex flex-col md:flex-row justify-between items-start gap-12">
+            {/* Brand */}
+            <div className="space-y-3">
+              <span className="text-lg font-bold tracking-[0.4em] text-foreground/80 block leading-none uppercase">
+                Z Reader
+              </span>
+              <span className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground/30 block uppercase">
+                Edition 2026 · Personal Library
+              </span>
             </div>
-          </div>
-          
-          <div className="text-left md:text-right">
-            <div className="flex gap-4 text-xs font-medium text-[#6b6a64]/80 mb-6 md:justify-end uppercase tracking-widest">
-              <Link href="https://github.com/zuoban/z-reader" className="hover:text-[#1B365D] transition-colors">GitHub</Link>
-              <span className="text-[#d8d5c8]">·</span>
-              <Link href="#faq" className="hover:text-[#1B365D] transition-colors">帮助</Link>
+
+            {/* Quote */}
+            <div className="text-left md:text-right flex-1">
+              <p className="font-heading text-2xl md:text-3xl text-muted-foreground/[0.06] italic leading-[1.2] max-w-2xl md:ml-auto select-none">
+                &ldquo;读书，是为了在喧嚣的世界中找到属于自己的安静角落。&rdquo;
+              </p>
             </div>
-            <p className="text-[15px] text-[#504e49] italic max-w-sm leading-relaxed">
-              读书，是为了在喧嚣的世界中找到属于自己的安静角落。
-            </p>
           </div>
         </footer>
+
       </main>
     </AppScreen>
   );

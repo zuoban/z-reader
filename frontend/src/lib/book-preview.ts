@@ -195,31 +195,37 @@ async function createStoredZip(entries: Array<{ path: string; blob: Blob }>): Pr
   );
 }
 
+interface ZipEntry {
+  filename: string;
+  directory: boolean;
+  getData: (writer: unknown) => Promise<string | Blob>;
+}
+
 /**
  * Detects if an EPUB has its files nested inside a subfolder, or if its
  * container file uses casing Foliate cannot look up, then rewrites the ZIP
  * paths Foliate needs to be rooted at the standard META-INF/container.xml.
  */
 async function normalizeEpubStructure(file: File): Promise<File> {
-  // @ts-ignore - zip.js is a vendored third-party library without type declarations
+  // @ts-expect-error - zip.js is a vendored third-party library without type declarations
   const zipModule = await import(/* webpackIgnore: true */ '/foliate/vendor/zip.js');
   const { configure, ZipReader, BlobReader, BlobWriter, TextWriter } = zipModule;
   configure({ useWebWorkers: false });
 
   const reader = new ZipReader(new BlobReader(file));
   try {
-    const entries = await reader.getEntries();
-    const containerEntry = entries.find((entry: any) => {
+    const entries = await reader.getEntries() as ZipEntry[];
+    const containerEntry = entries.find((entry) => {
       const normalizedPath = getNormalizedZipPath(entry.filename).toLowerCase();
       return normalizedPath === 'meta-inf/container.xml'
         || normalizedPath.endsWith('/meta-inf/container.xml');
     });
-    const opfEntry = entries.find((entry: any) => {
+    const opfEntry = entries.find((entry) => {
       const normalizedPath = getNormalizedZipPath(entry.filename).toLowerCase();
       return !entry.directory && normalizedPath.endsWith('.opf');
     });
     const containerOpfPath = containerEntry
-      ? (await containerEntry.getData(new TextWriter())).match(/full-path\s*=\s*["']([^"']+)["']/i)?.[1] ?? ''
+      ? (await containerEntry.getData(new TextWriter()) as string).match(/full-path\s*=\s*["']([^"']+)["']/i)?.[1] ?? ''
       : '';
 
     if (!containerEntry && !opfEntry && !containerOpfPath) {
@@ -244,7 +250,7 @@ async function normalizeEpubStructure(file: File): Promise<File> {
     const rewrittenEntries: Array<{ path: string; blob: Blob }> = [];
     const addedPaths = new Set<string>();
 
-    for (const entry of entries as any[]) {
+    for (const entry of entries) {
       if (entry.directory) {
         continue;
       }
@@ -257,7 +263,7 @@ async function normalizeEpubStructure(file: File): Promise<File> {
 
       const blob = normalizedFilename === 'META-INF/container.xml'
         ? new Blob([getContainerXml(canonicalOpfPath)], { type: 'application/xml' })
-        : await entry.getData(new BlobWriter());
+        : await entry.getData(new BlobWriter()) as Blob;
       rewrittenEntries.push({ path: normalizedFilename, blob });
     }
 

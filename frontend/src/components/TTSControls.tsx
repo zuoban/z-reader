@@ -797,7 +797,7 @@ export function TTSControls({
 
         <SheetContent
           side="bottom"
-          showCloseButton
+          showCloseButton={false}
           finalFocus={false}
           container={overlayContainer}
           data-reader-interactive="true"
@@ -815,22 +815,45 @@ export function TTSControls({
             {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
           </div>
 
-          <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
-            <div className="flex items-center gap-4">
-              <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                <Volume2 className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
-                  朗读控制
-                </SheetTitle>
-                <SheetDescription
-                  className="mt-1 text-xs font-medium"
-                  style={{ color: uiScheme.mutedText }}
+          <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                  style={{
+                    background: withOpacity(uiScheme.buttonBg, 0.2),
+                    borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                    color: uiScheme.link,
+                  }}
                 >
-                  调整最贴近当前阅读节奏的声音
-                </SheetDescription>
+                  <Volume2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                    朗读控制
+                  </SheetTitle>
+                  <SheetDescription
+                    className="mt-1 text-xs font-medium"
+                    style={{ color: uiScheme.mutedText }}
+                  >
+                    调整最贴近当前阅读节奏的声音
+                  </SheetDescription>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                style={{
+                  color: withOpacity(uiScheme.fg, 0.62),
+                  background: withOpacity(uiScheme.buttonBg, 0.18),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                }}
+                aria-label="关闭朗读控制"
+                title="关闭"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           </SheetHeader>
 

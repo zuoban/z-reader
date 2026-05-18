@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import {
-  floatingSheetActionButtonClass,
-  getFloatingSheetActionButtonStyle,
   withOpacity,
 } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
@@ -27,7 +25,7 @@ import {
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
-import { RotateCcw, Settings } from "lucide-react";
+import { RotateCcw, Settings, X } from "lucide-react";
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "editorial",
@@ -330,7 +328,7 @@ export function ThemeSettings({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        showCloseButton
+        showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
         className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
@@ -342,66 +340,88 @@ export function ThemeSettings({
           boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
         }}
       >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={handleResetTheme}
-          disabled={isDefaultTheme}
-          title="重置阅读偏好"
-          aria-label="重置阅读偏好"
-          className={cn(
-            floatingSheetActionButtonClass,
-            isResetFeedbackVisible && "scale-[1.08]",
-          )}
-          style={{
-            ...getFloatingSheetActionButtonStyle({
-              uiScheme,
-              enabled: !isDefaultTheme,
-              side: "right",
-              tone: "neutral",
-            }),
-            top: "max(0.75rem, env(safe-area-inset-top, 0px))",
-            boxShadow: isResetFeedbackVisible
-              ? `0 0 0 4px ${withOpacity(uiScheme.link, 0.12)}, 0 10px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.28)}`
-              : undefined,
-          }}
-        >
-          <RotateCcw
-            className="h-4 w-4 transition-transform duration-500 ease-out"
-            style={{
-              transform: `rotate(${resetFeedbackCount * 360}deg)`,
-            }}
-          />
-        </Button>
-
-        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-24 sm:px-7 sm:pt-8">
-          <div className="flex items-center gap-4">
-            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-              <Settings className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
-                阅读偏好
-              </SheetTitle>
-              <SheetDescription
-                className="mt-1 text-xs font-medium"
-                style={{ color: uiScheme.mutedText }}
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                style={{
+                  background: withOpacity(uiScheme.buttonBg, 0.2),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                  color: uiScheme.link,
+                }}
               >
-                营造最舒适的数字阅读环境
-              </SheetDescription>
+                <Settings className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                  阅读偏好
+                </SheetTitle>
+                <SheetDescription
+                  className="mt-1 text-xs font-medium"
+                  style={{ color: uiScheme.mutedText }}
+                >
+                  营造最舒适的数字阅读环境
+                </SheetDescription>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleResetTheme}
+                disabled={isDefaultTheme}
+                title="重置阅读偏好"
+                aria-label="重置阅读偏好"
+                className={cn(
+                  "h-8 w-8 rounded-xl border transition-[transform,box-shadow,background-color,border-color,color] hover:scale-[1.02] disabled:opacity-45",
+                  isResetFeedbackVisible && "scale-[1.08]",
+                )}
+                style={{
+                  color: isDefaultTheme
+                    ? withOpacity(uiScheme.mutedText, 0.58)
+                    : withOpacity(uiScheme.fg, 0.68),
+                  background: withOpacity(uiScheme.buttonBg, isDefaultTheme ? 0.08 : 0.18),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                  boxShadow: isResetFeedbackVisible
+                    ? `0 0 0 4px ${withOpacity(uiScheme.link, 0.1)}`
+                    : "none",
+                }}
+              >
+                <RotateCcw
+                  className="h-3.5 w-3.5 transition-transform duration-500 ease-out"
+                  style={{
+                    transform: `rotate(${resetFeedbackCount * 360}deg)`,
+                  }}
+                />
+              </Button>
+              <button
+                type="button"
+                onClick={() => onOpenChange?.(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                style={{
+                  color: withOpacity(uiScheme.fg, 0.62),
+                  background: withOpacity(uiScheme.buttonBg, 0.18),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                }}
+                aria-label="关闭阅读偏好"
+                title="关闭"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </SheetHeader>
 
         <div className="app-sheet-body min-h-0 px-6 py-5 sm:px-7">
           <div
-            className="mb-5 grid grid-cols-3 gap-1 rounded-[1.25rem] border  p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+            className="mb-5 grid grid-cols-3 gap-1 rounded-xl border p-1"
             role="tablist"
             aria-label="阅读设置分类"
             style={{
-              background: withOpacity(uiScheme.buttonBg, 0.22),
-              borderColor: withOpacity(uiScheme.cardBorder, 0.16),
+              background: withOpacity(uiScheme.buttonBg, 0.08),
+              borderColor: withOpacity(uiScheme.cardBorder, 0.1),
             }}
           >
             {SETTINGS_SECTIONS.map((section) => {
@@ -414,12 +434,12 @@ export function ThemeSettings({
                   role="tab"
                   aria-selected={active}
                   onClick={() => setActiveSection(section.id)}
-                  className="h-10 rounded-[1rem] text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                  className="h-9 rounded-lg text-xs font-bold transition-[background-color,color,box-shadow,transform] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                   style={{
-                    background: active ? withOpacity(uiScheme.buttonBg, 0.86) : "transparent",
-                    color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.58),
+                    background: active ? withOpacity(uiScheme.cardBg, 0.72) : "transparent",
+                    color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.56),
                     boxShadow: active
-                      ? `0 8px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.45)}`
+                      ? `0 8px 20px -18px ${withOpacity(uiScheme.cardBorder, 0.46)}`
                       : "none",
                   }}
                 >

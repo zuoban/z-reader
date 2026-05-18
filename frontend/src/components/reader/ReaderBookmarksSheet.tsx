@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { Bookmark, BookmarkPlus, MapPin, Trash2 } from "lucide-react";
+import { Bookmark, BookmarkPlus, MapPin, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -79,7 +79,7 @@ export function ReaderBookmarksSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        showCloseButton
+        showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
         className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
@@ -91,22 +91,45 @@ export function ReaderBookmarksSheet({
           boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
         }}
       >
-        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
-          <div className="flex items-center gap-4">
-            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-              <Bookmark className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
-                书签
-              </SheetTitle>
-              <SheetDescription
-                className="mt-1 text-xs font-medium"
-                style={{ color: uiScheme.mutedText }}
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                style={{
+                  background: withOpacity(uiScheme.buttonBg, 0.2),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                  color: uiScheme.link,
+                }}
               >
-                记录那些值得回味的阅读瞬间
-              </SheetDescription>
+                <Bookmark className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                  书签
+                </SheetTitle>
+                <SheetDescription
+                  className="mt-1 text-xs font-medium"
+                  style={{ color: uiScheme.mutedText }}
+                >
+                  记录那些值得回味的阅读瞬间
+                </SheetDescription>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+              style={{
+                color: withOpacity(uiScheme.fg, 0.62),
+                background: withOpacity(uiScheme.buttonBg, 0.18),
+                borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+              }}
+              aria-label="关闭书签"
+              title="关闭"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         </SheetHeader>
 
@@ -115,10 +138,15 @@ export function ReaderBookmarksSheet({
             type="button"
             onClick={onCreate}
             disabled={!canCreate || isSaving}
-            className="h-11 w-full rounded-xl text-sm font-bold shadow-sm transition-all active:scale-[0.98]"
+            className="h-10 w-full rounded-xl text-sm font-bold shadow-none transition-all active:scale-[0.98]"
             title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
+            style={{
+              background: withOpacity(uiScheme.link, 0.12),
+              border: `1px solid ${withOpacity(uiScheme.link, 0.18)}`,
+              color: uiScheme.link,
+            }}
           >
-            <BookmarkPlus className="mr-2 h-4.5 w-4.5" />
+            <BookmarkPlus className="mr-2 h-4 w-4" />
             {isSaving ? "保存中" : "添加当前书签"}
           </Button>
         </div>

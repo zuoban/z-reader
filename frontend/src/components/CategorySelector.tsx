@@ -106,7 +106,7 @@ export function CategorySelector({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
             aria-label="关闭"
             title="关闭"
           >

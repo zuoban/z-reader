@@ -1,6 +1,6 @@
 "use client";
 
-import { Keyboard } from "lucide-react";
+import { Keyboard, X } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,7 @@ export function ReaderShortcutsSheet({
 
       <SheetContent
         side="bottom"
-        showCloseButton
+        showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
         className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
@@ -97,22 +97,45 @@ export function ReaderShortcutsSheet({
           boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
         }}
       >
-        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8">
-          <div className="flex items-center gap-4">
-            <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-              <Keyboard className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
-                键盘快捷键
-              </SheetTitle>
-              <SheetDescription
-                className="mt-1 text-xs font-medium"
-                style={{ color: uiScheme.mutedText }}
+        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                style={{
+                  background: withOpacity(uiScheme.buttonBg, 0.2),
+                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                  color: uiScheme.link,
+                }}
               >
-                用键盘保持阅读节奏
-              </SheetDescription>
+                <Keyboard className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                  键盘快捷键
+                </SheetTitle>
+                <SheetDescription
+                  className="mt-1 text-xs font-medium"
+                  style={{ color: uiScheme.mutedText }}
+                >
+                  用键盘保持阅读节奏
+                </SheetDescription>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+              style={{
+                color: withOpacity(uiScheme.fg, 0.62),
+                background: withOpacity(uiScheme.buttonBg, 0.18),
+                borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+              }}
+              aria-label="关闭快捷键"
+              title="关闭"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         </SheetHeader>
 

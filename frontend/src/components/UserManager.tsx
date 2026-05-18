@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { KeyRound, ShieldCheck, Trash2, UserCog, UserPlus } from 'lucide-react';
+import { KeyRound, ShieldCheck, Trash2, UserCog, UserPlus, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { User } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -196,32 +196,41 @@ export function UserManager({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        showCloseButton
+        showCloseButton={false}
         finalFocus={false}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,42rem)] flex-col rounded-3xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
       >
         <div className="flex min-h-0 flex-col">
           <SheetHeader
-            className="app-sheet-header shrink-0 px-6 pb-5 pt-7 pr-20 sm:px-7 sm:pt-8"
+            className="relative shrink-0 border-b border-border/55 bg-transparent px-5 pb-4 pt-5 pr-16 shadow-none sm:px-6"
           >
-            <div className="flex items-center gap-4">
-              <div className="app-sheet-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/14 bg-primary/8 text-primary">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-semibold tracking-tight text-foreground">
+                <SheetTitle className="text-[19px] font-semibold tracking-tight text-foreground">
                   用户管理
                 </SheetTitle>
-                <SheetDescription className="mt-1 text-xs font-medium text-muted-foreground">
+                <SheetDescription className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
                   集中维护账号权限与安全设置
                 </SheetDescription>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => handleOpenChange(false)}
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              aria-label="关闭用户管理"
+              title="关闭"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </SheetHeader>
 
-          <div className="app-sheet-body min-h-0">
-            <div className="space-y-5 px-6 py-5 sm:px-7">
-              <section className="app-surface-panel space-y-4 rounded-2xl p-5">
+          <div className="min-h-0 overflow-y-auto">
+            <div className="space-y-4 px-5 py-4 sm:px-6">
+              <section className="space-y-4 rounded-2xl border border-border/55 bg-muted/28 p-4">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold tracking-tight text-foreground">账号概览</h3>
                   <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70">
@@ -229,18 +238,18 @@ export function UserManager({
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 text-xs font-bold text-foreground">
+                  <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border/55 bg-background/58 px-3 py-2.5 text-xs font-bold text-foreground">
                   <UserCog className="h-3 w-3" />
                   {users.length} 位用户
                   </div>
-                  <div className="flex items-center justify-center rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 text-xs font-bold text-muted-foreground">
+                  <div className="flex items-center justify-center rounded-xl border border-border/55 bg-background/58 px-3 py-2.5 text-xs font-bold text-muted-foreground">
                   {users.filter((user) => user.role === 'admin').length} 名管理员
                   </div>
                 </div>
               </section>
 
               {/* Create User Section */}
-              <section className="app-surface-panel space-y-4 rounded-2xl p-5">
+              <section className="space-y-4 rounded-2xl border border-border/55 bg-muted/28 p-4">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2.5">
                     <UserPlus className="h-4 w-4 text-primary" />
@@ -262,7 +271,7 @@ export function UserManager({
                         onChange={(event) => setUsername(event.target.value)}
                         placeholder="请输入用户名"
                         disabled={loading}
-                        className="category-input h-11 rounded-xl"
+                        className="h-11 rounded-xl border-border/70 bg-background/72 shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/12"
                       />
                     </div>
                     <div className="space-y-2">
@@ -276,7 +285,7 @@ export function UserManager({
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="至少 6 位"
                         disabled={loading}
-                        className="category-input h-11 rounded-xl"
+                        className="h-11 rounded-xl border-border/70 bg-background/72 shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/12"
                       />
                     </div>
                     <div className="space-y-2">
@@ -286,7 +295,7 @@ export function UserManager({
                         onValueChange={(value) => setRole(value as User['role'])}
                         disabled={loading}
                       >
-                        <SelectTrigger className="category-input h-11 rounded-xl transition-all hover:bg-muted/45">
+                        <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background/72 shadow-none transition-all hover:bg-muted/45">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/60 shadow-xl">
@@ -299,7 +308,7 @@ export function UserManager({
                   <Button
                     onClick={handleCreate}
                     disabled={loading || !username.trim() || password.trim().length < 6}
-                    className="h-11 w-full rounded-[1.25rem] font-bold shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
+                    className="h-10 w-full rounded-xl font-bold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98]"
                   >
                     确认创建
                   </Button>
@@ -307,7 +316,7 @@ export function UserManager({
               </section>
 
               {/* User List Section */}
-              <section className="app-surface-panel space-y-4 rounded-2xl p-5">
+              <section className="space-y-4 rounded-2xl border border-border/55 bg-muted/28 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2.5">
@@ -326,7 +335,7 @@ export function UserManager({
                     return (
                       <div
                         key={user.id}
-                        className="app-surface-panel group flex flex-col gap-4 rounded-2xl p-4 transition-all hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)]"
+                        className="group flex flex-col gap-4 rounded-2xl border border-border/55 bg-background/58 p-4 transition-colors hover:border-primary/25 hover:bg-[var(--shelf-surface-hover)]"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2.5">
@@ -360,7 +369,7 @@ export function UserManager({
                             onValueChange={(value) => handleRoleChange(user, value as User['role'])}
                             disabled={loading}
                           >
-                            <SelectTrigger className="category-input h-9 w-[106px] rounded-xl text-[12px] font-semibold transition-all hover:bg-muted/55">
+                            <SelectTrigger className="h-9 w-[106px] rounded-xl border-border/70 bg-background/72 text-[12px] font-semibold shadow-none transition-all hover:bg-muted/55">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-border/60">
@@ -429,10 +438,10 @@ export function UserManager({
         }}
       >
         <DialogContent
-          className="app-dialog-shell max-w-[400px] gap-0 overflow-hidden rounded-[1.5rem] border p-0 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/45 [&_[data-slot=dialog-close]]:shadow-none"
-          showCloseButton={!loading}
+          className="max-w-[400px] gap-0 overflow-hidden rounded-2xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10"
+          showCloseButton={false}
         >
-          <div className="app-dialog-header px-6 py-7 pr-16">
+          <div className="relative border-b border-border/55 bg-transparent px-6 py-5 pr-16">
             <DialogHeader className="space-y-2">
               <DialogTitle className="text-xl font-semibold tracking-tight">重置密码</DialogTitle>
               <DialogDescription className="text-[13px] leading-6 text-muted-foreground/80">
@@ -441,6 +450,16 @@ export function UserManager({
                   : '设置一个安全的新密码。'}
               </DialogDescription>
             </DialogHeader>
+            <button
+              type="button"
+              onClick={closeResetPasswordDialog}
+              disabled={loading}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground disabled:opacity-50"
+              aria-label="关闭重置密码"
+              title="关闭"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
           
           <form
@@ -463,11 +482,11 @@ export function UserManager({
                 autoComplete="new-password"
                 disabled={loading}
                 autoFocus
-                className="category-input h-11 rounded-xl"
+                className="h-11 rounded-xl border-border/70 bg-background/72 shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/12"
               />
             </div>
             
-            <DialogFooter className="app-dialog-footer -mx-6 -mb-6 flex-row items-center justify-end gap-2 px-6 py-4">
+            <DialogFooter className="-mx-6 -mb-6 flex-row items-center justify-end gap-2 border-t border-border/55 bg-background/40 px-6 py-4">
               <Button
                 type="submit"
                 className="h-9 rounded-xl px-5 text-[13px] font-semibold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98]"

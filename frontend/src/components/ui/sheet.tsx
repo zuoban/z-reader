@@ -78,7 +78,7 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="paper-motion-interactive paper-control absolute right-[max(0.75rem,env(safe-area-inset-right,0px))] top-[max(0.75rem,env(safe-area-inset-top,0px))] h-9 w-9 rounded-full text-muted-foreground hover:scale-[1.03] hover:text-foreground hover:shadow-md"
+                className="paper-motion-interactive paper-control absolute right-[max(0.75rem,env(safe-area-inset-right,0px))] top-[max(0.75rem,env(safe-area-inset-top,0px))] h-9 w-9 rounded-xl text-muted-foreground hover:scale-[1.03] hover:text-foreground hover:shadow-md"
                 size="icon-sm"
               />
             }

@@ -1,4 +1,32 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim() || '';
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+function deriveLanApiBase(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const { protocol, hostname } = window.location;
+  if (protocol !== 'http:') return null;
+  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') return null;
+
+  return `${protocol}//${hostname}:8080`;
+}
+
+export const API_BASE = configuredApiBase ? trimTrailingSlash(configuredApiBase) : '';
+
+export function getApiBaseCandidates(): string[] {
+  if (API_BASE) return [API_BASE];
+
+  const bases = [''];
+  const lanApiBase = deriveLanApiBase();
+  if (lanApiBase) {
+    bases.push(trimTrailingSlash(lanApiBase));
+  }
+
+  return bases;
+}
 
 export const DEFAULT_TIMEOUT = 30000;
 

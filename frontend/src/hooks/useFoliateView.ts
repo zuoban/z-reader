@@ -10,6 +10,36 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function withTimeout<T>(promise: Promise<T> | T, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => reject(new Error(message)), ms);
+    Promise.resolve(promise)
+      .then(resolve, reject)
+      .finally(() => window.clearTimeout(timeoutId));
+  });
+}
+
+function waitForNonZeroRect(element: HTMLElement, timeoutMs = 3000): Promise<void> {
+  const startedAt = window.performance.now();
+
+  return new Promise((resolve) => {
+    const check = () => {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        resolve();
+        return;
+      }
+      if (window.performance.now() - startedAt >= timeoutMs) {
+        resolve();
+        return;
+      }
+      window.requestAnimationFrame(check);
+    };
+
+    check();
+  });
+}
+
 function normalizeMetadataText(value: unknown): string {
   if (typeof value === "string") return value.trim();
   if (Array.isArray(value)) {
@@ -29,6 +59,40 @@ function normalizeMetadataText(value: unknown): string {
   return "";
 }
 
+function getReaderCompatibilityError(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const missingFeatures = [
+    ["自定义组件", "customElements" in window],
+    ["iframe 渲染", typeof HTMLIFrameElement !== "undefined"],
+    ["Range 定位", typeof Range !== "undefined"],
+  ]
+    .filter(([, supported]) => !supported)
+    .map(([name]) => name);
+
+  if (missingFeatures.length > 0) {
+    return `当前浏览器缺少阅读器能力：${missingFeatures.join("、")}。请用 Chrome 浏览器打开。`;
+  }
+
+  return null;
+}
+
+function shouldUseReaderCompatibilityMode(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const userAgent = window.navigator.userAgent;
+  const isAndroid = /Android/i.test(userAgent);
+  if (!isAndroid) return false;
+
+  const isChrome = /Chrome\/|CriOS\//i.test(userAgent);
+  const isEdge = /EdgA?\/|EdgiOS\//i.test(userAgent);
+  const isFirefox = /Firefox\/|FxiOS\//i.test(userAgent);
+  const isSamsungBrowser = /SamsungBrowser\//i.test(userAgent);
+  const isAndroidWebView = /; wv\)|Version\/4\.0/i.test(userAgent);
+
+  return isAndroidWebView || !(isChrome || isEdge || isFirefox || isSamsungBrowser);
+}
+
 async function waitForFoliateView() {
   let retries = 0;
   while (!customElements.get("foliate-view") && retries < 50) {
@@ -36,7 +100,12 @@ async function waitForFoliateView() {
     retries++;
   }
   if (!customElements.get("foliate-view")) {
-    throw new Error("阅读器组件注册失败");
+    // Check if the script was loaded at all
+    const script = document.querySelector('script[src="/foliate/view.js"]');
+    if (!script) {
+      throw new Error("阅读器脚本未加载，请检查网络连接");
+    }
+    throw new Error("阅读器组件注册失败，请尝试使用 Chrome 浏览器");
   }
 }
 
@@ -80,6 +149,7 @@ export function useFoliateView({
   const [currentPageLabel, setCurrentPageLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [readerReady, setReaderReady] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("初始化中...");
 
   const destroyedRef = useRef(false);
@@ -91,6 +161,9 @@ export function useFoliateView({
   const scriptLoadedRef = useRef(false);
   const appliedRemoteProgressRef = useRef<string | null>(null);
   const imageDocCleanupsRef = useRef<Map<Document, () => void>>(new Map());
+  const firstDocumentLoadedRef = useRef(false);
+  const revealScheduledRef = useRef(false);
+  const compatibilityModeRef = useRef(false);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -103,11 +176,15 @@ export function useFoliateView({
   const applyRendererPreferences = useCallback((renderer?: FoliateView["renderer"] | null) => {
     if (!renderer) return;
     const currentTheme = themeRef.current;
+    const compatibilityMode = compatibilityModeRef.current;
     renderer.setAttribute("margin", "0");
-    renderer.setAttribute("flow", currentTheme.flow);
-    renderer.setAttribute("gap", `${currentTheme.gap}%`);
-    renderer.setAttribute("max-inline-size", `${currentTheme.maxInlineSize}px`);
-    if (currentTheme.animated) {
+    renderer.setAttribute("flow", compatibilityMode ? "scrolled" : currentTheme.flow);
+    renderer.setAttribute("gap", `${compatibilityMode ? 0 : currentTheme.gap}%`);
+    renderer.setAttribute(
+      "max-inline-size",
+      `${compatibilityMode ? 720 : currentTheme.maxInlineSize}px`,
+    );
+    if (currentTheme.animated && !compatibilityMode) {
       renderer.setAttribute("animated", "");
     } else {
       renderer.removeAttribute("animated");
@@ -302,18 +379,47 @@ export function useFoliateView({
     if (!containerRef.current || destroyedRef.current) return;
 
     try {
-      setLoadingMsg("加载阅读器...");
+      const compatibilityError = getReaderCompatibilityError();
+      if (compatibilityError) {
+        throw new Error(compatibilityError);
+      }
+
+      compatibilityModeRef.current = shouldUseReaderCompatibilityMode();
+      setReaderReady(false);
+      firstDocumentLoadedRef.current = false;
+      revealScheduledRef.current = false;
+      setLoadingMsg(compatibilityModeRef.current ? "加载兼容阅读模式..." : "加载阅读器...");
 
       if (!customElements.get("foliate-view") && !scriptLoadedRef.current) {
         scriptLoadedRef.current = true;
 
+        setLoadingMsg("加载阅读器引擎...");
+
+        // Inject compatibility polyfills for older mobile browsers
+        const { injectFoliatePolyfills } = await import("@/lib/foliate-polyfills");
+        injectFoliatePolyfills();
+
         const script = document.createElement("script");
         script.src = "/foliate/view.js";
         script.type = "module";
+        script.crossOrigin = "anonymous";
+        // Add referrerpolicy for better mobile browser compatibility
+        script.referrerPolicy = "no-referrer-when-downgrade";
 
         const loadPromise = new Promise<void>((resolve, reject) => {
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error("加载阅读器脚本失败"));
+          const timeout = setTimeout(() => {
+            reject(new Error("加载阅读器脚本超时，请检查网络连接"));
+          }, 15000);
+
+          script.onload = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          script.onerror = (event) => {
+            clearTimeout(timeout);
+            console.error("Failed to load foliate script:", event);
+            reject(new Error("加载阅读器脚本失败，请尝试使用 Chrome 浏览器"));
+          };
         });
 
         document.head.appendChild(script);
@@ -332,6 +438,7 @@ export function useFoliateView({
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(view as unknown as Node);
       viewRef.current = view;
+      await waitForNonZeroRect(view as unknown as HTMLElement);
 
       view.addEventListener?.("load", (e: CustomEvent) => {
         if (destroyedRef.current || !viewRef.current) return;
@@ -340,7 +447,15 @@ export function useFoliateView({
           setToc(book?.toc || []);
           setBookTitle(normalizeMetadataText(book?.metadata?.title));
           setBookAuthor(normalizeMetadataText(book?.metadata?.author));
-          setLoading(false);
+          firstDocumentLoadedRef.current = true;
+          if (!revealScheduledRef.current) {
+            revealScheduledRef.current = true;
+            window.requestAnimationFrame(() => {
+              if (destroyedRef.current || !firstDocumentLoadedRef.current) return;
+              setReaderReady(true);
+              setLoading(false);
+            });
+          }
 
           const doc = e.detail?.doc;
           if (doc) {
@@ -396,12 +511,19 @@ export function useFoliateView({
       setLoadingMsg("打开书籍...");
 
       try {
-        await view.open?.(file);
+        await withTimeout(
+          view.open?.(file),
+          30000,
+          "打开书籍超时：手机浏览器可能不支持当前解压能力，请尝试刷新或使用 Chrome 浏览器",
+        );
       } catch (err) {
         console.error("Failed to open book:", err);
-        throw new Error(
-          `打开书籍失败：${err instanceof Error ? err.message : "未知错误"}`,
-        );
+        // Provide more user-friendly error message for mobile browsers
+        const errorMessage = err instanceof Error ? err.message : "未知错误";
+        if (errorMessage.includes('external') || errorMessage.includes('permission')) {
+          throw new Error('打开书籍失败：请允许访问文件，或尝试使用 Chrome 浏览器');
+        }
+        throw new Error(`打开书籍失败：${errorMessage}`);
       }
 
       if (destroyedRef.current) return;
@@ -411,12 +533,24 @@ export function useFoliateView({
 
       const savedProgress = progressRef.current;
       appliedRemoteProgressRef.current = savedProgress?.updated_at ?? null;
-      await view.init?.({
-        lastLocation: savedProgress?.cfi ?? null,
-        showTextStart: false,
+      const initPromise = withTimeout(
+        view.goTo?.(savedProgress?.cfi || 0),
+        12000,
+        "初始化阅读位置超时，已显示可用内容",
+      );
+      await initPromise.catch((err) => {
+        if (!firstDocumentLoadedRef.current) {
+          throw err;
+        }
+        console.warn("Reader location initialization timed out after content loaded:", err);
       });
+      if (!destroyedRef.current) {
+        setReaderReady(true);
+        setLoading(false);
+      }
     } catch (err) {
       if (!destroyedRef.current) {
+        setReaderReady(false);
         setError(err instanceof Error ? err.message : "加载书籍失败");
         setLoading(false);
       }
@@ -434,27 +568,28 @@ export function useFoliateView({
   ]);
 
   useEffect(() => {
-    if (viewRef.current && !loading) {
+    if (viewRef.current && readerReady) {
       viewRef.current.renderer?.setStyles?.(getStylesheet());
       applyRendererPreferences(viewRef.current.renderer);
     }
-  }, [applyRendererPreferences, getStylesheet, loading, theme, viewRef]);
+  }, [applyRendererPreferences, getStylesheet, readerReady, theme, viewRef]);
 
   useEffect(() => {
-    if (loading || !progress?.remote || !progress.updated_at || !progress.cfi) return;
+    if (!readerReady || !progress?.remote || !progress.updated_at || !progress.cfi) return;
     if (appliedRemoteProgressRef.current === progress.updated_at) return;
 
     appliedRemoteProgressRef.current = progress.updated_at;
     void viewRef.current?.goTo?.(progress.cfi);
-  }, [loading, progress, viewRef]);
+  }, [progress, readerReady, viewRef]);
 
   useEffect(() => {
+    if (!readerReady) return;
     const contents = viewRef.current?.renderer?.getContents?.() ?? [];
     contents.forEach(({ doc }) => {
       if (!doc) return;
       cleanInlineStyles(doc);
     });
-  }, [cleanInlineStyles, loading, theme, viewRef]);
+  }, [cleanInlineStyles, readerReady, theme, viewRef]);
 
   useEffect(() => {
     if (!isAuthenticated || progressLoading) return;

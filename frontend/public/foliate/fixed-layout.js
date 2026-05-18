@@ -1,3 +1,19 @@
+// Polyfill ResizeObserver for older browsers
+if (typeof ResizeObserver === 'undefined') {
+    window.ResizeObserver = class ResizeObserver {
+        constructor(callback) {
+            this.callback = callback;
+        }
+        observe(element) {
+            setTimeout(() => {
+                this.callback([{ target: element, contentRect: { width: 0, height: 0 } }]);
+            }, 0);
+        }
+        unobserve(element) {}
+        disconnect() {}
+    };
+}
+
 const parseViewport = str => str
     ?.split(/[,;\s]/) // NOTE: technically, only the comma is valid
     ?.filter(x => x)

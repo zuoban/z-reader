@@ -2,6 +2,8 @@ import {
   API_BASE,
   createAbortController,
   DEFAULT_TIMEOUT,
+  getApiBaseCandidates,
+  isAbortLikeError,
   normalizeRequestError,
 } from '@/lib/config';
 
@@ -122,34 +124,47 @@ async function parseApiError(res: Response, fallback: string): Promise<ApiError>
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
-  const { controller, timeoutId } = createAbortController(timeout);
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...getAuthHeaders(),
     ...options.headers,
   };
 
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      credentials: options.credentials ?? 'include',
-      headers,
-      signal: controller.signal,
-    });
+  let lastError: unknown;
+  const apiBases = getApiBaseCandidates();
 
-    if (!res.ok) {
-      handleUnauthorized(res);
-      throw await parseApiError(res, '请求失败');
+  for (const base of apiBases) {
+    const { controller, timeoutId } = createAbortController(timeout);
+    try {
+      const res = await fetch(`${base}${path}`, {
+        ...options,
+        credentials: options.credentials ?? 'include',
+        headers,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        handleUnauthorized(res);
+        if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
+          lastError = new ApiError('请求失败，正在尝试局域网后端', res.status);
+          continue;
+        }
+        throw await parseApiError(res, '请求失败');
+      }
+
+      const text = await res.text();
+      return text ? JSON.parse(text) : (null as T);
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetryWithNextApiBase(error, apiBases, base)) {
+        throw normalizeRequestError(error);
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const text = await res.text();
-    return text ? JSON.parse(text) : (null as T);
-  } catch (error) {
-    throw normalizeRequestError(error);
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  throw normalizeRequestError(lastError);
 }
 
 async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T> {
@@ -162,27 +177,60 @@ async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T>
 
 /** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
 async function authedFetch(path: string, options: RequestInit = {}, timeout?: number): Promise<Response> {
-  const { controller, timeoutId } = createAbortController(timeout);
-
   const headers: HeadersInit = {
     ...getAuthHeaders(),
     ...options.headers,
   };
 
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      credentials: options.credentials ?? 'include',
-      headers,
-      signal: controller.signal,
-    });
-    handleUnauthorized(res);
-    return res;
-  } catch (error) {
-    throw normalizeRequestError(error);
-  } finally {
-    clearTimeout(timeoutId);
+  let lastError: unknown;
+  const apiBases = getApiBaseCandidates();
+
+  for (const base of apiBases) {
+    const { controller, timeoutId } = createAbortController(timeout);
+    try {
+      const res = await fetch(`${base}${path}`, {
+        ...options,
+        credentials: options.credentials ?? 'include',
+        headers,
+        signal: controller.signal,
+      });
+      handleUnauthorized(res);
+      if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
+        lastError = new ApiError('请求失败，正在尝试局域网后端', res.status);
+        continue;
+      }
+      return res;
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetryWithNextApiBase(error, apiBases, base)) {
+        throw normalizeRequestError(error);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
+
+  throw normalizeRequestError(lastError);
+}
+
+function shouldRetryWithNextApiBase(
+  error: unknown,
+  apiBases: string[],
+  currentBase: string
+): boolean {
+  if (apiBases[apiBases.length - 1] === currentBase) return false;
+  if (error instanceof ApiError) return false;
+  if (isAbortLikeError(error)) return true;
+  return error instanceof TypeError;
+}
+
+function shouldRetryResponseWithNextApiBase(
+  res: Response,
+  apiBases: string[],
+  currentBase: string
+): boolean {
+  if (apiBases[apiBases.length - 1] === currentBase) return false;
+  return res.status === 502 || res.status === 503 || res.status === 504;
 }
 
 export const api = {
@@ -296,25 +344,69 @@ export const api = {
   },
 
   fetchBook: async (id: string): Promise<Blob> => {
-    const res = await authedFetch(`/api/books/${id}/file`, {
-      credentials: 'include',
-    }, DEFAULT_TIMEOUT);
-    if (!res.ok) {
-      throw new Error(`加载书籍失败：${res.status}`);
+    try {
+      const res = await authedFetch(`/api/books/${id}/file`, {
+        credentials: 'include',
+      }, DEFAULT_TIMEOUT);
+      if (!res.ok) {
+        throw new Error(`加载书籍失败：${res.status} ${res.statusText}`);
+      }
+      const blob = await res.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error('书籍文件为空');
+      }
+      return blob;
+    } catch (error) {
+      console.error('Failed to fetch book:', error);
+      throw error;
     }
-    return res.blob();
   },
 
-  createBookFile: async (id: string): Promise<File> => {
+  createBookFile: async (id: string): Promise<File | Blob> => {
     const [book, blob] = await Promise.all([
       api.getBook(id),
       api.fetchBook(id),
     ]);
 
-    return new File([blob], book.filename, {
-      type: blob.type,
-      lastModified: Date.parse(book.created_at) || Date.now(),
-    });
+    // Try using File constructor first, fallback to Blob for compatibility
+    let file: File | Blob;
+    try {
+      file = new File([blob], book.filename, {
+        type: blob.type,
+        lastModified: Date.parse(book.created_at) || Date.now(),
+      });
+    } catch (error) {
+      console.warn('File constructor not supported, using Blob fallback:', error);
+      // Fallback: just return the blob - foliate can work with Blob objects
+      file = blob;
+    }
+
+    // Ensure arrayBuffer method exists (some older browsers don't have it on Blob)
+    if (!file.arrayBuffer || typeof file.arrayBuffer !== 'function') {
+      console.warn('Blob.arrayBuffer not supported, adding polyfill');
+      (file as Blob & { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer = async function() {
+        const reader = new FileReader();
+        return new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
+
+    // Ensure slice method exists
+    if (!file.slice || typeof file.slice !== 'function') {
+      console.warn('Blob.slice not supported, adding polyfill');
+      (file as Blob & { slice: (start?: number, end?: number) => Blob }).slice = function(
+        this: Blob,
+        start?: number,
+        end?: number
+      ) {
+        return blob.slice.call(this, start, end);
+      };
+    }
+
+    return file;
   },
 
   uploadCover: async (id: string, file: Blob, filename = 'cover.png'): Promise<Book> => {

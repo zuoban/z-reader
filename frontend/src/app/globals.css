@@ -640,14 +640,14 @@ foliate-view::part(filter) {
 
   .paper-reveal {
     opacity: 0;
-    animation: paperShelfReveal 620ms var(--paper-ease-out) forwards;
+    animation: paperShelfReveal 620ms ease-out forwards;
     animation-delay: var(--paper-delay, 0ms);
     will-change: transform, opacity, filter;
   }
 
   .paper-reveal-soft {
     opacity: 0;
-    animation: paperShelfRevealSoft 460ms var(--paper-ease-out) forwards;
+    animation: paperShelfRevealSoft 460ms ease-out forwards;
     animation-delay: var(--paper-delay, 0ms);
     will-change: transform, opacity;
   }

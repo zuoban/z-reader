@@ -296,7 +296,7 @@ export function BookCard({
 
   return (
     <div
-      className="flex items-center justify-start lg:justify-center"
+      className="flex w-full items-center justify-start lg:justify-center"
     >
       <Card
         className={cn(

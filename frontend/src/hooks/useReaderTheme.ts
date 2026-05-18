@@ -61,64 +61,64 @@ export interface ThemeColors {
 
 export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
   light: {
-    bg: "#eef5f7",
-    fg: "#10202c",
-    link: "#2563eb",
-    headerBg: "#f6fbfc",
-    headerBorder: "#b9d6e2",
-    cardBg: "#f9fdff",
-    cardBorder: "#b9d6e2",
-    buttonBg: "#e4f2f6",
-    buttonHoverBg: "#d4eaf1",
-    buttonText: "#315064",
-    muted: "#e4f2f6",
-    mutedText: "#587083",
-    accentText: "#6f8ea0",
+    bg: "#ffffff",
+    fg: "#1d1d1f",
+    link: "#007aff",
+    headerBg: "#ffffff",
+    headerBorder: "#d2d2d7",
+    cardBg: "#f5f5f7",
+    cardBorder: "#d2d2d7",
+    buttonBg: "#f5f5f7",
+    buttonHoverBg: "#e8e8ed",
+    buttonText: "#1d1d1f",
+    muted: "#f5f5f7",
+    mutedText: "#86868b",
+    accentText: "#007aff",
   },
   sepia: {
-    bg: "#F1E2C8",
+    bg: "#f4ecd8",
     fg: "#433427",
-    link: "#7c6ef8",
-    headerBg: "#F7E9D3",
-    headerBorder: "#D9C39B",
-    cardBg: "#F8ECDA",
-    cardBorder: "#D9C39B",
-    buttonBg: "#ECDDBD",
-    buttonHoverBg: "#E3D2AF",
-    buttonText: "#644F3B",
-    muted: "#ECDDBD",
-    mutedText: "#7C6751",
-    accentText: "#9A846C",
+    link: "#9a6b41",
+    headerBg: "#fbf6e9",
+    headerBorder: "#d9c39b",
+    cardBg: "#fbf6e9",
+    cardBorder: "#d9c39b",
+    buttonBg: "#f1e2c8",
+    buttonHoverBg: "#e8d5b5",
+    buttonText: "#433427",
+    muted: "#f1e2c8",
+    mutedText: "#7c6751",
+    accentText: "#9a6b41",
   },
   green: {
-    bg: "#E5EDE0",
-    fg: "#24352B",
-    link: "#4A7557",
-    headerBg: "#EEF3E9",
-    headerBorder: "#CBD8C7",
-    cardBg: "#F2F6EE",
-    cardBorder: "#CBD8C7",
-    buttonBg: "#E5EDE0",
-    buttonHoverBg: "#D9E4D4",
-    buttonText: "#344B3B",
-    muted: "#E5EDE0",
-    mutedText: "#5B6E5F",
-    accentText: "#7D8F7F",
+    bg: "#e5ede0",
+    fg: "#24352b",
+    link: "#4a7557",
+    headerBg: "#eef3e9",
+    headerBorder: "#cbd8c7",
+    cardBg: "#eef3e9",
+    cardBorder: "#cbd8c7",
+    buttonBg: "#d9e4d4",
+    buttonHoverBg: "#cedbc8",
+    buttonText: "#24352b",
+    muted: "#d9e4d4",
+    mutedText: "#5b6e5f",
+    accentText: "#4a7557",
   },
   dark: {
-    bg: "#071018",
-    fg: "#e8f6fb",
-    link: "#69a7ff",
-    headerBg: "#0b1a25",
-    headerBorder: "#24465a",
-    cardBg: "#12212d",
-    cardBorder: "#24465a",
-    buttonBg: "#172b39",
-    buttonHoverBg: "#1d3748",
-    buttonText: "#a9c2d2",
-    muted: "#172b39",
-    mutedText: "#9bb3c2",
-    accentText: "#6c899c",
+    bg: "#000000",
+    fg: "#f5f5f7",
+    link: "#0a84ff",
+    headerBg: "#000000",
+    headerBorder: "#333333",
+    cardBg: "#1d1d1f",
+    cardBorder: "#333333",
+    buttonBg: "#1d1d1f",
+    buttonHoverBg: "#2c2c2e",
+    buttonText: "#f5f5f7",
+    muted: "#1d1d1f",
+    mutedText: "#86868b",
+    accentText: "#0a84ff",
   },
 };
 
@@ -235,15 +235,9 @@ export function useReaderTheme() {
     const isDark = theme.preset === "dark";
     const fontStack = FONT_FAMILY_OPTIONS[theme.fontFamily].stack;
 
-    // 朗读高亮复用 selection，夜间模式改用更柔和的暖金色而不是偏生硬的白色蒙层
-    const selectionBg = isDark
-      ? withOpacity(preset.link, 0.3)
-      : withOpacity(preset.link, 0.18);
-    const selectionColor = isDark ? "#f7f1df" : preset.fg;
-    // 夜间模式 code 背景使用浅色透明层
-    const codeBg = isDark ? "#ffffff10" : "#00000008";
-    const bodyGlow = isDark ? "#4f6ef714" : "#f5f7ffee";
-    const bodyWarmth = withOpacity(preset.link, isDark ? 0.05 : 0.06);
+    const selectionBg = withOpacity(preset.link, isDark ? 0.35 : 0.2);
+    const selectionColor = isDark ? "#ffffff" : "inherit";
+    const codeBg = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
 
     return `
       html {
@@ -252,9 +246,6 @@ export function useReaderTheme() {
       }
       body {
         background: ${preset.bg} !important;
-        background-image:
-          linear-gradient(180deg, ${bodyGlow} 0%, transparent 12%, transparent 88%, rgba(0, 0, 0, ${isDark ? "0.10" : "0.02"}) 100%),
-          radial-gradient(circle at 50% 0%, ${bodyWarmth} 0%, transparent 28%);
         color: ${preset.fg} !important;
         font-size: ${theme.fontSize}px !important;
         line-height: ${theme.lineHeight} !important;
@@ -264,111 +255,32 @@ export function useReaderTheme() {
         box-sizing: border-box;
         text-rendering: optimizeLegibility;
       }
-      body, body * {
-        font-family: ${fontStack} !important;
-      }
-      body > *:first-child {
-        margin-top: 0 !important;
-      }
-      body > *:last-child {
-        margin-bottom: 0 !important;
-      }
       p {
         line-height: ${theme.lineHeight} !important;
-        text-align: justify;
         margin: ${theme.paragraphSpacing}em 0 !important;
+        text-align: justify;
         hyphens: auto;
-        word-spacing: 0.04em;
-        letter-spacing: 0.01em;
-        text-wrap: pretty;
-        color: ${preset.fg} !important;
-      }
-      li {
-        line-height: ${theme.lineHeight} !important;
-        margin: ${Math.max(theme.paragraphSpacing * 0.45, 0.2)}em 0 !important;
-        color: ${preset.fg} !important;
       }
       blockquote {
-        line-height: ${theme.lineHeight} !important;
-        margin: ${Math.max(theme.paragraphSpacing * 1.4, 1.2)}em 0 !important;
-        padding-left: 1.5em;
-        border-left: 3px solid ${withOpacity(preset.link, 0.8)};
-        background: linear-gradient(90deg, ${withOpacity(preset.link, isDark ? 0.12 : 0.08)} 0%, transparent 56%);
-        opacity: 0.9;
-        color: ${preset.fg} !important;
+        margin: 1.5em 0 !important;
+        padding: 0.5em 1.5em !important;
+        border-left: 4px solid ${preset.link};
+        background: ${withOpacity(preset.link, 0.05)};
       }
-      h1, h2, h3, h4, h5, h6 {
-        color: ${preset.fg} !important;
-        font-weight: 600 !important;
-        margin-top: 1.5em !important;
-        margin-bottom: 0.5em !important;
-        line-height: 1.3 !important;
-        letter-spacing: 0.01em !important;
-        background: transparent !important;
-      }
-      h1 *, h2 *, h3 *, h4 *, h5 *, h6 * {
-        color: ${preset.fg} !important;
-        background: transparent !important;
-      }
-      [class*="title"], [class*="heading"], [class*="chapter"], [id*="title"], [id*="heading"], [id*="chapter"] {
-        color: ${preset.fg} !important;
-        background: transparent !important;
-      }
-      .calibre, .titlepage, .chapter, .section, .heading, .title {
-        color: ${preset.fg} !important;
-        background: transparent !important;
-      }
-      /* 夜间模式：强制覆盖所有可能为深色的元素 */
-      ${
-        isDark
-          ? `
-      body p, body p *,
-      body div, body div *,
-      body span, body span * {
-        color: ${preset.fg} !important;
-      }
-      `
-          : ""
-      }
-      h1:first-child, h2:first-child, h3:first-child, h4:first-child, h5:first-child, h6:first-child,
-      p:first-child, blockquote:first-child, ul:first-child, ol:first-child {
-        margin-top: 0 !important;
-      }
-      p:last-child, blockquote:last-child, ul:last-child, ol:last-child {
-        margin-bottom: 0 !important;
-      }
-      a:link {
+      a {
         color: ${preset.link} !important;
-        text-decoration: none;
-        border-bottom: 1px solid ${preset.link}40;
-        transition: border-color 0.2s;
+        text-decoration: underline;
+        text-underline-offset: 4px;
       }
-      a:hover {
-        border-bottom-color: ${preset.link};
-      }
-      a:visited {
-        color: ${preset.link} !important;
-        opacity: 0.8;
-      }
-      ::selection,
-      *::selection {
-        background: ${selectionBg} !important;
-        color: ${selectionColor} !important;
-      }
-      ::-moz-selection,
-      *::-moz-selection {
+      ::selection {
         background: ${selectionBg} !important;
         color: ${selectionColor} !important;
       }
       code {
-        font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
         background: ${codeBg};
         padding: 0.2em 0.4em;
-        border-radius: 3px;
-        font-size: 0.9em;
-      }
-      pre, kbd, samp {
-        font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace !important;
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       }
     `;
   }, [theme]);

@@ -71,13 +71,13 @@ export function ShelfFilterSheet({
         render={
           <Button
             type="button"
-            variant="ghost"
-            className="shelf-filter-trigger h-11 w-full justify-between rounded-xl px-4 text-sm font-semibold sm:hidden"
+            variant="outline"
+            className="h-11 w-full justify-between rounded-xl px-4 text-sm font-semibold sm:hidden"
           />
         }
       >
         <span className="flex min-w-0 items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-primary/70" />
+          <SlidersHorizontal className="h-4 w-4 text-primary" />
           <span className="truncate">
             {currentCategory.label} · {currentSort?.label ?? '排序'}
           </span>
@@ -87,16 +87,16 @@ export function ShelfFilterSheet({
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(86svh,38rem)] flex-col rounded-3xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10 sm:hidden"
+        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(86svh,38rem)] flex-col rounded-[2.25rem] border border-border/40 bg-popover/80 p-0 shadow-2xl backdrop-blur-xl sm:hidden"
       >
-        <SheetHeader className="relative shrink-0 border-b border-border/55 bg-transparent px-5 pb-4 pt-5 pr-16 shadow-none">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/14 bg-primary/8 text-primary">
-              <SlidersHorizontal className="h-[18px] w-[18px]" />
+        <SheetHeader className="relative shrink-0 border-b border-border/10 px-6 pb-5 pt-7">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+              <SlidersHorizontal className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-[19px] font-semibold tracking-tight">筛选与排序</SheetTitle>
-              <SheetDescription className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
+              <SheetTitle className="text-xl font-bold tracking-tight">筛选与排序</SheetTitle>
+              <SheetDescription className="mt-0.5 text-[13px] font-medium opacity-60">
                 调整当前书架视图
               </SheetDescription>
             </div>
@@ -104,21 +104,21 @@ export function ShelfFilterSheet({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-secondary/50 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
             aria-label="关闭"
             title="关闭"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </SheetHeader>
 
-        <div className="min-h-0 space-y-5 overflow-y-auto px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
-          <section className="space-y-2.5">
-            <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
-              <Tag className="h-3.5 w-3.5" />
+        <div className="min-h-0 space-y-6 overflow-y-auto px-6 py-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground opacity-60">
+              <Tag className="h-4 w-4" />
               分类
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2.5">
               {categoryItems.map((item) => {
                 const active = currentCategoryId === item.id;
 
@@ -128,27 +128,27 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectCategory(item.id)}
                     className={cn(
-                      'flex h-11 items-center gap-3 rounded-xl border border-border/60 bg-background/56 px-3 text-left text-sm text-foreground/82 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_34%,transparent)] transition-colors hover:bg-muted/55',
-                      active && 'border-primary/42 bg-primary/10 text-primary'
+                      'flex h-13 items-center gap-4 rounded-2xl border border-border/40 bg-background/40 px-4 text-left text-[15px] transition-all active:scale-[0.98]',
+                      active && 'border-primary/20 bg-primary/5 text-primary'
                     )}
                   >
                     <span className="min-w-0 flex-1 truncate font-semibold">{item.label}</span>
-                    <span className="rounded-md bg-foreground/8 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-foreground/62">
+                    <span className="rounded-lg bg-secondary px-2 py-1 text-[12px] font-bold tabular-nums text-muted-foreground">
                       {item.count}
                     </span>
-                    <Check className={cn('h-4 w-4 text-primary', active ? 'opacity-100' : 'opacity-0')} />
+                    <Check className={cn('h-5 w-5 text-primary', active ? 'opacity-100' : 'opacity-0')} />
                   </button>
                 );
               })}
             </div>
           </section>
 
-          <section className="space-y-2.5">
-            <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              排序
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground opacity-60">
+              <ArrowUpDown className="h-4 w-4" />
+              排序方式
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {SORT_OPTIONS.map((option) => {
                 const active = sortBy === option.value;
 
@@ -158,8 +158,8 @@ export function ShelfFilterSheet({
                     type="button"
                     onClick={() => selectSort(option.value)}
                     className={cn(
-                      'flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/56 px-3 text-sm font-semibold text-foreground/78 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_34%,transparent)] transition-colors hover:bg-muted/55',
-                      active && 'border-primary/42 bg-primary/10 text-primary'
+                      'flex h-13 items-center justify-center gap-2 rounded-2xl border border-border/40 bg-background/40 px-4 text-[14px] font-semibold transition-all active:scale-[0.98]',
+                      active && 'border-primary/20 bg-primary/5 text-primary'
                     )}
                   >
                     {option.label}

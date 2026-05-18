@@ -300,9 +300,9 @@ export function BookCard({
     >
       <Card
         className={cn(
-          "group/card paper-reveal-soft relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/55 bg-card/78 p-0 shadow-[0_12px_32px_-28px_var(--paper-shadow)] ring-1 ring-white/45 transition-[border-color,box-shadow,transform,background-color] duration-200 dark:ring-white/10",
-          !isMobile && "hover:-translate-y-0.5 hover:border-primary/25 hover:bg-card hover:shadow-[0_18px_46px_-30px_var(--paper-shadow)]",
-          selected && "border-primary/65 bg-primary/5 ring-primary/20"
+          "group/card paper-reveal-soft relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/40 bg-card p-0 shadow-sm transition-all duration-200",
+          !isMobile && "hover:-translate-y-1 hover:border-border hover:shadow-md",
+          selected && "ring-2 ring-primary border-primary"
         )}
         style={{
           width: isMobile ? '100%' : cardWidth,
@@ -318,18 +318,18 @@ export function BookCard({
           {selectionMode && (
             <div
               className={cn(
-                "absolute right-3 top-3 z-30 flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
+                "absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border shadow-sm transition-colors",
                 selected
                   ? "border-primary bg-primary text-white"
-                  : "border-border/80 bg-card/90"
+                  : "border-border bg-background/80 backdrop-blur-sm"
               )}
               aria-hidden="true"
             >
-              <Check className={cn("h-3 w-3", selected ? "opacity-100" : "opacity-0")} />
+              <Check className={cn("h-3.5 w-3.5", selected ? "opacity-100" : "opacity-0")} />
             </div>
           )}
           <div
-            className="relative overflow-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--muted)_32%,var(--card))_0%,var(--card)_100%)]"
+            className="relative overflow-hidden bg-secondary/30"
             style={{ height: coverHeight }}
           >
             <div className="relative z-10 flex h-full items-start justify-center px-4 pt-5">
@@ -349,60 +349,58 @@ export function BookCard({
             </div>
 
             {!isMobile && (
-              <div className="absolute inset-x-3 bottom-3 z-20 rounded-full border border-border/55 bg-card/88 px-3 py-2 shadow-[0_10px_26px_-22px_var(--paper-shadow)] backdrop-blur-sm">
+              <div className="absolute inset-x-3 bottom-3 z-20 rounded-full border border-border/30 bg-background/60 px-3 py-1.5 shadow-sm backdrop-blur-md">
                 {progressMeter}
               </div>
             )}
           </div>
 
           {isMobile && (
-            <div className="border-t border-border/45 bg-card/86 px-3.5 py-2.5">
+            <div className="border-t border-border/20 bg-background/40 px-3.5 py-2.5 backdrop-blur-sm">
               {progressMeter}
             </div>
           )}
 
-          <div className="flex flex-col bg-card/92 px-3.5 pb-4 pt-3.5 sm:px-4 sm:pb-4 sm:pt-3.5">
+          <div className="flex flex-col px-3.5 pb-4 pt-4 sm:px-4">
             <div className="space-y-1">
-              <div className="relative pr-6 sm:pr-5">
+              <div className="relative pr-6">
                 <h3
-                  className="min-w-0 font-heading text-[14px] font-semibold leading-[1.4] text-foreground/92"
+                  className="min-w-0 font-sans text-[15px] font-bold leading-tight text-foreground"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    height: 'calc(14px * 1.4 * 2)',
+                    height: '2.5rem',
                   }}
                   title={titleLabel}
                 >
                   <HighlightedText text={titleLabel} query={searchQuery} />
                 </h3>
 
-                <div className="mt-2 flex min-h-5 items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground/88">
-                  <span className="inline-flex min-w-0 items-center gap-1.5">
-                    <span className="truncate">
-                      <HighlightedText text={authorLabel} query={searchQuery} />
-                    </span>
+                <div className="mt-3 flex items-center justify-between gap-2 text-[12px] font-medium text-muted-foreground">
+                  <span className="truncate">
+                    <HighlightedText text={authorLabel} query={searchQuery} />
                   </span>
 
                   {categoryLabel && (
-                    <span className="shrink-0 items-center gap-1 rounded-full bg-muted/58 px-2 py-0.5 text-[10px] sm:inline-flex">
-                      <span className="max-w-[5.5rem] truncate">
-                        <HighlightedText text={categoryLabel} query={searchQuery} />
-                      </span>
+                    <span className="shrink-0 rounded-md bg-secondary px-2 py-0.5 text-[10px] font-semibold text-secondary-foreground">
+                      <HighlightedText text={categoryLabel} query={searchQuery} />
                     </span>
                   )}
                 </div>
                 {!selectionMode && (
-                  <BookCardDropdown
-                    formatLabel={formatLabel}
-                    sizeLabel={sizeLabel}
-                    uploadedAtLabel={uploadedAtLabel}
-                    lastReadLabel={lastReadLabel}
-                    isDeleting={isDeleting}
-                    onCategoryClick={() => setCategoryDialogOpen(true)}
-                    onDeleteClick={() => setDeleteConfirmOpen(true)}
-                  />
+                  <div className="absolute -right-2 -top-1">
+                    <BookCardDropdown
+                      formatLabel={formatLabel}
+                      sizeLabel={sizeLabel}
+                      uploadedAtLabel={uploadedAtLabel}
+                      lastReadLabel={lastReadLabel}
+                      isDeleting={isDeleting}
+                      onCategoryClick={() => setCategoryDialogOpen(true)}
+                      onDeleteClick={() => setDeleteConfirmOpen(true)}
+                    />
+                  </div>
                 )}
               </div>
             </div>

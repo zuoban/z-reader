@@ -37,12 +37,12 @@ const getGlassSurface = (
     accentGlow?: string;
   }
 ) => ({
-  background: `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.05)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.78)}`,
-  border: `1px solid ${options?.accentBorder ?? withOpacity(uiScheme.cardBorder, 0.3)}`,
+  background: withOpacity(uiScheme.cardBg, 0.8),
+  border: `1px solid ${options?.accentBorder ?? withOpacity(uiScheme.cardBorder, 0.2)}`,
   boxShadow: options?.elevated
-    ? `0 16px 30px -18px ${options?.accentGlow ?? withOpacity(uiScheme.fg, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.26)`
-    : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.12)}, inset 0 1px 0 rgba(255,255,255,0.22)`,
-  backdropFilter: 'blur(18px) saturate(1.18)',
+    ? `0 12px 24px -8px ${options?.accentGlow ?? withOpacity(uiScheme.fg, 0.12)}`
+    : `0 8px 16px -10px ${withOpacity(uiScheme.fg, 0.1)}`,
+  backdropFilter: 'blur(20px) saturate(1.2)',
 });
 
 const FAB_SIZE = 52;
@@ -148,26 +148,22 @@ const FloatingButton = ({
 // 提取通用样式配置，保持与阅读器纸面主题一致
 const useThemeStyles = (uiScheme: ThemeColors) => ({
   panel: {
-    background:
-      `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
-    borderColor: `${uiScheme.cardBorder}40`,
-    boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
+    background: withOpacity(uiScheme.cardBg, 0.85),
+    borderColor: withOpacity(uiScheme.cardBorder, 0.25),
+    boxShadow: `0 20px 40px -20px ${withOpacity(uiScheme.cardBorder, 0.5)}, 0 8px 16px -12px ${withOpacity(uiScheme.cardBorder, 0.3)}`,
   },
   section: {
-    background:
-      `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.22)} 0%, transparent 100%), ${uiScheme.cardBg}`,
-    borderColor: `${uiScheme.cardBorder}34`,
+    background: withOpacity(uiScheme.buttonBg, 0.1),
+    borderColor: withOpacity(uiScheme.cardBorder, 0.15),
   },
   selectTrigger: {
-    background:
-      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.34)}`,
-    borderColor: `${uiScheme.cardBorder}55`,
+    background: withOpacity(uiScheme.buttonBg, 0.2),
+    borderColor: withOpacity(uiScheme.cardBorder, 0.2),
     color: uiScheme.fg,
   },
   selectContent: {
-    background:
-      `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.28)} 0%, transparent 8rem), ${uiScheme.cardBg}`,
-    borderColor: `${uiScheme.cardBorder}68`,
+    background: withOpacity(uiScheme.cardBg, 0.95),
+    borderColor: withOpacity(uiScheme.cardBorder, 0.3),
   },
 });
 
@@ -802,38 +798,29 @@ export function TTSControls({
           container={overlayContainer}
           data-reader-interactive="true"
           data-reader-tts-popup="true"
-          className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+          className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[2.25rem] border border-border/40 bg-popover/80 p-0 shadow-2xl backdrop-blur-xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
           style={{
-            background:
-              `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
-            borderColor: withOpacity(uiScheme.cardBorder, 0.22),
             color: uiScheme.fg,
-            boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
           }}
         >
           <div aria-live="polite" aria-atomic="true" className="sr-only">
             {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
           </div>
 
-          <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+          <SheetHeader className="shrink-0 border-b border-border/10 px-6 pb-5 pt-7 sm:px-8 sm:pt-8">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3.5">
+              <div className="flex min-w-0 items-center gap-4">
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
-                  style={{
-                    background: withOpacity(uiScheme.buttonBg, 0.2),
-                    borderColor: withOpacity(uiScheme.cardBorder, 0.14),
-                    color: uiScheme.link,
-                  }}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary"
                 >
-                  <Volume2 className="h-5 w-5" />
+                  <Volume2 className="h-6 w-6" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                  <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
                     朗读控制
                   </SheetTitle>
                   <SheetDescription
-                    className="mt-1 text-xs font-medium"
+                    className="mt-0.5 text-[13px] font-medium opacity-60"
                     style={{ color: uiScheme.mutedText }}
                   >
                     调整最贴近当前阅读节奏的声音
@@ -843,16 +830,11 @@ export function TTSControls({
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-                style={{
-                  color: withOpacity(uiScheme.fg, 0.62),
-                  background: withOpacity(uiScheme.buttonBg, 0.18),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
-                }}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/50 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
                 aria-label="关闭朗读控制"
                 title="关闭"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
           </SheetHeader>
@@ -910,11 +892,7 @@ export function TTSControls({
               uiScheme={uiScheme}
             >
               <div
-                className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] "
-                style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.34),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.2),
-                }}
+                className="flex items-center justify-center gap-3 rounded-[1.5rem] bg-secondary/30 p-2.5"
               >
                 <ControlButton
                   onClick={onPrev}
@@ -927,33 +905,22 @@ export function TTSControls({
                 </ControlButton>
 
                 <div className="relative flex items-center justify-center">
-                  {isPlaying && (
-                    <div
-                      className="absolute inset-0 animate-ping rounded-full opacity-20"
-                      style={{ background: withOpacity(uiScheme.link, 0.32) }}
-                    />
-                  )}
                   <Button
-                    variant="ghost"
+                    variant="default"
                     size="icon"
                     onClick={handleStartClick}
                     disabled={isPending}
                     title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                    className="h-12 w-12 rounded-full shadow-lg transition-all active:scale-90"
-                    style={{
-                      background: uiScheme.fg,
-                      color: uiScheme.cardBg,
-                      cursor: isPending ? 'not-allowed' : 'pointer',
-                    }}
+                    className="h-14 w-14 rounded-full shadow-lg transition-all active:scale-90"
                   >
                     {isPending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Loader2 className="h-6 w-6 animate-spin" />
                     ) : isPaused ? (
-                      <Play className="ml-0.5 h-5 w-5 fill-current" />
+                      <Play className="ml-1 h-6 w-6 fill-current" />
                     ) : isPlaying ? (
-                      <Pause className="h-5 w-5 fill-current" />
+                      <Pause className="h-6 w-6 fill-current" />
                     ) : (
-                      <Play className="ml-0.5 h-5 w-5 fill-current" />
+                      <Play className="ml-1 h-6 w-6 fill-current" />
                     )}
                   </Button>
                 </div>
@@ -979,7 +946,7 @@ export function TTSControls({
                 </ControlButton>
               </div>
 
-              <div className="pt-5">
+              <div className="pt-6">
                 <RateButtons
                   value={settings.rate}
                   onChange={handleRateChange}

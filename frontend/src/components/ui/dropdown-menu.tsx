@@ -22,7 +22,7 @@ function DropdownMenuTrigger({
 }: MenuPrimitive.Trigger.Props & { asChild?: boolean }) {
   const childElement = React.isValidElement(children) ? children : undefined
   const shouldUseNativeButton =
-    nativeButton ?? (asChild ? childElement?.type === "button" : true)
+    nativeButton ?? (asChild ? true : true)
 
   return (
     <MenuPrimitive.Trigger

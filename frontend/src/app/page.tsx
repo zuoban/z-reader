@@ -80,7 +80,7 @@ function DesktopMock({ active }: { active: boolean }) {
             </div>
           </div>
           {/* Main Content */}
-          <div className="flex-1 bg-[#f5f4ed] p-8 sm:p-12">
+          <div className="flex-1 bg-white p-8 sm:p-12">
             <div className="max-w-sm mx-auto space-y-4">
               <div className="h-3 w-24 bg-primary/20 rounded" />
               <div className="h-5 w-3/4 bg-foreground/80 rounded" />
@@ -123,7 +123,7 @@ function PhoneMock({ active }: { active: boolean }) {
           </div>
         </div>
         {/* Mobile Reader */}
-        <div className="bg-[#f5f4ed] h-[calc(100%-2.5rem)] p-5">
+        <div className="bg-white h-[calc(100%-2.5rem)] p-5">
           <div className="space-y-3">
             <div className="h-2 w-16 bg-primary/20 rounded" />
             <div className="h-4 w-2/3 bg-foreground/80 rounded" />
@@ -148,7 +148,7 @@ function ShelfMock({ active }: { active: boolean }) {
       "w-full h-full transition-all duration-700",
       active ? "opacity-100" : "opacity-0"
     )}>
-      <div className="relative w-full h-full bg-[#f5f4ed] rounded-xl overflow-hidden border border-border/50 shadow-2xl">
+      <div className="relative w-full h-full bg-white rounded-xl overflow-hidden border border-border/50 shadow-2xl">
         {/* Header */}
         <div className="h-14 bg-card/80 backdrop-blur border-b border-border/30 flex items-center px-5 justify-between">
           <div className="h-3 w-24 bg-primary/30 rounded" />
@@ -298,13 +298,12 @@ export default function Home() {
 
           {/* Hero Statement */}
           <div className="relative">
-            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold text-foreground leading-[1.15] tracking-tight max-w-4xl">
+            <h1 className="font-sans text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-foreground leading-[1.1] tracking-tight max-w-4xl">
               安静地，
               <br />
               放下一本书。
             </h1>
-            <Ornament className="mt-8 mb-6" />
-            <p className="font-heading text-lg md:text-xl leading-relaxed text-muted-foreground/80 max-w-2xl">
+            <p className="mt-8 font-sans text-xl md:text-2xl font-medium leading-relaxed text-muted-foreground/80 max-w-2xl">
               一个面向个人书架的阅读空间。把不同格式的电子书放进同一个干净的平面。
             </p>
           </div>

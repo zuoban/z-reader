@@ -60,14 +60,14 @@ function ShelfTitle() {
     <Link
       href="/"
       aria-label="返回 Z Reader 落地页"
-      className="group flex min-w-0 flex-col items-start gap-0 outline-none transition-transform duration-200 hover:scale-[1.01] active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-primary/30 rounded-xl py-0.5"
+      className="group flex flex-col items-start outline-none transition-all duration-200 active:scale-[0.98]"
     >
       <h1
-        className="font-heading text-lg font-semibold tracking-tight text-foreground/90 sm:text-xl lg:text-lg"
+        className="font-sans text-xl font-extrabold tracking-tight text-foreground"
       >
         {SHELF_TITLE}
       </h1>
-      <span className="text-[9.5px] font-medium tracking-[0.18em] text-muted-foreground/50 uppercase">
+      <span className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase opacity-60">
         Digital Library
       </span>
     </Link>
@@ -286,32 +286,26 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1920px] flex-col px-5 py-4 sm:px-6 sm:py-6 lg:px-12 lg:py-7 xl:px-14 2xl:px-16"
+      contentClassName="mx-auto flex min-h-screen w-full max-w-[1920px] flex-col px-6 py-4 sm:px-8 sm:py-6 lg:px-16 lg:py-8"
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute left-[5%] top-[10%] h-[30%] w-[30%] rounded-full bg-primary/5 blur-[100px]" />
-        <div className="absolute right-[5%] bottom-[10%] h-[30%] w-[30%] rounded-full bg-accent/5 blur-[100px]" />
-      </div>
-
-      <header className="sticky top-0 z-50 mb-4 w-full pt-1 lg:mb-6 lg:pt-2">
-        <div className="shelf-header flex h-16 items-center justify-between px-0 sm:h-20 lg:h-18">
-          <div className="flex items-center gap-5">
+      <header className="sticky top-0 z-50 mb-8 w-full">
+        <div className="flex h-16 items-center justify-between bg-background/60 backdrop-blur-md rounded-2xl border border-border/10 px-4 sm:px-6">
+          <div className="flex items-center gap-6">
             <ShelfTitle />
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
-            <div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div role="button" className="shelf-icon-btn p-2 cursor-pointer" tabIndex={0} aria-label="菜单">
-                    <Menu className="h-4 w-4" />
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  sideOffset={10}
-                  className="shelf-account-menu w-44 min-w-44 rounded-2xl p-1.5"
-                >
+          <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={10}
+                className="w-48 rounded-2xl border-border/40 p-1.5 shadow-xl"
+              >
                   {user?.role === 'admin' && (
                     <UserManager
                       currentUser={user}
@@ -365,8 +359,6 @@ export default function ShelfPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-
           </div>
         </div>
       </header>
@@ -418,7 +410,7 @@ export default function ShelfPage() {
                 >
                   {isUploading ? (
                     <>
-                      <LoadingSpinner inverted className="mr-2.5 h-4 w-4 border-background/30" />
+                      <LoadingSpinner className="mr-2.5 h-4 w-4" />
                       {uploadStatusLabel ?? '添加中...'}
                     </>
                   ) : (
@@ -450,22 +442,22 @@ export default function ShelfPage() {
                     categories.length === 0 && 'sm:min-w-[13rem]'
                   )}
                 >
-                  <div className="relative w-full sm:max-w-[24rem] lg:max-w-none">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 transition-colors group-focus-within:text-primary/60" />
+                  <div className="relative w-full sm:max-w-[28rem] lg:max-w-none group">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                     <Input
                       type="search"
                       value={searchQuery}
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名、作者或关键词..."
                       aria-label="搜索书架"
-                      className="h-9 rounded-md border border-border/40 bg-background pl-9.5 pr-9 text-sm shadow-none transition-all hover:border-border/60 focus:border-primary/40 focus:ring-0 placeholder:text-muted-foreground/60"
+                      className="h-12 rounded-2xl border-border/10 bg-secondary/30 pl-11 pr-10 text-[15px] shadow-none transition-all hover:bg-secondary/40 focus:bg-background focus:border-primary/20 focus:ring-0"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => changeSearchQuery('')}
                         aria-label="清空搜索"
-                        className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted/60 hover:text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <X className="h-4 w-4" />
                       </button>

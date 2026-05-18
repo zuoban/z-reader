@@ -19,11 +19,9 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'login') {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 login-ambient-bg" />
-        <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_16%,transparent),transparent)]" />
-        <div className="absolute left-[9%] top-[10%] h-40 w-56 rotate-[-8deg] rounded-[2.5rem] border border-border/30 bg-card/34 shadow-[0_32px_48px_-42px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] " />
-        <div className="absolute bottom-[9%] right-[10%] h-44 w-64 rotate-[6deg] rounded-[2.5rem] border border-border/30 bg-card/30 shadow-[0_38px_54px_-44px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_34%,transparent)] " />
-        <div className="absolute left-[18%] top-[16%] h-28 w-40 rotate-[4deg] rounded-[2rem] border border-border/30 bg-card/28 shadow-[0_26px_40px_-38px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_32%,transparent)] " />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
+        <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-primary/5 blur-[120px]" />
       </div>
     );
   }
@@ -92,13 +90,13 @@ export function BrandMark({
   );
 
   if (!framed) {
-    return <div className={className}>{logo}</div>;
+    return <div className={cn('flex items-center justify-center', className)}>{logo}</div>;
   }
 
   return (
     <div
       className={cn(
-        'paper-panel paper-stack rounded-2xl px-5 py-3 ',
+        'rounded-2xl border border-border/40 bg-card/50 p-6 backdrop-blur-md',
         className
       )}
     >
@@ -117,15 +115,12 @@ interface LoadingStateProps {
 
 export function LoadingSpinner({
   className,
-  inverted = false,
 }: {
   className?: string;
-  inverted?: boolean;
 }) {
   return (
     <div
-      className={cn('h-10 w-10 animate-spin rounded-full border-2 border-foreground/20 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]', className)}
-      style={{ borderTopColor: inverted ? 'var(--background)' : 'var(--foreground)' }}
+      className={cn('h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary', className)}
     />
   );
 }
@@ -139,24 +134,23 @@ export function LoadingState({
 }: LoadingStateProps) {
   const content = (
     <>
-      {showLogo && <BrandMark size="md" priority />}
+      {showLogo && <BrandMark size="md" priority className="mb-4" />}
       <LoadingSpinner />
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground">{title}</p>
+      <div className="mt-4 text-center">
+        <p className="text-[15px] font-bold text-foreground">{title}</p>
         {description && (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
         )}
       </div>
     </>
   );
 
   return (
-    <div className={cn('flex min-h-screen items-center justify-center px-5 py-6', className)}>
+    <div className={cn('flex min-h-screen items-center justify-center px-6 py-12', className)}>
       <div
         className={cn(
-          'flex flex-col items-center gap-4',
-          card &&
-            'editorial-panel paper-stack min-w-[240px] rounded-[1.75rem] px-8 py-10 '
+          'flex flex-col items-center',
+          card && 'rounded-[2rem] border border-border/40 bg-card/50 p-12 backdrop-blur-xl'
         )}
       >
         {content}

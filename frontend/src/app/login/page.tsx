@@ -166,7 +166,7 @@ export default function LoginPage() {
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {isSubmitting ? (
                   <>
-                    <LoadingSpinner inverted className="h-4 w-4 border-background/30" />
+                    <LoadingSpinner className="h-4 w-4" />
                     验证中
                   </>
                 ) : (

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReaderTheme } from '@/hooks/useReaderTheme';
 
+const PRESETS: ReaderTheme['preset'][] = ['light', 'sepia', 'green', 'dark'];
+
 interface ShelfTheme {
   preset: ReaderTheme['preset'];
   isDark: boolean;
@@ -42,7 +44,11 @@ function writeShelfThemePreset(preset: ReaderTheme['preset']) {
   }
 }
 
-export function useShelfTheme(): ShelfTheme & { toggleTheme: () => void } {
+export function useShelfTheme(): ShelfTheme & {
+  toggleTheme: () => void;
+  cyclePreset: () => void;
+  setPreset: (preset: ReaderTheme['preset']) => void;
+} {
   const [theme, setTheme] = useState<ShelfTheme>(readShelfTheme);
 
   useEffect(() => {
@@ -64,5 +70,17 @@ export function useShelfTheme(): ShelfTheme & { toggleTheme: () => void } {
     setTheme({ preset, isDark: preset === 'dark' });
   }, [theme.isDark]);
 
-  return { ...theme, toggleTheme };
+  const cyclePreset = useCallback(() => {
+    const currentIdx = PRESETS.indexOf(theme.preset);
+    const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length];
+    writeShelfThemePreset(nextPreset);
+    setTheme({ preset: nextPreset, isDark: nextPreset === 'dark' });
+  }, [theme.preset]);
+
+  const setPreset = useCallback((preset: ReaderTheme['preset']) => {
+    writeShelfThemePreset(preset);
+    setTheme({ preset, isDark: preset === 'dark' });
+  }, []);
+
+  return { ...theme, toggleTheme, cyclePreset, setPreset };
 }

@@ -11,7 +11,7 @@ import { MoveRight, Library, RefreshCw, Headphones, LayoutGrid, ArrowDown } from
 // ─── Decorative Ornament Component ───
 function Ornament({ className }: { className?: string }) {
   return (
-    <svg className={cn('opacity-20', className)} width="120" height="8" viewBox="0 0 120 8" fill="none">
+    <svg className={cn('opacity-20 dark:opacity-30', className)} width="120" height="8" viewBox="0 0 120 8" fill="none">
       <line x1="0" y1="4" x2="45" y2="4" stroke="currentColor" strokeWidth="0.5" />
       <circle cx="60" cy="4" r="2" fill="currentColor" />
       <line x1="75" y1="4" x2="120" y2="4" stroke="currentColor" strokeWidth="0.5" />
@@ -80,7 +80,7 @@ function DesktopMock({ active }: { active: boolean }) {
             </div>
           </div>
           {/* Main Content */}
-          <div className="flex-1 bg-white p-8 sm:p-12">
+          <div className="flex-1 bg-white dark:bg-[#1a1a1a] p-8 sm:p-12">
             <div className="max-w-sm mx-auto space-y-4">
               <div className="h-3 w-24 bg-primary/20 rounded" />
               <div className="h-5 w-3/4 bg-foreground/80 rounded" />
@@ -123,7 +123,7 @@ function PhoneMock({ active }: { active: boolean }) {
           </div>
         </div>
         {/* Mobile Reader */}
-        <div className="bg-white h-[calc(100%-2.5rem)] p-5">
+        <div className="bg-white dark:bg-[#1a1a1a] h-[calc(100%-2.5rem)] p-5">
           <div className="space-y-3">
             <div className="h-2 w-16 bg-primary/20 rounded" />
             <div className="h-4 w-2/3 bg-foreground/80 rounded" />
@@ -148,7 +148,7 @@ function ShelfMock({ active }: { active: boolean }) {
       "w-full h-full transition-all duration-700",
       active ? "opacity-100" : "opacity-0"
     )}>
-      <div className="relative w-full h-full bg-white rounded-xl overflow-hidden border border-border/50 shadow-2xl">
+      <div className="relative w-full h-full bg-white dark:bg-background rounded-xl overflow-hidden border border-border/50 shadow-2xl">
         {/* Header */}
         <div className="h-14 bg-card/80 backdrop-blur border-b border-border/30 flex items-center px-5 justify-between">
           <div className="h-3 w-24 bg-primary/30 rounded" />
@@ -248,10 +248,6 @@ export default function Home() {
   }, [galleryIndex, isSwitching]);
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.remove('dark');
-    }
-
     timerRef.current = setInterval(() => {
       activateGallery((galleryIndex + 1) % GALLERY_ITEMS.length);
     }, 5000);
@@ -550,7 +546,7 @@ export default function Home() {
             ctaVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
           )}
         >
-          <div className="relative rounded-2xl border border-border/40 bg-card/40 overflow-hidden">
+          <div className="relative rounded-2xl border border-border/40 bg-card/40 dark:bg-card/60 overflow-hidden">
             {/* Decorative Corner */}
             <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04]">
               <svg width="128" height="128" viewBox="0 0 128 128" fill="currentColor">
@@ -638,7 +634,7 @@ export default function Home() {
               <div
                 key={i}
                 className={cn(
-                  "group rounded-xl p-6 border border-border/30 bg-card/30 hover:border-primary/20 hover:bg-card/50 transition-all duration-700",
+                  "group rounded-xl p-6 border border-border/30 bg-card/30 dark:bg-card/50 hover:border-primary/20 hover:bg-card/50 dark:hover:bg-card/60 transition-all duration-700",
                   faqVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 )}
                 style={{ transitionDelay: `${i * 100 + 300}ms` }}
@@ -677,7 +673,7 @@ export default function Home() {
 
             {/* Quote */}
             <div className="text-left md:text-right flex-1">
-              <p className="font-heading text-2xl md:text-3xl text-muted-foreground/[0.06] italic leading-[1.2] max-w-2xl md:ml-auto select-none">
+              <p className="font-heading text-2xl md:text-3xl text-muted-foreground/[0.06] dark:text-muted-foreground/[0.1] italic leading-[1.2] max-w-2xl md:ml-auto select-none">
                 &ldquo;读书，是为了在喧嚣的世界中找到属于自己的安静角落。&rdquo;
               </p>
             </div>

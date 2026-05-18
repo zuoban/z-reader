@@ -288,7 +288,7 @@ export default function ShelfPage() {
       ambient="shelf"
       contentClassName="mx-auto flex min-h-screen w-full max-w-[1920px] flex-col px-6 py-4 sm:px-8 sm:py-6 lg:px-16 lg:py-8"
     >
-      <header className="sticky top-0 z-50 mb-8 w-full">
+      <header className="sticky top-0 z-50 mb-8 w-full pt-[max(env(safe-area-inset-top,0px),0.5rem)]">
         <div className="flex h-16 items-center justify-between bg-background/60 backdrop-blur-md rounded-2xl border border-border/10 px-4 sm:px-6">
           <div className="flex items-center gap-6">
             <ShelfTitle />
@@ -297,7 +297,7 @@ export default function ShelfPage() {
           <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                <Button variant="ghost" size="icon" className="rounded-full min-h-[44px] min-w-[44px] h-11 w-11">
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -457,7 +457,7 @@ export default function ShelfPage() {
                         type="button"
                         onClick={() => changeSearchQuery('')}
                         aria-label="清空搜索"
-                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className="absolute right-3 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -514,7 +514,7 @@ export default function ShelfPage() {
                         type="button"
                         variant="ghost"
                         className={cn(
-                          'group h-9 min-w-[5.5rem] rounded-lg border border-border/15 bg-card/30 px-2.5 text-xs font-medium text-muted-foreground/70  transition-all duration-200 hover:border-border/25 hover:bg-card/50 hover:text-foreground/80 active:scale-[0.97] sm:px-3.5 sm:text-sm',
+                          'group min-h-[44px] rounded-lg border border-border/15 bg-card/30 px-2.5 text-xs font-medium text-muted-foreground/70 transition-all duration-200 hover:border-border/25 hover:bg-card/50 hover:text-foreground/80 active:scale-[0.97] sm:px-3.5 sm:text-sm',
                           selectionMode && 'border-primary/20 bg-primary/5 text-primary shadow-none'
                         )}
                         onClick={toggleSelectionMode}
@@ -645,7 +645,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-9.5 min-w-0 rounded-xl px-2.5 text-xs font-medium border-border/35 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium border-border/35 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
                       onClick={toggleVisibleSelection}
                     >
                       {allVisibleSelected ? '取消全选' : '选择本页'}
@@ -654,7 +654,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-9.5 min-w-0 rounded-xl px-2.5 text-xs font-medium border-primary/18 bg-primary/5 text-primary hover:bg-primary/10 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium border-primary/18 bg-primary/5 text-primary hover:bg-primary/10 transition-all active:scale-95 sm:px-4 sm:text-sm"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
@@ -666,7 +666,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="destructive"
-                      className="h-9.5 min-w-0 rounded-xl px-2.5 text-xs font-medium shadow-sm transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium shadow-sm transition-all active:scale-95 sm:px-4 sm:text-sm"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
@@ -679,7 +679,7 @@ export default function ShelfPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="hidden sm:flex h-9 w-9 ml-2 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+                      className="hidden sm:flex min-h-[44px] w-9 ml-2 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
                     >

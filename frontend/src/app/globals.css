@@ -60,7 +60,7 @@
   --card-foreground: #1d1d1f;
   --popover: #ffffff;
   --popover-foreground: #1d1d1f;
-  --primary: #000000;
+  --primary: #1d1d1f;
   --primary-foreground: #ffffff;
   --secondary: #f5f5f7;
   --secondary-foreground: #1d1d1f;
@@ -74,6 +74,22 @@
   --input: #d2d2d7;
   --ring: #007aff;
   --radius: 0.75rem;
+  --paper-duration-base: 280ms;
+  --paper-duration-fast: 160ms;
+  --paper-ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --paper-edge: #d2d2d7;
+  --paper-motion-x: 0px;
+  --paper-motion-y: 12px;
+  --paper-motion-scale: 0.97;
+  --paper-shadow: rgba(0, 0, 0, 0.12);
+  --paper-shadow-soft: rgba(0, 0, 0, 0.06);
+  --glass-specular: rgba(255, 255, 255, 0.35);
+  --glass-tint: rgba(245, 245, 247, 0.6);
+  --shelf-surface: #f5f5f7;
+  --shelf-surface-raised: #ffffff;
+  --shelf-surface-soft: #fafafa;
+  --shelf-surface-hover: #e8e8ed;
+  --shelf-surface-selected: #e5e5ea;
 }
 
 .dark {
@@ -96,12 +112,22 @@
   --border: #333333;
   --input: #333333;
   --ring: #0a84ff;
+  --paper-edge: #3a3a3c;
+  --paper-shadow: rgba(0, 0, 0, 0.5);
+  --paper-shadow-soft: rgba(0, 0, 0, 0.3);
+  --glass-specular: rgba(255, 255, 255, 0.08);
+  --glass-tint: rgba(29, 29, 31, 0.65);
+  --shelf-surface: #1c1c1e;
+  --shelf-surface-raised: #2c2c2e;
+  --shelf-surface-soft: #1a1a1c;
+  --shelf-surface-hover: #3a3a3c;
+  --shelf-surface-selected: #48484a;
 }
 
 /* Reader Specific Colors - Decoupled from App Theme */
 :root[data-reader-preset="sepia"] {
   --reader-bg: #f4ecd8;
-  --reader-text: #433427;
+  --reader-text: #5c4a3a;
 }
 
 :root[data-reader-preset="green"] {
@@ -154,7 +180,11 @@ foliate-view::part(filter) {
   }
 
   button,
-  a {
+  a,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
     min-height: 44px;
     min-width: 44px;
   }

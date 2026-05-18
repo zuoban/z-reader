@@ -77,7 +77,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
   },
   sepia: {
     bg: "#f4ecd8",
-    fg: "#433427",
+    fg: "#5c4a3a",
     link: "#9a6b41",
     headerBg: "#fbf6e9",
     headerBorder: "#d9c39b",
@@ -138,6 +138,20 @@ export const DEFAULT_READER_THEME: ReaderTheme = {
 
 const STORAGE_KEY = "z-reader-theme";
 
+function readPresetFromStorage(): ReaderTheme["preset"] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const p = parsed?.preset;
+      if (p === "light" || p === "sepia" || p === "green" || p === "dark") return p;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 let cachedTheme: ReaderTheme | null = null;
 let cachedThemeRaw: string | null = null;
 
@@ -191,15 +205,32 @@ function getSnapshot(): ReaderTheme {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (cachedTheme && cachedThemeRaw === saved) return cachedTheme;
 
+    const storagePreset = readPresetFromStorage();
+
+    // Build base theme from shared storage
+    const baseTheme = { ...DEFAULT_READER_THEME };
+    if (storagePreset) baseTheme.preset = storagePreset;
+
+    // Merge reader-specific overrides if they exist in storage
     if (saved) {
-      const parsed = normalizeReaderTheme({
-        ...DEFAULT_READER_THEME,
-        ...JSON.parse(saved),
-      } as ReaderTheme);
-      cachedTheme = parsed;
-      cachedThemeRaw = saved;
-      return parsed;
+      const parsed = JSON.parse(saved);
+      if (parsed?.fontFamily) baseTheme.fontFamily = parsed.fontFamily;
+      if (parsed?.fontSize) baseTheme.fontSize = parsed.fontSize;
+      if (parsed?.lineHeight) baseTheme.lineHeight = parsed.lineHeight;
+      if (parsed?.pagePaddingX) baseTheme.pagePaddingX = parsed.pagePaddingX;
+      if (parsed?.pagePaddingY) baseTheme.pagePaddingY = parsed.pagePaddingY;
+      if (parsed?.paragraphSpacing) baseTheme.paragraphSpacing = parsed.paragraphSpacing;
+      if (parsed?.flow) baseTheme.flow = parsed.flow;
+      if (parsed?.maxInlineSize) baseTheme.maxInlineSize = parsed.maxInlineSize;
+      if (parsed?.gap) baseTheme.gap = parsed.gap;
+      if (parsed?.animated !== undefined) baseTheme.animated = parsed.animated;
     }
+
+    const normalized = normalizeReaderTheme(baseTheme);
+    const raw = JSON.stringify(normalized);
+    cachedTheme = normalized;
+    cachedThemeRaw = raw;
+    return normalized;
   } catch (err) {
     console.error("Failed to load theme from localStorage:", err);
   }
@@ -220,6 +251,19 @@ export function useReaderTheme() {
   const setTheme = useCallback(
     (newTheme: Partial<ReaderTheme>) => {
       const updated = normalizeReaderTheme({ ...theme, ...newTheme });
+      const raw = JSON.stringify(updated);
+      localStorage.setItem(STORAGE_KEY, raw);
+      cachedTheme = updated;
+      cachedThemeRaw = raw;
+      window.dispatchEvent(new StorageEvent("storage"));
+      window.dispatchEvent(new CustomEvent("z-reader-theme-change"));
+    },
+    [theme],
+  );
+
+  const setPreset = useCallback(
+    (preset: ReaderTheme["preset"]) => {
+      const updated = { ...theme, preset };
       const raw = JSON.stringify(updated);
       localStorage.setItem(STORAGE_KEY, raw);
       cachedTheme = updated;
@@ -300,6 +344,7 @@ export function useReaderTheme() {
   return {
     theme,
     setTheme,
+    setPreset,
     getStylesheet,
     getContainerStyle,
     getUIScheme,

@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { toast } from 'sonner';
 import { useShelfData } from '@/hooks/useShelfData';
 import { api } from '@/lib/api';
+import { extractBookPreview } from '@/lib/book-preview';
 import type { Book } from '@/lib/api';
 
 // Mock the API
@@ -264,6 +265,39 @@ describe('useShelfData', () => {
 
     expect(result.current.books).toHaveLength(1);
     expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
+  });
+
+  it('uploads extracted JPEG covers with a matching extension', async () => {
+    const jpegCover = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], {
+      type: 'image/jpeg',
+    });
+    vi.mocked(extractBookPreview).mockResolvedValueOnce({
+      title: 'Enriched',
+      author: 'Author',
+      cover: jpegCover,
+    });
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'new-book' }));
+    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'new-book', title: 'Enriched' }));
+    vi.mocked(api.uploadCover).mockResolvedValue(mockBook({ id: 'new-book', cover_url: '/cover' }));
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    const fakeFile = new File(['test'], 'test.epub', { type: 'application/epub+zip' });
+    const fakeEvent = { target: { files: [fakeFile], value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+    await act(async () => {
+      await result.current.handleUpload(fakeEvent);
+    });
+
+    await vi.waitFor(() => {
+      expect(api.uploadCover).toHaveBeenCalledWith('new-book', jpegCover, 'test.jpg');
+    });
   });
 
   it('uploads multiple supported files', async () => {
@@ -686,6 +720,10 @@ describe('useShelfData', () => {
 
     await act(async () => {
       await result.current.loadBooks();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
 
     // Category should be cleared since 科幻 no longer exists

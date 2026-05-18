@@ -96,6 +96,50 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
 }
 
+async function getImageExtension(blob: Blob): Promise<string> {
+  switch (blob.type.toLowerCase()) {
+    case 'image/jpeg':
+    case 'image/jpg':
+      return '.jpg';
+    case 'image/png':
+      return '.png';
+    case 'image/webp':
+      return '.webp';
+  }
+
+  const header = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+  if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
+    return '.jpg';
+  }
+  if (
+    header[0] === 0x89 &&
+    header[1] === 0x50 &&
+    header[2] === 0x4e &&
+    header[3] === 0x47
+  ) {
+    return '.png';
+  }
+  if (
+    header[0] === 0x52 &&
+    header[1] === 0x49 &&
+    header[2] === 0x46 &&
+    header[3] === 0x46 &&
+    header[8] === 0x57 &&
+    header[9] === 0x45 &&
+    header[10] === 0x42 &&
+    header[11] === 0x50
+  ) {
+    return '.webp';
+  }
+
+  return '.png';
+}
+
+async function getCoverFileName(bookFileName: string, cover: Blob): Promise<string> {
+  const extension = await getImageExtension(cover);
+  return bookFileName.replace(/\.[^.]+$/, extension);
+}
+
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
   const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
@@ -121,7 +165,7 @@ export function useShelfData(isAuthenticated: boolean) {
         });
 
         if (preview.cover) {
-          const coverFileName = file.name.replace(/\.[^.]+$/, '.png');
+          const coverFileName = await getCoverFileName(file.name, preview.cover);
           const finalBook = await api.uploadCover(bookId, preview.cover, coverFileName);
           setBooks((prevBooks) => {
             const bookExists = prevBooks.some((item) => item.id === bookId);
@@ -198,7 +242,10 @@ export function useShelfData(isAuthenticated: boolean) {
   useEffect(() => {
     if (!selectedCategoryId || selectedCategoryId === UNCATEGORIZED_FILTER_ID) return;
     if (!categories.includes(selectedCategoryId)) {
-      setSelectedCategoryId(null);
+      const timeoutId = window.setTimeout(() => {
+        setSelectedCategoryId(null);
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [categories, selectedCategoryId]);
 

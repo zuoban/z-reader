@@ -702,7 +702,7 @@ export default function ReadPage() {
             {zoomedImage && (
               <div
                 aria-modal="true"
-                className="fixed inset-0 z-[90] flex min-h-svh items-center justify-center bg-black/72 p-3  sm:p-6"
+                className="fixed inset-0 z-[90] flex min-h-svh items-center justify-center bg-[#1a1612]/80 p-3  sm:p-6"
                 data-reader-interactive="true"
                 role="dialog"
               >

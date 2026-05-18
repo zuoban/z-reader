@@ -63,7 +63,7 @@ function ShelfTitle() {
       className="group flex flex-col items-start outline-none transition-all duration-200 active:scale-[0.98]"
     >
       <h1
-        className="font-sans text-xl font-extrabold tracking-tight text-foreground"
+        className="font-heading text-xl font-semibold tracking-tight text-foreground"
       >
         {SHELF_TITLE}
       </h1>

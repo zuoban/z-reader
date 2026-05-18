@@ -143,7 +143,7 @@ function BookCoverFace({ coverUrl, titleLabel }: BookCoverFaceProps) {
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_25%,rgba(8,12,24,0.22)_100%)]" />
         )}
         {coverUrl && !isMobile && (
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(107,139,250,0.06),transparent_12%,transparent_88%,rgba(0,0,0,0.08))]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(107,58,42,0.06),transparent_12%,transparent_88%,rgba(0,0,0,0.08))]" />
         )}
       </div>
     );
@@ -151,7 +151,7 @@ function BookCoverFace({ coverUrl, titleLabel }: BookCoverFaceProps) {
 
   return (
     <div className="paper-cover-frame relative flex size-full flex-col p-4 text-foreground">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(107,139,250,0.12)_0%,rgba(155,141,249,0.06)_50%,rgba(6,182,212,0.04)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(107,58,42,0.08)_0%,rgba(139,69,19,0.05)_50%,rgba(196,184,168,0.04)_100%)]" />
       <div className="relative flex h-full flex-col">
         <div className="flex items-start justify-between gap-2">
           <span className="paper-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-primary/70">

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Noto_Sans_SC, Noto_Serif_SC } from 'next/font/google';
+import { Crimson_Text, Playfair_Display, Noto_Serif_SC } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -7,19 +7,17 @@ import { ErrorSuppressor } from '@/components/ErrorSuppressor';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import './globals.css';
 
-const inter = Inter({
-  variable: '--font-inter',
+const crimsonText = Crimson_Text({
+  variable: '--font-crimson',
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '600', '700'],
   display: 'swap',
 });
 
-const notoSansSC = Noto_Sans_SC({
-  variable: '--font-noto-sans-sc',
+const playfairDisplay = Playfair_Display({
+  variable: '--font-playfair',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   display: 'swap',
-  preload: false,
 });
 
 const notoSerifSC = Noto_Serif_SC({
@@ -35,8 +33,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f0e8' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1612' },
   ],
 };
 
@@ -87,10 +85,10 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
-      className={`${inter.variable} ${notoSansSC.variable} ${notoSerifSC.variable} h-full antialiased`}
+      className={`${crimsonText.variable} ${playfairDisplay.variable} ${notoSerifSC.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background font-sans">
+      <body className="min-h-full flex flex-col bg-background font-serif">
         <ThemeProvider>
           <TooltipProvider>
             <a

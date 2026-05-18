@@ -19,9 +19,9 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'login') {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
-        <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-primary/5 blur-[120px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#8b4513]/5 via-background to-background" />
+        <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-[#8b4513]/8 blur-[140px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-[#6b3a2a]/6 blur-[140px]" />
       </div>
     );
   }

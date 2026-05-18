@@ -106,7 +106,7 @@ export function PerspectiveBook({
 
         {/* 书脊 */}
         <div
-          className="absolute left-0 bg-[linear-gradient(90deg,#eaeaea_0%,#0000_80%),linear-gradient(#fff,#fafafa)]"
+          className="absolute left-0 bg-[linear-gradient(90deg,#e8e0d4_0%,#0000_80%),linear-gradient(#faf7f2,#f0ebe2)]"
           style={{
             top: '3px',
             bottom: '3px',

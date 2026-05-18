@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CircleAlert, Eye, EyeOff, LockKeyhole, MoveRight, UserRound } from 'lucide-react';
+import { BookOpen, CircleAlert, Eye, EyeOff, MoveRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { AppScreen, BrandMark, LoadingSpinner, LoadingState } from '@/components/AppShell';
-import { Button } from '@/components/ui/button';
+import { BrandMark, LoadingSpinner, LoadingState } from '@/components/AppShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,135 +52,127 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <AppScreen ambient="login">
+      <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a]">
         <LoadingState title="加载中..." />
-      </AppScreen>
+      </div>
     );
   }
 
   return (
-    <AppScreen ambient="login">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-5 py-6 sm:px-7 sm:py-10 lg:px-10 lg:py-12">
-        <div className="editorial-panel paper-stack w-full max-w-[460px] rounded-[2.25rem] px-6 py-8 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] sm:px-10 sm:py-10">
-          <div className="editorial-divider mb-8 flex flex-col items-center gap-5 pb-8">
-            <BrandMark size="lg" priority />
-            <div className="text-center">
-              <p className="text-[11px] font-semibold tracking-[0.24em] text-muted-foreground uppercase">
-                Your Reading Room
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#0a0a0a] px-6">
+      
+      <div className="w-full max-w-[400px] flex flex-col items-center">
+        
+        {/* Header Section */}
+        <div className="mb-12 flex flex-col items-center">
+          <div className="mb-4 flex items-center gap-3">
+            <BookOpen size={42} strokeWidth={1.5} className="text-black dark:text-white" />
+            <span className="text-3xl font-bold tracking-tight text-black dark:text-white">ZReader</span>
+          </div>
+          <p className="text-[17px] font-medium text-gray-500 dark:text-gray-400">
+            登录到您的书库
+          </p>
+        </div>
+
+        {/* Form Section */}
+        <form onSubmit={handleSubmit} className="w-full space-y-6">
+          {/* Username */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="username"
+              className="text-sm font-bold text-gray-900 dark:text-gray-100"
+            >
+              邮箱或用户名
+            </Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                if (usernameError) setUsernameError('');
+              }}
+              placeholder="请输入您的邮箱"
+              autoComplete="username"
+              autoFocus
+              className="h-12 w-full rounded-lg border-none bg-gray-100 dark:bg-[#1a1a1a] px-4 text-base transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800"
+            />
+            {usernameError && (
+              <p className="text-xs font-medium text-red-500">
+                {usernameError}
               </p>
-              <h1 className="font-heading text-[2rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.4rem]">
-                欢迎回来
-              </h1>
-            </div>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="group space-y-2">
-              <Label
-                htmlFor="username"
-                className="flex items-center gap-1.5 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase transition-colors group-focus-within:text-foreground"
-              >
-                <UserRound className="h-3.5 w-3.5 opacity-60" />
-                用户名
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (usernameError) setUsernameError('');
-                }}
-                placeholder="请输入用户名"
-                autoComplete="username"
-                autoFocus
-                aria-invalid={Boolean(usernameError)}
-                aria-describedby={usernameError ? 'username-error' : undefined}
-                className="paper-control h-[52px] rounded-2xl px-4 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
-              />
-              {usernameError && (
-                <p id="username-error" className="px-1 text-xs font-medium text-destructive">
-                  {usernameError}
-                </p>
-              )}
-            </div>
-
-            <div className="group space-y-2">
-              <Label
-                htmlFor="password"
-                className="flex items-center gap-1.5 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase transition-colors group-focus-within:text-foreground"
-              >
-                <LockKeyhole className="h-3.5 w-3.5 opacity-60" />
-                密码
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (passwordError) setPasswordError('');
-                  }}
-                  placeholder="请输入访问密码"
-                  autoComplete="current-password"
-                  aria-invalid={Boolean(passwordError)}
-                  aria-describedby={passwordError ? 'password-error' : undefined}
-                  className="paper-control h-[52px] rounded-2xl px-4 pr-12 text-sm shadow-none transition-all duration-200 placeholder:text-muted-foreground/55 focus:border-primary/45 focus:bg-background/65 focus:outline-none focus:ring-2 focus:ring-primary/15"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-muted-foreground/55 transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                  aria-label={showPassword ? '隐藏密码' : '显示密码'}
-                  title={showPassword ? '隐藏密码' : '显示密码'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              {passwordError && (
-                <p id="password-error" className="px-1 text-xs font-medium text-destructive">
-                  {passwordError}
-                </p>
-              )}
-            </div>
-
-            {error && (
-              <div className="animate-in slide-in-from-top-2 fade-in duration-300">
-                <p className="paper-field flex items-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/4 px-4 py-3 text-sm text-destructive">
-                  <CircleAlert className="h-4 w-4 flex-shrink-0" />
-                  {error}
-                </p>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="group relative h-[52px] w-full overflow-hidden rounded-2xl bg-primary text-sm font-semibold tracking-[0.06em] text-primary-foreground shadow-[0_24px_38px_-24px_var(--paper-shadow)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/92 hover:shadow-[0_28px_44px_-24px_var(--paper-shadow)] disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={isSubmitting}
+          {/* Password */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="password"
+              className="text-sm font-bold text-gray-900 dark:text-gray-100"
             >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                {isSubmitting ? (
-                  <>
-                    <LoadingSpinner className="h-4 w-4" />
-                    验证中
-                  </>
-                ) : (
-                  <>
-                    进入
-                    <MoveRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </>
-                )}
-              </span>
-            </Button>
-          </form>
+              密码
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError('');
+                }}
+                placeholder="请输入您的密码"
+                autoComplete="current-password"
+                className="h-12 w-full rounded-lg border-none bg-gray-100 dark:bg-[#1a1a1a] px-4 pr-12 text-base transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {passwordError && (
+              <p className="text-xs font-medium text-red-500">
+                {passwordError}
+              </p>
+            )}
+          </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+              <CircleAlert size={16} />
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-12 w-full rounded-lg bg-[#050509] text-base font-bold text-white transition-all hover:bg-black active:scale-[0.98] disabled:opacity-50 dark:bg-white dark:text-black"
+          >
+            {isSubmitting ? (
+              <div className="flex items-center justify-center gap-2">
+                <LoadingSpinner className="h-4 w-4 border-white/20 border-t-white dark:border-black/20 dark:border-t-black" />
+                正在登录...
+              </div>
+            ) : (
+              '登录'
+            )}
+          </button>
+        </form>
+
+        {/* Footer Section */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            还没有账号？ <span className="font-bold text-gray-900 dark:text-gray-100 cursor-pointer hover:underline">立即创建</span>
+          </p>
         </div>
+
       </div>
-    </AppScreen>
+    </div>
   );
 }

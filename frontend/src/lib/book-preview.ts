@@ -189,9 +189,10 @@ async function createStoredZip(entries: Array<{ path: string; blob: Blob }>): Pr
   setUint32(endOfCentralDirectory, 12, centralDirectory.length);
   setUint32(endOfCentralDirectory, 16, offset);
 
-  return new Blob([...fileChunks, centralDirectory, endOfCentralDirectory], {
-    type: 'application/epub+zip',
-  });
+  return new Blob(
+    [...fileChunks, centralDirectory, endOfCentralDirectory].map((chunk) => chunk.buffer as ArrayBuffer),
+    { type: 'application/epub+zip' }
+  );
 }
 
 /**
@@ -200,6 +201,7 @@ async function createStoredZip(entries: Array<{ path: string; blob: Blob }>): Pr
  * paths Foliate needs to be rooted at the standard META-INF/container.xml.
  */
 async function normalizeEpubStructure(file: File): Promise<File> {
+  // @ts-ignore - zip.js is a vendored third-party library without type declarations
   const zipModule = await import(/* webpackIgnore: true */ '/foliate/vendor/zip.js');
   const { configure, ZipReader, BlobReader, BlobWriter, TextWriter } = zipModule;
   configure({ useWebWorkers: false });
@@ -207,12 +209,12 @@ async function normalizeEpubStructure(file: File): Promise<File> {
   const reader = new ZipReader(new BlobReader(file));
   try {
     const entries = await reader.getEntries();
-    const containerEntry = entries.find((entry) => {
+    const containerEntry = entries.find((entry: any) => {
       const normalizedPath = getNormalizedZipPath(entry.filename).toLowerCase();
       return normalizedPath === 'meta-inf/container.xml'
         || normalizedPath.endsWith('/meta-inf/container.xml');
     });
-    const opfEntry = entries.find((entry) => {
+    const opfEntry = entries.find((entry: any) => {
       const normalizedPath = getNormalizedZipPath(entry.filename).toLowerCase();
       return !entry.directory && normalizedPath.endsWith('.opf');
     });
@@ -242,7 +244,7 @@ async function normalizeEpubStructure(file: File): Promise<File> {
     const rewrittenEntries: Array<{ path: string; blob: Blob }> = [];
     const addedPaths = new Set<string>();
 
-    for (const entry of entries) {
+    for (const entry of entries as any[]) {
       if (entry.directory) {
         continue;
       }

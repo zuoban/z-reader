@@ -6,13 +6,20 @@ type WakeLockSentinelLike = {
   release: () => Promise<void>;
 };
 
+type WakeLockNavigator = Navigator & {
+  wakeLock?: {
+    request: (type: 'screen') => Promise<WakeLockSentinelLike>;
+  };
+};
+
 export function useWakeLock() {
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
 
   const requestWakeLock = useCallback(async () => {
     try {
-      if ('wakeLock' in navigator && !wakeLockRef.current) {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      const wakeLock = (navigator as WakeLockNavigator).wakeLock;
+      if (wakeLock && !wakeLockRef.current) {
+        wakeLockRef.current = await wakeLock.request('screen');
       }
     } catch (err) {
       console.warn('Wake Lock request failed:', err);

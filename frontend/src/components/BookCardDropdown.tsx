@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 interface BookCardDropdownProps {
   formatLabel: string;
@@ -26,6 +27,7 @@ interface BookCardDropdownProps {
   isDeleting: boolean;
   onCategoryClick: () => void;
   onDeleteClick: () => void;
+  triggerClassName?: string;
 }
 
 function DetailRow({
@@ -60,16 +62,21 @@ export function BookCardDropdown({
   isDeleting,
   onCategoryClick,
   onDeleteClick,
+  triggerClassName,
 }: BookCardDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="更多操作"
         title="更多操作"
-        className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-transparent bg-transparent text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90"
+        style={{ minHeight: 'auto', minWidth: 'auto' }}
+        className={cn(
+          'flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-transparent bg-transparent text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90',
+          triggerClassName
+        )}
         onClick={(e) => e.stopPropagation()}
       >
-        <MoreVertical className="h-5 w-5" />
+        <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

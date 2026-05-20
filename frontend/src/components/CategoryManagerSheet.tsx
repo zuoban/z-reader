@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Pencil, Tag, Trash2, X } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 
 interface CategoryManagerSheetProps {
@@ -30,20 +31,15 @@ export function CategoryManagerSheet({
   loading = false,
   onRenameCategory,
 }: CategoryManagerSheetProps) {
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [nextCategory, setNextCategory] = useState('');
+  const [editingCategory, setEditingCategory] = useState('');
+  const [editValue, setEditValue] = useState('');
+  const [deleteConfirmCategory, setDeleteConfirmCategory] = useState('');
   const normalizedCategories = categories.map((category) => category.trim()).filter(Boolean);
-  const selectedCount = selectedCategory ? bookCounts[selectedCategory] || 0 : 0;
-  const trimmedNextCategory = nextCategory.trim();
-  const canRename =
-    Boolean(selectedCategory) &&
-    Boolean(trimmedNextCategory) &&
-    trimmedNextCategory !== selectedCategory &&
-    trimmedNextCategory.length <= 50;
 
   function reset() {
-    setSelectedCategory('');
-    setNextCategory('');
+    setEditingCategory('');
+    setEditValue('');
+    setDeleteConfirmCategory('');
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -51,176 +47,161 @@ export function CategoryManagerSheet({
     onOpenChange(nextOpen);
   }
 
-  function chooseCategory(category: string) {
-    setSelectedCategory(category);
-    setNextCategory(category);
+  function startEdit(category: string) {
+    setEditingCategory(category);
+    setEditValue(category);
   }
 
-  async function renameCategory() {
-    if (!canRename) return;
-    await onRenameCategory(selectedCategory, trimmedNextCategory);
-    reset();
-    onOpenChange(false);
+  function cancelEdit() {
+    setEditingCategory('');
+    setEditValue('');
   }
 
-  async function clearCategory() {
-    if (!selectedCategory) return;
-    await onRenameCategory(selectedCategory, null);
-    reset();
-    onOpenChange(false);
+  async function saveRename() {
+    const trimmed = editValue.trim();
+    if (!trimmed || trimmed === editingCategory || trimmed.length > 50) return;
+    await onRenameCategory(editingCategory, trimmed);
+    cancelEdit();
+  }
+
+  async function clearCategory(category: string) {
+    await onRenameCategory(category, null);
+    setDeleteConfirmCategory('');
   }
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent
-        side="bottom"
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="max-w-[420px] rounded-2xl border border-border/50 bg-white p-0 shadow-lg"
         showCloseButton={false}
-        finalFocus={false}
-        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(86svh,38rem)] flex-col rounded-3xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
       >
-        <SheetHeader className="relative shrink-0 border-b border-border/55 bg-transparent px-5 pb-4 pt-5 pr-16 shadow-none sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/14 bg-primary/8 text-primary">
-              <Tag className="h-[18px] w-[18px]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="text-[19px] font-semibold tracking-tight">
-                管理分类
-              </SheetTitle>
-              <SheetDescription className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
-                重命名分类，或从图书中清空某个分类
-              </SheetDescription>
-            </div>
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4">
+          <div>
+            <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-[#111111]">
+              Manage Categories
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
+              Rename or delete your book categories
+            </DialogDescription>
           </div>
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-            aria-label="关闭"
-            title="关闭"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
-        </SheetHeader>
+        </div>
 
-        <div className="min-h-0 overflow-y-auto px-5 py-4 sm:px-6">
+        {/* Category List */}
+        <div className="max-h-[20rem] overflow-y-auto px-6 pb-6">
           {normalizedCategories.length === 0 ? (
-            <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-border/55 bg-muted/28 px-6 text-center">
-              <Tag className="h-9 w-9 text-primary/55" />
-              <p className="mt-3 font-heading text-xl font-semibold">还没有分类</p>
-              <p className="mt-1 text-sm text-muted-foreground">给图书设置分类后，这里会显示管理入口。</p>
+            <div className="flex min-h-[8rem] flex-col items-center justify-center rounded-xl border border-dashed border-border/50 bg-secondary/30 px-6 text-center">
+              <p className="text-sm font-medium text-muted-foreground">No categories yet</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">Set categories on books and they'll appear here.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div>
-                <div className="mb-2.5 flex items-center justify-between px-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
-                    选择分类
-                  </p>
-                  <span className="text-[10px] font-medium text-muted-foreground/45">
-                    {normalizedCategories.length} 个
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {normalizedCategories.map((category) => {
-                    const active = selectedCategory === category;
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => chooseCategory(category)}
-                        disabled={loading}
-                        className={cn(
-                          'inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-border/65 bg-background/58 px-3 py-1.5 text-left text-[13px] font-semibold text-muted-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_35%,transparent)] transition-colors disabled:cursor-not-allowed disabled:opacity-55',
-                          active && 'border-primary/45 bg-primary/10 text-primary'
-                        )}
-                        title={category}
-                      >
-                        {active ? (
-                          <Check className="h-3.5 w-3.5 shrink-0" />
-                        ) : (
-                          <Tag className="h-3.5 w-3.5 shrink-0 opacity-55" />
-                        )}
-                        <span className="truncate">{category}</span>
-                        <span className="rounded-full bg-foreground/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums opacity-65">
-                          {bookCounts[category] || 0}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="space-y-2">
+              {normalizedCategories.map((category) => {
+                const count = bookCounts[category] || 0;
+                const isEditing = editingCategory === category;
+                const isDeleting = deleteConfirmCategory === category;
 
-              <div className="rounded-2xl border border-border/55 bg-muted/28 p-3.5">
-                <div className="mb-2.5 flex items-center justify-between">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
-                    重命名
-                  </p>
-                  <span className="text-[10px] text-muted-foreground/40">
-                    {nextCategory.length}/50
-                  </span>
-                </div>
-                <div className="relative">
-                  <Input
-                    value={nextCategory}
-                    onChange={(event) => setNextCategory(event.target.value)}
-                    maxLength={50}
-                    placeholder="先选择一个分类"
-                    disabled={loading || !selectedCategory}
-                    className="h-11 rounded-xl border-border/70 bg-background/72 pr-10 text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/12 disabled:opacity-60"
-                  />
-                  {nextCategory && (
-                    <button
-                      type="button"
-                      onClick={() => setNextCategory('')}
-                      className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground/45 transition-colors hover:bg-card/70 hover:text-muted-foreground"
-                      title="清空输入"
-                      aria-label="清空输入"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                {selectedCategory && (
-                  <p className="mt-2.5 text-xs leading-5 text-muted-foreground">
-                    将影响 {selectedCount} 本图书。
-                  </p>
-                )}
-              </div>
+                return (
+                  <div
+                    key={category}
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl border border-border/50 bg-white px-4 py-3 transition-all',
+                      isEditing && 'border-primary/30 ring-1 ring-primary/10'
+                    )}
+                  >
+                    {/* Category pill + count */}
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <span className="shrink-0 rounded-full bg-[#f0f0f0] px-3 py-1 text-[14px] font-semibold text-[#111111]">
+                        {category}
+                      </span>
+                      <span className="shrink-0 text-[13px] font-medium text-muted-foreground/70">
+                        {count} {count === 1 ? 'book' : 'books'}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isEditing ? (
+                        <>
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') void saveRename();
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                            maxLength={50}
+                            autoFocus
+                            className="h-8 w-28 rounded-lg border-border/50 bg-secondary/50 px-2 text-[13px] shadow-none focus-visible:border-primary/45 focus-visible:ring-1 focus-visible:ring-primary/12"
+                          />
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                            aria-label="Cancel"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void saveRename()}
+                            disabled={loading || !editValue.trim() || editValue.trim() === category || editValue.trim().length > 50}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111111] text-white hover:opacity-85 disabled:opacity-30 transition-all"
+                            aria-label="Save"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(category)}
+                            disabled={loading}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 transition-all"
+                            aria-label={`Rename ${category}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmCategory(category)}
+                            disabled={loading}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200/60 text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition-all"
+                            aria-label={`Delete ${category}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
+      </DialogContent>
 
-        <div className="flex shrink-0 flex-col gap-2 border-t border-border/55 bg-background/40 px-5 py-3.5 sm:grid sm:grid-cols-[1fr_auto_auto] sm:items-center sm:px-6">
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => void clearCategory()}
-            disabled={loading || !selectedCategory}
-            className="h-10 rounded-xl bg-destructive/8 px-4 text-[13px] font-medium text-destructive hover:bg-destructive/12"
-          >
-            <Trash2 className="h-4 w-4" />
-            清空分类
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => handleOpenChange(false)}
-            className="h-10 rounded-xl px-4 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:order-2"
-          >
-            取消
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void renameCategory()}
-            disabled={loading || !canRename}
-            className="h-10 rounded-xl px-6 text-[13px] font-semibold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98] sm:order-3"
-          >
-            <Pencil className="h-4 w-4" />
-            {loading ? '保存中...' : '重命名'}
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+      <ConfirmDialog
+        open={!!deleteConfirmCategory}
+        onOpenChange={(open) => !open && setDeleteConfirmCategory('')}
+        title="Delete Category"
+        description={`Remove "${deleteConfirmCategory}" from ${bookCounts[deleteConfirmCategory] || 0} book(s)? Books will be uncategorized.`}
+        confirmLabel="Delete"
+        confirmDisabled={loading}
+        onConfirm={() => void clearCategory(deleteConfirmCategory)}
+      />
+    </Dialog>
   );
 }

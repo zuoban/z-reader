@@ -1,33 +1,17 @@
 'use client';
 
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
+import { BookOpen, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  MOBILE_CARD_WIDTH,
-  MOBILE_COVER_HEIGHT,
-  MOBILE_BOOK_SCALE,
-  DESKTOP_CARD_WIDTH,
-  DESKTOP_COVER_HEIGHT,
-  DESKTOP_BOOK_SCALE,
-  SPELL_BOOK_WIDTH,
-  SPELL_BOOK_HEIGHT,
-} from '@/lib/card-constants';
-
-const PerspectiveBook = dynamic(
-  () => import('@/registry/spell-ui/perspective-book').then((m) => ({ default: m.PerspectiveBook })),
-  { ssr: false }
-);
 
 interface BookCardProps {
   book: Book;
@@ -54,7 +38,7 @@ function HighlightedText({
   query?: string;
 }) {
   const normalizedQuery = query?.trim().toLowerCase();
-  if (!normalizedQuery) return text;
+  if (!normalizedQuery) return <>{text}</>;
 
   const normalizedText = text.toLowerCase();
   const parts: ReactNode[] = [];
@@ -124,10 +108,29 @@ function formatDateTime(dateString: string): string {
 interface BookCoverFaceProps {
   coverUrl: string | null;
   titleLabel: string;
+  authorLabel: string;
+  categoryLabel: string;
+  index: number;
 }
 
-function BookCoverFace({ coverUrl, titleLabel }: BookCoverFaceProps) {
-  const isMobile = useIsMobile();
+const fallbackCoverGradients = [
+  'linear-gradient(135deg, #89CFF0 0%, #B4E4F7 100%)',
+  'linear-gradient(135deg, #A78BFA 0%, #C4B5FD 100%)',
+  'linear-gradient(135deg, #6EE7B7 0%, #A7F3D0 100%)',
+  'linear-gradient(135deg, #F9A8D4 0%, #FBCFE8 100%)',
+  'linear-gradient(135deg, #FCD34D 0%, #FDE68A 100%)',
+  'linear-gradient(135deg, #67E8F9 0%, #A5F3FC 100%)',
+  'linear-gradient(135deg, #FDBA74 0%, #FED7AA 100%)',
+  'linear-gradient(135deg, #86EFAC 0%, #BBF7D0 100%)',
+];
+
+function BookCoverFace({
+  coverUrl,
+  titleLabel,
+  authorLabel,
+  categoryLabel,
+  index,
+}: BookCoverFaceProps) {
   if (coverUrl) {
     return (
       <div className="relative h-full w-full">
@@ -136,59 +139,37 @@ function BookCoverFace({ coverUrl, titleLabel }: BookCoverFaceProps) {
           alt={titleLabel}
           fill
           unoptimized
-          sizes="(max-width: 640px) 40vw, (max-width: 1024px) 18vw, 156px"
+          sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 16vw"
           className="object-cover"
         />
-        {coverUrl && !isMobile && (
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_25%,rgba(8,12,24,0.22)_100%)]" />
-        )}
-        {coverUrl && !isMobile && (
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(107,58,42,0.06),transparent_12%,transparent_88%,rgba(0,0,0,0.08))]" />
-        )}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04)_0%,transparent_35%,rgba(0,0,0,0.18)_100%)]" />
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none text-foreground shadow-sm backdrop-blur-sm">
+          {categoryLabel}
+        </span>
       </div>
     );
   }
 
+  const background = fallbackCoverGradients[index % fallbackCoverGradients.length];
+
   return (
-    <div className="paper-cover-frame relative flex size-full flex-col p-4 text-foreground">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(107,58,42,0.08)_0%,rgba(139,69,19,0.05)_50%,rgba(196,184,168,0.04)_100%)]" />
-      <div className="relative flex h-full flex-col">
-        <div className="flex items-start justify-between gap-2">
-          <span className="paper-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-primary/70">
-            BOOK
-          </span>
-          <span className="text-[10px] font-semibold tracking-[0.24em] text-foreground/30 uppercase">
-            Z
-          </span>
-        </div>
-        <div className="mt-5 space-y-3">
-          <div className="h-px w-9 bg-primary/20" />
-          <h3 className="line-clamp-4 text-[13px] font-semibold leading-[1.5] tracking-[-0.01em] text-foreground/85">
-            {titleLabel}
-          </h3>
-        </div>
-        <div className="mt-auto flex items-end justify-between gap-3">
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold tracking-[0.18em] text-primary/50 uppercase">
-              Z Reader
-            </div>
-            <div className="h-px w-12 bg-primary/15" />
-          </div>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-primary/35"
-          >
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-          </svg>
-        </div>
+    <div
+      className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-6 text-center text-white"
+      style={{ background }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_15%,rgba(255,255,255,0.24),transparent_34%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.12)_100%)]" />
+      {categoryLabel && (
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none text-foreground shadow-sm backdrop-blur-sm">
+          {categoryLabel}
+        </span>
+      )}
+      <div className="relative mt-6 flex min-h-[7rem] flex-col items-center justify-center gap-3">
+        <h3 className="line-clamp-4 text-balance text-[1.28rem] font-bold leading-[1.24] text-white">
+          {titleLabel}
+        </h3>
+        <p className="line-clamp-2 text-[0.92rem] font-bold leading-tight text-white/82">
+          {authorLabel}
+        </p>
       </div>
     </div>
   );
@@ -210,12 +191,11 @@ export function BookCard({
   selected = false,
   onSelectionToggle,
 }: BookCardProps) {
-  const isMobile = useIsMobile();
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const formatLabel = book.format ? book.format.toUpperCase() : 'BOOK';
+  const formatLabel = book.format ? book.format.toUpperCase() : '电子书';
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
@@ -223,27 +203,14 @@ export function BookCard({
     ? Math.max(0, Math.min(progressPercentage, 100))
     : null;
   const progressValue = normalizedProgressValue ?? 0;
-  const progressDisplay = progressValue.toFixed(1);
+  const progressDisplay = progressValue > 0 && progressValue < 1
+    ? '<1'
+    : Math.round(progressValue).toString();
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
-
-  const cardWidth = isMobile ? MOBILE_CARD_WIDTH : DESKTOP_CARD_WIDTH;
-  const coverHeight = isMobile ? MOBILE_COVER_HEIGHT : DESKTOP_COVER_HEIGHT;
-  const bookScale = isMobile ? MOBILE_BOOK_SCALE : DESKTOP_BOOK_SCALE;
-  const progressMeter = (
-    <div className="flex items-center gap-2.5">
-      <div className="relative h-1 w-full overflow-hidden rounded-full bg-border/70">
-        <div
-          className="h-full rounded-full bg-primary/75 transition-[width] duration-500 ease-out"
-          style={{ width: `${progressValue}%` }}
-        />
-      </div>
-      <span className="shrink-0 tabular-nums text-[10px] font-semibold text-muted-foreground">
-        {progressDisplay}%
-      </span>
-    </div>
-  );
+  const statusLabel = progressValue > 0 ? `${progressDisplay}% · ${lastReadLabel}` : '未开始';
+  const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
 
   function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: Element) {
     if (!(target instanceof Element)) return false;
@@ -295,17 +262,14 @@ export function BookCard({
   }, [book.id]);
 
   return (
-    <div
-      className="flex w-full items-center justify-start lg:justify-center"
-    >
+    <div className="flex w-full items-stretch">
       <Card
         className={cn(
-          "group/card paper-reveal-soft relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/40 bg-card p-0 shadow-sm transition-all duration-200",
-          !isMobile && "hover:-translate-y-1 hover:border-border hover:shadow-md",
-          selected && "ring-2 ring-primary border-primary"
+          'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border/30 bg-white p-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] transition-all duration-300',
+          'hover:-translate-y-1.5 hover:border-border/40 hover:shadow-[0_22px_48px_-20px_rgba(0,0,0,0.12)]',
+          selected && 'border-primary ring-2 ring-primary'
         )}
         style={{
-          width: isMobile ? '100%' : cardWidth,
           '--paper-delay': `${Math.min(index, 10) * 28}ms`,
         } as CSSProperties}
         onClick={handleCardClick}
@@ -315,97 +279,109 @@ export function BookCard({
         aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
         aria-pressed={selectionMode ? selected : undefined}
       >
-          {selectionMode && (
-            <div
-              className={cn(
-                "absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border shadow-sm transition-colors",
-                selected
-                  ? "border-primary bg-primary text-white"
-                  : "border-border bg-background/80 backdrop-blur-sm"
-              )}
-              aria-hidden="true"
-            >
-              <Check className={cn("h-3.5 w-3.5", selected ? "opacity-100" : "opacity-0")} />
-            </div>
-          )}
+        {selectionMode && (
           <div
-            className="relative overflow-hidden bg-secondary/30"
-            style={{ height: coverHeight }}
+            className={cn(
+              'absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border transition-colors',
+              selected
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border/40 bg-white/80 backdrop-blur-sm'
+            )}
+            aria-hidden="true"
           >
-            <div className="relative z-10 flex h-full items-start justify-center px-4 pt-5">
-              <div
-                className="relative shrink-0"
-                style={{
-                  height: SPELL_BOOK_HEIGHT,
-                  width: SPELL_BOOK_WIDTH,
-                  transform: `scale(${bookScale})`,
-                  transformOrigin: 'center center'
+            <Check className={cn('h-3 w-3', selected ? 'opacity-100' : 'opacity-30')} />
+          </div>
+        )}
+
+        <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50">
+          <BookCoverFace
+            coverUrl={coverUrl}
+            titleLabel={titleLabel}
+            authorLabel={authorLabel}
+            categoryLabel={categoryLabel || formatLabel}
+            index={index}
+          />
+        </div>
+
+        <div className="flex flex-1 flex-col p-3 sm:p-3.5">
+          <div className="mb-2.5 sm:mb-3 flex-1">
+            <h3
+              className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-[#1a1a1a]"
+              title={titleLabel}
+            >
+              <HighlightedText text={titleLabel} query={searchQuery} />
+            </h3>
+
+            <p className="mt-1.5 line-clamp-1 text-[0.85rem] font-medium text-gray-500">
+              <HighlightedText text={authorLabel} query={searchQuery} />
+            </p>
+          </div>
+
+          <div className="mt-auto space-y-2.5 sm:space-y-3.5">
+            <div className="space-y-1 sm:space-y-1.5">
+              <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60">
+                <div
+                  className="h-full rounded-full bg-[#111111] transition-[width] duration-700 ease-out"
+                  style={{ width: `${Math.max(progressValue, 1)}%` }}
+                />
+              </div>
+              {progressValue > 0 ? (
+                <p className="text-[0.7rem] sm:text-[0.75rem] font-medium text-muted-foreground/50">
+                  {progressDisplay}% · {lastReadLabel}
+                </p>
+              ) : (
+                <p className="text-[0.7rem] sm:text-[0.75rem] font-medium text-muted-foreground/50">
+                  {lastReadLabel}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                style={{ minHeight: 'auto', minWidth: 'auto' }}
+                className="h-8 sm:h-9 flex-1 gap-1 sm:gap-1.5 rounded-lg sm:rounded-lg bg-[#111111] text-white text-[0.8rem] sm:text-[0.85rem] font-medium sm:font-semibold shadow-none hover:opacity-85 active:scale-[0.98] transition-all"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  activateCard();
                 }}
               >
-                <PerspectiveBook size="sm" textured={!coverUrl}>
-                  <BookCoverFace coverUrl={coverUrl} titleLabel={titleLabel} />
-                </PerspectiveBook>
-              </div>
-            </div>
+                <BookOpen className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+                {readActionLabel}
+              </Button>
 
-            {!isMobile && (
-              <div className="absolute inset-x-3 bottom-3 z-20 rounded-full border border-border/30 bg-background/60 px-3 py-1.5 shadow-sm backdrop-blur-md">
-                {progressMeter}
-              </div>
-            )}
-          </div>
+              {!selectionMode && (
+                <BookCardDropdown
+                  formatLabel={formatLabel}
+                  sizeLabel={sizeLabel}
+                  uploadedAtLabel={uploadedAtLabel}
+                  lastReadLabel={lastReadLabel}
+                  isDeleting={isDeleting}
+                  onCategoryClick={() => setCategoryDialogOpen(true)}
+                  onDeleteClick={() => setDeleteConfirmOpen(true)}
+                  triggerClassName="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-lg sm:rounded-lg border border-border/50 bg-card text-muted-foreground hover:bg-secondary/50 hover:text-foreground active:scale-[0.95] transition-all"
+                />
+              )}
 
-          {isMobile && (
-            <div className="border-t border-border/20 bg-background/40 px-3.5 py-2.5 backdrop-blur-sm">
-              {progressMeter}
-            </div>
-          )}
-
-          <div className="flex flex-col px-3.5 pb-4 pt-4 sm:px-4">
-            <div className="space-y-1">
-              <div className="relative pr-6">
-                <h3
-                  className="min-w-0 font-sans text-[15px] font-bold leading-tight text-foreground"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    height: '2.5rem',
+              {selectionMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-xl border-border/50"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelectionToggle?.();
                   }}
-                  title={titleLabel}
+                  aria-label={selected ? '取消选择' : '选择图书'}
                 >
-                  <HighlightedText text={titleLabel} query={searchQuery} />
-                </h3>
-
-                <div className="mt-3 flex items-center justify-between gap-2 text-[12px] font-medium text-muted-foreground">
-                  <span className="truncate">
-                    <HighlightedText text={authorLabel} query={searchQuery} />
-                  </span>
-
-                  {categoryLabel && (
-                    <span className="shrink-0 rounded-md bg-secondary px-2 py-0.5 text-[10px] font-semibold text-secondary-foreground">
-                      <HighlightedText text={categoryLabel} query={searchQuery} />
-                    </span>
-                  )}
-                </div>
-                {!selectionMode && (
-                  <div className="absolute -right-2 -top-1">
-                    <BookCardDropdown
-                      formatLabel={formatLabel}
-                      sizeLabel={sizeLabel}
-                      uploadedAtLabel={uploadedAtLabel}
-                      lastReadLabel={lastReadLabel}
-                      isDeleting={isDeleting}
-                      onCategoryClick={() => setCategoryDialogOpen(true)}
-                      onDeleteClick={() => setDeleteConfirmOpen(true)}
-                    />
-                  </div>
-                )}
-              </div>
+                  <Check className={cn('h-5 w-5', selected ? 'opacity-100' : 'opacity-30')} />
+                </Button>
+              )}
             </div>
           </div>
-        </Card>
+        </div>
+      </Card>
       <CategorySelector
         bookId={book.id}
         currentCategory={book.category}

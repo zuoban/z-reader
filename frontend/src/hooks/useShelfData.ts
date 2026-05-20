@@ -50,10 +50,10 @@ function writeShelfSort(sortBy: SortOption) {
 }
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'recent_read', label: '最近阅读' },
-  { value: 'title', label: '书名' },
-  { value: 'recent_added', label: '最近添加' },
-  { value: 'author', label: '作者' },
+  { value: 'recent_read', label: 'Recently Read' },
+  { value: 'title', label: 'Title' },
+  { value: 'recent_added', label: 'Recently Added' },
+  { value: 'author', label: 'Author' },
 ];
 
 function deriveCategories(items: Book[]): string[] {

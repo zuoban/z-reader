@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import type { DragEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -9,14 +8,15 @@ import {
   BookOpen,
   CheckSquare,
   LogOut,
-  Menu,
   Moon,
   Plus,
   Search,
+  Settings2,
   Sun,
   Tag,
   Trash2,
   Upload,
+  UserRound,
   X,
 } from 'lucide-react';
 import {
@@ -32,14 +32,12 @@ import { AppScreen, LoadingSpinner } from '@/components/AppShell';
 import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
-import { CategoryFilter } from '@/components/CategoryFilter';
 import { CategoryManagerSheet } from '@/components/CategoryManagerSheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { ShelfFilterSheet } from '@/components/ShelfFilterSheet';
 import { SortSelector } from '@/components/SortSelector';
-import { UserManager } from '@/components/UserManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -53,24 +51,18 @@ const SUPPORTED_FORMATS_ACCEPT = [
   'application/pdf',
   'application/x-mobipocket-ebook',
 ].join(',');
-const SHELF_TITLE = '我的书架';
+const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 
-function ShelfTitle() {
+function ShelfBrand() {
   return (
-    <Link
-      href="/"
-      aria-label="返回 Z Reader 落地页"
-      className="group flex flex-col items-start outline-none transition-all duration-200 active:scale-[0.98]"
-    >
-      <h1
-        className="font-heading text-xl font-semibold tracking-tight text-foreground"
-      >
-        {SHELF_TITLE}
-      </h1>
-      <span className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase opacity-60">
-        Digital Library
+    <div className="inline-flex items-center gap-2.5">
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a1a1a] text-white">
+        <BookOpen className="h-4.5 w-4.5 stroke-[2.2]" />
       </span>
-    </Link>
+      <span className="text-lg font-bold tracking-tight text-foreground sm:text-[1.3rem]">
+        ZReader
+      </span>
+    </div>
   );
 }
 
@@ -83,7 +75,7 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const { isLoading, isAuthenticated, user, logout } = useAuth();
+  const { isLoading, isAuthenticated, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -118,7 +110,6 @@ export default function ShelfPage() {
     : selectedCategoryId === 'uncategorized'
       ? '未分类'
       : selectedCategoryId;
-  const hasActiveShelfFilter = Boolean(searchQuery.trim() || activeCategoryLabel);
   const uploadStatusLabel = uploadProgress
     ? `上传 ${uploadProgress.current}/${uploadProgress.total}`
     : isUploading
@@ -286,85 +277,76 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      contentClassName="mx-auto flex min-h-screen w-full max-w-[1920px] flex-col px-6 py-4 sm:px-8 sm:py-6 lg:px-16 lg:py-8"
+      className="bg-background [font-family:ui-sans-serif,system-ui,sans-serif]"
+      contentClassName="flex min-h-screen w-full flex-col"
     >
-      <header className="sticky top-0 z-50 mb-8 w-full pt-[max(env(safe-area-inset-top,0px),0.5rem)]">
-        <div className="flex h-16 items-center justify-between bg-background/60 backdrop-blur-md rounded-2xl border border-border/10 px-4 sm:px-6">
-          <div className="flex items-center gap-6">
-            <ShelfTitle />
-          </div>
+      <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-background/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between px-5 sm:px-7 lg:px-10">
+          <ShelfBrand />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <FileUploadAction
+              accept={SUPPORTED_FORMATS_ACCEPT}
+              onChange={handleUpload}
+              disabled={isUploading}
+              title="上传书籍"
+              multiple
+              buttonSize="icon-sm"
+              buttonClassName="!min-h-0 !h-9 !w-9 sm:!h-10 sm:!w-auto rounded-lg bg-primary text-primary-foreground px-0 sm:px-5 text-[14px] font-bold shadow-none hover:opacity-90 transition-all active:scale-[0.98] flex items-center justify-center border border-primary"
+            >
+              {isUploading ? (
+                <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
+            </FileUploadAction>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full min-h-[44px] min-w-[44px] h-11 w-11">
-                  <Menu className="h-5 w-5" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg border border-border bg-card text-foreground shadow-none hover:bg-secondary/50"
+                  style={{ minHeight: 'auto', minWidth: 'auto' }}
+                  aria-label="账户与设置"
+                  title="账户与设置"
+                >
+                  <UserRound className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="w-48 rounded-2xl border-border/40 p-1.5 shadow-xl"
+                className="w-48 rounded-xl border-border/40 p-1.5 shadow-lg backdrop-blur-md"
               >
-                  {user?.role === 'admin' && (
-                    <UserManager
-                      currentUser={user}
-                      buttonClassName="shelf-account-menu-item shelf-account-menu-button w-full justify-start"
-                      triggerLabel="用户管理"
-                      triggerLabelClassName="inline"
-                    />
+                <DropdownMenuItem
+                  className="shelf-account-menu-item"
+                  onClick={() => setCategoryManagerOpen(true)}
+                >
+                  <Tag className="h-4 w-4" /> 分类管理
+                </DropdownMenuItem>
+                <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
+                  {isDark ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
                   )}
-
-                  <FileUploadAction
-                    accept={SUPPORTED_FORMATS_ACCEPT}
-                    onChange={handleUpload}
-                    disabled={isUploading}
-                    title="上传书籍"
-                    multiple
-                    wrapperClassName="w-full"
-                    buttonVariant="ghost"
-                    buttonSize="sm"
-                    buttonClassName={cn(
-                      'shelf-account-menu-item shelf-account-menu-button w-full justify-start',
-                      isUploading && 'text-primary opacity-100'
-                    )}
-                  >
-                    {isUploading ? (
-                      <LoadingSpinner className="h-4 w-4 border-primary/25 shadow-none" />
-                    ) : (
-                      <Upload className="h-4 w-4" />
-                    )}
-                    {uploadStatusLabel ?? '上传书籍'}
-                  </FileUploadAction>
-
-                  <DropdownMenuItem
-                    className="shelf-account-menu-item"
-                    onClick={() => setCategoryManagerOpen(true)}
-                  >
-                    <Tag className="h-4 w-4" /> 分类管理
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
-                    {isDark ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                    {isDark ? '亮色模式' : '暗色模式'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={logout}
-                    className="shelf-account-menu-item shelf-account-menu-danger"
-                  >
-                    <LogOut className="h-4 w-4" /> 退出登录
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  {isDark ? '亮色模式' : '暗色模式'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="shelf-account-menu-item shelf-account-menu-danger"
+                >
+                  <LogOut className="h-4 w-4" /> 退出登录
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
       <main
-        className="relative z-10 flex-1"
+        className="relative z-10 mx-auto w-full max-w-[1920px] flex-1 px-5 py-7 sm:px-7 sm:py-8 lg:px-10 lg:py-9"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
@@ -433,133 +415,104 @@ export default function ShelfPage() {
             )}
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-4 sm:gap-6 lg:gap-5">
+          <div className="flex min-w-0 flex-col gap-4">
             {!isLoadingBooks && books.length > 0 && (
-              <div className="shelf-toolbar py-2.5 sm:px-4 sm:py-3 lg:px-0">
-                <div
-                  className={cn(
-                    'flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:grid lg:grid-cols-[minmax(28rem,42rem)_minmax(0,1fr)] lg:gap-10',
-                    categories.length === 0 && 'sm:min-w-[13rem]'
-                  )}
-                >
-                  <div className="relative w-full sm:max-w-[28rem] lg:max-w-none group">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="group relative w-full flex-1">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 transition-colors" />
                     <Input
                       type="search"
                       value={searchQuery}
                       onChange={(event) => changeSearchQuery(event.target.value)}
-                      placeholder="搜索书名、作者或关键词..."
-                      aria-label="搜索书架"
-                      className="h-12 rounded-2xl border-border/10 bg-secondary/30 pl-11 pr-10 text-[15px] shadow-none transition-all hover:bg-secondary/40 focus:bg-background focus:border-primary/20 focus:ring-0"
+                      placeholder="Search books or authors..."
+                      aria-label="Search library"
+                      className="h-11 rounded-xl border-0 bg-[#f5f5f5] pl-11 pr-10 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-[#999] hover:bg-[#f0f0f0] focus:bg-[#f5f5f5] focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => changeSearchQuery('')}
-                        aria-label="清空搜索"
-                        className="absolute right-3 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Clear search"
+                        className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-all"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 sm:ml-auto lg:min-w-0 lg:justify-end">
-                    {hasActiveShelfFilter && (
-                      <div className="hidden flex-wrap items-center gap-2 text-[11px] font-medium sm:flex">
-                        <span className="rounded-md bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground/70">
-                          {filteredBooks.length} 本
-                        </span>
-                        <button
-                          type="button"
-                          onClick={clearShelfFilters}
-                          className="inline-flex h-6 items-center gap-1 rounded-md border border-border/15 bg-card/40 px-2 text-xs text-muted-foreground/70  transition-all hover:border-border/25 hover:bg-card/60 hover:text-foreground/80 active:scale-95"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                          <span>重置</span>
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto lg:gap-2.5">
-                      <div className="hidden flex-row items-center gap-2 lg:flex lg:shrink-0">
-                        {categories.length > 0 && (
-                          <CategoryFilter
-                            categories={categories}
-                            selectedCategoryId={selectedCategoryId}
-                            onSelectCategory={changeSelectedCategory}
-                            bookCounts={bookCounts}
-                            className="sm:w-[12.5rem]"
-                          />
-                        )}
-                        <SortSelector
-                          value={sortBy}
-                          onChange={setSortBy}
-                          className="sm:w-[12.5rem]"
-                        />
-                      </div>
-                      
-                      <div className="flex items-center gap-1.5 lg:hidden">
-                        <ShelfFilterSheet
-                          categories={categories}
-                          selectedCategoryId={selectedCategoryId}
-                          onSelectCategory={changeSelectedCategory}
-                          bookCounts={bookCounts}
-                          sortBy={sortBy}
-                          onSortChange={setSortBy}
-                        />
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className={cn(
-                          'group min-h-[44px] rounded-lg border border-border/15 bg-card/30 px-2.5 text-xs font-medium text-muted-foreground/70 transition-all duration-200 hover:border-border/25 hover:bg-card/50 hover:text-foreground/80 active:scale-[0.97] sm:px-3.5 sm:text-sm',
-                          selectionMode && 'border-primary/20 bg-primary/5 text-primary shadow-none'
-                        )}
-                        onClick={toggleSelectionMode}
-                      >
-                        <CheckSquare className={cn(
-                          "h-3.5 w-3.5 transition-colors",
-                          selectionMode ? "text-primary" : "text-muted-foreground/40 group-hover:text-primary/60"
-                        )} />
-                        <span>{selectionMode ? '取消' : '选择'}</span>
-                      </Button>
-                    </div>
+                  <div className="w-full sm:w-[10.5rem]">
+                    <SortSelector
+                      value={sortBy}
+                      onChange={setSortBy}
+                    />
                   </div>
                 </div>
-              </div>
-            )}
 
-            {hasActiveShelfFilter && (
-              <div className="flex flex-wrap items-center gap-1.5 px-0.5 sm:hidden">
-                <span className="text-[9px] font-medium tracking-wider text-muted-foreground/40 uppercase">
-                  筛选
-                </span>
-                <div className="flex flex-wrap gap-1">
-                   <span className="rounded-md bg-muted/40 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground/60">
-                    {filteredBooks.length} 本
-                  </span>
-                  {activeCategoryLabel && (
-                    <span className="rounded-md bg-primary/5 px-1.5 py-0.5 text-[9px] font-medium text-primary/60">
-                      {activeCategoryLabel}
-                    </span>
-                  )}
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span className="text-[13px] font-medium text-muted-foreground/70 mr-1">Categories:</span>
                   <button
                     type="button"
-                    onClick={clearShelfFilters}
-                    className="flex h-4.5 items-center gap-0.5 rounded-md border border-border/15 bg-card/40 px-1.5 text-[8px] font-medium text-muted-foreground/60 transition-all active:scale-95"
+                    onClick={() => changeSelectedCategory(null)}
+                    style={{ minHeight: '28px', minWidth: 'auto' }}
+                    className={cn(
+                      'flex h-7 items-center justify-center rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
+                      selectedCategoryId === null
+                        ? 'bg-[#111111] text-white'
+                        : 'bg-white border border-border text-foreground hover:bg-secondary/50'
+                    )}
                   >
-                    <X className="h-2 w-2" />
-                    重置
+                    All
                   </button>
+                  {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
+                      style={{ minHeight: '28px', minWidth: 'auto' }}
+                      className={cn(
+                        'flex h-7 items-center justify-center rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
+                        selectedCategoryId === UNCATEGORIZED_FILTER_ID
+                          ? 'bg-[#111111] text-white'
+                          : 'bg-white border border-border text-foreground hover:bg-secondary/50'
+                      )}
+                    >
+                      Uncategorized
+                    </button>
+                  )}
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => changeSelectedCategory(category)}
+                      style={{ minHeight: '28px', minWidth: 'auto' }}
+                      className={cn(
+                        'flex h-7 items-center justify-center max-w-[8rem] sm:max-w-[10rem] truncate rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
+                        selectedCategoryId === category
+                          ? 'bg-[#111111] text-white'
+                          : 'bg-white border border-border text-foreground hover:bg-secondary/50'
+                      )}
+                      title={category}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    style={{ minHeight: '28px', minWidth: 'auto' }}
+                    className="!h-7 rounded-full px-2.5 sm:!h-7 sm:rounded-full sm:px-2.5 gap-1 sm:gap-1.5 text-[12px] sm:text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                    onClick={() => setCategoryManagerOpen(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+                    Manage
+                  </Button>
                 </div>
               </div>
             )}
 
             <section
               className={cn(
-                'shelf-container relative rounded-3xl transition-all duration-500 bg-card/40 border-0 shadow-none',
+                'shelf-container relative rounded-3xl transition-all duration-500 bg-transparent',
                 selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
               )}
             >
@@ -589,7 +542,7 @@ export default function ShelfPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-x-5 gap-y-6 py-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-x-8 sm:gap-y-12 sm:px-8 sm:py-10 lg:grid-cols-[repeat(auto-fill,minmax(184px,184px))] lg:justify-between lg:gap-x-8 lg:gap-y-14 lg:px-0 lg:pb-12 lg:pt-7 xl:gap-x-10 xl:pt-8 2xl:gap-y-16">
+                <div className="relative z-0 grid grid-cols-2 gap-3 sm:gap-3 py-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

@@ -2,7 +2,7 @@
 
 import { lazy, Suspense } from "react";
 import type { CSSProperties, RefObject } from "react";
-import { Expand, Library, Shrink } from "lucide-react";
+import { ArrowLeft, Expand, Shrink } from "lucide-react";
 
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
@@ -158,7 +158,7 @@ export function ReaderToolbar({
                 boxShadow: "none",
               }}
             >
-              <Library className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             {isFullscreenSupported ? (
               <Button

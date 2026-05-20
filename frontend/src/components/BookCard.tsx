@@ -266,7 +266,7 @@ export function BookCard({
       <Card
         className={cn(
           'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border/30 bg-white p-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] transition-all duration-300',
-          'hover:-translate-y-1.5 hover:border-border/40 hover:shadow-[0_22px_48px_-20px_rgba(0,0,0,0.12)]',
+          'hover:border-border/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]',
           selected && 'border-primary ring-2 ring-primary'
         )}
         style={{

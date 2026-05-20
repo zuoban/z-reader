@@ -93,10 +93,10 @@ export function CategorySelector({
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div>
             <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-[#111111]">
-              Set Category
+              设置分类
             </DialogTitle>
             <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
-              Assign a category to organize this book
+              将此书归入分类，便于管理
             </DialogDescription>
           </div>
           <button
@@ -115,7 +115,7 @@ export function CategorySelector({
             <div className="rounded-xl border border-border/50 bg-white px-4 py-3">
               <div className="mb-2.5 flex items-center justify-between">
                 <p className="text-[12px] font-semibold text-muted-foreground/70">
-                  New Category
+                  新建分类
                 </p>
                 <span className="text-[11px] text-muted-foreground/40">
                   {categoryName.length}/50
@@ -126,7 +126,7 @@ export function CategorySelector({
                   value={categoryName}
                   onChange={(event) => setCategoryName(event.target.value)}
                   maxLength={50}
-                  placeholder="Enter category name"
+                  placeholder="输入分类名称"
                   disabled={loading}
                   className="h-10 rounded-lg border-border/50 bg-secondary/40 px-3 text-[14px] shadow-none focus-visible:border-primary/45 focus-visible:ring-1 focus-visible:ring-primary/12"
                 />
@@ -154,7 +154,7 @@ export function CategorySelector({
               <div className="mt-3">
                 <div className="mb-2.5 flex items-center justify-between px-1">
                   <p className="text-[12px] font-semibold text-muted-foreground/70">
-                    Existing
+                    已有分类
                   </p>
                   <span className="text-[11px] text-muted-foreground/40">
                     {filteredCategories.length}
@@ -190,7 +190,7 @@ export function CategorySelector({
                             {cat}
                           </span>
                           <span className="ml-auto shrink-0 text-[12px] text-muted-foreground/60">
-                            {bookCounts[cat] || 0} {bookCounts[cat] === 1 ? 'book' : 'books'}
+                            {bookCounts[cat] || 0} 本书
                           </span>
                         </button>
                       </div>
@@ -209,14 +209,14 @@ export function CategorySelector({
               onClick={() => onOpenChange(false)}
               className="h-10 rounded-lg px-4 text-[14px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
             >
-              Cancel
+              取消
             </Button>
             <Button
               type="submit"
               disabled={loading}
               className="h-10 rounded-lg bg-[#111111] px-6 text-[14px] font-semibold text-white shadow-none hover:opacity-85 transition-all active:scale-[0.98] disabled:opacity-40"
             >
-              {loading ? 'Saving...' : 'Save'}
+              {loading ? '保存中...' : '保存'}
             </Button>
           </div>
         </form>

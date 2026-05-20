@@ -79,10 +79,10 @@ export function CategoryManagerSheet({
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div>
             <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-[#111111]">
-              Manage Categories
+              管理分类
             </DialogTitle>
             <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
-              Rename or delete your book categories
+              重命名或删除您的图书分类
             </DialogDescription>
           </div>
           <button
@@ -99,8 +99,8 @@ export function CategoryManagerSheet({
         <div className="max-h-[20rem] overflow-y-auto px-6 pb-6">
           {normalizedCategories.length === 0 ? (
             <div className="flex min-h-[8rem] flex-col items-center justify-center rounded-xl border border-dashed border-border/50 bg-secondary/30 px-6 text-center">
-              <p className="text-sm font-medium text-muted-foreground">No categories yet</p>
-              <p className="mt-1 text-xs text-muted-foreground/70">Set categories on books and they'll appear here.</p>
+              <p className="text-sm font-medium text-muted-foreground">暂无分类</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">在图书上设置分类，分类将会在这里显示。</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -123,7 +123,7 @@ export function CategoryManagerSheet({
                         {category}
                       </span>
                       <span className="shrink-0 text-[13px] font-medium text-muted-foreground/70">
-                        {count} {count === 1 ? 'book' : 'books'}
+                        {count} 本书
                       </span>
                     </div>
 
@@ -196,9 +196,9 @@ export function CategoryManagerSheet({
       <ConfirmDialog
         open={!!deleteConfirmCategory}
         onOpenChange={(open) => !open && setDeleteConfirmCategory('')}
-        title="Delete Category"
-        description={`Remove "${deleteConfirmCategory}" from ${bookCounts[deleteConfirmCategory] || 0} book(s)? Books will be uncategorized.`}
-        confirmLabel="Delete"
+        title="删除分类"
+        description={`确认将分类 "${deleteConfirmCategory}" 从 ${bookCounts[deleteConfirmCategory] || 0} 本书中移除？这些图书将变为未分类。`}
+        confirmLabel="删除"
         confirmDisabled={loading}
         onConfirm={() => void clearCategory(deleteConfirmCategory)}
       />

@@ -319,12 +319,6 @@ export default function ShelfPage() {
                 sideOffset={10}
                 className="w-48 rounded-xl border-border/40 p-1.5 shadow-lg backdrop-blur-md"
               >
-                <DropdownMenuItem
-                  className="shelf-account-menu-item"
-                  onClick={() => setCategoryManagerOpen(true)}
-                >
-                  <Tag className="h-4 w-4" /> 分类管理
-                </DropdownMenuItem>
                 <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
                   {isDark ? (
                     <Sun className="h-4 w-4" />
@@ -425,8 +419,8 @@ export default function ShelfPage() {
                       type="search"
                       value={searchQuery}
                       onChange={(event) => changeSearchQuery(event.target.value)}
-                      placeholder="Search books or authors..."
-                      aria-label="Search library"
+                      placeholder="搜索书名或作者..."
+                      aria-label="搜索书库"
                       className="h-11 rounded-xl border-0 bg-[#f5f5f5] pl-11 pr-10 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-[#999] hover:bg-[#f0f0f0] focus:bg-[#f5f5f5] focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                     {searchQuery && (
@@ -450,7 +444,7 @@ export default function ShelfPage() {
                 </div>
 
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  <span className="text-[13px] font-medium text-muted-foreground/70 mr-1">Categories:</span>
+                  <span className="text-[13px] font-medium text-muted-foreground/70 mr-1">分类：</span>
                   <button
                     type="button"
                     onClick={() => changeSelectedCategory(null)}
@@ -462,7 +456,7 @@ export default function ShelfPage() {
                         : 'bg-white border border-border text-foreground hover:bg-secondary/50'
                     )}
                   >
-                    All
+                    全部
                   </button>
                   {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
                     <button
@@ -476,7 +470,7 @@ export default function ShelfPage() {
                           : 'bg-white border border-border text-foreground hover:bg-secondary/50'
                       )}
                     >
-                      Uncategorized
+                      未分类
                     </button>
                   )}
                   {categories.map((category) => (
@@ -504,7 +498,7 @@ export default function ShelfPage() {
                     onClick={() => setCategoryManagerOpen(true)}
                   >
                     <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
-                    Manage
+                    管理
                   </Button>
                 </div>
               </div>

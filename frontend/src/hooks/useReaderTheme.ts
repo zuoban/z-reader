@@ -196,11 +196,8 @@ function subscribe(callback: () => void) {
 }
 
 function getSnapshot(): ReaderTheme {
-  if (typeof window === "undefined") {
-    cachedTheme = normalizeReaderTheme(DEFAULT_READER_THEME);
-    cachedThemeRaw = null;
-    return cachedTheme;
-  }
+  if (typeof window === "undefined") return SERVER_SNAPSHOT;
+
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (cachedTheme && cachedThemeRaw === saved) return cachedTheme;
@@ -213,23 +210,26 @@ function getSnapshot(): ReaderTheme {
 
     // Merge reader-specific overrides if they exist in storage
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed?.fontFamily) baseTheme.fontFamily = parsed.fontFamily;
-      if (parsed?.fontSize) baseTheme.fontSize = parsed.fontSize;
-      if (parsed?.lineHeight) baseTheme.lineHeight = parsed.lineHeight;
-      if (parsed?.pagePaddingX) baseTheme.pagePaddingX = parsed.pagePaddingX;
-      if (parsed?.pagePaddingY) baseTheme.pagePaddingY = parsed.pagePaddingY;
-      if (parsed?.paragraphSpacing) baseTheme.paragraphSpacing = parsed.paragraphSpacing;
-      if (parsed?.flow) baseTheme.flow = parsed.flow;
-      if (parsed?.maxInlineSize) baseTheme.maxInlineSize = parsed.maxInlineSize;
-      if (parsed?.gap) baseTheme.gap = parsed.gap;
-      if (parsed?.animated !== undefined) baseTheme.animated = parsed.animated;
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.fontFamily) baseTheme.fontFamily = parsed.fontFamily;
+        if (parsed?.fontSize) baseTheme.fontSize = parsed.fontSize;
+        if (parsed?.lineHeight) baseTheme.lineHeight = parsed.lineHeight;
+        if (parsed?.pagePaddingX) baseTheme.pagePaddingX = parsed.pagePaddingX;
+        if (parsed?.pagePaddingY) baseTheme.pagePaddingY = parsed.pagePaddingY;
+        if (parsed?.paragraphSpacing) baseTheme.paragraphSpacing = parsed.paragraphSpacing;
+        if (parsed?.flow) baseTheme.flow = parsed.flow;
+        if (parsed?.maxInlineSize) baseTheme.maxInlineSize = parsed.maxInlineSize;
+        if (parsed?.gap) baseTheme.gap = parsed.gap;
+        if (parsed?.animated !== undefined) baseTheme.animated = parsed.animated;
+      } catch {
+        // ignore
+      }
     }
 
     const normalized = normalizeReaderTheme(baseTheme);
-    const raw = JSON.stringify(normalized);
     cachedTheme = normalized;
-    cachedThemeRaw = raw;
+    cachedThemeRaw = saved;
     return normalized;
   } catch (err) {
     console.error("Failed to load theme from localStorage:", err);
@@ -238,6 +238,7 @@ function getSnapshot(): ReaderTheme {
   cachedThemeRaw = null;
   return cachedTheme;
 }
+
 
 const SERVER_SNAPSHOT = normalizeReaderTheme(DEFAULT_READER_THEME);
 

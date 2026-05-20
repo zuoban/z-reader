@@ -1,23 +1,16 @@
 "use client";
 
-import { lazy, Suspense } from "react";
-import type { CSSProperties, RefObject } from "react";
-import { ArrowLeft, Expand, Shrink } from "lucide-react";
+import { type CSSProperties, type RefObject } from "react";
+import { ArrowLeft, Bookmark as BookmarkIcon, BookmarkPlus, Check, List, Settings } from "lucide-react";
 
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
 import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
-import { ReaderShortcutsSheet } from "@/components/reader/ReaderShortcutsSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
-import type { TTSSettings, TTSState, Voice } from "@/lib/tts";
 import type { TOCItem } from "@/lib/types";
 import { withOpacity } from "@/lib/reader-ui";
-
-const TTSControls = lazy(() =>
-  import("@/components/TTSControls").then((m) => ({ default: m.TTSControls })),
-);
 
 interface ReaderToolbarProps {
   visible: boolean;
@@ -28,8 +21,6 @@ interface ReaderToolbarProps {
   onTocOpenChange: (open: boolean) => void;
   bookmarksOpen: boolean;
   onBookmarksOpenChange: (open: boolean) => void;
-  shortcutsOpen: boolean;
-  onShortcutsOpenChange: (open: boolean) => void;
   bookmarks: Bookmark[];
   canCreateBookmark: boolean;
   isSavingBookmark: boolean;
@@ -51,39 +42,6 @@ interface ReaderToolbarProps {
   setTheme: (theme: Partial<ReaderTheme>) => void;
   themeSettingsOpen: boolean;
   onThemeSettingsOpenChange: (open: boolean) => void;
-  isFullscreenSupported: boolean;
-  isFullscreen: boolean;
-  onToggleFullscreen: () => void | Promise<void>;
-  tts: {
-    state: TTSState;
-    settings: TTSSettings;
-    voices: Voice[];
-    voicesLoading: boolean;
-    voicesError: string | null;
-    reloadVoices: () => void | Promise<void>;
-    start: () => void | Promise<void>;
-    stop: () => void;
-    next: () => void | Promise<void>;
-    prev: () => void | Promise<void>;
-    updateSettings: (settings: Partial<TTSSettings>) => void;
-    resumePromptVisible: boolean;
-    resumePromptMessage: string;
-    status: {
-      headline: string;
-      detail?: string;
-      tone?: "idle" | "active" | "warning" | "error";
-    };
-    sleepTimer: {
-      mode: "off" | "minutes";
-      minutes?: number;
-      endsAt?: number;
-      label: string;
-    };
-    setSleepTimerForMinutes: (minutes: number) => void;
-    clearSleepTimer: () => void;
-    resume: () => void | Promise<void>;
-    onExpandedChange: (expanded: boolean) => void;
-  };
 }
 
 export function ReaderToolbar({
@@ -95,8 +53,6 @@ export function ReaderToolbar({
   onTocOpenChange,
   bookmarksOpen,
   onBookmarksOpenChange,
-  shortcutsOpen,
-  onShortcutsOpenChange,
   bookmarks,
   canCreateBookmark,
   isSavingBookmark,
@@ -118,127 +74,46 @@ export function ReaderToolbar({
   setTheme,
   themeSettingsOpen,
   onThemeSettingsOpenChange,
-  isFullscreenSupported,
-  isFullscreen,
-  onToggleFullscreen,
-  tts,
 }: ReaderToolbarProps) {
+  const isDark = theme.preset === "dark";
+
   return (
     <>
       <header
         data-reader-interactive="true"
-        className={`pointer-events-none absolute inset-x-0 top-0 z-50 sm:px-4 ${
+        className={`reader-chrome pointer-events-none absolute inset-x-0 top-0 z-50 transition-all duration-300 ease-out ${
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
         }`}
         style={{
-          background:
-            `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, 0.9)} 0%, ${withOpacity(uiScheme.bg, 0.72)} 72%, transparent 100%)`,
-          backdropFilter: "blur(20px) saturate(1.18)",
-          WebkitBackdropFilter: "blur(20px) saturate(1.18)",
+          background: uiScheme.bg,
+          borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, isDark ? 0.15 : 0.08)}`,
           paddingTop: headerSafeAreaPaddingTop,
-          transition:
-            "transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
-        <div className="flex h-12 items-center justify-between px-2 pointer-events-auto sm:h-11 sm:px-4">
-          <div className="flex items-center gap-1 sm:gap-2">
+        <div className="pointer-events-auto mx-auto flex h-14 max-w-full items-center px-4 sm:h-16 sm:px-6">
+          <div className="flex flex-1 items-center gap-2 overflow-hidden">
             <Button
               variant="ghost"
               size="icon"
               onClick={onBack}
               title="返回书库"
-              className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
-              style={{
-                color: uiScheme.buttonText,
-                ...getToolbarButtonStyle(false),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
+              className="h-9 w-9 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            {isFullscreenSupported ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => void onToggleFullscreen()}
-                title={isFullscreen ? "退出全屏" : "进入全屏"}
-                aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
-                className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 ${toolbarButtonClass}`}
-                style={{
-                  color: isFullscreen ? uiScheme.link : uiScheme.buttonText,
-                  ...getToolbarButtonStyle(isFullscreen),
-                  background: "transparent",
-                  border: "none",
-                  boxShadow: "none",
-                }}
+            <div className="min-w-0 overflow-hidden">
+              <h1
+                className="truncate text-base font-bold tracking-tight sm:text-lg"
+                style={{ color: uiScheme.fg }}
               >
-                {isFullscreen ? (
-                  <Shrink className="h-4 w-4" />
-                ) : (
-                  <Expand className="h-4 w-4" />
-                )}
-              </Button>
-            ) : null}
-            <ReaderBookmarksSheet
-              open={bookmarksOpen}
-              onOpenChange={onBookmarksOpenChange}
-              bookmarks={bookmarks}
-              bookTitle={bookTitle}
-              uiScheme={uiScheme}
-              overlayContainer={overlayContainer}
-              triggerClassName={toolbarButtonClass}
-              triggerStyle={{
-                ...getToolbarButtonStyle(bookmarksOpen),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
-              canCreate={canCreateBookmark}
-              isSaving={isSavingBookmark}
-              onCreate={onCreateBookmark}
-              onGoTo={onGoToBookmark}
-              onDelete={onDeleteBookmark}
-            />
+                {bookTitle || "阅读中"}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Suspense fallback={null}>
-              <TTSControls
-                state={tts.state}
-                settings={tts.settings}
-                voices={tts.voices}
-                voicesLoading={tts.voicesLoading}
-                voicesError={tts.voicesError}
-                onReloadVoices={tts.reloadVoices}
-                onStart={tts.start}
-                onStop={tts.stop}
-                onNext={tts.next}
-                onPrev={tts.prev}
-                onUpdateSettings={tts.updateSettings}
-                uiScheme={uiScheme}
-                variant="toolbar"
-                triggerClassName={toolbarButtonClass}
-                triggerStyle={{
-                  ...getToolbarButtonStyle(tts.state !== "stopped"),
-                  background: "transparent",
-                  border: "none",
-                  boxShadow: "none",
-                }}
-                resumePromptVisible={tts.resumePromptVisible}
-                resumePromptMessage={tts.resumePromptMessage}
-                ttsStatus={tts.status}
-                sleepTimer={tts.sleepTimer}
-                onSleepTimerMinutes={tts.setSleepTimerForMinutes}
-                onClearSleepTimer={tts.clearSleepTimer}
-                onResume={tts.resume}
-                onExpandedChange={tts.onExpandedChange}
-                overlayContainer={overlayContainer}
-              />
-            </Suspense>
+          <div className="flex items-center gap-1 sm:gap-4">
             <ReaderTOCSheet
               open={tocOpen}
               onOpenChange={onTocOpenChange}
@@ -250,29 +125,51 @@ export function ReaderToolbar({
               currentChapterHref={currentChapterHref}
               uiScheme={uiScheme}
               overlayContainer={overlayContainer}
-              triggerClassName={toolbarButtonClass}
-              triggerStyle={{
-                ...getToolbarButtonStyle(tocOpen),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
+              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerStyle={{}}
               onLocateCurrent={onLocateCurrentChapter}
               onGoTo={onGoTo}
+              trigger={
+                <div className="flex items-center gap-2">
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">目录</span>
+                </div>
+              }
             />
-            <ReaderShortcutsSheet
-              open={shortcutsOpen}
-              onOpenChange={onShortcutsOpenChange}
+
+            <ReaderBookmarksSheet
+              open={bookmarksOpen}
+              onOpenChange={onBookmarksOpenChange}
+              bookmarks={bookmarks}
+              bookTitle={bookTitle}
               uiScheme={uiScheme}
               overlayContainer={overlayContainer}
-              triggerClassName={`${toolbarButtonClass} hidden sm:flex`}
-              triggerStyle={{
-                ...getToolbarButtonStyle(shortcutsOpen),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
+              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerStyle={{}}
+              canCreate={canCreateBookmark}
+              isSaving={isSavingBookmark}
+              onCreate={onCreateBookmark}
+              onGoTo={onGoToBookmark}
+              onDelete={onDeleteBookmark}
+              trigger={
+                <div className="flex items-center gap-2">
+                  <BookmarkIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">书签</span>
+                </div>
+              }
             />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!canCreateBookmark || isSavingBookmark}
+              onClick={onCreateBookmark}
+              className="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+            >
+              <BookmarkPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">{isSavingBookmark ? "添加中..." : "添加"}</span>
+            </Button>
+
             <ThemeSettings
               theme={theme}
               setTheme={setTheme}
@@ -280,17 +177,24 @@ export function ReaderToolbar({
               open={themeSettingsOpen}
               onOpenChange={onThemeSettingsOpenChange}
               overlayContainer={overlayContainer}
-              triggerClassName={toolbarButtonClass}
-              triggerStyle={{
-                ...getToolbarButtonStyle(themeSettingsOpen),
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-              }}
+              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerStyle={{}}
+              trigger={
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">设置</span>
+                </div>
+              }
             />
+
+            <div className="ml-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 sm:ml-4 sm:text-sm">
+              <Check className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">已同步</span>
+            </div>
           </div>
         </div>
       </header>
     </>
   );
 }
+

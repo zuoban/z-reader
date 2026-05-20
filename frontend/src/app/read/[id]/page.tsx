@@ -572,16 +572,28 @@ export default function ReadPage() {
   }
 
   const toolbarButtonClass =
-    "relative flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]  transition-all duration-150 ease-out hover:scale-[1.03] hover:border-white/12 hover:bg-white/8 sm:h-10 sm:w-10 sm:min-h-10 sm:min-w-10";
+    "relative flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-xl border border-transparent transition-all duration-150 ease-out hover:scale-[1.03] sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9";
   const isDarkPreset = theme.preset === "dark";
   const getToolbarButtonStyle = (active = false) => ({
     color: active ? uiScheme.link : uiScheme.buttonText,
+    background: active
+      ? withOpacity(uiScheme.link, isDarkPreset ? 0.14 : 0.1)
+      : withOpacity(uiScheme.buttonBg, isDarkPreset ? 0.18 : 0.22),
+    border: `1px solid ${
+      active
+        ? withOpacity(uiScheme.link, 0.22)
+        : withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.24)
+    }`,
+    boxShadow: active
+      ? `0 12px 24px -20px ${withOpacity(uiScheme.link, 0.5)}`
+      : `inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.24)}`,
     transition: "all 150ms ease-out",
   });
   const statusBarContainerStyle = {
-    background: `linear-gradient(180deg, ${withOpacity(uiScheme.cardBg, isDarkPreset ? 0.62 : 0.72)} 0%, ${withOpacity(uiScheme.headerBg, isDarkPreset ? 0.48 : 0.58)} 100%)`,
-    borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.3 : 0.4)}`,
-    backdropFilter: "blur(24px) saturate(1.3)",
+    background: "transparent",
+    borderTop: "none",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 3rem)";
@@ -595,13 +607,19 @@ export default function ReadPage() {
       tabIndex={-1}
       className="fixed inset-0 overflow-hidden overscroll-none"
       style={{
-        background: `linear-gradient(135deg, ${uiScheme.bg} 0%, ${withOpacity(uiScheme.headerBg, 0.9)} 48%, ${uiScheme.bg} 100%)`,
+        background: `
+          radial-gradient(circle at 50% -14%, ${withOpacity(uiScheme.cardBg, isDarkPreset ? 0.5 : 0.78)} 0, transparent 34rem),
+          linear-gradient(135deg, ${withOpacity(uiScheme.headerBg, 0.98)} 0%, ${uiScheme.bg} 46%, ${uiScheme.bg} 100%)
+        `,
       }}
     >
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.96)} 0%, ${uiScheme.bg} 16%, ${uiScheme.bg} 100%)`,
+          background: `
+            linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.72)} 0%, transparent 22%, transparent 100%),
+            linear-gradient(90deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.08)} 0, transparent 18%, transparent 82%, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.08)} 100%)
+          `,
         }}
       />
 
@@ -615,8 +633,6 @@ export default function ReadPage() {
           onTocOpenChange={setTocOpen}
           bookmarksOpen={bookmarksOpen}
           onBookmarksOpenChange={setBookmarksOpen}
-          shortcutsOpen={shortcutsOpen}
-          onShortcutsOpenChange={setShortcutsOpen}
           bookmarks={bookmarks}
           canCreateBookmark={Boolean(getCurrentCFI())}
           isSavingBookmark={isSavingBookmark}
@@ -638,37 +654,10 @@ export default function ReadPage() {
           setTheme={setTheme}
           themeSettingsOpen={themeSettingsOpen}
           onThemeSettingsOpenChange={setThemeSettingsOpen}
-          isFullscreenSupported={isFullscreenSupported}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={handleToggleFullscreen}
-          tts={{
-            state: ttsState,
-            settings: ttsSettings,
-            voices,
-            voicesLoading,
-            voicesError,
-            reloadVoices,
-            start: startTTS,
-            stop: stopTTS,
-            next: nextTTS,
-            prev: prevTTS,
-            updateSettings: updateTTSSettings,
-            resumePromptVisible,
-            resumePromptMessage,
-            status: ttsStatus,
-            sleepTimer,
-            setSleepTimerForMinutes,
-            clearSleepTimer,
-            resume: resumeTTS,
-            onExpandedChange: handleTTSExpandedChange,
-          }}
         />
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div
-            className="relative min-h-0 flex-1 overflow-hidden"
-            style={{ background: uiScheme.bg }}
-          >
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             {loading && (
               <ReaderLoadingOverlay
                 loadingMsg={loadingMsg}
@@ -686,9 +675,20 @@ export default function ReadPage() {
               }}
             >
               <div
-                ref={containerRef}
-                className="h-full w-full overflow-hidden"
-              />
+                className="reader-page-frame h-full w-full overflow-hidden"
+                style={{
+                  background: "transparent",
+                }}
+              >
+                <div
+                  ref={containerRef}
+                  className="reader-page-surface h-full w-full overflow-hidden"
+                  style={{
+                    background: uiScheme.bg,
+                    boxShadow: "none",
+                  }}
+                />
+              </div>
             </div>
 
             {isTouchReader && resumePromptVisible && (

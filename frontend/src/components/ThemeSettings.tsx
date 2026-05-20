@@ -82,6 +82,7 @@ interface ThemeSettingsProps {
   overlayContainer?: HTMLElement | null;
   triggerClassName?: string;
   triggerStyle?: CSSProperties;
+  trigger?: React.ReactNode;
 }
 
 interface SectionProps {
@@ -281,6 +282,7 @@ export function ThemeSettings({
   overlayContainer,
   triggerClassName,
   triggerStyle,
+  trigger,
 }: ThemeSettingsProps) {
   const resetFeedbackTimeoutRef = useRef<number | null>(null);
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
@@ -317,14 +319,13 @@ export function ThemeSettings({
         render={
           <Button
             variant="ghost"
-            size="icon"
             title="阅读设置"
             className={triggerClassName}
             style={triggerStyle}
           />
         }
       >
-        <Settings className="h-4 w-4" />
+        {trigger || <Settings className="h-4 w-4" />}
       </SheetTrigger>
       <SheetContent
         side="bottom"

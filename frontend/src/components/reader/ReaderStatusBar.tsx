@@ -47,12 +47,12 @@ export function ReaderStatusBar({
           className="flex cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 font-inherit outline-none transition-[opacity,transform] duration-200 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-inset active:scale-[0.98]"
         >
           <span
-            className="flex h-7 min-w-16 items-center justify-center rounded-full px-3 text-[11px] font-bold tabular-nums tracking-tight shadow-[0_10px_26px_-20px_rgba(0,0,0,0.45)] ring-1 "
+            className="flex h-8 min-w-20 items-center justify-center rounded-full px-3 text-[11px] font-bold tabular-nums tracking-normal shadow-[0_10px_26px_-20px_rgba(0,0,0,0.45)] ring-1 backdrop-blur-md"
             style={{
-              background: withOpacity(uiScheme.cardBg, 0.72),
-              color: withOpacity(uiScheme.fg, 0.58),
-              borderColor: withOpacity(uiScheme.cardBorder, 0.24),
-              boxShadow: `0 12px 28px -22px ${withOpacity(uiScheme.cardBorder, 0.55)}`,
+              background: withOpacity(uiScheme.cardBg, 0.78),
+              color: withOpacity(uiScheme.fg, 0.66),
+              borderColor: withOpacity(uiScheme.cardBorder, 0.32),
+              boxShadow: `0 16px 34px -24px ${withOpacity(uiScheme.cardBorder, 0.62)}`,
             }}
           >
             {percentage.toFixed(1)}%
@@ -71,18 +71,18 @@ export function ReaderStatusBar({
       title="收起顶部操作栏"
       aria-label="收起顶部操作栏"
       aria-pressed={isToolbarVisible}
-      className="absolute inset-x-0 bottom-0 z-30 flex cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none  transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
+      className="absolute inset-x-0 bottom-0 z-30 flex cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
       style={{
         paddingBottom: safeAreaPaddingBottom,
         color: "inherit",
         ...containerStyle,
       }}
     >
-      <div className="relative flex h-9 w-full items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]">
+      <div className="relative flex h-11 w-full max-w-5xl items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]">
         <div className="flex w-24 shrink-0 items-center">
           <span
-            className="font-mono font-bold tabular-nums tracking-tight"
-            style={{ color: withOpacity(uiScheme.fg, 0.6) }}
+            className="font-mono font-bold tabular-nums tracking-normal"
+            style={{ color: withOpacity(uiScheme.fg, 0.66) }}
           >
             {percentage.toFixed(1)}%
           </span>
@@ -90,8 +90,8 @@ export function ReaderStatusBar({
 
         <div className="flex min-w-0 flex-1 items-center justify-center truncate px-4 text-center">
           <span
-            className="truncate font-bold tracking-tight"
-            style={{ color: withOpacity(uiScheme.fg, 0.5) }}
+            className="truncate font-bold tracking-normal"
+            style={{ color: withOpacity(uiScheme.fg, 0.56) }}
           >
             {currentChapter || "—"}
           </span>
@@ -99,8 +99,8 @@ export function ReaderStatusBar({
 
         <div className="flex w-24 shrink-0 items-center justify-end">
           <span
-            className="font-mono font-bold tabular-nums tracking-tight"
-            style={{ color: withOpacity(uiScheme.fg, 0.6) }}
+            className="font-mono font-bold tabular-nums tracking-normal"
+            style={{ color: withOpacity(uiScheme.fg, 0.66) }}
           >
             {currentPageLabel || "—"}
           </span>

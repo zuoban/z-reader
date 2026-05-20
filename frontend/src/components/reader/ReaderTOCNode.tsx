@@ -32,8 +32,11 @@ function ReaderTOCNode({
     <div className="relative">
       {depth > 0 && (
         <div
-          className="absolute bottom-0 top-0 w-px bg-primary/5"
-          style={{ left: `${(depth - 1) * 14 + 20}px` }}
+          className="absolute bottom-1 top-1 w-px"
+          style={{
+            left: `${(depth - 1) * 14 + 19}px`,
+            background: `linear-gradient(180deg, transparent 0%, ${withOpacity(uiScheme.cardBorder, 0.16)} 16%, ${withOpacity(uiScheme.cardBorder, 0.16)} 84%, transparent 100%)`,
+          }}
         />
       )}
 
@@ -41,29 +44,40 @@ function ReaderTOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left  transition-all active:scale-[0.98] sm:py-2.5",
-          isCurrentChapter ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" : "hover:scale-[1.01]",
+          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-all active:scale-[0.985]",
+          isCurrentChapter ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]" : "hover:scale-[1.005]",
         )}
         style={{
           marginLeft: depth > 0 ? `${depth * 14}px` : "0px",
           background: isCurrentChapter
-            ? `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.58)}`
-            : "transparent",
+            ? `linear-gradient(135deg, ${withOpacity(uiScheme.accentText, 0.06)} 0%, transparent 60%), ${withOpacity(uiScheme.buttonBg, 0.54)}`
+            : withOpacity(uiScheme.buttonBg, 0.06),
           border: `1px solid ${
-            isCurrentChapter ? withOpacity(uiScheme.cardBorder, 0.4) : "transparent"
+            isCurrentChapter
+              ? withOpacity(uiScheme.cardBorder, 0.3)
+              : withOpacity(uiScheme.cardBorder, 0.06)
           }`,
+          boxShadow: isCurrentChapter
+            ? `0 12px 24px -22px ${withOpacity(uiScheme.fg, 0.28)}`
+            : "none",
         }}
       >
         {isCurrentChapter && (
-          <div className="absolute -left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+          <div
+            className="absolute left-1.5 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full"
+            style={{
+              background: uiScheme.accentText,
+              boxShadow: `0 0 12px ${withOpacity(uiScheme.accentText, 0.28)}`,
+            }}
+          />
         )}
 
         <span
           className={cn(
-            "truncate text-[12px] leading-5 transition-colors sm:text-[13px]",
+            "truncate pr-2 text-[12px] leading-5 transition-colors sm:text-[13px]",
             isCurrentChapter
               ? "font-bold"
-              : "font-medium opacity-70 group-hover:opacity-100",
+              : "font-medium opacity-72 group-hover:opacity-100",
           )}
           style={{ color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText }}
         >

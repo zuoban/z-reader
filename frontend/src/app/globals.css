@@ -335,6 +335,11 @@ foliate-view::part(filter) {
     -webkit-overflow-scrolling: touch;
   }
 
+  .reader-sidebar-sheet-body {
+    max-height: none;
+    overflow: hidden;
+  }
+
   .app-surface-panel,
   .category-form-panel {
     background: color-mix(in srgb, var(--card) 86%, var(--background));

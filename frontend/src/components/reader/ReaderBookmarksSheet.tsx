@@ -30,6 +30,7 @@ interface ReaderBookmarksSheetProps {
   onCreate: () => void;
   onGoTo: (bookmark: ReaderBookmark) => void;
   onDelete: (bookmarkId: string) => void;
+  trigger?: React.ReactNode;
 }
 
 function formatPercent(value: number) {
@@ -60,6 +61,7 @@ export function ReaderBookmarksSheet({
   onCreate,
   onGoTo,
   onDelete,
+  trigger,
 }: ReaderBookmarksSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -67,7 +69,6 @@ export function ReaderBookmarksSheet({
         render={
           <Button
             variant="ghost"
-            size="icon"
             title="书签"
             aria-label="书签"
             className={triggerClassName}
@@ -75,7 +76,7 @@ export function ReaderBookmarksSheet({
           />
         }
       >
-        <Bookmark className="h-4 w-4" />
+        {trigger || <Bookmark className="h-4 w-4" />}
       </SheetTrigger>
       <SheetContent
         side="bottom"

@@ -13,7 +13,13 @@ interface AppScreenProps {
 
 function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'shelf') {
-    return null;
+    return (
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(240,230,210,0.08),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(72,92,112,0.14),transparent_34%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_100%)] opacity-0 dark:opacity-100" />
+        <div className="absolute -left-[12%] top-[8%] hidden h-[28rem] w-[28rem] rounded-full bg-[#415066]/16 blur-[150px] dark:block" />
+        <div className="absolute right-[-14%] top-[-12%] hidden h-[24rem] w-[24rem] rounded-full bg-[#c9a66b]/10 blur-[140px] dark:block" />
+      </div>
+    );
   }
 
   if (variant === 'login') {

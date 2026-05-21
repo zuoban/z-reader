@@ -94,35 +94,35 @@
 }
 
 .dark {
-  --background: #1a1a1a;
-  --foreground: #e5e5e5;
-  --card: #252525;
-  --card-foreground: #e5e5e5;
-  --popover: #252525;
-  --popover-foreground: #e5e5e5;
-  --primary: #e5e5e5;
-  --primary-foreground: #1a1a1a;
-  --secondary: #2a2a2a;
-  --secondary-foreground: #e5e5e5;
-  --muted: #2a2a2a;
-  --muted-foreground: #888888;
-  --accent: #2a2a2a;
-  --accent-foreground: #e5e5e5;
-  --destructive: #ef4444;
+  --background: #101216;
+  --foreground: #eee8dc;
+  --card: #171b22;
+  --card-foreground: #eee8dc;
+  --popover: #191d24;
+  --popover-foreground: #eee8dc;
+  --primary: #f0e6d2;
+  --primary-foreground: #121417;
+  --secondary: #20252d;
+  --secondary-foreground: #eee8dc;
+  --muted: #20252d;
+  --muted-foreground: #9b9488;
+  --accent: #2a302f;
+  --accent-foreground: #f0e6d2;
+  --destructive: #f87171;
   --destructive-foreground: #ffffff;
-  --border: #333333;
-  --input: #333333;
-  --ring: #e5e5e5;
-  --paper-edge: #333333;
-  --paper-shadow: rgba(0, 0, 0, 0.5);
-  --paper-shadow-soft: rgba(0, 0, 0, 0.3);
-  --glass-specular: rgba(229, 229, 229, 0.08);
-  --glass-tint: rgba(37, 37, 37, 0.65);
-  --shelf-surface: #222222;
-  --shelf-surface-raised: #2a2a2a;
-  --shelf-surface-soft: #1e1e1e;
-  --shelf-surface-hover: #333333;
-  --shelf-surface-selected: #444444;
+  --border: #2d333d;
+  --input: #1d222a;
+  --ring: #dbc7a4;
+  --paper-edge: #303743;
+  --paper-shadow: rgba(0, 0, 0, 0.72);
+  --paper-shadow-soft: rgba(0, 0, 0, 0.42);
+  --glass-specular: rgba(255, 244, 220, 0.09);
+  --glass-tint: rgba(23, 27, 34, 0.72);
+  --shelf-surface: #141820;
+  --shelf-surface-raised: #1b2028;
+  --shelf-surface-soft: #12161d;
+  --shelf-surface-hover: #242a34;
+  --shelf-surface-selected: #f0e6d2;
 }
 
 /* Reader Specific Colors - Decoupled from App Theme */

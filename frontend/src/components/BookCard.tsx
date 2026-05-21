@@ -209,7 +209,6 @@ export function BookCard({
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
-  const statusLabel = progressValue > 0 ? `${progressDisplay}% · ${lastReadLabel}` : '未开始';
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
 
   function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: Element) {
@@ -267,7 +266,8 @@ export function BookCard({
         className={cn(
           'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border/30 bg-white p-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] transition-all duration-300',
           'hover:border-border/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]',
-          selected && 'border-primary ring-2 ring-primary'
+          'dark:border-white/8 dark:bg-[linear-gradient(180deg,#1b2028_0%,#151921_100%)] dark:shadow-[0_22px_60px_-46px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,244,220,0.06)] dark:hover:border-primary/18 dark:hover:shadow-[0_28px_72px_-48px_rgba(0,0,0,1)]',
+          selected && 'border-primary ring-2 ring-primary dark:border-primary dark:ring-primary/70'
         )}
         style={{
           '--paper-delay': `${Math.min(index, 10) * 28}ms`,
@@ -285,7 +285,7 @@ export function BookCard({
               'absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border transition-colors',
               selected
                 ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border/40 bg-white/80 backdrop-blur-sm'
+                : 'border-border/40 bg-white/80 backdrop-blur-sm dark:border-white/12 dark:bg-black/35'
             )}
             aria-hidden="true"
           >
@@ -293,7 +293,7 @@ export function BookCard({
           </div>
         )}
 
-        <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50">
+        <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50 dark:bg-[#11151b]">
           <BookCoverFace
             coverUrl={coverUrl}
             titleLabel={titleLabel}
@@ -306,22 +306,22 @@ export function BookCard({
         <div className="flex flex-1 flex-col p-3 sm:p-3.5">
           <div className="mb-2.5 sm:mb-3 flex-1">
             <h3
-              className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-[#1a1a1a]"
+              className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-[#1a1a1a] dark:text-foreground"
               title={titleLabel}
             >
               <HighlightedText text={titleLabel} query={searchQuery} />
             </h3>
 
-            <p className="mt-1.5 line-clamp-1 text-[0.85rem] font-medium text-gray-500">
+            <p className="mt-1.5 line-clamp-1 text-[0.85rem] font-medium text-gray-500 dark:text-muted-foreground">
               <HighlightedText text={authorLabel} query={searchQuery} />
             </p>
           </div>
 
           <div className="mt-auto space-y-2.5 sm:space-y-3.5">
             <div className="space-y-1 sm:space-y-1.5">
-              <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60">
+              <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60 dark:bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#111111] transition-[width] duration-700 ease-out"
+                  className="h-full rounded-full bg-[#111111] transition-[width] duration-700 ease-out dark:bg-primary"
                   style={{ width: `${Math.max(progressValue, 1)}%` }}
                 />
               </div>
@@ -340,7 +340,7 @@ export function BookCard({
               <Button
                 type="button"
                 style={{ minHeight: 'auto', minWidth: 'auto' }}
-                className="h-8 sm:h-9 flex-1 gap-1 sm:gap-1.5 rounded-lg sm:rounded-lg bg-[#111111] text-white text-[0.8rem] sm:text-[0.85rem] font-medium sm:font-semibold shadow-none hover:opacity-85 active:scale-[0.98] transition-all"
+                className="h-8 sm:h-9 flex-1 gap-1 sm:gap-1.5 rounded-lg sm:rounded-lg bg-[#111111] text-white text-[0.8rem] sm:text-[0.85rem] font-medium sm:font-semibold shadow-none hover:opacity-85 active:scale-[0.98] transition-all dark:bg-primary dark:text-primary-foreground dark:hover:opacity-95"
                 onClick={(event) => {
                   event.stopPropagation();
                   activateCard();
@@ -359,7 +359,7 @@ export function BookCard({
                   isDeleting={isDeleting}
                   onCategoryClick={() => setCategoryDialogOpen(true)}
                   onDeleteClick={() => setDeleteConfirmOpen(true)}
-                  triggerClassName="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-lg sm:rounded-lg border border-border/50 bg-card text-muted-foreground hover:bg-secondary/50 hover:text-foreground active:scale-[0.95] transition-all"
+                  triggerClassName="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-lg sm:rounded-lg border border-border/50 bg-card text-muted-foreground hover:bg-secondary/50 hover:text-foreground active:scale-[0.95] transition-all dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
                 />
               )}
 

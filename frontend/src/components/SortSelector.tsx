@@ -28,7 +28,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
         aria-label="书籍排序方式"
         style={{ minHeight: 'auto' }}
         className={cn(
-          'group flex w-full h-11 items-center justify-between rounded-xl border-0 bg-[#f5f5f5] px-4 pr-3 text-[14px] font-medium transition-all hover:bg-[#f0f0f0] focus-visible:ring-0 focus-visible:ring-offset-0',
+          'group flex w-full h-11 items-center justify-between rounded-xl border-0 bg-[#f5f5f5] px-4 pr-3 text-[14px] font-medium transition-all hover:bg-[#f0f0f0] focus-visible:ring-0 focus-visible:ring-offset-0 dark:border dark:border-white/8 dark:bg-white/[0.055] dark:hover:bg-white/[0.075]',
           className
         )}
         onClick={(e) => e.stopPropagation()}

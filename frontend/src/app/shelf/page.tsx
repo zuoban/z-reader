@@ -36,7 +36,6 @@ import { CategoryManagerSheet } from '@/components/CategoryManagerSheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
-import { ShelfFilterSheet } from '@/components/ShelfFilterSheet';
 import { SortSelector } from '@/components/SortSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +55,7 @@ const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 function ShelfBrand() {
   return (
     <div className="inline-flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a1a1a] text-white">
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a1a1a] text-white shadow-none dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_24px_-18px_var(--primary)]">
         <BookOpen className="h-4.5 w-4.5 stroke-[2.2]" />
       </span>
       <span className="text-lg font-bold tracking-tight text-foreground sm:text-[1.3rem]">
@@ -105,11 +104,6 @@ export default function ShelfPage() {
     sortBy,
     setSortBy,
   } = useShelfData(isAuthenticated);
-  const activeCategoryLabel = selectedCategoryId === null
-    ? null
-    : selectedCategoryId === 'uncategorized'
-      ? '未分类'
-      : selectedCategoryId;
   const uploadStatusLabel = uploadProgress
     ? `上传 ${uploadProgress.current}/${uploadProgress.total}`
     : isUploading
@@ -277,10 +271,10 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      className="bg-background [font-family:ui-sans-serif,system-ui,sans-serif]"
+      className="bg-background [font-family:ui-sans-serif,system-ui,sans-serif] dark:bg-[#101216]"
       contentClassName="flex min-h-screen w-full flex-col"
     >
-      <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-background/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-background/95 backdrop-blur-xl dark:border-white/8 dark:bg-[#111419]/82 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
         <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between px-5 sm:px-7 lg:px-10">
           <ShelfBrand />
 
@@ -292,7 +286,7 @@ export default function ShelfPage() {
               title="上传书籍"
               multiple
               buttonSize="icon-sm"
-              buttonClassName="!min-h-0 !h-9 !w-9 sm:!h-10 sm:!w-auto rounded-lg bg-primary text-primary-foreground px-0 sm:px-5 text-[14px] font-bold shadow-none hover:opacity-90 transition-all active:scale-[0.98] flex items-center justify-center border border-primary"
+              buttonClassName="!min-h-0 !h-9 !w-9 sm:!h-10 sm:!w-auto rounded-lg bg-primary text-primary-foreground px-0 sm:px-5 text-[14px] font-bold shadow-none hover:opacity-90 transition-all active:scale-[0.98] flex items-center justify-center border border-primary dark:border-primary/20 dark:shadow-[0_14px_34px_-24px_var(--primary)]"
             >
               {isUploading ? (
                 <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
@@ -306,7 +300,7 @@ export default function ShelfPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg border border-border bg-card text-foreground shadow-none hover:bg-secondary/50"
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg border border-border bg-card text-foreground shadow-none hover:bg-secondary/50 dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
                   style={{ minHeight: 'auto', minWidth: 'auto' }}
                   aria-label="账户与设置"
                   title="账户与设置"
@@ -421,7 +415,7 @@ export default function ShelfPage() {
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名或作者..."
                       aria-label="搜索书库"
-                      className="h-11 rounded-xl border-0 bg-[#f5f5f5] pl-11 pr-10 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-[#999] hover:bg-[#f0f0f0] focus:bg-[#f5f5f5] focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="h-11 rounded-xl border-0 bg-[#f5f5f5] pl-11 pr-10 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-[#999] hover:bg-[#f0f0f0] focus:bg-[#f5f5f5] focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border dark:border-white/8 dark:bg-white/[0.055] dark:text-foreground dark:placeholder:text-muted-foreground/60 dark:hover:bg-white/[0.075] dark:focus:bg-white/[0.07]"
                     />
                     {searchQuery && (
                       <button
@@ -452,8 +446,8 @@ export default function ShelfPage() {
                     className={cn(
                       'flex h-7 items-center justify-center rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
                       selectedCategoryId === null
-                        ? 'bg-[#111111] text-white'
-                        : 'bg-white border border-border text-foreground hover:bg-secondary/50'
+                        ? 'bg-[#111111] text-white dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                        : 'bg-white border border-border text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                     )}
                   >
                     全部
@@ -466,8 +460,8 @@ export default function ShelfPage() {
                       className={cn(
                         'flex h-7 items-center justify-center rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
                         selectedCategoryId === UNCATEGORIZED_FILTER_ID
-                          ? 'bg-[#111111] text-white'
-                          : 'bg-white border border-border text-foreground hover:bg-secondary/50'
+                          ? 'bg-[#111111] text-white dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                          : 'bg-white border border-border text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                       )}
                     >
                       未分类
@@ -482,8 +476,8 @@ export default function ShelfPage() {
                       className={cn(
                         'flex h-7 items-center justify-center max-w-[8rem] sm:max-w-[10rem] truncate rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
                         selectedCategoryId === category
-                          ? 'bg-[#111111] text-white'
-                          : 'bg-white border border-border text-foreground hover:bg-secondary/50'
+                          ? 'bg-[#111111] text-white dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                          : 'bg-white border border-border text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                       )}
                       title={category}
                     >
@@ -494,7 +488,7 @@ export default function ShelfPage() {
                     type="button"
                     variant="ghost"
                     style={{ minHeight: '28px', minWidth: 'auto' }}
-                    className="!h-7 rounded-full px-2.5 sm:!h-7 sm:rounded-full sm:px-2.5 gap-1 sm:gap-1.5 text-[12px] sm:text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                    className="!h-7 rounded-full px-2.5 sm:!h-7 sm:rounded-full sm:px-2.5 gap-1 sm:gap-1.5 text-[12px] sm:text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
                     onClick={() => setCategoryManagerOpen(true)}
                   >
                     <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />

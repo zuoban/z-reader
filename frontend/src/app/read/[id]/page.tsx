@@ -36,6 +36,7 @@ import { toast } from "sonner";
 
 const MIN_IMAGE_SCALE = 1;
 const MAX_IMAGE_SCALE = 5;
+const BOOKMARK_EXCERPT_MAX_LENGTH = 72;
 
 interface ImageZoomState {
   scale: number;
@@ -45,6 +46,42 @@ interface ImageZoomState {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function normalizeBookmarkExcerpt(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (normalized.length <= BOOKMARK_EXCERPT_MAX_LENGTH) return normalized;
+  return `${normalized.slice(0, BOOKMARK_EXCERPT_MAX_LENGTH)}…`;
+}
+
+function getElementFromRange(range: Range) {
+  const node = range.startContainer;
+  return node.nodeType === Node.ELEMENT_NODE
+    ? (node as Element)
+    : node.parentElement;
+}
+
+function getBookmarkExcerpt(view: FoliateView | null) {
+  const range = view?.lastLocation?.range;
+  const rangeText = range ? normalizeBookmarkExcerpt(range.toString()) : "";
+  if (rangeText) return rangeText;
+
+  const startElement = range ? getElementFromRange(range) : null;
+  const block = startElement?.closest(
+    "p, li, blockquote, dd, dt, h1, h2, h3, h4, h5, h6",
+  );
+  const blockText = block?.textContent
+    ? normalizeBookmarkExcerpt(block.textContent)
+    : "";
+  if (blockText) return blockText;
+
+  const doc =
+    range?.startContainer.ownerDocument ??
+    view?.renderer?.getContents?.()[0]?.doc ??
+    view?.tts?.doc;
+
+  return normalizeBookmarkExcerpt(doc?.body?.textContent ?? "");
 }
 
 function getZoomedState(
@@ -464,6 +501,7 @@ export default function ReadPage() {
         cfi: currentCFI,
         percentage,
         chapter: currentChapter,
+        note: getBookmarkExcerpt(viewRef.current),
       });
       setBookmarks((items) => [...items, bookmark]);
       toast.success("书签已添加");

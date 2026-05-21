@@ -18,6 +18,20 @@ export function withOpacity(color: string | undefined, opacity: number) {
   return `${normalized}${hexOpacity}`;
 }
 
+export function getModernReaderSurface(uiScheme: ThemeColors) {
+  return {
+    bg: withOpacity(uiScheme.cardBg, 0.96),
+    surface: withOpacity(uiScheme.buttonBg, 0.52),
+    surfaceStrong: withOpacity(uiScheme.buttonBg, 0.74),
+    surfaceSoft: withOpacity(uiScheme.buttonBg, 0.38),
+    fg: uiScheme.fg,
+    muted: withOpacity(uiScheme.mutedText, 0.86),
+    border: withOpacity(uiScheme.cardBorder, 0.05),
+    hairline: withOpacity(uiScheme.cardBorder, 0.06),
+    shadow: `0 28px 80px ${withOpacity(uiScheme.fg, 0.16)}`,
+  };
+}
+
 export const floatingSheetActionButtonClass =
   "paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-full  transition-[transform,box-shadow,background-color,border-color,color] hover:scale-[1.03] hover:shadow-md disabled:opacity-100 sm:top-4";
 

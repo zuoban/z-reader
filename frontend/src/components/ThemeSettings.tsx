@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import {
+  getModernReaderSurface,
   withOpacity,
 } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
@@ -113,11 +114,9 @@ function SectionCard({
 }: SectionProps) {
   return (
     <section
-      className="glass-section-card space-y-4 rounded-[1.75rem] p-5"
+      className="space-y-4 rounded-[1.15rem] p-4"
       style={{
-        background:
-          `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.045)} 0%, transparent 36%), ${withOpacity(uiScheme.cardBg, 0.72)}`,
-        borderColor: withOpacity(uiScheme.cardBorder, 0.18),
+        background: withOpacity(uiScheme.buttonBg, 0.38),
       }}
     >
       <div className="flex items-center justify-between gap-3">
@@ -151,8 +150,7 @@ function ValuePill({ label, active, onClick, uiScheme }: { label: string; active
       )}
       style={{
         color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
-        background: active ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
-        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1)}`,
+        background: active ? withOpacity(uiScheme.buttonBg, 0.82) : withOpacity(uiScheme.buttonBg, 0.28),
       }}
     >
       {label}
@@ -214,21 +212,18 @@ function SliderField({
 
 function ReaderPreview({
   theme,
-  uiScheme,
 }: {
   theme: ReaderTheme;
-  uiScheme: ThemeColors;
 }) {
   const preset = PRESET_STYLES[theme.preset];
   const fontStack = FONT_FAMILY_OPTIONS[theme.fontFamily].stack;
 
   return (
     <section
-      className="mb-5 overflow-hidden rounded-[1.5rem] border p-4 shadow-sm"
+      className="mb-4 overflow-hidden rounded-[1.15rem] p-4"
       aria-label="阅读效果预览"
       style={{
         background: preset.bg,
-        borderColor: withOpacity(uiScheme.cardBorder, 0.22),
         color: preset.fg,
       }}
     >
@@ -288,6 +283,7 @@ export function ThemeSettings({
   const [isResetFeedbackVisible, setIsResetFeedbackVisible] = useState(false);
   const [resetFeedbackCount, setResetFeedbackCount] = useState(0);
   const [activeSection, setActiveSection] = useState<SettingsSection>("appearance");
+  const surface = getModernReaderSurface(uiScheme);
   useEffect(() => {
     return () => {
       if (resetFeedbackTimeoutRef.current !== null) {
@@ -332,39 +328,50 @@ export function ThemeSettings({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.75rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
-          background:
-            `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.42)} 0%, transparent 9rem), ${uiScheme.cardBg}`,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.22),
-          color: uiScheme.fg,
-          boxShadow: `0 24px 70px -44px ${withOpacity(uiScheme.cardBorder, 0.75)}, 0 12px 30px -26px ${withOpacity(uiScheme.cardBorder, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.52)`,
+          background: surface.bg,
+          borderColor: surface.border,
+          color: surface.fg,
+          boxShadow: surface.shadow,
+          backdropFilter: "blur(18px)",
         }}
       >
-        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+        <div className="flex justify-center pb-1 pt-3">
+          <div
+            className="h-1 w-10 rounded-full"
+            style={{ background: surface.hairline }}
+          />
+        </div>
+        <SheetHeader
+          className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
+          style={{ background: "transparent" }}
+        >
           <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3.5">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
-                style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.2),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
-                  color: uiScheme.link,
-                }}
-              >
-                <Settings className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: surface.surface,
+                    color: surface.fg,
+                  }}
+                >
+                  <Settings className="h-4 w-4" />
+                </div>
+                <SheetTitle
+                  className="text-lg font-semibold tracking-tight"
+                  style={{ color: surface.fg }}
+                >
                   阅读偏好
                 </SheetTitle>
-                <SheetDescription
-                  className="mt-1 text-xs font-medium"
-                  style={{ color: uiScheme.mutedText }}
-                >
-                  营造最舒适的数字阅读环境
-                </SheetDescription>
               </div>
+              <SheetDescription
+                className="mt-1 pl-10 text-xs leading-5"
+                style={{ color: surface.muted }}
+              >
+                营造最舒适的数字阅读环境
+              </SheetDescription>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               <Button
@@ -376,15 +383,14 @@ export function ThemeSettings({
                 title="重置阅读偏好"
                 aria-label="重置阅读偏好"
                 className={cn(
-                  "h-8 w-8 rounded-xl border transition-[transform,box-shadow,background-color,border-color,color] hover:scale-[1.02] disabled:opacity-45",
+                  "h-8 w-8 rounded-full border-0 transition-[transform,box-shadow,background-color,color] hover:brightness-[0.985] disabled:opacity-45",
                   isResetFeedbackVisible && "scale-[1.08]",
                 )}
                 style={{
                   color: isDefaultTheme
-                    ? withOpacity(uiScheme.mutedText, 0.58)
+                    ? surface.muted
                     : withOpacity(uiScheme.fg, 0.68),
-                  background: withOpacity(uiScheme.buttonBg, isDefaultTheme ? 0.08 : 0.18),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                  background: surface.surfaceSoft,
                   boxShadow: isResetFeedbackVisible
                     ? `0 0 0 4px ${withOpacity(uiScheme.link, 0.1)}`
                     : "none",
@@ -400,11 +406,10 @@ export function ThemeSettings({
               <button
                 type="button"
                 onClick={() => onOpenChange?.(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                 style={{
-                  color: withOpacity(uiScheme.fg, 0.62),
-                  background: withOpacity(uiScheme.buttonBg, 0.18),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                  color: surface.muted,
+                  background: surface.surface,
                 }}
                 aria-label="关闭阅读偏好"
                 title="关闭"
@@ -415,14 +420,13 @@ export function ThemeSettings({
           </div>
         </SheetHeader>
 
-        <div className="app-sheet-body min-h-0 px-6 py-5 sm:px-7">
+        <div className="app-sheet-body min-h-0 px-3 pb-3 pt-2 sm:px-4">
           <div
-            className="mb-5 grid grid-cols-3 gap-1 rounded-xl border p-1"
+            className="mb-4 grid grid-cols-3 gap-1 rounded-2xl p-1"
             role="tablist"
             aria-label="阅读设置分类"
             style={{
-              background: withOpacity(uiScheme.buttonBg, 0.08),
-              borderColor: withOpacity(uiScheme.cardBorder, 0.1),
+              background: surface.surfaceSoft,
             }}
           >
             {SETTINGS_SECTIONS.map((section) => {
@@ -435,13 +439,10 @@ export function ThemeSettings({
                   role="tab"
                   aria-selected={active}
                   onClick={() => setActiveSection(section.id)}
-                  className="h-9 rounded-lg text-xs font-bold transition-[background-color,color,box-shadow,transform] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                  className="h-9 rounded-[0.85rem] text-xs font-semibold transition-[background-color,color,transform] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                   style={{
-                    background: active ? withOpacity(uiScheme.cardBg, 0.72) : "transparent",
-                    color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.56),
-                    boxShadow: active
-                      ? `0 8px 20px -18px ${withOpacity(uiScheme.cardBorder, 0.46)}`
-                      : "none",
+                    background: active ? surface.bg : "transparent",
+                    color: active ? surface.fg : withOpacity(surface.fg, 0.56),
                   }}
                 >
                   {section.label}
@@ -450,7 +451,7 @@ export function ThemeSettings({
             })}
           </div>
 
-          <ReaderPreview theme={theme} uiScheme={uiScheme} />
+          <ReaderPreview theme={theme} />
 
           {activeSection === "appearance" && (
             <div className="space-y-7" role="tabpanel" aria-label="外观设置">

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
-import { withOpacity } from "@/lib/reader-ui";
+import { getModernReaderSurface } from "@/lib/reader-ui";
 import { MemoizedReaderTOCNode } from "@/components/reader/ReaderTOCNode";
 
 interface ReaderTOCSheetProps {
@@ -52,6 +52,8 @@ export function ReaderTOCSheet({
   onGoTo,
   trigger,
 }: ReaderTOCSheetProps) {
+  const surface = getModernReaderSurface(uiScheme);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger
@@ -71,52 +73,69 @@ export function ReaderTOCSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell fixed left-4 top-4 flex h-auto max-h-[calc(100svh-32px)] w-[calc(100vw-32px)] flex-col rounded-[24px] border p-0 shadow-2xl transition-all duration-300 sm:inset-y-0 sm:left-0 sm:h-full sm:w-[360px] sm:rounded-none sm:border-y-0 sm:border-l-0"
+        className="app-sheet-shell fixed bottom-4 left-4 top-4 flex w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[1.75rem] p-0 transition-all duration-300 data-[side=left]:bottom-4 data-[side=left]:left-4 data-[side=left]:top-4 data-[side=left]:h-auto data-[side=left]:w-[calc(100vw-32px)] data-[side=left]:rounded-[1.75rem] data-[side=left]:border-0 data-[side=left]:sm:w-[380px] sm:w-[380px]"
         style={{
-          background: uiScheme.bg,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.15),
-          color: uiScheme.fg,
-          boxShadow: `0 20px 50px -12px ${withOpacity(uiScheme.fg, 0.25)}`,
+          background: surface.bg,
+          borderColor: surface.border,
+          color: surface.fg,
+          boxShadow: surface.shadow,
+          backdropFilter: "blur(18px)",
         }}
       >
+        <div className="flex justify-center pb-1 pt-3 sm:hidden">
+          <div
+            className="h-1 w-10 rounded-full"
+            style={{ background: surface.hairline }}
+          />
+        </div>
         <SheetHeader
-          className="shrink-0 space-y-0 px-6 pb-2 pt-6 sm:px-7 sm:pb-4 sm:pt-7"
+          className="shrink-0 space-y-0 px-5 pb-3 pt-2 sm:px-6 sm:pt-5"
           style={{
-            background: `linear-gradient(to bottom, ${withOpacity(uiScheme.buttonBg, 0.1)} 0%, transparent 100%)`,
+            background: "transparent",
           }}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="mb-3 flex items-center gap-2.5">
+              <div className="mb-2 flex items-center gap-2.5">
                 <div
-                  className="flex h-9 w-9 items-center justify-center rounded-2xl border"
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
                   style={{
-                    background: withOpacity(uiScheme.accentText, 0.08),
-                    borderColor: withOpacity(uiScheme.accentText, 0.15),
-                    color: uiScheme.accentText,
+                    background: surface.surface,
+                    color: surface.fg,
                   }}
                 >
-                  <List className="h-[18px] w-[18px]" />
+                  <List className="h-4 w-4" />
                 </div>
                 <SheetTitle
-                  className="text-[17px] font-bold tracking-tight"
-                  style={{ color: uiScheme.fg }}
+                  className="text-lg font-semibold tracking-tight"
+                  style={{ color: surface.fg }}
                 >
                   目录
                 </SheetTitle>
+                {toc.length > 0 ? (
+                  <span
+                    className="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
+                    style={{
+                      background: surface.surface,
+                      color: surface.muted,
+                    }}
+                  >
+                    {toc.length}
+                  </span>
+                ) : null}
               </div>
-              <div className="space-y-1 pr-2">
+              <div className="space-y-1 pl-10 pr-2">
                 <SheetDescription
-                  className="truncate text-[13px] font-semibold leading-tight opacity-90"
-                  style={{ color: uiScheme.fg }}
+                  className="truncate text-xs font-medium leading-5"
+                  style={{ color: surface.muted }}
                   title={bookTitle || "当前书籍"}
                 >
                   {bookTitle || "当前书籍"}
                 </SheetDescription>
                 {bookAuthor ? (
                   <p
-                    className="truncate text-[11px] font-medium tracking-wide opacity-50"
-                    style={{ color: uiScheme.fg }}
+                    className="truncate text-[11px] font-medium opacity-70"
+                    style={{ color: surface.muted }}
                     title={bookAuthor}
                   >
                     {bookAuthor}
@@ -136,49 +155,33 @@ export function ReaderTOCSheet({
                     ? `定位到当前章节：${currentChapter}`
                     : "暂未识别当前章节"
                 }
-                className="h-9 w-9 rounded-2xl border transition-all hover:scale-105 active:scale-95 disabled:opacity-30"
+                className="h-9 w-9 rounded-full border-0 transition-colors hover:brightness-[0.985] active:scale-95 disabled:opacity-35"
                 style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.2),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.15),
-                  color: uiScheme.fg,
+                  background: surface.surfaceSoft,
+                  color: surface.fg,
                 }}
               >
-                <LocateFixed className="h-[18px] w-[18px]" />
+                <LocateFixed className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onOpenChange(false)}
                 title="关闭目录"
-                className="h-9 w-9 rounded-2xl border transition-all hover:scale-105 active:scale-95"
+                className="h-9 w-9 rounded-full border-0 transition-colors hover:brightness-[0.985] active:scale-95"
                 style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.2),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.15),
-                  color: uiScheme.fg,
+                  background: surface.surface,
+                  color: surface.muted,
                 }}
               >
-                <X className="h-[18px] w-[18px]" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </SheetHeader>
 
         <div className="app-sheet-body reader-sidebar-sheet-body flex flex-1 flex-col min-h-0 overflow-hidden relative">
-          <div className="shrink-0 px-6 pb-3 pt-4 sm:px-7">
-            <div
-              className="flex items-center justify-between rounded-xl border px-4 py-2.5 text-[11px] font-bold tracking-[0.08em] uppercase opacity-60"
-              style={{
-                background: withOpacity(uiScheme.buttonBg, 0.1),
-                borderColor: withOpacity(uiScheme.cardBorder, 0.08),
-                color: uiScheme.fg,
-              }}
-            >
-              <span>Chapters Navigation</span>
-              <span className="font-mono text-[12px]">{toc.length}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-8 sm:px-5 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-8 pt-2 sm:px-4 custom-scrollbar">
             <div ref={tocListRef} className="space-y-0.5">
               {toc.length > 0 ? (
                 toc.map((item, idx) => (
@@ -195,25 +198,25 @@ export function ReaderTOCSheet({
                   />
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-24 px-6 text-center opacity-40">
-                  <div 
-                    className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border-2 border-dashed"
-                    style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.2) }}
+                <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+                  <div
+                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+                    style={{ background: surface.surface }}
                   >
                     <List
-                      className="h-7 w-7 stroke-[1.5]"
-                      style={{ color: uiScheme.mutedText }}
+                      className="h-5 w-5 stroke-[1.75]"
+                      style={{ color: surface.fg }}
                     />
                   </div>
                   <p
-                    className="text-[14px] font-semibold tracking-tight"
-                    style={{ color: uiScheme.mutedText }}
+                    className="text-sm font-medium tracking-tight"
+                    style={{ color: surface.fg }}
                   >
                     未检测到目录结构
                   </p>
-                  <p 
-                    className="mt-2 text-[12px] opacity-70"
-                    style={{ color: uiScheme.mutedText }}
+                  <p
+                    className="mt-1 text-xs leading-5"
+                    style={{ color: surface.muted }}
                   >
                     该书籍可能没有定义标准目录
                   </p>
@@ -226,7 +229,7 @@ export function ReaderTOCSheet({
           <div 
             className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
             style={{
-              background: `linear-gradient(to top, ${uiScheme.bg} 0%, transparent 100%)`
+              background: `linear-gradient(to top, ${surface.bg} 0%, transparent 100%)`
             }}
           />
         </div>

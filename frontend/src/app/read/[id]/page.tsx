@@ -613,33 +613,17 @@ export default function ReadPage() {
     );
   }
 
-  const toolbarButtonClass =
-    "relative flex h-10 w-10 min-h-10 min-w-10 items-center justify-center rounded-xl border border-transparent transition-all duration-150 ease-out hover:scale-[1.03] sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9";
   const isDarkPreset = theme.preset === "dark";
-  const getToolbarButtonStyle = (active = false) => ({
-    color: active ? uiScheme.link : uiScheme.buttonText,
-    background: active
-      ? withOpacity(uiScheme.link, isDarkPreset ? 0.14 : 0.1)
-      : withOpacity(uiScheme.buttonBg, isDarkPreset ? 0.18 : 0.22),
-    border: `1px solid ${
-      active
-        ? withOpacity(uiScheme.link, 0.22)
-        : withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.24)
-    }`,
-    boxShadow: active
-      ? `0 12px 24px -20px ${withOpacity(uiScheme.link, 0.5)}`
-      : `inset 0 1px 0 ${withOpacity("#ffffff", isDarkPreset ? 0.08 : 0.24)}`,
-    transition: "all 150ms ease-out",
-  });
   const statusBarContainerStyle = {
-    background: uiScheme.bg,
-    borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.15 : 0.08)}`,
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
+    background: withOpacity(uiScheme.bg, isDarkPreset ? 0.82 : 0.88),
+    borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.1)}`,
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    boxShadow: `0 -4px 20px -8px rgba(0, 0, 0, ${isDarkPreset ? 0.4 : 0.05})`,
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.75rem)";
-  const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)";
+  const statusBarReservedSpace = "var(--status-bar-reserved)";
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
   return (
@@ -684,8 +668,6 @@ export default function ReadPage() {
           onGoTo={goTo}
           onBack={handleBack}
           uiScheme={uiScheme}
-          toolbarButtonClass={toolbarButtonClass}
-          getToolbarButtonStyle={getToolbarButtonStyle}
           headerSafeAreaPaddingTop={headerSafeAreaPaddingTop}
           overlayContainer={overlayContainer}
           theme={theme}
@@ -810,17 +792,18 @@ export default function ReadPage() {
                 onUpdateSettings={updateTTSSettings}
                 uiScheme={uiScheme}
                 variant="toolbar"
-                triggerClassName="paper-motion-interactive inline-flex size-7! shrink-0 items-center justify-center rounded-full p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-3.5!"
+                triggerClassName="paper-motion-interactive inline-flex size-4! shrink-0 items-center justify-center rounded-[5px] p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-[9px]! hover:bg-black/5 dark:hover:bg-white/5"
                 triggerStyle={{
                   color:
                     ttsState !== "stopped"
                       ? uiScheme.link
-                      : withOpacity(uiScheme.fg, 0.58),
-                  background: withOpacity(uiScheme.buttonBg, 0.45),
-                  border: `1px solid ${withOpacity(
-                    ttsState !== "stopped" ? uiScheme.link : uiScheme.cardBorder,
-                    0.16,
-                  )}`,
+                      : withOpacity(uiScheme.fg, 0.72),
+                  background: "transparent",
+                  border: "none",
+                  height: "20px",
+                  minHeight: "20px",
+                  width: "20px",
+                  minWidth: "20px",
                 }}
                 resumePromptVisible={resumePromptVisible}
                 resumePromptMessage={resumePromptMessage}

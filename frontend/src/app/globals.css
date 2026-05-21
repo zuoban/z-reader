@@ -54,6 +54,7 @@
 }
 
 :root {
+  --status-bar-reserved: calc(env(safe-area-inset-bottom, 0px) + 2.75rem);
   --background: #ffffff;
   --foreground: #1a1a1a;
   --card: #ffffff;

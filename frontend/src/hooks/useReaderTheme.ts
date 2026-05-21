@@ -294,11 +294,19 @@ export function useReaderTheme() {
         color: ${preset.fg} !important;
         font-size: ${theme.fontSize}px !important;
         line-height: ${theme.lineHeight} !important;
-        padding-block: ${theme.pagePaddingY}px !important;
+        padding-top: ${theme.pagePaddingY}px !important;
+        padding-bottom: calc(${theme.pagePaddingY}px + 2.25rem) !important;
         padding-inline: ${theme.pagePaddingX}px !important;
         font-family: ${fontStack} !important;
         box-sizing: border-box;
         text-rendering: optimizeLegibility;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding-top: ${theme.pagePaddingY}px !important;
+          padding-bottom: calc(${theme.pagePaddingY}px + 2.5rem) !important;
+          padding-inline: ${Math.max(8, theme.pagePaddingX - 8)}px !important;
+        }
       }
       p {
         line-height: ${theme.lineHeight} !important;

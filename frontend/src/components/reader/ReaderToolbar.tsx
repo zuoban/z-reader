@@ -1,7 +1,7 @@
 "use client";
 
-import { type CSSProperties, type RefObject } from "react";
-import { ArrowLeft, Bookmark as BookmarkIcon, BookmarkPlus, Check, List, Settings } from "lucide-react";
+import { type RefObject } from "react";
+import { ArrowLeft, Bookmark as BookmarkIcon, BookmarkPlus, List, Settings } from "lucide-react";
 
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,6 @@ interface ReaderToolbarProps {
   onGoTo: (href: string) => void;
   onBack: () => void;
   uiScheme: ThemeColors;
-  toolbarButtonClass: string;
-  getToolbarButtonStyle: (active?: boolean) => CSSProperties;
   headerSafeAreaPaddingTop: string;
   overlayContainer?: HTMLElement | null;
   theme: ReaderTheme;
@@ -66,8 +64,6 @@ export function ReaderToolbar({
   onGoTo,
   onBack,
   uiScheme,
-  toolbarButtonClass,
-  getToolbarButtonStyle,
   headerSafeAreaPaddingTop,
   overlayContainer,
   theme,
@@ -187,15 +183,9 @@ export function ReaderToolbar({
                 </div>
               }
             />
-
-            <div className="ml-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 sm:ml-4 sm:text-sm">
-              <Check className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">已同步</span>
-            </div>
           </div>
         </div>
       </header>
     </>
   );
 }
-

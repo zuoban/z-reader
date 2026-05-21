@@ -174,6 +174,37 @@ foliate-view::part(filter) {
   filter: none;
 }
 
+[data-sonner-toaster] {
+  --toast-close-button-start: unset !important;
+  --toast-close-button-end: 0.875rem !important;
+  --toast-close-button-transform: translateY(-50%) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  left: auto !important;
+  right: 0.875rem !important;
+  top: 50% !important;
+  min-height: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  width: 1.75rem;
+  transform: translateY(-50%) !important;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 48%, transparent);
+  box-shadow: none;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  color: color-mix(in srgb, var(--foreground) 76%, transparent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
 @media (max-width: 640px) {
   foliate-view {
     padding: 0;

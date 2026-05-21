@@ -32,6 +32,7 @@ import { TTSControls } from "@/components/TTSControls";
 import { api } from "@/lib/api";
 import type { Bookmark } from "@/lib/api";
 import { withOpacity } from "@/lib/reader-ui";
+import { toast } from "sonner";
 
 const MIN_IMAGE_SCALE = 1;
 const MAX_IMAGE_SCALE = 5;
@@ -205,10 +206,6 @@ export default function ReadPage() {
     if (!isAuthenticated) return;
     void loadBookmarks();
   }, [isAuthenticated, loadBookmarks]);
-
-  const getCurrentCFI = useCallback(() => {
-    return viewRef.current?.lastLocation?.cfi || progress?.cfi || "";
-  }, [progress?.cfi]);
 
   const handlePrev = useCallback(() => {
     if (viewRef.current) {
@@ -428,6 +425,7 @@ export default function ReadPage() {
     bookTitle,
     bookAuthor,
     percentage,
+    currentCFI,
     currentChapter,
     currentChapterHref,
     currentPageLabel,
@@ -452,24 +450,30 @@ export default function ReadPage() {
   });
 
   const handleCreateBookmark = useCallback(async () => {
-    const cfi = getCurrentCFI();
-    if (!cfi || isSavingBookmark) return;
+    if (!currentCFI || isSavingBookmark) return;
+
+    const isDuplicate = bookmarks.some((item) => item.cfi === currentCFI);
+    if (isDuplicate) {
+      toast.error("该位置已添加书签");
+      return;
+    }
 
     setIsSavingBookmark(true);
     try {
       const bookmark = await api.createBookmark(bookId, {
-        cfi,
+        cfi: currentCFI,
         percentage,
         chapter: currentChapter,
       });
       setBookmarks((items) => [...items, bookmark]);
-      setBookmarksOpen(true);
+      toast.success("书签已添加");
     } catch (err) {
       console.error("Failed to create bookmark:", err);
+      toast.error("添加书签失败");
     } finally {
       setIsSavingBookmark(false);
     }
-  }, [bookId, currentChapter, getCurrentCFI, isSavingBookmark, percentage]);
+  }, [bookId, bookmarks, currentCFI, currentChapter, isSavingBookmark, percentage]);
 
   const handleGoToBookmark = useCallback((bookmark: Bookmark) => {
     viewRef.current?.goTo?.(bookmark.cfi);
@@ -590,13 +594,13 @@ export default function ReadPage() {
     transition: "all 150ms ease-out",
   });
   const statusBarContainerStyle = {
-    background: "transparent",
-    borderTop: "none",
-    backdropFilter: "none",
-    WebkitBackdropFilter: "none",
+    background: uiScheme.bg,
+    borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.15 : 0.08)}`,
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 3rem)";
+  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.75rem)";
   const statusBarReservedSpace = "calc(env(safe-area-inset-bottom, 0px) + 2.4rem)";
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
@@ -607,17 +611,13 @@ export default function ReadPage() {
       tabIndex={-1}
       className="fixed inset-0 overflow-hidden overscroll-none"
       style={{
-        background: `
-          radial-gradient(circle at 50% -14%, ${withOpacity(uiScheme.cardBg, isDarkPreset ? 0.5 : 0.78)} 0, transparent 34rem),
-          linear-gradient(135deg, ${withOpacity(uiScheme.headerBg, 0.98)} 0%, ${uiScheme.bg} 46%, ${uiScheme.bg} 100%)
-        `,
+        background: uiScheme.bg,
       }}
     >
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background: `
-            linear-gradient(180deg, ${withOpacity(uiScheme.headerBg, 0.72)} 0%, transparent 22%, transparent 100%),
             linear-gradient(90deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.08)} 0, transparent 18%, transparent 82%, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.08)} 100%)
           `,
         }}
@@ -634,7 +634,7 @@ export default function ReadPage() {
           bookmarksOpen={bookmarksOpen}
           onBookmarksOpenChange={setBookmarksOpen}
           bookmarks={bookmarks}
-          canCreateBookmark={Boolean(getCurrentCFI())}
+          canCreateBookmark={Boolean(currentCFI)}
           isSavingBookmark={isSavingBookmark}
           onCreateBookmark={handleCreateBookmark}
           onGoToBookmark={handleGoToBookmark}
@@ -772,20 +772,17 @@ export default function ReadPage() {
                 onUpdateSettings={updateTTSSettings}
                 uiScheme={uiScheme}
                 variant="toolbar"
-                triggerClassName="paper-motion-interactive inline-flex size-7! min-h-7! min-w-7! shrink-0 items-center justify-center rounded-full border p-0 align-middle transition-all hover:scale-[1.03] active:scale-95 focus-visible:ring-2 focus-visible:ring-inset [&_svg]:size-3.5!"
+                triggerClassName="paper-motion-interactive inline-flex size-7! shrink-0 items-center justify-center rounded-full p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-3.5!"
                 triggerStyle={{
                   color:
                     ttsState !== "stopped"
                       ? uiScheme.link
                       : withOpacity(uiScheme.fg, 0.58),
-                  background: withOpacity(uiScheme.cardBg, 0.62),
-                  borderColor: withOpacity(
+                  background: withOpacity(uiScheme.buttonBg, 0.45),
+                  border: `1px solid ${withOpacity(
                     ttsState !== "stopped" ? uiScheme.link : uiScheme.cardBorder,
-                    0.18,
-                  ),
-                  boxShadow:
-                    `0 8px 18px -16px ${withOpacity(uiScheme.cardBorder, 0.42)}`,
-                  backdropFilter: "blur(14px)",
+                    0.16,
+                  )}`,
                 }}
                 resumePromptVisible={resumePromptVisible}
                 resumePromptMessage={resumePromptMessage}

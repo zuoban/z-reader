@@ -143,7 +143,8 @@ export function useFoliateView({
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
-  const [percentage, setPercentage] = useState(0);
+  const [percentage, setPercentage] = useState(progress?.percentage || 0);
+  const [currentCFI, setCurrentCFI] = useState(progress?.cfi || "");
   const [currentChapter, setCurrentChapter] = useState("");
   const [currentChapterHref, setCurrentChapterHref] = useState("");
   const [currentPageLabel, setCurrentPageLabel] = useState("");
@@ -164,6 +165,13 @@ export function useFoliateView({
   const firstDocumentLoadedRef = useRef(false);
   const revealScheduledRef = useRef(false);
   const compatibilityModeRef = useRef(false);
+
+  useEffect(() => {
+    if (!currentCFI && progress?.cfi) {
+      setCurrentCFI(progress.cfi);
+      setPercentage(progress.percentage);
+    }
+  }, [progress, currentCFI]);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -478,6 +486,7 @@ export function useFoliateView({
           setPercentage(pctRaw);
 
           if (cfi) {
+            setCurrentCFI(cfi);
             updateProgressRef.current(cfi, pctRaw);
           }
 
@@ -607,6 +616,7 @@ export function useFoliateView({
     bookTitle,
     bookAuthor,
     percentage,
+    currentCFI,
     currentChapter,
     currentChapterHref,
     currentPageLabel,

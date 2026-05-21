@@ -92,7 +92,7 @@ export function ReaderToolbar({
           paddingTop: headerSafeAreaPaddingTop,
         }}
       >
-        <div className="pointer-events-auto mx-auto flex h-14 max-w-full items-center px-4 sm:h-16 sm:px-6">
+        <div className="pointer-events-auto mx-auto flex h-11 max-w-full items-center px-4 sm:h-12 sm:px-6">
           <div className="flex flex-1 items-center gap-2 overflow-hidden">
             <Button
               variant="ghost"
@@ -164,6 +164,7 @@ export function ReaderToolbar({
               size="sm"
               disabled={!canCreateBookmark || isSavingBookmark}
               onClick={onCreateBookmark}
+              title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
               className="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
             >
               <BookmarkPlus className="h-4 w-4" />

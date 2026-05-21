@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { Bookmark, BookmarkPlus, MapPin, Trash2, X } from "lucide-react";
+import { Bookmark, BookmarkPlus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sheet";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
-import { withOpacity } from "@/lib/reader-ui";
 
 interface ReaderBookmarksSheetProps {
   open: boolean;
@@ -40,19 +39,62 @@ function formatPercent(value: number) {
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+
+  if (diffMs < 60_000) return "刚刚";
+  if (diffMs < 3_600_000) return `${Math.floor(diffMs / 60_000)}分钟前`;
+  if (diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}小时前`;
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const startOfTargetDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const dayDiff = Math.round(
+    (startOfToday.getTime() - startOfTargetDay.getTime()) / 86_400_000,
+  );
+
+  if (dayDiff === 1) return "昨天";
+  if (dayDiff === 2) return "前天";
+  if (dayDiff < 7) return `${dayDiff}天前`;
+
+  const sameYear = now.getFullYear() === date.getFullYear();
+  return date.toLocaleDateString("zh-CN", sameYear
+    ? {
+        month: "2-digit",
+        day: "2-digit",
+      }
+    : {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
 }
+
+const modernSurface = {
+  bg: "rgba(255, 255, 255, 0.96)",
+  panel: "#ffffff",
+  surface: "#f5f5f7",
+  surfaceStrong: "#eeeeF1",
+  surfaceSoft: "rgba(245, 245, 247, 0.78)",
+  fg: "#18181b",
+  muted: "#71717a",
+  border: "rgba(24, 24, 27, 0.05)",
+  hairline: "rgba(24, 24, 27, 0.05)",
+  shadow: "0 28px 80px rgba(15, 23, 42, 0.16)",
+};
 
 export function ReaderBookmarksSheet({
   open,
   onOpenChange,
   bookmarks,
-  uiScheme,
   overlayContainer,
   triggerClassName,
   triggerStyle,
@@ -63,6 +105,14 @@ export function ReaderBookmarksSheet({
   onDelete,
   trigger,
 }: ReaderBookmarksSheetProps) {
+  const sortedBookmarks = [...bookmarks].sort((left, right) => {
+    const leftTime = new Date(left.created_at).getTime();
+    const rightTime = new Date(right.created_at).getTime();
+
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
+    return rightTime - leftTime;
+  });
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger
@@ -83,89 +133,114 @@ export function ReaderBookmarksSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.75rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
         style={{
-          background:
-            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.22),
-          color: uiScheme.fg,
-          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
+          background: modernSurface.bg,
+          borderColor: modernSurface.border,
+          color: modernSurface.fg,
+          boxShadow: modernSurface.shadow,
+          backdropFilter: "blur(18px)",
         }}
       >
-        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+        <div className="flex justify-center pb-1 pt-3">
+          <div
+            className="h-1 w-10 rounded-full"
+            style={{ background: "rgba(24, 24, 27, 0.14)" }}
+          />
+        </div>
+        <SheetHeader
+          className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
+          style={{
+            background: "transparent",
+          }}
+        >
           <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3.5">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
-                style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.2),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
-                  color: uiScheme.link,
-                }}
-              >
-                <Bookmark className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: modernSurface.surface }}
+                >
+                  <Bookmark
+                    className="h-4 w-4 shrink-0"
+                    style={{ color: modernSurface.fg }}
+                  />
+                </div>
+                <SheetTitle
+                  className="text-lg font-semibold tracking-tight"
+                  style={{ color: modernSurface.fg }}
+                >
                   书签
                 </SheetTitle>
-                <SheetDescription
-                  className="mt-1 text-xs font-medium"
-                  style={{ color: uiScheme.mutedText }}
-                >
-                  记录那些值得回味的阅读瞬间
-                </SheetDescription>
+                {bookmarks.length > 0 && (
+                  <span
+                    className="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
+                    style={{
+                      background: modernSurface.surface,
+                      color: modernSurface.muted,
+                    }}
+                  >
+                    {bookmarks.length}
+                  </span>
+                )}
               </div>
+              <SheetDescription
+                className="mt-1 pl-10 text-xs leading-5"
+                style={{ color: modernSurface.muted }}
+              >
+                记录阅读进度，随时回到上次停留的位置
+              </SheetDescription>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-              style={{
-                color: withOpacity(uiScheme.fg, 0.62),
-                background: withOpacity(uiScheme.buttonBg, 0.18),
-                borderColor: withOpacity(uiScheme.cardBorder, 0.14),
-              }}
-              aria-label="关闭书签"
-              title="关闭"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onCreate}
+                disabled={!canCreate || isSaving}
+                title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
+                aria-label="添加当前书签"
+                className="h-9 rounded-full px-3 text-[13px] font-medium shadow-none transition-colors hover:brightness-[0.985] disabled:hover:brightness-100"
+                style={{
+                  background: modernSurface.surfaceSoft,
+                  color: modernSurface.fg,
+                }}
+              >
+                <BookmarkPlus className="h-4 w-4" />
+                {isSaving ? "保存中" : "添加"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                style={{
+                  color: modernSurface.muted,
+                  background: modernSurface.surface,
+                }}
+                aria-label="关闭书签"
+                title="关闭"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </SheetHeader>
 
-        <div className="shrink-0 px-6 py-4 sm:px-7">
-          <Button
-            type="button"
-            onClick={onCreate}
-            disabled={!canCreate || isSaving}
-            className="h-10 w-full rounded-xl text-sm font-bold shadow-none transition-all active:scale-[0.98]"
-            title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
-            style={{
-              background: withOpacity(uiScheme.link, 0.12),
-              border: `1px solid ${withOpacity(uiScheme.link, 0.18)}`,
-              color: uiScheme.link,
-            }}
-          >
-            <BookmarkPlus className="mr-2 h-4 w-4" />
-            {isSaving ? "保存中" : "添加当前书签"}
-          </Button>
-        </div>
-
-        <div className="app-sheet-body min-h-0 overscroll-contain px-2">
-          <div className="space-y-3 px-4 pb-5 pt-1 sm:px-5">
-            {bookmarks.length > 0 ? (
-              bookmarks.map((bookmark) => (
+        <div
+          className="app-sheet-body min-h-0 overscroll-contain px-3 pb-3 pt-2 sm:px-4"
+          style={{ background: "transparent" }}
+        >
+          <div className="space-y-1.5 pb-4">
+            {sortedBookmarks.length > 0 ? (
+              sortedBookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-[1.25rem] border px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]  transition-all hover:scale-[1.01]"
+                  className="group rounded-[1.15rem] transition-[background-color,transform] hover:-translate-y-[1px]"
                   style={{
-                    background:
-                      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.28)}`,
-                    borderColor: withOpacity(uiScheme.cardBorder, 0.15),
+                    background: modernSurface.surfaceSoft,
                   }}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 px-4 py-3.5">
                     <button
                       type="button"
                       className="min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
@@ -175,19 +250,24 @@ export function ReaderBookmarksSheet({
                       }}
                     >
                       <div
-                        className="flex items-center gap-2 text-[13px] font-bold"
-                        style={{ color: uiScheme.fg }}
+                        className="truncate text-[15px] font-medium leading-6"
+                        style={{ color: modernSurface.fg }}
                       >
-                        <MapPin className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                        <span className="truncate">
-                          {bookmark.chapter || "未识别章节"}
-                        </span>
+                        {bookmark.chapter || "未识别章节"}
                       </div>
                       <div
-                        className="mt-1 flex items-center gap-2 text-[11px] font-medium opacity-50"
-                        style={{ color: uiScheme.mutedText }}
+                        className="mt-1.5 flex items-center gap-2 text-[12px] leading-5"
+                        style={{ color: modernSurface.muted }}
                       >
-                        <span className="tabular-nums">{formatPercent(bookmark.percentage)}</span>
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 tabular-nums"
+                          style={{
+                            background: modernSurface.surfaceStrong,
+                            color: modernSurface.fg,
+                          }}
+                        >
+                          {formatPercent(bookmark.percentage)}
+                        </span>
                         <span className="h-1 w-1 rounded-full bg-current opacity-30" />
                         <span>{formatDate(bookmark.created_at)}</span>
                       </div>
@@ -202,8 +282,8 @@ export function ReaderBookmarksSheet({
                       }}
                       title="删除书签"
                       aria-label="删除书签"
-                      className="h-9 w-9 shrink-0 rounded-xl transition-all hover:bg-destructive/10 hover:text-destructive active:scale-90"
-                      style={{ color: uiScheme.mutedText }}
+                      className="h-8 w-8 shrink-0 rounded-full opacity-60 transition-colors hover:bg-black/[0.045] hover:text-foreground group-hover:opacity-100"
+                      style={{ color: modernSurface.muted }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -211,16 +291,29 @@ export function ReaderBookmarksSheet({
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center opacity-45">
-                <Bookmark
-                  className="h-12 w-12 stroke-[1]"
-                  style={{ color: uiScheme.mutedText }}
-                />
+              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+                <div
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+                  style={{
+                    background: modernSurface.surface,
+                  }}
+                >
+                  <Bookmark
+                    className="h-5 w-5 stroke-[1.75]"
+                    style={{ color: modernSurface.fg }}
+                  />
+                </div>
                 <p
-                  className="mt-4 text-xs font-medium"
-                  style={{ color: uiScheme.mutedText }}
+                  className="text-sm font-medium tracking-tight"
+                  style={{ color: modernSurface.fg }}
                 >
                   暂无书签
+                </p>
+                <p
+                  className="mt-1 text-xs leading-5"
+                  style={{ color: modernSurface.muted }}
+                >
+                  阅读时点击上方按钮，即可保存当前位置。
                 </p>
               </div>
             )}

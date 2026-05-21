@@ -32,10 +32,10 @@ function ReaderTOCNode({
     <div className="relative">
       {depth > 0 && (
         <div
-          className="absolute bottom-1 top-1 w-px"
+          className="absolute bottom-1 top-1 w-[1.2px] opacity-30"
           style={{
-            left: `${(depth - 1) * 14 + 19}px`,
-            background: `linear-gradient(180deg, transparent 0%, ${withOpacity(uiScheme.cardBorder, 0.16)} 16%, ${withOpacity(uiScheme.cardBorder, 0.16)} 84%, transparent 100%)`,
+            left: `${(depth - 1) * 16 + 21}px`,
+            background: `linear-gradient(180deg, transparent 0%, ${uiScheme.cardBorder} 10%, ${uiScheme.cardBorder} 90%, transparent 100%)`,
           }}
         />
       )}
@@ -44,49 +44,62 @@ function ReaderTOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "group relative mb-0.5 flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-all active:scale-[0.985]",
-          isCurrentChapter ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]" : "hover:scale-[1.005]",
+          "group relative flex w-full items-center gap-3 rounded-xl px-4 py-2 text-left transition-all duration-200 active:scale-[0.98]",
+          isCurrentChapter
+            ? "z-10 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.12)]"
+            : "hover:bg-opacity-100",
         )}
         style={{
-          marginLeft: depth > 0 ? `${depth * 14}px` : "0px",
+          marginLeft: depth > 0 ? `${depth * 16}px` : "0px",
+          marginTop: "1px",
+          marginBottom: "1px",
           background: isCurrentChapter
-            ? `linear-gradient(135deg, ${withOpacity(uiScheme.accentText, 0.06)} 0%, transparent 60%), ${withOpacity(uiScheme.buttonBg, 0.54)}`
-            : withOpacity(uiScheme.buttonBg, 0.06),
+            ? `linear-gradient(135deg, ${withOpacity(uiScheme.accentText, 0.08)} 0%, ${withOpacity(uiScheme.accentText, 0.02)} 100%), ${withOpacity(uiScheme.buttonBg, 0.85)}`
+            : "transparent",
           border: `1px solid ${
             isCurrentChapter
-              ? withOpacity(uiScheme.cardBorder, 0.3)
-              : withOpacity(uiScheme.cardBorder, 0.06)
+              ? withOpacity(uiScheme.accentText, 0.25)
+              : "transparent"
           }`,
-          boxShadow: isCurrentChapter
-            ? `0 12px 24px -22px ${withOpacity(uiScheme.fg, 0.28)}`
-            : "none",
         }}
       >
         {isCurrentChapter && (
           <div
-            className="absolute left-1.5 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full"
+            className="absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-r-full"
             style={{
               background: uiScheme.accentText,
-              boxShadow: `0 0 12px ${withOpacity(uiScheme.accentText, 0.28)}`,
+              boxShadow: `2px 0 8px ${withOpacity(uiScheme.accentText, 0.4)}`,
             }}
           />
         )}
 
         <span
           className={cn(
-            "truncate pr-2 text-[12px] leading-5 transition-colors sm:text-[13px]",
+            "truncate text-[13px] leading-6 transition-all duration-200 sm:text-[14px]",
             isCurrentChapter
-              ? "font-bold"
-              : "font-medium opacity-72 group-hover:opacity-100",
+              ? "font-semibold tracking-tight"
+              : "font-medium opacity-65 group-hover:opacity-100",
           )}
-          style={{ color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText }}
+          style={{
+            color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText,
+            textShadow: isCurrentChapter 
+              ? `0 0 1px ${withOpacity(uiScheme.fg, 0.1)}`
+              : "none"
+          }}
         >
           {item.label}
         </span>
+        
+        {!isCurrentChapter && (
+           <div 
+             className="ml-auto h-1.5 w-1.5 rounded-full opacity-0 transition-opacity group-hover:opacity-20"
+             style={{ background: uiScheme.fg }}
+           />
+        )}
       </button>
 
       {item.subitems && item.subitems.length > 0 && (
-        <div className="space-y-0">
+        <div className="mt-0.5 space-y-0.5">
           {item.subitems.map((sub, idx) => (
             <MemoizedReaderTOCNode
               key={idx}

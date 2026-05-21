@@ -56,3 +56,4 @@ frontend/playwright-report/
 .gomodcache/
 backend/data/tts-cache
 .nezha/
+.antigravitycli/

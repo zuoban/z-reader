@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, CircleAlert, Eye, EyeOff, MoveRight } from 'lucide-react';
+import { CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { BrandMark, LoadingSpinner, LoadingState } from '@/components/AppShell';
+import { BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -65,10 +64,7 @@ export default function LoginPage() {
         
         {/* Header Section */}
         <div className="mb-12 flex flex-col items-center">
-          <div className="mb-4 flex items-center gap-3">
-            <BookOpen size={42} strokeWidth={1.5} className="text-black dark:text-white" />
-            <span className="text-3xl font-bold tracking-tight text-black dark:text-white">ZReader</span>
-          </div>
+          <BrandLogo className="mb-4 scale-110" />
           <p className="text-[17px] font-medium text-gray-500 dark:text-gray-400">
             登录到您的书库
           </p>

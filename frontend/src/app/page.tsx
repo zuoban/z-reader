@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, Upload, Cloud, Palette, Bookmark, Smartphone, Server, MoveRight } from 'lucide-react';
+import { Upload, Cloud, Palette, Bookmark, Smartphone, Server } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { BrandGlyph, BrandLogo } from '@/components/AppShell';
 
 export default function LandingPage() {
   const { isLoading, isAuthenticated } = useAuth({ redirectOnExpire: false });
@@ -13,10 +13,7 @@ export default function LandingPage() {
       
       {/* ── Navigation ── */}
       <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 md:px-12">
-        <div className="flex items-center gap-2">
-          <BookOpen size={24} strokeWidth={2} />
-          <span className="text-xl font-bold tracking-tight">ZReader</span>
-        </div>
+        <BrandLogo compact />
         <nav>
           <Link 
             href={!isLoading && isAuthenticated ? "/shelf" : "/login"}
@@ -144,7 +141,7 @@ export default function LandingPage() {
       <footer className="border-t border-gray-100 py-12 dark:border-gray-900">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row md:px-12">
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <BookOpen size={16} />
+            <BrandGlyph className="h-5 w-5 opacity-80" />
             <span>ZReader · 一款轻量级 EPUB 阅读器</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -63,37 +62,74 @@ interface BrandMarkProps {
 }
 
 const brandSizes = {
-  sm: 'w-[220px]',
-  md: 'w-[260px]',
-  lg: 'w-[300px]',
+  sm: 'scale-[0.82]',
+  md: 'scale-100',
+  lg: 'scale-[1.12]',
 };
+
+export function BrandGlyph({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 64 64"
+      className={cn('h-9 w-9 shrink-0', className)}
+      fill="none"
+    >
+      <rect
+        x="8"
+        y="8"
+        width="48"
+        height="48"
+        rx="15"
+        className="fill-[#151515] dark:fill-primary"
+      />
+      <path
+        d="M18 20.2C22.7 17.8 27.6 18 32 21.1V45.8C27.6 42.9 22.7 42.7 18 45.2V20.2Z"
+        className="fill-[#f7f3ea] dark:fill-[#151922]"
+      />
+      <path
+        d="M32 21.1C36.4 18 41.3 17.8 46 20.2V45.2C41.3 42.7 36.4 42.9 32 45.8V21.1Z"
+        className="fill-white dark:fill-[#20242b]"
+      />
+      <path
+        d="M24.1 26.1H39.8L28.2 38.1H40.2"
+        className="stroke-[#151515] dark:stroke-primary"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="4.2"
+      />
+    </svg>
+  );
+}
+
+export function BrandLogo({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn('inline-flex items-center gap-2.5 text-foreground', className)}>
+      <BrandGlyph className={compact ? 'h-8 w-8' : 'h-9 w-9'} />
+      <div className="flex items-baseline gap-1.5">
+        <span className={cn('font-heading text-[1.45rem] font-semibold leading-none tracking-[-0.045em]', compact && 'text-[1.25rem]')}>
+          Z
+        </span>
+        <span className={cn('text-[1.05rem] font-bold leading-none tracking-[-0.035em]', compact && 'text-[0.98rem]')}>
+          Reader
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function BrandMark({
   size = 'md',
   framed = false,
   className,
-  priority = false,
 }: BrandMarkProps) {
-  const logo = (
-    <>
-      <Image
-        src="/icons/logo-wordmark.svg"
-        alt="Z Reader"
-        width={216}
-        height={66}
-        className={cn('h-auto dark:hidden', brandSizes[size])}
-        priority={priority}
-      />
-      <Image
-        src="/icons/logo-wordmark-light.svg"
-        alt="Z Reader"
-        width={216}
-        height={66}
-        className={cn('hidden h-auto dark:block', brandSizes[size])}
-        priority={priority}
-      />
-    </>
-  );
+  const logo = <BrandLogo className={cn('origin-center', brandSizes[size])} />;
 
   if (!framed) {
     return <div className={cn('flex items-center justify-center', className)}>{logo}</div>;

@@ -28,7 +28,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
-import { AppScreen, LoadingSpinner } from '@/components/AppShell';
+import { AppScreen, BrandLogo, LoadingSpinner } from '@/components/AppShell';
 import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
@@ -54,14 +54,7 @@ const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 
 function ShelfBrand() {
   return (
-    <div className="inline-flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a1a1a] text-white shadow-none dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_24px_-18px_var(--primary)]">
-        <BookOpen className="h-4.5 w-4.5 stroke-[2.2]" />
-      </span>
-      <span className="text-lg font-bold tracking-tight text-foreground sm:text-[1.3rem]">
-        ZReader
-      </span>
-    </div>
+    <BrandLogo compact className="drop-shadow-[0_10px_24px_rgba(0,0,0,0.08)] dark:drop-shadow-[0_16px_34px_rgba(0,0,0,0.4)]" />
   );
 }
 

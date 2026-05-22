@@ -1,21 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Book Cover Background -->
-  <rect x="64" y="80" width="384" height="352" rx="40" fill="#141413"/>
-  <rect x="64" y="80" width="384" height="352" rx="40" stroke="#141413" stroke-width="8"/>
-
-  <!-- Left Page -->
-  <path d="M256 100C200 85 100 85 85 100V400C100 385 200 385 256 400V100Z" fill="#f5f4ed"/>
-  
-  <!-- Right Page -->
-  <path d="M256 100C312 85 412 85 427 100V400C412 385 312 385 256 400V100Z" fill="#faf9f5"/>
-  
-  <!-- Spine Line -->
-  <path d="M256 100V400" stroke="#141413" stroke-width="1.5" stroke-opacity="0.1"/>
-
-  <!-- The "Z" on the Right Page - Corrected Direction -->
-  <path d="M290 180H392V212L318 318H392V350H290V318L364 212H290V180Z" fill="#141413"/>
-  
-  <!-- Subtle Page Shadows at the bottom -->
-  <path d="M85 400C100 385 200 385 256 400" stroke="#d8d5c8" stroke-width="2" fill="none"/>
-  <path d="M427 400C412 385 312 385 256 400" stroke="#d8d5c8" stroke-width="2" fill="none"/>
+  <rect width="512" height="512" rx="118" fill="#101216"/>
+  <rect x="74" y="74" width="364" height="364" rx="108" fill="#F0E6D2"/>
+  <path d="M150 174C187 155 225 157 256 181V367C225 345 187 343 150 362V174Z" fill="#151922"/>
+  <path d="M256 181C287 157 325 155 362 174V362C325 343 287 345 256 367V181Z" fill="#20242B"/>
+  <path d="M196 218H318L228 304H320" stroke="#F0E6D2" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 181V367" stroke="#F0E6D2" stroke-opacity=".16" stroke-width="8" stroke-linecap="round"/>
 </svg>

@@ -138,7 +138,9 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
   }, [applyLoadedProgress, bookId]);
 
   useEffect(() => {
-    void loadProgress();
+    queueMicrotask(() => {
+      void loadProgress();
+    });
   }, [loadProgress]);
 
   useEffect(() => {

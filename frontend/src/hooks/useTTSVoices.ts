@@ -62,16 +62,19 @@ export function useTTSVoices(preferredVoiceName: string) {
   }, [preferredVoiceName]);
 
   useEffect(() => {
-    void loadVoices();
+    queueMicrotask(() => {
+      void loadVoices();
+    });
     return () => {
       mountedRef.current = false;
     };
   }, [loadVoices]);
 
   // When preferred voice changes, re-merge into existing voices.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceName));
+    queueMicrotask(() => {
+      setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceName));
+    });
   }, [preferredVoiceName]);
 
   return {

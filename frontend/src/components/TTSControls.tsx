@@ -606,7 +606,9 @@ export function TTSControls({
 
   useEffect(() => {
     if (!expanded) {
-      setDetailsExpanded(false);
+      queueMicrotask(() => {
+        setDetailsExpanded(false);
+      });
     }
   }, [expanded]);
 

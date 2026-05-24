@@ -120,7 +120,7 @@ export default function ReadPage() {
 
   const [tocOpen, setTocOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shortcutsOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
@@ -239,10 +239,11 @@ export default function ReadPage() {
     }
   }, [bookId]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!isAuthenticated) return;
-    void loadBookmarks();
+    queueMicrotask(() => {
+      void loadBookmarks();
+    });
   }, [isAuthenticated, loadBookmarks]);
 
   const handlePrev = useCallback(() => {
@@ -438,9 +439,6 @@ export default function ReadPage() {
 
   const {
     isTouchReader,
-    isFullscreenSupported: _isFullscreenSupported,
-    isFullscreen: _isFullscreen,
-    toggleFullscreen,
     bindReaderDocument,
   } = useReaderControls({
     pageRef,
@@ -449,14 +447,6 @@ export default function ReadPage() {
     onBack: handleBack,
     onStopTTS: stopTTS,
   });
-
-  const handleToggleFullscreen = useCallback(async () => {
-    const enteringFullscreen = document.fullscreenElement !== pageRef.current;
-    await toggleFullscreen();
-    if (enteringFullscreen) {
-      hideHeader();
-    }
-  }, [hideHeader, toggleFullscreen]);
 
   const {
     toc,

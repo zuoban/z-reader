@@ -2,13 +2,11 @@
 
 import { useState } from 'react';
 import { Pencil, Trash2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -107,7 +105,6 @@ export function CategoryManagerSheet({
               {normalizedCategories.map((category) => {
                 const count = bookCounts[category] || 0;
                 const isEditing = editingCategory === category;
-                const isDeleting = deleteConfirmCategory === category;
 
                 return (
                   <div

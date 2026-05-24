@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   backendTTS,
@@ -123,12 +123,12 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     mode: 'off',
     label: '未设置',
   });
-  const [isLikelyIOS, setIsLikelyIOS] = useState(() => {
+  const isLikelyIOS = useMemo(() => {
     if (typeof navigator === 'undefined') return false;
     const userAgent = navigator.userAgent || '';
     return /iPad|iPhone|iPod/.test(userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  });
+  }, []);
   const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(settings.voiceName);
 
   const ttsInstance = useRef(backendTTS);

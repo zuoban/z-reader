@@ -3,7 +3,7 @@
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Plus, Tag, X } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,9 +46,10 @@ export function CategorySelector({
   );
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    queueMicrotask(() => {
       setCategoryName(currentCategory ?? '');
-    }
+    });
   }, [currentCategory, open]);
 
   async function saveCategory(nextCategory: string | null) {
@@ -72,12 +73,6 @@ export function CategorySelector({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void saveCategory(selectedCategory);
-  }
-
-  function handleRemoveCategory(category: string) {
-    if (selectedCategory === category) {
-      setCategoryName('');
-    }
   }
 
   const filteredCategories = normalizedCategories

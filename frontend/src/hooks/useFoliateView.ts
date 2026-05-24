@@ -168,8 +168,10 @@ export function useFoliateView({
 
   useEffect(() => {
     if (!currentCFI && progress?.cfi) {
-      setCurrentCFI(progress.cfi);
-      setPercentage(progress.percentage);
+      queueMicrotask(() => {
+        setCurrentCFI(progress.cfi);
+        setPercentage(progress.percentage);
+      });
     }
   }, [progress, currentCFI]);
 
@@ -604,7 +606,9 @@ export function useFoliateView({
     if (!isAuthenticated || progressLoading) return;
 
     destroyedRef.current = false;
-    void initReader();
+    queueMicrotask(() => {
+      void initReader();
+    });
 
     return () => {
       cleanupReader();

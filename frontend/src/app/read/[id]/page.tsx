@@ -239,6 +239,7 @@ export default function ReadPage() {
     }
   }, [bookId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!isAuthenticated) return;
     void loadBookmarks();
@@ -437,8 +438,8 @@ export default function ReadPage() {
 
   const {
     isTouchReader,
-    isFullscreenSupported,
-    isFullscreen,
+    isFullscreenSupported: _isFullscreenSupported,
+    isFullscreen: _isFullscreen,
     toggleFullscreen,
     bindReaderDocument,
   } = useReaderControls({
@@ -516,7 +517,7 @@ export default function ReadPage() {
   const handleGoToBookmark = useCallback((bookmark: Bookmark) => {
     viewRef.current?.goTo?.(bookmark.cfi);
     setBookmarksOpen(false);
-  }, []);
+  }, [setBookmarksOpen]);
 
   const handleDeleteBookmark = useCallback(async (bookmarkId: string) => {
     setBookmarks((items) => items.filter((item) => item.id !== bookmarkId));

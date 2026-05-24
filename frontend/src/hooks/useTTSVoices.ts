@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
 import { mergeVoicesWithFallback, Voice } from '@/lib/tts';
@@ -11,6 +11,7 @@ export function useTTSVoices(preferredVoiceName: string) {
   );
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voicesError, setVoicesError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const loadVoices = useCallback(async () => {
     setVoicesLoading(true);
@@ -28,23 +29,27 @@ export function useTTSVoices(preferredVoiceName: string) {
         handleAuthResponse(response);
         if (!response.ok) {
           if (response.status === 401) {
-            setVoicesLoading(false);
+            if (mountedRef.current) setVoicesLoading(false);
             return;
           }
           throw new Error(`voice_list_${response.status}`);
         }
 
         const data = await response.json();
-        setVoices(mergeVoicesWithFallback(data || [], preferredVoiceName));
-        setVoicesError(null);
-        setVoicesLoading(false);
+        if (mountedRef.current) {
+          setVoices(mergeVoicesWithFallback(data || [], preferredVoiceName));
+          setVoicesError(null);
+          setVoicesLoading(false);
+        }
         return;
       } catch (err) {
         const isLastAttempt = attempt === 2;
         if (isLastAttempt) {
           console.error('Failed to load voices:', err);
-          setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceName));
-          setVoicesError('声音列表加载失败，已切换到内置声线。');
+          if (mountedRef.current) {
+            setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceName));
+            setVoicesError('声音列表加载失败，已切换到内置声线。');
+          }
         } else {
           await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
         }
@@ -53,13 +58,18 @@ export function useTTSVoices(preferredVoiceName: string) {
       }
     }
 
-    setVoicesLoading(false);
+    if (mountedRef.current) setVoicesLoading(false);
   }, [preferredVoiceName]);
 
   useEffect(() => {
     void loadVoices();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [loadVoices]);
 
+  // When preferred voice changes, re-merge into existing voices.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceName));
   }, [preferredVoiceName]);

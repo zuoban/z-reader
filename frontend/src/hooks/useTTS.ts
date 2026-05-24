@@ -123,8 +123,14 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     mode: 'off',
     label: '未设置',
   });
+  const [isLikelyIOS, setIsLikelyIOS] = useState(() => {
+    if (typeof navigator === 'undefined') return false;
+    const userAgent = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  });
   const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(settings.voiceName);
-  
+
   const ttsInstance = useRef(backendTTS);
   const isPlayingRef = useRef(false);
   const getNextAndSpeakRef = useRef<() => Promise<boolean>>(async () => false);
@@ -257,7 +263,8 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     });
   }, [clearSleepTimer, clearSleepTimerTimeout, updateVisibleStatus]);
 
-  const normalizeMetadataText = useCallback((value: unknown): string => {
+  // Stable recursive parser — useCallback cannot reference itself during init.
+  const normalizeMetadataText = (value: unknown): string => {
     if (typeof value === 'string') {
       return value.trim();
     }
@@ -268,7 +275,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
     if (Array.isArray(value)) {
       return value
-        .map((item) => normalizeMetadataText(item))
+        .map(normalizeMetadataText)
         .filter(Boolean)
         .join(' / ');
     }
@@ -284,16 +291,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     }
 
     return '';
-  }, []);
-
-  useEffect(() => {
-    if (typeof navigator === 'undefined') return;
-
-    const userAgent = navigator.userAgent || '';
-    isLikelyIOSRef.current =
-      /iPad|iPhone|iPod/.test(userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }, []);
+  };
 
   const updateSettings = useCallback((newSettings: Partial<TTSSettings>) => {
     setSettings(prev => {
@@ -1105,7 +1103,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   useTTSResumePrompt({
     resumePromptVisible,
     resumePromptMessage,
-    isLikelyIOS: isLikelyIOSRef.current,
+    isLikelyIOS,
     shouldResumeOnForegroundRef,
     onResumeAttempt: () => {
       void attemptResumeAfterInterruption();

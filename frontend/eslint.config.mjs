@@ -14,6 +14,14 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "public/foliate/**",
   ]),
+  {
+    rules: {
+      // Data fetching in effects is a valid pattern in our codebase.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

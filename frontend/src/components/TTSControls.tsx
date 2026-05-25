@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -305,6 +305,7 @@ interface TTSControlsProps {
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   uiScheme: ThemeColors;
   variant?: 'floating' | 'toolbar';
+  triggerContent?: ReactNode;
   triggerClassName?: string;
   triggerStyle?: React.CSSProperties;
   onExpandedChange?: (expanded: boolean) => void;
@@ -342,6 +343,7 @@ export function TTSControls({
   onUpdateSettings,
   uiScheme,
   variant = 'floating',
+  triggerContent,
   triggerClassName,
   triggerStyle,
   onExpandedChange,
@@ -758,7 +760,7 @@ export function TTSControls({
           render={
             <Button
               variant="ghost"
-              size="icon"
+              size={triggerContent ? 'sm' : 'icon'}
               data-reader-interactive="true"
               data-reader-tts-trigger="true"
               type="button"
@@ -787,10 +789,11 @@ export function TTSControls({
                 ),
                 opacity: isPending ? 0.72 : 1,
               }}
-            />
+            >
+              {triggerContent ?? <Volume2 className="relative z-10 h-4 w-4" />}
+            </Button>
           }
         >
-          <Volume2 className="relative z-10 h-4 w-4" />
         </SheetTrigger>
 
         <SheetContent

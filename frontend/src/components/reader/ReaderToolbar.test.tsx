@@ -1,0 +1,151 @@
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { ReaderToolbar } from '@/components/reader/ReaderToolbar';
+import type { ReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
+
+vi.mock('@/components/ThemeSettings', () => ({
+  ThemeSettings: ({ trigger }: { trigger: React.ReactNode }) => (
+    <button type="button">{trigger}</button>
+  ),
+}));
+
+vi.mock('@/components/reader/ReaderBookmarksSheet', () => ({
+  ReaderBookmarksSheet: ({ trigger }: { trigger: React.ReactNode }) => (
+    <button type="button">{trigger}</button>
+  ),
+}));
+
+vi.mock('@/components/reader/ReaderTOCSheet', () => ({
+  ReaderTOCSheet: ({ trigger }: { trigger: React.ReactNode }) => (
+    <button type="button">{trigger}</button>
+  ),
+}));
+
+const uiScheme: ThemeColors = {
+  bg: '#ffffff',
+  fg: '#111111',
+  mutedText: '#666666',
+  link: '#0066cc',
+  cardBg: '#ffffff',
+  cardBorder: '#dddddd',
+  buttonBg: '#f5f5f5',
+  buttonText: '#111111',
+};
+
+const theme: ReaderTheme = {
+  preset: 'light',
+  fontFamily: 'serif',
+  fontSize: 18,
+  lineHeight: 1.7,
+  paragraphSpacing: 1,
+  contentWidth: 720,
+  textAlign: 'left',
+  letterSpacing: 0,
+  fontWeight: 400,
+  useBoldTitles: true,
+  pageTurnAnimation: true,
+};
+
+describe('ReaderToolbar', () => {
+  it('places the read-aloud control immediately before settings', () => {
+    render(
+      <ReaderToolbar
+        visible
+        bookTitle="测试书籍"
+        bookAuthor=""
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={uiScheme}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        ttsControls={
+          <button type="button">
+            <span>朗读</span>
+          </button>
+        }
+      />,
+    );
+
+    const desktopActions = document.querySelector('[data-reader-toolbar-actions="desktop"]');
+    expect(desktopActions).toBeInTheDocument();
+
+    const desktop = within(desktopActions as HTMLElement);
+    const add = desktop.getByText('添加');
+    const readAloud = desktop.getByText('朗读');
+    const settings = desktop.getByText('设置');
+
+    expect(add.compareDocumentPosition(readAloud)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(readAloud.compareDocumentPosition(settings)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('collapses reader actions behind a mobile overflow trigger', () => {
+    const { container } = render(
+      <ReaderToolbar
+        visible
+        bookTitle="测试书籍"
+        bookAuthor=""
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={uiScheme}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        ttsControls={
+          <button type="button">
+            <span>朗读</span>
+          </button>
+        }
+        mobileTtsControls={
+          <button type="button">
+            <span>朗读</span>
+          </button>
+        }
+      />,
+    );
+
+    const moreButton = screen.getByTitle('更多阅读操作');
+    expect(moreButton.closest('.sm\\:hidden')).toBeInTheDocument();
+    expect(container.querySelector('[data-reader-toolbar-actions="desktop"]')).toHaveClass('hidden');
+
+    fireEvent.click(moreButton);
+
+    expect(screen.getByText('阅读操作')).toBeInTheDocument();
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+});

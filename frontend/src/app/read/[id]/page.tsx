@@ -11,7 +11,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { X } from "lucide-react";
+import { Volume2, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { FoliateView } from "@/lib/types";
 import { useProgress } from "@/hooks/useProgress";
@@ -665,6 +665,74 @@ export default function ReadPage() {
           setTheme={setTheme}
           themeSettingsOpen={themeSettingsOpen}
           onThemeSettingsOpenChange={setThemeSettingsOpen}
+          ttsControls={
+            <TTSControls
+              state={ttsState}
+              settings={ttsSettings}
+              voices={voices}
+              voicesLoading={voicesLoading}
+              voicesError={voicesError}
+              onReloadVoices={reloadVoices}
+              onStart={startTTS}
+              onStop={stopTTS}
+              onNext={nextTTS}
+              onPrev={prevTTS}
+              onUpdateSettings={updateTTSSettings}
+              uiScheme={uiScheme}
+              variant="toolbar"
+              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerStyle={{}}
+              triggerContent={
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">朗读</span>
+                </div>
+              }
+              resumePromptVisible={resumePromptVisible}
+              resumePromptMessage={resumePromptMessage}
+              ttsStatus={ttsStatus}
+              sleepTimer={sleepTimer}
+              onSleepTimerMinutes={setSleepTimerForMinutes}
+              onClearSleepTimer={clearSleepTimer}
+              onResume={resumeTTS}
+              onExpandedChange={handleTTSExpandedChange}
+              overlayContainer={overlayContainer}
+            />
+          }
+          mobileTtsControls={
+            <TTSControls
+              state={ttsState}
+              settings={ttsSettings}
+              voices={voices}
+              voicesLoading={voicesLoading}
+              voicesError={voicesError}
+              onReloadVoices={reloadVoices}
+              onStart={startTTS}
+              onStop={stopTTS}
+              onNext={nextTTS}
+              onPrev={prevTTS}
+              onUpdateSettings={updateTTSSettings}
+              uiScheme={uiScheme}
+              variant="toolbar"
+              triggerClassName="flex h-auto w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-all hover:bg-muted/50"
+              triggerStyle={{}}
+              triggerContent={
+                <>
+                  <Volume2 className="h-4 w-4" />
+                  <span>朗读</span>
+                </>
+              }
+              resumePromptVisible={resumePromptVisible}
+              resumePromptMessage={resumePromptMessage}
+              ttsStatus={ttsStatus}
+              sleepTimer={sleepTimer}
+              onSleepTimerMinutes={setSleepTimerForMinutes}
+              onClearSleepTimer={clearSleepTimer}
+              onResume={resumeTTS}
+              onExpandedChange={handleTTSExpandedChange}
+              overlayContainer={overlayContainer}
+            />
+          }
         />
 
         <div className="flex min-h-0 flex-1 flex-col">

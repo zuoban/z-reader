@@ -1,172 +1,199 @@
 'use client';
 
 import Link from 'next/link';
-import { Upload, Cloud, Palette, Bookmark, Smartphone, Server } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Bookmark, Cloud, Palette, Server, Smartphone, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { BrandGlyph, BrandLogo } from '@/components/AppShell';
+import { AppScreen, BrandGlyph, BrandLogo } from '@/components/AppShell';
+
+const previewBooks = [
+  { title: 'Go语言精进之路', meta: '54% · 1分钟前', tone: 'from-[#e7bf2e] to-[#d9aa16]' },
+  { title: '中国近代史', meta: '1% · 25分钟前', tone: 'from-[#d8d0b9] to-[#c6b25f]' },
+  { title: '沉浸阅读笔记', meta: '未开始', tone: 'from-[#7ba7a0] to-[#4d6b72]' },
+];
 
 export default function LandingPage() {
   const { isLoading, isAuthenticated } = useAuth({ redirectOnExpire: false });
+  const primaryHref = !isLoading && isAuthenticated ? '/shelf' : '/login';
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-gray-100 dark:bg-[#0a0a0a] dark:text-white">
-      
-      {/* ── Navigation ── */}
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 md:px-12">
+    <AppScreen
+      ambient="shelf"
+      className="bg-background text-foreground"
+      contentClassName="flex min-h-dvh flex-col"
+    >
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-7 lg:px-10">
         <BrandLogo compact />
         <nav>
-          <Link 
-            href={!isLoading && isAuthenticated ? "/shelf" : "/login"}
-            className="text-sm font-semibold hover:opacity-70 transition-opacity"
+          <Link
+            href={primaryHref}
+            className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-foreground/78 transition-colors hover:bg-secondary/70 hover:text-foreground"
           >
-            登录
+            {!isLoading && isAuthenticated ? '进入书架' : '登录'}
           </Link>
         </nav>
       </header>
 
-      {/* ── Hero Section ── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 text-center md:px-12 md:py-32">
-        <h1 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight sm:text-6xl md:text-7xl leading-[1.1]">
-          您的个人书库，<br />极简之美
-        </h1>
-        <p className="mx-auto mt-8 max-w-2xl text-lg text-gray-500 dark:text-gray-400 md:text-xl leading-relaxed">
-          一款轻量级、自托管的 EPUB 阅读器，专为沉浸式阅读而设计。<br className="hidden md:block" />
-          上传书籍，随处阅读，并保持进度同步。
-        </p>
-        <div className="mt-10 flex items-center justify-center gap-4">
-          <Link
-            href={!isLoading && isAuthenticated ? "/shelf" : "/login"}
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-[#050509] px-8 text-base font-bold text-white transition-all hover:bg-black active:scale-[0.98] dark:bg-white dark:text-black"
-          >
-            立即开始
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-12 items-center justify-center rounded-lg border border-gray-200 px-8 text-base font-bold transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-800 dark:hover:bg-gray-900"
-          >
-            登录
-          </Link>
-        </div>
-      </section>
+      <main className="flex-1">
+        <section className="mx-auto flex max-w-7xl flex-col items-center px-5 pb-12 pt-10 text-center sm:px-7 sm:pb-16 sm:pt-16 lg:px-10 lg:pt-20">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/70 px-3.5 py-2 text-[12px] font-semibold text-muted-foreground shadow-[0_12px_30px_-26px_var(--paper-shadow)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            私有书库 · 多端续读 · 沉浸阅读
+          </div>
+          <h1 className="mx-auto max-w-4xl font-heading text-5xl font-semibold leading-[1.05] tracking-normal text-foreground sm:text-6xl lg:text-7xl">
+            Z Reader
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-balance text-[17px] leading-8 text-muted-foreground sm:text-xl sm:leading-9">
+            把 EPUB、MOBI、AZW3 和 PDF 收进自己的书架，在干净安静的界面里继续每一次阅读。
+          </p>
+          <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
+            <Link
+              href={primaryHref}
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+            >
+              {!isLoading && isAuthenticated ? '回到我的书架' : '立即开始'}
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border/70 bg-card/72 px-8 text-base font-semibold text-foreground transition-all hover:bg-secondary/70 active:scale-[0.98]"
+            >
+              登录
+            </Link>
+          </div>
 
-      {/* ── Product Preview ── */}
-      <section className="mx-auto max-w-6xl px-6 pb-24 md:px-12">
-        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50 p-2 shadow-2xl dark:border-gray-800/50 dark:bg-gray-900/20">
-          <div className="rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-[#0a0a0a]">
-            {/* Browser Header Overlay */}
-            <div className="flex items-center gap-1.5 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-              <div className="h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-800" />
-              <div className="h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-800" />
-              <div className="h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-800" />
+          <ProductPreview />
+        </section>
+
+        <section className="border-t border-border/60 bg-card/36 py-14 sm:py-18">
+          <div className="mx-auto max-w-7xl px-5 sm:px-7 lg:px-10">
+            <div className="max-w-2xl">
+              <h2 className="font-heading text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
+                阅读工具该安静，但不能粗糙
+              </h2>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
+                书架、同步、分类和阅读设置都围绕一个目标：让你少管理一点，多读一点。
+              </p>
             </div>
-            {/* Mock Library Content */}
-            <div className="p-8 md:p-12">
-              <div className="mb-8 text-lg font-bold">我的书库</div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="aspect-[3/4] rounded-lg bg-gray-100 dark:bg-[#1a1a1a] animate-pulse" />
-                ))}
-              </div>
+
+            <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <FeatureItem
+                icon={<Upload size={19} />}
+                title="集中导入"
+                description="批量上传并整理你的电子书收藏。"
+              />
+              <FeatureItem
+                icon={<Cloud size={19} />}
+                title="进度同步"
+                description="跨设备保存阅读位置，随时续读。"
+              />
+              <FeatureItem
+                icon={<Palette size={19} />}
+                title="阅读主题"
+                description="按环境切换浅色、深色、护眼和字体偏好。"
+              />
+              <FeatureItem
+                icon={<Bookmark size={19} />}
+                title="书签回看"
+                description="标记关键段落，回到重要章节不费力。"
+              />
+              <FeatureItem
+                icon={<Smartphone size={19} />}
+                title="触控友好"
+                description="手机、平板和桌面都有稳定的操作尺寸。"
+              />
+              <FeatureItem
+                icon={<Server size={19} />}
+                title="自托管"
+                description="书库数据留在自己的服务里。"
+              />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      <div className="h-px w-full bg-gray-100 dark:bg-gray-900" />
-
-      {/* ── Features Section ── */}
-      <section className="mx-auto max-w-7xl px-6 py-24 text-center md:px-12 md:py-32">
-        <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">
-          您阅读所需的一切
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-base text-gray-500 dark:text-gray-400">
-          为重视简约、隐私和对数字图书馆拥有掌控权的读者而打造
-        </p>
-
-        <div className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-3">
-          <FeatureItem 
-            icon={<Upload size={20} />}
-            title="您的图书馆，您的书籍"
-            description="在一处集中上传并整理您的 EPUB 收藏。"
-          />
-          <FeatureItem 
-            icon={<Cloud size={20} />}
-            title="多设备同步"
-            description="阅读进度自动保存，随时随地无缝续读。"
-          />
-          <FeatureItem 
-            icon={<Palette size={20} />}
-            title="专注阅读"
-            description="极简界面配以可定制的主题，带来舒适的阅读体验。"
-          />
-          <FeatureItem 
-            icon={<Bookmark size={20} />}
-            title="智能书签"
-            description="标记您喜爱的片段，随时轻松回顾。"
-          />
-          <FeatureItem 
-            icon={<Smartphone size={20} />}
-            title="多平台适配"
-            description="适配桌面、平板和移动设备的响应式设计。"
-          />
-          <FeatureItem 
-            icon={<Server size={20} />}
-            title="私有化部署"
-            description="部署在您自己的服务器上，完全掌控您的数据隐私。"
-          />
-        </div>
-      </section>
-
-      <div className="h-px w-full bg-gray-100 dark:bg-gray-900" />
-
-      {/* ── CTA Section ── */}
-      <section className="mx-auto max-w-7xl px-6 py-24 text-center md:px-12 md:py-32">
-        <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
-          今天就开始阅读
-        </h2>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
-          几分钟内即可创建您的账号并建立您的个人数字图书馆。
-        </p>
-        <div className="mt-10">
-          <Link
-            href={!isLoading && isAuthenticated ? "/shelf" : "/login"}
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-[#050509] px-10 text-base font-bold text-white transition-all hover:bg-black active:scale-[0.98] dark:bg-white dark:text-black"
-          >
-            免费开始使用
-          </Link>
-        </div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-gray-100 py-12 dark:border-gray-900">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row md:px-12">
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+      <footer className="border-t border-border/60 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 text-sm text-muted-foreground sm:px-7 md:flex-row lg:px-10">
+          <div className="flex items-center gap-2">
             <BrandGlyph className="h-5 w-5 opacity-80" />
-            <span>ZReader · 一款轻量级 EPUB 阅读器</span>
+            <span>Z Reader · 一款轻量级 EPUB 阅读器</span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-4">
             <span>开源</span>
-            <span className="h-1 w-1 rounded-full bg-gray-200 dark:bg-gray-800" />
+            <span className="h-1 w-1 rounded-full bg-border" />
             <span>自托管</span>
-            <span className="h-1 w-1 rounded-full bg-gray-200 dark:bg-gray-800" />
+            <span className="h-1 w-1 rounded-full bg-border" />
             <span>隐私保护</span>
           </div>
         </div>
       </footer>
+    </AppScreen>
+  );
+}
+
+function ProductPreview() {
+  return (
+    <div className="mt-12 w-full max-w-5xl overflow-hidden rounded-2xl border border-border/70 bg-card/82 p-2 shadow-[0_24px_70px_-48px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] backdrop-blur">
+      <div className="rounded-xl border border-border/55 bg-background/86">
+        <div className="flex items-center justify-between border-b border-border/55 px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-border" />
+            <span className="h-2 w-2 rounded-full bg-border" />
+            <span className="h-2 w-2 rounded-full bg-border" />
+          </div>
+          <span className="text-[12px] font-semibold text-muted-foreground">我的书架</span>
+        </div>
+        <div className="grid gap-5 p-5 text-left sm:grid-cols-[1fr_16rem] sm:p-7">
+          <div className="grid grid-cols-3 gap-3">
+            {previewBooks.map((book) => (
+              <div
+                key={book.title}
+                className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-[0_14px_34px_-30px_var(--paper-shadow)]"
+              >
+                <div className={`aspect-[3/4] bg-gradient-to-br ${book.tone} p-3`}>
+                  <div className="inline-flex rounded-full bg-background/88 px-2 py-1 text-[10px] font-bold text-foreground shadow-sm">
+                    书籍
+                  </div>
+                </div>
+                <div className="p-3">
+                  <p className="line-clamp-2 text-[13px] font-bold leading-snug">{book.title}</p>
+                  <p className="mt-2 text-[11px] font-medium text-muted-foreground">{book.meta}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col justify-center rounded-xl bg-shelf-surface-soft p-5">
+            <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              Reading Now
+            </p>
+            <p className="mt-3 font-heading text-2xl font-semibold leading-tight">
+              从书架到阅读器，界面保持同一种安静的纸感。
+            </p>
+            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-background/75">
+              <div className="h-full w-[54%] rounded-full bg-primary" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function FeatureItem({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureItem({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
-    <div className="flex flex-col items-center text-center md:items-start md:text-left">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="rounded-xl border border-border/60 bg-background/70 p-5 shadow-[0_12px_32px_-30px_var(--paper-shadow)]">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-foreground">
         {icon}
       </div>
-      <h3 className="text-lg font-bold">{title}</h3>
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-        {description}
-      </p>
+      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
   );
 }

@@ -47,12 +47,12 @@ describe('useProgress', () => {
     );
 
     expect(result.current.isLoading).toBe(true);
-    expect(api.getProgress).toHaveBeenCalledWith('book-1');
 
     await act(async () => {
       await Promise.resolve();
     });
 
+    expect(api.getProgress).toHaveBeenCalledWith('book-1');
     expect(result.current.progress?.cfi).toBe('epubcfi(/6/2)');
     expect(result.current.progress?.percentage).toBe(30);
     expect(result.current.isLoading).toBe(false);

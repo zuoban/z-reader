@@ -279,7 +279,7 @@ export default function ShelfPage() {
               title="上传书籍"
               multiple
               buttonSize="icon-sm"
-              buttonClassName="!min-h-0 !h-9 !w-9 sm:!h-10 sm:!w-auto rounded-lg bg-primary text-primary-foreground px-0 sm:px-5 text-[14px] font-bold shadow-none hover:opacity-90 transition-all active:scale-[0.98] flex items-center justify-center border border-primary dark:border-primary/20 dark:shadow-[0_14px_34px_-24px_var(--primary)]"
+              buttonClassName="h-11 w-11 rounded-xl border border-primary bg-primary px-0 text-[14px] font-bold text-primary-foreground shadow-none transition-all hover:opacity-90 active:scale-[0.98] sm:h-10 sm:w-auto sm:rounded-lg sm:px-5 dark:border-primary/20 dark:shadow-[0_14px_34px_-24px_var(--primary)]"
             >
               {isUploading ? (
                 <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
@@ -293,8 +293,7 @@ export default function ShelfPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg border border-border bg-card text-foreground shadow-none hover:bg-secondary/50 dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
-                  style={{ minHeight: 'auto', minWidth: 'auto' }}
+                  className="h-11 w-11 rounded-xl border border-border bg-card text-foreground shadow-none hover:bg-secondary/50 sm:h-10 sm:w-10 sm:rounded-lg dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
                   aria-label="账户与设置"
                   title="账户与设置"
                 >
@@ -327,7 +326,7 @@ export default function ShelfPage() {
       </header>
 
       <main
-        className="relative z-10 mx-auto w-full max-w-[1920px] flex-1 px-5 py-7 sm:px-7 sm:py-8 lg:px-10 lg:py-9"
+        className="relative z-10 mx-auto w-full max-w-[1920px] flex-1 px-5 py-6 sm:px-7 sm:py-8 lg:px-10 lg:py-9"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
@@ -408,14 +407,14 @@ export default function ShelfPage() {
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名或作者..."
                       aria-label="搜索书库"
-                      className="h-11 rounded-xl border-0 bg-[#f5f5f5] pl-11 pr-10 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-[#999] hover:bg-[#f0f0f0] focus:bg-[#f5f5f5] focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border dark:border-white/8 dark:bg-white/[0.055] dark:text-foreground dark:placeholder:text-muted-foreground/60 dark:hover:bg-white/[0.075] dark:focus:bg-white/[0.07]"
+                      className="h-12 rounded-xl border border-transparent bg-shelf-surface-soft pl-11 pr-11 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-muted-foreground/60 hover:bg-shelf-surface-hover focus:bg-shelf-surface-soft focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 dark:border-white/8 dark:bg-white/[0.055] dark:text-foreground dark:placeholder:text-muted-foreground/60 dark:hover:bg-white/[0.075] dark:focus:bg-white/[0.07]"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => changeSearchQuery('')}
                         aria-label="Clear search"
-                        className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-all"
+                        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/60 transition-all hover:bg-muted hover:text-foreground"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -435,12 +434,11 @@ export default function ShelfPage() {
                   <button
                     type="button"
                     onClick={() => changeSelectedCategory(null)}
-                    style={{ minHeight: '28px', minWidth: 'auto' }}
                     className={cn(
-                      'flex h-7 items-center justify-center rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
+                      'flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                       selectedCategoryId === null
-                        ? 'bg-[#111111] text-white dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                        : 'bg-white border border-border text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                        : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                     )}
                   >
                     全部
@@ -449,12 +447,11 @@ export default function ShelfPage() {
                     <button
                       type="button"
                       onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
-                      style={{ minHeight: '28px', minWidth: 'auto' }}
                       className={cn(
-                        'flex h-7 items-center justify-center rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
+                        'flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                         selectedCategoryId === UNCATEGORIZED_FILTER_ID
-                          ? 'bg-[#111111] text-white dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                          : 'bg-white border border-border text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
+                          ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                          : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                       )}
                     >
                       未分类
@@ -465,12 +462,11 @@ export default function ShelfPage() {
                       key={category}
                       type="button"
                       onClick={() => changeSelectedCategory(category)}
-                      style={{ minHeight: '28px', minWidth: 'auto' }}
                       className={cn(
-                        'flex h-7 items-center justify-center max-w-[8rem] sm:max-w-[10rem] truncate rounded-full px-3 sm:h-7 sm:rounded-full sm:px-3.5 text-[12px] sm:text-[13px] font-medium transition-all active:scale-[0.97]',
+                        'flex min-h-11 max-w-[9rem] items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
                         selectedCategoryId === category
-                          ? 'bg-[#111111] text-white dark:bg-primary dark:text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                          : 'bg-white border border-border text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
+                          ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                          : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                       )}
                       title={category}
                     >
@@ -480,8 +476,7 @@ export default function ShelfPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    style={{ minHeight: '28px', minWidth: 'auto' }}
-                    className="!h-7 rounded-full px-2.5 sm:!h-7 sm:rounded-full sm:px-2.5 gap-1 sm:gap-1.5 text-[12px] sm:text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
+                    className="min-h-11 rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground sm:min-h-8 sm:px-3 dark:hover:bg-white/[0.08]"
                     onClick={() => setCategoryManagerOpen(true)}
                   >
                     <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
@@ -523,7 +518,7 @@ export default function ShelfPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-3 sm:gap-3 py-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+                <div className="relative z-0 grid grid-cols-2 gap-3 py-2 sm:grid-cols-[repeat(auto-fit,minmax(11rem,12.5rem))] sm:justify-center sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(12rem,13rem))]">
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

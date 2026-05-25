@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, X } from 'lucide-react';
+import { Check, Pencil, Trash2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -70,13 +70,13 @@ export function CategoryManagerSheet({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-[420px] rounded-2xl border border-border/50 bg-white p-0 shadow-lg"
+        className="max-w-[420px] rounded-2xl border border-border/60 bg-popover p-0 shadow-[0_24px_70px_-48px_var(--paper-shadow)]"
         showCloseButton={false}
       >
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div>
-            <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-[#111111]">
+            <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-foreground">
               管理分类
             </DialogTitle>
             <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
@@ -86,7 +86,7 @@ export function CategoryManagerSheet({
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -110,13 +110,13 @@ export function CategoryManagerSheet({
                   <div
                     key={category}
                     className={cn(
-                      'flex items-center gap-3 rounded-xl border border-border/50 bg-white px-4 py-3 transition-all',
+                      'flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 transition-all',
                       isEditing && 'border-primary/30 ring-1 ring-primary/10'
                     )}
                   >
                     {/* Category pill + count */}
                     <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                      <span className="shrink-0 rounded-full bg-[#f0f0f0] px-3 py-1 text-[14px] font-semibold text-[#111111]">
+                      <span className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[14px] font-semibold text-foreground">
                         {category}
                       </span>
                       <span className="shrink-0 text-[13px] font-medium text-muted-foreground/70">
@@ -137,12 +137,12 @@ export function CategoryManagerSheet({
                             }}
                             maxLength={50}
                             autoFocus
-                            className="h-8 w-28 rounded-lg border-border/50 bg-secondary/50 px-2 text-[13px] shadow-none focus-visible:border-primary/45 focus-visible:ring-1 focus-visible:ring-primary/12"
+                            className="h-10 w-28 rounded-lg border-border/50 bg-secondary/50 px-2 text-[13px] shadow-none focus-visible:border-primary/45 focus-visible:ring-1 focus-visible:ring-primary/12"
                           />
                           <button
                             type="button"
                             onClick={cancelEdit}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
                             aria-label="Cancel"
                           >
                             <X className="h-4 w-4" />
@@ -151,12 +151,10 @@ export function CategoryManagerSheet({
                             type="button"
                             onClick={() => void saveRename()}
                             disabled={loading || !editValue.trim() || editValue.trim() === category || editValue.trim().length > 50}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111111] text-white hover:opacity-85 disabled:opacity-30 transition-all"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-all"
                             aria-label="Save"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
+                            <Check className="h-4 w-4" />
                           </button>
                         </>
                       ) : (
@@ -165,7 +163,7 @@ export function CategoryManagerSheet({
                             type="button"
                             onClick={() => startEdit(category)}
                             disabled={loading}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 transition-all"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 transition-all"
                             aria-label={`Rename ${category}`}
                           >
                             <Pencil className="h-4 w-4" />
@@ -174,7 +172,7 @@ export function CategoryManagerSheet({
                             type="button"
                             onClick={() => setDeleteConfirmCategory(category)}
                             disabled={loading}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200/60 text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition-all"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-destructive/20 text-destructive/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-40 transition-all"
                             aria-label={`Delete ${category}`}
                           >
                             <Trash2 className="h-4 w-4" />

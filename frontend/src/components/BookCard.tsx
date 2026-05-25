@@ -264,9 +264,9 @@ export function BookCard({
     <div className="flex w-full items-stretch">
       <Card
         className={cn(
-          'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border/30 bg-white p-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] transition-all duration-300',
-          'hover:border-border/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]',
-          'dark:border-white/8 dark:bg-[linear-gradient(180deg,#1b2028_0%,#151921_100%)] dark:shadow-[0_22px_60px_-46px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,244,220,0.06)] dark:hover:border-primary/18 dark:hover:shadow-[0_28px_72px_-48px_rgba(0,0,0,1)]',
+          'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/45 bg-card p-0 shadow-[0_14px_38px_-34px_var(--paper-shadow)] transition-all duration-300',
+          'hover:border-primary/18 hover:shadow-[0_20px_48px_-38px_var(--paper-shadow)]',
+          'dark:border-white/8 dark:bg-[linear-gradient(180deg,#1a1f27_0%,#151920_100%)] dark:shadow-[0_20px_56px_-46px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,244,220,0.045)] dark:hover:border-primary/18 dark:hover:shadow-[0_24px_64px_-50px_rgba(0,0,0,0.95)]',
           selected && 'border-primary ring-2 ring-primary dark:border-primary dark:ring-primary/70'
         )}
         style={{
@@ -306,7 +306,7 @@ export function BookCard({
         <div className="flex flex-1 flex-col p-3 sm:p-3.5">
           <div className="mb-2.5 sm:mb-3 flex-1">
             <h3
-              className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-[#1a1a1a] dark:text-foreground"
+              className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-foreground"
               title={titleLabel}
             >
               <HighlightedText text={titleLabel} query={searchQuery} />
@@ -321,7 +321,7 @@ export function BookCard({
             <div className="space-y-1 sm:space-y-1.5">
               <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60 dark:bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#111111] transition-[width] duration-700 ease-out dark:bg-primary"
+                  className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
                   style={{ width: `${Math.max(progressValue, 1)}%` }}
                 />
               </div>
@@ -339,8 +339,7 @@ export function BookCard({
             <div className="flex items-center gap-1.5">
               <Button
                 type="button"
-                style={{ minHeight: 'auto', minWidth: 'auto' }}
-                className="h-8 sm:h-9 flex-1 gap-1 sm:gap-1.5 rounded-lg sm:rounded-lg bg-[#111111] text-white text-[0.8rem] sm:text-[0.85rem] font-medium sm:font-semibold shadow-none hover:opacity-85 active:scale-[0.98] transition-all dark:bg-primary dark:text-primary-foreground dark:hover:opacity-95"
+                className="min-h-11 flex-1 gap-1.5 rounded-xl bg-primary text-[0.84rem] font-semibold text-primary-foreground shadow-none transition-all hover:opacity-90 active:scale-[0.98] sm:min-h-9 sm:rounded-lg sm:text-[0.85rem]"
                 onClick={(event) => {
                   event.stopPropagation();
                   activateCard();
@@ -359,7 +358,7 @@ export function BookCard({
                   isDeleting={isDeleting}
                   onCategoryClick={() => setCategoryDialogOpen(true)}
                   onDeleteClick={() => setDeleteConfirmOpen(true)}
-                  triggerClassName="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-lg sm:rounded-lg border border-border/50 bg-card text-muted-foreground hover:bg-secondary/50 hover:text-foreground active:scale-[0.95] transition-all dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
+                  triggerClassName="h-11 w-11 shrink-0 rounded-xl border border-border/50 bg-card text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground active:scale-[0.95] sm:h-9 sm:w-9 sm:rounded-lg dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
                 />
               )}
 

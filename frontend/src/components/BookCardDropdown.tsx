@@ -69,9 +69,8 @@ export function BookCardDropdown({
       <DropdownMenuTrigger
         aria-label="更多操作"
         title="更多操作"
-        style={{ minHeight: 'auto', minWidth: 'auto' }}
         className={cn(
-          'flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-transparent bg-transparent text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90',
+          'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-transparent text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90 sm:h-10 sm:w-10',
           triggerClassName
         )}
         onClick={(e) => e.stopPropagation()}

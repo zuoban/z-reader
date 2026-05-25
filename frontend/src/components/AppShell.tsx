@@ -14,9 +14,8 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'shelf') {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(240,230,210,0.08),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(72,92,112,0.14),transparent_34%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_100%)] opacity-0 dark:opacity-100" />
-        <div className="absolute -left-[12%] top-[8%] hidden h-[28rem] w-[28rem] rounded-full bg-[#415066]/16 blur-[150px] dark:block" />
-        <div className="absolute right-[-14%] top-[-12%] hidden h-[24rem] w-[24rem] rounded-full bg-[#c9a66b]/10 blur-[140px] dark:block" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--shelf-surface-soft)_62%,transparent)_0%,transparent_38%),linear-gradient(90deg,transparent_0%,color-mix(in_srgb,var(--paper-edge)_18%,transparent)_50%,transparent_100%)]" />
+        <div className="absolute inset-0 opacity-0 dark:opacity-100 dark:bg-[linear-gradient(180deg,rgba(240,230,210,0.035)_0%,transparent_34%,rgba(0,0,0,0.12)_100%)]" />
       </div>
     );
   }
@@ -24,9 +23,7 @@ function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
   if (variant === 'login') {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#8b4513]/5 via-background to-background" />
-        <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-[#8b4513]/8 blur-[140px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-[#6b3a2a]/6 blur-[140px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--shelf-surface-soft)_72%,transparent)_0%,transparent_42%),linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--paper-edge)_20%,transparent)_100%)]" />
       </div>
     );
   }

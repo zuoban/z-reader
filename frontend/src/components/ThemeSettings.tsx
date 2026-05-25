@@ -351,7 +351,7 @@ export function ThemeSettings({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
                   style={{
                     background: surface.surface,
                     color: surface.fg,
@@ -383,7 +383,7 @@ export function ThemeSettings({
                 title="重置阅读偏好"
                 aria-label="重置阅读偏好"
                 className={cn(
-                  "h-8 w-8 rounded-full border-0 transition-[transform,box-shadow,background-color,color] hover:brightness-[0.985] disabled:opacity-45",
+                  "h-10 w-10 rounded-full border-0 transition-[transform,box-shadow,background-color,color] hover:brightness-[0.985] disabled:opacity-45",
                   isResetFeedbackVisible && "scale-[1.08]",
                 )}
                 style={{
@@ -406,7 +406,7 @@ export function ThemeSettings({
               <button
                 type="button"
                 onClick={() => onOpenChange?.(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                 style={{
                   color: surface.muted,
                   background: surface.surface,

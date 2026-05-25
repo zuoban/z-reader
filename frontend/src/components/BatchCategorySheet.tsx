@@ -112,7 +112,7 @@ export function BatchCategorySheet({
                   <button
                     type="button"
                     onClick={() => setCategoryName('')}
-                    className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground/45 transition-colors hover:bg-card/70 hover:text-muted-foreground"
+                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/45 transition-colors hover:bg-card/70 hover:text-muted-foreground"
                     title="清空输入"
                     aria-label="清空输入"
                   >

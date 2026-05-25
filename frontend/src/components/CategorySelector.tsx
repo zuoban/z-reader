@@ -81,13 +81,13 @@ export function CategorySelector({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[420px] rounded-2xl border border-border/50 bg-white p-0 shadow-lg"
+        className="max-w-[420px] rounded-2xl border border-border/60 bg-popover p-0 shadow-[0_24px_70px_-48px_var(--paper-shadow)]"
         showCloseButton={false}
       >
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div>
-            <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-[#111111]">
+            <DialogTitle className="text-[1.25rem] font-bold tracking-tight text-foreground">
               设置分类
             </DialogTitle>
             <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
@@ -97,7 +97,7 @@ export function CategorySelector({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -107,7 +107,7 @@ export function CategorySelector({
         <form onSubmit={handleSubmit}>
           <div className="max-h-[18rem] overflow-y-auto px-6 pb-6">
             {/* New category input */}
-            <div className="rounded-xl border border-border/50 bg-white px-4 py-3">
+            <div className="rounded-xl border border-border/50 bg-card px-4 py-3">
               <div className="mb-2.5 flex items-center justify-between">
                 <p className="text-[12px] font-semibold text-muted-foreground/70">
                   新建分类
@@ -129,7 +129,7 @@ export function CategorySelector({
                   <button
                     type="button"
                     onClick={() => setCategoryName('')}
-                    className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground/45 transition-colors hover:bg-muted/60 hover:text-muted-foreground"
+                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/45 transition-colors hover:bg-muted/60 hover:text-muted-foreground"
                     aria-label="Clear input"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -137,7 +137,7 @@ export function CategorySelector({
                 )}
               </div>
               {isNewCategory && (
-                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f0f0f0] px-3 py-1.5 text-[13px] font-medium text-[#111111]">
+                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[13px] font-medium text-foreground">
                   <Plus className="h-3.5 w-3.5" />
                   {trimmedCategoryName}
                 </div>
@@ -162,7 +162,7 @@ export function CategorySelector({
                       <div
                         key={cat}
                         className={cn(
-                          'flex items-center gap-2.5 rounded-xl border border-border/50 bg-white px-3.5 py-2.5 cursor-pointer transition-all',
+                          'flex items-center gap-2.5 rounded-xl border border-border/50 bg-card px-3.5 py-2.5 cursor-pointer transition-all',
                           isSelected && 'border-primary/30 ring-1 ring-primary/10 bg-primary/[0.03]'
                         )}
                       >
@@ -176,12 +176,12 @@ export function CategorySelector({
                           <div className={cn(
                             'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all',
                             isSelected
-                              ? 'border-[#111111] bg-[#111111]'
+                              ? 'border-primary bg-primary'
                               : 'border-border/60'
                           )}>
-                            {isSelected && <Check className="h-3 w-3 text-white" />}
+                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                           </div>
-                          <span className="truncate text-[14px] font-medium text-[#111111]">
+                          <span className="truncate text-[14px] font-medium text-foreground">
                             {cat}
                           </span>
                           <span className="ml-auto shrink-0 text-[12px] text-muted-foreground/60">
@@ -197,7 +197,7 @@ export function CategorySelector({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2 border-t border-border/50 bg-white px-6 py-4">
+          <div className="flex items-center justify-end gap-2 border-t border-border/50 bg-card/70 px-6 py-4">
             <Button
               type="button"
               variant="ghost"
@@ -209,7 +209,7 @@ export function CategorySelector({
             <Button
               type="submit"
               disabled={loading}
-              className="h-10 rounded-lg bg-[#111111] px-6 text-[14px] font-semibold text-white shadow-none hover:opacity-85 transition-all active:scale-[0.98] disabled:opacity-40"
+              className="h-10 rounded-lg bg-primary px-6 text-[14px] font-semibold text-primary-foreground shadow-none hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-40"
             >
               {loading ? '保存中...' : '保存'}
             </Button>

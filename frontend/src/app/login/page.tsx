@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
+import { AppScreen, BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -51,32 +51,31 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a]">
+      <AppScreen ambient="login">
         <LoadingState title="加载中..." />
-      </div>
+      </AppScreen>
     );
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#0a0a0a] px-6">
-      
-      <div className="w-full max-w-[400px] flex flex-col items-center">
-        
-        {/* Header Section */}
+    <AppScreen
+      ambient="login"
+      className="bg-background text-foreground"
+      contentClassName="flex min-h-dvh flex-col items-center justify-center px-5 py-10"
+    >
+      <div className="w-full max-w-[420px] rounded-2xl border border-border/65 bg-card/76 px-5 py-8 shadow-[0_24px_70px_-54px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] backdrop-blur sm:px-8 sm:py-10">
         <div className="mb-12 flex flex-col items-center">
           <BrandLogo className="mb-4 scale-110" />
-          <p className="text-[17px] font-medium text-gray-500 dark:text-gray-400">
+          <p className="text-[17px] font-medium text-muted-foreground">
             登录到您的书库
           </p>
         </div>
 
-        {/* Form Section */}
         <form onSubmit={handleSubmit} className="w-full space-y-6">
-          {/* Username */}
           <div className="space-y-2">
             <Label
               htmlFor="username"
-              className="text-sm font-bold text-gray-900 dark:text-gray-100"
+              className="text-sm font-bold text-foreground"
             >
               邮箱或用户名
             </Label>
@@ -91,7 +90,7 @@ export default function LoginPage() {
               placeholder="请输入您的邮箱"
               autoComplete="username"
               autoFocus
-              className="h-12 w-full rounded-lg border-none bg-gray-100 dark:bg-[#1a1a1a] px-4 text-base transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800"
+              className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             {usernameError && (
               <p className="text-xs font-medium text-red-500">
@@ -104,7 +103,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <Label
               htmlFor="password"
-              className="text-sm font-bold text-gray-900 dark:text-gray-100"
+              className="text-sm font-bold text-foreground"
             >
               密码
             </Label>
@@ -119,12 +118,13 @@ export default function LoginPage() {
                 }}
                 placeholder="请输入您的密码"
                 autoComplete="current-password"
-                className="h-12 w-full rounded-lg border-none bg-gray-100 dark:bg-[#1a1a1a] px-4 pr-12 text-base transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800"
+                className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 pr-12 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -138,21 +138,20 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               <CircleAlert size={16} />
               {error}
             </div>
           )}
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="h-12 w-full rounded-lg bg-[#050509] text-base font-bold text-white transition-all hover:bg-black active:scale-[0.98] disabled:opacity-50 dark:bg-white dark:text-black"
+            className="flex min-h-12 w-full items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center gap-2">
-                <LoadingSpinner className="h-4 w-4 border-white/20 border-t-white dark:border-black/20 dark:border-t-black" />
+                <LoadingSpinner className="h-4 w-4 border-primary-foreground/20 border-t-primary-foreground" />
                 正在登录...
               </div>
             ) : (
@@ -161,14 +160,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Footer Section */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            还没有账号？ <span className="font-bold text-gray-900 dark:text-gray-100 cursor-pointer hover:underline">立即创建</span>
+          <p className="text-sm text-muted-foreground">
+            还没有账号？ <span className="cursor-pointer font-bold text-foreground hover:underline">立即创建</span>
           </p>
         </div>
-
       </div>
-    </div>
+    </AppScreen>
   );
 }

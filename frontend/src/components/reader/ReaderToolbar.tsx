@@ -104,14 +104,14 @@ export function ReaderToolbar({
           paddingTop: headerSafeAreaPaddingTop,
         }}
       >
-        <div className="pointer-events-auto mx-auto flex h-11 max-w-full items-center px-4 sm:h-12 sm:px-6">
+        <div className="pointer-events-auto mx-auto flex h-12 max-w-full items-center px-4 sm:px-6">
           <div className="flex flex-1 items-center gap-2 overflow-hidden">
             <Button
               variant="ghost"
               size="icon"
               onClick={onBack}
               title="返回书库"
-              className="h-9 w-9 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+              className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -131,7 +131,7 @@ export function ReaderToolbar({
                 aria-expanded={mobileActionsOpen}
                 aria-haspopup="menu"
                 aria-label="更多阅读操作"
-                className="flex h-9 w-9 items-center justify-center rounded-lg p-0 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                className="flex h-10 w-10 items-center justify-center rounded-xl p-0 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                 onClick={() => setMobileActionsOpen((open) => !open)}
                 title="更多阅读操作"
                 type="button"
@@ -154,7 +154,7 @@ export function ReaderToolbar({
                   阅读操作
                 </div>
                 <button
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                   onClick={() => {
                     closeMobileActions();
                     onTocOpenChange(true);
@@ -166,7 +166,7 @@ export function ReaderToolbar({
                   <span>目录</span>
                 </button>
                 <button
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                   onClick={() => {
                     closeMobileActions();
                     onBookmarksOpenChange(true);
@@ -178,7 +178,7 @@ export function ReaderToolbar({
                   <span>书签</span>
                 </button>
                 <button
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={!canCreateBookmark || isSavingBookmark}
                   onClick={() => {
                     closeMobileActions();
@@ -194,7 +194,7 @@ export function ReaderToolbar({
                   {mobileTtsControls}
                 </div>
                 <button
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                   onClick={() => {
                     closeMobileActions();
                     onThemeSettingsOpenChange(true);
@@ -221,7 +221,7 @@ export function ReaderToolbar({
               currentChapterHref={currentChapterHref}
               uiScheme={uiScheme}
               overlayContainer={overlayContainer}
-              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerClassName="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
               triggerStyle={{}}
               onLocateCurrent={onLocateCurrentChapter}
               onGoTo={onGoTo}
@@ -240,7 +240,7 @@ export function ReaderToolbar({
               bookTitle={bookTitle}
               uiScheme={uiScheme}
               overlayContainer={overlayContainer}
-              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerClassName="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
               triggerStyle={{}}
               canCreate={canCreateBookmark}
               isSaving={isSavingBookmark}
@@ -261,7 +261,7 @@ export function ReaderToolbar({
               disabled={!canCreateBookmark || isSavingBookmark}
               onClick={onCreateBookmark}
               title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
-              className="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
             >
               <BookmarkPlus className="h-4 w-4" />
               <span className="hidden sm:inline">{isSavingBookmark ? "添加中..." : "添加"}</span>
@@ -276,7 +276,7 @@ export function ReaderToolbar({
               open={themeSettingsOpen}
               onOpenChange={onThemeSettingsOpenChange}
               overlayContainer={overlayContainer}
-              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              triggerClassName="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
               triggerStyle={{}}
               trigger={
                 <div className="flex items-center gap-2">

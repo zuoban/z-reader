@@ -38,7 +38,7 @@ export function ReaderStatusBar({
         }}
       >
         <div
-          className="pointer-events-auto flex h-6 items-center gap-1 rounded-[10px] border px-2 backdrop-blur-xl"
+          className="pointer-events-auto flex min-h-9 items-center gap-1 rounded-xl border px-2 backdrop-blur-xl"
           style={{
             background: withOpacity(uiScheme.bg, 0.78),
             borderColor: withOpacity(uiScheme.cardBorder, 0.18),
@@ -51,7 +51,7 @@ export function ReaderStatusBar({
             onClick={onToggleToolbar}
             title="展开操作栏"
             aria-label="展开操作栏"
-            className="paper-motion-interactive flex h-5 min-w-[42px] items-center justify-center rounded-[6px] px-1 text-[11px] font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
+            className="paper-motion-interactive flex min-h-8 min-w-[52px] items-center justify-center rounded-lg px-2 text-[11px] font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
             style={{
               color: withOpacity(uiScheme.fg, 0.72),
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
@@ -80,14 +80,14 @@ export function ReaderStatusBar({
       title="收起顶部操作栏"
       aria-label="收起顶部操作栏"
       aria-pressed={isToolbarVisible}
-      className="flex fixed inset-x-0 bottom-0 z-40 cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
+      className="flex fixed inset-x-0 bottom-0 z-40 min-h-11 cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
       style={{
         paddingBottom: safeAreaPaddingBottom,
         color: "inherit",
         ...containerStyle,
       }}
     >
-      <div className="relative flex h-9 w-full max-w-5xl items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]">
+      <div className="relative flex min-h-11 w-full max-w-5xl items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]">
         <div className="flex w-24 shrink-0 items-center">
           <span
             className="tabular-nums tracking-normal font-semibold"

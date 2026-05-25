@@ -7,9 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandGlyph, BrandLogo } from '@/components/AppShell';
 
 const previewBooks = [
-  { title: 'Go语言精进之路', meta: '54% · 1分钟前', tone: 'from-[#e7bf2e] to-[#d9aa16]' },
-  { title: '中国近代史', meta: '1% · 25分钟前', tone: 'from-[#d8d0b9] to-[#c6b25f]' },
-  { title: '沉浸阅读笔记', meta: '未开始', tone: 'from-[#7ba7a0] to-[#4d6b72]' },
+  { title: '《西游记》', meta: '54% · 1分钟前', tone: 'from-[#e7bf2e] to-[#d9aa16]' },
+  { title: '《水浒传》', meta: '1% · 25分钟前', tone: 'from-[#d8d0b9] to-[#c6b25f]' },
+  { title: '《三国演义》', meta: '未开始', tone: 'from-[#7ba7a0] to-[#4d6b72]' },
 ];
 
 export default function LandingPage() {

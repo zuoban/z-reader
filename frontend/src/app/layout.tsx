@@ -34,7 +34,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f5f0e8' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1612' },
+    { media: '(prefers-color-scheme: dark)', color: '#101216' },
   ],
 };
 
@@ -88,7 +88,7 @@ export default function RootLayout({
       className={`${crimsonText.variable} ${playfairDisplay.variable} ${notoSerifSC.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background font-serif">
+      <body className="min-h-full flex flex-col bg-background font-sans">
         <ThemeProvider>
           <TooltipProvider>
             <a

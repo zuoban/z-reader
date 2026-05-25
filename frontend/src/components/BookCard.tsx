@@ -164,10 +164,10 @@ function BookCoverFace({
         </span>
       )}
       <div className="relative mt-6 flex min-h-[7rem] flex-col items-center justify-center gap-3">
-        <h3 className="line-clamp-4 text-balance text-[1.28rem] font-bold leading-[1.24] text-white">
+        <h3 className="line-clamp-4 text-balance text-[1.28rem] font-bold leading-[1.24] text-white font-serif">
           {titleLabel}
         </h3>
-        <p className="line-clamp-2 text-[0.92rem] font-bold leading-tight text-white/82">
+        <p className="line-clamp-2 text-[0.92rem] font-bold leading-tight text-white/82 font-serif">
           {authorLabel}
         </p>
       </div>

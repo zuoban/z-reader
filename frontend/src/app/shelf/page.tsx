@@ -29,6 +29,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
 import { AppScreen, BrandLogo, LoadingSpinner } from '@/components/AppShell';
+import { UserManager } from '@/components/UserManager';
 import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
@@ -67,7 +68,7 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const { isLoading, isAuthenticated, logout } = useAuth();
+  const { isLoading, isAuthenticated, user, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -264,7 +265,7 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      className="bg-background [font-family:ui-sans-serif,system-ui,sans-serif] dark:bg-[#101216]"
+      className="bg-background font-sans dark:bg-[#101216]"
       contentClassName="flex min-h-screen w-full flex-col"
     >
       <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-background/95 backdrop-blur-xl dark:border-white/8 dark:bg-[#111419]/82 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
@@ -288,6 +289,13 @@ export default function ShelfPage() {
               )}
               <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
             </FileUploadAction>
+            {user?.role === 'admin' && (
+              <UserManager
+                currentUser={user}
+                buttonClassName="h-11 w-11 rounded-xl border border-border bg-card text-foreground shadow-none hover:bg-secondary/50 sm:h-10 sm:w-10 sm:rounded-lg dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
+                triggerTitle="用户管理"
+              />
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -481,6 +489,20 @@ export default function ShelfPage() {
                   >
                     <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
                     管理
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectionMode ? "secondary" : "ghost"}
+                    className={cn(
+                      "min-h-11 rounded-full px-4 text-[13px] font-medium sm:min-h-8 sm:px-3.5 transition-all active:scale-[0.97]",
+                      selectionMode
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
+                    )}
+                    onClick={toggleSelectionMode}
+                  >
+                    <CheckSquare className="h-3.5 w-3.5" />
+                    <span className="ml-1.5">{selectionMode ? "取消选择" : "批量操作"}</span>
                   </Button>
                 </div>
               </div>

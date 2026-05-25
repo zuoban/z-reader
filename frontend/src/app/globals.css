@@ -7,7 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-crimson), var(--font-noto-serif-sc), ui-serif, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-crimson), var(--font-noto-serif-sc), ui-serif, Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-playfair), var(--font-noto-serif-sc), ui-serif, Georgia, serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -147,7 +148,7 @@
   }
 
   html {
-    @apply font-serif;
+    @apply font-sans;
   }
 
   body {
@@ -211,9 +212,9 @@ foliate-view::part(filter) {
     padding: 0;
   }
 
-  button,
-  a,
-  [role="button"],
+  button:not(.size-4):not([role="menuitem"]):not(.h-4):not(.w-4):not(.h-9):not(.w-9):not(.h-8):not(.w-8):not(.min-h-8),
+  a:not([role="menuitem"]),
+  [role="button"]:not([role="menuitem"]),
   input[type="submit"],
   input[type="button"],
   input[type="reset"] {

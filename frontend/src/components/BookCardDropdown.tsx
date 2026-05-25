@@ -82,7 +82,7 @@ export function BookCardDropdown({
         align="start"
         alignOffset={0}
         sideOffset={10}
-        className="w-[16.5rem] overflow-hidden rounded-[20px] border border-border/55 bg-popover/95 p-1.5 shadow-[0_12px_38px_rgba(0,0,0,0.08)] backdrop-blur-xl [font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif]"
+        className="w-[16.5rem] overflow-hidden rounded-[20px] border border-border/55 bg-popover/95 p-1.5 shadow-[0_12px_38px_rgba(0,0,0,0.08)] backdrop-blur-xl font-sans"
       >
         <div className="px-3.5 pb-2.5 pt-3.5">
           <div className="mb-3.5 flex items-center justify-between gap-3">

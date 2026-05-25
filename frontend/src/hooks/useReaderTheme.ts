@@ -16,6 +16,8 @@ export interface ReaderTheme {
   maxInlineSize: number;
   gap: number;
   animated: boolean;
+  chineseIndent: boolean;
+  punctuationSqueeze: boolean;
 }
 
 export const FONT_FAMILY_OPTIONS: Record<
@@ -134,6 +136,8 @@ export const DEFAULT_READER_THEME: ReaderTheme = {
   maxInlineSize: 1200,
   gap: 5,
   animated: true,
+  chineseIndent: true,
+  punctuationSqueeze: true,
 };
 
 const STORAGE_KEY = "z-reader-theme";
@@ -178,6 +182,8 @@ function normalizeReaderTheme(theme: ReaderTheme): ReaderTheme {
     ),
     gap: clamp(Number(theme.gap) || DEFAULT_READER_THEME.gap, 0, 12),
     animated: Boolean(theme.animated),
+    chineseIndent: theme.chineseIndent !== undefined ? Boolean(theme.chineseIndent) : DEFAULT_READER_THEME.chineseIndent,
+    punctuationSqueeze: theme.punctuationSqueeze !== undefined ? Boolean(theme.punctuationSqueeze) : DEFAULT_READER_THEME.punctuationSqueeze,
   };
 }
 
@@ -222,6 +228,8 @@ function getSnapshot(): ReaderTheme {
         if (parsed?.maxInlineSize) baseTheme.maxInlineSize = parsed.maxInlineSize;
         if (parsed?.gap) baseTheme.gap = parsed.gap;
         if (parsed?.animated !== undefined) baseTheme.animated = parsed.animated;
+        if (parsed?.chineseIndent !== undefined) baseTheme.chineseIndent = parsed.chineseIndent;
+        if (parsed?.punctuationSqueeze !== undefined) baseTheme.punctuationSqueeze = parsed.punctuationSqueeze;
       } catch {
         // ignore
       }
@@ -284,6 +292,27 @@ export function useReaderTheme() {
     const selectionColor = isDark ? "#ffffff" : "inherit";
     const codeBg = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
 
+    const indentStyle = theme.chineseIndent
+      ? `
+        p {
+          text-indent: 2em !important;
+        }
+        p[align="center"], p.center, p.title, p.subtitle, blockquote p, p.author, p.epigraph {
+          text-indent: 0 !important;
+        }
+      `
+      : "";
+
+    const punctuationStyle = theme.punctuationSqueeze
+      ? `
+        html, body, p, div, span {
+          text-spacing: trim-adjacent !important;
+          font-variant-east-asian: proportional-width !important;
+          text-justify: inter-ideograph !important;
+        }
+      `
+      : "";
+
     return `
       html {
         background: ${preset.bg} !important;
@@ -335,6 +364,8 @@ export function useReaderTheme() {
         border-radius: 4px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       }
+      ${indentStyle}
+      ${punctuationStyle}
     `;
   }, [theme]);
 

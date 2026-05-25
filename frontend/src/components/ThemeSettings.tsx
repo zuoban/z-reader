@@ -670,6 +670,27 @@ export function ThemeSettings({
                   step={20}
                   uiScheme={uiScheme}
                 />
+
+                {/* 中文精致排版 */}
+                <div className="space-y-3 pt-4 border-t border-border/10">
+                  <Label className="pl-1 text-[11px] font-bold uppercase tracking-widest opacity-70" style={{ color: uiScheme.mutedText }}>
+                    中文精致排版
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <ValuePill
+                      label="首行缩进"
+                      active={theme.chineseIndent}
+                      onClick={() => setTheme({ chineseIndent: !theme.chineseIndent })}
+                      uiScheme={uiScheme}
+                    />
+                    <ValuePill
+                      label="标点挤压"
+                      active={theme.punctuationSqueeze}
+                      onClick={() => setTheme({ punctuationSqueeze: !theme.punctuationSqueeze })}
+                      uiScheme={uiScheme}
+                    />
+                  </div>
+                </div>
               </div>
             </SectionCard>
           )}

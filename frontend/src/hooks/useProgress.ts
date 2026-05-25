@@ -111,7 +111,45 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
         }
         return;
       }
-      console.error('Failed to save progress:', err);
+
+      console.error('Failed to save progress remotely, using offline backup:', err);
+
+      // Handle offline queuing if the error is not a server logic conflict
+      if (!(err instanceof ApiError)) {
+        const offlineSnapshot = {
+          cfi: data.cfi,
+          percentage: data.percentage,
+          updated_at: new Date().toISOString(),
+          device_id: getDeviceId() || 'offline-device',
+          remote: false,
+        };
+
+        // Cache locally for this book
+        localStorage.setItem(`z-reader-offline-progress:${bookId}`, JSON.stringify(offlineSnapshot));
+
+        // Add to pending sync queue
+        try {
+          const queueRaw = localStorage.getItem('z-reader-offline-pending-sync-books');
+          const queue: string[] = queueRaw ? JSON.parse(queueRaw) : [];
+          if (!queue.includes(bookId)) {
+            queue.push(bookId);
+            localStorage.setItem('z-reader-offline-pending-sync-books', JSON.stringify(queue));
+          }
+        } catch {
+          // ignore
+        }
+
+        // Apply offline snapshot to state so interface updates instantly
+        lastSavedRef.current = offlineSnapshot;
+        setProgress(offlineSnapshot);
+
+        if (
+          pendingSaveRef.current?.cfi === data.cfi &&
+          pendingSaveRef.current.percentage === data.percentage
+        ) {
+          pendingSaveRef.current = null;
+        }
+      }
     } finally {
       savingRef.current = false;
     }
@@ -127,12 +165,85 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
     }, debounceDelay);
   }, [saveProgress, debounceDelay]);
 
+  const syncOfflineProgressQueue = useCallback(async () => {
+    try {
+      const queueRaw = localStorage.getItem('z-reader-offline-pending-sync-books');
+      if (!queueRaw) return;
+      const queue: string[] = JSON.parse(queueRaw);
+      if (queue.length === 0) return;
+
+      const nextQueue = [...queue];
+      for (const id of queue) {
+        const cachedRaw = localStorage.getItem(`z-reader-offline-progress:${id}`);
+        if (!cachedRaw) {
+          const index = nextQueue.indexOf(id);
+          if (index !== -1) nextQueue.splice(index, 1);
+          continue;
+        }
+
+        const cached = JSON.parse(cachedRaw);
+        try {
+          // Sync with server
+          await api.saveProgress(id, cached.cfi, cached.percentage, {
+            deviceId: cached.device_id || getDeviceId(),
+          });
+
+          // Successfully synced, remove local backups
+          localStorage.removeItem(`z-reader-offline-progress:${id}`);
+          const index = nextQueue.indexOf(id);
+          if (index !== -1) nextQueue.splice(index, 1);
+        } catch (err) {
+          console.error(`Failed to background sync progress for book ${id}:`, err);
+          if (err instanceof ApiError) {
+            // Discard unrecoverable format or logic failures
+            localStorage.removeItem(`z-reader-offline-progress:${id}`);
+            const index = nextQueue.indexOf(id);
+            if (index !== -1) nextQueue.splice(index, 1);
+          } else {
+            // Break loop on network connection failure to retry later
+            break;
+          }
+        }
+      }
+
+      localStorage.setItem('z-reader-offline-pending-sync-books', JSON.stringify(nextQueue));
+    } catch (err) {
+      console.error('Error in background sync progress queue:', err);
+    }
+  }, []);
+
   const loadProgress = useCallback(async () => {
     try {
       const data = await api.getProgress(bookId);
       applyLoadedProgress(data);
+
+      // Verify if there is a newer offline-cached progress that was not synced yet
+      const cachedRaw = localStorage.getItem(`z-reader-offline-progress:${bookId}`);
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw);
+          const remoteTime = data.updated_at ? Date.parse(data.updated_at) : 0;
+          const cachedTime = cached.updated_at ? Date.parse(cached.updated_at) : 0;
+          if (cachedTime > remoteTime) {
+            applyLoadedProgress(cached);
+          }
+        } catch {
+          // ignore
+        }
+      }
     } catch (err) {
-      console.error('Failed to load progress:', err);
+      console.error('Failed to load progress from server:', err);
+
+      // Fallback: load offline progress from localStorage if server fails offline
+      const cachedRaw = localStorage.getItem(`z-reader-offline-progress:${bookId}`);
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw);
+          applyLoadedProgress(cached);
+        } catch {
+          // ignore
+        }
+      }
     }
     setIsLoading(false);
   }, [applyLoadedProgress, bookId]);
@@ -142,6 +253,20 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
       void loadProgress();
     });
   }, [loadProgress]);
+
+  useEffect(() => {
+    // Trigger synchronization of any pending progress on mount
+    void syncOfflineProgressQueue();
+  }, [syncOfflineProgressQueue]);
+
+  useEffect(() => {
+    // Automatically trigger queue sync when internet connection is restored
+    const handleOnline = () => {
+      void syncOfflineProgressQueue();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [syncOfflineProgressQueue]);
 
   useEffect(() => {
     const refreshRemoteProgress = async () => {

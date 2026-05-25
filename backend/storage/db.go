@@ -2,8 +2,11 @@ package storage
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,13 +18,14 @@ import (
 )
 
 var (
-	BooksBucket     = []byte("books")
-	ProgressBucket  = []byte("progress")
-	BookmarksBucket = []byte("bookmarks")
-	SessionsBucket  = []byte("sessions")
-	UsersBucket     = []byte("users")
-	UserBooksIndex  = []byte("user_books_index") // userId -> JSON []bookId
-	UsernameIndex   = []byte("username_index")   // normalizedUsername -> userId
+	BooksBucket      = []byte("books")
+	ProgressBucket   = []byte("progress")
+	BookmarksBucket  = []byte("bookmarks")
+	SessionsBucket   = []byte("sessions")
+	UsersBucket      = []byte("users")
+	UserBooksIndex   = []byte("user_books_index") // userId:bookId -> Empty
+	UsernameIndex    = []byte("username_index")   // normalizedUsername -> userId
+	SystemMetaBucket = []byte("system_meta")
 )
 
 type DB struct {
@@ -34,35 +38,138 @@ func Open(path string) (*DB, error) {
 		return nil, err
 	}
 
-	err = db.Update(func(tx *bbolt.Tx) error {
-		for _, bucket := range [][]byte{
-			BooksBucket,
-			ProgressBucket,
-			BookmarksBucket,
-			SessionsBucket,
-			UsersBucket,
-			UserBooksIndex,
-			UsernameIndex,
-		} {
-			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
-				return err
+	resDB := &DB{db}
+	if err := resDB.runMigrations(); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return resDB, nil
+}
+
+func (db *DB) runMigrations() error {
+	migrations := []struct {
+		version int
+		name    string
+		run     func(tx *bbolt.Tx) error
+	}{
+		{
+			version: 1,
+			name:    "InitializeBuckets",
+			run: func(tx *bbolt.Tx) error {
+				for _, bucket := range [][]byte{
+					BooksBucket,
+					ProgressBucket,
+					BookmarksBucket,
+					SessionsBucket,
+					UsersBucket,
+					UserBooksIndex,
+					UsernameIndex,
+				} {
+					if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		},
+		{
+			version: 2,
+			name:    "MigrateIndexes",
+			run: func(tx *bbolt.Tx) error {
+				if err := migrateUsernameIndex(tx); err != nil {
+					return err
+				}
+				return migrateUserBooksIndex(tx)
+			},
+		},
+		{
+			version: 3,
+			name:    "NormalizeBookCategories",
+			run: func(tx *bbolt.Tx) error {
+				return migrateBookCategories(tx)
+			},
+		},
+		{
+			version: 4,
+			name:    "FlattenUserBooksIndex",
+			run: func(tx *bbolt.Tx) error {
+				idxB := tx.Bucket(UserBooksIndex)
+				if idxB == nil {
+					return nil
+				}
+
+				type oldIndexEntry struct {
+					userID  string
+					bookIDs []string
+				}
+
+				var entries []oldIndexEntry
+
+				// Read all old JSON entries first to avoid mutating during iteration
+				err := idxB.ForEach(func(k, v []byte) error {
+					if strings.Contains(string(k), ":") {
+						return nil
+					}
+					var ids []string
+					if err := json.Unmarshal(v, &ids); err == nil {
+						entries = append(entries, oldIndexEntry{
+							userID:  string(k),
+							bookIDs: ids,
+						})
+					}
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+
+				// Re-insert as flat keys and delete old ones
+				for _, entry := range entries {
+					for _, bookID := range entry.bookIDs {
+						newKey := entry.userID + ":" + bookID
+						if err := idxB.Put([]byte(newKey), []byte{}); err != nil {
+							return err
+						}
+					}
+					if err := idxB.Delete([]byte(entry.userID)); err != nil {
+						return err
+					}
+				}
+
+				return nil
+			},
+		},
+	}
+
+	return db.Update(func(tx *bbolt.Tx) error {
+		metaB, err := tx.CreateBucketIfNotExists(SystemMetaBucket)
+		if err != nil {
+			return err
+		}
+
+		currentVersion := 0
+		if vBytes := metaB.Get([]byte("schema_version")); vBytes != nil {
+			var err error
+			currentVersion, err = strconv.Atoi(string(vBytes))
+			if err != nil {
+				currentVersion = 0
+			}
+		}
+
+		for _, m := range migrations {
+			if m.version > currentVersion {
+				if err := m.run(tx); err != nil {
+					return err
+				}
+				if err := metaB.Put([]byte("schema_version"), []byte(strconv.Itoa(m.version))); err != nil {
+					return err
+				}
+				currentVersion = m.version
 			}
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	if err := (&DB{db}).migrateIndexes(); err != nil {
-		return nil, err
-	}
-
-	if err := (&DB{db}).NormalizeBookCategories(); err != nil {
-		return nil, err
-	}
-
-	return &DB{db}, nil
 }
 
 // BcryptCost 是密码哈希的计算成本。12 在现代硬件上提供合理的安全性平衡。
@@ -304,6 +411,37 @@ func (db *DB) DeleteUser(id string) error {
 	})
 }
 
+func (db *DB) PurgeUser(id string) error {
+	return db.Update(func(tx *bbolt.Tx) error {
+		usersB := tx.Bucket(UsersBucket)
+		existing := usersB.Get([]byte(id))
+		if existing == nil {
+			return ErrNotFound
+		}
+		var user models.User
+		if err := json.Unmarshal(existing, &user); err != nil {
+			return err
+		}
+
+		if err := deleteBooksByUser(tx, id); err != nil {
+			return err
+		}
+		if err := deleteProgressByUser(tx, id); err != nil {
+			return err
+		}
+		if err := deleteBookmarksByUser(tx, id); err != nil {
+			return err
+		}
+
+		if err := usersB.Delete([]byte(id)); err != nil {
+			return err
+		}
+		idxB := tx.Bucket(UsernameIndex)
+		idxB.Delete([]byte(normalizeUsername(user.Username)))
+		return nil
+	})
+}
+
 func (db *DB) DeleteUserData(userID string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		if err := deleteBooksByUser(tx, userID); err != nil {
@@ -419,19 +557,25 @@ func (db *DB) CreateBook(book *models.Book) error {
 
 		book.Category = normalizeCategoryName(book.Category)
 		if book.ContentHash != "" {
-			if err := b.ForEach(func(k, v []byte) error {
+			bookIDs, err := getBookIDsForUser(idxB, book.UserID)
+			if err != nil {
+				return err
+			}
+			for _, id := range bookIDs {
+				if id == book.ID {
+					continue
+				}
+				v := b.Get([]byte(id))
+				if v == nil {
+					continue
+				}
 				var existing models.Book
 				if err := json.Unmarshal(v, &existing); err != nil {
 					return err
 				}
-				if existing.ID != book.ID &&
-					existing.UserID == book.UserID &&
-					existing.ContentHash == book.ContentHash {
+				if existing.ContentHash == book.ContentHash {
 					return ErrDuplicateBookContent
 				}
-				return nil
-			}); err != nil {
-				return err
 			}
 		}
 
@@ -860,22 +1004,31 @@ func (db *DB) DeleteBookmark(bookID string, bookmarkID string, userID string) er
 	})
 }
 
+func hashToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
+}
+
 func (db *DB) SaveSession(session *models.Session) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
-		data, err := json.Marshal(session)
+		sCopy := *session
+		hashed := hashToken(session.Token)
+		sCopy.Token = hashed
+		data, err := json.Marshal(&sCopy)
 		if err != nil {
 			return err
 		}
-		return b.Put([]byte(session.Token), data)
+		return b.Put([]byte(hashed), data)
 	})
 }
 
 func (db *DB) GetSession(token string) (*models.Session, error) {
 	var session models.Session
+	hashed := hashToken(token)
 	err := db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
-		data := b.Get([]byte(token))
+		data := b.Get([]byte(hashed))
 		if data == nil {
 			return ErrNotFound
 		}
@@ -896,29 +1049,31 @@ func (db *DB) GetSession(token string) (*models.Session, error) {
 func (db *DB) DeleteSession(token string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
-		return b.Delete([]byte(token))
+		return b.Delete([]byte(hashToken(token)))
 	})
 }
 
 func (db *DB) CleanExpiredSessions() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
-		var toDelete []string
+		var toDelete [][]byte
 		err := b.ForEach(func(k, v []byte) error {
 			var session models.Session
 			if err := json.Unmarshal(v, &session); err != nil {
-				return err
+				// Clean up any legacy or corrupt session formats
+				toDelete = append(toDelete, append([]byte(nil), k...))
+				return nil
 			}
 			if time.Now().After(session.ExpiresAt) {
-				toDelete = append(toDelete, session.Token)
+				toDelete = append(toDelete, append([]byte(nil), k...))
 			}
 			return nil
 		})
 		if err != nil {
 			return err
 		}
-		for _, token := range toDelete {
-			if err := b.Delete([]byte(token)); err != nil {
+		for _, key := range toDelete {
+			if err := b.Delete(key); err != nil {
 				return err
 			}
 		}
@@ -929,23 +1084,21 @@ func (db *DB) CleanExpiredSessions() error {
 // --- user_books index helpers ---
 
 func getBookIDsForUser(idxB *bbolt.Bucket, userID string) ([]string, error) {
-	data := idxB.Get([]byte(userID))
-	if data == nil {
+	if userID == "" {
 		return nil, nil
 	}
+	prefix := []byte(userID + ":")
 	var ids []string
-	if err := json.Unmarshal(data, &ids); err != nil {
-		return nil, err
+	c := idxB.Cursor()
+	for k, _ := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, _ = c.Next() {
+		keyStr := string(k)
+		parts := strings.Split(keyStr, ":")
+		if len(parts) >= 2 {
+			bookID := strings.Join(parts[1:], ":")
+			ids = append(ids, bookID)
+		}
 	}
 	return ids, nil
-}
-
-func setBookIDsForUser(idxB *bbolt.Bucket, userID string, ids []string) error {
-	data, err := json.Marshal(ids)
-	if err != nil {
-		return err
-	}
-	return idxB.Put([]byte(userID), data)
 }
 
 func uniqueNonEmptyStrings(values []string) []string {
@@ -963,41 +1116,19 @@ func uniqueNonEmptyStrings(values []string) []string {
 }
 
 func addBookToUserIndex(idxB *bbolt.Bucket, bookID string, userID string) error {
-	if userID == "" {
+	if userID == "" || bookID == "" {
 		return nil
 	}
-	ids, err := getBookIDsForUser(idxB, userID)
-	if err != nil {
-		return err
-	}
-	// Check if already present
-	for _, id := range ids {
-		if id == bookID {
-			return nil
-		}
-	}
-	ids = append(ids, bookID)
-	return setBookIDsForUser(idxB, userID, ids)
+	key := []byte(userID + ":" + bookID)
+	return idxB.Put(key, []byte{})
 }
 
 func removeBookFromUserIndex(idxB *bbolt.Bucket, bookID string, userID string) error {
-	if userID == "" {
+	if userID == "" || bookID == "" {
 		return nil
 	}
-	ids, err := getBookIDsForUser(idxB, userID)
-	if err != nil {
-		return err
-	}
-	newIDs := make([]string, 0, len(ids))
-	for _, id := range ids {
-		if id != bookID {
-			newIDs = append(newIDs, id)
-		}
-	}
-	if len(newIDs) == 0 {
-		return idxB.Delete([]byte(userID))
-	}
-	return setBookIDsForUser(idxB, userID, newIDs)
+	key := []byte(userID + ":" + bookID)
+	return idxB.Delete(key)
 }
 
 func (db *DB) migrateIndexes() error {
@@ -1038,34 +1169,21 @@ func migrateUserBooksIndex(tx *bbolt.Tx) error {
 	idxB := tx.Bucket(UserBooksIndex)
 	booksB := tx.Bucket(BooksBucket)
 
-	// Build a map of userId -> []bookId
-	userBookMap := map[string][]string{}
-	if err := booksB.ForEach(func(k, v []byte) error {
+	return booksB.ForEach(func(k, v []byte) error {
 		var book models.Book
 		if err := json.Unmarshal(v, &book); err != nil {
 			return err
 		}
 		if book.UserID != "" {
-			userBookMap[book.UserID] = append(userBookMap[book.UserID], book.ID)
+			key := []byte(book.UserID + ":" + book.ID)
+			if idxB.Get(key) == nil {
+				if err := idxB.Put(key, []byte{}); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
-	}); err != nil {
-		return err
-	}
-
-	for userID, ids := range userBookMap {
-		existing := idxB.Get([]byte(userID))
-		if existing == nil {
-			data, err := json.Marshal(ids)
-			if err != nil {
-				return err
-			}
-			if err := idxB.Put([]byte(userID), data); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	})
 }
 
 func normalizeCategoryName(value *string) *string {

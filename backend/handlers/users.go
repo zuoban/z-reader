@@ -207,11 +207,7 @@ func (h *UsersHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteUserData(user.ID); err != nil {
-		response.InternalError(c, "清理用户数据失败")
-		return
-	}
-	if err := h.db.DeleteUser(user.ID); err != nil {
+	if err := h.db.PurgeUser(user.ID); err != nil {
 		response.InternalError(c, "删除用户失败")
 		return
 	}

@@ -515,9 +515,7 @@ export default function ShelfPage() {
               )}
             >
               {isLoadingBooks ? (
-                <div className="px-4 py-6 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-                  <BookCardSkeletonGrid count={6} />
-                </div>
+                <BookCardSkeletonGrid count={6} />
               ) : filteredBooks.length === 0 ? (
                 <div className="flex min-h-[26rem] flex-col items-center justify-center px-8 py-16 text-center">
                   <div className="relative mb-6">
@@ -540,7 +538,7 @@ export default function ShelfPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-3 py-2 sm:grid-cols-[repeat(auto-fit,minmax(11rem,12.5rem))] sm:justify-center sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(12rem,13rem))]">
+                <div className="relative z-0 grid grid-cols-2 gap-3 py-2 sm:grid-cols-[repeat(auto-fit,minmax(11rem,12.5rem))] sm:justify-start sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(12rem,13rem))]">
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}

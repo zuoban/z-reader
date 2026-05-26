@@ -86,9 +86,6 @@ func TestAuthRequiredAcceptsValidToken(t *testing.T) {
 	if ctx.GetString("username") != user.Username {
 		t.Fatalf("expected username %s, got %s", user.Username, ctx.GetString("username"))
 	}
-	if ctx.GetString("userRole") != user.Role {
-		t.Fatalf("expected role %s, got %s", user.Role, ctx.GetString("userRole"))
-	}
 }
 
 func TestAuthRequiredAcceptsTokenWithoutBearerPrefix(t *testing.T) {
@@ -261,115 +258,6 @@ func TestAuthRequiredSetsUserContext(t *testing.T) {
 	}
 	if userMap["username"] != user.Username {
 		t.Fatalf("expected username %s, got %v", user.Username, userMap["username"])
-	}
-	if userMap["role"] != user.Role {
-		t.Fatalf("expected role %s, got %v", user.Role, userMap["role"])
-	}
-}
-
-func TestAdminRequiredAcceptsAdminRole(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openMiddlewareTestDB(t)
-
-	adminUser := &models.User{
-		ID:           "admin-user",
-		Username:     "admin",
-		PasswordHash: "dummy",
-		Role:         models.UserRoleAdmin,
-		CreatedAt:    time.Now().UTC(),
-		UpdatedAt:    time.Now().UTC(),
-	}
-	db.SaveUser(adminUser)
-
-	session := &models.Session{
-		Token:     "admin-token",
-		UserID:    adminUser.ID,
-		Username:  adminUser.Username,
-		Role:      adminUser.Role,
-		CreatedAt: time.Now().UTC(),
-		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
-	}
-	db.SaveSession(session)
-
-	// Chain auth + admin middleware
-	recorder := httptest.NewRecorder()
-	ctx, engine := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/admin", nil)
-	ctx.Request.Header.Set("Authorization", "Bearer "+session.Token)
-
-	// Use engine to chain middlewares
-	engine.Use(AuthRequired(db))
-	engine.GET("/api/admin", func(c *gin.Context) {
-		AdminRequired()(c)
-		if c.IsAborted() {
-			return
-		}
-		c.Status(http.StatusOK)
-	})
-
-	engine.HandleContext(ctx)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-}
-
-func TestAdminRequiredRejectsUserRole(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openMiddlewareTestDB(t)
-
-	user := &models.User{
-		ID:           "regular-user",
-		Username:     "user",
-		PasswordHash: "dummy",
-		Role:         models.UserRoleUser,
-		CreatedAt:    time.Now().UTC(),
-		UpdatedAt:    time.Now().UTC(),
-	}
-	db.SaveUser(user)
-
-	session := &models.Session{
-		Token:     "user-token",
-		UserID:    user.ID,
-		Username:  user.Username,
-		Role:      user.Role,
-		CreatedAt: time.Now().UTC(),
-		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
-	}
-	db.SaveSession(session)
-
-	recorder := httptest.NewRecorder()
-	ctx, engine := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/admin", nil)
-	ctx.Request.Header.Set("Authorization", "Bearer "+session.Token)
-
-	engine.Use(AuthRequired(db))
-	engine.GET("/api/admin", func(c *gin.Context) {
-		AdminRequired()(c)
-		c.Status(http.StatusOK)
-	})
-
-	engine.HandleContext(ctx)
-
-	if recorder.Code != http.StatusForbidden {
-		t.Fatalf("expected status 403, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-}
-
-func TestAdminRequiredRejectsMissingRole(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	middleware := AdminRequired()
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/admin", nil)
-
-	middleware(ctx)
-
-	if recorder.Code != http.StatusForbidden {
-		t.Fatalf("expected status 403, got %d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
 

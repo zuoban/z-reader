@@ -44,15 +44,6 @@ func main() {
 		logger.Error("Failed to open database", "error", err)
 		os.Exit(1)
 	}
-	if err := db.EnsureDefaultAdmin(cfg.AppPassword); err != nil {
-		logger.Error("Failed to ensure default admin", "error", err)
-		os.Exit(1)
-	}
-	if err := db.AssignUnownedDataToAdmin(); err != nil {
-		logger.Error("Failed to assign legacy data owner", "error", err)
-		os.Exit(1)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
@@ -84,9 +75,9 @@ func main() {
 	progressHandler := handlers.NewProgressHandler(db)
 	bookmarksHandler := handlers.NewBookmarksHandler(db)
 	ttsHandler := handlers.NewTTSHandler()
-	usersHandler := handlers.NewUsersHandler(db)
 
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
+	r.POST("/api/register", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Register)
 	r.POST("/api/logout", authHandler.Logout)
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -120,14 +111,6 @@ func main() {
 		api.POST("/ssml", ttsHandler.SSML)
 		api.GET("/voices", ttsHandler.VoiceList)
 
-		users := api.Group("/users")
-		users.Use(middleware.AdminRequired())
-		{
-			users.GET("", usersHandler.List)
-			users.POST("", usersHandler.Create)
-			users.PATCH("/:id", usersHandler.Update)
-			users.DELETE("/:id", usersHandler.Delete)
-		}
 	}
 
 	quit := make(chan os.Signal, 1)

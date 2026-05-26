@@ -53,6 +53,13 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
     router.push('/shelf');
   }
 
+  async function register(username: string, password: string) {
+    const res = await api.register(username, password);
+    setUser(res.user);
+    setIsAuthenticated(true);
+    router.push('/shelf');
+  }
+
   async function logout() {
     await api.logout();
     setUser(null);
@@ -60,5 +67,5 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
     router.push('/login');
   }
 
-  return { isLoading, isAuthenticated, user, login, logout, checkAuth };
+  return { isLoading, isAuthenticated, user, login, register, logout, checkAuth };
 }

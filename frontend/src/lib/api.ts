@@ -45,7 +45,6 @@ export interface Bookmark {
 export interface User {
   id: string;
   username: string;
-  role: 'admin' | 'user';
   created_at: string;
   updated_at: string;
 }
@@ -244,6 +243,16 @@ export const api = {
     return res;
   },
 
+  register: async (username: string, password: string): Promise<{ token?: string; user: User }> => {
+    const res = await fetchApi<{ token?: string; user: User }>('/api/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    removeLegacyToken();
+    setCurrentUser(res.user);
+    return res;
+  },
+
   logout: async (): Promise<void> => {
     try {
       await fetchApi('/api/logout', { method: 'POST' });
@@ -259,28 +268,6 @@ export const api = {
       setCurrentUser(res.user);
     }
     return res;
-  },
-
-  listUsers: async (): Promise<User[]> => {
-    return fetchApi<User[]>('/api/users');
-  },
-
-  createUser: async (data: { username: string; password: string; role: User['role'] }): Promise<User> => {
-    return fetchApi<User>('/api/users', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  updateUser: async (id: string, data: { password?: string; role?: User['role'] }): Promise<User> => {
-    return fetchApi<User>(`/api/users/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
-
-  deleteUser: async (id: string): Promise<void> => {
-    await fetchApi(`/api/users/${id}`, { method: 'DELETE' });
   },
 
   listBooks: async (): Promise<Book[]> => {

@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isLoading, isAuthenticated, login } = useAuth();
+  const { isLoading, isAuthenticated, login, register } = useAuth();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,19 +35,30 @@ export default function LoginPage() {
     const trimmedUsername = username.trim();
     if (!trimmedUsername || !password) {
       if (!trimmedUsername) setUsernameError('请输入用户名');
-      if (!password) setPasswordError('请输入访问密码');
+      if (!password) setPasswordError(mode === 'register' ? '请输入密码' : '请输入访问密码');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await login(trimmedUsername, password);
+      if (mode === 'register') {
+        await register(trimmedUsername, password);
+      } else {
+        await login(trimmedUsername, password);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败');
+      setError(err instanceof Error ? err.message : mode === 'register' ? '注册失败' : '登录失败');
     }
 
     setIsSubmitting(false);
+  }
+
+  function switchMode(nextMode: 'login' | 'register') {
+    setMode(nextMode);
+    setError('');
+    setUsernameError('');
+    setPasswordError('');
   }
 
   if (isLoading) {
@@ -66,8 +78,11 @@ export default function LoginPage() {
       <div className="w-full max-w-[420px] rounded-2xl border border-border/65 bg-card/76 px-5 py-8 shadow-[0_24px_70px_-54px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] backdrop-blur sm:px-8 sm:py-10">
         <div className="mb-12 flex flex-col items-center">
           <BrandLogo className="mb-4 scale-110" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {mode === 'register' ? '创建账号' : '欢迎回来'}
+          </h1>
           <p className="text-[17px] font-medium text-muted-foreground">
-            登录到您的书库
+            {mode === 'register' ? '创建您的阅读账号' : '登录到您的书库'}
           </p>
         </div>
 
@@ -77,7 +92,7 @@ export default function LoginPage() {
               htmlFor="username"
               className="text-sm font-bold text-foreground"
             >
-              邮箱或用户名
+              用户名
             </Label>
             <Input
               id="username"
@@ -87,7 +102,7 @@ export default function LoginPage() {
                 setUsername(e.target.value);
                 if (usernameError) setUsernameError('');
               }}
-              placeholder="请输入您的邮箱"
+              placeholder="请输入用户名"
               autoComplete="username"
               autoFocus
               className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
@@ -117,7 +132,7 @@ export default function LoginPage() {
                   if (passwordError) setPasswordError('');
                 }}
                 placeholder="请输入您的密码"
-                autoComplete="current-password"
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 pr-12 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
               />
               <button
@@ -152,17 +167,24 @@ export default function LoginPage() {
             {isSubmitting ? (
               <div className="flex items-center justify-center gap-2">
                 <LoadingSpinner className="h-4 w-4 border-primary-foreground/20 border-t-primary-foreground" />
-                正在登录...
+                {mode === 'register' ? '正在创建...' : '正在登录...'}
               </div>
             ) : (
-              '登录'
+              mode === 'register' ? '创建并进入书架' : '进入书架'
             )}
           </button>
         </form>
 
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            还没有账号？ <span className="cursor-pointer font-bold text-foreground hover:underline">立即创建</span>
+            {mode === 'register' ? '已经有账号？' : '还没有账号？'}{' '}
+            <button
+              type="button"
+              onClick={() => switchMode(mode === 'register' ? 'login' : 'register')}
+              className="cursor-pointer font-bold text-foreground hover:underline"
+            >
+              {mode === 'register' ? '返回登录' : '立即创建'}
+            </button>
           </p>
         </div>
       </div>

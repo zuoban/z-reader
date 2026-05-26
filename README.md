@@ -10,7 +10,7 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 - 支持 `EPUB`、`MOBI`、`AZW3`、`PDF` 文件上传与阅读
 - 支持书架管理、封面上传、分类筛选与排序
 - 自动保存阅读进度，支持多设备续读
-- 提供管理员/普通用户角色与基础用户管理
+- 支持开放注册，多用户各自维护独立书库
 - 移动端和桌面端都可用的阅读界面
 - 可选 TTS 能力
   TTS 需要额外部署配置，开源仓库不会附带可直接使用的第三方服务凭据
@@ -32,13 +32,12 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 docker run -d \
   --name z-reader \
   -p 80:80 \
-  -e APP_PASSWORD=your_password \
   ghcr.io/zuoban/z-reader:latest
 ```
 
 启动后访问 [http://localhost](http://localhost)。
 
-默认用户：`admin`，默认密码：`your_password`
+首次访问时在登录页创建账号，注册成功后会自动进入书架。
 
 ### Docker Compose
 
@@ -47,7 +46,6 @@ git clone https://github.com/zuoban/z-reader.git
 cd z-reader
 cp .env.example .env
 
-# 至少设置 APP_PASSWORD
 docker compose up -d
 ```
 
@@ -80,7 +78,7 @@ npm run dev
 
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| `APP_PASSWORD` | 登录密码，必填 | - |
+| `APP_PASSWORD` | 旧版本默认管理员密码，保留兼容但当前注册流程不再使用 | 空 |
 | `APP_PORT` | 后端端口 | `8080` |
 | `UPLOAD_DIR` | 图书存储目录 | `./uploads` |
 | `DB_PATH` | 数据库路径 | `./data.db` |

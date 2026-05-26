@@ -47,8 +47,7 @@ type Session struct {
 }
 
 const (
-	UserRoleAdmin = "admin"
-	UserRoleUser  = "user"
+	UserRoleUser = "user"
 )
 
 type User struct {

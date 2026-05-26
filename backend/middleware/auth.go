@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"z-reader/backend/models"
 	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
@@ -53,11 +52,9 @@ func AuthRequired(db *storage.DB) gin.HandlerFunc {
 		c.Set("token", token)
 		c.Set("userID", user.ID)
 		c.Set("username", user.Username)
-		c.Set("userRole", user.Role)
 		c.Set("user", gin.H{
 			"id":         user.ID,
 			"username":   user.Username,
-			"role":       user.Role,
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
 		})
@@ -77,16 +74,4 @@ func sessionTokenFromRequest(c *gin.Context) string {
 		return ""
 	}
 	return strings.TrimSpace(cookieToken)
-}
-
-func AdminRequired() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		role, _ := c.Get("userRole")
-		if role != models.UserRoleAdmin {
-			response.Forbidden(c, "需要管理员权限")
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
 }

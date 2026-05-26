@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"go.etcd.io/bbolt"
 	"golang.org/x/crypto/bcrypt"
 
@@ -188,53 +187,17 @@ func normalizeUsername(username string) string {
 	return strings.ToLower(strings.TrimSpace(username))
 }
 
-func (db *DB) EnsureDefaultAdmin(password string) error {
-	users, err := db.ListUsers()
-	if err != nil {
-		return err
-	}
-	if len(users) > 0 {
-		return nil
-	}
-
-	passwordHash, err := HashPassword(password)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now()
-	return db.SaveUser(&models.User{
-		ID:           uuid.New().String(),
-		Username:     "admin",
-		PasswordHash: passwordHash,
-		Role:         models.UserRoleAdmin,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-	})
-}
-
-func (db *DB) AssignUnownedDataToAdmin() error {
-	users, err := db.ListUsers()
-	if err != nil {
-		return err
-	}
-
-	var adminID string
-	for _, user := range users {
-		if user.Role == models.UserRoleAdmin {
-			adminID = user.ID
-			break
-		}
-	}
-	if adminID == "" {
+func (db *DB) AssignUnownedDataToUser(userID string) error {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
 		return nil
 	}
 
 	return db.Update(func(tx *bbolt.Tx) error {
-		if err := assignUnownedBooks(tx, adminID); err != nil {
+		if err := assignUnownedBooks(tx, userID); err != nil {
 			return err
 		}
-		if err := assignUnownedProgress(tx, adminID); err != nil {
+		if err := assignUnownedProgress(tx, userID); err != nil {
 			return err
 		}
 		return migrateBookCategories(tx)
@@ -243,6 +206,7 @@ func (db *DB) AssignUnownedDataToAdmin() error {
 
 func assignUnownedBooks(tx *bbolt.Tx, userID string) error {
 	b := tx.Bucket(BooksBucket)
+	idxB := tx.Bucket(UserBooksIndex)
 	return b.ForEach(func(k, v []byte) error {
 		var book models.Book
 		if err := json.Unmarshal(v, &book); err != nil {
@@ -256,7 +220,10 @@ func assignUnownedBooks(tx *bbolt.Tx, userID string) error {
 		if err != nil {
 			return err
 		}
-		return b.Put(k, data)
+		if err := b.Put(k, data); err != nil {
+			return err
+		}
+		return addBookToUserIndex(idxB, book.ID, userID)
 	})
 }
 

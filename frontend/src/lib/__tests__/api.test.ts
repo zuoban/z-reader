@@ -69,14 +69,14 @@ describe('auth helpers', () => {
 
   it('removeToken clears token and user', () => {
     auth.setToken('token');
-    auth.setCurrentUser({ id: '1', username: 'test', role: 'user', created_at: '', updated_at: '' });
+    auth.setCurrentUser({ id: '1', username: 'test', created_at: '', updated_at: '' });
     auth.removeToken();
     expect(auth.getToken()).toBeNull();
     expect(auth.getCurrentUser()).toBeNull();
   });
 
   it('getCurrentUser parses stored user', () => {
-    const user = { id: '1', username: 'test', role: 'user' as const, created_at: '', updated_at: '' };
+    const user = { id: '1', username: 'test', created_at: '', updated_at: '' };
     auth.setCurrentUser(user);
     expect(auth.getCurrentUser()).toEqual(user);
   });
@@ -97,7 +97,7 @@ describe('api.login', () => {
   });
 
   it('caches user and clears legacy token on success', async () => {
-    const user = { id: '1', username: 'test', role: 'user', created_at: '', updated_at: '' };
+    const user = { id: '1', username: 'test', created_at: '', updated_at: '' };
     localStorage.setItem('token', 'legacy-token');
     globalThis.fetch = mockFetch({
       body: { user },
@@ -109,6 +109,38 @@ describe('api.login', () => {
     expect(result.user).toEqual(user);
     expect(auth.getToken()).toBeNull();
     expect(auth.getCurrentUser()).toEqual(user);
+  });
+});
+
+describe('api.register', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('caches user and clears legacy token on success', async () => {
+    const user = { id: '1', username: 'new-reader', created_at: '', updated_at: '' };
+    localStorage.setItem('token', 'legacy-token');
+    globalThis.fetch = mockFetch({
+      body: { user },
+      ok: true,
+    });
+
+    const result = await api.register('new-reader', 'password123');
+
+    expect(result.user).toEqual(user);
+    expect(auth.getToken()).toBeNull();
+    expect(auth.getCurrentUser()).toEqual(user);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/register'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ username: 'new-reader', password: 'password123' }),
+      }),
+    );
   });
 });
 
@@ -279,7 +311,7 @@ describe('api.verify', () => {
   });
 
   it('updates user cache when response includes user', async () => {
-    const user = { id: '1', username: 'verified', role: 'user' as const, created_at: '', updated_at: '' };
+    const user = { id: '1', username: 'verified', created_at: '', updated_at: '' };
     globalThis.fetch = mockFetch({ body: { valid: true, user }, ok: true });
     localStorage.setItem('token', 'token');
 

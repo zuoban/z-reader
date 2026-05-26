@@ -28,9 +28,21 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type RegisterRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 type LoginResponse struct {
-	Token string       `json:"token,omitempty"`
-	User  userResponse `json:"user"`
+	Token string           `json:"token,omitempty"`
+	User  authUserResponse `json:"user"`
+}
+
+type authUserResponse struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 const (
@@ -47,7 +59,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	username := strings.TrimSpace(req.Username)
 	if username == "" {
-		username = "admin"
+		response.BadRequest(c, "请输入用户名")
+		return
 	}
 
 	user, err := h.db.GetUserByUsername(username)
@@ -60,23 +73,69 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token := uuid.New().String()
-	session := &models.Session{
-		Token:     token,
-		UserID:    user.ID,
-		Username:  user.Username,
-		Role:      user.Role,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(sessionDuration),
-	}
+	h.createSessionResponse(c, user)
+}
 
-	if err := h.db.SaveSession(session); err != nil {
-		response.InternalError(c, "保存登录状态失败")
+func (h *AuthHandler) Register(c *gin.Context) {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求内容无效")
 		return
 	}
 
-	setSessionCookie(c, token, session.ExpiresAt)
-	c.JSON(http.StatusOK, LoginResponse{User: publicUser(*user)})
+	username := strings.TrimSpace(req.Username)
+	password := strings.TrimSpace(req.Password)
+	if username == "" || len(username) > 50 {
+		response.BadRequest(c, "用户名长度必须为 1 到 50 个字符")
+		return
+	}
+	if len(password) < 6 {
+		response.BadRequest(c, "密码至少需要 6 个字符")
+		return
+	}
+
+	existing, err := h.db.GetUserByUsername(username)
+	if err != nil {
+		response.InternalError(c, "获取用户失败")
+		return
+	}
+	if existing != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
+		return
+	}
+
+	users, err := h.db.ListUsers()
+	if err != nil {
+		response.InternalError(c, "获取用户失败")
+		return
+	}
+
+	passwordHash, err := storage.HashPassword(password)
+	if err != nil {
+		response.InternalError(c, "处理密码失败")
+		return
+	}
+
+	now := time.Now()
+	user := &models.User{
+		ID:           uuid.New().String(),
+		Username:     username,
+		PasswordHash: passwordHash,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := h.db.SaveUser(user); err != nil {
+		response.InternalError(c, "保存用户失败")
+		return
+	}
+	if len(users) == 0 {
+		if err := h.db.AssignUnownedDataToUser(user.ID); err != nil {
+			response.InternalError(c, "迁移历史数据失败")
+			return
+		}
+	}
+
+	h.createSessionResponse(c, user)
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
@@ -102,6 +161,36 @@ func (h *AuthHandler) Verify(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"valid": true, "user": user})
+}
+
+func (h *AuthHandler) createSessionResponse(c *gin.Context, user *models.User) {
+	token := uuid.New().String()
+	now := time.Now()
+	session := &models.Session{
+		Token:     token,
+		UserID:    user.ID,
+		Username:  user.Username,
+		Role:      user.Role,
+		CreatedAt: now,
+		ExpiresAt: now.Add(sessionDuration),
+	}
+
+	if err := h.db.SaveSession(session); err != nil {
+		response.InternalError(c, "保存登录状态失败")
+		return
+	}
+
+	setSessionCookie(c, token, session.ExpiresAt)
+	c.JSON(http.StatusOK, LoginResponse{User: publicAuthUser(*user)})
+}
+
+func publicAuthUser(user models.User) authUserResponse {
+	return authUserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
 }
 
 func sessionTokenFromRequest(c *gin.Context) string {

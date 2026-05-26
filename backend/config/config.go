@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -94,9 +93,6 @@ func getAllowedOrigins() []string {
 
 func Load() (*Config, error) {
 	password := strings.TrimSpace(os.Getenv("APP_PASSWORD"))
-	if password == "" {
-		return nil, fmt.Errorf("必须设置 APP_PASSWORD")
-	}
 
 	return &Config{
 		AppPassword:    password,

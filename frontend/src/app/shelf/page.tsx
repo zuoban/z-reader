@@ -29,7 +29,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
 import { AppScreen, BrandLogo, LoadingSpinner } from '@/components/AppShell';
-import { UserManager } from '@/components/UserManager';
 import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
@@ -68,7 +67,7 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const { isLoading, isAuthenticated, user, logout } = useAuth();
+  const { isLoading, isAuthenticated, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -289,13 +288,6 @@ export default function ShelfPage() {
               )}
               <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
             </FileUploadAction>
-            {user?.role === 'admin' && (
-              <UserManager
-                currentUser={user}
-                buttonClassName="h-11 w-11 rounded-xl border border-border bg-card text-foreground shadow-none hover:bg-secondary/50 sm:h-10 sm:w-10 sm:rounded-lg dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
-                triggerTitle="用户管理"
-              />
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

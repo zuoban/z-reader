@@ -26,12 +26,15 @@ func TestUniqueStringsPreservesOrder(t *testing.T) {
 	}
 }
 
-func TestLoadRequiresPassword(t *testing.T) {
+func TestLoadAllowsMissingPassword(t *testing.T) {
 	t.Setenv("APP_PASSWORD", "")
 
 	cfg, err := Load()
-	if err == nil {
-		t.Fatalf("expected Load to fail when APP_PASSWORD is missing, got cfg=%+v", cfg)
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.AppPassword != "" {
+		t.Fatalf("expected AppPassword to be empty, got %q", cfg.AppPassword)
 	}
 }
 

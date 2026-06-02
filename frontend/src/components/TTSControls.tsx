@@ -182,7 +182,13 @@ interface RateButtonsProps {
 }
 
 const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
-  <div className="grid grid-cols-5 gap-1.5">
+  <div
+    className="grid grid-cols-5 gap-1 rounded-full p-1"
+    style={{
+      background: withOpacity(uiScheme.buttonBg, 0.32),
+      boxShadow: `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+    }}
+  >
     {RATE_OPTIONS.map((option) => {
       const active = value === option.value;
 
@@ -191,20 +197,16 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className="h-10 rounded-[1.05rem] px-1 text-[11px] font-black tabular-nums transition-all hover:scale-[1.03] active:scale-[0.96]"
+          className="h-9 rounded-full px-1 text-[11px] font-black tabular-nums transition-[background-color,box-shadow,color,transform] hover:scale-[1.015] active:scale-[0.96]"
           style={{
             color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.52),
             background: active
-              ? withOpacity(uiScheme.buttonBg, 0.82)
-              : withOpacity(uiScheme.buttonBg, 0.2),
-            border: `1px solid ${
-              active
-                ? withOpacity(uiScheme.cardBorder, 0.42)
-                : withOpacity(uiScheme.cardBorder, 0.12)
-            }`,
+              ? withOpacity(uiScheme.cardBg, 0.88)
+              : 'transparent',
+            border: '1px solid transparent',
             boxShadow: active
-              ? `0 8px 18px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.18)`
-              : 'inset 0 1px 0 rgba(255,255,255,0.1)',
+              ? `0 10px 22px -18px ${withOpacity(uiScheme.fg, 0.38)}, inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.16)}`
+              : 'none',
           }}
         >
           {option.label}
@@ -275,15 +277,17 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-10 w-10 rounded-xl  transition-all duration-200 hover:scale-[1.04] active:scale-90"
+      className="h-11 w-11 rounded-full transition-[background-color,box-shadow,color,opacity,transform] duration-200 hover:scale-[1.025] active:scale-95"
       style={{
         color: getButtonColor(),
         cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.3 : 1,
+        opacity: disabled ? 0.32 : 1,
         background:
-          active ? withOpacity(uiScheme.buttonBg, 0.3) : withOpacity(uiScheme.buttonBg, 0.16),
-        border: `1px solid ${withOpacity(uiScheme.cardBorder, active ? 0.18 : 0.1)}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14)',
+          active ? withOpacity(uiScheme.cardBg, 0.64) : withOpacity(uiScheme.buttonBg, 0.18),
+        border: `1px solid ${withOpacity(uiScheme.cardBorder, active ? 0.16 : 0.08)}`,
+        boxShadow: active
+          ? `0 10px 20px -18px ${withOpacity(uiScheme.fg, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.12)`
+          : 'inset 0 1px 0 rgba(255,255,255,0.08)',
       }}
     >
       {children}
@@ -922,61 +926,76 @@ export function TTSControls({
               uiScheme={uiScheme}
             >
               <div
-                className="flex items-center justify-center gap-3 rounded-[1.5rem] bg-secondary/30 p-2.5"
+                className="space-y-4 rounded-[1.45rem] p-3.5"
+                style={{
+                  background:
+                    `linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.035)} 0%, transparent 72%), ${withOpacity(uiScheme.buttonBg, 0.24)}`,
+                  boxShadow: `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                }}
               >
-                <ControlButton
-                  onClick={onPrev}
-                  disabled={!isActive || isPending}
-                  title="上一句"
-                  active={isActive}
-                  uiScheme={uiScheme}
-                >
-                  <SkipBack className="h-5 w-5" />
-                </ControlButton>
-
-                <div className="relative flex items-center justify-center">
-                  <Button
-                    variant="default"
-                    size="icon"
-                    onClick={handleStartClick}
-                    disabled={isPending}
-                    title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                    className="h-14 w-14 rounded-full shadow-lg transition-all active:scale-90"
+                <div className="flex items-center justify-center gap-2.5">
+                  <ControlButton
+                    onClick={onPrev}
+                    disabled={!isActive || isPending}
+                    title="上一句"
+                    active={isActive}
+                    uiScheme={uiScheme}
                   >
-                    {isPending ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : isPaused ? (
-                      <Play className="ml-1 h-6 w-6 fill-current" />
-                    ) : isPlaying ? (
-                      <Pause className="h-6 w-6 fill-current" />
-                    ) : (
-                      <Play className="ml-1 h-6 w-6 fill-current" />
-                    )}
-                  </Button>
+                    <SkipBack className="h-5 w-5" />
+                  </ControlButton>
+
+                  <div className="relative flex items-center justify-center">
+                    <Button
+                      variant="default"
+                      size="icon"
+                      onClick={handleStartClick}
+                      disabled={isPending}
+                      title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                      className="relative h-12 w-12 rounded-full transition-[box-shadow,transform,opacity] hover:scale-[1.01] active:scale-95 disabled:opacity-60"
+                      style={{
+                        color: uiScheme.cardBg,
+                        background: isPlaying
+                          ? withOpacity(uiScheme.link, 0.92)
+                          : uiScheme.fg,
+                        boxShadow:
+                          `0 10px 20px -18px ${withOpacity(isPlaying ? uiScheme.link : uiScheme.fg, 0.36)}, ` +
+                          `0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
+                      }}
+                    >
+                      {isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isPaused ? (
+                        <Play className="ml-0.5 h-4 w-4 fill-current" />
+                      ) : isPlaying ? (
+                        <Pause className="h-4 w-4 fill-current" />
+                      ) : (
+                        <Play className="ml-0.5 h-4 w-4 fill-current" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <ControlButton
+                    onClick={onNext}
+                    disabled={!isActive || isPending}
+                    title="下一句"
+                    active={isActive}
+                    uiScheme={uiScheme}
+                  >
+                    <SkipForward className="h-5 w-5" />
+                  </ControlButton>
+
+                  <ControlButton
+                    onClick={handleStopClick}
+                    disabled={!isActive || isPending}
+                    title="停止"
+                    active={isActive}
+                    variant="danger"
+                    uiScheme={uiScheme}
+                  >
+                    <Square className="h-5 w-5" />
+                  </ControlButton>
                 </div>
 
-                <ControlButton
-                  onClick={onNext}
-                  disabled={!isActive || isPending}
-                  title="下一句"
-                  active={isActive}
-                  uiScheme={uiScheme}
-                >
-                  <SkipForward className="h-5 w-5" />
-                </ControlButton>
-
-                <ControlButton
-                  onClick={handleStopClick}
-                  disabled={!isActive || isPending}
-                  title="停止"
-                  active={isActive}
-                  uiScheme={uiScheme}
-                >
-                  <Square className="h-5 w-5" />
-                </ControlButton>
-              </div>
-
-              <div className="pt-6">
                 <RateButtons
                   value={settings.rate}
                   onChange={handleRateChange}

@@ -210,6 +210,7 @@ export function BookCard({
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
+  const readActionShortLabel = progressValue > 0 ? '继续' : '开始';
 
   function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: Element) {
     if (!(target instanceof Element)) return false;
@@ -317,7 +318,7 @@ export function BookCard({
             </p>
           </div>
 
-          <div className="mt-auto space-y-2.5 sm:space-y-3.5">
+          <div className="mt-auto space-y-2 sm:space-y-3.5">
             <div className="space-y-1 sm:space-y-1.5">
               <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60 dark:bg-white/10">
                 <div
@@ -339,14 +340,16 @@ export function BookCard({
             <div className="flex items-center gap-1.5">
               <Button
                 type="button"
-                className="min-h-11 flex-1 gap-1.5 rounded-xl bg-primary text-[0.84rem] font-semibold text-primary-foreground shadow-none transition-all hover:opacity-90 active:scale-[0.98] sm:min-h-9 sm:rounded-lg sm:text-[0.85rem]"
+                size="xs"
+                className="h-8 min-w-0 flex-1 gap-1 rounded-lg bg-primary/92 px-2 text-[0.72rem] font-semibold leading-none text-primary-foreground shadow-none transition-all hover:opacity-90 active:scale-[0.98] sm:h-9 sm:gap-1.5 sm:px-3 sm:text-[0.85rem]"
                 onClick={(event) => {
                   event.stopPropagation();
                   activateCard();
                 }}
               >
-                <BookOpen className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
-                {readActionLabel}
+                <BookOpen className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+                <span className="truncate whitespace-nowrap sm:hidden">{readActionShortLabel}</span>
+                <span className="hidden truncate whitespace-nowrap sm:inline">{readActionLabel}</span>
               </Button>
 
               {!selectionMode && (
@@ -358,7 +361,7 @@ export function BookCard({
                   isDeleting={isDeleting}
                   onCategoryClick={() => setCategoryDialogOpen(true)}
                   onDeleteClick={() => setDeleteConfirmOpen(true)}
-                  triggerClassName="h-11 w-11 shrink-0 rounded-xl border border-border/50 bg-card text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground active:scale-[0.95] sm:h-9 sm:w-9 sm:rounded-lg dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
+                  triggerClassName="h-8 w-8 shrink-0 rounded-lg border border-border/45 bg-card text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground active:scale-[0.95] sm:h-9 sm:w-9 dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
                 />
               )}
 
@@ -367,7 +370,7 @@ export function BookCard({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl border-border/50"
+                  className="h-8 w-8 shrink-0 rounded-lg border-border/50 sm:h-9 sm:w-9"
                   onClick={(event) => {
                     event.stopPropagation();
                     onSelectionToggle?.();

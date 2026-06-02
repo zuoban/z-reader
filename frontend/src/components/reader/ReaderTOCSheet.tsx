@@ -69,11 +69,11 @@ export function ReaderTOCSheet({
         {trigger || <List className="h-4 w-4" />}
       </SheetTrigger>
       <SheetContent
-        side="left"
+        side="bottom"
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell fixed bottom-4 left-4 top-4 flex w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[1.75rem] p-0 transition-all duration-300 data-[side=left]:bottom-4 data-[side=left]:left-4 data-[side=left]:top-4 data-[side=left]:h-auto data-[side=left]:w-[calc(100vw-32px)] data-[side=left]:rounded-[1.75rem] data-[side=left]:border-0 data-[side=left]:sm:w-[380px] sm:w-[380px]"
+        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-[1.75rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[520px] sm:-translate-x-1/2"
         style={{
           background: surface.bg,
           borderColor: surface.border,
@@ -82,7 +82,7 @@ export function ReaderTOCSheet({
           backdropFilter: "blur(18px)",
         }}
       >
-        <div className="flex justify-center pb-1 pt-3 sm:hidden">
+        <div className="flex justify-center pb-1 pt-3">
           <div
             className="h-1 w-10 rounded-full"
             style={{ background: surface.hairline }}

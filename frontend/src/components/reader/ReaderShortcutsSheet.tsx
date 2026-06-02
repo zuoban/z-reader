@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import { withOpacity } from "@/lib/reader-ui";
+import { getModernReaderSurface, withOpacity } from "@/lib/reader-ui";
 
 interface ReaderShortcutsSheetProps {
   open: boolean;
@@ -66,6 +66,8 @@ export function ReaderShortcutsSheet({
   triggerClassName,
   triggerStyle,
 }: ReaderShortcutsSheetProps) {
+  const surface = getModernReaderSurface(uiScheme);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger
@@ -88,35 +90,46 @@ export function ReaderShortcutsSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[1.75rem] border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
         style={{
-          background:
-            `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.9)}`,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.22),
-          color: uiScheme.fg,
-          boxShadow: `0 -12px 48px -12px ${withOpacity(uiScheme.cardBorder, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
+          background: surface.bg,
+          borderColor: surface.border,
+          color: surface.fg,
+          boxShadow: surface.shadow,
+          backdropFilter: "blur(18px)",
         }}
       >
-        <SheetHeader className="app-sheet-header shrink-0 px-6 pb-5 pt-7 sm:px-7 sm:pt-8">
+        <div className="flex justify-center pb-1 pt-2.5">
+          <div
+            className="h-1 w-9 rounded-full"
+            style={{ background: surface.hairline }}
+          />
+        </div>
+        <SheetHeader
+          className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
+          style={{
+            background: "transparent",
+            borderBottom: `1px solid ${surface.hairline}`,
+          }}
+        >
           <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3.5">
+            <div className="flex min-w-0 items-center gap-2.5">
               <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                 style={{
-                  background: withOpacity(uiScheme.buttonBg, 0.2),
-                  borderColor: withOpacity(uiScheme.cardBorder, 0.14),
-                  color: uiScheme.link,
+                  background: surface.surfaceSoft,
+                  color: surface.fg,
                 }}
               >
-                <Keyboard className="h-5 w-5" />
+                <Keyboard className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="text-xl font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+                <SheetTitle className="text-lg font-semibold tracking-tight" style={{ color: surface.fg }}>
                   键盘快捷键
                 </SheetTitle>
                 <SheetDescription
                   className="mt-1 text-xs font-medium"
-                  style={{ color: uiScheme.mutedText }}
+                  style={{ color: surface.muted }}
                 >
                   用键盘保持阅读节奏
                 </SheetDescription>
@@ -125,11 +138,10 @@ export function ReaderShortcutsSheet({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-[transform,background-color,border-color,color] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 transition-colors hover:brightness-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95"
               style={{
-                color: withOpacity(uiScheme.fg, 0.62),
-                background: withOpacity(uiScheme.buttonBg, 0.18),
-                borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                color: surface.muted,
+                background: surface.surfaceSoft,
               }}
               aria-label="关闭快捷键"
               title="关闭"
@@ -139,7 +151,7 @@ export function ReaderShortcutsSheet({
           </div>
         </SheetHeader>
 
-        <div className="app-sheet-body space-y-5 px-6 py-5 sm:px-7">
+        <div className="app-sheet-body space-y-5 px-5 py-5 sm:px-6">
           {SHORTCUT_GROUPS.map((group) => (
             <section key={group.title} className="space-y-3">
               <h3
@@ -152,11 +164,10 @@ export function ReaderShortcutsSheet({
                 {group.items.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[1.25rem] border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] "
+                    className="rounded-[1.15rem] p-3"
                     style={{
-                      background:
-                        `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.24)}`,
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.14),
+                      background: surface.surfaceSoft,
+                      boxShadow: `inset 0 0 0 1px ${surface.hairline}`,
                     }}
                   >
                     <div className="flex flex-wrap items-center gap-2">

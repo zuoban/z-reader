@@ -373,6 +373,18 @@ foliate-view::part(filter) {
     overflow: hidden;
   }
 
+  .reader-bottom-sheet-centered {
+    translate: 0 0;
+  }
+
+  @media (min-width: 640px) {
+    .reader-bottom-sheet-centered {
+      left: 50% !important;
+      right: auto !important;
+      translate: -50% 0 !important;
+    }
+  }
+
   .app-surface-panel,
   .category-form-panel {
     background: color-mix(in srgb, var(--card) 86%, var(--background));

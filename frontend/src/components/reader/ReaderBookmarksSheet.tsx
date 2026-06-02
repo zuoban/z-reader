@@ -123,7 +123,7 @@ export function ReaderBookmarksSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.75rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
         style={{
           background: surface.bg,
           borderColor: surface.border,
@@ -132,9 +132,9 @@ export function ReaderBookmarksSheet({
           backdropFilter: "blur(18px)",
         }}
       >
-        <div className="flex justify-center pb-1 pt-3">
+        <div className="flex justify-center pb-1 pt-2.5">
           <div
-            className="h-1 w-10 rounded-full"
+            className="h-1 w-9 rounded-full"
             style={{ background: surface.hairline }}
           />
         </div>
@@ -142,6 +142,7 @@ export function ReaderBookmarksSheet({
           className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
           style={{
             background: "transparent",
+            borderBottom: `1px solid ${surface.hairline}`,
           }}
         >
           <div className="flex items-start justify-between gap-4">
@@ -149,7 +150,7 @@ export function ReaderBookmarksSheet({
               <div className="flex items-center gap-2.5">
                 <div
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: surface.surface }}
+                  style={{ background: surface.surfaceSoft }}
                 >
                   <Bookmark
                     className="h-4 w-4 shrink-0"
@@ -166,7 +167,7 @@ export function ReaderBookmarksSheet({
                   <span
                     className="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
                     style={{
-                      background: surface.surface,
+                      background: surface.surfaceSoft,
                       color: surface.muted,
                     }}
                   >
@@ -205,7 +206,7 @@ export function ReaderBookmarksSheet({
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                 style={{
                   color: surface.muted,
-                  background: surface.surface,
+                  background: surface.surfaceSoft,
                 }}
                 aria-label="关闭书签"
                 title="关闭"
@@ -217,7 +218,7 @@ export function ReaderBookmarksSheet({
         </SheetHeader>
 
         <div
-          className="app-sheet-body min-h-0 overscroll-contain px-3 pb-3 pt-2 sm:px-4"
+          className="app-sheet-body relative min-h-0 overscroll-contain px-3 pb-3 pt-2.5 sm:px-4"
           style={{ background: "transparent" }}
         >
           <div className="space-y-1.5 pb-4">
@@ -228,6 +229,7 @@ export function ReaderBookmarksSheet({
                   className="group rounded-[1.15rem] transition-[background-color,transform] hover:-translate-y-[1px]"
                   style={{
                     background: surface.surfaceSoft,
+                    boxShadow: `inset 0 0 0 1px ${surface.hairline}`,
                   }}
                 >
                   <div className="flex items-center gap-3 px-4 py-3.5">

@@ -73,7 +73,7 @@ export function ReaderTOCSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-[1.75rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[520px] sm:-translate-x-1/2"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[560px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
         style={{
           background: surface.bg,
           borderColor: surface.border,
@@ -82,25 +82,26 @@ export function ReaderTOCSheet({
           backdropFilter: "blur(18px)",
         }}
       >
-        <div className="flex justify-center pb-1 pt-3">
+        <div className="flex justify-center pb-1 pt-2.5">
           <div
-            className="h-1 w-10 rounded-full"
+            className="h-1 w-9 rounded-full"
             style={{ background: surface.hairline }}
           />
         </div>
         <SheetHeader
-          className="shrink-0 space-y-0 px-5 pb-3 pt-2 sm:px-6 sm:pt-5"
+          className="shrink-0 space-y-0 px-5 pb-3 pt-2 sm:px-6"
           style={{
             background: "transparent",
+            borderBottom: `1px solid ${surface.hairline}`,
           }}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="mb-2 flex items-center gap-2.5">
+              <div className="mb-1.5 flex items-center gap-2.5">
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                   style={{
-                    background: surface.surface,
+                    background: surface.surfaceSoft,
                     color: surface.fg,
                   }}
                 >
@@ -116,7 +117,7 @@ export function ReaderTOCSheet({
                   <span
                     className="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
                     style={{
-                      background: surface.surface,
+                      background: surface.surfaceSoft,
                       color: surface.muted,
                     }}
                   >
@@ -124,7 +125,7 @@ export function ReaderTOCSheet({
                   </span>
                 ) : null}
               </div>
-              <div className="space-y-1 pl-10 pr-2">
+              <div className="space-y-0.5 pl-10 pr-2">
                 <SheetDescription
                   className="truncate text-xs font-medium leading-5"
                   style={{ color: surface.muted }}
@@ -157,7 +158,7 @@ export function ReaderTOCSheet({
                 }
                 className="h-9 w-9 rounded-full border-0 transition-colors hover:brightness-[0.985] active:scale-95 disabled:opacity-35"
                 style={{
-                  background: surface.surfaceSoft,
+                  background: currentChapter ? surface.surfaceStrong : surface.surfaceSoft,
                   color: surface.fg,
                 }}
               >
@@ -170,7 +171,7 @@ export function ReaderTOCSheet({
                 title="关闭目录"
                 className="h-9 w-9 rounded-full border-0 transition-colors hover:brightness-[0.985] active:scale-95"
                 style={{
-                  background: surface.surface,
+                  background: surface.surfaceSoft,
                   color: surface.muted,
                 }}
               >
@@ -180,9 +181,9 @@ export function ReaderTOCSheet({
           </div>
         </SheetHeader>
 
-        <div className="app-sheet-body reader-sidebar-sheet-body flex flex-1 flex-col min-h-0 overflow-hidden relative">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-8 pt-2 sm:px-4 custom-scrollbar">
-            <div ref={tocListRef} className="space-y-0.5">
+        <div className="app-sheet-body reader-sidebar-sheet-body relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="custom-scrollbar flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-8 pt-2.5 sm:px-4">
+            <div ref={tocListRef} className="space-y-1">
               {toc.length > 0 ? (
                 toc.map((item, idx) => (
                   <MemoizedReaderTOCNode
@@ -224,12 +225,16 @@ export function ReaderTOCSheet({
               )}
             </div>
           </div>
-          
-          {/* Scroll Indicators */}
           <div 
-            className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
+            className="pointer-events-none absolute left-0 right-0 top-0 h-5"
             style={{
-              background: `linear-gradient(to top, ${surface.bg} 0%, transparent 100%)`
+              background: `linear-gradient(to bottom, ${surface.bg} 0%, transparent 100%)`,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-10"
+            style={{
+              background: `linear-gradient(to top, ${surface.bg} 0%, transparent 100%)`,
             }}
           />
         </div>

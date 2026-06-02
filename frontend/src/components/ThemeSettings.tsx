@@ -328,7 +328,7 @@ export function ThemeSettings({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.75rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(78svh,38rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
         style={{
           background: surface.bg,
           borderColor: surface.border,
@@ -337,23 +337,26 @@ export function ThemeSettings({
           backdropFilter: "blur(18px)",
         }}
       >
-        <div className="flex justify-center pb-1 pt-3">
+        <div className="flex justify-center pb-1 pt-2.5">
           <div
-            className="h-1 w-10 rounded-full"
+            className="h-1 w-9 rounded-full"
             style={{ background: surface.hairline }}
           />
         </div>
         <SheetHeader
           className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
-          style={{ background: "transparent" }}
+          style={{
+            background: "transparent",
+            borderBottom: `1px solid ${surface.hairline}`,
+          }}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                   style={{
-                    background: surface.surface,
+                    background: surface.surfaceSoft,
                     color: surface.fg,
                   }}
                 >
@@ -409,7 +412,7 @@ export function ThemeSettings({
                 className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                 style={{
                   color: surface.muted,
-                  background: surface.surface,
+                  background: surface.surfaceSoft,
                 }}
                 aria-label="关闭阅读偏好"
                 title="关闭"
@@ -420,7 +423,7 @@ export function ThemeSettings({
           </div>
         </SheetHeader>
 
-        <div className="app-sheet-body min-h-0 px-3 pb-3 pt-2 sm:px-4">
+        <div className="app-sheet-body min-h-0 px-3 pb-3 pt-2.5 sm:px-4">
           <div
             className="mb-4 grid grid-cols-3 gap-1 rounded-2xl p-1"
             role="tablist"

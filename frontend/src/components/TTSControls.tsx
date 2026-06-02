@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { VoiceSelector } from '@/components/VoiceSelector';
-import { withOpacity } from '@/lib/reader-ui';
+import { getModernReaderSurface, withOpacity } from '@/lib/reader-ui';
 import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 
@@ -378,6 +378,7 @@ export function TTSControls({
   const autoDockTimerRef = useRef<number | null>(null);
 
   const styles = useThemeStyles(uiScheme);
+  const surface = getModernReaderSurface(uiScheme);
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
@@ -803,30 +804,50 @@ export function TTSControls({
           container={overlayContainer}
           data-reader-interactive="true"
           data-reader-tts-popup="true"
-          className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),1rem)] left-4 right-4 flex max-h-[min(90svh,42rem)] flex-col rounded-[2.25rem] border border-border/40 bg-popover/80 p-0 shadow-2xl backdrop-blur-xl sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[440px] sm:-translate-x-1/2"
+          className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,42rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(78svh,38rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
           style={{
-            color: uiScheme.fg,
+            background: surface.bg,
+            borderColor: surface.border,
+            color: surface.fg,
+            boxShadow: surface.shadow,
+            backdropFilter: 'blur(18px)',
           }}
         >
+          <div className="flex justify-center pb-1 pt-2.5">
+            <div
+              className="h-1 w-9 rounded-full"
+              style={{ background: surface.hairline }}
+            />
+          </div>
           <div aria-live="polite" aria-atomic="true" className="sr-only">
             {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
           </div>
 
-          <SheetHeader className="shrink-0 border-b border-border/10 px-6 pb-5 pt-7 sm:px-8 sm:pt-8">
+          <SheetHeader
+            className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
+            style={{
+              background: 'transparent',
+              borderBottom: `1px solid ${surface.hairline}`,
+            }}
+          >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-4">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: surface.surfaceSoft,
+                    color: surface.fg,
+                  }}
                 >
-                  <Volume2 className="h-6 w-6" />
+                  <Volume2 className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-xl font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+                  <SheetTitle className="text-lg font-semibold tracking-tight" style={{ color: surface.fg }}>
                     朗读控制
                   </SheetTitle>
                   <SheetDescription
-                    className="mt-0.5 text-[13px] font-medium opacity-60"
-                    style={{ color: uiScheme.mutedText }}
+                    className="mt-1 text-xs font-medium"
+                    style={{ color: surface.muted }}
                   >
                     调整最贴近当前阅读节奏的声音
                   </SheetDescription>
@@ -835,16 +856,20 @@ export function TTSControls({
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/50 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 transition-colors hover:brightness-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95"
+                style={{
+                  color: surface.muted,
+                  background: surface.surfaceSoft,
+                }}
                 aria-label="关闭朗读控制"
                 title="关闭"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </SheetHeader>
 
-          <div className="app-sheet-body space-y-5 px-6 py-5 sm:px-7">
+          <div className="app-sheet-body space-y-5 px-5 py-5 sm:px-6">
             {resumePromptVisible && (
               <section
                 className="app-surface-panel rounded-2xl p-5"
@@ -1145,7 +1170,13 @@ export function TTSControls({
           >
             <div
               className="app-dialog-shell paper-motion-surface paper-stack relative overflow-hidden rounded-[1.5rem] border p-0 motion-reduce:transition-none"
-              style={styles.panel}
+              style={{
+                ...styles.panel,
+                background: surface.bg,
+                borderColor: surface.border,
+                boxShadow: surface.shadow,
+                backdropFilter: 'blur(18px)',
+              }}
             >
               {!isToolbar && (
                 <div
@@ -1160,9 +1191,16 @@ export function TTSControls({
 
               <div
                 className="flex items-center justify-between gap-3 px-4 py-3.5"
+                style={{ borderBottom: `1px solid ${surface.hairline}` }}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-full"
+                    style={{
+                      background: surface.surfaceSoft,
+                      color: surface.fg,
+                    }}
+                  >
                     <Volume2 className="h-4 w-4" />
                   </div>
                   <div>
@@ -1177,11 +1215,10 @@ export function TTSControls({
                   size="icon"
                   onPointerDown={preserveReaderSelection}
                   onClick={closePanel}
-                  className="h-8 w-8 rounded-lg  transition-all hover:scale-[1.04]"
+                  className="h-8 w-8 rounded-full border-0 transition-all hover:scale-[1.04]"
                   style={{
-                    color: uiScheme.mutedText,
-                    background: withOpacity(uiScheme.buttonBg, 0.34),
-                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
+                    color: surface.muted,
+                    background: surface.surfaceSoft,
                   }}
                   aria-label="关闭朗读控制面板"
                   title="关闭"

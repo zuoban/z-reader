@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Book struct {
 	ID          string     `json:"id"`
@@ -53,8 +56,69 @@ const (
 type User struct {
 	ID           string    `json:"id"`
 	Username     string    `json:"username"`
-	PasswordHash string    `json:"password_hash"`
+	PasswordHash string    `json:"-"`
 	Role         string    `json:"role"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// MarshalJSON serializes User for API responses (excludes PasswordHash).
+func (u User) MarshalJSON() ([]byte, error) {
+	type Alias struct {
+		ID        string    `json:"id"`
+		Username  string    `json:"username"`
+		Role      string    `json:"role"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}
+	return json.Marshal(Alias{
+		ID:        u.ID,
+		Username:  u.Username,
+		Role:      u.Role,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+	})
+}
+
+// MarshalDB serializes User for database storage (includes PasswordHash).
+func (u User) MarshalDB() ([]byte, error) {
+	type dbUser struct {
+		ID           string    `json:"id"`
+		Username     string    `json:"username"`
+		PasswordHash string    `json:"password_hash"`
+		Role         string    `json:"role"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+	}
+	return json.Marshal(dbUser{
+		ID:           u.ID,
+		Username:     u.Username,
+		PasswordHash: u.PasswordHash,
+		Role:         u.Role,
+		CreatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
+	})
+}
+
+// UnmarshalDB deserializes User from database storage (includes PasswordHash).
+func (u *User) UnmarshalDB(data []byte) error {
+	type dbUser struct {
+		ID           string    `json:"id"`
+		Username     string    `json:"username"`
+		PasswordHash string    `json:"password_hash"`
+		Role         string    `json:"role"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+	}
+	var db dbUser
+	if err := json.Unmarshal(data, &db); err != nil {
+		return err
+	}
+	u.ID = db.ID
+	u.Username = db.Username
+	u.PasswordHash = db.PasswordHash
+	u.Role = db.Role
+	u.CreatedAt = db.CreatedAt
+	u.UpdatedAt = db.UpdatedAt
+	return nil
 }

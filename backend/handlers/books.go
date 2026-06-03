@@ -987,11 +987,16 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		response.Forbidden(c, "文件访问被拒绝")
 		return
 	}
+
+	// Try to extract and cache the cover to disk on first request
 	coverData, contentType, err := extractEPUBCover(bookPath)
 	if err != nil {
 		response.NotFound(c, "封面不存在")
 		return
 	}
+
+	// Cache the extracted cover to disk for future requests
+	go h.cacheExtractedCover(book, coverData, contentType)
 
 	setPrivateCache(c, bookCoverCacheMaxAge)
 	if writeNotModifiedIfETagMatches(c, hashBytes(coverData)) {
@@ -1087,6 +1092,46 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, book)
+}
+
+func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {
+	// Determine file extension from content type
+	ext := ".jpg"
+	switch contentType {
+	case "image/png":
+		ext = ".png"
+	case "image/webp":
+		ext = ".webp"
+	case "image/gif":
+		ext = ".gif"
+	}
+
+	coverFilename := book.ID + ".cover" + ext
+	coverPath, err := resolveUploadPath(h.cfg.UploadDir, coverFilename)
+	if err != nil {
+		return
+	}
+
+	// Write cover data to disk
+	if err := os.WriteFile(coverPath, coverData, 0644); err != nil {
+		logger.Warn("Failed to cache EPUB cover to disk",
+			slog.String("book_id", book.ID),
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	// Update book record with cover path
+	book.CoverPath = coverFilename
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+	if err := h.db.SaveBook(book); err != nil {
+		logger.Warn("Failed to update book cover path",
+			slog.String("book_id", book.ID),
+			slog.Any("error", err),
+		)
+		// Clean up the written file since we couldn't save the reference
+		os.Remove(coverPath)
+	}
 }
 
 func extractEPUBCover(path string) ([]byte, string, error) {

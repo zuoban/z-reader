@@ -277,7 +277,7 @@ func (db *DB) SaveUser(user *models.User) error {
 		existing := usersB.Get([]byte(user.ID))
 		if existing != nil {
 			var oldUser models.User
-			if err := json.Unmarshal(existing, &oldUser); err == nil {
+			if err := oldUser.UnmarshalDB(existing); err == nil {
 				oldNorm := normalizeUsername(oldUser.Username)
 				if oldNorm != normalizeUsername(user.Username) {
 					idxB.Delete([]byte(oldNorm))
@@ -285,7 +285,7 @@ func (db *DB) SaveUser(user *models.User) error {
 			}
 		}
 
-		data, err := json.Marshal(user)
+		data, err := user.MarshalDB()
 		if err != nil {
 			return err
 		}
@@ -304,7 +304,7 @@ func (db *DB) GetUser(id string) (*models.User, error) {
 		if data == nil {
 			return ErrNotFound
 		}
-		return json.Unmarshal(data, &user)
+		return user.UnmarshalDB(data)
 	})
 	if err != nil {
 		if err == ErrNotFound {
@@ -330,7 +330,7 @@ func (db *DB) GetUserByUsername(username string) (*models.User, error) {
 			return nil
 		}
 		var u models.User
-		if err := json.Unmarshal(data, &u); err != nil {
+		if err := u.UnmarshalDB(data); err != nil {
 			return err
 		}
 		user = &u
@@ -345,7 +345,7 @@ func (db *DB) ListUsers() ([]models.User, error) {
 		b := tx.Bucket(UsersBucket)
 		return b.ForEach(func(k, v []byte) error {
 			var user models.User
-			if err := json.Unmarshal(v, &user); err != nil {
+			if err := user.UnmarshalDB(v); err != nil {
 				return err
 			}
 			users = append(users, user)
@@ -366,7 +366,7 @@ func (db *DB) DeleteUser(id string) error {
 			return ErrNotFound
 		}
 		var user models.User
-		if err := json.Unmarshal(existing, &user); err != nil {
+		if err := user.UnmarshalDB(existing); err != nil {
 			return err
 		}
 		if err := usersB.Delete([]byte(id)); err != nil {
@@ -386,7 +386,7 @@ func (db *DB) PurgeUser(id string) error {
 			return ErrNotFound
 		}
 		var user models.User
-		if err := json.Unmarshal(existing, &user); err != nil {
+		if err := user.UnmarshalDB(existing); err != nil {
 			return err
 		}
 
@@ -1016,6 +1016,46 @@ func (db *DB) SaveSession(session *models.Session) error {
 	})
 }
 
+func (db *DB) GetUserBySessionToken(token string) (*models.User, error) {
+	hashed := hashToken(token)
+	var user *models.User
+	err := db.View(func(tx *bbolt.Tx) error {
+		// Look up session
+		sessionsB := tx.Bucket(SessionsBucket)
+		sessionData := sessionsB.Get([]byte(hashed))
+		if sessionData == nil {
+			return nil // session not found
+		}
+		var session models.Session
+		if err := json.Unmarshal(sessionData, &session); err != nil {
+			return nil // corrupt session
+		}
+		if time.Now().After(session.ExpiresAt) {
+			return nil // expired
+		}
+		if session.UserID == "" {
+			return nil
+		}
+
+		// Look up user in the same transaction
+		usersB := tx.Bucket(UsersBucket)
+		userData := usersB.Get([]byte(session.UserID))
+		if userData == nil {
+			return nil // user not found
+		}
+		var u models.User
+		if err := u.UnmarshalDB(userData); err != nil {
+			return err
+		}
+		user = &u
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (db *DB) GetSession(token string) (*models.Session, error) {
 	var session models.Session
 	hashed := hashToken(token)
@@ -1142,7 +1182,7 @@ func migrateUsernameIndex(tx *bbolt.Tx) error {
 
 	return usersB.ForEach(func(k, v []byte) error {
 		var user models.User
-		if err := json.Unmarshal(v, &user); err != nil {
+		if err := user.UnmarshalDB(v); err != nil {
 			return err
 		}
 		norm := normalizeUsername(user.Username)

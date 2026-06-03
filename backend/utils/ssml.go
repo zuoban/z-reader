@@ -9,6 +9,7 @@ import (
 type TagPattern struct {
 	Name    string
 	Pattern string
+	regex   *regexp.Regexp
 }
 
 var PreserveTags = []TagPattern{
@@ -26,13 +27,19 @@ var PreserveTags = []TagPattern{
 	{Name: "mstts", Pattern: `<mstts:[^>]*>|<\/mstts:[^>]*>`},
 }
 
+func init() {
+	for i := range PreserveTags {
+		PreserveTags[i].regex = regexp.MustCompile(PreserveTags[i].Pattern)
+	}
+}
+
 func EscapeSSML(ssml string) string {
 	placeholders := make(map[string]string)
 	processedSSML := ssml
 	counter := 0
 
 	for _, tag := range PreserveTags {
-		re := regexp.MustCompile(tag.Pattern)
+		re := tag.regex
 		processedSSML = re.ReplaceAllStringFunc(processedSSML, func(match string) string {
 			placeholder := "__SSML_PLACEHOLDER_" + tag.Name + "_" + strconv.Itoa(counter) + "__"
 			counter++

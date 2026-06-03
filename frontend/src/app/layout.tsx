@@ -3,6 +3,7 @@ import { Crimson_Text, Playfair_Display, Noto_Serif_SC } from 'next/font/google'
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorSuppressor } from '@/components/ErrorSuppressor';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import './globals.css';
@@ -99,7 +100,9 @@ export default function RootLayout({
             </a>
             <ServiceWorkerRegistration />
             <ErrorSuppressor />
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
             <Toaster
               position="top-center"
               closeButton

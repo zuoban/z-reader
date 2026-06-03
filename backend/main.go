@@ -90,12 +90,12 @@ func main() {
 
 		api.GET("/books", booksHandler.List)
 		api.GET("/books/:id", booksHandler.Get)
-		api.POST("/books", booksHandler.Upload)
+		api.POST("/books", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.Upload)
 		api.POST("/books/batch/delete", booksHandler.BatchDelete)
 		api.POST("/books/batch/category", booksHandler.BatchUpdateCategory)
 		api.PATCH("/books/:id", booksHandler.Update)
 		api.DELETE("/books/:id/category", booksHandler.RemoveCategory)
-		api.POST("/books/:id/cover", booksHandler.UploadCover)
+		api.POST("/books/:id/cover", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.UploadCover)
 		api.DELETE("/books/:id", booksHandler.Delete)
 		api.GET("/books/:id/file", booksHandler.GetFile)
 		api.GET("/books/:id/cover", booksHandler.GetCover)
@@ -107,8 +107,8 @@ func main() {
 		api.GET("/progress/:id", progressHandler.Get)
 		api.POST("/progress/:id", progressHandler.Save)
 
-		api.GET("/tts", ttsHandler.TTS)
-		api.POST("/ssml", ttsHandler.SSML)
+		api.GET("/tts", middleware.RateLimit(middleware.NewRateLimiter(30, time.Minute)), ttsHandler.TTS)
+		api.POST("/ssml", middleware.RateLimit(middleware.NewRateLimiter(30, time.Minute)), ttsHandler.SSML)
 		api.GET("/voices", ttsHandler.VoiceList)
 
 	}

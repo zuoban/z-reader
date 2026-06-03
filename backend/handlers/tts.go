@@ -10,6 +10,7 @@ import (
 
 	"z-reader/backend/response"
 	"z-reader/backend/services"
+	"z-reader/backend/utils"
 )
 
 type TTSHandler struct{}
@@ -93,12 +94,16 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		return
 	}
 
+	// Sanitize SSML to prevent injection of unsafe tags.
+	// Only known-safe SSML tags are preserved; everything else is escaped.
+	sanitizedSsml := utils.EscapeSSML(req.Ssml)
+
 	outputFormat := req.OutputFormat
 	if outputFormat == "" {
 		outputFormat = "audio-24khz-48kbitrate-mono-mp3"
 	}
 
-	audioData, err := services.GenerateAudioFromSsml(req.Ssml, outputFormat)
+	audioData, err := services.GenerateAudioFromSsml(sanitizedSsml, outputFormat)
 	if err != nil {
 		response.InternalError(c, err.Error())
 		return

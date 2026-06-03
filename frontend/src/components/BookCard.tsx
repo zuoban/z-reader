@@ -2,16 +2,16 @@
 
 import Image from 'next/image';
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, Check } from 'lucide-react';
-import { api } from '@/lib/api';
-import type { Book } from '@/lib/api';
+import { Book } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCoverUrl } from '@/hooks/useCoverUrl';
 
 interface BookCardProps {
   book: Book;
@@ -191,9 +191,9 @@ export function BookCard({
   selected = false,
   onSelectionToggle,
 }: BookCardProps) {
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const { coverUrl, ref: coverRef } = useCoverUrl(book.id);
 
   const formatLabel = book.format ? book.format.toUpperCase() : '电子书';
   const authorLabel = book.author?.trim() || '未知作者';
@@ -244,25 +244,8 @@ export function BookCard({
     activateCard();
   }
 
-  useEffect(() => {
-    let url: string | null = null;
-    let cancelled = false;
-
-    api.fetchCover(book.id).then((blob) => {
-      if (blob && !cancelled) {
-        url = URL.createObjectURL(blob);
-        setCoverUrl(url);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [book.id]);
-
   return (
-    <div className="flex w-full items-stretch">
+    <div className="flex w-full items-stretch" ref={coverRef}>
       <Card
         className={cn(
           'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/45 bg-card p-0 shadow-[0_14px_38px_-34px_var(--paper-shadow)] transition-all duration-300',

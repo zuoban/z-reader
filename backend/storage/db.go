@@ -433,9 +433,11 @@ func deleteBooksByUser(tx *bbolt.Tx, userID string) error {
 		if err := b.Delete([]byte(id)); err != nil {
 			return err
 		}
+		if err := removeBookFromUserIndex(idxB, id, userID); err != nil {
+			return err
+		}
 	}
-	// Clear the entire user entry in the index
-	return idxB.Delete([]byte(userID))
+	return nil
 }
 
 func deleteProgressByUser(tx *bbolt.Tx, userID string) error {
@@ -614,35 +616,46 @@ func (db *DB) GetBook(id string) (*models.Book, error) {
 }
 
 func (db *DB) GetBookForUser(id string, userID string) (*models.Book, error) {
-	book, err := db.GetBook(id)
-	if err != nil || book == nil {
-		return book, err
-	}
-	// Verify ownership via index for O(1) check
-	var owned bool
-	if err := db.View(func(tx *bbolt.Tx) error {
+	var book *models.Book
+	err := db.View(func(tx *bbolt.Tx) error {
+		// First check ownership via index (O(1) lookup)
 		idxB := tx.Bucket(UserBooksIndex)
-		bookIDs, err := getBookIDsForUser(idxB, userID)
-		if err != nil {
+		indexKey := []byte(userID + ":" + id)
+		if idxB.Get(indexKey) == nil {
+			return nil // not owned by this user
+		}
+
+		// Then fetch the book
+		booksB := tx.Bucket(BooksBucket)
+		data := booksB.Get([]byte(id))
+		if data == nil {
+			return nil // book not found
+		}
+		var b models.Book
+		if err := json.Unmarshal(data, &b); err != nil {
 			return err
 		}
-		for _, bid := range bookIDs {
-			if bid == id {
-				owned = true
-				break
-			}
-		}
+		book = &b
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
-	}
-	if !owned {
-		return nil, nil
 	}
 	return book, nil
 }
 
 func (db *DB) ListBooks(userID string) ([]models.Book, error) {
+	return db.ListBooksPaginated(userID, 0, 0)
+}
+
+type BookListResult struct {
+	Books      []models.Book `json:"books"`
+	TotalCount int           `json:"total_count"`
+	Page       int           `json:"page"`
+	PageSize   int           `json:"page_size"`
+}
+
+func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
 	books := []models.Book{}
 	err := db.View(func(tx *bbolt.Tx) error {
 		idxB := tx.Bucket(UserBooksIndex)
@@ -665,6 +678,19 @@ func (db *DB) ListBooks(userID string) ([]models.Book, error) {
 		}
 		return nil
 	})
+
+	if page > 0 && pageSize > 0 {
+		start := (page - 1) * pageSize
+		if start >= len(books) {
+			return []models.Book{}, err
+		}
+		end := start + pageSize
+		if end > len(books) {
+			end = len(books)
+		}
+		return books[start:end], err
+	}
+
 	return books, err
 }
 

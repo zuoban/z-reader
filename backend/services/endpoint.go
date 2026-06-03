@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"z-reader/backend/utils"
 )
 
@@ -40,6 +42,8 @@ var endpointCache struct {
 	mutex sync.RWMutex
 }
 
+var endpointGroup singleflight.Group
+
 func GetEndpoint() (*EndpointCache, error) {
 	endpointCache.mutex.RLock()
 	if endpointCache.data != nil {
@@ -53,20 +57,46 @@ func GetEndpoint() (*EndpointCache, error) {
 		endpointCache.mutex.RUnlock()
 	}
 
-	return refreshEndpointCache()
+	// Use singleflight to prevent thundering herd: only one goroutine
+	// will call refreshEndpointCache at a time, others will wait and
+	// share the result.
+	v, err, _ := endpointGroup.Do("endpoint", func() (interface{}, error) {
+		return refreshEndpointCache()
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*EndpointCache), nil
 }
 
 func refreshEndpointCache() (*EndpointCache, error) {
 	endpointCache.mutex.Lock()
 	defer endpointCache.mutex.Unlock()
 
+	// Double-check after acquiring write lock: another goroutine may have
+	// already refreshed the cache while we were waiting.
+	if endpointCache.data != nil {
+		now := time.Now().Unix()
+		if endpointCache.data.ExpiredAt-now > EndpointRefreshThreshold {
+			return endpointCache.data, nil
+		}
+	}
+
 	resp, err := callEndpointAPI()
 	if err != nil {
+		// If we still have a cached endpoint (even expired), return it
+		// instead of failing completely.
+		if endpointCache.data != nil {
+			return endpointCache.data, nil
+		}
 		return nil, err
 	}
 
 	exp, err := parseJWTExp(resp.T)
 	if err != nil {
+		if endpointCache.data != nil {
+			return endpointCache.data, nil
+		}
 		return nil, err
 	}
 

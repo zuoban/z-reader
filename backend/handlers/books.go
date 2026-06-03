@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,7 +58,24 @@ func (h *BooksHandler) List(c *gin.Context) {
 		return
 	}
 
-	books, err := h.db.ListBooks(userID)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "0"))
+
+	if page < 0 {
+		page = 0
+	}
+	if pageSize < 0 {
+		pageSize = 0
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	if page > 0 && pageSize == 0 {
+		pageSize = 20
+	}
+
+	books, err := h.db.ListBooksPaginated(userID, page, pageSize)
 	if err != nil {
 		response.InternalError(c, "获取书籍列表失败")
 		return

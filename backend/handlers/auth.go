@@ -62,6 +62,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		response.BadRequest(c, "请输入用户名")
 		return
 	}
+	if len(req.Password) > 72 {
+		response.Unauthorized(c, "用户名或密码错误")
+		return
+	}
 
 	user, err := h.db.GetUserByUsername(username)
 	if err != nil {
@@ -91,6 +95,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	if len(password) < 6 {
 		response.BadRequest(c, "密码至少需要 6 个字符")
+		return
+	}
+	if len(password) > 72 {
+		response.BadRequest(c, "密码不能超过 72 个字符")
 		return
 	}
 

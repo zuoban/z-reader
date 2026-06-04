@@ -209,7 +209,7 @@ func assignUnownedBooks(tx *bbolt.Tx, userID string) error {
 	idxB := tx.Bucket(UserBooksIndex)
 	return b.ForEach(func(k, v []byte) error {
 		var book models.Book
-		if err := json.Unmarshal(v, &book); err != nil {
+		if err := book.UnmarshalDB(v); err != nil {
 			return err
 		}
 		if book.UserID != "" {
@@ -490,13 +490,13 @@ func (db *DB) SaveBook(book *models.Book) error {
 		var oldUserID string
 		if existing != nil {
 			var oldBook models.Book
-			if err := json.Unmarshal(existing, &oldBook); err == nil {
+			if err := oldBook.UnmarshalDB(existing); err == nil {
 				oldUserID = oldBook.UserID
 			}
 		}
 
 		book.Category = normalizeCategoryName(book.Category)
-		data, err := json.Marshal(book)
+		data, err := book.MarshalDB()
 		if err != nil {
 			return err
 		}
@@ -539,7 +539,7 @@ func (db *DB) CreateBook(book *models.Book) error {
 					continue
 				}
 				var existing models.Book
-				if err := json.Unmarshal(v, &existing); err != nil {
+				if err := existing.UnmarshalDB(v); err != nil {
 					return err
 				}
 				if existing.ContentHash == book.ContentHash {
@@ -583,7 +583,7 @@ func (db *DB) FindBookByContentHash(userID string, contentHash string) (*models.
 				continue
 			}
 			var candidate models.Book
-			if err := json.Unmarshal(data, &candidate); err != nil {
+			if err := candidate.UnmarshalDB(data); err != nil {
 				return err
 			}
 			if candidate.ContentHash == contentHash {
@@ -604,7 +604,7 @@ func (db *DB) GetBook(id string) (*models.Book, error) {
 		if data == nil {
 			return ErrNotFound
 		}
-		return json.Unmarshal(data, &book)
+		return book.UnmarshalDB(data)
 	})
 	if err != nil {
 		if err == ErrNotFound {
@@ -632,7 +632,7 @@ func (db *DB) GetBookForUser(id string, userID string) (*models.Book, error) {
 			return nil // book not found
 		}
 		var b models.Book
-		if err := json.Unmarshal(data, &b); err != nil {
+		if err := b.UnmarshalDB(data); err != nil {
 			return err
 		}
 		book = &b
@@ -671,7 +671,7 @@ func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]model
 				continue
 			}
 			var book models.Book
-			if err := json.Unmarshal(data, &book); err != nil {
+			if err := book.UnmarshalDB(data); err != nil {
 				return err
 			}
 			books = append(books, book)
@@ -701,7 +701,7 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 		return nil, ErrNotFound
 	}
 	var book models.Book
-	if err := json.Unmarshal(bookData, &book); err != nil {
+	if err := book.UnmarshalDB(bookData); err != nil {
 		return nil, err
 	}
 	if book.UserID != userID {
@@ -773,7 +773,7 @@ func (db *DB) UpdateBooksCategory(ids []string, userID string, category *string)
 				return ErrNotFound
 			}
 			var book models.Book
-			if err := json.Unmarshal(bookData, &book); err != nil {
+			if err := book.UnmarshalDB(bookData); err != nil {
 				return err
 			}
 			if book.UserID != userID {
@@ -829,7 +829,7 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 		}
 
 		var book models.Book
-		if err := json.Unmarshal(bookData, &book); err != nil {
+		if err := book.UnmarshalDB(bookData); err != nil {
 			return err
 		}
 		if book.UserID != userID {
@@ -920,7 +920,7 @@ func (db *DB) ListBookmarks(bookID string, userID string) ([]models.Bookmark, er
 			return ErrNotFound
 		}
 		var book models.Book
-		if err := json.Unmarshal(bookData, &book); err != nil {
+		if err := book.UnmarshalDB(bookData); err != nil {
 			return err
 		}
 		if book.UserID != userID {
@@ -957,7 +957,7 @@ func (db *DB) SaveBookmark(bookmark *models.Bookmark, userID string) error {
 			return ErrNotFound
 		}
 		var book models.Book
-		if err := json.Unmarshal(bookData, &book); err != nil {
+		if err := book.UnmarshalDB(bookData); err != nil {
 			return err
 		}
 		if book.UserID != userID {
@@ -981,7 +981,7 @@ func (db *DB) DeleteBookmark(bookID string, bookmarkID string, userID string) er
 			return ErrNotFound
 		}
 		var book models.Book
-		if err := json.Unmarshal(bookData, &book); err != nil {
+		if err := book.UnmarshalDB(bookData); err != nil {
 			return err
 		}
 		if book.UserID != userID {
@@ -1204,7 +1204,7 @@ func migrateUserBooksIndex(tx *bbolt.Tx) error {
 
 	return booksB.ForEach(func(k, v []byte) error {
 		var book models.Book
-		if err := json.Unmarshal(v, &book); err != nil {
+		if err := book.UnmarshalDB(v); err != nil {
 			return err
 		}
 		if book.UserID != "" {
@@ -1235,7 +1235,7 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 
 	return booksB.ForEach(func(k, v []byte) error {
 		var book models.Book
-		if err := json.Unmarshal(v, &book); err != nil {
+		if err := book.UnmarshalDB(v); err != nil {
 			return err
 		}
 

@@ -320,20 +320,27 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	if book.Format == "epub" {
 		normalized, err := normalizeStoredEPUBFile(filePath)
 		if err != nil {
-			response.InternalError(c, "读取书籍失败")
-			return
+			logger.Warn("Failed to normalize EPUB file",
+				slog.String("book_id", book.ID),
+				slog.Any("error", err),
+			)
 		}
 		if normalized {
-			if info, statErr := os.Stat(filePath); statErr == nil {
-				book.Size = info.Size()
-			}
-			if contentHash, hashErr := hashFile(filePath); hashErr == nil {
-				book.ContentHash = contentHash
-			}
-			if err := h.db.SaveBook(book); err != nil {
-				response.InternalError(c, "更新书籍失败")
-				return
-			}
+			bookCopy := *book
+			go func(b models.Book) {
+				if info, statErr := os.Stat(filePath); statErr == nil {
+					b.Size = info.Size()
+				}
+				if contentHash, hashErr := hashFile(filePath); hashErr == nil {
+					b.ContentHash = contentHash
+				}
+				if err := h.db.SaveBook(&b); err != nil {
+					logger.Warn("Failed to update book after EPUB normalization",
+						slog.String("book_id", b.ID),
+						slog.Any("error", err),
+					)
+				}
+			}(bookCopy)
 		}
 	}
 

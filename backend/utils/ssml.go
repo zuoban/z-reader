@@ -14,15 +14,16 @@ type TagPattern struct {
 
 var PreserveTags = []TagPattern{
 	{Name: "break", Pattern: `<break\s+[^>]*\/>`},
-	{Name: "speak", Pattern: `<speak>|<\/speak>`},
+	{Name: "bookmark", Pattern: `<bookmark\s+[^>]*\/>`},
+	{Name: "speak", Pattern: `<speak\b[^>]*>|<\/speak>`},
 	{Name: "prosody", Pattern: `<prosody\s+[^>]*>|<\/prosody>`},
 	{Name: "emphasis", Pattern: `<emphasis\s+[^>]*>|<\/emphasis>`},
 	{Name: "voice", Pattern: `<voice\s+[^>]*>|<\/voice>`},
 	{Name: "say-as", Pattern: `<say-as\s+[^>]*>|<\/say-as>`},
 	{Name: "phoneme", Pattern: `<phoneme\s+[^>]*>|<\/phoneme>`},
 	{Name: "audio", Pattern: `<audio\s+[^>]*>|<\/audio>`},
-	{Name: "p", Pattern: `<p>|<\/p>`},
-	{Name: "s", Pattern: `<s>|<\/s>`},
+	{Name: "p", Pattern: `<p\b[^>]*>|<\/p>`},
+	{Name: "s", Pattern: `<s\b[^>]*>|<\/s>`},
 	{Name: "sub", Pattern: `<sub\s+[^>]*>|<\/sub>`},
 	{Name: "mstts", Pattern: `<mstts:[^>]*>|<\/mstts:[^>]*>`},
 }

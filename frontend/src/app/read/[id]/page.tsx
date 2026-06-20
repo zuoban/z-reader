@@ -439,6 +439,8 @@ export default function ReadPage() {
 
   const {
     isTouchReader,
+    isFullscreen,
+    toggleFullscreen,
     bindReaderDocument,
   } = useReaderControls({
     pageRef,
@@ -665,6 +667,8 @@ export default function ReadPage() {
           setTheme={setTheme}
           themeSettingsOpen={themeSettingsOpen}
           onThemeSettingsOpenChange={setThemeSettingsOpen}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
           ttsControls={
             <TTSControls
               state={ttsState}

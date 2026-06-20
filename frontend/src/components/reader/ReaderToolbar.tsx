@@ -6,6 +6,8 @@ import {
   Bookmark as BookmarkIcon,
   BookmarkPlus,
   List,
+  Maximize,
+  Minimize,
   MoreHorizontal,
   Settings,
 } from "lucide-react";
@@ -49,6 +51,8 @@ interface ReaderToolbarProps {
   setTheme: (theme: Partial<ReaderTheme>) => void;
   themeSettingsOpen: boolean;
   onThemeSettingsOpenChange: (open: boolean) => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
 }
 
 export function ReaderToolbar({
@@ -81,6 +85,8 @@ export function ReaderToolbar({
   setTheme,
   themeSettingsOpen,
   onThemeSettingsOpenChange,
+  isFullscreen,
+  onToggleFullscreen,
 }: ReaderToolbarProps) {
   const isDark = theme.preset === "dark";
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
@@ -205,6 +211,18 @@ export function ReaderToolbar({
                   <Settings className="h-4 w-4" />
                   <span>设置</span>
                 </button>
+                <button
+                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  onClick={() => {
+                    closeMobileActions();
+                    onToggleFullscreen();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                  <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
+                </button>
               </div>
               )}
             </div>
@@ -268,6 +286,17 @@ export function ReaderToolbar({
             </Button>
 
             {ttsControls}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleFullscreen}
+              title={isFullscreen ? "退出全屏" : "全屏阅读"}
+              className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+            >
+              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              <span className="hidden sm:inline">{isFullscreen ? "退出" : "全屏"}</span>
+            </Button>
 
             <ThemeSettings
               theme={theme}

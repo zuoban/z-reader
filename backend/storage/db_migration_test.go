@@ -44,7 +44,7 @@ func TestDBMigrationsAndHashedSessions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 3. Save a session and verify it is hashed in the DB
+	// 3. Save a session via SessionDB and verify it is hashed
 	token := "my-secret-session-token-12345"
 	session := &models.Session{
 		Token:     token,
@@ -59,8 +59,9 @@ func TestDBMigrationsAndHashedSessions(t *testing.T) {
 		t.Fatalf("failed to save session: %v", err)
 	}
 
-	// Verify plaintext token is NOT the key in bbolt
-	err = db.View(func(tx *bbolt.Tx) error {
+	// Verify plaintext token is NOT the key in session DB
+	sdb := db.SessionDB()
+	err = sdb.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
 		if b.Get([]byte(token)) != nil {
 			t.Fatal("security breach: plaintext token was stored directly as key")

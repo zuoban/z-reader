@@ -2,9 +2,8 @@ package storage
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,30 +19,63 @@ var (
 	BooksBucket      = []byte("books")
 	ProgressBucket   = []byte("progress")
 	BookmarksBucket  = []byte("bookmarks")
-	SessionsBucket   = []byte("sessions")
 	UsersBucket      = []byte("users")
 	UserBooksIndex   = []byte("user_books_index") // userId:bookId -> Empty
 	UsernameIndex    = []byte("username_index")   // normalizedUsername -> userId
 	SystemMetaBucket = []byte("system_meta")
 )
 
+// DB 封装主数据库操作（图书、进度、书签、用户）。
+// Session 数据存储在独立数据库 SessionDB 中以避免锁竞争。
 type DB struct {
 	*bbolt.DB
+	sessionDB *SessionDB
 }
 
+// Open 打开主数据库和独立 session 数据库。
+// session 数据库文件路径为 path + ".sessions"。
 func Open(path string) (*DB, error) {
 	db, err := bbolt.Open(path, 0600, &bbolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, err
 	}
 
-	resDB := &DB{db}
+	sessionPath := sessionDBPath(path)
+	sessionDB, err := OpenSession(sessionPath)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("open session database: %w", err)
+	}
+
+	resDB := &DB{DB: db, sessionDB: sessionDB}
 	if err := resDB.runMigrations(); err != nil {
 		db.Close()
+		sessionDB.Close()
 		return nil, err
 	}
 
 	return resDB, nil
+}
+
+// sessionDBPath 返回与主数据库路径对应的 session 数据库文件路径。
+func sessionDBPath(mainPath string) string {
+	return mainPath + ".sessions"
+}
+
+// Close 关闭主数据库和 session 数据库。
+func (db *DB) Close() error {
+	var firstErr error
+	if db.sessionDB != nil {
+		if err := db.sessionDB.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	if db.DB != nil {
+		if err := db.DB.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 func (db *DB) runMigrations() error {
@@ -60,7 +92,6 @@ func (db *DB) runMigrations() error {
 					BooksBucket,
 					ProgressBucket,
 					BookmarksBucket,
-					SessionsBucket,
 					UsersBucket,
 					UserBooksIndex,
 					UsernameIndex,
@@ -817,17 +848,23 @@ func (db *DB) SaveProgress(progress *models.Progress, userID string) error {
 	return db.SaveProgressIfCurrent(progress, userID, nil)
 }
 
+// SaveProgressIfCurrent 保存阅读进度，仅在期望的上次更新时间匹配时写入（乐观锁）。
+// 读验证阶段使用 db.View（不阻塞其他读事务），实际写入使用 db.Update。
 func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, expectedUpdatedAt *time.Time) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		progress.UserID = userID
+	// --- 阶段 1：只读验证 — 使用 db.View，不阻塞其他读事务 ---
+	type verifyResult struct {
+		bookExists  bool
+		conflict    bool
+		progressKey []byte
+	}
+	var verify verifyResult
 
-		progressBucket := tx.Bucket(ProgressBucket)
+	err := db.View(func(tx *bbolt.Tx) error {
 		booksBucket := tx.Bucket(BooksBucket)
 		bookData := booksBucket.Get([]byte(progress.BookID))
 		if bookData == nil {
 			return ErrNotFound
 		}
-
 		var book models.Book
 		if err := book.UnmarshalDB(bookData); err != nil {
 			return err
@@ -835,14 +872,53 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 		if book.UserID != userID {
 			return ErrNotFound
 		}
+		verify.bookExists = true
 
-		key := progressKey(userID, progress.BookID)
-		currentData := progressBucket.Get(key)
 		if expectedUpdatedAt != nil {
+			progressBucket := tx.Bucket(ProgressBucket)
+			verify.progressKey = progressKey(userID, progress.BookID)
+			currentData := progressBucket.Get(verify.progressKey)
 			if currentData == nil {
 				return ErrProgressConflict
 			}
+			var current models.Progress
+			if err := json.Unmarshal(currentData, &current); err != nil {
+				return err
+			}
+			if !current.UpdatedAt.Equal(*expectedUpdatedAt) {
+				verify.conflict = true
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if !verify.bookExists {
+		return ErrNotFound
+	}
+	if verify.conflict {
+		return ErrProgressConflict
+	}
 
+	// --- 阶段 2：纯写操作 — db.Update 仅做写入，持有写锁时间最短 ---
+	return db.Update(func(tx *bbolt.Tx) error {
+		progress.UserID = userID
+		progressBucket := tx.Bucket(ProgressBucket)
+		booksBucket := tx.Bucket(BooksBucket)
+
+		// 验证书籍仍存在（View→Update 间可能被删除）
+		bookData := booksBucket.Get([]byte(progress.BookID))
+		if bookData == nil {
+			return ErrNotFound
+		}
+
+		// 双重检查：防止在 View 和 Update 之间被其他写入者修改
+		if expectedUpdatedAt != nil {
+			currentData := progressBucket.Get(verify.progressKey)
+			if currentData == nil {
+				return ErrProgressConflict
+			}
 			var current models.Progress
 			if err := json.Unmarshal(currentData, &current); err != nil {
 				return err
@@ -852,10 +928,17 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 			}
 		}
 
+		// 更新 Book 的 LastReadAt
+		var book models.Book
+		if err := book.UnmarshalDB(bookData); err != nil {
+			return err
+		}
 		book.LastReadAt = &progress.UpdatedAt
-
 		updatedBookData, err := json.Marshal(&book)
 		if err != nil {
+			return err
+		}
+		if err := booksBucket.Put([]byte(book.ID), updatedBookData); err != nil {
 			return err
 		}
 
@@ -863,12 +946,7 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 		if err != nil {
 			return err
 		}
-
-		if err := booksBucket.Put([]byte(book.ID), updatedBookData); err != nil {
-			return err
-		}
-
-		return progressBucket.Put(key, data)
+		return progressBucket.Put(progressKey(userID, progress.BookID), data)
 	})
 }
 
@@ -997,51 +1075,33 @@ func (db *DB) DeleteBookmark(bookID string, bookmarkID string, userID string) er
 	})
 }
 
-func hashToken(token string) string {
-	h := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(h[:])
+// SessionDB 返回专用的 session 数据库实例。
+func (db *DB) SessionDB() *SessionDB {
+	return db.sessionDB
 }
 
+// SaveSession 保存 session 到独立 session 数据库（与主 DB 锁隔离）。
 func (db *DB) SaveSession(session *models.Session) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(SessionsBucket)
-		sCopy := *session
-		hashed := hashToken(session.Token)
-		sCopy.Token = hashed
-		data, err := json.Marshal(&sCopy)
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(hashed), data)
-	})
+	return db.sessionDB.SaveSession(session)
 }
 
+// GetUserBySessionToken 通过 session token 查找用户。
+// Session 数据从独立 session 数据库读取，不阻塞主 DB 的读写。
 func (db *DB) GetUserBySessionToken(token string) (*models.User, error) {
-	hashed := hashToken(token)
-	var user *models.User
-	err := db.View(func(tx *bbolt.Tx) error {
-		// Look up session
-		sessionsB := tx.Bucket(SessionsBucket)
-		sessionData := sessionsB.Get([]byte(hashed))
-		if sessionData == nil {
-			return nil // session not found
-		}
-		var session models.Session
-		if err := json.Unmarshal(sessionData, &session); err != nil {
-			return nil // corrupt session
-		}
-		if time.Now().After(session.ExpiresAt) {
-			return nil // expired
-		}
-		if session.UserID == "" {
-			return nil
-		}
+	session, err := db.sessionDB.GetSession(token)
+	if err != nil {
+		return nil, err
+	}
+	if session == nil || session.UserID == "" {
+		return nil, nil
+	}
 
-		// Look up user in the same transaction
+	var user *models.User
+	err = db.View(func(tx *bbolt.Tx) error {
 		usersB := tx.Bucket(UsersBucket)
 		userData := usersB.Get([]byte(session.UserID))
 		if userData == nil {
-			return nil // user not found
+			return nil
 		}
 		var u models.User
 		if err := u.UnmarshalDB(userData); err != nil {
@@ -1056,62 +1116,19 @@ func (db *DB) GetUserBySessionToken(token string) (*models.User, error) {
 	return user, nil
 }
 
+// GetSession 从独立 session 数据库读取 session。
 func (db *DB) GetSession(token string) (*models.Session, error) {
-	var session models.Session
-	hashed := hashToken(token)
-	err := db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(SessionsBucket)
-		data := b.Get([]byte(hashed))
-		if data == nil {
-			return ErrNotFound
-		}
-		return json.Unmarshal(data, &session)
-	})
-	if err != nil {
-		if err == ErrNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	if time.Now().After(session.ExpiresAt) {
-		return nil, nil
-	}
-	return &session, nil
+	return db.sessionDB.GetSession(token)
 }
 
+// DeleteSession 从独立 session 数据库删除 session。
 func (db *DB) DeleteSession(token string) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(SessionsBucket)
-		return b.Delete([]byte(hashToken(token)))
-	})
+	return db.sessionDB.DeleteSession(token)
 }
 
+// CleanExpiredSessions 清理独立 session 数据库中过期的 session。
 func (db *DB) CleanExpiredSessions() error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(SessionsBucket)
-		var toDelete [][]byte
-		err := b.ForEach(func(k, v []byte) error {
-			var session models.Session
-			if err := json.Unmarshal(v, &session); err != nil {
-				// Clean up any legacy or corrupt session formats
-				toDelete = append(toDelete, append([]byte(nil), k...))
-				return nil
-			}
-			if time.Now().After(session.ExpiresAt) {
-				toDelete = append(toDelete, append([]byte(nil), k...))
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		for _, key := range toDelete {
-			if err := b.Delete(key); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	return db.sessionDB.CleanExpiredSessions()
 }
 
 // --- user_books index helpers ---

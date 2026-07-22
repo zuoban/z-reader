@@ -16,16 +16,18 @@ import (
 )
 
 var (
-	BooksBucket       = []byte("books")
-	ProgressBucket    = []byte("progress")
-	BookmarksBucket   = []byte("bookmarks")
-	UsersBucket       = []byte("users")
-	UserBooksIndex    = []byte("user_books_index")    // userId:bookId -> Empty
-	UsernameIndex     = []byte("username_index")      // normalizedUsername -> userId
-	BookSortIndex     = []byte("book_sort_index")     // sort:user:sortValue:bookId -> bookId
-	BookSearchIndex   = []byte("book_search_index")   // user\x00bookId -> normalized searchable fields
-	ProgressTimeIndex = []byte("progress_time_index") // user\x00updatedAt\x00bookId -> bookId
-	SystemMetaBucket  = []byte("system_meta")
+	BooksBucket         = []byte("books")
+	ProgressBucket      = []byte("progress")
+	BookmarksBucket     = []byte("bookmarks")
+	UsersBucket         = []byte("users")
+	UserBooksIndex      = []byte("user_books_index")      // userId:bookId -> Empty
+	UsernameIndex       = []byte("username_index")        // normalizedUsername -> userId
+	BookSortIndex       = []byte("book_sort_index")       // sort:user:sortValue:bookId -> bookId
+	BookSearchIndex     = []byte("book_search_index")     // user\x00bookId -> normalized searchable fields
+	ProgressTimeIndex   = []byte("progress_time_index")   // user\x00updatedAt\x00bookId -> bookId
+	BookContentIndex    = []byte("book_content_index")    // user\x00contentHash -> bookId
+	LibrarySummaryIndex = []byte("library_summary_index") // user -> BookLibrarySummary JSON
+	SystemMetaBucket    = []byte("system_meta")
 )
 
 // DB 封装主数据库操作（图书、进度、书签、用户）。
@@ -230,6 +232,16 @@ func (db *DB) runMigrations() error {
 			version: 7,
 			name:    "BuildProgressTimeIndex",
 			run:     rebuildProgressTimeIndex,
+		},
+		{
+			version: 8,
+			name:    "BuildBookContentAndLibrarySummaryIndexes",
+			run: func(tx *bbolt.Tx) error {
+				if err := rebuildBookContentIndex(tx); err != nil {
+					return err
+				}
+				return rebuildLibrarySummaryIndex(tx)
+			},
 		},
 	}
 
@@ -663,6 +675,95 @@ func bookSearchIndexKey(userID, bookID string) []byte {
 	return []byte(userID + bookSortSeparator + bookID)
 }
 
+func bookContentIndexKey(userID, contentHash string) []byte {
+	return []byte(userID + bookSortSeparator + contentHash)
+}
+
+func addBookToContentIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" || book.ContentHash == "" {
+		return nil
+	}
+	return tx.Bucket(BookContentIndex).Put(
+		bookContentIndexKey(book.UserID, book.ContentHash),
+		[]byte(book.ID),
+	)
+}
+
+func removeBookFromContentIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ContentHash == "" {
+		return nil
+	}
+	bucket := tx.Bucket(BookContentIndex)
+	key := bookContentIndexKey(book.UserID, book.ContentHash)
+	if currentID := bucket.Get(key); currentID != nil && string(currentID) != book.ID {
+		return nil
+	}
+	return bucket.Delete(key)
+}
+
+func categoryForBook(book *models.Book) string {
+	if book == nil || book.Category == nil {
+		return ""
+	}
+	return strings.TrimSpace(*book.Category)
+}
+
+func loadLibrarySummary(tx *bbolt.Tx, userID string) (BookLibrarySummary, error) {
+	summary := BookLibrarySummary{Categories: make(map[string]int)}
+	if userID == "" {
+		return summary, nil
+	}
+	data := tx.Bucket(LibrarySummaryIndex).Get([]byte(userID))
+	if data == nil {
+		return summary, nil
+	}
+	if err := json.Unmarshal(data, &summary); err != nil {
+		return BookLibrarySummary{}, err
+	}
+	if summary.Categories == nil {
+		summary.Categories = make(map[string]int)
+	}
+	return summary, nil
+}
+
+func saveLibrarySummary(tx *bbolt.Tx, userID string, summary BookLibrarySummary) error {
+	if userID == "" {
+		return nil
+	}
+	data, err := json.Marshal(summary)
+	if err != nil {
+		return err
+	}
+	return tx.Bucket(LibrarySummaryIndex).Put([]byte(userID), data)
+}
+
+func adjustLibrarySummary(tx *bbolt.Tx, book *models.Book, delta int) error {
+	if book == nil || book.UserID == "" || delta == 0 {
+		return nil
+	}
+	summary, err := loadLibrarySummary(tx, book.UserID)
+	if err != nil {
+		return err
+	}
+	summary.Total += delta
+	if summary.Total < 0 {
+		summary.Total = 0
+	}
+	category := categoryForBook(book)
+	if category == "" {
+		summary.Uncategorized += delta
+		if summary.Uncategorized < 0 {
+			summary.Uncategorized = 0
+		}
+		return saveLibrarySummary(tx, book.UserID, summary)
+	}
+	summary.Categories[category] += delta
+	if summary.Categories[category] <= 0 {
+		delete(summary.Categories, category)
+	}
+	return saveLibrarySummary(tx, book.UserID, summary)
+}
+
 func bookSearchValue(book *models.Book) []byte {
 	category := ""
 	if book.Category != nil {
@@ -725,6 +826,50 @@ func rebuildBookSearchIndex(tx *bbolt.Tx) error {
 	})
 }
 
+func rebuildBookContentIndex(tx *bbolt.Tx) error {
+	if err := tx.DeleteBucket(BookContentIndex); err != nil && err != bbolt.ErrBucketNotFound {
+		return err
+	}
+	if _, err := tx.CreateBucket(BookContentIndex); err != nil {
+		return err
+	}
+	booksBucket := tx.Bucket(BooksBucket)
+	return booksBucket.ForEach(func(_, data []byte) error {
+		var book models.Book
+		if err := book.UnmarshalDB(data); err != nil {
+			return err
+		}
+		// Older databases can contain duplicates. Preserve the first entry; new
+		// writes enforce uniqueness through this index.
+		if book.ContentHash == "" {
+			return nil
+		}
+		bucket := tx.Bucket(BookContentIndex)
+		key := bookContentIndexKey(book.UserID, book.ContentHash)
+		if bucket.Get(key) != nil {
+			return nil
+		}
+		return bucket.Put(key, []byte(book.ID))
+	})
+}
+
+func rebuildLibrarySummaryIndex(tx *bbolt.Tx) error {
+	if err := tx.DeleteBucket(LibrarySummaryIndex); err != nil && err != bbolt.ErrBucketNotFound {
+		return err
+	}
+	if _, err := tx.CreateBucket(LibrarySummaryIndex); err != nil {
+		return err
+	}
+	booksBucket := tx.Bucket(BooksBucket)
+	return booksBucket.ForEach(func(_, data []byte) error {
+		var book models.Book
+		if err := book.UnmarshalDB(data); err != nil {
+			return err
+		}
+		return adjustLibrarySummary(tx, &book, 1)
+	})
+}
+
 func (db *DB) SaveBook(book *models.Book) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(BooksBucket)
@@ -763,6 +908,12 @@ func (db *DB) SaveBook(book *models.Book) error {
 			}
 		}
 		if oldBook != nil {
+			if err := adjustLibrarySummary(tx, oldBook, -1); err != nil {
+				return err
+			}
+			if err := removeBookFromContentIndex(tx, oldBook); err != nil {
+				return err
+			}
 			if err := removeBookFromSortIndex(tx, oldBook); err != nil {
 				return err
 			}
@@ -773,7 +924,13 @@ func (db *DB) SaveBook(book *models.Book) error {
 		if err := addBookToSortIndex(tx, book); err != nil {
 			return err
 		}
-		return addBookToSearchIndex(tx, book)
+		if err := addBookToSearchIndex(tx, book); err != nil {
+			return err
+		}
+		if err := addBookToContentIndex(tx, book); err != nil {
+			return err
+		}
+		return adjustLibrarySummary(tx, book, 1)
 	})
 }
 
@@ -784,25 +941,9 @@ func (db *DB) CreateBook(book *models.Book) error {
 
 		book.Category = normalizeCategoryName(book.Category)
 		if book.ContentHash != "" {
-			bookIDs, err := getBookIDsForUser(idxB, book.UserID)
-			if err != nil {
-				return err
-			}
-			for _, id := range bookIDs {
-				if id == book.ID {
-					continue
-				}
-				v := b.Get([]byte(id))
-				if v == nil {
-					continue
-				}
-				var existing models.Book
-				if err := existing.UnmarshalDB(v); err != nil {
-					return err
-				}
-				if existing.ContentHash == book.ContentHash {
-					return ErrDuplicateBookContent
-				}
+			contentIndex := tx.Bucket(BookContentIndex)
+			if existingID := contentIndex.Get(bookContentIndexKey(book.UserID, book.ContentHash)); existingID != nil && string(existingID) != book.ID {
+				return ErrDuplicateBookContent
 			}
 		}
 
@@ -820,7 +961,13 @@ func (db *DB) CreateBook(book *models.Book) error {
 		if err := addBookToSortIndex(tx, book); err != nil {
 			return err
 		}
-		return addBookToSearchIndex(tx, book)
+		if err := addBookToSearchIndex(tx, book); err != nil {
+			return err
+		}
+		if err := addBookToContentIndex(tx, book); err != nil {
+			return err
+		}
+		return adjustLibrarySummary(tx, book, 1)
 	})
 }
 
@@ -831,26 +978,20 @@ func (db *DB) FindBookByContentHash(userID string, contentHash string) (*models.
 
 	var book *models.Book
 	err := db.View(func(tx *bbolt.Tx) error {
-		idxB := tx.Bucket(UserBooksIndex)
-		booksB := tx.Bucket(BooksBucket)
-
-		bookIDs, err := getBookIDsForUser(idxB, userID)
-		if err != nil {
+		bookID := tx.Bucket(BookContentIndex).Get(bookContentIndexKey(userID, contentHash))
+		if bookID == nil {
+			return nil
+		}
+		data := tx.Bucket(BooksBucket).Get(bookID)
+		if data == nil {
+			return nil
+		}
+		var candidate models.Book
+		if err := candidate.UnmarshalDB(data); err != nil {
 			return err
 		}
-		for _, id := range bookIDs {
-			data := booksB.Get([]byte(id))
-			if data == nil {
-				continue
-			}
-			var candidate models.Book
-			if err := candidate.UnmarshalDB(data); err != nil {
-				return err
-			}
-			if candidate.ContentHash == contentHash {
-				book = &candidate
-				return nil
-			}
+		if candidate.UserID == userID && candidate.ContentHash == contentHash {
+			book = &candidate
 		}
 		return nil
 	})
@@ -926,37 +1067,11 @@ type BookLibrarySummary struct {
 
 func (db *DB) GetBookLibrarySummary(userID string) (BookLibrarySummary, error) {
 	summary := BookLibrarySummary{Categories: make(map[string]int)}
-	prefix := []byte(userID + ":")
-
 	err := db.View(func(tx *bbolt.Tx) error {
-		idxB := tx.Bucket(UserBooksIndex)
-		booksB := tx.Bucket(BooksBucket)
-		cursor := idxB.Cursor()
-		for key, _ := cursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = cursor.Next() {
-			bookID := strings.TrimPrefix(string(key), string(prefix))
-			data := booksB.Get([]byte(bookID))
-			if data == nil {
-				continue
-			}
-
-			var book models.Book
-			if err := book.UnmarshalDB(data); err != nil {
-				return err
-			}
-			summary.Total++
-			category := ""
-			if book.Category != nil {
-				category = strings.TrimSpace(*book.Category)
-			}
-			if category == "" {
-				summary.Uncategorized++
-				continue
-			}
-			summary.Categories[category]++
-		}
-		return nil
+		var err error
+		summary, err = loadLibrarySummary(tx, userID)
+		return err
 	})
-
 	return summary, err
 }
 
@@ -1180,6 +1295,12 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 	}
 	if book.UserID != userID {
 		return nil, ErrNotFound
+	}
+	if err := adjustLibrarySummary(tx, &book, -1); err != nil {
+		return nil, err
+	}
+	if err := removeBookFromContentIndex(tx, &book); err != nil {
+		return nil, err
 	}
 	if err := removeBookFromSortIndex(tx, &book); err != nil {
 		return nil, err
@@ -1868,5 +1989,10 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 }
 
 func (db *DB) NormalizeBookCategories() error {
-	return db.Update(migrateBookCategories)
+	return db.Update(func(tx *bbolt.Tx) error {
+		if err := migrateBookCategories(tx); err != nil {
+			return err
+		}
+		return rebuildLibrarySummaryIndex(tx)
+	})
 }

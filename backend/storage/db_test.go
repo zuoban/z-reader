@@ -572,6 +572,59 @@ func TestGetBookLibrarySummaryReturnsOnlyRequestedUsersCounts(t *testing.T) {
 	}
 }
 
+func TestBookContentAndLibrarySummaryIndexesStayCurrent(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	category := "科幻"
+	book := &models.Book{
+		ID:          "book-a",
+		UserID:      userID,
+		Title:       "Alpha",
+		Filename:    "book-a.epub",
+		Format:      "epub",
+		ContentHash: "hash-a",
+		Category:    &category,
+		CreatedAt:   time.Now().UTC(),
+	}
+	if err := db.CreateBook(book); err != nil {
+		t.Fatalf("CreateBook returned error: %v", err)
+	}
+
+	found, err := db.FindBookByContentHash(userID, "hash-a")
+	if err != nil || found == nil || found.ID != book.ID {
+		t.Fatalf("content index lookup returned book=%+v err=%v", found, err)
+	}
+	if err := db.CreateBook(&models.Book{
+		ID: "book-b", UserID: userID, Filename: "book-b.epub", Format: "epub", ContentHash: "hash-a", CreatedAt: time.Now().UTC(),
+	}); err != ErrDuplicateBookContent {
+		t.Fatalf("expected duplicate content error, got %v", err)
+	}
+
+	updatedCategory := "历史"
+	book.Category = &updatedCategory
+	if err := db.SaveBook(book); err != nil {
+		t.Fatalf("SaveBook returned error: %v", err)
+	}
+	summary, err := db.GetBookLibrarySummary(userID)
+	if err != nil {
+		t.Fatalf("GetBookLibrarySummary returned error: %v", err)
+	}
+	if summary.Total != 1 || summary.Categories[updatedCategory] != 1 || summary.Categories[category] != 0 {
+		t.Fatalf("unexpected updated summary: %+v", summary)
+	}
+
+	if err := db.DeleteBookData(book.ID, userID); err != nil {
+		t.Fatalf("DeleteBookData returned error: %v", err)
+	}
+	if found, err := db.FindBookByContentHash(userID, "hash-a"); err != nil || found != nil {
+		t.Fatalf("deleted book still found through content index: book=%+v err=%v", found, err)
+	}
+	summary, err = db.GetBookLibrarySummary(userID)
+	if err != nil || summary.Total != 0 || len(summary.Categories) != 0 {
+		t.Fatalf("unexpected summary after delete: %+v err=%v", summary, err)
+	}
+}
+
 func TestNormalizeBookCategoriesTrimsNames(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

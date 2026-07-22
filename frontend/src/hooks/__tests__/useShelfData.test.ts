@@ -3,7 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { toast } from 'sonner';
 import { useShelfData } from '@/hooks/useShelfData';
 import { api } from '@/lib/api';
-import { extractBookPreview } from '@/lib/book-preview';
 import type { Book } from '@/lib/api';
 
 // Mock the API
@@ -29,11 +28,6 @@ vi.mock('sonner', () => ({
     error: vi.fn(),
     success: vi.fn(),
   },
-}));
-
-// Mock book preview
-vi.mock('@/lib/book-preview', () => ({
-  extractBookPreview: vi.fn().mockResolvedValue({ title: 'Test Book', author: 'Test Author' }),
 }));
 
 const mockBook = (overrides: Partial<Book> = {}): Book => ({
@@ -262,7 +256,7 @@ describe('useShelfData', () => {
     expect(result.current.bookCounts[result.current.uncategorizedFilterId]).toBe(1);
   });
 
-  it('sorts books by recent read', async () => {
+  it('preserves the server-provided recent-read order', async () => {
     const books = [
       mockBook({ id: '1', title: 'Old', last_read_at: '2023-01-01', created_at: '2023-01-01' }),
       mockBook({ id: '2', title: 'Recent', last_read_at: '2024-01-01', created_at: '2023-01-01' }),
@@ -276,11 +270,10 @@ describe('useShelfData', () => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
-    // Default sort is recent_read
-    expect(result.current.filteredBooks[0].title).toBe('Recent');
+    expect(result.current.filteredBooks.map((book) => book.title)).toEqual(['Old', 'Recent']);
   });
 
-  it('sorts books by title', async () => {
+  it('requests title ordering from the server', async () => {
     const books = [
       mockBook({ id: '1', title: 'Zebra' }),
       mockBook({ id: '2', title: 'Alpha' }),
@@ -298,14 +291,17 @@ describe('useShelfData', () => {
       result.current.setSortBy('title');
     });
 
-    expect(result.current.filteredBooks[0].title).toBe('Alpha');
+    await vi.waitFor(() => {
+      expect(api.listBooksPage).toHaveBeenLastCalledWith(undefined, 50, 'title');
+    });
   });
 
   it('handles upload success', async () => {
-    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listBooks)
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([mockBook({ id: 'new-book' })]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
     vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'new-book' }));
-    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'new-book', title: 'Enriched' }));
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -324,20 +320,12 @@ describe('useShelfData', () => {
     expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
   });
 
-  it('uploads extracted JPEG covers with a matching extension', async () => {
-    const jpegCover = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], {
-      type: 'image/jpeg',
-    });
-    vi.mocked(extractBookPreview).mockResolvedValueOnce({
-      title: 'Enriched',
-      author: 'Author',
-      cover: jpegCover,
-    });
-    vi.mocked(api.listBooks).mockResolvedValue([]);
+  it('does not reparse uploaded books or upload covers from the client', async () => {
+    vi.mocked(api.listBooks)
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([mockBook({ id: 'new-book', cover_path: 'new-book.cover.jpg' })]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
     vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'new-book' }));
-    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'new-book', title: 'Enriched' }));
-    vi.mocked(api.uploadCover).mockResolvedValue(mockBook({ id: 'new-book', cover_path: 'new-book.cover.jpg' }));
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -352,18 +340,18 @@ describe('useShelfData', () => {
       await result.current.handleUpload(fakeEvent);
     });
 
-    await vi.waitFor(() => {
-      expect(api.uploadCover).toHaveBeenCalledWith('new-book', jpegCover, 'test.jpg');
-    });
+    expect(api.updateBook).not.toHaveBeenCalled();
+    expect(api.uploadCover).not.toHaveBeenCalled();
   });
 
   it('uploads multiple supported files', async () => {
-    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listBooks)
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([mockBook({ id: 'book-a' }), mockBook({ id: 'book-b' })]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
     vi.mocked(api.uploadBook)
       .mockResolvedValueOnce(mockBook({ id: 'book-a', title: 'Book A' }))
       .mockResolvedValueOnce(mockBook({ id: 'book-b', title: 'Book B' }));
-    vi.mocked(api.updateBook).mockResolvedValue(mockBook());
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -430,7 +418,6 @@ describe('useShelfData', () => {
     vi.mocked(api.listBooks).mockResolvedValue([]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
     vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'epub-by-mime' }));
-    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'epub-by-mime' }));
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -453,7 +440,6 @@ describe('useShelfData', () => {
     vi.mocked(api.uploadBook)
       .mockResolvedValueOnce(mockBook({ id: 'supported' }))
       .mockRejectedValueOnce(new Error('支持的格式：EPUB、MOBI、AZW3、PDF'));
-    vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'supported' }));
 
     const { result } = renderHook(() => useShelfData(true));
 

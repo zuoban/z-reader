@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { Book, BookLibrarySummary } from '@/lib/api';
-import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
 const BOOK_PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 250;
+const MAX_CONCURRENT_UPLOADS = 3;
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
 export interface UploadProgress {
@@ -68,78 +68,10 @@ function deriveCategories(items: Book[]): string[] {
   ).sort((a, b) => a.localeCompare(b, 'zh-CN'));
 }
 
-function getSortTimestamp(date?: string): number {
-  if (!date) return 0;
-  const timestamp = Date.parse(date);
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
-function sortBooks(items: Book[], sortBy: SortOption): Book[] {
-  return [...items].sort((a, b) => {
-    switch (sortBy) {
-      case 'recent_read':
-        return getSortTimestamp(b.last_read_at) - getSortTimestamp(a.last_read_at) ||
-               getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
-      case 'title':
-        return a.title.localeCompare(b.title, 'zh-CN');
-      case 'recent_added':
-        return getSortTimestamp(b.created_at) - getSortTimestamp(a.created_at);
-      case 'author':
-        return (a.author || '').localeCompare(b.author || '', 'zh-CN');
-      default:
-        return 0;
-    }
-  });
-}
-
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}K`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
-}
-
-async function getImageExtension(blob: Blob): Promise<string> {
-  switch (blob.type.toLowerCase()) {
-    case 'image/jpeg':
-    case 'image/jpg':
-      return '.jpg';
-    case 'image/png':
-      return '.png';
-    case 'image/webp':
-      return '.webp';
-  }
-
-  const header = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
-  if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
-    return '.jpg';
-  }
-  if (
-    header[0] === 0x89 &&
-    header[1] === 0x50 &&
-    header[2] === 0x4e &&
-    header[3] === 0x47
-  ) {
-    return '.png';
-  }
-  if (
-    header[0] === 0x52 &&
-    header[1] === 0x49 &&
-    header[2] === 0x46 &&
-    header[3] === 0x46 &&
-    header[8] === 0x57 &&
-    header[9] === 0x45 &&
-    header[10] === 0x42 &&
-    header[11] === 0x50
-  ) {
-    return '.webp';
-  }
-
-  return '.png';
-}
-
-async function getCoverFileName(bookFileName: string, cover: Blob): Promise<string> {
-  const extension = await getImageExtension(cover);
-  return bookFileName.replace(/\.[^.]+$/, extension);
 }
 
 export function useShelfData(isAuthenticated: boolean) {
@@ -161,54 +93,9 @@ export function useShelfData(isAuthenticated: boolean) {
   const [searchResults, setSearchResults] = useState<Book[] | null>(null);
   const [searchNextCursor, setSearchNextCursor] = useState<string | undefined>();
   const [isSearching, setIsSearching] = useState(false);
-  const enrichingBooksRef = useRef(new Set<string>());
   const loadGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
   const searchGenerationRef = useRef(0);
-
-  const enrichBookMetadata = useCallback(
-    async (bookId: string, file: File) => {
-      try {
-        const preview = await extractBookPreview(file);
-        const updated = await api.updateBook(bookId, {
-          title: preview.title,
-          author: preview.author,
-        });
-
-        if (preview.cover) {
-          const coverFileName = await getCoverFileName(file.name, preview.cover);
-          const finalBook = await api.uploadCover(bookId, preview.cover, coverFileName);
-          setBooks((prevBooks) => {
-            const bookExists = prevBooks.some((item) => item.id === bookId);
-            if (!bookExists) return prevBooks;
-            return sortBooks(
-              prevBooks.map((item) => (item.id === bookId ? finalBook : item)),
-              sortBy
-            );
-          });
-          return;
-        }
-
-        setBooks((prevBooks) => {
-          const bookExists = prevBooks.some((item) => item.id === bookId);
-          if (!bookExists) return prevBooks;
-          return sortBooks(
-            prevBooks.map((item) => (item.id === bookId ? updated : item)),
-            sortBy
-          );
-        });
-      } catch (previewErr) {
-        console.warn('Failed to enrich uploaded book:', previewErr);
-      } finally {
-        enrichingBooksRef.current.delete(bookId);
-      }
-    },
-    [sortBy]
-  );
-
-  const abortEnrichment = useCallback((bookId: string) => {
-    enrichingBooksRef.current.delete(bookId);
-  }, []);
 
   const setSortBy = useCallback((option: SortOption) => {
     setSortByState(option);
@@ -417,13 +304,12 @@ export function useShelfData(isAuthenticated: boolean) {
           return haystack.includes(query);
         })
       : sourceBooks;
-    const sorted = sortBooks(searched, sortBy);
-    if (!selectedCategoryId) return sorted;
+    if (!selectedCategoryId) return searched;
     if (selectedCategoryId === UNCATEGORIZED_FILTER_ID) {
-      return sorted.filter((book) => !book.category?.trim());
+      return searched.filter((book) => !book.category?.trim());
     }
-    return sorted.filter((book) => book.category?.trim() === selectedCategoryId);
-  }, [books, searchQuery, searchResults, selectedCategoryId, sortBy]);
+    return searched.filter((book) => book.category?.trim() === selectedCategoryId);
+  }, [books, searchQuery, searchResults, selectedCategoryId]);
 
   const bookCounts = useMemo(() => {
     if (librarySummary) {
@@ -467,23 +353,32 @@ export function useShelfData(isAuthenticated: boolean) {
     let failedCount = 0;
     const failureMessages: string[] = [];
 
-    for (const [index, file] of uploadableFiles.entries()) {
-      setUploadProgress({ current: index + 1, total: uploadableFiles.length });
-      try {
-        const book = await api.uploadBook(file);
-        successCount += 1;
-        setBooks((prev) => sortBooks([...prev, book], sortBy));
-
-        enrichingBooksRef.current.add(book.id);
-        void enrichBookMetadata(book.id, file);
-      } catch (err) {
-        failedCount += 1;
-        if (err instanceof Error && err.message.trim()) {
-          failureMessages.push(err.message.trim());
+    let completedCount = 0;
+    let nextIndex = 0;
+    const uploadWorker = async () => {
+      while (nextIndex < uploadableFiles.length) {
+        const file = uploadableFiles[nextIndex++];
+        try {
+          await api.uploadBook(file);
+          successCount += 1;
+        } catch (err) {
+          failedCount += 1;
+          if (err instanceof Error && err.message.trim()) {
+            failureMessages.push(err.message.trim());
+          }
+          console.error('Failed to upload book:', err);
+        } finally {
+          completedCount += 1;
+          setUploadProgress({ current: completedCount, total: uploadableFiles.length });
         }
-        console.error('Failed to upload book:', err);
       }
-    }
+    };
+    await Promise.all(
+      Array.from(
+        { length: Math.min(MAX_CONCURRENT_UPLOADS, uploadableFiles.length) },
+        () => uploadWorker()
+      )
+    );
 
     if (successCount > 0 && failedCount === 0) {
       toast.success(successCount === 1 ? '图书已添加' : `已添加 ${successCount} 本图书`);
@@ -494,12 +389,12 @@ export function useShelfData(isAuthenticated: boolean) {
     }
 
     if (successCount > 0) {
-      void loadLibrarySummary();
+      await loadBooks();
     }
 
     setUploadProgress(null);
     setIsUploading(false);
-  }, [sortBy, enrichBookMetadata, loadLibrarySummary]);
+  }, [loadBooks]);
 
   const uploadFile = useCallback(async (file: File | null | undefined) => {
     if (!file) return;
@@ -515,7 +410,6 @@ export function useShelfData(isAuthenticated: boolean) {
   const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id);
     try {
-      abortEnrichment(id);
       await api.deleteBook(id);
       setBooks((prev) => prev.filter((book) => book.id !== id));
       setSearchResults((prev) => prev?.filter((book) => book.id !== id) ?? null);
@@ -531,14 +425,13 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setDeletingId(null);
     }
-  }, [abortEnrichment, loadLibrarySummary]);
+  }, [loadLibrarySummary]);
 
   const handleDeleteMany = useCallback(async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
     if (uniqueIds.length === 0) return { successCount: 0, failedCount: 0 };
 
     setIsDeletingMany(true);
-    uniqueIds.forEach(abortEnrichment);
     try {
       const result = await api.deleteBooks(uniqueIds);
       const deletedIds = result.deleted_ids ?? uniqueIds;
@@ -561,7 +454,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsDeletingMany(false);
     }
-  }, [abortEnrichment, loadLibrarySummary]);
+  }, [loadLibrarySummary]);
 
   const handleUpdateCategoryMany = useCallback(async (ids: string[], category: string | null) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
@@ -578,14 +471,10 @@ export function useShelfData(isAuthenticated: boolean) {
       const result = await api.updateBooksCategory(uniqueIds, nextCategory);
       const updatedBooks = result.books ?? [];
       const updatedById = new Map(updatedBooks.map((book) => [book.id, book]));
-      setBooks((prev) => sortBooks(
-        prev.map((book) => updatedById.get(book.id) ?? book),
-        sortBy
-      ));
-      setSearchResults((prev) => prev === null ? null : sortBooks(
-        prev.map((book) => updatedById.get(book.id) ?? book),
-        sortBy
-      ));
+      setBooks((prev) => prev.map((book) => updatedById.get(book.id) ?? book));
+      setSearchResults((prev) => prev === null
+        ? null
+        : prev.map((book) => updatedById.get(book.id) ?? book));
       void loadLibrarySummary();
       toast.success(nextCategory ? `已设置为「${nextCategory}」` : '已清空所选分类');
       return { successCount: updatedBooks.length, failedCount: 0 };
@@ -595,7 +484,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsUpdatingManyCategories(false);
     }
-  }, [sortBy, loadLibrarySummary]);
+  }, [loadLibrarySummary]);
 
   const handleRenameCategory = useCallback(async (category: string, nextCategory: string | null) => {
     const currentCategory = category.trim();

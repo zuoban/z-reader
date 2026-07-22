@@ -255,6 +255,10 @@ export function BookCard({
         )}
         style={{
           '--paper-delay': `${Math.min(index, 10) * 28}ms`,
+          // Keep long shelves responsive without changing their keyboard and
+          // selection semantics. The browser can defer offscreen paint/layout.
+          contentVisibility: 'auto',
+          containIntrinsicSize: 'auto 28rem',
         } as CSSProperties}
         onClick={handleCardClick}
         onKeyDown={handleCardKeyDown}

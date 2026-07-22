@@ -284,10 +284,14 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		CreatedAt:   time.Now(),
 	}
 
-	meta, err := extractBookMetadata(filepath, format)
+	var coverData []byte
+	var coverContentType string
+	meta, extractedCover, extractedCoverContentType, err := extractBookPreview(filepath, format)
 	if err == nil {
 		book.Title = meta.Title
 		book.Author = meta.Author
+		coverData = extractedCover
+		coverContentType = extractedCoverContentType
 	} else {
 		logger.Warn("Failed to extract book metadata",
 			slog.String("path", filepath),
@@ -299,9 +303,25 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	if book.Title == "" {
 		book.Title = strings.TrimSuffix(file.Filename, ext)
 	}
+	if len(coverData) > 0 {
+		coverFilename, coverErr := h.writeExtractedCover(book.ID, coverData, coverContentType)
+		if coverErr != nil {
+			logger.Warn("Failed to cache EPUB cover during upload",
+				slog.String("book_id", book.ID),
+				slog.Any("error", coverErr),
+			)
+		} else {
+			book.CoverPath = coverFilename
+		}
+	}
 
 	if err := h.db.CreateBook(book); err != nil {
 		os.Remove(filepath)
+		if book.CoverPath != "" {
+			if coverPath, pathErr := resolveUploadPath(h.cfg.UploadDir, book.CoverPath); pathErr == nil {
+				removeFileIfExists(coverPath)
+			}
+		}
 		if err == storage.ErrDuplicateBookContent {
 			existing, findErr := h.findDuplicateBook(userID, contentHash)
 			if findErr == nil && existing != nil {
@@ -433,33 +453,6 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 		response.Forbidden(c, "文件访问被拒绝")
 		return
 	}
-	if book.Format == "epub" {
-		normalized, err := normalizeStoredEPUBFile(filePath)
-		if err != nil {
-			logger.Warn("Failed to normalize EPUB file",
-				slog.String("book_id", book.ID),
-				slog.Any("error", err),
-			)
-		}
-		if normalized {
-			bookCopy := *book
-			go func(b models.Book) {
-				if info, statErr := os.Stat(filePath); statErr == nil {
-					b.Size = info.Size()
-				}
-				if contentHash, hashErr := hashFile(filePath); hashErr == nil {
-					b.ContentHash = contentHash
-				}
-				if err := h.db.SaveBook(&b); err != nil {
-					logger.Warn("Failed to update book after EPUB normalization",
-						slog.String("book_id", b.ID),
-						slog.Any("error", err),
-					)
-				}
-			}(bookCopy)
-		}
-	}
-
 	setPrivateCache(c, bookFileCacheMaxAge)
 	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
 		return
@@ -997,12 +990,12 @@ func removeFileIfExists(path string) {
 	}
 }
 
-func extractBookMetadata(path string, format string) (*epubMetadata, error) {
+func extractBookPreview(path string, format string) (*epubMetadata, []byte, string, error) {
 	switch format {
 	case "epub":
-		return extractEPUBMetadata(path)
+		return extractEPUBPreview(path)
 	default:
-		return nil, fmt.Errorf("metadata extraction not implemented for %s", format)
+		return nil, nil, "", fmt.Errorf("metadata extraction not implemented for %s", format)
 	}
 }
 
@@ -1148,15 +1141,27 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, book)
 }
 
-func extractEPUBMetadata(path string) (*epubMetadata, error) {
+func extractEPUBPreview(path string) (*epubMetadata, []byte, string, error) {
 	r, err := zip.OpenReader(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, "", err
 	}
 	defer r.Close()
+	meta := &epubMetadata{}
+	if extractedMeta, err := extractEPUBMetadataFromReader(&r.Reader); err == nil {
+		meta = extractedMeta
+	}
+	coverData, contentType, coverErr := extractEPUBCoverFromReader(&r.Reader)
+	if coverErr != nil {
+		// A cover is optional and should not make an otherwise valid upload fail.
+		return meta, nil, "", nil
+	}
+	return meta, coverData, contentType, nil
+}
 
+func extractEPUBMetadataFromReader(reader *zip.Reader) (*epubMetadata, error) {
 	var meta epubMetadata
-	for _, f := range r.File {
+	for _, f := range reader.File {
 		if strings.HasSuffix(f.Name, ".opf") || f.Name == "OEBPS/content.opf" {
 			data, err := readZipFileWithLimit(f, maxEPUBMetadataBytes)
 			if err != nil {
@@ -1328,7 +1333,29 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 }
 
 func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {
-	// Determine file extension from content type
+	coverFilename, err := h.writeExtractedCover(book.ID, coverData, contentType)
+	if err != nil {
+		logger.Warn("Failed to cache EPUB cover to disk",
+			slog.String("book_id", book.ID),
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	book.CoverPath = coverFilename
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+	if err := h.db.SaveBook(book); err != nil {
+		logger.Warn("Failed to update book cover path",
+			slog.String("book_id", book.ID),
+			slog.Any("error", err),
+		)
+		if coverPath, pathErr := resolveUploadPath(h.cfg.UploadDir, coverFilename); pathErr == nil {
+			removeFileIfExists(coverPath)
+		}
+	}
+}
+
+func (h *BooksHandler) writeExtractedCover(bookID string, coverData []byte, contentType string) (string, error) {
 	ext := ".jpg"
 	switch contentType {
 	case "image/png":
@@ -1339,32 +1366,15 @@ func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, 
 		ext = ".gif"
 	}
 
-	coverFilename := book.ID + ".cover" + ext
+	coverFilename := bookID + ".cover" + ext
 	coverPath, err := resolveUploadPath(h.cfg.UploadDir, coverFilename)
 	if err != nil {
-		return
+		return "", err
 	}
-
-	// Write cover data to disk
 	if err := os.WriteFile(coverPath, coverData, 0644); err != nil {
-		logger.Warn("Failed to cache EPUB cover to disk",
-			slog.String("book_id", book.ID),
-			slog.Any("error", err),
-		)
-		return
+		return "", err
 	}
-
-	// Update book record with cover path
-	book.CoverPath = coverFilename
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
-	if err := h.db.SaveBook(book); err != nil {
-		logger.Warn("Failed to update book cover path",
-			slog.String("book_id", book.ID),
-			slog.Any("error", err),
-		)
-		// Clean up the written file since we couldn't save the reference
-		os.Remove(coverPath)
-	}
+	return coverFilename, nil
 }
 
 func extractEPUBCover(path string) ([]byte, string, error) {
@@ -1373,14 +1383,17 @@ func extractEPUBCover(path string) ([]byte, string, error) {
 		return nil, "", err
 	}
 	defer r.Close()
+	return extractEPUBCoverFromReader(&r.Reader)
+}
 
+func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
 	coverNames := []string{
 		"OEBPS/cover.jpg", "OEBPS/cover.jpeg", "OEBPS/cover.png", "OEBPS/cover.webp",
 		"cover.jpg", "cover.jpeg", "cover.png",
 		"OEBPS/Images/cover.jpg", "OEBPS/Images/cover.jpeg",
 	}
 
-	for _, f := range r.File {
+	for _, f := range reader.File {
 		name := strings.ToLower(f.Name)
 		for _, coverName := range coverNames {
 			if strings.ToLower(coverName) == name || strings.Contains(name, "cover") {

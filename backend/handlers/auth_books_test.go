@@ -972,6 +972,29 @@ func TestExtractEPUBCoverDetectsContentType(t *testing.T) {
 	}
 }
 
+func TestExtractEPUBPreviewReadsMetadataAndCoverTogether(t *testing.T) {
+	epubPath := filepath.Join(t.TempDir(), "preview.epub")
+	pngHeader := []byte{
+		0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n',
+		0, 0, 0, 0, 'I', 'H', 'D', 'R',
+	}
+	writeZipFile(t, epubPath, map[string][]byte{
+		"OEBPS/content.opf": []byte(`<?xml version="1.0"?><package><metadata><title>Preview title</title><creator>Preview author</creator></metadata></package>`),
+		"OEBPS/cover.png":   pngHeader,
+	})
+
+	metadata, cover, contentType, err := extractBookPreview(epubPath, "epub")
+	if err != nil {
+		t.Fatalf("extractBookPreview returned error: %v", err)
+	}
+	if metadata.Title != "Preview title" || metadata.Author != "Preview author" {
+		t.Fatalf("unexpected metadata: %+v", metadata)
+	}
+	if contentType != "image/png" || !bytes.Equal(cover, pngHeader) {
+		t.Fatalf("unexpected cover: content type=%q bytes=%v", contentType, cover)
+	}
+}
+
 func TestReadZipFileWithLimitRejectsOversizedEntry(t *testing.T) {
 	zipPath := filepath.Join(t.TempDir(), "oversized.zip")
 	writeZipFile(t, zipPath, map[string][]byte{

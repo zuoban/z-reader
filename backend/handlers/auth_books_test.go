@@ -4,6 +4,9 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -992,6 +995,48 @@ func TestExtractEPUBPreviewReadsMetadataAndCoverTogether(t *testing.T) {
 	}
 	if contentType != "image/png" || !bytes.Equal(cover, pngHeader) {
 		t.Fatalf("unexpected cover: content type=%q bytes=%v", contentType, cover)
+	}
+}
+
+func TestCreateCoverThumbnailDownscalesJPEG(t *testing.T) {
+	uploadDir := t.TempDir()
+	coverPath := filepath.Join(uploadDir, "book-a.cover.jpg")
+	imageFile, err := os.Create(coverPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := image.NewRGBA(image.Rect(0, 0, 640, 960))
+	for y := 0; y < 960; y++ {
+		for x := 0; x < 640; x++ {
+			source.Set(x, y, color.RGBA{R: 70, G: 120, B: 180, A: 255})
+		}
+	}
+	if err := jpeg.Encode(imageFile, source, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := imageFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, openHandlerTestDB(t))
+	thumbnailFilename, err := handler.createCoverThumbnail("book-a", "book-a.cover.jpg")
+	if err != nil {
+		t.Fatalf("createCoverThumbnail returned error: %v", err)
+	}
+	if thumbnailFilename == "" {
+		t.Fatal("expected a thumbnail filename")
+	}
+	thumbnailFile, err := os.Open(filepath.Join(uploadDir, thumbnailFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, _, err := image.DecodeConfig(thumbnailFile)
+	thumbnailFile.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Width != coverThumbnailMaxWidth || config.Height != 480 {
+		t.Fatalf("unexpected thumbnail dimensions: %+v", config)
 	}
 }
 

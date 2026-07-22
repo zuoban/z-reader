@@ -90,11 +90,11 @@ export function clearCoverUrlCache() {
  * Only fetches when the element enters the viewport, and respects
  * a global concurrency limit.
  */
-export function useCoverUrl(bookId: string, coverVersion?: string): {
+export function useCoverUrl(bookId: string, coverVersion?: string, size?: 'thumb'): {
   coverUrl: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
 } {
-  const cacheKey = `${bookId}:${coverVersion ?? ''}`;
+  const cacheKey = `${bookId}:${size ?? 'full'}:${coverVersion ?? ''}`;
   const [fetchedCover, setFetchedCover] = useState<{ cacheKey: string; url: string } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const fetchedBookIds = useRef(new Set<string>());
@@ -115,12 +115,12 @@ export function useCoverUrl(bookId: string, coverVersion?: string): {
     let cancelFetch: (() => void) | undefined;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting || fetchedBookIds.current.has(bookId)) return;
-        fetchedBookIds.current.add(bookId);
+        if (!entry.isIntersecting || fetchedBookIds.current.has(cacheKey)) return;
+        fetchedBookIds.current.add(cacheKey);
         observer.disconnect();
 
         cancelFetch = scheduleCoverFetch(async () => {
-          const blob = await api.fetchCover(bookId);
+          const blob = await api.fetchCover(bookId, size);
           if (!blob) return;
 
           const url = URL.createObjectURL(blob);
@@ -142,7 +142,7 @@ export function useCoverUrl(bookId: string, coverVersion?: string): {
       observer.disconnect();
       cancelFetch?.();
     };
-  }, [bookId, cacheKey]);
+  }, [bookId, cacheKey, size]);
 
   return { coverUrl, ref };
 }

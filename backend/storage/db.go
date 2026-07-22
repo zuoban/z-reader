@@ -20,13 +20,14 @@ var (
 	ProgressBucket      = []byte("progress")
 	BookmarksBucket     = []byte("bookmarks")
 	UsersBucket         = []byte("users")
-	UserBooksIndex      = []byte("user_books_index")      // userId:bookId -> Empty
-	UsernameIndex       = []byte("username_index")        // normalizedUsername -> userId
-	BookSortIndex       = []byte("book_sort_index")       // sort:user:sortValue:bookId -> bookId
-	BookSearchIndex     = []byte("book_search_index")     // user\x00bookId -> normalized searchable fields
-	ProgressTimeIndex   = []byte("progress_time_index")   // user\x00updatedAt\x00bookId -> bookId
-	BookContentIndex    = []byte("book_content_index")    // user\x00contentHash -> bookId
-	LibrarySummaryIndex = []byte("library_summary_index") // user -> BookLibrarySummary JSON
+	UserBooksIndex      = []byte("user_books_index")       // userId:bookId -> Empty
+	UsernameIndex       = []byte("username_index")         // normalizedUsername -> userId
+	BookSortIndex       = []byte("book_sort_index")        // sort:user:sortValue:bookId -> bookId
+	BookSearchIndex     = []byte("book_search_index")      // user\x00bookId -> normalized searchable fields
+	BookSearchGramIndex = []byte("book_search_gram_index") // user\x00gram\x00bookId -> Empty
+	ProgressTimeIndex   = []byte("progress_time_index")    // user\x00updatedAt\x00bookId -> bookId
+	BookContentIndex    = []byte("book_content_index")     // user\x00contentHash -> bookId
+	LibrarySummaryIndex = []byte("library_summary_index")  // user -> BookLibrarySummary JSON
 	SystemMetaBucket    = []byte("system_meta")
 )
 
@@ -242,6 +243,11 @@ func (db *DB) runMigrations() error {
 				}
 				return rebuildLibrarySummaryIndex(tx)
 			},
+		},
+		{
+			version: 9,
+			name:    "BuildBookSearchGramIndex",
+			run:     rebuildBookSearchGramIndex,
 		},
 	}
 
@@ -675,6 +681,36 @@ func bookSearchIndexKey(userID, bookID string) []byte {
 	return []byte(userID + bookSortSeparator + bookID)
 }
 
+func bookSearchGramIndexPrefix(userID, gram string) []byte {
+	return []byte(userID + bookSortSeparator + gram + bookSortSeparator)
+}
+
+func bookSearchGramIndexKey(userID, gram, bookID string) []byte {
+	return append(bookSearchGramIndexPrefix(userID, gram), []byte(bookID)...)
+}
+
+// bookSearchGrams produces deduplicated adjacent-rune grams. It works for
+// space-separated languages and CJK text without relying on a dictionary.
+// One-rune queries intentionally use the existing bounded scan fallback: an
+// index for common single characters would be larger and rarely selective.
+func bookSearchGrams(value string) []string {
+	runes := []rune(normalizeBookSearchText(value))
+	if len(runes) < 2 {
+		return nil
+	}
+	grams := make([]string, 0, len(runes)-1)
+	seen := make(map[string]struct{}, len(runes)-1)
+	for i := 0; i < len(runes)-1; i++ {
+		gram := string(runes[i : i+2])
+		if _, ok := seen[gram]; ok {
+			continue
+		}
+		seen[gram] = struct{}{}
+		grams = append(grams, gram)
+	}
+	return grams
+}
+
 func bookContentIndexKey(userID, contentHash string) []byte {
 	return []byte(userID + bookSortSeparator + contentHash)
 }
@@ -785,11 +821,37 @@ func addBookToSearchIndex(tx *bbolt.Tx, book *models.Book) error {
 	return tx.Bucket(BookSearchIndex).Put(bookSearchIndexKey(book.UserID, book.ID), bookSearchValue(book))
 }
 
+func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	bucket := tx.Bucket(BookSearchGramIndex)
+	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
+		if err := bucket.Put(bookSearchGramIndexKey(book.UserID, gram, book.ID), []byte{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func removeBookFromSearchIndex(tx *bbolt.Tx, book *models.Book) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
 	return tx.Bucket(BookSearchIndex).Delete(bookSearchIndexKey(book.UserID, book.ID))
+}
+
+func removeBookFromSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	bucket := tx.Bucket(BookSearchGramIndex)
+	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
+		if err := bucket.Delete(bookSearchGramIndexKey(book.UserID, gram, book.ID)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func rebuildBookSortIndex(tx *bbolt.Tx) error {
@@ -823,6 +885,23 @@ func rebuildBookSearchIndex(tx *bbolt.Tx) error {
 			return err
 		}
 		return addBookToSearchIndex(tx, &book)
+	})
+}
+
+func rebuildBookSearchGramIndex(tx *bbolt.Tx) error {
+	if err := tx.DeleteBucket(BookSearchGramIndex); err != nil && err != bbolt.ErrBucketNotFound {
+		return err
+	}
+	if _, err := tx.CreateBucket(BookSearchGramIndex); err != nil {
+		return err
+	}
+	booksBucket := tx.Bucket(BooksBucket)
+	return booksBucket.ForEach(func(_, data []byte) error {
+		var book models.Book
+		if err := book.UnmarshalDB(data); err != nil {
+			return err
+		}
+		return addBookToSearchGramIndex(tx, &book)
 	})
 }
 
@@ -920,11 +999,17 @@ func (db *DB) SaveBook(book *models.Book) error {
 			if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
 				return err
 			}
+			if err := removeBookFromSearchGramIndex(tx, oldBook); err != nil {
+				return err
+			}
 		}
 		if err := addBookToSortIndex(tx, book); err != nil {
 			return err
 		}
 		if err := addBookToSearchIndex(tx, book); err != nil {
+			return err
+		}
+		if err := addBookToSearchGramIndex(tx, book); err != nil {
 			return err
 		}
 		if err := addBookToContentIndex(tx, book); err != nil {
@@ -962,6 +1047,9 @@ func (db *DB) CreateBook(book *models.Book) error {
 			return err
 		}
 		if err := addBookToSearchIndex(tx, book); err != nil {
+			return err
+		}
+		if err := addBookToSearchGramIndex(tx, book); err != nil {
 			return err
 		}
 		if err := addBookToContentIndex(tx, book); err != nil {
@@ -1189,6 +1277,9 @@ func (db *DB) SearchBooks(userID, query, cursor string, limit int, sortKey strin
 	if userID == "" || query == "" || limit <= 0 {
 		return []models.Book{}, "", nil
 	}
+	if grams := bookSearchGrams(query); len(grams) > 0 {
+		return db.searchBooksByGrams(userID, query, grams, cursor, limit, sortKey)
+	}
 
 	sortKey = NormalizeBookSort(sortKey)
 	books := make([]models.Book, 0, limit+1)
@@ -1242,6 +1333,98 @@ func (db *DB) SearchBooks(userID, query, cursor string, limit int, sortKey strin
 		return books, "", nil
 	}
 	return books[:limit], books[limit-1].ID, nil
+}
+
+type searchBookCandidate struct {
+	book    models.Book
+	sortKey []byte
+}
+
+// searchBooksByGrams narrows multi-rune queries through the gram index before
+// loading records. It keeps exact substring semantics by checking the existing
+// search value after the intersection, then orders only the candidates.
+func (db *DB) searchBooksByGrams(
+	userID, query string,
+	grams []string,
+	cursor string,
+	limit int,
+	sortKey string,
+) ([]models.Book, string, error) {
+	sortKey = NormalizeBookSort(sortKey)
+	candidates := make([]searchBookCandidate, 0, limit+1)
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		gramBucket := tx.Bucket(BookSearchGramIndex)
+		searchBucket := tx.Bucket(BookSearchIndex)
+		booksBucket := tx.Bucket(BooksBucket)
+		candidateIDs := make(map[string]struct{})
+		prefix := bookSearchGramIndexPrefix(userID, grams[0])
+		gramCursor := gramBucket.Cursor()
+		for key, _ := gramCursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = gramCursor.Next() {
+			candidateIDs[strings.TrimPrefix(string(key), string(prefix))] = struct{}{}
+		}
+		for _, gram := range grams[1:] {
+			for bookID := range candidateIDs {
+				if gramBucket.Get(bookSearchGramIndexKey(userID, gram, bookID)) == nil {
+					delete(candidateIDs, bookID)
+				}
+			}
+			if len(candidateIDs) == 0 {
+				return nil
+			}
+		}
+
+		var start []byte
+		if cursor != "" {
+			if data := booksBucket.Get([]byte(cursor)); data != nil {
+				var cursorBook models.Book
+				if err := cursorBook.UnmarshalDB(data); err != nil {
+					return err
+				}
+				if cursorBook.UserID == userID {
+					start = bookSortIndexKey(&cursorBook, sortKey)
+				}
+			}
+		}
+
+		for bookID := range candidateIDs {
+			if !bytes.Contains(searchBucket.Get(bookSearchIndexKey(userID, bookID)), []byte(query)) {
+				continue
+			}
+			data := booksBucket.Get([]byte(bookID))
+			if data == nil {
+				continue
+			}
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			key := bookSortIndexKey(&book, sortKey)
+			if len(start) > 0 && bytes.Compare(key, start) <= 0 {
+				continue
+			}
+			candidates = append(candidates, searchBookCandidate{book: book, sortKey: key})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		return bytes.Compare(candidates[i].sortKey, candidates[j].sortKey) < 0
+	})
+	if len(candidates) <= limit {
+		books := make([]models.Book, len(candidates))
+		for i, candidate := range candidates {
+			books[i] = candidate.book
+		}
+		return books, "", nil
+	}
+	books := make([]models.Book, limit)
+	for i := range books {
+		books[i] = candidates[i].book
+	}
+	return books, books[len(books)-1].ID, nil
 }
 
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
@@ -1337,6 +1520,9 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 		}
 	}
 	if err := removeBookFromSearchIndex(tx, &book); err != nil {
+		return nil, err
+	}
+	if err := removeBookFromSearchGramIndex(tx, &book); err != nil {
 		return nil, err
 	}
 	return &book, nil

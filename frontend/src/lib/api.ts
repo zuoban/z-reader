@@ -18,6 +18,7 @@ export interface Book {
   size: number;
   content_hash?: string;
   cover_path?: string;
+  cover_thumb_path?: string;
   category?: string;
   created_at: string;
   last_read_at?: string;
@@ -388,8 +389,9 @@ export const api = {
     return `${API_BASE}/api/books/${id}/file`;
   },
 
-  getCoverUrl: (id: string): string => {
-    return `${API_BASE}/api/books/${id}/cover`;
+  getCoverUrl: (id: string, size?: 'thumb'): string => {
+    const query = size ? `?size=${size}` : '';
+    return `${API_BASE}/api/books/${id}/cover${query}`;
   },
 
   fetchBook: async (id: string): Promise<Blob> => {
@@ -482,8 +484,9 @@ export const api = {
     return parseJsonResponse<Book>(res, '上传封面成功但响应为空');
   },
 
-  fetchCover: async (id: string): Promise<Blob | null> => {
-    const res = await authedFetch(`/api/books/${id}/cover`, {
+  fetchCover: async (id: string, size?: 'thumb'): Promise<Blob | null> => {
+    const query = size ? `?size=${size}` : '';
+    const res = await authedFetch(`/api/books/${id}/cover${query}`, {
       credentials: 'include',
     }, DEFAULT_TIMEOUT);
     if (!res.ok) {

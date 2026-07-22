@@ -26,21 +26,9 @@ func TestUniqueStringsPreservesOrder(t *testing.T) {
 	}
 }
 
-func TestLoadAllowsMissingPassword(t *testing.T) {
-	t.Setenv("APP_PASSWORD", "")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.AppPassword != "" {
-		t.Fatalf("expected AppPassword to be empty, got %q", cfg.AppPassword)
-	}
-}
-
 func TestLoadReadsUploadLimit(t *testing.T) {
-	t.Setenv("APP_PASSWORD", "secret")
 	t.Setenv("MAX_UPLOAD_BYTES", "1024")
+	t.Setenv("MAX_REQUEST_BODY_BYTES", "2048")
 	t.Setenv("TRUSTED_PROXIES", "127.0.0.1, 10.0.0.0/8")
 	t.Setenv("APP_PORT", "")
 	t.Setenv("UPLOAD_DIR", "")
@@ -54,6 +42,9 @@ func TestLoadReadsUploadLimit(t *testing.T) {
 
 	if cfg.MaxUploadBytes != 1024 {
 		t.Fatalf("expected MaxUploadBytes=1024, got %d", cfg.MaxUploadBytes)
+	}
+	if cfg.MaxRequestBodyBytes != 2048 {
+		t.Fatalf("expected MaxRequestBodyBytes=2048, got %d", cfg.MaxRequestBodyBytes)
 	}
 
 	wantProxies := []string{"127.0.0.1", "10.0.0.0/8"}

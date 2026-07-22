@@ -23,8 +23,14 @@ export interface Book {
 }
 
 export interface BookPage {
-  books: Book[];
-  next_cursor?: string;
+	books: Book[];
+	next_cursor?: string;
+}
+
+export interface BookLibrarySummary {
+	total: number;
+	uncategorized: number;
+	categories: Record<string, number>;
 }
 
 export interface Progress {
@@ -284,6 +290,10 @@ export const api = {
     if (cursor) params.set('cursor', cursor);
     if (sort) params.set('sort', sort);
     return fetchApi<BookPage>(`/api/books?${params.toString()}`);
+  },
+
+  getBookLibrarySummary: async (): Promise<BookLibrarySummary> => {
+    return fetchApi<BookLibrarySummary>('/api/books/summary');
   },
 
   getBook: async (id: string): Promise<Book> => {

@@ -1,14 +1,28 @@
-:80 {
+{$CADDY_SITE::80} {
+	encode zstd gzip
+
+	# These headers are safe for both local HTTP development and HTTPS
+	# deployments. Browsers only honor HSTS when the response is HTTPS.
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "base-uri 'self'; frame-ancestors 'none'; object-src 'none'"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+	}
+
 	# API routes -> Go backend
 	handle /api/* {
 		reverse_proxy localhost:8080
 	}
-	
+
 	# All other requests -> Next.js frontend
 	handle {
 		reverse_proxy localhost:3000
 	}
-	
+
 	# Logging
 	log {
 		output stdout

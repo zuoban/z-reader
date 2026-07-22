@@ -32,6 +32,10 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 docker run -d \
   --name z-reader \
   -p 80:80 \
+  -v z-reader-data:/app/data \
+  -v z-reader-uploads:/app/uploads \
+  -v z-reader-caddy-data:/data \
+  -v z-reader-caddy-config:/config \
   ghcr.io/zuoban/z-reader:latest
 ```
 
@@ -53,7 +57,7 @@ docker compose up -d
 
 环境要求：
 
-- Go 1.23+
+- Go 1.25+
 - Node.js 20+
 - npm
 
@@ -78,11 +82,11 @@ npm run dev
 
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| `APP_PASSWORD` | 旧版本默认管理员密码，保留兼容但当前注册流程不再使用 | 空 |
 | `APP_PORT` | 后端端口 | `8080` |
 | `UPLOAD_DIR` | 图书存储目录 | `./uploads` |
 | `DB_PATH` | 数据库路径 | `./data.db` |
 | `MAX_UPLOAD_BYTES` | 单个上传文件最大字节数 | `268435456` |
+| `MAX_REQUEST_BODY_BYTES` | 非文件请求体最大字节数 | `1048576` |
 | `ALLOWED_ORIGINS` | 允许访问后端的前端来源，逗号分隔 | `http://localhost:3000,http://localhost:8080` |
 | `TRUSTED_PROXIES` | 可信反向代理 IP/CIDR，影响登录限流等客户端 IP 判断 | `127.0.0.1,::1` |
 | `NEXT_SERVER_API_URL` | Next.js 开发/SSR 代理到后端时使用的地址 | `http://127.0.0.1:8080` |
@@ -94,11 +98,14 @@ npm run dev
 | `TTS_MAX_CONCURRENCY` | TTS 合成请求最大并发数 | `3` |
 | `TTS_MAX_QUEUED` | TTS 等待队列最大请求数 | `12` |
 | `TTS_QUEUE_WAIT_SECONDS` | TTS 请求最大排队秒数 | `30` |
+| `CADDY_SITE` | Caddy 站点地址；配置域名时自动启用 HTTPS | `:80` |
 
 说明：
 
 - Docker / Compose 部署下，前端默认通过同源 `/api/*` 访问后端，通常不需要设置
   `NEXT_PUBLIC_API_URL`
+- 公网部署请将 `CADDY_SITE` 设为域名（如 `reader.example.com`），并映射/开放 80/443；Caddy 会自动申请并续期 HTTPS 证书。
+- 请定期备份持久化的 `data/` 与 `uploads/` 目录；它们分别包含账户/进度数据和电子书文件。
 - `NEXT_SERVER_API_URL` 主要用于本地开发或 SSR 代理到独立后端
 - 如需启用 TTS，请使用你自己的语音服务配置，不要把可直接使用的密钥提交到仓库
 

@@ -44,6 +44,9 @@ const (
 	multipartOverhead           = 1 * 1024 * 1024
 	bookFileCacheMaxAge         = 60 * 60
 	bookCoverCacheMaxAge        = 24 * 60 * 60
+	maxBookTitleRunes           = 500
+	maxBookAuthorRunes          = 500
+	maxBatchBookIDs             = 500
 )
 
 type BooksHandler struct {
@@ -122,6 +125,21 @@ func (h *BooksHandler) List(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, books)
+}
+
+func (h *BooksHandler) Summary(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	summary, err := h.db.GetBookLibrarySummary(userID)
+	if err != nil {
+		response.InternalError(c, "获取书架汇总失败")
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
 }
 
 func (h *BooksHandler) Get(c *gin.Context) {
@@ -294,11 +312,20 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 
 	var req batchBookIDsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求内容无效")
 		return
 	}
+	req.IDs = normalizeBookIDs(req.IDs)
 	if len(req.IDs) == 0 {
 		response.BadRequest(c, "请选择要删除的图书")
+		return
+	}
+	if len(req.IDs) > maxBatchBookIDs {
+		response.BadRequest(c, "单次最多操作 500 本图书")
 		return
 	}
 
@@ -440,6 +467,23 @@ func normalizeBookCategory(value *string) *string {
 		return nil
 	}
 	return &category
+}
+
+func normalizeBookIDs(ids []string) []string {
+	seen := make(map[string]struct{}, len(ids))
+	normalized := make([]string, 0, len(ids))
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		normalized = append(normalized, id)
+	}
+	return normalized
 }
 
 func normalizeBookFormat(format string, filename string) string {
@@ -921,15 +965,29 @@ func (h *BooksHandler) Update(c *gin.Context) {
 
 	var req bookUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求内容无效")
 		return
 	}
 
 	if req.Title.Set && req.Title.Value != nil {
-		book.Title = *req.Title.Value
+		title := strings.TrimSpace(*req.Title.Value)
+		if len([]rune(title)) > maxBookTitleRunes {
+			response.BadRequest(c, "书名不能超过 500 个字符")
+			return
+		}
+		book.Title = title
 	}
 	if req.Author.Set && req.Author.Value != nil {
-		book.Author = *req.Author.Value
+		author := strings.TrimSpace(*req.Author.Value)
+		if len([]rune(author)) > maxBookAuthorRunes {
+			response.BadRequest(c, "作者不能超过 500 个字符")
+			return
+		}
+		book.Author = author
 	}
 	if req.Category.Set {
 		category := normalizeBookCategory(req.Category.Value)
@@ -958,11 +1016,20 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 
 	var req batchBookCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求内容无效")
 		return
 	}
+	req.IDs = normalizeBookIDs(req.IDs)
 	if len(req.IDs) == 0 {
 		response.BadRequest(c, "请选择要设置分类的图书")
+		return
+	}
+	if len(req.IDs) > maxBatchBookIDs {
+		response.BadRequest(c, "单次最多操作 500 本图书")
 		return
 	}
 	if !req.Category.Set {

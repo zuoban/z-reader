@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { Book } from '@/lib/api';
+import type { Book, BookLibrarySummary } from '@/lib/api';
 import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
@@ -144,7 +144,10 @@ async function getCoverFileName(bookFileName: string, cover: Blob): Promise<stri
 export function useShelfData(isAuthenticated: boolean) {
   const [books, setBooks] = useState<Book[]>([]);
   const [progressByBookId, setProgressByBookId] = useState<Record<string, number>>({});
+  const [librarySummary, setLibrarySummary] = useState<BookLibrarySummary | null>(null);
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
+  const [isLoadingMoreBooks, setIsLoadingMoreBooks] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -156,6 +159,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [searchQuery, setSearchQuery] = useState('');
   const enrichingBooksRef = useRef(new Set<string>());
   const loadGenerationRef = useRef(0);
+  const loadingMoreRef = useRef(false);
 
   const enrichBookMetadata = useCallback(
     async (bookId: string, file: File) => {
@@ -206,44 +210,57 @@ export function useShelfData(isAuthenticated: boolean) {
     writeShelfSort(option);
   }, []);
 
+  const loadLibrarySummary = useCallback(async () => {
+    try {
+      const summary = await api.getBookLibrarySummary();
+      setLibrarySummary({
+        total: summary.total,
+        uncategorized: summary.uncategorized,
+        categories: summary.categories ?? {},
+      });
+    } catch {
+      // The visible books remain usable if aggregate filter data cannot load.
+      setLibrarySummary(null);
+    }
+  }, []);
+
   const loadBooks = useCallback(async () => {
     const loadGeneration = ++loadGenerationRef.current;
     let hasLoadedFirstPage = false;
+    loadingMoreRef.current = false;
+    setIsLoadingMoreBooks(false);
+    setNextCursor(undefined);
     setIsLoadingBooks(true);
     setLoadError(null);
     try {
-      const [firstPage, progressData] = await Promise.all([
+      const [firstPage, progressData, summary] = await Promise.all([
         api.listBooksPage(undefined, BOOK_PAGE_SIZE, sortBy),
         api.listProgress().catch(() => []),
+        api.getBookLibrarySummary().catch(() => null),
       ]);
       if (loadGeneration !== loadGenerationRef.current) return;
 
       setBooks(firstPage.books || []);
       hasLoadedFirstPage = true;
+      setNextCursor(firstPage.next_cursor);
+      setLibrarySummary(summary ? {
+        total: summary.total,
+        uncategorized: summary.uncategorized,
+        categories: summary.categories ?? {},
+      } : null);
       setProgressByBookId(
         Object.fromEntries(
           (progressData || []).map((progress) => [progress.book_id, progress.percentage])
         )
       );
       setIsLoadingBooks(false);
-
-      let cursor = firstPage.next_cursor;
-      while (cursor) {
-        const nextPage = await api.listBooksPage(cursor, BOOK_PAGE_SIZE, sortBy);
-        if (loadGeneration !== loadGenerationRef.current) return;
-
-        setBooks((currentBooks) => {
-          const byID = new Map(currentBooks.map((book) => [book.id, book]));
-          nextPage.books.forEach((book) => byID.set(book.id, book));
-          return Array.from(byID.values());
-        });
-        cursor = nextPage.next_cursor;
-      }
     } catch (err) {
       if (loadGeneration !== loadGenerationRef.current) return;
       if (!hasLoadedFirstPage) {
         setBooks([]);
         setProgressByBookId({});
+        setLibrarySummary(null);
+        setNextCursor(undefined);
         setLoadError(err instanceof Error ? err.message : '书架加载失败');
       } else {
         setLoadError('书架剩余图书加载失败，请刷新重试');
@@ -255,9 +272,40 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, [sortBy]);
 
+  const loadMoreBooks = useCallback(async () => {
+    if (!nextCursor || loadingMoreRef.current) return;
+
+    const loadGeneration = loadGenerationRef.current;
+    loadingMoreRef.current = true;
+    setIsLoadingMoreBooks(true);
+    try {
+      const page = await api.listBooksPage(nextCursor, BOOK_PAGE_SIZE, sortBy);
+      if (loadGeneration !== loadGenerationRef.current) return;
+
+      setBooks((currentBooks) => {
+        const byID = new Map(currentBooks.map((book) => [book.id, book]));
+        page.books.forEach((book) => byID.set(book.id, book));
+        return Array.from(byID.values());
+      });
+      setNextCursor(page.next_cursor);
+    } catch (err) {
+      if (loadGeneration === loadGenerationRef.current) {
+        toast.error(err instanceof Error ? err.message : '加载更多图书失败');
+      }
+    } finally {
+      loadingMoreRef.current = false;
+      if (loadGeneration === loadGenerationRef.current) {
+        setIsLoadingMoreBooks(false);
+      }
+    }
+  }, [nextCursor, sortBy]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       loadGenerationRef.current += 1;
+      loadingMoreRef.current = false;
+      setNextCursor(undefined);
+      setLibrarySummary(null);
       return;
     }
 
@@ -268,7 +316,10 @@ export function useShelfData(isAuthenticated: boolean) {
     return () => window.clearTimeout(timeoutId);
   }, [isAuthenticated, loadBooks]);
 
-  const categories = useMemo(() => deriveCategories(books), [books]);
+  const categories = useMemo(() => {
+    if (!librarySummary) return deriveCategories(books);
+    return Object.keys(librarySummary.categories).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  }, [books, librarySummary]);
 
   useEffect(() => {
     if (!selectedCategoryId || selectedCategoryId === UNCATEGORIZED_FILTER_ID) return;
@@ -307,6 +358,14 @@ export function useShelfData(isAuthenticated: boolean) {
   }, [books, searchQuery, selectedCategoryId, sortBy]);
 
   const bookCounts = useMemo(() => {
+    if (librarySummary) {
+      return {
+        all: librarySummary.total,
+        [UNCATEGORIZED_FILTER_ID]: librarySummary.uncategorized,
+        ...librarySummary.categories,
+      };
+    }
+
     const counts: Record<string, number> = {
       all: books.length,
       [UNCATEGORIZED_FILTER_ID]: 0,
@@ -320,7 +379,7 @@ export function useShelfData(isAuthenticated: boolean) {
       }
     });
     return counts;
-  }, [books]);
+  }, [books, librarySummary]);
 
   const uploadFiles = useCallback(async (fileList: File[] | FileList | null | undefined) => {
     const files = Array.from(fileList ?? []);
@@ -366,9 +425,13 @@ export function useShelfData(isAuthenticated: boolean) {
       toast.error(failureMessages[0] ?? '上传失败');
     }
 
+    if (successCount > 0) {
+      void loadLibrarySummary();
+    }
+
     setUploadProgress(null);
     setIsUploading(false);
-  }, [sortBy, enrichBookMetadata]);
+  }, [sortBy, enrichBookMetadata, loadLibrarySummary]);
 
   const uploadFile = useCallback(async (file: File | null | undefined) => {
     if (!file) return;
@@ -392,13 +455,14 @@ export function useShelfData(isAuthenticated: boolean) {
         delete next[id];
         return next;
       });
+      void loadLibrarySummary();
       toast.success('图书已删除');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '删除失败');
     } finally {
       setDeletingId(null);
     }
-  }, [abortEnrichment]);
+  }, [abortEnrichment, loadLibrarySummary]);
 
   const handleDeleteMany = useCallback(async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
@@ -418,6 +482,7 @@ export function useShelfData(isAuthenticated: boolean) {
         });
         return next;
       });
+      void loadLibrarySummary();
       toast.success(`已删除 ${deletedIds.length} 本图书`);
       return { successCount: deletedIds.length, failedCount: 0 };
     } catch (err) {
@@ -426,7 +491,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsDeletingMany(false);
     }
-  }, [abortEnrichment]);
+  }, [abortEnrichment, loadLibrarySummary]);
 
   const handleUpdateCategoryMany = useCallback(async (ids: string[], category: string | null) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
@@ -447,6 +512,7 @@ export function useShelfData(isAuthenticated: boolean) {
         prev.map((book) => updatedById.get(book.id) ?? book),
         sortBy
       ));
+      void loadLibrarySummary();
       toast.success(nextCategory ? `已设置为「${nextCategory}」` : '已清空所选分类');
       return { successCount: updatedBooks.length, failedCount: 0 };
     } catch (err) {
@@ -455,7 +521,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsUpdatingManyCategories(false);
     }
-  }, [sortBy]);
+  }, [sortBy, loadLibrarySummary]);
 
   const handleRenameCategory = useCallback(async (category: string, nextCategory: string | null) => {
     const currentCategory = category.trim();
@@ -478,6 +544,8 @@ export function useShelfData(isAuthenticated: boolean) {
     progressByBookId,
     categories,
     isLoadingBooks,
+    isLoadingMoreBooks,
+    hasMoreBooks: Boolean(nextCursor),
     loadError,
     selectedCategoryId,
     setSelectedCategoryId,
@@ -489,6 +557,7 @@ export function useShelfData(isAuthenticated: boolean) {
     filteredBooks,
     bookCounts,
     loadBooks,
+    loadMoreBooks,
     searchQuery,
     setSearchQuery,
     uploadFile,

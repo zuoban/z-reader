@@ -63,6 +63,18 @@ func TestRateLimiterCleansExpiredVisitors(t *testing.T) {
 	}
 }
 
+func TestRateLimiterBoundsTrackedVisitors(t *testing.T) {
+	rl := NewRateLimiter(1, time.Minute)
+	rl.maxVisitors = 2
+
+	if !rl.Allow("ip-1") || !rl.Allow("ip-2") {
+		t.Fatal("expected first two visitors to be accepted")
+	}
+	if rl.Allow("ip-3") {
+		t.Fatal("expected a new visitor to be rejected after the visitor cap")
+	}
+}
+
 func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	rl := NewRateLimiter(1, 5*time.Minute)
 	// First request allowed

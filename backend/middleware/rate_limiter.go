@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const defaultMaxVisitors = 10_000
+
 // RateLimiter 简单的基于 IP 的滑动窗口速率限制器
 type RateLimiter struct {
 	visitors        map[string]*visitor
@@ -19,6 +21,7 @@ type RateLimiter struct {
 	cleanupInterval time.Duration
 	lastCleanup     time.Time
 	now             func() time.Time
+	maxVisitors     int
 }
 
 type visitor struct {
@@ -34,6 +37,7 @@ func NewRateLimiter(maxReqs int, window time.Duration) *RateLimiter {
 		window:          window,
 		cleanupInterval: time.Minute,
 		now:             time.Now,
+		maxVisitors:     defaultMaxVisitors,
 	}
 }
 
@@ -62,7 +66,14 @@ func (rl *RateLimiter) Allow(ip string) bool {
 	rl.cleanupExpired(now)
 
 	v, exists := rl.visitors[ip]
-	if !exists || now.Sub(v.windowStart) > rl.window {
+	if !exists {
+		if rl.maxVisitors > 0 && len(rl.visitors) >= rl.maxVisitors {
+			return false
+		}
+		rl.visitors[ip] = &visitor{count: 1, windowStart: now}
+		return true
+	}
+	if now.Sub(v.windowStart) > rl.window {
 		rl.visitors[ip] = &visitor{count: 1, windowStart: now}
 		return true
 	}

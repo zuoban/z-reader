@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,11 @@ import (
 	"z-reader/backend/models"
 	"z-reader/backend/response"
 	"z-reader/backend/storage"
+)
+
+const (
+	maxProgressCFIRunes    = 16 * 1024
+	maxProgressDeviceRunes = 256
 )
 
 type ProgressHandler struct {
@@ -86,12 +92,26 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 	var req ProgressRequest
 	// 支持 JSON 和 form-urlencoded 格式（sendBeacon 使用 form 格式）
 	if err := c.ShouldBind(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求内容无效")
 		return
 	}
 
+	req.CFI = strings.TrimSpace(req.CFI)
+	req.DeviceID = strings.TrimSpace(req.DeviceID)
 	if req.CFI == "" {
 		response.BadRequest(c, "缺少阅读位置")
+		return
+	}
+	if len([]rune(req.CFI)) > maxProgressCFIRunes {
+		response.BadRequest(c, "阅读位置过长")
+		return
+	}
+	if len([]rune(req.DeviceID)) > maxProgressDeviceRunes {
+		response.BadRequest(c, "设备标识过长")
 		return
 	}
 

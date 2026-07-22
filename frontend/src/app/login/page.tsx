@@ -39,6 +39,11 @@ export default function LoginPage() {
       return;
     }
 
+    if (mode === 'register' && password.length < 8) {
+      setPasswordError('密码至少需要 8 个字符');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {

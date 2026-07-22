@@ -17,8 +17,9 @@ const allowedDevOrigins = parseCSV(process.env.NEXT_DEV_ALLOWED_ORIGINS);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  allowedDevOrigins:
-    allowedDevOrigins.length > 0 ? allowedDevOrigins : ["127.0.0.1", "localhost"],
+  allowedDevOrigins: Array.from(
+    new Set(["127.0.0.1", "localhost", ...allowedDevOrigins])
+  ),
   output: "standalone",
   turbopack: {
     root: import.meta.dirname,

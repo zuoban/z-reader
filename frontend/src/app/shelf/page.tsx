@@ -74,6 +74,8 @@ export default function ShelfPage() {
     progressByBookId,
     categories,
     isLoadingBooks,
+    isLoadingMoreBooks,
+    hasMoreBooks,
     loadError,
     selectedCategoryId,
     setSelectedCategoryId,
@@ -85,6 +87,7 @@ export default function ShelfPage() {
     filteredBooks,
     bookCounts,
     loadBooks,
+    loadMoreBooks,
     handleUpload,
     handleDelete,
     handleDeleteMany,
@@ -552,6 +555,23 @@ export default function ShelfPage() {
                   ))}
                 </div>
               )}
+              {hasMoreBooks && (
+                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-xl px-6"
+                    disabled={isLoadingMoreBooks}
+                    onClick={() => void loadMoreBooks()}
+                  >
+                    {isLoadingMoreBooks ? <LoadingSpinner className="mr-2 h-4 w-4" /> : null}
+                    {isLoadingMoreBooks ? '加载中…' : '加载更多图书'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    已载入 {books.length} / {bookCounts.all} 本
+                  </p>
+                </div>
+              )}
               {isDraggingBookFile && (
                 <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/80 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] ">
                   <div className="rounded-3xl border border-primary/15 bg-card/60 px-10 py-8 shadow-[0_24px_54px_-30px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_50%,transparent)] ">
@@ -589,7 +609,7 @@ export default function ShelfPage() {
                       className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium border-border/35 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
                       onClick={toggleVisibleSelection}
                     >
-                      {allVisibleSelected ? '取消全选' : '选择本页'}
+                      {allVisibleSelected ? '取消全选' : '选择已加载'}
                     </Button>
                     
                     <Button

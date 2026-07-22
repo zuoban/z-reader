@@ -798,6 +798,50 @@ type BookListResult struct {
 	PageSize   int           `json:"page_size"`
 }
 
+// BookLibrarySummary contains the small amount of aggregate data needed to
+// render filters without transferring every book in a large library.
+type BookLibrarySummary struct {
+	Total         int            `json:"total"`
+	Uncategorized int            `json:"uncategorized"`
+	Categories    map[string]int `json:"categories"`
+}
+
+func (db *DB) GetBookLibrarySummary(userID string) (BookLibrarySummary, error) {
+	summary := BookLibrarySummary{Categories: make(map[string]int)}
+	prefix := []byte(userID + ":")
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		idxB := tx.Bucket(UserBooksIndex)
+		booksB := tx.Bucket(BooksBucket)
+		cursor := idxB.Cursor()
+		for key, _ := cursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = cursor.Next() {
+			bookID := strings.TrimPrefix(string(key), string(prefix))
+			data := booksB.Get([]byte(bookID))
+			if data == nil {
+				continue
+			}
+
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			summary.Total++
+			category := ""
+			if book.Category != nil {
+				category = strings.TrimSpace(*book.Category)
+			}
+			if category == "" {
+				summary.Uncategorized++
+				continue
+			}
+			summary.Categories[category]++
+		}
+		return nil
+	})
+
+	return summary, err
+}
+
 // ListBooksByCursor reads only one page of a user's books. The cursor is the
 // last returned book ID and follows the stable order of UserBooksIndex keys.
 func (db *DB) ListBooksByCursor(userID, cursor string, limit int) ([]models.Book, string, error) {

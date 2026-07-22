@@ -24,6 +24,14 @@ async function mockShelfData(page: import('@playwright/test').Page) {
     });
   });
 
+  await page.route('**/api/books/summary', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ total: 0, uncategorized: 0, categories: {} }),
+    });
+  });
+
   await page.route('**/api/categories', async (route) => {
     await route.fulfill({
       status: 200,
@@ -34,6 +42,14 @@ async function mockShelfData(page: import('@playwright/test').Page) {
 }
 
 test('redirects unauthenticated shelf visitors to login', async ({ page }) => {
+  await page.route('**/api/auth/verify', async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Unauthorized' }),
+    });
+  });
+
   await page.goto('/shelf');
 
   await expect(page).toHaveURL(/\/login$/);
@@ -75,7 +91,7 @@ test('logs in and shows the empty shelf', async ({ page }) => {
 
   await page.goto('/login');
   await page.getByPlaceholder('请输入用户名').fill('reader');
-  await page.getByPlaceholder('请输入您的密码').fill('secret');
+  await page.getByPlaceholder('请输入您的密码').fill('secret123');
   await page.getByRole('button', { name: /进入/ }).click();
 
   await expect(page).toHaveURL(/\/shelf$/);
@@ -120,7 +136,7 @@ test('registers and shows the empty shelf', async ({ page }) => {
   await page.getByRole('button', { name: '立即创建' }).click();
   await expect(page.getByRole('heading', { name: '创建账号' })).toBeVisible();
   await page.getByPlaceholder('请输入用户名').fill('reader');
-  await page.getByPlaceholder('请输入您的密码').fill('secret');
+  await page.getByPlaceholder('请输入您的密码').fill('secret123');
   await page.getByRole('button', { name: '创建并进入书架' }).click();
 
   await expect(page).toHaveURL(/\/shelf$/);

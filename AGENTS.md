@@ -5,7 +5,7 @@ This document provides essential information for AI coding agents working on the
 ## Project Overview
 
 Z Reader is an online EPUB reader application with:
-- **Backend**: Go 1.21+ with Gin framework and bbolt embedded database
+- **Backend**: Go 1.25+ with Gin framework and bbolt embedded database
 - **Frontend**: Next.js 16 with React 19, Tailwind CSS 4, and Shadcn/ui
 
 ## Build Commands

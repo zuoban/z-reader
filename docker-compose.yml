@@ -10,11 +10,13 @@ services:
       - .env
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./uploads:/app/uploads
       - ./data:/app/data
+      - caddy_data:/data
+      - caddy_config:/config
     environment:
-      - APP_PASSWORD=${APP_PASSWORD:?APP_PASSWORD is required}
       - APP_PORT=8080
       - UPLOAD_DIR=/app/uploads
       - DB_PATH=/app/data/data.db
@@ -27,6 +29,9 @@ services:
       - TTS_MAX_CONCURRENCY=${TTS_MAX_CONCURRENCY:-3}
       - TTS_MAX_QUEUED=${TTS_MAX_QUEUED:-12}
       - TTS_QUEUE_WAIT_SECONDS=${TTS_QUEUE_WAIT_SECONDS:-30}
+      # Use a domain such as reader.example.com to enable Caddy-managed HTTPS.
+      # The local default (:80) remains convenient for development.
+      - CADDY_SITE=${CADDY_SITE:-:80}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
       interval: 30s
@@ -34,15 +39,6 @@ services:
       retries: 3
       start_period: 5s
 
-  # Optional: Caddy with automatic HTTPS (requires domain)
-  # caddy-proxy:
-  #   image: caddy:2-alpine
-  #   container_name: caddy-proxy
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./Caddyfile:/etc/caddy/Caddyfile
-  #     - caddy_data:/data
-  #     - caddy_config:/config
+volumes:
+  caddy_data:
+  caddy_config:

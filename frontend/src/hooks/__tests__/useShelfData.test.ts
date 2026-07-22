@@ -11,6 +11,7 @@ vi.mock('@/lib/api', () => ({
   api: {
     listBooks: vi.fn(),
     listBooksPage: vi.fn(),
+    getBookLibrarySummary: vi.fn(),
     listProgress: vi.fn(),
     uploadBook: vi.fn(),
     deleteBook: vi.fn(),
@@ -54,6 +55,7 @@ describe('useShelfData', () => {
     vi.mocked(api.listBooksPage).mockImplementation(async () => ({
       books: await api.listBooks(),
     }));
+    vi.mocked(api.getBookLibrarySummary).mockRejectedValue(new Error('summary unavailable'));
   });
 
   afterEach(() => {
@@ -78,7 +80,7 @@ describe('useShelfData', () => {
     expect(api.listBooks).toHaveBeenCalled();
   });
 
-  it('loads subsequent cursor pages in the background', async () => {
+  it('loads subsequent cursor pages only when requested', async () => {
     vi.mocked(api.listBooksPage)
       .mockResolvedValueOnce({ books: [mockBook({ id: 'first' })], next_cursor: 'first' })
       .mockResolvedValueOnce({ books: [mockBook({ id: 'second' })] });
@@ -88,6 +90,11 @@ describe('useShelfData', () => {
 
     await vi.waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
+    });
+    expect(result.current.books.map((book) => book.id)).toEqual(['first']);
+
+    await act(async () => {
+      await result.current.loadMoreBooks();
     });
     await vi.waitFor(() => {
       expect(result.current.books.map((book) => book.id)).toEqual(['first', 'second']);

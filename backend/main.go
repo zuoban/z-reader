@@ -32,7 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("Server starting", "port", cfg.AppPort, "password_configured", cfg.AppPassword != "")
+	logger.Info("Server starting", "port", cfg.AppPort)
 
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
 		logger.Error("Failed to create upload directory", "error", err)
@@ -53,14 +53,19 @@ func main() {
 		startSessionCleaner(ctx, db)
 	}()
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery(), middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes))
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		logger.Error("Failed to configure trusted proxies", "error", err)
 		os.Exit(1)
 	}
 	server := &http.Server{
-		Addr:    ":" + cfg.AppPort,
-		Handler: r,
+		Addr:              ":" + cfg.AppPort,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       10 * time.Minute,
+		WriteTimeout:      10 * time.Minute,
+		IdleTimeout:       60 * time.Second,
 	}
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
@@ -91,6 +96,7 @@ func main() {
 		api.GET("/auth/verify", authHandler.Verify)
 
 		api.GET("/books", booksHandler.List)
+		api.GET("/books/summary", booksHandler.Summary)
 		api.GET("/books/:id", booksHandler.Get)
 		api.POST("/books", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.Upload)
 		api.POST("/books/batch/delete", booksHandler.BatchDelete)

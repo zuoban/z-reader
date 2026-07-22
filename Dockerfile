@@ -3,13 +3,16 @@ FROM golang:1.25-alpine AS backend-builder
 
 WORKDIR /app/backend
 
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
 RUN apk add --no-cache git ca-certificates tzdata
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 COPY backend/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/z-reader main.go
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/z-reader main.go
 
 # Stage 2: Build Next.js frontend
 FROM node:20-alpine AS frontend-builder

@@ -13,6 +13,12 @@ import (
 	"z-reader/backend/storage"
 )
 
+const (
+	maxBookmarkCFIRunes     = 16 * 1024
+	maxBookmarkChapterRunes = 500
+	maxBookmarkNoteRunes    = 10 * 1024
+)
+
 type BookmarksHandler struct {
 	db *storage.DB
 }
@@ -57,13 +63,31 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 
 	var req BookmarkRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求内容无效")
 		return
 	}
 
 	req.CFI = strings.TrimSpace(req.CFI)
+	req.Chapter = strings.TrimSpace(req.Chapter)
+	req.Note = strings.TrimSpace(req.Note)
 	if req.CFI == "" {
 		response.BadRequest(c, "缺少书签位置")
+		return
+	}
+	if len([]rune(req.CFI)) > maxBookmarkCFIRunes {
+		response.BadRequest(c, "书签位置过长")
+		return
+	}
+	if len([]rune(req.Chapter)) > maxBookmarkChapterRunes {
+		response.BadRequest(c, "章节名称过长")
+		return
+	}
+	if len([]rune(req.Note)) > maxBookmarkNoteRunes {
+		response.BadRequest(c, "书签备注过长")
 		return
 	}
 	if req.Percentage < 0 || req.Percentage > 100 {
@@ -78,8 +102,8 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 		UserID:     userID,
 		CFI:        req.CFI,
 		Percentage: req.Percentage,
-		Chapter:    strings.TrimSpace(req.Chapter),
-		Note:       strings.TrimSpace(req.Note),
+		Chapter:    req.Chapter,
+		Note:       req.Note,
 		CreatedAt:  now,
 	}
 

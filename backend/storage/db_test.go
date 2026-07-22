@@ -490,6 +490,29 @@ func TestListBooksBySortedCursorUsesPersistentTitleIndex(t *testing.T) {
 	}
 }
 
+func TestGetBookLibrarySummaryReturnsOnlyRequestedUsersCounts(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	category := "科幻"
+	for _, book := range []*models.Book{
+		{ID: "book-a", UserID: userID, Title: "Alpha", Filename: "book-a.epub", Format: "epub", Size: 128, Category: &category, CreatedAt: time.Now().UTC()},
+		{ID: "book-b", UserID: userID, Title: "Beta", Filename: "book-b.epub", Format: "epub", Size: 128, CreatedAt: time.Now().UTC()},
+		{ID: "book-c", UserID: "user-b", Title: "Gamma", Filename: "book-c.epub", Format: "epub", Size: 128, Category: &category, CreatedAt: time.Now().UTC()},
+	} {
+		if err := db.SaveBook(book); err != nil {
+			t.Fatalf("failed to save %s: %v", book.ID, err)
+		}
+	}
+
+	summary, err := db.GetBookLibrarySummary(userID)
+	if err != nil {
+		t.Fatalf("GetBookLibrarySummary returned error: %v", err)
+	}
+	if summary.Total != 2 || summary.Uncategorized != 1 || summary.Categories[category] != 1 {
+		t.Fatalf("unexpected library summary: %+v", summary)
+	}
+}
+
 func TestNormalizeBookCategoriesTrimsNames(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

@@ -48,11 +48,16 @@ type authUserResponse struct {
 const (
 	sessionCookieName = "z_reader_session"
 	sessionDuration   = 7 * 24 * time.Hour
+	minPasswordLength = 8
 )
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请输入密码")
 		return
 	}
@@ -83,6 +88,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
 		response.BadRequest(c, "请求内容无效")
 		return
 	}
@@ -93,8 +102,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		response.BadRequest(c, "用户名长度必须为 1 到 50 个字符")
 		return
 	}
-	if len(password) < 6 {
-		response.BadRequest(c, "密码至少需要 6 个字符")
+	if len(password) < minPasswordLength {
+		response.BadRequest(c, "密码至少需要 8 个字符")
 		return
 	}
 	if len(password) > 72 {

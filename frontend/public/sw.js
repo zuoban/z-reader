@@ -1,14 +1,13 @@
-const CACHE_NAME = 'z-reader-v3';
+const CACHE_NAME = 'z-reader-v4';
 const STATIC_ASSETS = [
   '/',
   '/login',
-  '/shelf',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
 
-// Network-First Strategy: Fetch from internet first, fallback to cached copy
+// Network-First Strategy: Fetch from network first, fallback to a public cache.
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
 
@@ -89,31 +88,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Uploaded books & covers: Cache-First
-  // Cached once loaded to enable offline reading and save cellular data.
-  if (url.pathname.startsWith('/uploads/')) {
-    event.respondWith(cacheFirst(request));
-    return;
-  }
-
-  // 3. Dynamic API Endpoints for Offline PWA support: Network-First
-  // - /api/verify: Cache verification so user isn't kicked to /login when offline!
-  // - /api/books: Cache the shelf list so user sees their books offline.
-  // - /api/progress: Cache user reading progress locally.
-  if (
-    url.pathname.startsWith('/api/verify') ||
-    url.pathname.startsWith('/api/books') ||
-    url.pathname.startsWith('/api/progress')
-  ) {
-    event.respondWith(networkFirst(request));
-    return;
-  }
-
-  // 4. Other Dynamic API requests (auth login, user management etc.): Do not cache
+  // 2. API responses contain account-specific data. Cache Storage is shared by
+  // every account in a browser profile, so authenticated responses must never
+  // be stored here. Progress already has a user-scoped local recovery path.
   if (url.pathname.startsWith('/api/')) {
     return;
   }
 
-  // 5. Default Next.js pages, page chunks, CSS, and images: Network-First
+  // 3. Default Next.js pages, page chunks, CSS, and public images: Network-First
   event.respondWith(networkFirst(request));
 });

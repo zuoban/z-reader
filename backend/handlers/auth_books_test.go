@@ -230,6 +230,7 @@ func TestAuthRegisterRejectsInvalidInput(t *testing.T) {
 		{name: "empty username", body: `{"username":"  ","password":"reader-password"}`},
 		{name: "long username", body: `{"username":"` + strings.Repeat("a", 51) + `","password":"reader-password"}`},
 		{name: "short password", body: `{"username":"reader","password":"short"}`},
+		{name: "seven character password", body: `{"username":"reader","password":"1234567"}`},
 	}
 
 	for _, tt := range tests {

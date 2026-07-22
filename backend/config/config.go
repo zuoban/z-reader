@@ -8,13 +8,13 @@ import (
 )
 
 type Config struct {
-	AppPassword    string
-	AppPort        string
-	UploadDir      string
-	DBPath         string
-	MaxUploadBytes int64
-	AllowedOrigins []string
-	TrustedProxies []string
+	AppPort             string
+	UploadDir           string
+	DBPath              string
+	MaxUploadBytes      int64
+	MaxRequestBodyBytes int64
+	AllowedOrigins      []string
+	TrustedProxies      []string
 }
 
 // getLocalIP 获取局域网 IP 地址
@@ -92,16 +92,14 @@ func getAllowedOrigins() []string {
 }
 
 func Load() (*Config, error) {
-	password := strings.TrimSpace(os.Getenv("APP_PASSWORD"))
-
 	return &Config{
-		AppPassword:    password,
-		AppPort:        getEnv("APP_PORT", "8080"),
-		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
-		DBPath:         getEnv("DB_PATH", "./data.db"),
-		MaxUploadBytes: getEnvInt64("MAX_UPLOAD_BYTES", 256*1024*1024),
-		AllowedOrigins: getAllowedOrigins(),
-		TrustedProxies: getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
+		AppPort:             getEnv("APP_PORT", "8080"),
+		UploadDir:           getEnv("UPLOAD_DIR", "./uploads"),
+		DBPath:              getEnv("DB_PATH", "./data.db"),
+		MaxUploadBytes:      getEnvInt64("MAX_UPLOAD_BYTES", 256*1024*1024),
+		MaxRequestBodyBytes: getEnvInt64("MAX_REQUEST_BODY_BYTES", 1024*1024),
+		AllowedOrigins:      getAllowedOrigins(),
+		TrustedProxies:      getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
 	}, nil
 }
 

@@ -30,6 +30,7 @@ import (
 	"z-reader/backend/models"
 	"z-reader/backend/response"
 	"z-reader/backend/storage"
+	"z-reader/backend/telemetry"
 )
 
 var supportedBookFormats = map[string]string{
@@ -292,7 +293,9 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 	var coverData []byte
 	var coverContentType string
+	previewStartedAt := time.Now()
 	meta, extractedCover, extractedCoverContentType, err := extractBookPreview(filepath, format)
+	telemetry.Observe("book_preview", time.Since(previewStartedAt), 1)
 	if err == nil {
 		book.Title = meta.Title
 		book.Author = meta.Author
@@ -1509,7 +1512,9 @@ func (h *BooksHandler) attachCoverThumbnail(book *models.Book) {
 	if book == nil || book.CoverPath == "" {
 		return
 	}
+	startedAt := time.Now()
 	thumbnailPath, err := h.createCoverThumbnail(book.ID, book.CoverPath)
+	telemetry.Observe("cover_thumbnail", time.Since(startedAt), 1)
 	if err != nil {
 		logger.Warn("Failed to create cover thumbnail",
 			slog.String("book_id", book.ID),

@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"z-reader/backend/models"
+	"z-reader/backend/telemetry"
 )
 
 var (
@@ -1273,12 +1274,17 @@ func (db *DB) ListBooksBySortedCursor(userID, cursor string, limit int, sortKey 
 // shelf order. Search values are stored separately from full book records so a
 // query does not need to deserialize the entire library before finding matches.
 func (db *DB) SearchBooks(userID, query, cursor string, limit int, sortKey string) ([]models.Book, string, error) {
+	startedAt := time.Now()
+	candidateCount := 0
+	defer func() {
+		telemetry.Observe("book_search", time.Since(startedAt), candidateCount)
+	}()
 	query = normalizeBookSearchText(query)
 	if userID == "" || query == "" || limit <= 0 {
 		return []models.Book{}, "", nil
 	}
 	if grams := bookSearchGrams(query); len(grams) > 0 {
-		return db.searchBooksByGrams(userID, query, grams, cursor, limit, sortKey)
+		return db.searchBooksByGrams(userID, query, grams, cursor, limit, sortKey, &candidateCount)
 	}
 
 	sortKey = NormalizeBookSort(sortKey)
@@ -1305,6 +1311,7 @@ func (db *DB) SearchBooks(userID, query, cursor string, limit int, sortKey strin
 
 		indexCursor := indexBucket.Cursor()
 		for key, bookID := indexCursor.Seek(start); key != nil && bytes.HasPrefix(key, prefix); key, bookID = indexCursor.Next() {
+			candidateCount++
 			if string(bookID) == cursor {
 				continue
 			}
@@ -1349,6 +1356,7 @@ func (db *DB) searchBooksByGrams(
 	cursor string,
 	limit int,
 	sortKey string,
+	candidateCount *int,
 ) ([]models.Book, string, error) {
 	sortKey = NormalizeBookSort(sortKey)
 	candidates := make([]searchBookCandidate, 0, limit+1)
@@ -1372,6 +1380,9 @@ func (db *DB) searchBooksByGrams(
 			if len(candidateIDs) == 0 {
 				return nil
 			}
+		}
+		if candidateCount != nil {
+			*candidateCount = len(candidateIDs)
 		}
 
 		var start []byte

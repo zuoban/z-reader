@@ -122,6 +122,12 @@ npm run dev
 # 后端测试
 cd backend && go test ./...
 
+# 书库性能基准（先运行 1,000 本书规模）
+cd backend && go test ./storage -run '^$' -bench 'BenchmarkLibrary.*1000$' -benchtime=3x
+
+# 10,000 本书规模基准（耗时更长，建议在 CI 或独立机器执行）
+cd backend && go test ./storage -run '^$' -bench 'BenchmarkLibrary.*10000$' -benchtime=3x
+
 # 前端检查
 cd frontend && npm run lint
 cd frontend && npm run build

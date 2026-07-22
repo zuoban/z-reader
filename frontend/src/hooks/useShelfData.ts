@@ -10,6 +10,7 @@ const STORAGE_KEY = 'z-reader-shelf-sort';
 const BOOK_PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 250;
 const MAX_CONCURRENT_UPLOADS = 3;
+const BOOK_PROCESSING_POLL_MS = 1500;
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
 export interface UploadProgress {
@@ -269,6 +270,42 @@ export function useShelfData(isAuthenticated: boolean) {
 
     return () => window.clearTimeout(timeoutId);
   }, [isAuthenticated, searchQuery, sortBy]);
+
+  const pendingBookIDs = useMemo(
+    () => books
+      .filter((book) => book.processing_state === 'pending')
+      .map((book) => book.id)
+      .join(','),
+    [books]
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || !pendingBookIDs) return;
+
+    let stopped = false;
+    let timeoutId: number | undefined;
+    const refreshProcessedBooks = async () => {
+      const ids = pendingBookIDs.split(',').filter(Boolean);
+      try {
+        const updatedBooks = await Promise.all(ids.map((id) => api.getBook(id)));
+        if (stopped) return;
+        const updatedByID = new Map(updatedBooks.map((book) => [book.id, book]));
+        setBooks((current) => current.map((book) => updatedByID.get(book.id) ?? book));
+      } catch {
+        // Keep the current shelf usable and retry while the jobs are pending.
+      } finally {
+        if (!stopped) {
+          timeoutId = window.setTimeout(refreshProcessedBooks, BOOK_PROCESSING_POLL_MS);
+        }
+      }
+    };
+
+    timeoutId = window.setTimeout(refreshProcessedBooks, BOOK_PROCESSING_POLL_MS);
+    return () => {
+      stopped = true;
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [isAuthenticated, pendingBookIDs]);
 
   const categories = useMemo(() => {
     if (!librarySummary) return deriveCategories(books);

@@ -58,8 +58,9 @@ const (
 )
 
 type BooksHandler struct {
-	cfg *config.Config
-	db  *storage.DB
+	cfg       *config.Config
+	db        *storage.DB
+	processor *bookProcessor
 }
 
 type bookCursorPageResponse struct {
@@ -68,7 +69,9 @@ type bookCursorPageResponse struct {
 }
 
 func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
-	return &BooksHandler{cfg: cfg, db: db}
+	handler := &BooksHandler{cfg: cfg, db: db}
+	handler.processor = newBookProcessor(handler)
+	return handler
 }
 
 func (h *BooksHandler) List(c *gin.Context) {
@@ -256,27 +259,25 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 	bookID := uuid.New().String()
 	filename := bookID + ext
-	filepath := filepath.Join(h.cfg.UploadDir, filename)
+	bookPath := filepath.Join(h.cfg.UploadDir, filename)
 
-	if err := saveUploadedBookFile(file, format, filepath, maxExpandedBytes); err != nil {
+	writeStartedAt := time.Now()
+	contentHash, err := saveUploadedBookFile(file, format, bookPath, maxExpandedBytes)
+	telemetry.Observe("book_upload_write", time.Since(writeStartedAt), 1)
+	if err != nil {
+		removeFileIfExists(bookPath)
 		response.InternalError(c, "保存文件失败")
 		return
 	}
 
-	contentHash, err := hashFile(filepath)
-	if err != nil {
-		removeFileIfExists(filepath)
-		response.InternalError(c, "读取上传文件失败")
-		return
-	}
 	existing, err := h.findDuplicateBook(userID, contentHash)
 	if err != nil {
-		removeFileIfExists(filepath)
+		removeFileIfExists(bookPath)
 		response.InternalError(c, "检查重复图书失败")
 		return
 	}
 	if existing != nil {
-		removeFileIfExists(filepath)
+		removeFileIfExists(bookPath)
 		respondDuplicateBook(c, existing)
 		return
 	}
@@ -290,53 +291,15 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		ContentHash: contentHash,
 		CreatedAt:   time.Now(),
 	}
-
-	var coverData []byte
-	var coverContentType string
-	previewStartedAt := time.Now()
-	meta, extractedCover, extractedCoverContentType, err := extractBookPreview(filepath, format)
-	telemetry.Observe("book_preview", time.Since(previewStartedAt), 1)
-	if err == nil {
-		book.Title = meta.Title
-		book.Author = meta.Author
-		coverData = extractedCover
-		coverContentType = extractedCoverContentType
+	book.Title = strings.TrimSuffix(file.Filename, ext)
+	if format == "epub" {
+		book.ProcessingState = models.BookProcessingPending
 	} else {
-		logger.Warn("Failed to extract book metadata",
-			slog.String("path", filepath),
-			slog.String("format", format),
-			slog.Any("error", err),
-		)
-	}
-
-	if book.Title == "" {
-		book.Title = strings.TrimSuffix(file.Filename, ext)
-	}
-	if len(coverData) > 0 {
-		coverFilename, coverErr := h.writeExtractedCover(book.ID, coverData, coverContentType)
-		if coverErr != nil {
-			logger.Warn("Failed to cache EPUB cover during upload",
-				slog.String("book_id", book.ID),
-				slog.Any("error", coverErr),
-			)
-		} else {
-			book.CoverPath = coverFilename
-			h.attachCoverThumbnail(book)
-		}
+		book.ProcessingState = models.BookProcessingReady
 	}
 
 	if err := h.db.CreateBook(book); err != nil {
-		os.Remove(filepath)
-		if book.CoverPath != "" {
-			if coverPath, pathErr := resolveUploadPath(h.cfg.UploadDir, book.CoverPath); pathErr == nil {
-				removeFileIfExists(coverPath)
-			}
-		}
-		if book.CoverThumbPath != "" {
-			if thumbnailPath, pathErr := resolveUploadPath(h.cfg.UploadDir, book.CoverThumbPath); pathErr == nil {
-				removeFileIfExists(thumbnailPath)
-			}
-		}
+		removeFileIfExists(bookPath)
 		if err == storage.ErrDuplicateBookContent {
 			existing, findErr := h.findDuplicateBook(userID, contentHash)
 			if findErr == nil && existing != nil {
@@ -351,6 +314,9 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, book)
+	if format == "epub" {
+		h.enqueueBookProcessing(book)
+	}
 }
 
 func (h *BooksHandler) Delete(c *gin.Context) {
@@ -668,20 +634,6 @@ func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, e
 	return buf[:n], nil
 }
 
-func hashUploadedFile(file *multipart.FileHeader) (string, error) {
-	src, err := file.Open()
-	if err != nil {
-		return "", err
-	}
-	defer src.Close()
-
-	hash := sha256.New()
-	if _, err := io.Copy(hash, src); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
 func hashFile(path string) (string, error) {
 	src, err := os.Open(path)
 	if err != nil {
@@ -696,55 +648,62 @@ func hashFile(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func saveUploadedBookFile(file *multipart.FileHeader, format string, path string, maxExpandedBytes int64) error {
+func saveUploadedBookFile(file *multipart.FileHeader, format string, path string, maxExpandedBytes int64) (string, error) {
 	if format == "epub" {
-		if ok, err := saveNormalizedEPUBFile(file, path, maxExpandedBytes); ok || err != nil {
-			return err
+		if ok, contentHash, err := saveNormalizedEPUBFile(file, path, maxExpandedBytes); ok || err != nil {
+			return contentHash, err
 		}
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer src.Close()
 
 	dst, err := os.Create(path)
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer dst.Close()
 
-	_, err = io.Copy(dst, src)
-	return err
+	hash := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(dst, hash), src); err != nil {
+		_ = dst.Close()
+		return "", err
+	}
+	if err := dst.Close(); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func saveNormalizedEPUBFile(file *multipart.FileHeader, path string, maxExpandedBytes int64) (bool, error) {
+func saveNormalizedEPUBFile(file *multipart.FileHeader, path string, maxExpandedBytes int64) (bool, string, error) {
 	src, err := file.Open()
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 	defer src.Close()
 
 	reader, err := zip.NewReader(src, file.Size)
 	if err != nil {
-		return false, nil
+		return false, "", nil
 	}
 
 	root, ok := epubPackageRoot(reader)
 	if !ok {
-		return false, nil
+		return false, "", nil
 	}
 	if err := validateEPUBArchive(reader, maxExpandedBytes); err != nil {
-		return true, err
+		return true, "", err
 	}
 
-	if err := writeNormalizedEPUBZip(reader, root, path, maxExpandedBytes); err != nil {
+	contentHash, err := writeNormalizedEPUBZip(reader, root, path, maxExpandedBytes)
+	if err != nil {
 		removeFileIfExists(path)
-		return true, err
+		return true, "", err
 	}
 
-	return true, nil
+	return true, contentHash, nil
 }
 
 func normalizeStoredEPUBFile(path string) (bool, error) {
@@ -763,7 +722,7 @@ func normalizeStoredEPUBFile(path string) (bool, error) {
 	}
 
 	tmpPath := path + ".normalized"
-	if err := writeNormalizedEPUBZip(&reader.Reader, root, tmpPath, maxEPUBExpandedBytes); err != nil {
+	if _, err := writeNormalizedEPUBZip(&reader.Reader, root, tmpPath, maxEPUBExpandedBytes); err != nil {
 		removeFileIfExists(tmpPath)
 		return false, err
 	}
@@ -775,14 +734,24 @@ func normalizeStoredEPUBFile(path string) (bool, error) {
 	return true, nil
 }
 
-func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string, maxExpandedBytes int64) error {
+func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string, maxExpandedBytes int64) (contentHash string, err error) {
 	dst, err := os.Create(path)
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer dst.Close()
+	defer func() {
+		if closeErr := dst.Close(); err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
 
-	writer := zip.NewWriter(dst)
+	hash := sha256.New()
+	writer := zip.NewWriter(io.MultiWriter(dst, hash))
+	defer func() {
+		if err != nil {
+			_ = writer.Close()
+		}
+	}()
 	var copiedBytes int64
 	for _, entry := range reader.File {
 		normalizedName, ok := stripEPUBPackageRoot(entry.Name, root)
@@ -801,34 +770,37 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string, maxExp
 
 		entryReader, err := entry.Open()
 		if err != nil {
-			return err
+			return "", err
 		}
 		target, err := writer.CreateHeader(&header)
 		if err != nil {
 			entryReader.Close()
-			return err
+			return "", err
 		}
 		remaining := maxExpandedBytes - copiedBytes
 		if remaining < 0 {
 			entryReader.Close()
-			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
+			return "", fmt.Errorf("EPUB 解压后的内容超过大小限制")
 		}
 		copied, err := io.Copy(target, io.LimitReader(entryReader, remaining+1))
 		if err != nil {
 			entryReader.Close()
-			return err
+			return "", err
 		}
 		if copied > remaining {
 			entryReader.Close()
-			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
+			return "", fmt.Errorf("EPUB 解压后的内容超过大小限制")
 		}
 		copiedBytes += copied
 		if err := entryReader.Close(); err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return writer.Close()
+	if err := writer.Close(); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*models.Book, error) {

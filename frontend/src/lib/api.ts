@@ -19,6 +19,7 @@ export interface Book {
   content_hash?: string;
   cover_path?: string;
   cover_thumb_path?: string;
+	processing_state?: 'pending' | 'ready' | 'failed';
   category?: string;
   created_at: string;
   last_read_at?: string;

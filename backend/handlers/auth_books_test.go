@@ -42,6 +42,14 @@ func openHandlerTestDB(t *testing.T) *storage.DB {
 	return db
 }
 
+func newBooksHandler(t *testing.T, cfg *config.Config, db *storage.DB) *BooksHandler {
+	t.Helper()
+
+	handler := NewBooksHandler(cfg, db)
+	t.Cleanup(handler.Close)
+	return handler
+}
+
 func TestAuthLogoutAcceptsBearerToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -415,7 +423,7 @@ func TestBooksListIncludesLastReadAt(t *testing.T) {
 		t.Fatalf("failed to save progress: %v", err)
 	}
 
-	handler := NewBooksHandler(&config.Config{}, db)
+	handler := newBooksHandler(t, &config.Config{}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Set("userID", userID)
@@ -470,7 +478,7 @@ func TestBooksListReturnsCursorPageWhenRequested(t *testing.T) {
 		}
 	}
 
-	handler := NewBooksHandler(&config.Config{}, db)
+	handler := newBooksHandler(t, &config.Config{}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Set("userID", userID)
@@ -528,7 +536,7 @@ func TestBooksDeleteRemovesCoverAndProgress(t *testing.T) {
 		t.Fatalf("failed to write cover file: %v", err)
 	}
 
-	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Set("userID", userID)
@@ -589,7 +597,7 @@ func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
 		t.Fatalf("failed to write book file: %v", err)
 	}
 
-	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Set("userID", userID)
@@ -744,7 +752,7 @@ func TestBooksUploadRejectsDuplicateContent(t *testing.T) {
 
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
-	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	userID := "user-a"
 	content := validEPUBBytes(t)
 
@@ -795,7 +803,7 @@ func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
 
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
-	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	userID := "user-a"
 	content := validEPUBBytes(t)
 	legacyBook := &models.Book{
@@ -839,7 +847,7 @@ func TestBooksUploadNormalizesMacOSPackagedEPUB(t *testing.T) {
 
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
-	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	userID := "user-a"
 
 	recorder := httptest.NewRecorder()
@@ -919,7 +927,7 @@ func TestBooksUploadRejectsOversizedRequestBody(t *testing.T) {
 
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
-	handler := NewBooksHandler(&config.Config{
+	handler := newBooksHandler(t, &config.Config{
 		UploadDir:      uploadDir,
 		MaxUploadBytes: 8,
 	}, db)
@@ -1018,7 +1026,7 @@ func TestCreateCoverThumbnailDownscalesJPEG(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, openHandlerTestDB(t))
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, openHandlerTestDB(t))
 	thumbnailFilename, err := handler.createCoverThumbnail("book-a", "book-a.cover.jpg")
 	if err != nil {
 		t.Fatalf("createCoverThumbnail returned error: %v", err)

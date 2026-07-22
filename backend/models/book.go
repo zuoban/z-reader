@@ -6,71 +6,75 @@ import (
 )
 
 type Book struct {
-	ID             string     `json:"id"`
-	UserID         string     `json:"user_id"`
-	Title          string     `json:"title"`
-	Author         string     `json:"author"`
-	Filename       string     `json:"filename"`
-	Format         string     `json:"format"`
-	Size           int64      `json:"size"`
-	ContentHash    string     `json:"content_hash,omitempty"`
-	CoverPath      string     `json:"cover_path,omitempty"`
-	CoverThumbPath string     `json:"cover_thumb_path,omitempty"`
-	Category       *string    `json:"category,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	LastReadAt     *time.Time `json:"last_read_at,omitempty"`
+	ID              string     `json:"id"`
+	UserID          string     `json:"user_id"`
+	Title           string     `json:"title"`
+	Author          string     `json:"author"`
+	Filename        string     `json:"filename"`
+	Format          string     `json:"format"`
+	Size            int64      `json:"size"`
+	ContentHash     string     `json:"content_hash,omitempty"`
+	CoverPath       string     `json:"cover_path,omitempty"`
+	CoverThumbPath  string     `json:"cover_thumb_path,omitempty"`
+	ProcessingState string     `json:"processing_state,omitempty"`
+	Category        *string    `json:"category,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	LastReadAt      *time.Time `json:"last_read_at,omitempty"`
 }
 
 // MarshalDB serializes Book for database storage (includes all fields).
 func (b Book) MarshalDB() ([]byte, error) {
 	type dbBook struct {
-		ID             string     `json:"id"`
-		UserID         string     `json:"user_id"`
-		Title          string     `json:"title"`
-		Author         string     `json:"author"`
-		Filename       string     `json:"filename"`
-		Format         string     `json:"format"`
-		Size           int64      `json:"size"`
-		ContentHash    string     `json:"content_hash,omitempty"`
-		CoverPath      string     `json:"cover_path,omitempty"`
-		CoverThumbPath string     `json:"cover_thumb_path,omitempty"`
-		Category       *string    `json:"category,omitempty"`
-		CreatedAt      time.Time  `json:"created_at"`
-		LastReadAt     *time.Time `json:"last_read_at,omitempty"`
+		ID              string     `json:"id"`
+		UserID          string     `json:"user_id"`
+		Title           string     `json:"title"`
+		Author          string     `json:"author"`
+		Filename        string     `json:"filename"`
+		Format          string     `json:"format"`
+		Size            int64      `json:"size"`
+		ContentHash     string     `json:"content_hash,omitempty"`
+		CoverPath       string     `json:"cover_path,omitempty"`
+		CoverThumbPath  string     `json:"cover_thumb_path,omitempty"`
+		ProcessingState string     `json:"processing_state,omitempty"`
+		Category        *string    `json:"category,omitempty"`
+		CreatedAt       time.Time  `json:"created_at"`
+		LastReadAt      *time.Time `json:"last_read_at,omitempty"`
 	}
 	return json.Marshal(dbBook{
-		ID:             b.ID,
-		UserID:         b.UserID,
-		Title:          b.Title,
-		Author:         b.Author,
-		Filename:       b.Filename,
-		Format:         b.Format,
-		Size:           b.Size,
-		ContentHash:    b.ContentHash,
-		CoverPath:      b.CoverPath,
-		CoverThumbPath: b.CoverThumbPath,
-		Category:       b.Category,
-		CreatedAt:      b.CreatedAt,
-		LastReadAt:     b.LastReadAt,
+		ID:              b.ID,
+		UserID:          b.UserID,
+		Title:           b.Title,
+		Author:          b.Author,
+		Filename:        b.Filename,
+		Format:          b.Format,
+		Size:            b.Size,
+		ContentHash:     b.ContentHash,
+		CoverPath:       b.CoverPath,
+		CoverThumbPath:  b.CoverThumbPath,
+		ProcessingState: b.ProcessingState,
+		Category:        b.Category,
+		CreatedAt:       b.CreatedAt,
+		LastReadAt:      b.LastReadAt,
 	})
 }
 
 // UnmarshalDB deserializes Book from database storage.
 func (b *Book) UnmarshalDB(data []byte) error {
 	type dbBook struct {
-		ID             string     `json:"id"`
-		UserID         string     `json:"user_id"`
-		Title          string     `json:"title"`
-		Author         string     `json:"author"`
-		Filename       string     `json:"filename"`
-		Format         string     `json:"format"`
-		Size           int64      `json:"size"`
-		ContentHash    string     `json:"content_hash,omitempty"`
-		CoverPath      string     `json:"cover_path,omitempty"`
-		CoverThumbPath string     `json:"cover_thumb_path,omitempty"`
-		Category       *string    `json:"category,omitempty"`
-		CreatedAt      time.Time  `json:"created_at"`
-		LastReadAt     *time.Time `json:"last_read_at,omitempty"`
+		ID              string     `json:"id"`
+		UserID          string     `json:"user_id"`
+		Title           string     `json:"title"`
+		Author          string     `json:"author"`
+		Filename        string     `json:"filename"`
+		Format          string     `json:"format"`
+		Size            int64      `json:"size"`
+		ContentHash     string     `json:"content_hash,omitempty"`
+		CoverPath       string     `json:"cover_path,omitempty"`
+		CoverThumbPath  string     `json:"cover_thumb_path,omitempty"`
+		ProcessingState string     `json:"processing_state,omitempty"`
+		Category        *string    `json:"category,omitempty"`
+		CreatedAt       time.Time  `json:"created_at"`
+		LastReadAt      *time.Time `json:"last_read_at,omitempty"`
 	}
 	var db dbBook
 	if err := json.Unmarshal(data, &db); err != nil {
@@ -86,11 +90,18 @@ func (b *Book) UnmarshalDB(data []byte) error {
 	b.ContentHash = db.ContentHash
 	b.CoverPath = db.CoverPath
 	b.CoverThumbPath = db.CoverThumbPath
+	b.ProcessingState = db.ProcessingState
 	b.Category = db.Category
 	b.CreatedAt = db.CreatedAt
 	b.LastReadAt = db.LastReadAt
 	return nil
 }
+
+const (
+	BookProcessingPending = "pending"
+	BookProcessingReady   = "ready"
+	BookProcessingFailed  = "failed"
+)
 
 type Progress struct {
 	BookID     string    `json:"book_id"`

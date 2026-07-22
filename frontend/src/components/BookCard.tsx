@@ -293,6 +293,11 @@ export function BookCard({
             categoryLabel={categoryLabel || formatLabel}
             index={index}
           />
+          {book.processing_state === 'pending' && (
+            <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-[0.65rem] font-medium text-white backdrop-blur-sm">
+              正在生成封面
+            </span>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col p-3 sm:p-3.5">

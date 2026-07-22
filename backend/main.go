@@ -188,6 +188,7 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("Failed to shut down server gracefully", "error", err)
 	}
+	booksHandler.Close()
 	wg.Wait()
 	db.Close()
 	logger.Info("Server stopped")

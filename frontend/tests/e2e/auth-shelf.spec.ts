@@ -8,11 +8,11 @@ const user = {
 };
 
 async function mockShelfData(page: import('@playwright/test').Page) {
-  await page.route('**/api/books', async (route) => {
+  await page.route(/\/api\/books(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([]),
+      body: JSON.stringify({ books: [] }),
     });
   });
 

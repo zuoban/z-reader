@@ -6,7 +6,14 @@ import {
   isAbortLikeError,
   normalizeRequestError,
 } from '@/lib/config';
-import { clearOfflineBooks, getOfflineBook, removeOfflineBook } from '@/lib/offline-books';
+import {
+  appendPartialBookDownload,
+  clearOfflineBooks,
+  clearPartialBookDownload,
+  getOfflineBook,
+  getPartialBookDownload,
+  removeOfflineBook,
+} from '@/lib/offline-books';
 
 export interface Book {
   id: string;
@@ -23,6 +30,18 @@ export interface Book {
   category?: string;
   created_at: string;
   last_read_at?: string;
+}
+
+export interface BookDownloadProgress {
+  downloadedBytes: number;
+  totalBytes: number | null;
+  percentage: number | null;
+  bytesPerSecond: number | null;
+  resumed: boolean;
+}
+
+interface FetchBookOptions {
+  onProgress?: (progress: BookDownloadProgress) => void;
 }
 
 export interface BookPage {
@@ -199,7 +218,11 @@ async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T>
 }
 
 /** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
-async function authedFetch(path: string, options: RequestInit = {}, timeout?: number): Promise<Response> {
+async function authedFetch(
+  path: string,
+  options: RequestInit = {},
+  timeout: number | null = DEFAULT_TIMEOUT
+): Promise<Response> {
   const headers: HeadersInit = {
     ...getAuthHeaders(),
     ...options.headers,
@@ -209,13 +232,13 @@ async function authedFetch(path: string, options: RequestInit = {}, timeout?: nu
   const apiBases = getApiBaseCandidates();
 
   for (const base of apiBases) {
-    const { controller, timeoutId } = createAbortController(timeout);
+    const abortRequest = timeout === null ? null : createAbortController(timeout);
     try {
       const res = await fetch(`${base}${path}`, {
         ...options,
         credentials: options.credentials ?? 'include',
         headers,
-        signal: controller.signal,
+        signal: abortRequest?.controller.signal,
       });
       handleUnauthorized(res);
       if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
@@ -229,11 +252,177 @@ async function authedFetch(path: string, options: RequestInit = {}, timeout?: nu
         throw normalizeRequestError(error);
       }
     } finally {
-      clearTimeout(timeoutId);
+      if (abortRequest) clearTimeout(abortRequest.timeoutId);
     }
   }
 
   throw normalizeRequestError(lastError);
+}
+
+function parseContentRange(value: string | null): { start: number; totalBytes: number | null } | null {
+  if (!value) return null;
+  const match = /^bytes\s+(\d+)-\d+\/(\d+|\*)$/i.exec(value.trim());
+  if (!match) return null;
+  const start = Number(match[1]);
+  const totalBytes = match[2] === '*' ? null : Number(match[2]);
+  if (!Number.isFinite(start) || (totalBytes !== null && !Number.isFinite(totalBytes))) {
+    return null;
+  }
+  return { start, totalBytes };
+}
+
+function contentLength(response: Response): number | null {
+  const value = Number(response.headers.get('Content-Length'));
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function createDownloadProgressReporter(
+  onProgress: FetchBookOptions['onProgress'],
+  initialBytes: number,
+  totalBytes: number | null,
+  resumed: boolean
+) {
+  const startedAt = performance.now();
+  let lastReportedAt = 0;
+
+  return (downloadedBytes: number, force = false) => {
+    if (!onProgress) return;
+    const now = performance.now();
+    if (!force && now - lastReportedAt < 160) return;
+    lastReportedAt = now;
+    const elapsedMs = now - startedAt;
+    const transferredBytes = Math.max(0, downloadedBytes - initialBytes);
+    const bytesPerSecond = elapsedMs > 0 && transferredBytes > 0
+      ? (transferredBytes * 1000) / elapsedMs
+      : null;
+    const percentage = totalBytes && totalBytes > 0
+      ? Math.min(100, (downloadedBytes / totalBytes) * 100)
+      : null;
+    onProgress({
+      downloadedBytes,
+      totalBytes,
+      percentage,
+      bytesPerSecond,
+      resumed,
+    });
+  };
+}
+
+async function getBookFileResponse(id: string, startAt: number): Promise<Response> {
+  return authedFetch('/api/books/' + id + '/file', {
+    credentials: 'include',
+    headers: startAt > 0 ? { Range: `bytes=${startAt}-` } : undefined,
+  }, null);
+}
+
+async function downloadBookFile(id: string, options: FetchBookOptions = {}): Promise<Blob> {
+  const userId = getCurrentUser()?.id ?? '';
+  let partialDownload = await getPartialBookDownload(userId, id);
+  let downloadedBytes = partialDownload?.downloadedBytes ?? 0;
+  let response = await getBookFileResponse(id, downloadedBytes);
+
+  if (response.status === 416 && downloadedBytes > 0) {
+    await clearPartialBookDownload(userId, id);
+    partialDownload = null;
+    downloadedBytes = 0;
+    response = await getBookFileResponse(id, 0);
+  }
+
+  const range = parseContentRange(response.headers.get('Content-Range'));
+  const canAppend = downloadedBytes > 0 &&
+    response.status === 206 &&
+    range?.start === downloadedBytes;
+
+  if (downloadedBytes > 0 && !canAppend) {
+    await clearPartialBookDownload(userId, id);
+    partialDownload = null;
+    downloadedBytes = 0;
+
+    if (response.status !== 200) {
+      response = await getBookFileResponse(id, 0);
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`加载书籍失败：${response.status} ${response.statusText}`);
+  }
+
+  const responseLength = contentLength(response);
+  const totalBytes = range?.totalBytes ?? (
+    responseLength === null
+      ? partialDownload?.totalBytes ?? null
+      : downloadedBytes + responseLength
+  );
+  const contentType = response.headers.get('Content-Type') ||
+    partialDownload?.contentType ||
+    'application/octet-stream';
+  const initialBytes = downloadedBytes;
+  const reportProgress = createDownloadProgressReporter(
+    options.onProgress,
+    initialBytes,
+    totalBytes,
+    initialBytes > 0
+  );
+  const parts = partialDownload?.chunks ?? [];
+  let canResume = Boolean(userId);
+  let pendingChunks: Uint8Array[] = [];
+  let pendingBytes = 0;
+
+  const persistPendingChunks = async () => {
+    if (pendingBytes === 0) return;
+    const chunk = new Blob(pendingChunks, { type: contentType });
+    pendingChunks = [];
+    pendingBytes = 0;
+    parts.push(chunk);
+    if (!canResume) return;
+    try {
+      await appendPartialBookDownload(userId, id, chunk, totalBytes, contentType);
+    } catch {
+      // Reading remains available if the browser declines temporary storage.
+      canResume = false;
+      await clearPartialBookDownload(userId, id);
+    }
+  };
+
+  reportProgress(downloadedBytes, true);
+  try {
+    if (!response.body) {
+      const file = await response.blob();
+      if (file.size === 0) throw new Error('书籍文件为空');
+      pendingChunks.push(new Uint8Array(await file.arrayBuffer()));
+      pendingBytes += file.size;
+      downloadedBytes += file.size;
+      await persistPendingChunks();
+    } else {
+      const reader = response.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value?.byteLength) continue;
+        pendingChunks.push(value);
+        pendingBytes += value.byteLength;
+        downloadedBytes += value.byteLength;
+        reportProgress(downloadedBytes);
+
+        if (pendingBytes >= 1024 * 1024) {
+          await persistPendingChunks();
+        }
+      }
+      await persistPendingChunks();
+    }
+
+    if (downloadedBytes === 0) throw new Error('书籍文件为空');
+    if (totalBytes !== null && downloadedBytes < totalBytes) {
+      throw new Error('书籍下载未完成，请重试以继续下载');
+    }
+
+    reportProgress(downloadedBytes, true);
+    await clearPartialBookDownload(userId, id);
+    return new Blob(parts, { type: contentType });
+  } catch (error) {
+    // Completed chunks remain in the per-account cache for a later Range request.
+    throw error;
+  }
 }
 
 function shouldRetryWithNextApiBase(
@@ -395,32 +584,22 @@ export const api = {
     return `${API_BASE}/api/books/${id}/cover${query}`;
   },
 
-  fetchBook: async (id: string): Promise<Blob> => {
+  fetchBook: async (id: string, options: FetchBookOptions = {}): Promise<Blob> => {
     try {
-      const res = await authedFetch(`/api/books/${id}/file`, {
-        credentials: 'include',
-      }, DEFAULT_TIMEOUT);
-      if (!res.ok) {
-        throw new Error(`加载书籍失败：${res.status} ${res.statusText}`);
-      }
-      const blob = await res.blob();
-      if (!blob || blob.size === 0) {
-        throw new Error('书籍文件为空');
-      }
-      return blob;
+      return await downloadBookFile(id, options);
     } catch (error) {
       console.error('Failed to fetch book:', error);
       throw error;
     }
   },
 
-  createBookFile: async (id: string): Promise<File | Blob> => {
+  createBookFile: async (id: string, options: FetchBookOptions = {}): Promise<File | Blob> => {
     let book: Book;
     let blob: Blob;
     try {
       [book, blob] = await Promise.all([
         api.getBook(id),
-        api.fetchBook(id),
+        api.fetchBook(id, options),
       ]);
     } catch (error) {
       const offlineBook = await getOfflineBook(getCurrentUser()?.id ?? '', id);

@@ -31,7 +31,7 @@ import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { TTSControls } from "@/components/TTSControls";
 import { api } from "@/lib/api";
 import { saveOfflineBook } from "@/lib/offline-books";
-import type { Bookmark } from "@/lib/api";
+import type { BookDownloadProgress, Bookmark } from "@/lib/api";
 import { withOpacity } from "@/lib/reader-ui";
 import { toast } from "sonner";
 
@@ -47,6 +47,17 @@ interface ImageZoomState {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function formatDownloadBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+function formatOfflineDownloadLabel(progress: BookDownloadProgress | null): string | undefined {
+  if (!progress) return undefined;
+  if (progress.percentage !== null) return `保存 ${Math.floor(progress.percentage)}%`;
+  return `保存 ${formatDownloadBytes(progress.downloadedBytes)}`;
 }
 
 function normalizeBookmarkExcerpt(text: string) {
@@ -125,6 +136,8 @@ export default function ReadPage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
   const [isSavingOffline, setIsSavingOffline] = useState(false);
+  const [offlineDownloadProgress, setOfflineDownloadProgress] =
+    useState<BookDownloadProgress | null>(null);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
   const [zoomedImage, setZoomedImage] = useState<{ src: string; alt: string } | null>(null);
@@ -527,16 +540,18 @@ export default function ReadPage() {
     if (!user || isSavingOffline) return;
 
     setIsSavingOffline(true);
+    setOfflineDownloadProgress(null);
     try {
       const [book, file] = await Promise.all([
         api.getBook(bookId),
-        api.fetchBook(bookId),
+        api.fetchBook(bookId, { onProgress: setOfflineDownloadProgress }),
       ]);
       await saveOfflineBook(user.id, book, file);
       toast.success("图书已保存到此设备，可在断网时继续阅读");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "保存离线图书失败");
     } finally {
+      setOfflineDownloadProgress(null);
       setIsSavingOffline(false);
     }
   }, [bookId, isSavingOffline, user]);
@@ -675,6 +690,7 @@ export default function ReadPage() {
           onGoToBookmark={handleGoToBookmark}
           onDeleteBookmark={handleDeleteBookmark}
           isSavingOffline={isSavingOffline}
+          offlineDownloadLabel={formatOfflineDownloadLabel(offlineDownloadProgress)}
           onSaveOffline={handleSaveOffline}
           tocListRef={tocListRef}
           currentChapter={currentChapter}

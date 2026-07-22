@@ -448,6 +448,7 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
 		return
 	}
+	c.Header("Accept-Ranges", "bytes")
 	c.File(filePath)
 }
 

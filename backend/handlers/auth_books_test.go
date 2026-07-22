@@ -618,6 +618,52 @@ func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
 	}
 }
 
+func TestBooksGetFileServesRequestedByteRange(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	uploadDir := t.TempDir()
+	db := openHandlerTestDB(t)
+	userID := "user-a"
+	book := &models.Book{
+		ID:        "book-range",
+		UserID:    userID,
+		Title:     "Range Book",
+		Filename:  "book-range.epub",
+		Format:    "epub",
+		Size:      10,
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := db.SaveBook(book); err != nil {
+		t.Fatalf("failed to save book: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(uploadDir, book.Filename), []byte("0123456789"), 0600); err != nil {
+		t.Fatalf("failed to write book file: %v", err)
+	}
+
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
+	ctx.Request.Header.Set("Range", "bytes=3-")
+
+	handler.GetFile(ctx)
+
+	if recorder.Code != http.StatusPartialContent {
+		t.Fatalf("expected status 206, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if got := recorder.Body.String(); got != "3456789" {
+		t.Fatalf("expected requested range body, got %q", got)
+	}
+	if got := recorder.Header().Get("Content-Range"); got != "bytes 3-9/10" {
+		t.Fatalf("expected Content-Range header, got %q", got)
+	}
+	if got := recorder.Header().Get("Accept-Ranges"); got != "bytes" {
+		t.Fatalf("expected Accept-Ranges header, got %q", got)
+	}
+}
+
 func TestResolveUploadPathRejectsTraversal(t *testing.T) {
 	uploadDir := t.TempDir()
 	if _, err := resolveUploadPath(uploadDir, "../secret.epub"); err == nil {

@@ -59,6 +59,11 @@ function normalizeMetadataText(value: unknown): string {
   return "";
 }
 
+function formatDownloadBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
 function getReaderCompatibilityError(): string | null {
   if (typeof window === "undefined") return null;
 
@@ -516,7 +521,19 @@ export function useFoliateView({
 
       // Dynamic import to avoid circular dependency
       const { api } = await import("@/lib/api");
-      const file = await api.createBookFile(bookId);
+      const file = await api.createBookFile(bookId, {
+        onProgress: ({ downloadedBytes, totalBytes, percentage, bytesPerSecond, resumed }) => {
+          if (destroyedRef.current) return;
+          const percentageLabel = percentage === null ? '' : ` ${Math.floor(percentage)}%`;
+          const sizeLabel = totalBytes === null
+            ? formatDownloadBytes(downloadedBytes)
+            : `${formatDownloadBytes(downloadedBytes)} / ${formatDownloadBytes(totalBytes)}`;
+          const speedLabel = bytesPerSecond && bytesPerSecond >= 1024
+            ? ` · ${formatDownloadBytes(bytesPerSecond)}/s`
+            : '';
+          setLoadingMsg(`${resumed ? '继续下载' : '下载书籍'}${percentageLabel} · ${sizeLabel}${speedLabel}`);
+        },
+      });
 
       if (destroyedRef.current) return;
       setLoadingMsg("打开书籍...");

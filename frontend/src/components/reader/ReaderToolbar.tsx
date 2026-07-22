@@ -38,6 +38,7 @@ interface ReaderToolbarProps {
   onGoToBookmark: (bookmark: Bookmark) => void;
   onDeleteBookmark: (bookmarkId: string) => void;
   isSavingOffline?: boolean;
+  offlineDownloadLabel?: string;
   onSaveOffline?: () => void;
   ttsControls?: ReactNode;
   mobileTtsControls?: ReactNode;
@@ -74,6 +75,7 @@ export function ReaderToolbar({
   onGoToBookmark,
   onDeleteBookmark,
   isSavingOffline = false,
+  offlineDownloadLabel,
   onSaveOffline,
   ttsControls,
   mobileTtsControls,
@@ -213,7 +215,7 @@ export function ReaderToolbar({
                     type="button"
                   >
                     <Download className="h-4 w-4" />
-                    <span>{isSavingOffline ? "保存中..." : "保存离线副本"}</span>
+                    <span>{isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}</span>
                   </button>
                 )}
                 <div onClick={closeMobileActions}>
@@ -315,7 +317,7 @@ export function ReaderToolbar({
                 className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
               >
                 <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">{isSavingOffline ? "保存中..." : "离线"}</span>
+                <span className="hidden sm:inline">{isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}</span>
               </Button>
             )}
 

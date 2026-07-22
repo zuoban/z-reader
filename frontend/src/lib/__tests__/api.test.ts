@@ -233,6 +233,47 @@ describe('api.listBooksPage', () => {
   });
 });
 
+describe('api.fetchBook', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    auth.setToken('token');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('reports streamed book download progress', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('first '));
+        controller.enqueue(new TextEncoder().encode('chapter'));
+        controller.close();
+      },
+    });
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(stream, {
+      headers: {
+        'Content-Length': '13',
+        'Content-Type': 'application/epub+zip',
+      },
+    }));
+    const progress: number[] = [];
+
+    const book = await api.fetchBook('book-1', {
+      onProgress: (update) => progress.push(update.downloadedBytes),
+    });
+
+    expect(await book.text()).toBe('first chapter');
+    expect(progress.at(-1)).toBe(13);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book-1/file'),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'token' }),
+      }),
+    );
+  });
+});
+
 describe('api.getProgress', () => {
   afterEach(() => {
     vi.restoreAllMocks();

@@ -2,6 +2,7 @@
 
 import type { DragEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -29,11 +30,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
 import { AppScreen, BrandLogo, LoadingSpinner } from '@/components/AppShell';
-import { BatchCategorySheet } from '@/components/BatchCategorySheet';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
-import { CategoryManagerSheet } from '@/components/CategoryManagerSheet';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { SortSelector } from '@/components/SortSelector';
@@ -52,6 +50,19 @@ const SUPPORTED_FORMATS_ACCEPT = [
 ].join(',');
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 
+const BatchCategorySheet = dynamic(
+  () => import('@/components/BatchCategorySheet').then((module) => module.BatchCategorySheet),
+  { ssr: false }
+);
+const CategoryManagerSheet = dynamic(
+  () => import('@/components/CategoryManagerSheet').then((module) => module.CategoryManagerSheet),
+  { ssr: false }
+);
+const ConfirmDialog = dynamic(
+  () => import('@/components/ConfirmDialog').then((module) => module.ConfirmDialog),
+  { ssr: false }
+);
+
 function ShelfBrand() {
   return (
     <BrandLogo compact className="drop-shadow-[0_10px_24px_rgba(0,0,0,0.08)] dark:drop-shadow-[0_16px_34px_rgba(0,0,0,0.4)]" />
@@ -67,7 +78,7 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const { isLoading, isAuthenticated, logout } = useAuth();
+  const { isLoading, isAuthenticated, user, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -100,7 +111,7 @@ export default function ShelfPage() {
     formatFileSize,
     sortBy,
     setSortBy,
-  } = useShelfData(isAuthenticated);
+  } = useShelfData(isAuthenticated || Boolean(user));
   const uploadStatusLabel = uploadProgress
     ? `上传 ${uploadProgress.current}/${uploadProgress.total}`
     : isUploading
@@ -653,32 +664,38 @@ export default function ShelfPage() {
             )}
           </div>
         )}
-        <ConfirmDialog
-          open={batchDeleteOpen}
-          onOpenChange={setBatchDeleteOpen}
-          title="删除所选图书"
-          description={`确定删除选中的 ${selectedCount} 本图书吗？删除后将无法恢复。`}
-          confirmLabel={isDeletingMany ? '删除中' : '确认删除'}
-          confirmDisabled={selectedCount === 0 || isDeletingMany}
-          onConfirm={confirmBatchDelete}
-        />
-        <BatchCategorySheet
-          open={batchCategoryOpen}
-          onOpenChange={setBatchCategoryOpen}
-          selectedCount={selectedCount}
-          categories={categories}
-          bookCounts={bookCounts}
-          loading={isUpdatingManyCategories}
-          onSave={saveBatchCategory}
-        />
-        <CategoryManagerSheet
-          open={categoryManagerOpen}
-          onOpenChange={setCategoryManagerOpen}
-          categories={categories}
-          bookCounts={bookCounts}
-          loading={isUpdatingManyCategories}
-          onRenameCategory={saveManagedCategory}
-        />
+        {batchDeleteOpen && (
+          <ConfirmDialog
+            open
+            onOpenChange={setBatchDeleteOpen}
+            title="删除所选图书"
+            description={`确定删除选中的 ${selectedCount} 本图书吗？删除后将无法恢复。`}
+            confirmLabel={isDeletingMany ? '删除中' : '确认删除'}
+            confirmDisabled={selectedCount === 0 || isDeletingMany}
+            onConfirm={confirmBatchDelete}
+          />
+        )}
+        {batchCategoryOpen && (
+          <BatchCategorySheet
+            open
+            onOpenChange={setBatchCategoryOpen}
+            selectedCount={selectedCount}
+            categories={categories}
+            bookCounts={bookCounts}
+            loading={isUpdatingManyCategories}
+            onSave={saveBatchCategory}
+          />
+        )}
+        {categoryManagerOpen && (
+          <CategoryManagerSheet
+            open
+            onOpenChange={setCategoryManagerOpen}
+            categories={categories}
+            bookCounts={bookCounts}
+            loading={isUpdatingManyCategories}
+            onRenameCategory={saveManagedCategory}
+          />
+        )}
       </main>
     </AppScreen>
   );

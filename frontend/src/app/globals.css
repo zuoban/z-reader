@@ -55,6 +55,9 @@
 }
 
 :root {
+  --font-crimson: "Crimson Text";
+  --font-playfair: "Playfair Display";
+  --font-noto-serif-sc: "Noto Serif SC";
   --status-bar-reserved: calc(env(safe-area-inset-bottom, 0px) + 2.75rem);
   --background: #ffffff;
   --foreground: #1a1a1a;

@@ -36,16 +36,24 @@ var supportedBookFormats = map[string]string{
 }
 
 const (
-	maxEPUBMetadataBytes = 2 * 1024 * 1024
-	maxEPUBCoverBytes    = 20 * 1024 * 1024
-	multipartOverhead    = 1 * 1024 * 1024
-	bookFileCacheMaxAge  = 60 * 60
-	bookCoverCacheMaxAge = 24 * 60 * 60
+	maxEPUBMetadataBytes        = 2 * 1024 * 1024
+	maxEPUBCoverBytes           = 10 * 1024 * 1024
+	maxCoverUploadBytes         = 10 * 1024 * 1024
+	maxEPUBArchiveEntries       = 10000
+	maxEPUBExpandedBytes  int64 = 512 * 1024 * 1024
+	multipartOverhead           = 1 * 1024 * 1024
+	bookFileCacheMaxAge         = 60 * 60
+	bookCoverCacheMaxAge        = 24 * 60 * 60
 )
 
 type BooksHandler struct {
 	cfg *config.Config
 	db  *storage.DB
+}
+
+type bookCursorPageResponse struct {
+	Books      []models.Book `json:"books"`
+	NextCursor string        `json:"next_cursor,omitempty"`
 }
 
 func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
@@ -55,6 +63,34 @@ func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
 func (h *BooksHandler) List(c *gin.Context) {
 	userID, ok := currentUserID(c)
 	if !ok {
+		return
+	}
+	_, hasCursor := c.GetQuery("cursor")
+	limitValue, hasLimit := c.GetQuery("limit")
+	sortValue, hasSort := c.GetQuery("sort")
+	if hasCursor || hasLimit || hasSort {
+		limit := 20
+		if hasLimit {
+			parsed, err := strconv.Atoi(limitValue)
+			if err != nil || parsed <= 0 {
+				response.BadRequest(c, "limit 必须是正整数")
+				return
+			}
+			limit = parsed
+		}
+		if limit > 100 {
+			limit = 100
+		}
+
+		books, nextCursor, err := h.db.ListBooksBySortedCursor(userID, c.Query("cursor"), limit, sortValue)
+		if err != nil {
+			response.InternalError(c, "获取书籍列表失败")
+			return
+		}
+		for i := range books {
+			books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
+		}
+		c.JSON(http.StatusOK, bookCursorPageResponse{Books: books, NextCursor: nextCursor})
 		return
 	}
 
@@ -135,12 +171,13 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	format, ext, ok := inferUploadedBookFormat(file)
+	maxExpandedBytes := maxEPUBExpansionLimit(h.cfg.MaxUploadBytes)
+	format, ext, ok := inferUploadedBookFormat(file, maxExpandedBytes)
 	if !ok {
 		response.BadRequest(c, "支持的格式：EPUB、MOBI、AZW3、PDF")
 		return
 	}
-	if err := validateUploadedBook(file, format); err != nil {
+	if err := validateUploadedBook(file, format, maxExpandedBytes); err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
@@ -149,7 +186,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	filename := bookID + ext
 	filepath := filepath.Join(h.cfg.UploadDir, filename)
 
-	if err := saveUploadedBookFile(file, format, filepath); err != nil {
+	if err := saveUploadedBookFile(file, format, filepath, maxExpandedBytes); err != nil {
 		response.InternalError(c, "保存文件失败")
 		return
 	}
@@ -412,7 +449,7 @@ func normalizeBookFormat(format string, filename string) string {
 	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
 }
 
-func inferUploadedBookFormat(file *multipart.FileHeader) (string, string, bool) {
+func inferUploadedBookFormat(file *multipart.FileHeader, maxExpandedBytes int64) (string, string, bool) {
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if format, ok := supportedBookFormats[ext]; ok {
 		return format, ext, true
@@ -432,7 +469,7 @@ func inferUploadedBookFormat(file *multipart.FileHeader) (string, string, bool) 
 	if hasMobiSignature(header) {
 		return "mobi", ".mobi", true
 	}
-	if isValidEPUBFile(file) {
+	if isValidEPUBFile(file, maxExpandedBytes) {
 		return "epub", ".epub", true
 	}
 
@@ -452,7 +489,7 @@ func inferBookFormatFromContentType(contentType string) (string, string, bool) {
 	}
 }
 
-func validateUploadedBook(file *multipart.FileHeader, format string) error {
+func validateUploadedBook(file *multipart.FileHeader, format string, maxExpandedBytes int64) error {
 	header, err := readUploadedFileHeader(file, 512)
 	if err != nil {
 		return fmt.Errorf("读取上传文件失败")
@@ -464,8 +501,8 @@ func validateUploadedBook(file *multipart.FileHeader, format string) error {
 			return fmt.Errorf("上传文件与 PDF 格式不匹配")
 		}
 	case "epub":
-		if !isValidEPUBFile(file) {
-			return fmt.Errorf("上传文件与 EPUB 格式不匹配")
+		if err := validateEPUBFile(file, maxExpandedBytes); err != nil {
+			return err
 		}
 	case "mobi", "azw3":
 		if !hasMobiSignature(header) {
@@ -545,9 +582,9 @@ func hashFile(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func saveUploadedBookFile(file *multipart.FileHeader, format string, path string) error {
+func saveUploadedBookFile(file *multipart.FileHeader, format string, path string, maxExpandedBytes int64) error {
 	if format == "epub" {
-		if ok, err := saveNormalizedEPUBFile(file, path); ok || err != nil {
+		if ok, err := saveNormalizedEPUBFile(file, path, maxExpandedBytes); ok || err != nil {
 			return err
 		}
 	}
@@ -568,7 +605,7 @@ func saveUploadedBookFile(file *multipart.FileHeader, format string, path string
 	return err
 }
 
-func saveNormalizedEPUBFile(file *multipart.FileHeader, path string) (bool, error) {
+func saveNormalizedEPUBFile(file *multipart.FileHeader, path string, maxExpandedBytes int64) (bool, error) {
 	src, err := file.Open()
 	if err != nil {
 		return false, err
@@ -584,8 +621,12 @@ func saveNormalizedEPUBFile(file *multipart.FileHeader, path string) (bool, erro
 	if !ok {
 		return false, nil
 	}
+	if err := validateEPUBArchive(reader, maxExpandedBytes); err != nil {
+		return true, err
+	}
 
-	if err := writeNormalizedEPUBZip(reader, root, path); err != nil {
+	if err := writeNormalizedEPUBZip(reader, root, path, maxExpandedBytes); err != nil {
+		removeFileIfExists(path)
 		return true, err
 	}
 
@@ -603,9 +644,12 @@ func normalizeStoredEPUBFile(path string) (bool, error) {
 	if !ok {
 		return false, nil
 	}
+	if err := validateEPUBArchive(&reader.Reader, maxEPUBExpandedBytes); err != nil {
+		return false, err
+	}
 
 	tmpPath := path + ".normalized"
-	if err := writeNormalizedEPUBZip(&reader.Reader, root, tmpPath); err != nil {
+	if err := writeNormalizedEPUBZip(&reader.Reader, root, tmpPath, maxEPUBExpandedBytes); err != nil {
 		removeFileIfExists(tmpPath)
 		return false, err
 	}
@@ -617,7 +661,7 @@ func normalizeStoredEPUBFile(path string) (bool, error) {
 	return true, nil
 }
 
-func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string) error {
+func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string, maxExpandedBytes int64) error {
 	dst, err := os.Create(path)
 	if err != nil {
 		return err
@@ -625,6 +669,7 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string) error 
 	defer dst.Close()
 
 	writer := zip.NewWriter(dst)
+	var copiedBytes int64
 	for _, entry := range reader.File {
 		normalizedName, ok := stripEPUBPackageRoot(entry.Name, root)
 		if !ok || normalizedName == "" || strings.HasSuffix(normalizedName, "/") {
@@ -649,10 +694,21 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string) error 
 			entryReader.Close()
 			return err
 		}
-		if _, err := io.Copy(target, entryReader); err != nil {
+		remaining := maxExpandedBytes - copiedBytes
+		if remaining < 0 {
+			entryReader.Close()
+			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
+		}
+		copied, err := io.Copy(target, io.LimitReader(entryReader, remaining+1))
+		if err != nil {
 			entryReader.Close()
 			return err
 		}
+		if copied > remaining {
+			entryReader.Close()
+			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
+		}
+		copiedBytes += copied
 		if err := entryReader.Close(); err != nil {
 			return err
 		}
@@ -714,16 +770,23 @@ func duplicateBookMessage(book *models.Book) string {
 	return fmt.Sprintf("《%s》已在书架中，请勿重复上传", book.Title)
 }
 
-func isValidEPUBFile(file *multipart.FileHeader) bool {
+func isValidEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) bool {
+	return validateEPUBFile(file, maxExpandedBytes) == nil
+}
+
+func validateEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) error {
 	src, err := file.Open()
 	if err != nil {
-		return false
+		return fmt.Errorf("读取 EPUB 文件失败")
 	}
 	defer src.Close()
 
 	reader, err := zip.NewReader(src, file.Size)
 	if err != nil {
-		return false
+		return fmt.Errorf("上传文件与 EPUB 格式不匹配")
+	}
+	if err := validateEPUBArchive(reader, maxExpandedBytes); err != nil {
+		return err
 	}
 
 	hasMimetype := false
@@ -734,7 +797,7 @@ func isValidEPUBFile(file *multipart.FileHeader) bool {
 		case "mimetype":
 			data, err := readZipFileWithLimit(entry, 128)
 			if err != nil {
-				return false
+				return fmt.Errorf("上传文件与 EPUB 格式不匹配")
 			}
 			hasMimetype = strings.TrimSpace(string(data)) == "application/epub+zip"
 		case "meta-inf/container.xml":
@@ -742,7 +805,39 @@ func isValidEPUBFile(file *multipart.FileHeader) bool {
 		}
 	}
 
-	return hasMimetype || hasContainer
+	if !hasMimetype && !hasContainer {
+		return fmt.Errorf("上传文件与 EPUB 格式不匹配")
+	}
+	return nil
+}
+
+func validateEPUBArchive(reader *zip.Reader, maxExpandedBytes int64) error {
+	if maxExpandedBytes <= 0 {
+		maxExpandedBytes = maxEPUBExpandedBytes
+	}
+	if len(reader.File) > maxEPUBArchiveEntries {
+		return fmt.Errorf("EPUB 包含过多文件")
+	}
+
+	var total uint64
+	limit := uint64(maxExpandedBytes)
+	for _, entry := range reader.File {
+		if strings.HasSuffix(entry.Name, "/") {
+			continue
+		}
+		if entry.UncompressedSize64 > limit || total > limit-entry.UncompressedSize64 {
+			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
+		}
+		total += entry.UncompressedSize64
+	}
+	return nil
+}
+
+func maxEPUBExpansionLimit(uploadLimit int64) int64 {
+	if uploadLimit > 0 && uploadLimit < maxEPUBExpandedBytes/4 {
+		return uploadLimit * 4
+	}
+	return maxEPUBExpandedBytes
 }
 
 func normalizeEPUBZipEntryName(name string) string {
@@ -1030,7 +1125,11 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 		return
 	}
 
-	limitUploadBody(c, h.cfg.MaxUploadBytes)
+	coverUploadLimit := h.cfg.MaxUploadBytes
+	if coverUploadLimit <= 0 || coverUploadLimit > maxCoverUploadBytes {
+		coverUploadLimit = maxCoverUploadBytes
+	}
+	limitUploadBody(c, coverUploadLimit)
 	file, err := c.FormFile("file")
 	if err != nil {
 		if isRequestBodyTooLarge(err) {
@@ -1044,7 +1143,7 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 		response.BadRequest(c, "文件为空")
 		return
 	}
-	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
+	if file.Size > coverUploadLimit {
 		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
 		return
 	}

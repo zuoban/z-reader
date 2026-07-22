@@ -8,6 +8,7 @@ import { extractBookPreview } from '@/lib/book-preview';
 
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
+const BOOK_PAGE_SIZE = 50;
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
 export interface UploadProgress {
@@ -154,6 +155,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
   const [searchQuery, setSearchQuery] = useState('');
   const enrichingBooksRef = useRef(new Set<string>());
+  const loadGenerationRef = useRef(0);
 
   const enrichBookMetadata = useCallback(
     async (bookId: string, file: File) => {
@@ -205,30 +207,59 @@ export function useShelfData(isAuthenticated: boolean) {
   }, []);
 
   const loadBooks = useCallback(async () => {
+    const loadGeneration = ++loadGenerationRef.current;
+    let hasLoadedFirstPage = false;
     setIsLoadingBooks(true);
     setLoadError(null);
     try {
-      const [bookData, progressData] = await Promise.all([
-        api.listBooks(),
+      const [firstPage, progressData] = await Promise.all([
+        api.listBooksPage(undefined, BOOK_PAGE_SIZE, sortBy),
         api.listProgress().catch(() => []),
       ]);
-      setBooks(bookData || []);
+      if (loadGeneration !== loadGenerationRef.current) return;
+
+      setBooks(firstPage.books || []);
+      hasLoadedFirstPage = true;
       setProgressByBookId(
         Object.fromEntries(
           (progressData || []).map((progress) => [progress.book_id, progress.percentage])
         )
       );
-    } catch (err) {
-      setBooks([]);
-      setProgressByBookId({});
-      setLoadError(err instanceof Error ? err.message : '书架加载失败');
-    } finally {
       setIsLoadingBooks(false);
+
+      let cursor = firstPage.next_cursor;
+      while (cursor) {
+        const nextPage = await api.listBooksPage(cursor, BOOK_PAGE_SIZE, sortBy);
+        if (loadGeneration !== loadGenerationRef.current) return;
+
+        setBooks((currentBooks) => {
+          const byID = new Map(currentBooks.map((book) => [book.id, book]));
+          nextPage.books.forEach((book) => byID.set(book.id, book));
+          return Array.from(byID.values());
+        });
+        cursor = nextPage.next_cursor;
+      }
+    } catch (err) {
+      if (loadGeneration !== loadGenerationRef.current) return;
+      if (!hasLoadedFirstPage) {
+        setBooks([]);
+        setProgressByBookId({});
+        setLoadError(err instanceof Error ? err.message : '书架加载失败');
+      } else {
+        setLoadError('书架剩余图书加载失败，请刷新重试');
+      }
+    } finally {
+      if (loadGeneration === loadGenerationRef.current) {
+        setIsLoadingBooks(false);
+      }
     }
-  }, []);
+  }, [sortBy]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      loadGenerationRef.current += 1;
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       void loadBooks();

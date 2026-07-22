@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"math"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -74,9 +76,31 @@ func (rl *RateLimiter) Allow(ip string) bool {
 
 // RateLimit 返回速率限制中间件
 func RateLimit(rl *RateLimiter) gin.HandlerFunc {
+	return RateLimitByKey(rl, func(c *gin.Context) string {
+		return c.ClientIP()
+	})
+}
+
+// RateLimitByUser applies a shared limit to an authenticated user. Falling
+// back to the client IP keeps the middleware safe if it is reused before auth.
+func RateLimitByUser(rl *RateLimiter) gin.HandlerFunc {
+	return RateLimitByKey(rl, func(c *gin.Context) string {
+		if userID := c.GetString("userID"); userID != "" {
+			return "user:" + userID
+		}
+		return "ip:" + c.ClientIP()
+	})
+}
+
+// RateLimitByKey applies a rate limit using a caller-provided stable key.
+func RateLimitByKey(rl *RateLimiter, keyFunc func(*gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clientIP := c.ClientIP()
-		if !rl.Allow(clientIP) {
+		key := keyFunc(c)
+		if key == "" {
+			key = c.ClientIP()
+		}
+		if !rl.Allow(key) {
+			c.Header("Retry-After", strconv.Itoa(int(math.Ceil(rl.window.Seconds()))))
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "请求过于频繁，请稍后再试",
 			})

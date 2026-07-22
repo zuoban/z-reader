@@ -92,6 +92,8 @@ npm run dev
 | `TTS_CACHE_MAX_ITEMS` | TTS 缓存最大条目数 | `128` |
 | `TTS_CACHE_TTL_SECONDS` | TTS 缓存保留秒数 | `86400` |
 | `TTS_MAX_CONCURRENCY` | TTS 合成请求最大并发数 | `3` |
+| `TTS_MAX_QUEUED` | TTS 等待队列最大请求数 | `12` |
+| `TTS_QUEUE_WAIT_SECONDS` | TTS 请求最大排队秒数 | `30` |
 
 说明：
 

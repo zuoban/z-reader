@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { api, auth, ApiError, getAuthHeaders } from '@/lib/api';
 
-function mockFetch(response: Partial<Response> & { body?: unknown; ok?: boolean }) {
+type MockResponse = {
+  body?: unknown;
+  ok?: boolean;
+  status?: number;
+  headers?: Record<string, string>;
+};
+
+function mockFetch(response: MockResponse) {
   const { body, ok = true, status = 200, headers = {} } = response;
   const responseBody = body ?? {};
 
@@ -188,6 +195,41 @@ describe('api.listBooks', () => {
     const result = await api.listBooks();
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Book');
+  });
+});
+
+describe('api.listBooksPage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('requests a cursor page with the requested limit', async () => {
+    globalThis.fetch = mockFetch({
+      body: {
+        books: [
+          {
+            id: 'book-1',
+            user_id: 'u1',
+            title: 'Book',
+            author: '',
+            filename: 'book.epub',
+            format: 'epub',
+            size: 100,
+            created_at: '2024-01-01',
+          },
+        ],
+        next_cursor: 'book-1',
+      },
+    });
+
+    const page = await api.listBooksPage('book-0', 10);
+
+    expect(page.books).toHaveLength(1);
+    expect(page.next_cursor).toBe('book-1');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books?limit=10&cursor=book-0&sort=recent_read'),
+      expect.any(Object),
+    );
   });
 });
 

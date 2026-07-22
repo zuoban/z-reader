@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -27,6 +28,24 @@ func TestTTSAudioCacheCopiesData(t *testing.T) {
 	}
 	if gotAgain[1] != 2 {
 		t.Fatalf("cache returned mutable internal slice, got %d", gotAgain[1])
+	}
+}
+
+func TestAcquireTTSSlotTimesOutWhenConcurrencyIsFull(t *testing.T) {
+	runtime := newTTSRuntimeState(ttsCacheConfig{
+		MaxConcurrent: 1,
+		MaxQueued:     1,
+		QueueWait:     10 * time.Millisecond,
+	})
+	release, err := acquireTTSSlot(runtime)
+	if err != nil {
+		t.Fatalf("failed to acquire initial TTS slot: %v", err)
+	}
+	defer release()
+
+	_, err = acquireTTSSlot(runtime)
+	if !errors.Is(err, ErrTTSBusy) {
+		t.Fatalf("expected busy error after queue timeout, got %v", err)
 	}
 }
 

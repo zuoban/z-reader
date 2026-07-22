@@ -12,6 +12,7 @@ z-reader
 
 # Database
 *.db
+*.db.sessions
 data.db
 backend/data.db
 

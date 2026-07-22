@@ -22,6 +22,7 @@ var (
 	UsersBucket      = []byte("users")
 	UserBooksIndex   = []byte("user_books_index") // userId:bookId -> Empty
 	UsernameIndex    = []byte("username_index")   // normalizedUsername -> userId
+	BookSortIndex    = []byte("book_sort_index")  // sort:user:sortValue:bookId -> bookId
 	SystemMetaBucket = []byte("system_meta")
 )
 
@@ -95,6 +96,7 @@ func (db *DB) runMigrations() error {
 					UsersBucket,
 					UserBooksIndex,
 					UsernameIndex,
+					BookSortIndex,
 				} {
 					if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
 						return err
@@ -169,6 +171,11 @@ func (db *DB) runMigrations() error {
 
 				return nil
 			},
+		},
+		{
+			version: 5,
+			name:    "BuildBookSortIndex",
+			run:     rebuildBookSortIndex,
 		},
 	}
 
@@ -254,7 +261,10 @@ func assignUnownedBooks(tx *bbolt.Tx, userID string) error {
 		if err := b.Put(k, data); err != nil {
 			return err
 		}
-		return addBookToUserIndex(idxB, book.ID, userID)
+		if err := addBookToUserIndex(idxB, book.ID, userID); err != nil {
+			return err
+		}
+		return addBookToSortIndex(tx, &book)
 	})
 }
 
@@ -461,6 +471,15 @@ func deleteBooksByUser(tx *bbolt.Tx, userID string) error {
 		return err
 	}
 	for _, id := range bookIDs {
+		if data := b.Get([]byte(id)); data != nil {
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			if err := removeBookFromSortIndex(tx, &book); err != nil {
+				return err
+			}
+		}
 		if err := b.Delete([]byte(id)); err != nil {
 			return err
 		}
@@ -511,6 +530,92 @@ func deleteBookmarksByUser(tx *bbolt.Tx, userID string) error {
 	return nil
 }
 
+const bookSortSeparator = "\x00"
+
+var supportedBookSorts = []string{"recent_read", "recent_added", "title", "author"}
+
+func NormalizeBookSort(sortKey string) string {
+	switch sortKey {
+	case "title", "author", "recent_added", "recent_read":
+		return sortKey
+	default:
+		return "recent_read"
+	}
+}
+
+func bookSortValue(book *models.Book, sortKey string) string {
+	switch sortKey {
+	case "title":
+		return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(book.Title)), bookSortSeparator, "")
+	case "author":
+		return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(book.Author)), bookSortSeparator, "")
+	case "recent_added":
+		return invertedBookTimestamp(book.CreatedAt)
+	default:
+		lastReadAt := book.CreatedAt
+		if book.LastReadAt != nil {
+			lastReadAt = *book.LastReadAt
+		}
+		return invertedBookTimestamp(lastReadAt)
+	}
+}
+
+func invertedBookTimestamp(value time.Time) string {
+	const maxTimestamp = int64(^uint64(0) >> 1)
+	timestamp := value.UnixNano()
+	if timestamp < 0 {
+		timestamp = 0
+	}
+	return fmt.Sprintf("%019d", maxTimestamp-timestamp)
+}
+
+func bookSortIndexKey(book *models.Book, sortKey string) []byte {
+	return []byte(strings.Join([]string{sortKey, book.UserID, bookSortValue(book, sortKey), book.ID}, bookSortSeparator))
+}
+
+func addBookToSortIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	bucket := tx.Bucket(BookSortIndex)
+	for _, sortKey := range supportedBookSorts {
+		if err := bucket.Put(bookSortIndexKey(book, sortKey), []byte(book.ID)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func removeBookFromSortIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	bucket := tx.Bucket(BookSortIndex)
+	for _, sortKey := range supportedBookSorts {
+		if err := bucket.Delete(bookSortIndexKey(book, sortKey)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func rebuildBookSortIndex(tx *bbolt.Tx) error {
+	if err := tx.DeleteBucket(BookSortIndex); err != nil && err != bbolt.ErrBucketNotFound {
+		return err
+	}
+	if _, err := tx.CreateBucket(BookSortIndex); err != nil {
+		return err
+	}
+	booksBucket := tx.Bucket(BooksBucket)
+	return booksBucket.ForEach(func(_, data []byte) error {
+		var book models.Book
+		if err := book.UnmarshalDB(data); err != nil {
+			return err
+		}
+		return addBookToSortIndex(tx, &book)
+	})
+}
+
 func (db *DB) SaveBook(book *models.Book) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(BooksBucket)
@@ -518,11 +623,13 @@ func (db *DB) SaveBook(book *models.Book) error {
 
 		// If updating existing book, check if UserID changed
 		existing := b.Get([]byte(book.ID))
+		var oldBook *models.Book
 		var oldUserID string
 		if existing != nil {
-			var oldBook models.Book
-			if err := oldBook.UnmarshalDB(existing); err == nil {
-				oldUserID = oldBook.UserID
+			var previous models.Book
+			if err := previous.UnmarshalDB(existing); err == nil {
+				oldUserID = previous.UserID
+				oldBook = &previous
 			}
 		}
 
@@ -546,7 +653,12 @@ func (db *DB) SaveBook(book *models.Book) error {
 				return err
 			}
 		}
-		return nil
+		if oldBook != nil {
+			if err := removeBookFromSortIndex(tx, oldBook); err != nil {
+				return err
+			}
+		}
+		return addBookToSortIndex(tx, book)
 	})
 }
 
@@ -590,7 +702,7 @@ func (db *DB) CreateBook(book *models.Book) error {
 		if err := addBookToUserIndex(idxB, book.ID, book.UserID); err != nil {
 			return err
 		}
-		return nil
+		return addBookToSortIndex(tx, book)
 	})
 }
 
@@ -686,6 +798,112 @@ type BookListResult struct {
 	PageSize   int           `json:"page_size"`
 }
 
+// ListBooksByCursor reads only one page of a user's books. The cursor is the
+// last returned book ID and follows the stable order of UserBooksIndex keys.
+func (db *DB) ListBooksByCursor(userID, cursor string, limit int) ([]models.Book, string, error) {
+	if userID == "" || limit <= 0 {
+		return []models.Book{}, "", nil
+	}
+
+	books := make([]models.Book, 0, limit+1)
+	prefix := []byte(userID + ":")
+	start := prefix
+	if cursor != "" {
+		start = []byte(userID + ":" + cursor)
+	}
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		idxB := tx.Bucket(UserBooksIndex)
+		booksB := tx.Bucket(BooksBucket)
+		indexCursor := idxB.Cursor()
+
+		for k, _ := indexCursor.Seek(start); k != nil && bytes.HasPrefix(k, prefix); k, _ = indexCursor.Next() {
+			bookID := strings.TrimPrefix(string(k), string(prefix))
+			if bookID == cursor {
+				continue
+			}
+
+			data := booksB.Get([]byte(bookID))
+			if data == nil {
+				continue
+			}
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			books = append(books, book)
+			if len(books) > limit {
+				break
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	if len(books) <= limit {
+		return books, "", nil
+	}
+	nextCursor := books[limit-1].ID
+	return books[:limit], nextCursor, nil
+}
+
+// ListBooksBySortedCursor reads a page in a persisted sort order.
+func (db *DB) ListBooksBySortedCursor(userID, cursor string, limit int, sortKey string) ([]models.Book, string, error) {
+	if userID == "" || limit <= 0 {
+		return []models.Book{}, "", nil
+	}
+	sortKey = NormalizeBookSort(sortKey)
+	books := make([]models.Book, 0, limit+1)
+	prefix := []byte(sortKey + bookSortSeparator + userID + bookSortSeparator)
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		indexBucket := tx.Bucket(BookSortIndex)
+		booksBucket := tx.Bucket(BooksBucket)
+		start := prefix
+		if cursor != "" {
+			data := booksBucket.Get([]byte(cursor))
+			if data != nil {
+				var cursorBook models.Book
+				if err := cursorBook.UnmarshalDB(data); err != nil {
+					return err
+				}
+				if cursorBook.UserID == userID {
+					start = bookSortIndexKey(&cursorBook, sortKey)
+				}
+			}
+		}
+
+		indexCursor := indexBucket.Cursor()
+		for key, bookID := indexCursor.Seek(start); key != nil && bytes.HasPrefix(key, prefix); key, bookID = indexCursor.Next() {
+			if string(bookID) == cursor {
+				continue
+			}
+			data := booksBucket.Get(bookID)
+			if data == nil {
+				continue
+			}
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			books = append(books, book)
+			if len(books) > limit {
+				break
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if len(books) <= limit {
+		return books, "", nil
+	}
+	return books[:limit], books[limit-1].ID, nil
+}
+
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
 	books := []models.Book{}
 	err := db.View(func(tx *bbolt.Tx) error {
@@ -737,6 +955,9 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 	}
 	if book.UserID != userID {
 		return nil, ErrNotFound
+	}
+	if err := removeBookFromSortIndex(tx, &book); err != nil {
+		return nil, err
 	}
 	if err := booksBucket.Delete([]byte(id)); err != nil {
 		return nil, err
@@ -933,12 +1154,19 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 		if err := book.UnmarshalDB(bookData); err != nil {
 			return err
 		}
+		previousBook := book
 		book.LastReadAt = &progress.UpdatedAt
 		updatedBookData, err := json.Marshal(&book)
 		if err != nil {
 			return err
 		}
 		if err := booksBucket.Put([]byte(book.ID), updatedBookData); err != nil {
+			return err
+		}
+		if err := removeBookFromSortIndex(tx, &previousBook); err != nil {
+			return err
+		}
+		if err := addBookToSortIndex(tx, &book); err != nil {
 			return err
 		}
 

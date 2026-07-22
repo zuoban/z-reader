@@ -85,6 +85,8 @@ func main() {
 
 	api := r.Group("/api")
 	api.Use(middleware.AuthRequired(db))
+	ttsIPLimiter := middleware.NewRateLimiter(30, time.Minute)
+	ttsUserLimiter := middleware.NewRateLimiter(30, time.Minute)
 	{
 		api.GET("/auth/verify", authHandler.Verify)
 
@@ -107,8 +109,18 @@ func main() {
 		api.GET("/progress/:id", progressHandler.Get)
 		api.POST("/progress/:id", progressHandler.Save)
 
-		api.GET("/tts", middleware.RateLimit(middleware.NewRateLimiter(30, time.Minute)), ttsHandler.TTS)
-		api.POST("/ssml", middleware.RateLimit(middleware.NewRateLimiter(30, time.Minute)), ttsHandler.SSML)
+		api.GET(
+			"/tts",
+			middleware.RateLimit(ttsIPLimiter),
+			middleware.RateLimitByUser(ttsUserLimiter),
+			ttsHandler.TTS,
+		)
+		api.POST(
+			"/ssml",
+			middleware.RateLimit(ttsIPLimiter),
+			middleware.RateLimitByUser(ttsUserLimiter),
+			ttsHandler.SSML,
+		)
 		api.GET("/voices", ttsHandler.VoiceList)
 
 	}

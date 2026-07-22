@@ -54,33 +54,41 @@ export function useCoverUrl(bookId: string): {
   coverUrl: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
 } {
-  const [coverUrl, setCoverUrl] = useState<string | null>(() => coverUrlCache.get(bookId) ?? null);
+  const [fetchedCover, setFetchedCover] = useState<{ bookId: string; url: string } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
-  const hasFetched = useRef(false);
+  const fetchedBookIds = useRef(new Set<string>());
+  const coverUrl = coverUrlCache.get(bookId) ??
+    (fetchedCover?.bookId === bookId ? fetchedCover.url : null);
 
   useEffect(() => {
-    // Already cached or fetched
+    // The cache is read during rendering so a cached cover does not require a
+    // synchronous state update in this effect.
     if (coverUrlCache.has(bookId)) {
-      setCoverUrl(coverUrlCache.get(bookId)!);
       return;
     }
 
     const element = ref.current;
     if (!element) return;
 
+    let disposed = false;
+    let cancelFetch: (() => void) | undefined;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting || hasFetched.current) return;
-        hasFetched.current = true;
+        if (!entry.isIntersecting || fetchedBookIds.current.has(bookId)) return;
+        fetchedBookIds.current.add(bookId);
         observer.disconnect();
 
-        scheduleCoverFetch(async () => {
+        cancelFetch = scheduleCoverFetch(async () => {
           const blob = await api.fetchCover(bookId);
           if (!blob) return;
 
           const url = URL.createObjectURL(blob);
+          if (disposed) {
+            URL.revokeObjectURL(url);
+            return;
+          }
           coverUrlCache.set(bookId, url);
-          setCoverUrl(url);
+          setFetchedCover({ bookId, url });
         });
       },
       { rootMargin: '200px' } // Start loading 200px before entering viewport
@@ -89,7 +97,9 @@ export function useCoverUrl(bookId: string): {
     observer.observe(element);
 
     return () => {
+      disposed = true;
       observer.disconnect();
+      cancelFetch?.();
     };
   }, [bookId]);
 

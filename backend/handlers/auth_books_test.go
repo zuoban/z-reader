@@ -447,6 +447,45 @@ func TestBooksListIncludesLastReadAt(t *testing.T) {
 	}
 }
 
+func TestBooksListReturnsCursorPageWhenRequested(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	userID := "user-a"
+	for _, id := range []string{"book-a", "book-b"} {
+		if err := db.SaveBook(&models.Book{
+			ID:        id,
+			UserID:    userID,
+			Title:     id,
+			Filename:  id + ".epub",
+			Format:    "epub",
+			Size:      128,
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatalf("failed to save %s: %v", id, err)
+		}
+	}
+
+	handler := NewBooksHandler(&config.Config{}, db)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books?limit=1", nil)
+
+	handler.List(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var page bookCursorPageResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &page); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(page.Books) != 1 || page.Books[0].ID != "book-b" || page.NextCursor != "book-b" {
+		t.Fatalf("unexpected cursor page: %+v", page)
+	}
+}
+
 func TestBooksDeleteRemovesCoverAndProgress(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -609,7 +648,7 @@ func TestValidateUploadedBook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			file := newMultipartFileHeader(t, "book.bin", tt.content)
-			err := validateUploadedBook(file, tt.format)
+			err := validateUploadedBook(file, tt.format, maxEPUBExpandedBytes)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("validateUploadedBook() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -667,7 +706,7 @@ func TestInferBookFormatFromContentType(t *testing.T) {
 func TestInferUploadedBookFormatFromContent(t *testing.T) {
 	file := newMultipartFileHeader(t, "download", validEPUBBytes(t))
 
-	gotFormat, gotExt, gotOK := inferUploadedBookFormat(file)
+	gotFormat, gotExt, gotOK := inferUploadedBookFormat(file, maxEPUBExpandedBytes)
 
 	if gotFormat != "epub" || gotExt != ".epub" || !gotOK {
 		t.Fatalf(
@@ -676,6 +715,23 @@ func TestInferUploadedBookFormatFromContent(t *testing.T) {
 			gotExt,
 			gotOK,
 		)
+	}
+}
+
+func TestValidateEPUBArchiveRejectsExpandedContent(t *testing.T) {
+	content := zipBytes(t, map[string][]byte{
+		"mimetype":               []byte("application/epub+zip"),
+		"META-INF/container.xml": []byte("<container/>"),
+		"OEBPS/chapter.xhtml":    []byte("12345"),
+	})
+
+	reader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
+	if err != nil {
+		t.Fatalf("failed to open test EPUB: %v", err)
+	}
+
+	if err := validateEPUBArchive(reader, 4); err == nil {
+		t.Fatal("expected expanded EPUB content to be rejected")
 	}
 }
 

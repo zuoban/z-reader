@@ -22,6 +22,11 @@ export interface Book {
   last_read_at?: string;
 }
 
+export interface BookPage {
+  books: Book[];
+  next_cursor?: string;
+}
+
 export interface Progress {
   book_id: string;
   user_id: string;
@@ -272,6 +277,13 @@ export const api = {
 
   listBooks: async (): Promise<Book[]> => {
     return fetchApi<Book[]>('/api/books');
+  },
+
+  listBooksPage: async (cursor?: string, limit = 20, sort = 'recent_read'): Promise<BookPage> => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set('cursor', cursor);
+    if (sort) params.set('sort', sort);
+    return fetchApi<BookPage>(`/api/books?${params.toString()}`);
   },
 
   getBook: async (id: string): Promise<Book> => {

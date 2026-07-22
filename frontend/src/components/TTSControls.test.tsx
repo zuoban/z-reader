@@ -10,19 +10,21 @@ const uiScheme: ThemeColors = {
   fg: '#111111',
   mutedText: '#666666',
   link: '#0066cc',
+  headerBg: '#ffffff',
+  headerBorder: '#dddddd',
   cardBg: '#ffffff',
   cardBorder: '#dddddd',
   buttonBg: '#f5f5f5',
+  buttonHoverBg: '#eeeeee',
   buttonText: '#111111',
+  muted: '#f5f5f5',
+  accentText: '#0066cc',
 };
 
 const settings: TTSSettings = {
   voiceName: '',
-  rate: 1,
-  pitch: 1,
-  volume: 1,
+  rate: 0,
   highlightMode: 'sentence',
-  sleepTimerMinutes: 0,
 };
 
 describe('TTSControls', () => {

@@ -1,5 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Crimson_Text, Playfair_Display, Noto_Serif_SC } from 'next/font/google';
+import '@fontsource/crimson-text/latin-400.css';
+import '@fontsource/crimson-text/latin-600.css';
+import '@fontsource/crimson-text/latin-700.css';
+import '@fontsource/noto-serif-sc/chinese-simplified-400.css';
+import '@fontsource/noto-serif-sc/chinese-simplified-500.css';
+import '@fontsource/noto-serif-sc/chinese-simplified-600.css';
+import '@fontsource/noto-serif-sc/chinese-simplified-700.css';
+import '@fontsource/playfair-display/latin-400.css';
+import '@fontsource/playfair-display/latin-500.css';
+import '@fontsource/playfair-display/latin-600.css';
+import '@fontsource/playfair-display/latin-700.css';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -7,27 +17,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorSuppressor } from '@/components/ErrorSuppressor';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import './globals.css';
-
-const crimsonText = Crimson_Text({
-  variable: '--font-crimson',
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  display: 'swap',
-});
-
-const playfairDisplay = Playfair_Display({
-  variable: '--font-playfair',
-  subsets: ['latin'],
-  display: 'swap',
-});
-
-const notoSerifSC = Noto_Serif_SC({
-  variable: '--font-noto-serif-sc',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  preload: false,
-});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -86,7 +75,7 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
-      className={`${crimsonText.variable} ${playfairDisplay.variable} ${notoSerifSC.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background font-sans">

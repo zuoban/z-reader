@@ -27,24 +27,31 @@ const uiScheme: ThemeColors = {
   fg: '#111111',
   mutedText: '#666666',
   link: '#0066cc',
+  headerBg: '#ffffff',
+  headerBorder: '#dddddd',
   cardBg: '#ffffff',
   cardBorder: '#dddddd',
   buttonBg: '#f5f5f5',
+  buttonHoverBg: '#eeeeee',
   buttonText: '#111111',
+  muted: '#f5f5f5',
+  accentText: '#0066cc',
 };
 
 const theme: ReaderTheme = {
   preset: 'light',
-  fontFamily: 'serif',
+  fontFamily: 'classic',
   fontSize: 18,
   lineHeight: 1.7,
+  pagePaddingX: 24,
+  pagePaddingY: 24,
   paragraphSpacing: 1,
-  contentWidth: 720,
-  textAlign: 'left',
-  letterSpacing: 0,
-  fontWeight: 400,
-  useBoldTitles: true,
-  pageTurnAnimation: true,
+  flow: 'paginated',
+  maxInlineSize: 720,
+  gap: 24,
+  animated: true,
+  chineseIndent: true,
+  punctuationSqueeze: true,
 };
 
 describe('ReaderToolbar', () => {
@@ -77,6 +84,8 @@ describe('ReaderToolbar', () => {
         setTheme={vi.fn()}
         themeSettingsOpen={false}
         onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
         ttsControls={
           <button type="button">
             <span>朗读</span>
@@ -126,6 +135,8 @@ describe('ReaderToolbar', () => {
         setTheme={vi.fn()}
         themeSettingsOpen={false}
         onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
         ttsControls={
           <button type="button">
             <span>朗读</span>

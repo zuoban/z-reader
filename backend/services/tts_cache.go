@@ -21,7 +21,11 @@ const (
 	defaultTTSAudioCacheMaxItems = 128
 	defaultTTSAudioCacheTTL      = 24 * time.Hour
 	defaultTTSMaxConcurrency     = 3
+	defaultTTSMaxQueued          = 12
+	defaultTTSQueueWait          = 30 * time.Second
 )
+
+var ErrTTSBusy = errors.New("tts service is busy")
 
 type ttsCacheConfig struct {
 	MaxBytes      int
@@ -29,6 +33,8 @@ type ttsCacheConfig struct {
 	TTL           time.Duration
 	Dir           string
 	MaxConcurrent int
+	MaxQueued     int
+	QueueWait     time.Duration
 }
 
 type ttsCacheEntry struct {
@@ -50,6 +56,7 @@ type ttsRuntimeState struct {
 	config    ttsCacheConfig
 	cache     *ttsAudioCache
 	semaphore chan struct{}
+	queue     chan struct{}
 }
 
 var ttsRuntime struct {
@@ -60,11 +67,7 @@ var ttsRuntime struct {
 func getTTSRuntime() *ttsRuntimeState {
 	ttsRuntime.once.Do(func() {
 		config := loadTTSCacheConfig()
-		ttsRuntime.state = &ttsRuntimeState{
-			config:    config,
-			cache:     newTTSAudioCache(config),
-			semaphore: make(chan struct{}, maxInt(config.MaxConcurrent, 1)),
-		}
+		ttsRuntime.state = newTTSRuntimeState(config)
 		logger.Info(
 			"TTS cache configured",
 			"dir", config.Dir,
@@ -72,9 +75,29 @@ func getTTSRuntime() *ttsRuntimeState {
 			"max_items", config.MaxItems,
 			"ttl_seconds", int(config.TTL.Seconds()),
 			"max_concurrency", config.MaxConcurrent,
+			"max_queued", config.MaxQueued,
+			"queue_wait_seconds", int(config.QueueWait.Seconds()),
 		)
 	})
 	return ttsRuntime.state
+}
+
+func newTTSRuntimeState(config ttsCacheConfig) *ttsRuntimeState {
+	if config.MaxConcurrent <= 0 {
+		config.MaxConcurrent = defaultTTSMaxConcurrency
+	}
+	if config.MaxQueued <= 0 {
+		config.MaxQueued = defaultTTSMaxQueued
+	}
+	if config.QueueWait <= 0 {
+		config.QueueWait = defaultTTSQueueWait
+	}
+	return &ttsRuntimeState{
+		config:    config,
+		cache:     newTTSAudioCache(config),
+		semaphore: make(chan struct{}, config.MaxConcurrent),
+		queue:     make(chan struct{}, config.MaxConcurrent+config.MaxQueued),
+	}
 }
 
 func loadTTSCacheConfig() ttsCacheConfig {
@@ -84,6 +107,8 @@ func loadTTSCacheConfig() ttsCacheConfig {
 		TTL:           getEnvDurationSeconds("TTS_CACHE_TTL_SECONDS", defaultTTSAudioCacheTTL),
 		Dir:           getEnvString("TTS_CACHE_DIR", filepath.Join(".", "data", "tts-cache")),
 		MaxConcurrent: getEnvInt("TTS_MAX_CONCURRENCY", defaultTTSMaxConcurrency),
+		MaxQueued:     getEnvInt("TTS_MAX_QUEUED", defaultTTSMaxQueued),
+		QueueWait:     getEnvDurationSeconds("TTS_QUEUE_WAIT_SECONDS", defaultTTSQueueWait),
 	}
 }
 
@@ -127,13 +152,6 @@ func getEnvInt(key string, fallback int) int {
 func getEnvDurationSeconds(key string, fallback time.Duration) time.Duration {
 	seconds := getEnvInt(key, int(fallback.Seconds()))
 	return time.Duration(seconds) * time.Second
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 func ttsCacheKey(ssml, outputFormat string) string {
@@ -276,10 +294,11 @@ func callTTSAPIWithCache(ssml, outputFormat string) ([]byte, error) {
 
 func callTTSAPIThrottled(ssml, outputFormat string) ([]byte, error) {
 	runtime := getTTSRuntime()
-	runtime.semaphore <- struct{}{}
-	defer func() {
-		<-runtime.semaphore
-	}()
+	release, err := acquireTTSSlot(runtime)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 
 	start := time.Now()
 	data, err := callTTSAPI(ssml, outputFormat, false)
@@ -292,6 +311,31 @@ func callTTSAPIThrottled(ssml, outputFormat string) ([]byte, error) {
 		"error", errorString(err),
 	)
 	return data, err
+}
+
+func acquireTTSSlot(runtime *ttsRuntimeState) (func(), error) {
+	select {
+	case runtime.queue <- struct{}{}:
+	default:
+		return nil, ErrTTSBusy
+	}
+
+	timer := time.NewTimer(runtime.config.QueueWait)
+	defer timer.Stop()
+	select {
+	case runtime.semaphore <- struct{}{}:
+		return func() {
+			<-runtime.semaphore
+			<-runtime.queue
+		}, nil
+	case <-timer.C:
+		<-runtime.queue
+		return nil, ErrTTSBusy
+	}
+}
+
+func IsTTSBusy(err error) bool {
+	return errors.Is(err, ErrTTSBusy)
 }
 
 func diskTTSCachePath(config ttsCacheConfig, key string) string {

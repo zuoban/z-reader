@@ -17,6 +17,7 @@ Makefile
 # Backend build artifacts
 z-reader
 backend/data.db
+*.db.sessions
 data.db
 
 # Frontend build artifacts

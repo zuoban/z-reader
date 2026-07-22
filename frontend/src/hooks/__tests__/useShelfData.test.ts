@@ -10,6 +10,7 @@ import type { Book } from '@/lib/api';
 vi.mock('@/lib/api', () => ({
   api: {
     listBooks: vi.fn(),
+    listBooksPage: vi.fn(),
     listProgress: vi.fn(),
     uploadBook: vi.fn(),
     deleteBook: vi.fn(),
@@ -50,6 +51,9 @@ describe('useShelfData', () => {
     vi.clearAllMocks();
     localStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(api.listBooksPage).mockImplementation(async () => ({
+      books: await api.listBooks(),
+    }));
   });
 
   afterEach(() => {
@@ -72,6 +76,25 @@ describe('useShelfData', () => {
     expect(result.current.books).toHaveLength(1);
     expect(result.current.books[0].title).toBe('Test Book');
     expect(api.listBooks).toHaveBeenCalled();
+  });
+
+  it('loads subsequent cursor pages in the background', async () => {
+    vi.mocked(api.listBooksPage)
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'first' })], next_cursor: 'first' })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'second' })] });
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+    await vi.waitFor(() => {
+      expect(result.current.books.map((book) => book.id)).toEqual(['first', 'second']);
+    });
+
+    expect(api.listBooksPage).toHaveBeenNthCalledWith(1, undefined, 50, 'recent_read');
+    expect(api.listBooksPage).toHaveBeenNthCalledWith(2, 'first', 50, 'recent_read');
   });
 
   it('does not load books when not authenticated', async () => {
@@ -280,7 +303,7 @@ describe('useShelfData', () => {
     vi.mocked(api.listProgress).mockResolvedValue([]);
     vi.mocked(api.uploadBook).mockResolvedValue(mockBook({ id: 'new-book' }));
     vi.mocked(api.updateBook).mockResolvedValue(mockBook({ id: 'new-book', title: 'Enriched' }));
-    vi.mocked(api.uploadCover).mockResolvedValue(mockBook({ id: 'new-book', cover_url: '/cover' }));
+    vi.mocked(api.uploadCover).mockResolvedValue(mockBook({ id: 'new-book', cover_path: 'new-book.cover.jpg' }));
 
     const { result } = renderHook(() => useShelfData(true));
 

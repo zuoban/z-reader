@@ -81,4 +81,33 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	if w.Code != http.StatusTooManyRequests {
 		t.Fatalf("expected status 429, got %d", w.Code)
 	}
+	if got := w.Header().Get("Retry-After"); got != "300" {
+		t.Fatalf("expected Retry-After 300, got %q", got)
+	}
+}
+
+func TestRateLimitByUserUsesSeparateUserQuotas(t *testing.T) {
+	rl := NewRateLimiter(1, time.Minute)
+	handler := RateLimitByUser(rl)
+
+	request := func(userID string) int {
+		gin.SetMode(gin.TestMode)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/tts", nil)
+		c.Request.RemoteAddr = "10.0.0.99:12345"
+		c.Set("userID", userID)
+		handler(c)
+		return w.Code
+	}
+
+	if status := request("user-a"); status != http.StatusOK {
+		t.Fatalf("expected first user request to pass, got %d", status)
+	}
+	if status := request("user-b"); status != http.StatusOK {
+		t.Fatalf("expected second user request to pass, got %d", status)
+	}
+	if status := request("user-a"); status != http.StatusTooManyRequests {
+		t.Fatalf("expected repeated user request to be limited, got %d", status)
+	}
 }

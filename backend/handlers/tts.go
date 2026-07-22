@@ -19,6 +19,7 @@ const (
 	maxTTSTextRunes    = 2000
 	maxSSMLBytes       = 32 * 1024
 	maxSSMLRequestBody = 64 * 1024
+	ttsRetryAfter      = "30"
 )
 
 func NewTTSHandler() *TTSHandler {
@@ -45,6 +46,10 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 
 	audioData, err := services.GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat)
 	if err != nil {
+		if services.IsTTSBusy(err) {
+			respondTTSBusy(c)
+			return
+		}
 		response.InternalError(c, err.Error())
 		return
 	}
@@ -105,6 +110,10 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 
 	audioData, err := services.GenerateAudioFromSsml(sanitizedSsml, outputFormat)
 	if err != nil {
+		if services.IsTTSBusy(err) {
+			respondTTSBusy(c)
+			return
+		}
 		response.InternalError(c, err.Error())
 		return
 	}
@@ -124,6 +133,11 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, contentType, audioData)
+}
+
+func respondTTSBusy(c *gin.Context) {
+	c.Header("Retry-After", ttsRetryAfter)
+	c.JSON(http.StatusTooManyRequests, gin.H{"error": "语音服务繁忙，请稍后重试"})
 }
 
 func (h *TTSHandler) VoiceList(c *gin.Context) {

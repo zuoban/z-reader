@@ -410,6 +410,86 @@ func TestListBooksFiltersByUser(t *testing.T) {
 	}
 }
 
+func TestListBooksByCursorReturnsOnlyRequestedPage(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	for _, id := range []string{"book-a", "book-b", "book-c"} {
+		if err := db.SaveBook(&models.Book{
+			ID:        id,
+			UserID:    userID,
+			Title:     id,
+			Filename:  id + ".epub",
+			Format:    "epub",
+			Size:      128,
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatalf("failed to save %s: %v", id, err)
+		}
+	}
+	if err := db.SaveBook(&models.Book{
+		ID:        "book-d",
+		UserID:    "user-b",
+		Title:     "book-d",
+		Filename:  "book-d.epub",
+		Format:    "epub",
+		Size:      128,
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("failed to save other user's book: %v", err)
+	}
+
+	firstPage, nextCursor, err := db.ListBooksByCursor(userID, "", 2)
+	if err != nil {
+		t.Fatalf("ListBooksByCursor returned error: %v", err)
+	}
+	if len(firstPage) != 2 || firstPage[0].ID != "book-a" || firstPage[1].ID != "book-b" {
+		t.Fatalf("unexpected first page: %+v", firstPage)
+	}
+	if nextCursor != "book-b" {
+		t.Fatalf("expected next cursor book-b, got %q", nextCursor)
+	}
+
+	secondPage, nextCursor, err := db.ListBooksByCursor(userID, nextCursor, 2)
+	if err != nil {
+		t.Fatalf("ListBooksByCursor returned error: %v", err)
+	}
+	if len(secondPage) != 1 || secondPage[0].ID != "book-c" {
+		t.Fatalf("unexpected second page: %+v", secondPage)
+	}
+	if nextCursor != "" {
+		t.Fatalf("expected no next cursor, got %q", nextCursor)
+	}
+}
+
+func TestListBooksBySortedCursorUsesPersistentTitleIndex(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	for _, book := range []*models.Book{
+		{ID: "book-b", UserID: userID, Title: "Beta", Filename: "book-b.epub", Format: "epub", Size: 128, CreatedAt: time.Now().UTC()},
+		{ID: "book-a", UserID: userID, Title: "Alpha", Filename: "book-a.epub", Format: "epub", Size: 128, CreatedAt: time.Now().UTC()},
+	} {
+		if err := db.SaveBook(book); err != nil {
+			t.Fatalf("failed to save %s: %v", book.ID, err)
+		}
+	}
+
+	firstPage, nextCursor, err := db.ListBooksBySortedCursor(userID, "", 1, "title")
+	if err != nil {
+		t.Fatalf("ListBooksBySortedCursor returned error: %v", err)
+	}
+	if len(firstPage) != 1 || firstPage[0].ID != "book-a" || nextCursor != "book-a" {
+		t.Fatalf("unexpected first title page: %+v next=%q", firstPage, nextCursor)
+	}
+
+	secondPage, nextCursor, err := db.ListBooksBySortedCursor(userID, nextCursor, 1, "title")
+	if err != nil {
+		t.Fatalf("ListBooksBySortedCursor returned error: %v", err)
+	}
+	if len(secondPage) != 1 || secondPage[0].ID != "book-b" || nextCursor != "" {
+		t.Fatalf("unexpected second title page: %+v next=%q", secondPage, nextCursor)
+	}
+}
+
 func TestNormalizeBookCategoriesTrimsNames(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

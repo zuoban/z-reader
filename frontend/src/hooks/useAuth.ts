@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { api, auth, AUTH_EXPIRED_EVENT } from '@/lib/api';
+import { clearCoverUrlCache } from '@/hooks/useCoverUrl';
+import { clearOfflineBooks } from '@/lib/offline-books';
 import type { User } from '@/lib/api';
 
 export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
@@ -18,7 +20,10 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
       setIsAuthenticated(true);
       setUser(res.user ?? auth.getCurrentUser());
     } catch {
+      const expiredUserID = auth.getCurrentUser()?.id;
       auth.removeToken();
+      clearCoverUrlCache();
+      void clearOfflineBooks(expiredUserID);
       setIsAuthenticated(false);
       setUser(null);
     }
@@ -35,6 +40,9 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
 
   useEffect(() => {
     function handleAuthExpired() {
+      const expiredUserID = auth.getCurrentUser()?.id;
+      clearCoverUrlCache();
+      void clearOfflineBooks(expiredUserID);
       setIsAuthenticated(false);
       setUser(null);
       if (redirectOnExpire) {
@@ -61,7 +69,10 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
   }
 
   async function logout() {
+    const currentUserID = user?.id;
     await api.logout();
+    clearCoverUrlCache();
+    void clearOfflineBooks(currentUserID);
     setUser(null);
     setIsAuthenticated(false);
     router.push('/login');

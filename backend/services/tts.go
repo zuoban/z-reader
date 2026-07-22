@@ -18,12 +18,20 @@ var (
 )
 
 func GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat string) ([]byte, error) {
+	return GenerateAudioFromTextContext(context.Background(), text, voiceName, rate, pitch, style, outputFormat)
+}
+
+func GenerateAudioFromTextContext(ctx context.Context, text, voiceName, rate, pitch, style, outputFormat string) ([]byte, error) {
 	ssml := utils.BuildSsml(text, voiceName, rate, pitch, style)
-	return callTTSAPIWithCache(ssml, outputFormat)
+	return callTTSAPIWithCacheContext(ctx, ssml, outputFormat)
 }
 
 func GenerateAudioFromSsml(ssml, outputFormat string) ([]byte, error) {
-	return callTTSAPIWithCache(ssml, outputFormat)
+	return GenerateAudioFromSsmlContext(context.Background(), ssml, outputFormat)
+}
+
+func GenerateAudioFromSsmlContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	return callTTSAPIWithCacheContext(ctx, ssml, outputFormat)
 }
 
 func clearEndpointCache() {
@@ -32,13 +40,13 @@ func clearEndpointCache() {
 	endpointCache.mutex.Unlock()
 }
 
-func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
+func callTTSAPI(ctx context.Context, ssml, outputFormat string, isRetry bool) ([]byte, error) {
 	cache, err := GetEndpoint()
 	if err != nil {
 		return nil, fmt.Errorf("获取语音服务端点失败：%v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	url := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", cache.Endpoint)
@@ -69,7 +77,7 @@ func callTTSAPI(ssml, outputFormat string, isRetry bool) ([]byte, error) {
 			clearEndpointCache()
 			forceRefreshMutex.Unlock()
 
-			return callTTSAPI(ssml, outputFormat, true)
+			return callTTSAPI(ctx, ssml, outputFormat, true)
 		}
 	}
 

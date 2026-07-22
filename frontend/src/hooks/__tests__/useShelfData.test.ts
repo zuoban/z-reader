@@ -11,6 +11,7 @@ vi.mock('@/lib/api', () => ({
   api: {
     listBooks: vi.fn(),
     listBooksPage: vi.fn(),
+    searchBooks: vi.fn(),
     getBookLibrarySummary: vi.fn(),
     listProgress: vi.fn(),
     uploadBook: vi.fn(),
@@ -102,6 +103,32 @@ describe('useShelfData', () => {
 
     expect(api.listBooksPage).toHaveBeenNthCalledWith(1, undefined, 50, 'recent_read');
     expect(api.listBooksPage).toHaveBeenNthCalledWith(2, 'first', 50, 'recent_read');
+    expect(api.listProgress).toHaveBeenNthCalledWith(1, { bookIds: ['first'] });
+    expect(api.listProgress).toHaveBeenNthCalledWith(2, { bookIds: ['second'] });
+  });
+
+  it('uses server-side search so unloaded library books can be found', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([mockBook({ id: 'loaded', title: 'Loaded book' })]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.searchBooks).mockResolvedValue({
+      books: [mockBook({ id: 'remote', title: 'Remote library book' })],
+    });
+
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => {
+      expect(result.current.isLoadingBooks).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.setSearchQuery('Remote');
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    await vi.waitFor(() => {
+      expect(result.current.isSearching).toBe(false);
+    });
+
+    expect(api.searchBooks).toHaveBeenCalledWith('Remote', undefined, 50, 'recent_read');
+    expect(result.current.filteredBooks.map((book) => book.id)).toEqual(['remote']);
   });
 
   it('does not load books when not authenticated', async () => {

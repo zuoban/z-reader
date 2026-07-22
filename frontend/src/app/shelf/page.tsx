@@ -74,6 +74,7 @@ export default function ShelfPage() {
     progressByBookId,
     categories,
     isLoadingBooks,
+    isSearching,
     isLoadingMoreBooks,
     hasMoreBooks,
     loadError,
@@ -509,7 +510,7 @@ export default function ShelfPage() {
                 selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
               )}
             >
-              {isLoadingBooks ? (
+              {isLoadingBooks || isSearching ? (
                 <BookCardSkeletonGrid count={6} />
               ) : filteredBooks.length === 0 ? (
                 <div className="flex min-h-[26rem] flex-col items-center justify-center px-8 py-16 text-center">

@@ -9,6 +9,7 @@ import { extractBookPreview } from '@/lib/book-preview';
 const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
 const BOOK_PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 250;
 
 export type SortOption = 'recent_read' | 'title' | 'recent_added' | 'author';
 export interface UploadProgress {
@@ -157,9 +158,13 @@ export function useShelfData(isAuthenticated: boolean) {
   const [isUpdatingManyCategories, setIsUpdatingManyCategories] = useState(false);
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Book[] | null>(null);
+  const [searchNextCursor, setSearchNextCursor] = useState<string | undefined>();
+  const [isSearching, setIsSearching] = useState(false);
   const enrichingBooksRef = useRef(new Set<string>());
   const loadGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
+  const searchGenerationRef = useRef(0);
 
   const enrichBookMetadata = useCallback(
     async (bookId: string, file: File) => {
@@ -233,9 +238,12 @@ export function useShelfData(isAuthenticated: boolean) {
     setIsLoadingBooks(true);
     setLoadError(null);
     try {
+      const firstPageRequest = api.listBooksPage(undefined, BOOK_PAGE_SIZE, sortBy);
       const [firstPage, progressData, summary] = await Promise.all([
-        api.listBooksPage(undefined, BOOK_PAGE_SIZE, sortBy),
-        api.listProgress().catch(() => []),
+        firstPageRequest,
+        firstPageRequest.then((page) => api.listProgress({
+          bookIds: (page.books ?? []).map((book) => book.id),
+        })).catch(() => []),
         api.getBookLibrarySummary().catch(() => null),
       ]);
       if (loadGeneration !== loadGenerationRef.current) return;
@@ -273,21 +281,43 @@ export function useShelfData(isAuthenticated: boolean) {
   }, [sortBy]);
 
   const loadMoreBooks = useCallback(async () => {
-    if (!nextCursor || loadingMoreRef.current) return;
+    const query = searchQuery.trim();
+    const isSearch = query.length > 0;
+    const cursor = isSearch ? searchNextCursor : nextCursor;
+    if (!cursor || loadingMoreRef.current) return;
 
     const loadGeneration = loadGenerationRef.current;
     loadingMoreRef.current = true;
     setIsLoadingMoreBooks(true);
     try {
-      const page = await api.listBooksPage(nextCursor, BOOK_PAGE_SIZE, sortBy);
+      const page = isSearch
+        ? await api.searchBooks(query, cursor, BOOK_PAGE_SIZE, sortBy)
+        : await api.listBooksPage(cursor, BOOK_PAGE_SIZE, sortBy);
       if (loadGeneration !== loadGenerationRef.current) return;
 
-      setBooks((currentBooks) => {
+      const progressData = await api.listProgress({
+        bookIds: (page.books ?? []).map((book) => book.id),
+      }).catch(() => []);
+      if (loadGeneration !== loadGenerationRef.current) return;
+
+      const mergeBooks = (currentBooks: Book[]) => {
         const byID = new Map(currentBooks.map((book) => [book.id, book]));
         page.books.forEach((book) => byID.set(book.id, book));
         return Array.from(byID.values());
-      });
-      setNextCursor(page.next_cursor);
+      };
+      if (isSearch) {
+        setSearchResults((currentBooks) => mergeBooks(currentBooks ?? []));
+        setSearchNextCursor(page.next_cursor);
+      } else {
+        setBooks(mergeBooks);
+        setNextCursor(page.next_cursor);
+      }
+      setProgressByBookId((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          progressData.map((progress) => [progress.book_id, progress.percentage])
+        ),
+      }));
     } catch (err) {
       if (loadGeneration === loadGenerationRef.current) {
         toast.error(err instanceof Error ? err.message : '加载更多图书失败');
@@ -298,13 +328,16 @@ export function useShelfData(isAuthenticated: boolean) {
         setIsLoadingMoreBooks(false);
       }
     }
-  }, [nextCursor, sortBy]);
+  }, [nextCursor, searchNextCursor, searchQuery, sortBy]);
 
   useEffect(() => {
     if (!isAuthenticated) {
       loadGenerationRef.current += 1;
+      searchGenerationRef.current += 1;
       loadingMoreRef.current = false;
       setNextCursor(undefined);
+	  setSearchResults(null);
+	  setSearchNextCursor(undefined);
       setLibrarySummary(null);
       return;
     }
@@ -315,6 +348,40 @@ export function useShelfData(isAuthenticated: boolean) {
 
     return () => window.clearTimeout(timeoutId);
   }, [isAuthenticated, loadBooks]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    const generation = ++searchGenerationRef.current;
+    if (!isAuthenticated || !query) {
+      setSearchResults(null);
+      setSearchNextCursor(undefined);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timeoutId = window.setTimeout(() => {
+      void api.searchBooks(query, undefined, BOOK_PAGE_SIZE, sortBy)
+        .then((page) => {
+          if (generation !== searchGenerationRef.current) return;
+          setSearchResults(page.books ?? []);
+          setSearchNextCursor(page.next_cursor);
+        })
+        .catch((err) => {
+          if (generation !== searchGenerationRef.current) return;
+          setSearchResults([]);
+          setSearchNextCursor(undefined);
+          toast.error(err instanceof Error ? err.message : '搜索图书失败');
+        })
+        .finally(() => {
+          if (generation === searchGenerationRef.current) {
+            setIsSearching(false);
+          }
+        });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isAuthenticated, searchQuery, sortBy]);
 
   const categories = useMemo(() => {
     if (!librarySummary) return deriveCategories(books);
@@ -333,7 +400,8 @@ export function useShelfData(isAuthenticated: boolean) {
 
   const filteredBooks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const searched = query
+    const sourceBooks = query ? (searchResults ?? []) : books;
+    const searched = query && searchResults === null
       ? books.filter((book) => {
           const haystack = [
             book.title,
@@ -348,14 +416,14 @@ export function useShelfData(isAuthenticated: boolean) {
 
           return haystack.includes(query);
         })
-      : books;
+      : sourceBooks;
     const sorted = sortBooks(searched, sortBy);
     if (!selectedCategoryId) return sorted;
     if (selectedCategoryId === UNCATEGORIZED_FILTER_ID) {
       return sorted.filter((book) => !book.category?.trim());
     }
     return sorted.filter((book) => book.category?.trim() === selectedCategoryId);
-  }, [books, searchQuery, selectedCategoryId, sortBy]);
+  }, [books, searchQuery, searchResults, selectedCategoryId, sortBy]);
 
   const bookCounts = useMemo(() => {
     if (librarySummary) {
@@ -450,6 +518,7 @@ export function useShelfData(isAuthenticated: boolean) {
       abortEnrichment(id);
       await api.deleteBook(id);
       setBooks((prev) => prev.filter((book) => book.id !== id));
+      setSearchResults((prev) => prev?.filter((book) => book.id !== id) ?? null);
       setProgressByBookId((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -475,6 +544,7 @@ export function useShelfData(isAuthenticated: boolean) {
       const deletedIds = result.deleted_ids ?? uniqueIds;
       const deletedSet = new Set(deletedIds);
       setBooks((prev) => prev.filter((book) => !deletedSet.has(book.id)));
+      setSearchResults((prev) => prev?.filter((book) => !deletedSet.has(book.id)) ?? null);
       setProgressByBookId((prev) => {
         const next = { ...prev };
         deletedSet.forEach((id) => {
@@ -512,6 +582,10 @@ export function useShelfData(isAuthenticated: boolean) {
         prev.map((book) => updatedById.get(book.id) ?? book),
         sortBy
       ));
+      setSearchResults((prev) => prev === null ? null : sortBooks(
+        prev.map((book) => updatedById.get(book.id) ?? book),
+        sortBy
+      ));
       void loadLibrarySummary();
       toast.success(nextCategory ? `已设置为「${nextCategory}」` : '已清空所选分类');
       return { successCount: updatedBooks.length, failedCount: 0 };
@@ -544,8 +618,9 @@ export function useShelfData(isAuthenticated: boolean) {
     progressByBookId,
     categories,
     isLoadingBooks,
+    isSearching,
     isLoadingMoreBooks,
-    hasMoreBooks: Boolean(nextCursor),
+    hasMoreBooks: Boolean(searchQuery.trim() ? searchResults && searchNextCursor : nextCursor),
     loadError,
     selectedCategoryId,
     setSelectedCategoryId,

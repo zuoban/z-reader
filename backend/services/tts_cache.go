@@ -2,6 +2,7 @@ package services
 
 import (
 	"container/list"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -218,9 +219,10 @@ func (c *ttsAudioCache) removeElement(el *list.Element) {
 }
 
 type ttsInflightCall struct {
-	wg      sync.WaitGroup
 	data    []byte
 	err     error
+	done    chan struct{}
+	cancel  context.CancelFunc
 	waiters atomic.Int64
 }
 
@@ -230,6 +232,10 @@ var ttsInflight struct {
 }
 
 func callTTSAPIWithCache(ssml, outputFormat string) ([]byte, error) {
+	return callTTSAPIWithCacheContext(context.Background(), ssml, outputFormat)
+}
+
+func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
 	runtime := getTTSRuntime()
 	key := ttsCacheKey(ssml, outputFormat)
 	if data, ok := runtime.cache.get(key); ok {
@@ -250,58 +256,70 @@ func callTTSAPIWithCache(ssml, outputFormat string) ([]byte, error) {
 	if call, ok := ttsInflight.calls[key]; ok {
 		call.waiters.Add(1)
 		ttsInflight.mutex.Unlock()
-		call.wg.Wait()
+		return waitForTTSCall(ctx, call)
+	}
+
+	workCtx, cancel := context.WithCancel(context.Background())
+	call := &ttsInflightCall{done: make(chan struct{}), cancel: cancel}
+	call.waiters.Store(1)
+	ttsInflight.calls[key] = call
+	ttsInflight.mutex.Unlock()
+
+	go func() {
+		defer cancel()
+		defer func() {
+			ttsInflight.mutex.Lock()
+			delete(ttsInflight.calls, key)
+			ttsInflight.mutex.Unlock()
+			close(call.done)
+		}()
+
+		logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml), "output_format", outputFormat)
+		call.data, call.err = callTTSAPIThrottled(workCtx, ssml, outputFormat)
+		if call.err == nil {
+			runtime.cache.set(key, call.data)
+			if err := writeDiskTTSCache(runtime.config, key, call.data); err != nil {
+				logger.Warn("Failed to write TTS disk cache", "key", key, "error", err)
+			}
+		}
+
+		logger.Info(
+			"TTS request completed",
+			"key", key,
+			"bytes", len(call.data),
+			"waiters", call.waiters.Load(),
+			"error", errorString(call.err),
+		)
+	}()
+
+	return waitForTTSCall(ctx, call)
+}
+
+func waitForTTSCall(ctx context.Context, call *ttsInflightCall) ([]byte, error) {
+	select {
+	case <-call.done:
 		if call.err != nil {
 			return nil, call.err
 		}
 		return append([]byte(nil), call.data...), nil
-	}
-
-	call := &ttsInflightCall{}
-	call.wg.Add(1)
-	ttsInflight.calls[key] = call
-	ttsInflight.mutex.Unlock()
-
-	defer func() {
-		ttsInflight.mutex.Lock()
-		delete(ttsInflight.calls, key)
-		ttsInflight.mutex.Unlock()
-	}()
-
-	logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml), "output_format", outputFormat)
-	call.data, call.err = callTTSAPIThrottled(ssml, outputFormat)
-	if call.err == nil {
-		runtime.cache.set(key, call.data)
-		if err := writeDiskTTSCache(runtime.config, key, call.data); err != nil {
-			logger.Warn("Failed to write TTS disk cache", "key", key, "error", err)
+	case <-ctx.Done():
+		if call.waiters.Add(-1) == 0 {
+			call.cancel()
 		}
+		return nil, ctx.Err()
 	}
-	call.wg.Done()
-
-	logger.Info(
-		"TTS request completed",
-		"key", key,
-		"bytes", len(call.data),
-		"waiters", call.waiters.Load(),
-		"error", errorString(call.err),
-	)
-
-	if call.err != nil {
-		return nil, call.err
-	}
-	return append([]byte(nil), call.data...), nil
 }
 
-func callTTSAPIThrottled(ssml, outputFormat string) ([]byte, error) {
+func callTTSAPIThrottled(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
 	runtime := getTTSRuntime()
-	release, err := acquireTTSSlot(runtime)
+	release, err := acquireTTSSlotContext(ctx, runtime)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
 	start := time.Now()
-	data, err := callTTSAPI(ssml, outputFormat, false)
+	data, err := callTTSAPI(ctx, ssml, outputFormat, false)
 	logger.Info(
 		"TTS API call",
 		"latency_ms", time.Since(start).Milliseconds(),
@@ -314,8 +332,14 @@ func callTTSAPIThrottled(ssml, outputFormat string) ([]byte, error) {
 }
 
 func acquireTTSSlot(runtime *ttsRuntimeState) (func(), error) {
+	return acquireTTSSlotContext(context.Background(), runtime)
+}
+
+func acquireTTSSlotContext(ctx context.Context, runtime *ttsRuntimeState) (func(), error) {
 	select {
 	case runtime.queue <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	default:
 		return nil, ErrTTSBusy
 	}
@@ -331,6 +355,9 @@ func acquireTTSSlot(runtime *ttsRuntimeState) (func(), error) {
 	case <-timer.C:
 		<-runtime.queue
 		return nil, ErrTTSBusy
+	case <-ctx.Done():
+		<-runtime.queue
+		return nil, ctx.Err()
 	}
 }
 
@@ -375,13 +402,13 @@ func writeDiskTTSCache(config ttsCacheConfig, key string, data []byte) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(config.Dir, 0755); err != nil {
+	if err := os.MkdirAll(config.Dir, 0700); err != nil {
 		return err
 	}
 
 	path := diskTTSCachePath(config, key)
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return err
 	}
 	if err := os.Rename(tmpPath, path); err != nil {

@@ -29,6 +29,10 @@ services:
       - TTS_MAX_CONCURRENCY=${TTS_MAX_CONCURRENCY:-3}
       - TTS_MAX_QUEUED=${TTS_MAX_QUEUED:-12}
       - TTS_QUEUE_WAIT_SECONDS=${TTS_QUEUE_WAIT_SECONDS:-30}
+      - METRICS_ENABLED=${METRICS_ENABLED:-false}
+      - BACKUP_DIR=/app/data/backups
+      - BACKUP_INTERVAL_HOURS=${BACKUP_INTERVAL_HOURS:-24}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
       # Use a domain such as reader.example.com to enable Caddy-managed HTTPS.
       # The local default (:80) remains convenient for development.
       - CADDY_SITE=${CADDY_SITE:-:80}

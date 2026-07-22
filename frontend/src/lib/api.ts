@@ -6,6 +6,7 @@ import {
   isAbortLikeError,
   normalizeRequestError,
 } from '@/lib/config';
+import { clearOfflineBooks, getOfflineBook, removeOfflineBook } from '@/lib/offline-books';
 
 export interface Book {
   id: string;
@@ -86,8 +87,10 @@ function setToken(token: string): void {
 
 function removeToken(): void {
   if (typeof window === 'undefined' || !window.localStorage?.removeItem) return;
+  const userID = getCurrentUser()?.id;
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  void clearOfflineBooks(userID);
 }
 
 function removeLegacyToken(): void {
@@ -131,6 +134,14 @@ export function handleAuthResponse(res: Response): void {
 async function parseApiError(res: Response, fallback: string): Promise<ApiError> {
   const body = await res.json().catch(() => null) as { error?: string; message?: string } | null;
   return new ApiError(body?.error || body?.message || fallback, res.status, body);
+}
+
+function duplicateBookFromError(error: unknown): Book | null {
+  if (!(error instanceof ApiError) || error.status !== 409 || !error.details) return null;
+  const details = error.details as { book?: Partial<Book> };
+  const book = details.book;
+  if (!book || typeof book.id !== 'string' || typeof book.filename !== 'string') return null;
+  return book as Book;
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
@@ -292,6 +303,18 @@ export const api = {
     return fetchApi<BookPage>(`/api/books?${params.toString()}`);
   },
 
+  searchBooks: async (
+    query: string,
+    cursor?: string,
+    limit = 20,
+    sort = 'recent_read'
+  ): Promise<BookPage> => {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    if (cursor) params.set('cursor', cursor);
+    if (sort) params.set('sort', sort);
+    return fetchApi<BookPage>(`/api/books/search?${params.toString()}`);
+  },
+
   getBookLibrarySummary: async (): Promise<BookLibrarySummary> => {
     return fetchApi<BookLibrarySummary>('/api/books/summary');
   },
@@ -311,27 +334,44 @@ export const api = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await authedFetch('/api/books', {
-      method: 'POST',
-      body: formData,
-    });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const res = await authedFetch('/api/books', {
+          method: 'POST',
+          body: formData,
+        });
 
-    if (!res.ok) {
-      throw await parseApiError(res, '上传失败');
+        if (!res.ok) {
+          throw await parseApiError(res, '上传失败');
+        }
+
+        return await parseJsonResponse<Book>(res, '上传成功但响应为空');
+      } catch (error) {
+        const duplicate = duplicateBookFromError(error);
+        if (duplicate) return duplicate;
+        if (error instanceof ApiError || attempt === 1) throw error;
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
     }
 
-    return parseJsonResponse<Book>(res, '上传成功但响应为空');
+    throw new Error('上传失败');
   },
 
   deleteBook: async (id: string): Promise<void> => {
     await fetchApi(`/api/books/${id}`, { method: 'DELETE' });
+    void removeOfflineBook(getCurrentUser()?.id ?? '', id);
   },
 
   deleteBooks: async (ids: string[]): Promise<{ deleted_ids: string[] }> => {
-    return fetchApi<{ deleted_ids: string[] }>('/api/books/batch/delete', {
+    const result = await fetchApi<{ deleted_ids: string[] }>('/api/books/batch/delete', {
       method: 'POST',
       body: JSON.stringify({ ids }),
     });
+    const userID = getCurrentUser()?.id ?? '';
+    (result.deleted_ids ?? ids).forEach((id) => {
+      void removeOfflineBook(userID, id);
+    });
+    return result;
   },
 
   updateBooksCategory: async (
@@ -372,10 +412,18 @@ export const api = {
   },
 
   createBookFile: async (id: string): Promise<File | Blob> => {
-    const [book, blob] = await Promise.all([
-      api.getBook(id),
-      api.fetchBook(id),
-    ]);
+    let book: Book;
+    let blob: Blob;
+    try {
+      [book, blob] = await Promise.all([
+        api.getBook(id),
+        api.fetchBook(id),
+      ]);
+    } catch (error) {
+      const offlineBook = await getOfflineBook(getCurrentUser()?.id ?? '', id);
+      if (offlineBook) return offlineBook;
+      throw error;
+    }
 
     // Try using File constructor first, fallback to Blob for compatibility
     let file: File | Blob;
@@ -448,8 +496,14 @@ export const api = {
     return fetchApi<Progress>(`/api/progress/${bookId}`);
   },
 
-  listProgress: async (): Promise<Progress[]> => {
-    return fetchApi<Progress[]>('/api/progress');
+  listProgress: async (
+    options: { bookIds?: string[]; updatedSince?: string } = {}
+  ): Promise<Progress[]> => {
+    const params = new URLSearchParams();
+    if (options.bookIds?.length) params.set('book_ids', options.bookIds.join(','));
+    if (options.updatedSince) params.set('updated_since', options.updatedSince);
+    const query = params.toString();
+    return fetchApi<Progress[]>(`/api/progress${query ? `?${query}` : ''}`);
   },
 
   saveProgress: async (

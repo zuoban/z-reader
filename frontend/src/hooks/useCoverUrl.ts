@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 // Global cover fetch queue with concurrency limit to avoid flooding
 // the browser with parallel HTTP requests (browser limit ~6 per domain).
 const MAX_CONCURRENT = 6;
+const MAX_CACHED_COVERS = 200;
 const pendingQueue: Array<() => void> = [];
 let activeCount = 0;
 
@@ -42,28 +43,68 @@ function processQueue() {
   }
 }
 
-// Cache blob URLs by book ID to avoid re-fetching
+// Cache blob URLs with an LRU cap. Blob URLs retain their underlying binary
+// data until explicitly revoked, so an unbounded cache leaks memory on large
+// libraries.
 const coverUrlCache = new Map<string, string>();
+
+function getCachedCoverUrl(cacheKey: string): string | undefined {
+  const url = coverUrlCache.get(cacheKey);
+  if (!url) return undefined;
+  coverUrlCache.delete(cacheKey);
+  coverUrlCache.set(cacheKey, url);
+  return url;
+}
+
+function setCachedCoverUrl(bookId: string, cacheKey: string, url: string) {
+  const bookKeyPrefix = `${bookId}:`;
+  for (const [key, cachedUrl] of coverUrlCache) {
+    if (key !== cacheKey && key.startsWith(bookKeyPrefix)) {
+      coverUrlCache.delete(key);
+      URL.revokeObjectURL(cachedUrl);
+    }
+  }
+
+  const existing = coverUrlCache.get(cacheKey);
+  if (existing && existing !== url) URL.revokeObjectURL(existing);
+  coverUrlCache.delete(cacheKey);
+  coverUrlCache.set(cacheKey, url);
+
+  while (coverUrlCache.size > MAX_CACHED_COVERS) {
+    const oldest = coverUrlCache.entries().next().value as [string, string] | undefined;
+    if (!oldest) break;
+    coverUrlCache.delete(oldest[0]);
+    URL.revokeObjectURL(oldest[1]);
+  }
+}
+
+export function clearCoverUrlCache() {
+  for (const url of coverUrlCache.values()) {
+    URL.revokeObjectURL(url);
+  }
+  coverUrlCache.clear();
+}
 
 /**
  * Lazy-loads a book cover URL using IntersectionObserver.
  * Only fetches when the element enters the viewport, and respects
  * a global concurrency limit.
  */
-export function useCoverUrl(bookId: string): {
+export function useCoverUrl(bookId: string, coverVersion?: string): {
   coverUrl: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
 } {
-  const [fetchedCover, setFetchedCover] = useState<{ bookId: string; url: string } | null>(null);
+  const cacheKey = `${bookId}:${coverVersion ?? ''}`;
+  const [fetchedCover, setFetchedCover] = useState<{ cacheKey: string; url: string } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const fetchedBookIds = useRef(new Set<string>());
-  const coverUrl = coverUrlCache.get(bookId) ??
-    (fetchedCover?.bookId === bookId ? fetchedCover.url : null);
+  const coverUrl = getCachedCoverUrl(cacheKey) ??
+    (fetchedCover?.cacheKey === cacheKey ? fetchedCover.url : null);
 
   useEffect(() => {
     // The cache is read during rendering so a cached cover does not require a
     // synchronous state update in this effect.
-    if (coverUrlCache.has(bookId)) {
+    if (getCachedCoverUrl(cacheKey)) {
       return;
     }
 
@@ -87,8 +128,8 @@ export function useCoverUrl(bookId: string): {
             URL.revokeObjectURL(url);
             return;
           }
-          coverUrlCache.set(bookId, url);
-          setFetchedCover({ bookId, url });
+          setCachedCoverUrl(bookId, cacheKey, url);
+          setFetchedCover({ cacheKey, url });
         });
       },
       { rootMargin: '200px' } // Start loading 200px before entering viewport
@@ -101,7 +142,7 @@ export function useCoverUrl(bookId: string): {
       observer.disconnect();
       cancelFetch?.();
     };
-  }, [bookId]);
+  }, [bookId, cacheKey]);
 
   return { coverUrl, ref };
 }

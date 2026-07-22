@@ -43,6 +43,13 @@ func (sdb *SessionDB) init() error {
 	})
 }
 
+// BackupTo writes a consistent snapshot of the independent session database.
+func (sdb *SessionDB) BackupTo(path string) error {
+	return sdb.View(func(tx *bbolt.Tx) error {
+		return tx.CopyFile(path, 0600)
+	})
+}
+
 func hashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(h[:])

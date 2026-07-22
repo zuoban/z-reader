@@ -36,17 +36,18 @@ var supportedBookFormats = map[string]string{
 }
 
 const (
-	maxEPUBMetadataBytes        = 2 * 1024 * 1024
-	maxEPUBCoverBytes           = 10 * 1024 * 1024
-	maxCoverUploadBytes         = 10 * 1024 * 1024
-	maxEPUBArchiveEntries       = 10000
-	maxEPUBExpandedBytes  int64 = 512 * 1024 * 1024
-	multipartOverhead           = 1 * 1024 * 1024
-	bookFileCacheMaxAge         = 60 * 60
-	bookCoverCacheMaxAge        = 24 * 60 * 60
-	maxBookTitleRunes           = 500
-	maxBookAuthorRunes          = 500
-	maxBatchBookIDs             = 500
+	maxEPUBMetadataBytes          = 2 * 1024 * 1024
+	maxEPUBCoverBytes             = 10 * 1024 * 1024
+	maxCoverUploadBytes           = 10 * 1024 * 1024
+	maxEPUBArchiveEntries         = 10000
+	maxEPUBExpandedBytes    int64 = 512 * 1024 * 1024
+	multipartOverhead             = 1 * 1024 * 1024
+	bookFileCacheMaxAge           = 60 * 60
+	bookCoverCacheMaxAge          = 24 * 60 * 60
+	maxBookTitleRunes             = 500
+	maxBookAuthorRunes            = 500
+	maxBatchBookIDs               = 500
+	maxBookSearchQueryRunes       = 200
 )
 
 type BooksHandler struct {
@@ -142,6 +143,52 @@ func (h *BooksHandler) Summary(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
+func (h *BooksHandler) Search(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	query := strings.TrimSpace(c.Query("q"))
+	if query == "" {
+		response.BadRequest(c, "搜索关键词不能为空")
+		return
+	}
+	if len([]rune(query)) > maxBookSearchQueryRunes {
+		response.BadRequest(c, "搜索关键词过长")
+		return
+	}
+
+	limit := 20
+	if value, ok := c.GetQuery("limit"); ok {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed <= 0 {
+			response.BadRequest(c, "limit 必须是正整数")
+			return
+		}
+		limit = parsed
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	books, nextCursor, err := h.db.SearchBooks(
+		userID,
+		query,
+		c.Query("cursor"),
+		limit,
+		c.Query("sort"),
+	)
+	if err != nil {
+		response.InternalError(c, "搜索图书失败")
+		return
+	}
+	for i := range books {
+		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
+	}
+	c.JSON(http.StatusOK, bookCursorPageResponse{Books: books, NextCursor: nextCursor})
+}
+
 func (h *BooksHandler) Get(c *gin.Context) {
 	id := c.Param("id")
 	userID, ok := currentUserID(c)
@@ -223,7 +270,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	}
 	if existing != nil {
 		removeFileIfExists(filepath)
-		response.Conflict(c, duplicateBookMessage(existing))
+		respondDuplicateBook(c, existing)
 		return
 	}
 
@@ -256,6 +303,11 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	if err := h.db.CreateBook(book); err != nil {
 		os.Remove(filepath)
 		if err == storage.ErrDuplicateBookContent {
+			existing, findErr := h.findDuplicateBook(userID, contentHash)
+			if findErr == nil && existing != nil {
+				respondDuplicateBook(c, existing)
+				return
+			}
 			response.Conflict(c, "这本书已在书架中，请勿重复上传")
 			return
 		}
@@ -812,6 +864,14 @@ func duplicateBookMessage(book *models.Book) string {
 		return "这本书已在书架中，请勿重复上传"
 	}
 	return fmt.Sprintf("《%s》已在书架中，请勿重复上传", book.Title)
+}
+
+func respondDuplicateBook(c *gin.Context, book *models.Book) {
+	c.JSON(http.StatusConflict, gin.H{
+		"code":    "conflict",
+		"message": duplicateBookMessage(book),
+		"book":    book,
+	})
 }
 
 func isValidEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) bool {

@@ -193,7 +193,7 @@ export function BookCard({
 }: BookCardProps) {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const { coverUrl, ref: coverRef } = useCoverUrl(book.id);
+  const { coverUrl, ref: coverRef } = useCoverUrl(book.id, book.cover_path);
 
   const formatLabel = book.format ? book.format.toUpperCase() : '电子书';
   const authorLabel = book.author?.trim() || '未知作者';

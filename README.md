@@ -10,6 +10,7 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 - 支持 `EPUB`、`MOBI`、`AZW3`、`PDF` 文件上传与阅读
 - 支持书架管理、封面上传、分类筛选与排序
 - 自动保存阅读进度，支持多设备续读
+- 可按需将当前图书保存为本机离线副本；副本按账号隔离并在退出登录时清除
 - 支持开放注册，多用户各自维护独立书库
 - 移动端和桌面端都可用的阅读界面
 - 可选 TTS 能力
@@ -98,6 +99,10 @@ npm run dev
 | `TTS_MAX_CONCURRENCY` | TTS 合成请求最大并发数 | `3` |
 | `TTS_MAX_QUEUED` | TTS 等待队列最大请求数 | `12` |
 | `TTS_QUEUE_WAIT_SECONDS` | TTS 请求最大排队秒数 | `30` |
+| `METRICS_ENABLED` | 是否公开 Prometheus 格式的 `/metrics`（建议只在内网启用） | `false` |
+| `BACKUP_DIR` | 自动备份目录 | `./backups` |
+| `BACKUP_INTERVAL_HOURS` | 自动备份间隔；设为 `0` 可关闭 | `24` |
+| `BACKUP_RETENTION_DAYS` | 备份保留天数；设为 `0` 不自动清理 | `7` |
 | `CADDY_SITE` | Caddy 站点地址；配置域名时自动启用 HTTPS | `:80` |
 
 说明：
@@ -105,7 +110,9 @@ npm run dev
 - Docker / Compose 部署下，前端默认通过同源 `/api/*` 访问后端，通常不需要设置
   `NEXT_PUBLIC_API_URL`
 - 公网部署请将 `CADDY_SITE` 设为域名（如 `reader.example.com`），并映射/开放 80/443；Caddy 会自动申请并续期 HTTPS 证书。
-- 请定期备份持久化的 `data/` 与 `uploads/` 目录；它们分别包含账户/进度数据和电子书文件。
+- 服务启动后会立即生成一份在线备份，并按 `BACKUP_INTERVAL_HOURS` 周期执行。备份包含主数据库、会话数据库、上传文件、SHA-256 清单，并在发布前执行校验；请将 `BACKUP_DIR` 所在持久化目录同步到异地存储。
+- 恢复前先停止服务，再使用 `cd backend && go run ./cmd/verify-backup --dir <备份目录>` 验证清单和数据库快照；随后用备份中的 `data.db`、`data.db.sessions` 与 `uploads/` 替换对应持久化文件，最后启动服务并验证 `/readyz`。
+- `/healthz` 是存活探针，`/readyz` 会检查数据库与上传目录；启用 `METRICS_ENABLED=true` 后可在内网采集 `/metrics`。
 - `NEXT_SERVER_API_URL` 主要用于本地开发或 SSR 代理到独立后端
 - 如需启用 TTS，请使用你自己的语音服务配置，不要把可直接使用的密钥提交到仓库
 

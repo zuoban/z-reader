@@ -16,14 +16,16 @@ import (
 )
 
 var (
-	BooksBucket      = []byte("books")
-	ProgressBucket   = []byte("progress")
-	BookmarksBucket  = []byte("bookmarks")
-	UsersBucket      = []byte("users")
-	UserBooksIndex   = []byte("user_books_index") // userId:bookId -> Empty
-	UsernameIndex    = []byte("username_index")   // normalizedUsername -> userId
-	BookSortIndex    = []byte("book_sort_index")  // sort:user:sortValue:bookId -> bookId
-	SystemMetaBucket = []byte("system_meta")
+	BooksBucket       = []byte("books")
+	ProgressBucket    = []byte("progress")
+	BookmarksBucket   = []byte("bookmarks")
+	UsersBucket       = []byte("users")
+	UserBooksIndex    = []byte("user_books_index")    // userId:bookId -> Empty
+	UsernameIndex     = []byte("username_index")      // normalizedUsername -> userId
+	BookSortIndex     = []byte("book_sort_index")     // sort:user:sortValue:bookId -> bookId
+	BookSearchIndex   = []byte("book_search_index")   // user\x00bookId -> normalized searchable fields
+	ProgressTimeIndex = []byte("progress_time_index") // user\x00updatedAt\x00bookId -> bookId
+	SystemMetaBucket  = []byte("system_meta")
 )
 
 // DB 封装主数据库操作（图书、进度、书签、用户）。
@@ -77,6 +79,48 @@ func (db *DB) Close() error {
 		}
 	}
 	return firstErr
+}
+
+// Check verifies that the main database can start a read transaction and that
+// its essential buckets remain available. It is safe to call from readiness
+// probes and does not mutate application data.
+func (db *DB) Check() error {
+	if err := db.View(func(tx *bbolt.Tx) error {
+		for _, bucket := range [][]byte{BooksBucket, ProgressBucket, UsersBucket, SystemMetaBucket} {
+			if tx.Bucket(bucket) == nil {
+				return fmt.Errorf("required bucket %q is missing", bucket)
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if db.sessionDB == nil {
+		return fmt.Errorf("session database is unavailable")
+	}
+	return db.sessionDB.View(func(tx *bbolt.Tx) error {
+		if tx.Bucket(SessionsBucket) == nil {
+			return fmt.Errorf("required session bucket is missing")
+		}
+		return nil
+	})
+}
+
+// BackupTo writes a consistent, online snapshot of the main database. bbolt
+// creates the snapshot from a read transaction, so writers remain available.
+func (db *DB) BackupTo(path string) error {
+	return db.View(func(tx *bbolt.Tx) error {
+		return tx.CopyFile(path, 0600)
+	})
+}
+
+// SessionBackupTo snapshots the session database together with the main
+// database. Keeping it separate avoids exposing the internal session store.
+func (db *DB) SessionBackupTo(path string) error {
+	if db.sessionDB == nil {
+		return fmt.Errorf("session database is unavailable")
+	}
+	return db.sessionDB.BackupTo(path)
 }
 
 func (db *DB) runMigrations() error {
@@ -176,6 +220,16 @@ func (db *DB) runMigrations() error {
 			version: 5,
 			name:    "BuildBookSortIndex",
 			run:     rebuildBookSortIndex,
+		},
+		{
+			version: 6,
+			name:    "BuildBookSearchIndex",
+			run:     rebuildBookSearchIndex,
+		},
+		{
+			version: 7,
+			name:    "BuildProgressTimeIndex",
+			run:     rebuildProgressTimeIndex,
 		},
 	}
 
@@ -599,6 +653,44 @@ func removeBookFromSortIndex(tx *bbolt.Tx, book *models.Book) error {
 	return nil
 }
 
+func normalizeBookSearchText(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	value = strings.ReplaceAll(value, bookSortSeparator, "")
+	return strings.Join(strings.Fields(value), " ")
+}
+
+func bookSearchIndexKey(userID, bookID string) []byte {
+	return []byte(userID + bookSortSeparator + bookID)
+}
+
+func bookSearchValue(book *models.Book) []byte {
+	category := ""
+	if book.Category != nil {
+		category = *book.Category
+	}
+	return []byte(normalizeBookSearchText(strings.Join([]string{
+		book.Title,
+		book.Author,
+		book.Filename,
+		book.Format,
+		category,
+	}, " ")))
+}
+
+func addBookToSearchIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	return tx.Bucket(BookSearchIndex).Put(bookSearchIndexKey(book.UserID, book.ID), bookSearchValue(book))
+}
+
+func removeBookFromSearchIndex(tx *bbolt.Tx, book *models.Book) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	return tx.Bucket(BookSearchIndex).Delete(bookSearchIndexKey(book.UserID, book.ID))
+}
+
 func rebuildBookSortIndex(tx *bbolt.Tx) error {
 	if err := tx.DeleteBucket(BookSortIndex); err != nil && err != bbolt.ErrBucketNotFound {
 		return err
@@ -613,6 +705,23 @@ func rebuildBookSortIndex(tx *bbolt.Tx) error {
 			return err
 		}
 		return addBookToSortIndex(tx, &book)
+	})
+}
+
+func rebuildBookSearchIndex(tx *bbolt.Tx) error {
+	if err := tx.DeleteBucket(BookSearchIndex); err != nil && err != bbolt.ErrBucketNotFound {
+		return err
+	}
+	if _, err := tx.CreateBucket(BookSearchIndex); err != nil {
+		return err
+	}
+	booksBucket := tx.Bucket(BooksBucket)
+	return booksBucket.ForEach(func(_, data []byte) error {
+		var book models.Book
+		if err := book.UnmarshalDB(data); err != nil {
+			return err
+		}
+		return addBookToSearchIndex(tx, &book)
 	})
 }
 
@@ -657,8 +766,14 @@ func (db *DB) SaveBook(book *models.Book) error {
 			if err := removeBookFromSortIndex(tx, oldBook); err != nil {
 				return err
 			}
+			if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
+				return err
+			}
 		}
-		return addBookToSortIndex(tx, book)
+		if err := addBookToSortIndex(tx, book); err != nil {
+			return err
+		}
+		return addBookToSearchIndex(tx, book)
 	})
 }
 
@@ -702,7 +817,10 @@ func (db *DB) CreateBook(book *models.Book) error {
 		if err := addBookToUserIndex(idxB, book.ID, book.UserID); err != nil {
 			return err
 		}
-		return addBookToSortIndex(tx, book)
+		if err := addBookToSortIndex(tx, book); err != nil {
+			return err
+		}
+		return addBookToSearchIndex(tx, book)
 	})
 }
 
@@ -948,6 +1066,69 @@ func (db *DB) ListBooksBySortedCursor(userID, cursor string, limit int, sortKey 
 	return books[:limit], books[limit-1].ID, nil
 }
 
+// SearchBooks searches every book owned by a user while preserving the selected
+// shelf order. Search values are stored separately from full book records so a
+// query does not need to deserialize the entire library before finding matches.
+func (db *DB) SearchBooks(userID, query, cursor string, limit int, sortKey string) ([]models.Book, string, error) {
+	query = normalizeBookSearchText(query)
+	if userID == "" || query == "" || limit <= 0 {
+		return []models.Book{}, "", nil
+	}
+
+	sortKey = NormalizeBookSort(sortKey)
+	books := make([]models.Book, 0, limit+1)
+	prefix := []byte(sortKey + bookSortSeparator + userID + bookSortSeparator)
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		indexBucket := tx.Bucket(BookSortIndex)
+		searchBucket := tx.Bucket(BookSearchIndex)
+		booksBucket := tx.Bucket(BooksBucket)
+		start := prefix
+		if cursor != "" {
+			data := booksBucket.Get([]byte(cursor))
+			if data != nil {
+				var cursorBook models.Book
+				if err := cursorBook.UnmarshalDB(data); err != nil {
+					return err
+				}
+				if cursorBook.UserID == userID {
+					start = bookSortIndexKey(&cursorBook, sortKey)
+				}
+			}
+		}
+
+		indexCursor := indexBucket.Cursor()
+		for key, bookID := indexCursor.Seek(start); key != nil && bytes.HasPrefix(key, prefix); key, bookID = indexCursor.Next() {
+			if string(bookID) == cursor {
+				continue
+			}
+			if !bytes.Contains(searchBucket.Get(bookSearchIndexKey(userID, string(bookID))), []byte(query)) {
+				continue
+			}
+			data := booksBucket.Get(bookID)
+			if data == nil {
+				continue
+			}
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			books = append(books, book)
+			if len(books) > limit {
+				break
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if len(books) <= limit {
+		return books, "", nil
+	}
+	return books[:limit], books[limit-1].ID, nil
+}
+
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
 	books := []models.Book{}
 	err := db.View(func(tx *bbolt.Tx) error {
@@ -1013,25 +1194,29 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 	}
 
 	progressBucket := tx.Bucket(ProgressBucket)
+	if progressData := progressBucket.Get(progressKey(userID, id)); progressData != nil {
+		var progress models.Progress
+		if err := json.Unmarshal(progressData, &progress); err != nil {
+			return nil, err
+		}
+		if err := removeProgressFromTimeIndex(tx, &progress); err != nil {
+			return nil, err
+		}
+	}
 	if err := progressBucket.Delete(progressKey(userID, id)); err != nil {
 		return nil, err
 	}
 
 	bookmarksBucket := tx.Bucket(BookmarksBucket)
 	prefix := bookmarkBookPrefix(userID, id)
-	var bookmarkKeys [][]byte
-	if err := bookmarksBucket.ForEach(func(k, v []byte) error {
-		if bytes.HasPrefix(k, prefix) {
-			bookmarkKeys = append(bookmarkKeys, append([]byte(nil), k...))
-		}
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-	for _, key := range bookmarkKeys {
-		if err := bookmarksBucket.Delete(key); err != nil {
+	bookmarkCursor := bookmarksBucket.Cursor()
+	for key, _ := bookmarkCursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = bookmarkCursor.Next() {
+		if err := bookmarkCursor.Delete(); err != nil {
 			return nil, err
 		}
+	}
+	if err := removeBookFromSearchIndex(tx, &book); err != nil {
+		return nil, err
 	}
 	return &book, nil
 }
@@ -1083,6 +1268,9 @@ func (db *DB) UpdateBooksCategory(ids []string, userID string, category *string)
 			if err := booksBucket.Put([]byte(book.ID), data); err != nil {
 				return err
 			}
+			if err := addBookToSearchIndex(tx, &book); err != nil {
+				return err
+			}
 			updatedBooks = append(updatedBooks, book)
 		}
 		return nil
@@ -1092,6 +1280,49 @@ func (db *DB) UpdateBooksCategory(ids []string, userID string, category *string)
 
 func progressKey(userID string, bookID string) []byte {
 	return []byte(userID + ":" + bookID)
+}
+
+func progressTimeIndexPrefix(userID string) []byte {
+	return []byte(userID + bookSortSeparator)
+}
+
+func progressTimeIndexKey(progress *models.Progress) []byte {
+	timestamp := progress.UpdatedAt.UnixNano()
+	if timestamp < 0 {
+		timestamp = 0
+	}
+	return []byte(fmt.Sprintf("%s%019d%s%s", progressTimeIndexPrefix(progress.UserID), timestamp, bookSortSeparator, progress.BookID))
+}
+
+func addProgressToTimeIndex(tx *bbolt.Tx, progress *models.Progress) error {
+	if progress.UserID == "" || progress.BookID == "" {
+		return nil
+	}
+	return tx.Bucket(ProgressTimeIndex).Put(progressTimeIndexKey(progress), []byte(progress.BookID))
+}
+
+func removeProgressFromTimeIndex(tx *bbolt.Tx, progress *models.Progress) error {
+	if progress.UserID == "" || progress.BookID == "" {
+		return nil
+	}
+	return tx.Bucket(ProgressTimeIndex).Delete(progressTimeIndexKey(progress))
+}
+
+func rebuildProgressTimeIndex(tx *bbolt.Tx) error {
+	if err := tx.DeleteBucket(ProgressTimeIndex); err != nil && err != bbolt.ErrBucketNotFound {
+		return err
+	}
+	if _, err := tx.CreateBucket(ProgressTimeIndex); err != nil {
+		return err
+	}
+	progressBucket := tx.Bucket(ProgressBucket)
+	return progressBucket.ForEach(func(_, data []byte) error {
+		var progress models.Progress
+		if err := json.Unmarshal(data, &progress); err != nil {
+			return err
+		}
+		return addProgressToTimeIndex(tx, &progress)
+	})
 }
 
 func bookmarkKey(userID string, bookID string, bookmarkID string) []byte {
@@ -1105,6 +1336,15 @@ func bookmarkBookPrefix(userID string, bookID string) []byte {
 func (db *DB) DeleteProgress(bookID string, userID string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(ProgressBucket)
+		if data := b.Get(progressKey(userID, bookID)); data != nil {
+			var progress models.Progress
+			if err := json.Unmarshal(data, &progress); err != nil {
+				return err
+			}
+			if err := removeProgressFromTimeIndex(tx, &progress); err != nil {
+				return err
+			}
+		}
 		return b.Delete(progressKey(userID, bookID))
 	})
 }
@@ -1171,6 +1411,14 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 		progress.UserID = userID
 		progressBucket := tx.Bucket(ProgressBucket)
 		booksBucket := tx.Bucket(BooksBucket)
+		var previousProgress *models.Progress
+		if previousData := progressBucket.Get(progressKey(userID, progress.BookID)); previousData != nil {
+			var previous models.Progress
+			if err := json.Unmarshal(previousData, &previous); err != nil {
+				return err
+			}
+			previousProgress = &previous
+		}
 
 		// 验证书籍仍存在（View→Update 间可能被删除）
 		bookData := booksBucket.Get([]byte(progress.BookID))
@@ -1218,7 +1466,15 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 		if err != nil {
 			return err
 		}
-		return progressBucket.Put(progressKey(userID, progress.BookID), data)
+		if previousProgress != nil {
+			if err := removeProgressFromTimeIndex(tx, previousProgress); err != nil {
+				return err
+			}
+		}
+		if err := progressBucket.Put(progressKey(userID, progress.BookID), data); err != nil {
+			return err
+		}
+		return addProgressToTimeIndex(tx, progress)
 	})
 }
 
@@ -1253,6 +1509,69 @@ func (db *DB) ListProgress(userID string) ([]models.Progress, error) {
 				return err
 			}
 			if progress.UserID == userID {
+				items = append(items, progress)
+			}
+		}
+		return nil
+	})
+	return items, err
+}
+
+// ListProgressForBooks reads progress only for the requested shelf page. It
+// keeps initial rendering bounded even when a user has a large library.
+func (db *DB) ListProgressForBooks(userID string, bookIDs []string) ([]models.Progress, error) {
+	items := make([]models.Progress, 0, len(bookIDs))
+	ids := uniqueNonEmptyStrings(bookIDs)
+	if userID == "" || len(ids) == 0 {
+		return items, nil
+	}
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket(ProgressBucket)
+		for _, bookID := range ids {
+			data := bucket.Get(progressKey(userID, bookID))
+			if data == nil {
+				continue
+			}
+			var progress models.Progress
+			if err := json.Unmarshal(data, &progress); err != nil {
+				return err
+			}
+			if progress.UserID == userID && progress.BookID == bookID {
+				items = append(items, progress)
+			}
+		}
+		return nil
+	})
+	return items, err
+}
+
+// ListProgressUpdatedSince returns changes at or after the supplied time. The
+// inclusive boundary deliberately permits a duplicate record on the next sync
+// rather than losing concurrent writes sharing a timestamp.
+func (db *DB) ListProgressUpdatedSince(userID string, since time.Time) ([]models.Progress, error) {
+	if since.IsZero() {
+		return db.ListProgress(userID)
+	}
+
+	items := []models.Progress{}
+	prefix := progressTimeIndexPrefix(userID)
+	probe := &models.Progress{UserID: userID, UpdatedAt: since}
+	start := progressTimeIndexKey(probe)
+	err := db.View(func(tx *bbolt.Tx) error {
+		indexBucket := tx.Bucket(ProgressTimeIndex)
+		progressBucket := tx.Bucket(ProgressBucket)
+		cursor := indexBucket.Cursor()
+		for key, bookID := cursor.Seek(start); key != nil && bytes.HasPrefix(key, prefix); key, bookID = cursor.Next() {
+			data := progressBucket.Get(progressKey(userID, string(bookID)))
+			if data == nil {
+				continue
+			}
+			var progress models.Progress
+			if err := json.Unmarshal(data, &progress); err != nil {
+				return err
+			}
+			if progress.UserID == userID && !progress.UpdatedAt.Before(since) {
 				items = append(items, progress)
 			}
 		}

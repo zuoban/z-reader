@@ -30,6 +30,7 @@ import {
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { TTSControls } from "@/components/TTSControls";
 import { api } from "@/lib/api";
+import { saveOfflineBook } from "@/lib/offline-books";
 import type { Bookmark } from "@/lib/api";
 import { withOpacity } from "@/lib/reader-ui";
 import { toast } from "sonner";
@@ -108,7 +109,7 @@ export default function ReadPage() {
   const router = useRouter();
   const params = useParams();
   const bookId = params.id as string;
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, user } = useAuth();
   const {
     progress,
     isLoading: progressLoading,
@@ -123,6 +124,7 @@ export default function ReadPage() {
   const [shortcutsOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
+  const [isSavingOffline, setIsSavingOffline] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
   const [zoomedImage, setZoomedImage] = useState<{ src: string; alt: string } | null>(null);
@@ -521,6 +523,24 @@ export default function ReadPage() {
     }
   }, [bookId, loadBookmarks]);
 
+  const handleSaveOffline = useCallback(async () => {
+    if (!user || isSavingOffline) return;
+
+    setIsSavingOffline(true);
+    try {
+      const [book, file] = await Promise.all([
+        api.getBook(bookId),
+        api.fetchBook(bookId),
+      ]);
+      await saveOfflineBook(user.id, book, file);
+      toast.success("图书已保存到此设备，可在断网时继续阅读");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "保存离线图书失败");
+    } finally {
+      setIsSavingOffline(false);
+    }
+  }, [bookId, isSavingOffline, user]);
+
   useEffect(() => {
     if (!pageRef.current) return;
 
@@ -654,6 +674,8 @@ export default function ReadPage() {
           onCreateBookmark={handleCreateBookmark}
           onGoToBookmark={handleGoToBookmark}
           onDeleteBookmark={handleDeleteBookmark}
+          isSavingOffline={isSavingOffline}
+          onSaveOffline={handleSaveOffline}
           tocListRef={tocListRef}
           currentChapter={currentChapter}
           currentChapterHref={currentChapterHref}

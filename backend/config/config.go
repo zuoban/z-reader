@@ -15,6 +15,10 @@ type Config struct {
 	MaxRequestBodyBytes int64
 	AllowedOrigins      []string
 	TrustedProxies      []string
+	MetricsEnabled      bool
+	BackupDir           string
+	BackupIntervalHours int
+	BackupRetentionDays int
 }
 
 // getLocalIP 获取局域网 IP 地址
@@ -100,6 +104,10 @@ func Load() (*Config, error) {
 		MaxRequestBodyBytes: getEnvInt64("MAX_REQUEST_BODY_BYTES", 1024*1024),
 		AllowedOrigins:      getAllowedOrigins(),
 		TrustedProxies:      getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
+		MetricsEnabled:      getEnvBool("METRICS_ENABLED", false),
+		BackupDir:           getEnv("BACKUP_DIR", "./backups"),
+		BackupIntervalHours: getEnvInt("BACKUP_INTERVAL_HOURS", 24),
+		BackupRetentionDays: getEnvInt("BACKUP_RETENTION_DAYS", 7),
 	}, nil
 }
 
@@ -128,6 +136,30 @@ func getEnvInt64(key string, defaultValue int64) int64 {
 		return defaultValue
 	}
 
+	return parsed
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 0 {
+		return defaultValue
+	}
 	return parsed
 }
 

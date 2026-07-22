@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Bookmark as BookmarkIcon,
   BookmarkPlus,
+  Download,
   List,
   Maximize,
   Minimize,
@@ -36,6 +37,8 @@ interface ReaderToolbarProps {
   onCreateBookmark: () => void;
   onGoToBookmark: (bookmark: Bookmark) => void;
   onDeleteBookmark: (bookmarkId: string) => void;
+  isSavingOffline?: boolean;
+  onSaveOffline?: () => void;
   ttsControls?: ReactNode;
   mobileTtsControls?: ReactNode;
   tocListRef: RefObject<HTMLDivElement | null>;
@@ -70,6 +73,8 @@ export function ReaderToolbar({
   onCreateBookmark,
   onGoToBookmark,
   onDeleteBookmark,
+  isSavingOffline = false,
+  onSaveOffline,
   ttsControls,
   mobileTtsControls,
   tocListRef,
@@ -196,6 +201,21 @@ export function ReaderToolbar({
                   <BookmarkPlus className="h-4 w-4" />
                   <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
                 </button>
+                {onSaveOffline && (
+                  <button
+                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isSavingOffline}
+                    onClick={() => {
+                      closeMobileActions();
+                      onSaveOffline();
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>{isSavingOffline ? "保存中..." : "保存离线副本"}</span>
+                  </button>
+                )}
                 <div onClick={closeMobileActions}>
                   {mobileTtsControls}
                 </div>
@@ -284,6 +304,20 @@ export function ReaderToolbar({
               <BookmarkPlus className="h-4 w-4" />
               <span className="hidden sm:inline">{isSavingBookmark ? "添加中..." : "添加"}</span>
             </Button>
+
+            {onSaveOffline && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isSavingOffline}
+                onClick={onSaveOffline}
+                title="保存到此设备，退出登录后会自动清除"
+                className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">{isSavingOffline ? "保存中..." : "离线"}</span>
+              </Button>
+            )}
 
             {ttsControls}
 

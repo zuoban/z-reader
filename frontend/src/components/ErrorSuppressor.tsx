@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportClientError } from '@/lib/error-reporting';
 
 export function ErrorSuppressor() {
   useEffect(() => {
@@ -12,6 +13,7 @@ export function ErrorSuppressor() {
           (message.includes('documentElement') || message.includes('this.document'))) {
         return true;
       }
+      reportClientError(error ?? message, 'window.onerror');
       return originalError?.(message, source, lineno, colno, error) ?? false;
     };
 
@@ -19,7 +21,9 @@ export function ErrorSuppressor() {
       if (event.reason?.message?.includes('documentElement') || 
           event.reason?.message?.includes('this.document')) {
         event.preventDefault();
+        return;
       }
+      reportClientError(event.reason, 'unhandledrejection');
     };
     
     window.addEventListener('unhandledrejection', handleRejection);

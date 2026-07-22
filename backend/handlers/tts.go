@@ -44,8 +44,13 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 	outputFormat := c.DefaultQuery("o", "audio-24khz-48kbitrate-mono-mp3")
 	download := c.DefaultQuery("d", "false")
 
-	audioData, err := services.GenerateAudioFromText(text, voiceName, rate, pitch, style, outputFormat)
+	audioData, err := services.GenerateAudioFromTextContext(
+		c.Request.Context(), text, voiceName, rate, pitch, style, outputFormat,
+	)
 	if err != nil {
+		if c.Request.Context().Err() != nil {
+			return
+		}
 		if services.IsTTSBusy(err) {
 			respondTTSBusy(c)
 			return
@@ -108,8 +113,11 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		outputFormat = "audio-24khz-48kbitrate-mono-mp3"
 	}
 
-	audioData, err := services.GenerateAudioFromSsml(sanitizedSsml, outputFormat)
+	audioData, err := services.GenerateAudioFromSsmlContext(c.Request.Context(), sanitizedSsml, outputFormat)
 	if err != nil {
+		if c.Request.Context().Err() != nil {
+			return
+		}
 		if services.IsTTSBusy(err) {
 			respondTTSBusy(c)
 			return

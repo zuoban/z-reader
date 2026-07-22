@@ -169,6 +169,65 @@ func TestListProgressFiltersByUser(t *testing.T) {
 	}
 }
 
+func TestListProgressForBooksAndSince(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	for _, id := range []string{"book-a", "book-b"} {
+		if err := db.SaveBook(&models.Book{
+			ID: id, UserID: userID, Title: id, Filename: id + ".epub", Format: "epub", CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	firstUpdatedAt := time.Now().UTC().Add(-time.Minute)
+	secondUpdatedAt := time.Now().UTC()
+	if err := db.SaveProgress(&models.Progress{BookID: "book-a", CFI: "a", Percentage: 10, UpdatedAt: firstUpdatedAt}, userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SaveProgress(&models.Progress{BookID: "book-b", CFI: "b", Percentage: 20, UpdatedAt: secondUpdatedAt}, userID); err != nil {
+		t.Fatal(err)
+	}
+
+	pageProgress, err := db.ListProgressForBooks(userID, []string{"book-b", "missing"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pageProgress) != 1 || pageProgress[0].BookID != "book-b" {
+		t.Fatalf("unexpected page progress: %+v", pageProgress)
+	}
+
+	changed, err := db.ListProgressUpdatedSince(userID, secondUpdatedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changed) != 1 || changed[0].BookID != "book-b" {
+		t.Fatalf("unexpected incremental progress: %+v", changed)
+	}
+}
+
+func TestSearchBooksUsesFullUserLibrary(t *testing.T) {
+	db := openTestDB(t)
+	userID := "user-a"
+	books := []*models.Book{
+		{ID: "book-a", UserID: userID, Title: "Dune", Author: "Frank Herbert", Filename: "dune.epub", Format: "epub", CreatedAt: time.Now().UTC()},
+		{ID: "book-b", UserID: userID, Title: "Foundation", Author: "Isaac Asimov", Filename: "foundation.epub", Format: "epub", CreatedAt: time.Now().UTC()},
+		{ID: "book-c", UserID: "user-b", Title: "Dune Messiah", Filename: "dune-messiah.epub", Format: "epub", CreatedAt: time.Now().UTC()},
+	}
+	for _, book := range books {
+		if err := db.SaveBook(book); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, nextCursor, err := db.SearchBooks(userID, "HERBERT", "", 10, "title")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nextCursor != "" || len(got) != 1 || got[0].ID != "book-a" {
+		t.Fatalf("unexpected search response: books=%+v next=%q", got, nextCursor)
+	}
+}
+
 func TestGetSessionReturnsNilForExpiredSession(t *testing.T) {
 	db := openTestDB(t)
 

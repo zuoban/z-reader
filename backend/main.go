@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
+	"z-reader/backend/backup"
 	"z-reader/backend/config"
 	"z-reader/backend/handlers"
 	"z-reader/backend/logger"
@@ -52,9 +53,22 @@ func main() {
 		defer wg.Done()
 		startSessionCleaner(ctx, db)
 	}()
+	if cfg.BackupIntervalHours > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			startBackupWorker(ctx, db, cfg)
+		}()
+	}
 
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery(), middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes))
+	r.Use(
+		middleware.RequestID(),
+		middleware.RequestLogger(),
+		middleware.HTTPMetrics(),
+		gin.Recovery(),
+		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes),
+	)
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		logger.Error("Failed to configure trusted proxies", "error", err)
 		os.Exit(1)
@@ -71,6 +85,7 @@ func main() {
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		ExposeHeaders:    []string{"X-Request-ID"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
@@ -80,6 +95,7 @@ func main() {
 	progressHandler := handlers.NewProgressHandler(db)
 	bookmarksHandler := handlers.NewBookmarksHandler(db)
 	ttsHandler := handlers.NewTTSHandler()
+	clientErrorHandler := handlers.NewClientErrorHandler()
 
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
 	r.POST("/api/register", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Register)
@@ -87,6 +103,22 @@ func main() {
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+	r.GET("/readyz", func(c *gin.Context) {
+		if err := db.Check(); err != nil {
+			logger.Error("Readiness check failed", "request_id", logger.RequestID(c.Request.Context()), "error", err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
+			return
+		}
+		if info, err := os.Stat(cfg.UploadDir); err != nil || !info.IsDir() {
+			logger.Error("Readiness upload directory check failed", "request_id", logger.RequestID(c.Request.Context()), "error", err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "ready"})
+	})
+	if cfg.MetricsEnabled {
+		r.GET("/metrics", middleware.MetricsHandler)
+	}
 
 	api := r.Group("/api")
 	api.Use(middleware.AuthRequired(db))
@@ -94,9 +126,11 @@ func main() {
 	ttsUserLimiter := middleware.NewRateLimiter(30, time.Minute)
 	{
 		api.GET("/auth/verify", authHandler.Verify)
+		api.POST("/client-errors", middleware.RateLimit(middleware.NewRateLimiter(30, time.Minute)), clientErrorHandler.Report)
 
 		api.GET("/books", booksHandler.List)
 		api.GET("/books/summary", booksHandler.Summary)
+		api.GET("/books/search", booksHandler.Search)
 		api.GET("/books/:id", booksHandler.Get)
 		api.POST("/books", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.Upload)
 		api.POST("/books/batch/delete", booksHandler.BatchDelete)
@@ -177,6 +211,36 @@ func startSessionCleaner(ctx context.Context, db *storage.DB) {
 			if err := db.CleanExpiredSessions(); err != nil {
 				logger.Error("Failed to clean expired sessions", "error", err)
 			}
+		}
+	}
+}
+
+func startBackupWorker(ctx context.Context, db *storage.DB, cfg *config.Config) {
+	interval := time.Duration(cfg.BackupIntervalHours) * time.Hour
+	createBackup := func() {
+		path, err := backup.Create(db, backup.Config{
+			Dir:           cfg.BackupDir,
+			UploadDir:     cfg.UploadDir,
+			RetentionDays: cfg.BackupRetentionDays,
+		})
+		if err != nil {
+			logger.Error("Failed to create verified backup", "error", err)
+			return
+		}
+		logger.Info("Verified backup created", "path", path)
+	}
+
+	createBackup()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	logger.Info("Backup worker started", "interval_hours", cfg.BackupIntervalHours)
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Backup worker stopped")
+			return
+		case <-ticker.C:
+			createBackup()
 		}
 	}
 }

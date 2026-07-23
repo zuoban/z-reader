@@ -25,7 +25,8 @@ export function getModernReaderSurface(uiScheme: ThemeColors) {
     surfaceStrong: withOpacity(uiScheme.buttonBg, 0.76),
     surfaceSoft: withOpacity(uiScheme.buttonBg, 0.4),
     fg: uiScheme.fg,
-    muted: withOpacity(uiScheme.mutedText, 0.86),
+    // Keep secondary labels near WCAG AA on paper/card surfaces (avoid over-fading).
+    muted: withOpacity(uiScheme.mutedText, 0.96),
     border: withOpacity(uiScheme.cardBorder, 0.12),
     hairline: withOpacity(uiScheme.cardBorder, 0.1),
     shadow: `

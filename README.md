@@ -156,7 +156,7 @@ z-reader/
 - `CI`（`.github/workflows/ci.yml`）
   - 触发：`main` push、PR、`workflow_dispatch`
   - **Backend**：`go test` / `go vet` / govulncheck
-  - **Frontend**：lint、build、Vitest unit、功能 E2E（auth + 虚拟书架 + 阅读器主路径）
+  - **Frontend**：lint、build、Vitest unit、功能 E2E（auth + 虚拟书架 + 阅读器主路径 + a11y）
   - **Docker**：镜像构建检查（不推送）
   - **Visual**（可选）：手动运行 workflow 并勾选 `run_visual`  
     截图基线对 OS/字体敏感，默认不进门禁；本地用 `npm run test:visual`

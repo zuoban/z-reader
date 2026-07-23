@@ -182,9 +182,10 @@ export function ReaderToolbar({
               size="icon"
               onClick={onBack}
               title="返回书库"
+              aria-label="返回书库"
               className="reader-chrome-icon h-10 w-10 shrink-0 border-0 bg-transparent shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </Button>
             <div className="min-w-0 overflow-hidden">
               <h1

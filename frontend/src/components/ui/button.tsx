@@ -19,7 +19,8 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-secondary/80 hover:text-foreground",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-[0_10px_24px_-18px_color-mix(in_srgb,var(--destructive)_45%,transparent)] hover:opacity-92",
+          // Explicit CSS var so text stays light even if theme token generation misses a class.
+          "bg-destructive text-[color:var(--destructive-foreground)] shadow-[0_10px_24px_-18px_color-mix(in_srgb,var(--destructive)_45%,transparent)] hover:opacity-92",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

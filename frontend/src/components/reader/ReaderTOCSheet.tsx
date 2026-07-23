@@ -135,7 +135,7 @@ export function ReaderTOCSheet({
                 </SheetDescription>
                 {bookAuthor ? (
                   <p
-                    className="truncate text-[11px] font-medium opacity-70"
+                    className="truncate text-[11px] font-medium"
                     style={{ color: surface.muted }}
                     title={bookAuthor}
                   >

@@ -8,8 +8,11 @@ cd frontend
 # All Playwright specs (functional + visual)
 npm run test:e2e
 
-# CI gate: auth + virtual grid + reader happy path (no screenshots)
+# CI gate: auth + virtual grid + reader + a11y (no screenshots)
 npm run test:e2e:ci
+
+# Accessibility (axe serious/critical only)
+npm run test:e2e:a11y
 
 # Virtual shelf grid only
 npm run test:e2e:virtual
@@ -50,6 +53,19 @@ Covered surfaces:
 | `reader-auth-loading-light` | Reader auth loading chrome |
 
 API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend.
+
+## Accessibility e2e
+
+- Spec: `a11y.spec.ts`
+- Helper: `helpers/a11y.ts` (`expectNoSeriousA11yViolations`)
+- Engine: `@axe-core/playwright` (WCAG 2.0/2.1 A/AA + best-practice tags)
+
+| Surface | State |
+| --- | --- |
+| Shelf | empty, populated, category filter, selection mode |
+| Reader | open chrome, TOC sheet |
+
+Gate policy: fail on **serious/critical** only; moderate/minor are logged.
 
 ## Reader happy-path e2e
 
@@ -97,7 +113,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Specs | When |
 | --- | --- | --- |
 | Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` + `reader-happy-path` (`npm run test:e2e:ci`) | every push/PR |
+| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` + `reader-happy-path` + `a11y` (`npm run test:e2e:ci`) | every push/PR |
 | Frontend Visual Regression | `visual-regression.spec.ts` | manual `workflow_dispatch` + `run_visual` |
 
 Why visual is optional by default:

@@ -11,10 +11,10 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test tests/e2e/auth-shelf.spec.ts tests/e2e/shelf-virtual-grid.spec.ts tests/e2e/reader-happy-path.spec.ts",
+    "test:e2e:ci": "playwright test tests/e2e/auth-shelf.spec.ts tests/e2e/shelf-virtual-grid.spec.ts tests/e2e/reader-happy-path.spec.ts tests/e2e/a11y.spec.ts",
     "test:e2e:virtual": "playwright test tests/e2e/shelf-virtual-grid.spec.ts",
     "test:e2e:reader": "playwright test tests/e2e/reader-happy-path.spec.ts",
-
+    "test:e2e:a11y": "playwright test tests/e2e/a11y.spec.ts",
     "test:visual": "playwright test tests/e2e/visual-regression.spec.ts",
     "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
     "test:visual:ui": "playwright test tests/e2e/visual-regression.spec.ts --ui"
@@ -39,6 +39,7 @@
     "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

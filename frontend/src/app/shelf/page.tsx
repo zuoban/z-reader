@@ -370,6 +370,7 @@ export default function ShelfPage() {
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
+        <h1 className="sr-only">我的书库</h1>
         {!isLoadingBooks && loadError ? (
           <div className="flex min-h-[28rem] items-center justify-center">
             <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">

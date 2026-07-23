@@ -78,16 +78,24 @@ const FloatingButton = ({
   uiScheme,
 }: FloatingButtonProps) => {
   const ActiveIconGlyph = isPlaying ? Pause : isPaused ? Play : Volume2;
-  const iconColor = withOpacity(uiScheme.buttonText, 0.92);
+  const iconColor = isActive
+    ? withOpacity(uiScheme.link, 0.95)
+    : withOpacity(uiScheme.buttonText, 0.9);
   const buttonStyles = {
     ...getGlassSurface(uiScheme, {
-      elevated: expanded || isDragging,
+      elevated: expanded || isDragging || isActive,
+      accentBorder: isActive
+        ? withOpacity(uiScheme.link, 0.28)
+        : withOpacity(uiScheme.cardBorder, 0.18),
+      accentGlow: isActive
+        ? withOpacity(uiScheme.link, 0.3)
+        : withOpacity(uiScheme.fg, 0.16),
     }),
     boxShadow: isDragging
-      ? `0 16px 30px -16px ${withOpacity(uiScheme.fg, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.28)`
-      : expanded
-        ? `0 14px 26px -16px ${withOpacity(uiScheme.fg, 0.2)}, inset 0 1px 0 rgba(255,255,255,0.26)`
-        : `0 10px 20px -14px ${withOpacity(uiScheme.fg, 0.16)}, inset 0 1px 0 rgba(255,255,255,0.22)`,
+      ? `0 16px 30px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.3)`
+      : isActive
+        ? `0 14px 28px -14px ${withOpacity(uiScheme.link, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.28)`
+        : `0 12px 22px -14px ${withOpacity(uiScheme.fg, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.24)`,
     transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.03)' : 'scale(1)',
   };
 
@@ -108,7 +116,7 @@ const FloatingButton = ({
       aria-expanded={expanded}
       className={
         placement === 'fixed'
-          ? 'fixed z-[60] focus-visible:outline-none'
+          ? 'fixed z-[60] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
           : 'relative z-10 shrink-0 focus-visible:outline-none'
       }
       style={{
@@ -121,19 +129,25 @@ const FloatingButton = ({
         cursor: 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
-        opacity: 0.7,
+        opacity: isActive || isDragging || expanded ? 1 : 0.82,
         outline: 'none',
       }}
       title="朗读控制"
     >
       <div
-        className="paper-motion-interactive relative flex h-[42px] w-[42px] items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
+        className="paper-motion-interactive relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
         style={buttonStyles}
       >
+        {isPlaying && (
+          <span
+            className="pointer-events-none absolute inset-0 animate-ping rounded-full opacity-20"
+            style={{ background: withOpacity(uiScheme.link, 0.45) }}
+          />
+        )}
         <div
-          className="absolute inset-[1px] rounded-full pointer-events-none"
+          className="pointer-events-none absolute inset-[1px] rounded-full"
           style={{
-            border: `1px solid ${withOpacity('#ffffff', 0.06)}`,
+            border: `1px solid ${withOpacity('#ffffff', 0.1)}`,
           }}
         />
         <ActiveIconGlyph
@@ -185,10 +199,10 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
   <div
     role="group"
     aria-label="朗读倍速"
-    className="grid grid-cols-5 gap-1 rounded-full p-1"
+    className="grid grid-cols-5 gap-1 rounded-2xl p-1"
     style={{
-      background: withOpacity(uiScheme.buttonBg, 0.32),
-      boxShadow: `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+      background: withOpacity(uiScheme.buttonBg, 0.36),
+      boxShadow: `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.12)}, inset 0 1px 0 rgba(255,255,255,0.08)`,
     }}
   >
     {RATE_OPTIONS.map((option) => {
@@ -200,15 +214,15 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
           type="button"
           aria-pressed={active}
           onClick={() => onChange(option.value)}
-          className="touch-control min-h-11 rounded-full px-1 text-xs font-bold tabular-nums transition-[background-color,box-shadow,color,transform] hover:scale-[1.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.96] sm:min-h-9"
+          className="touch-control min-h-11 rounded-xl px-1 text-[11px] font-semibold tabular-nums transition-[background-color,box-shadow,color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.96] sm:min-h-9 sm:text-xs"
           style={{
-            color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.72),
+            color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.62),
             background: active
-              ? withOpacity(uiScheme.cardBg, 0.88)
+              ? withOpacity(uiScheme.cardBg, 0.92)
               : 'transparent',
             border: '1px solid transparent',
             boxShadow: active
-              ? `0 10px 22px -18px ${withOpacity(uiScheme.fg, 0.38)}, inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.16)}`
+              ? `0 8px 18px -14px ${withOpacity(uiScheme.fg, 0.36)}, inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.18)}`
               : 'none',
           }}
         >
@@ -231,26 +245,35 @@ const TTSSectionCard = ({
   children: React.ReactNode;
 }) => (
   <section
-    className="app-surface-panel space-y-4 rounded-2xl p-5"
+    className="space-y-3.5 rounded-2xl border p-4 sm:p-5"
     style={{
-      background:
-        `linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.2)} 0%, transparent 100%), ${uiScheme.cardBg}`,
-      borderColor: withOpacity(uiScheme.cardBorder, 0.26),
+      background: `
+        linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.28)} 0%, transparent 72%),
+        ${withOpacity(uiScheme.cardBg, 0.72)}
+      `,
+      borderColor: withOpacity(uiScheme.cardBorder, 0.22),
+      boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.1)}`,
     }}
   >
     <div className="flex items-center justify-between gap-3">
       <div className="space-y-0.5">
-        <h3 className="text-sm font-bold tracking-tight" style={{ color: uiScheme.fg }}>
+        <h3
+          className="text-sm font-semibold tracking-tight"
+          style={{ color: uiScheme.fg }}
+        >
           {title}
         </h3>
         {description ? (
-          <p className="text-xs font-medium leading-relaxed" style={{ color: uiScheme.mutedText }}>
+          <p
+            className="text-xs font-medium leading-relaxed"
+            style={{ color: uiScheme.mutedText }}
+          >
             {description}
           </p>
         ) : null}
       </div>
     </div>
-    <div className="pt-1">{children}</div>
+    <div>{children}</div>
   </section>
 );
 
@@ -270,7 +293,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
     if (disabled) return uiScheme.mutedText;
     if (variant === 'danger' && active) return '#ef4444';
     if (variant === 'accent' && active) return uiScheme.link;
-    return active ? uiScheme.fg : uiScheme.mutedText;
+    return active ? uiScheme.fg : withOpacity(uiScheme.mutedText, 0.9);
   };
 
   return (
@@ -280,23 +303,42 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-11 w-11 rounded-full transition-[background-color,box-shadow,color,opacity,transform] duration-200 hover:scale-[1.025] active:scale-95"
+      className="h-11 w-11 rounded-full transition-[background-color,box-shadow,color,opacity,transform] duration-200 hover:scale-[1.03] active:scale-95"
       style={{
         color: getButtonColor(),
         cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.32 : 1,
-        background:
-          active ? withOpacity(uiScheme.cardBg, 0.64) : withOpacity(uiScheme.buttonBg, 0.18),
-        border: `1px solid ${withOpacity(uiScheme.cardBorder, active ? 0.16 : 0.08)}`,
+        opacity: disabled ? 0.34 : 1,
+        background: active
+          ? withOpacity(uiScheme.cardBg, 0.72)
+          : withOpacity(uiScheme.buttonBg, 0.22),
+        border: `1px solid ${withOpacity(uiScheme.cardBorder, active ? 0.2 : 0.1)}`,
         boxShadow: active
-          ? `0 10px 20px -18px ${withOpacity(uiScheme.fg, 0.24)}, inset 0 1px 0 rgba(255,255,255,0.12)`
-          : 'inset 0 1px 0 rgba(255,255,255,0.08)',
+          ? `0 10px 20px -16px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.14)`
+          : 'inset 0 1px 0 rgba(255,255,255,0.1)',
       }}
     >
       {children}
     </Button>
   );
 };
+
+/** Shared segmented control styles for highlight / sleep options */
+function segmentStyle(active: boolean, uiScheme: ThemeColors) {
+  return {
+    color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.52),
+    background: active
+      ? withOpacity(uiScheme.cardBg, 0.9)
+      : withOpacity(uiScheme.buttonBg, 0.22),
+    border: `1px solid ${
+      active
+        ? withOpacity(uiScheme.cardBorder, 0.36)
+        : withOpacity(uiScheme.cardBorder, 0.12)
+    }`,
+    boxShadow: active
+      ? `0 8px 16px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.12)`
+      : 'none',
+  } as const;
+}
 
 interface TTSControlsProps {
   state: TTSState;
@@ -1012,7 +1054,7 @@ export function TTSControls({
               description="选择朗读时跟随词语或整句。"
               uiScheme={uiScheme}
             >
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {([
                   ['word', '词语'],
                   ['sentence', '句子'],
@@ -1023,12 +1065,8 @@ export function TTSControls({
                       key={mode}
                       type="button"
                       onClick={() => handleHighlightModeChange(mode)}
-                      className="flex-1 rounded-[1.25rem] px-3 py-2.5 text-xs font-bold transition-all active:scale-[0.96]"
-                      style={{
-                        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
-                        background: active ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
-                        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1)}`,
-                      }}
+                      className="min-h-11 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
+                      style={segmentStyle(active, uiScheme)}
                     >
                       {label}
                     </button>
@@ -1051,12 +1089,8 @@ export function TTSControls({
                       type="button"
                       variant="ghost"
                       onClick={() => onSleepTimerMinutes?.(minutes)}
-                      className="h-10 rounded-[1.15rem] text-xs font-bold transition-all active:scale-[0.96]"
-                      style={{
-                        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
-                        background: active ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
-                        border: `1px solid ${active ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1)}`,
-                      }}
+                      className="h-10 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
+                      style={segmentStyle(active, uiScheme)}
                     >
                       {minutes}分
                     </Button>
@@ -1067,11 +1101,13 @@ export function TTSControls({
                   variant="ghost"
                   onClick={() => onClearSleepTimer?.()}
                   disabled={!sleepTimerActive}
-                  className="h-10 rounded-[1.15rem] text-xs font-bold"
+                  className="h-10 rounded-xl text-xs font-semibold"
                   style={{
-                    color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}40`,
-                    background: withOpacity(uiScheme.buttonBg, 0.2),
-                    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.1)}`,
+                    ...segmentStyle(false, uiScheme),
+                    color: sleepTimerActive
+                      ? uiScheme.mutedText
+                      : withOpacity(uiScheme.mutedText, 0.35),
+                    opacity: sleepTimerActive ? 1 : 0.7,
                   }}
                 >
                   取消
@@ -1324,10 +1360,14 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="flex items-center justify-center gap-2 rounded-2xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] "
+                    className="flex items-center justify-center gap-2 rounded-2xl border p-2.5"
                     style={{
-                      background: withOpacity(uiScheme.buttonBg, 0.34),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.2),
+                      background: `
+                        linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.03)} 0%, transparent 70%),
+                        ${withOpacity(uiScheme.buttonBg, 0.36)}
+                      `,
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.18),
+                      boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.12)}`,
                     }}
                   >
                     <ControlButton
@@ -1397,12 +1437,15 @@ export function TTSControls({
 
                   {detailsExpanded && (
                     <div className="paper-reveal-soft space-y-3 px-1 pt-2">
-                      <div className="flex items-center justify-between gap-3 px-3">
-                        <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
+                      <div className="flex items-center justify-between gap-3 px-1">
+                        <h3
+                          className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                          style={{ color: uiScheme.mutedText }}
+                        >
                           高亮方式
                         </h3>
                       </div>
-                      <div className="flex gap-1 rounded-xl p-1" style={{ background: withOpacity(uiScheme.muted, 0.4) }}>
+                      <div className="grid grid-cols-2 gap-1.5">
                         {([
                           ['word', '词语'],
                           ['sentence', '句子'],
@@ -1414,12 +1457,8 @@ export function TTSControls({
                               type="button"
                               aria-pressed={active}
                               onClick={() => handleHighlightModeChange(mode)}
-                              className="touch-control min-h-11 flex-1 rounded-lg py-2 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 sm:min-h-9"
-                              style={{
-                                color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.68),
-                                background: active ? uiScheme.cardBg : 'transparent',
-                                boxShadow: active ? `0 2px 8px ${withOpacity(uiScheme.fg, 0.1)}` : 'none',
-                              }}
+                              className="touch-control min-h-11 rounded-xl py-2 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.97] sm:min-h-9"
+                              style={segmentStyle(active, uiScheme)}
                             >
                               {label}
                             </button>
@@ -1431,12 +1470,18 @@ export function TTSControls({
 
                   {detailsExpanded && (
                     <div className="paper-reveal-soft space-y-3 px-1">
-                      <div className="flex items-center justify-between gap-3 px-3">
-                        <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
+                      <div className="flex items-center justify-between gap-3 px-1">
+                        <h3
+                          className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                          style={{ color: uiScheme.mutedText }}
+                        >
                           睡眠定时
                         </h3>
                         {sleepTimerActive && (
-                          <span className="text-xs font-bold text-primary">
+                          <span
+                            className="text-[11px] font-semibold"
+                            style={{ color: uiScheme.link }}
+                          >
                             {sleepTimer?.label}
                           </span>
                         )}
@@ -1444,7 +1489,8 @@ export function TTSControls({
 
                       <div className="grid grid-cols-4 gap-1.5">
                         {[15, 30, 60].map((minutes) => {
-                          const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
+                          const active =
+                            sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                           return (
                             <Button
                               key={minutes}
@@ -1452,11 +1498,8 @@ export function TTSControls({
                               variant="ghost"
                               aria-pressed={active}
                               onClick={() => onSleepTimerMinutes?.(minutes)}
-                              className="h-10 rounded-xl text-xs font-bold transition-all sm:h-9"
-                              style={{
-                                color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
-                                background: active ? withOpacity(uiScheme.link, 0.12) : withOpacity(uiScheme.muted, 0.4),
-                              }}
+                              className="h-10 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] sm:h-9"
+                              style={segmentStyle(active, uiScheme)}
                             >
                               {minutes}分
                             </Button>
@@ -1467,10 +1510,12 @@ export function TTSControls({
                           variant="ghost"
                           onClick={() => onClearSleepTimer?.()}
                           disabled={!sleepTimerActive}
-                          className="h-10 rounded-xl text-xs font-bold sm:h-9"
+                          className="h-10 rounded-xl text-xs font-semibold sm:h-9"
                           style={{
-                            color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}40`,
-                            background: withOpacity(uiScheme.muted, 0.2),
+                            ...segmentStyle(false, uiScheme),
+                            color: sleepTimerActive
+                              ? uiScheme.mutedText
+                              : withOpacity(uiScheme.mutedText, 0.35),
                           }}
                         >
                           取消

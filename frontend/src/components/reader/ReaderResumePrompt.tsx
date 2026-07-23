@@ -18,10 +18,17 @@ export function ReaderResumePrompt({
   onResume,
 }: ReaderResumePromptProps) {
   const cardStyle = {
-    background:
-      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.88)}`,
-    border: `1px solid ${withOpacity(uiScheme.link, 0.24)}`,
-    boxShadow: `0 18px 36px -24px ${withOpacity(uiScheme.link, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.28)`,
+    background: `
+      linear-gradient(145deg, ${withOpacity(uiScheme.link, 0.08)} 0%, transparent 42%),
+      ${withOpacity(uiScheme.cardBg, 0.92)}
+    `,
+    border: `1px solid ${withOpacity(uiScheme.link, 0.22)}`,
+    boxShadow: `
+      0 18px 40px -24px ${withOpacity(uiScheme.link, 0.38)},
+      0 8px 18px -14px ${withOpacity(uiScheme.fg, 0.12)},
+      inset 0 1px 0 rgba(255,255,255,0.26)
+    `,
+    backdropFilter: "blur(16px) saturate(1.15)",
   };
 
   return (
@@ -33,20 +40,20 @@ export function ReaderResumePrompt({
       }}
     >
       <div
-        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[1.5rem] px-4 py-3 "
+        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl px-3.5 py-3 sm:px-4"
         style={cardStyle}
       >
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
           style={{
-            background: withOpacity(uiScheme.link, 0.14),
+            background: withOpacity(uiScheme.link, 0.12),
             color: uiScheme.link,
           }}
         >
           <AlertCircle className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
+          <p className="text-sm font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
             朗读已暂停
           </p>
           <p
@@ -64,7 +71,8 @@ export function ReaderResumePrompt({
           className="h-10 shrink-0 rounded-xl px-3.5 text-sm font-semibold"
           style={{
             color: uiScheme.link,
-            border: `1px solid ${withOpacity(uiScheme.link, 0.18)}`,
+            border: `1px solid ${withOpacity(uiScheme.link, 0.2)}`,
+            background: withOpacity(uiScheme.buttonBg, 0.35),
           }}
         >
           继续

@@ -20,15 +20,19 @@ export function withOpacity(color: string | undefined, opacity: number) {
 
 export function getModernReaderSurface(uiScheme: ThemeColors) {
   return {
-    bg: withOpacity(uiScheme.cardBg, 0.96),
-    surface: withOpacity(uiScheme.buttonBg, 0.52),
-    surfaceStrong: withOpacity(uiScheme.buttonBg, 0.74),
-    surfaceSoft: withOpacity(uiScheme.buttonBg, 0.38),
+    bg: withOpacity(uiScheme.cardBg, 0.97),
+    surface: withOpacity(uiScheme.buttonBg, 0.54),
+    surfaceStrong: withOpacity(uiScheme.buttonBg, 0.76),
+    surfaceSoft: withOpacity(uiScheme.buttonBg, 0.4),
     fg: uiScheme.fg,
     muted: withOpacity(uiScheme.mutedText, 0.86),
-    border: withOpacity(uiScheme.cardBorder, 0.05),
-    hairline: withOpacity(uiScheme.cardBorder, 0.06),
-    shadow: `0 28px 80px ${withOpacity(uiScheme.fg, 0.16)}`,
+    border: withOpacity(uiScheme.cardBorder, 0.12),
+    hairline: withOpacity(uiScheme.cardBorder, 0.1),
+    shadow: `
+      0 28px 70px -36px ${withOpacity(uiScheme.fg, 0.28)},
+      0 12px 28px -22px ${withOpacity(uiScheme.fg, 0.14)},
+      inset 0 1px 0 ${withOpacity("#ffffff", 0.1)}
+    `,
   };
 }
 

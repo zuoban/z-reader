@@ -62,76 +62,80 @@ export interface ThemeColors {
 }
 
 export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
+  /* 净白 — warm paper, soft ink (aligned with app shell) */
   light: {
-    bg: "#f8f8f6",
-    fg: "#262522",
-    link: "#4f5966",
-    headerBg: "#f8f8f6",
-    headerBorder: "#d6d4ce",
-    cardBg: "#eeeeea",
-    cardBorder: "#d6d4ce",
-    buttonBg: "#eeeeea",
-    buttonHoverBg: "#e4e4df",
-    buttonText: "#262522",
-    muted: "#eeeeea",
-    mutedText: "#625f59",
-    accentText: "#4f5966",
+    bg: "#f6f1e8",
+    fg: "#1c1915",
+    link: "#4f4840",
+    headerBg: "#f6f1e8",
+    headerBorder: "#ddd4c6",
+    cardBg: "#f0e9de",
+    cardBorder: "#ddd4c6",
+    buttonBg: "#ebe4d8",
+    buttonHoverBg: "#e3dacc",
+    buttonText: "#1c1915",
+    muted: "#ebe4d8",
+    mutedText: "#5a5349",
+    accentText: "#4f4840",
   },
+  /* 旧书 — classic parchment */
   sepia: {
-    bg: "#f4ecd8",
-    fg: "#5c4a3a",
-    link: "#8b4513",
-    headerBg: "#fbf6e9",
-    headerBorder: "#d9c39b",
-    cardBg: "#fbf6e9",
-    cardBorder: "#d9c39b",
-    buttonBg: "#f1e2c8",
-    buttonHoverBg: "#e8d5b5",
-    buttonText: "#433427",
-    muted: "#f1e2c8",
-    mutedText: "#65523e",
-    accentText: "#8b4513",
+    bg: "#f3ead7",
+    fg: "#3f3124",
+    link: "#7a4e2a",
+    headerBg: "#f8f1e2",
+    headerBorder: "#d8c4a0",
+    cardBg: "#f8f1e2",
+    cardBorder: "#d8c4a0",
+    buttonBg: "#eee0c4",
+    buttonHoverBg: "#e5d4b2",
+    buttonText: "#3f3124",
+    muted: "#eee0c4",
+    mutedText: "#5c4a36",
+    accentText: "#7a4e2a",
   },
+  /* 苔纸 — soft moss green */
   green: {
-    bg: "#e5ede0",
-    fg: "#24352b",
-    link: "#4a7557",
+    bg: "#e6ede1",
+    fg: "#1f2e25",
+    link: "#3d6349",
     headerBg: "#eef3e9",
-    headerBorder: "#cbd8c7",
+    headerBorder: "#c8d6c3",
     cardBg: "#eef3e9",
-    cardBorder: "#cbd8c7",
-    buttonBg: "#d9e4d4",
-    buttonHoverBg: "#cedbc8",
-    buttonText: "#24352b",
-    muted: "#d9e4d4",
-    mutedText: "#46584a",
-    accentText: "#4a7557",
+    cardBorder: "#c8d6c3",
+    buttonBg: "#d8e3d3",
+    buttonHoverBg: "#cdd9c7",
+    buttonText: "#1f2e25",
+    muted: "#d8e3d3",
+    mutedText: "#3d4f42",
+    accentText: "#3d6349",
   },
+  /* 夜读 — warm charcoal night */
   dark: {
-    bg: "#1a1612",
-    fg: "#d4c5b2",
-    link: "#a06040",
-    headerBg: "#1a1612",
+    bg: "#141210",
+    fg: "#f2eadc",
+    link: "#d0a57a",
+    headerBg: "#141210",
     headerBorder: "#3a322a",
-    cardBg: "#221e18",
+    cardBg: "#1e1a16",
     cardBorder: "#3a322a",
-    buttonBg: "#221e18",
-    buttonHoverBg: "#2a2420",
-    buttonText: "#d4c5b2",
-    muted: "#2a2420",
-    mutedText: "#c0b29f",
-    accentText: "#a06040",
+    buttonBg: "#24201b",
+    buttonHoverBg: "#2c2620",
+    buttonText: "#f2eadc",
+    muted: "#2c2620",
+    mutedText: "#c4b6a4",
+    accentText: "#d0a57a",
   },
 };
 
 export const DEFAULT_READER_THEME: ReaderTheme = {
   preset: "light",
   fontFamily: "editorial",
-  fontSize: 16,
-  lineHeight: 1.6,
-  pagePaddingX: 20,
-  pagePaddingY: 16,
-  paragraphSpacing: 1.1,
+  fontSize: 17,
+  lineHeight: 1.7,
+  pagePaddingX: 22,
+  pagePaddingY: 18,
+  paragraphSpacing: 1.15,
   flow: "paginated",
   maxInlineSize: 1200,
   gap: 5,
@@ -313,10 +317,17 @@ export function useReaderTheme() {
       `
       : "";
 
+    const headingWeight = theme.fontFamily === "humanist" ? 650 : 600;
+    const scrollbarThumb = withOpacity(preset.fg, isDark ? 0.22 : 0.16);
+    const scrollbarThumbHover = withOpacity(preset.fg, isDark ? 0.34 : 0.26);
+    const hrColor = withOpacity(preset.fg, isDark ? 0.14 : 0.12);
+
     return `
       html {
         background: ${preset.bg} !important;
         color: ${preset.fg} !important;
+        scrollbar-width: thin;
+        scrollbar-color: ${scrollbarThumb} transparent;
       }
       body {
         background: ${preset.bg} !important;
@@ -329,6 +340,11 @@ export function useReaderTheme() {
         font-family: ${fontStack} !important;
         box-sizing: border-box;
         text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+        word-break: break-word;
+        overflow-wrap: anywhere;
       }
       @media (max-width: 640px) {
         body {
@@ -337,32 +353,128 @@ export function useReaderTheme() {
           padding-inline: ${Math.max(8, theme.pagePaddingX - 8)}px !important;
         }
       }
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: ${scrollbarThumb} transparent;
+      }
+      *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      *::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      *::-webkit-scrollbar-thumb {
+        background: ${scrollbarThumb};
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      *::-webkit-scrollbar-thumb:hover {
+        background: ${scrollbarThumbHover};
+        background-clip: padding-box;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        color: ${preset.fg} !important;
+        font-family: ${fontStack} !important;
+        font-weight: ${headingWeight} !important;
+        line-height: 1.28 !important;
+        letter-spacing: -0.015em;
+        margin: 1.35em 0 0.55em !important;
+        text-wrap: balance;
+      }
+      h1 { font-size: 1.55em !important; }
+      h2 { font-size: 1.32em !important; }
+      h3 { font-size: 1.15em !important; }
+      h4, h5, h6 { font-size: 1.05em !important; }
       p {
         line-height: ${theme.lineHeight} !important;
         margin: ${theme.paragraphSpacing}em 0 !important;
         text-align: justify;
         hyphens: auto;
       }
+      li {
+        line-height: ${theme.lineHeight} !important;
+        margin: 0.35em 0 !important;
+      }
+      ul, ol {
+        padding-inline-start: 1.4em !important;
+        margin: 0.85em 0 !important;
+      }
       blockquote {
-        margin: 1.5em 0 !important;
-        padding: 0.5em 1.5em !important;
-        border-left: 4px solid ${preset.link};
-        background: ${withOpacity(preset.link, 0.05)};
+        margin: 1.35em 0 !important;
+        padding: 0.65em 1.15em !important;
+        border-left: 3px solid ${withOpacity(preset.link, 0.55)};
+        border-radius: 0 0.65rem 0.65rem 0;
+        background: ${withOpacity(preset.link, isDark ? 0.08 : 0.06)};
+        color: ${withOpacity(preset.fg, 0.92)} !important;
+      }
+      blockquote p {
+        margin: 0.45em 0 !important;
+      }
+      hr {
+        border: 0 !important;
+        height: 1px !important;
+        margin: 1.75em auto !important;
+        max-width: 42% !important;
+        background: linear-gradient(90deg, transparent, ${hrColor}, transparent) !important;
       }
       a {
         color: ${preset.link} !important;
         text-decoration: underline;
-        text-underline-offset: 4px;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.2em;
+        text-decoration-color: ${withOpacity(preset.link, 0.45)};
+      }
+      a:hover {
+        text-decoration-color: ${preset.link};
+      }
+      img, svg, video {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      img {
+        border-radius: 0.35rem;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1.1em 0 !important;
+        font-size: 0.95em;
+      }
+      th, td {
+        border: 1px solid ${withOpacity(preset.fg, isDark ? 0.16 : 0.12)};
+        padding: 0.45em 0.65em;
+        vertical-align: top;
+      }
+      th {
+        background: ${withOpacity(preset.fg, isDark ? 0.08 : 0.05)};
+        font-weight: 600;
       }
       ::selection {
         background: ${selectionBg} !important;
         color: ${selectionColor} !important;
       }
-      code {
+      code, kbd, samp {
         background: ${codeBg};
-        padding: 0.2em 0.4em;
-        border-radius: 4px;
+        padding: 0.15em 0.4em;
+        border-radius: 0.35rem;
+        font-size: 0.92em;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      pre {
+        background: ${codeBg};
+        padding: 0.85em 1em !important;
+        border-radius: 0.65rem;
+        overflow-x: auto;
+        margin: 1.1em 0 !important;
+        border: 1px solid ${withOpacity(preset.fg, isDark ? 0.1 : 0.06)};
+      }
+      pre code {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        font-size: 0.9em;
       }
       ${indentStyle}
       ${punctuationStyle}

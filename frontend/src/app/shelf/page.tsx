@@ -266,8 +266,9 @@ export default function ShelfPage() {
             </div>
             <div className="flex flex-col items-center gap-1.5">
               <p className="text-sm font-bold tracking-widest text-foreground/80 uppercase">Loading Library</p>
-              <div className="h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
-                <div className="h-full bg-primary animate-[shimmer_2s_infinite]" style={{ width: '40%' }} />
+              <div className="relative h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
+                <div className="absolute inset-y-0 left-0 w-2/5 rounded-full bg-primary" />
+                <div className="absolute inset-0 animate-[shimmer_1.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-primary-foreground/25 to-transparent" />
               </div>
             </div>
           </div>
@@ -282,7 +283,7 @@ export default function ShelfPage() {
       className="bg-[var(--shelf-app-bg)] font-sans"
       contentClassName="flex min-h-screen w-full flex-col"
     >
-      <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-[color:var(--shelf-header-bg)]/95 backdrop-blur-xl dark:border-white/8 dark:bg-[color:var(--shelf-header-bg)]/82 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
+      <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-[color:var(--shelf-header-bg)]/92 shadow-[0_12px_36px_-32px_var(--paper-shadow)] backdrop-blur-xl dark:border-white/8 dark:bg-[color:var(--shelf-header-bg)]/86 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
         <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between px-5 sm:px-7 lg:px-10">
           <ShelfBrand />
 
@@ -294,7 +295,7 @@ export default function ShelfPage() {
               title="上传书籍"
               multiple
               buttonSize="icon-sm"
-              buttonClassName="h-11 w-11 rounded-xl border border-primary bg-primary px-0 text-[14px] font-bold text-primary-foreground shadow-none transition-all hover:opacity-90 active:scale-[0.98] sm:h-10 sm:w-auto sm:rounded-lg sm:px-5 dark:border-primary/20 dark:shadow-[0_14px_34px_-24px_var(--primary)]"
+              buttonClassName="h-11 w-11 rounded-xl border border-primary bg-primary px-0 text-[14px] font-semibold text-primary-foreground shadow-[0_12px_28px_-18px_var(--paper-shadow)] transition-all hover:opacity-92 active:scale-[0.98] sm:h-10 sm:w-auto sm:rounded-xl sm:px-5 dark:border-primary/25 dark:shadow-[0_14px_34px_-22px_var(--primary)]"
             >
               {isUploading ? (
                 <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
@@ -308,7 +309,7 @@ export default function ShelfPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 rounded-xl border border-border bg-card text-foreground shadow-none hover:bg-secondary/50 sm:h-10 sm:w-10 sm:rounded-lg dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
+                  className="h-11 w-11 rounded-xl border border-border/70 bg-card/90 text-foreground shadow-none hover:bg-secondary/70 sm:h-10 sm:w-10 dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
                   aria-label="账户与设置"
                   title="账户与设置"
                 >
@@ -318,7 +319,7 @@ export default function ShelfPage() {
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="w-48 rounded-xl border-border/40 p-1.5 shadow-lg backdrop-blur-md"
+                className="shelf-account-menu w-48 rounded-xl border-border/40 p-1.5 shadow-lg backdrop-blur-md"
               >
                 <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
                   {isDark ? (
@@ -341,6 +342,8 @@ export default function ShelfPage() {
       </header>
 
       <main
+        id="shelf-main"
+        aria-label="书库"
         className="relative z-10 mx-auto w-full max-w-[1920px] flex-1 px-5 py-6 sm:px-7 sm:py-8 lg:px-10 lg:py-9"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
@@ -458,10 +461,10 @@ export default function ShelfPage() {
                       onClick={() => changeSelectedCategory(null)}
                       aria-pressed={selectedCategoryId === null}
                     className={cn(
-                      'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
+                      'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                       selectedCategoryId === null
-                        ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                        : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_-18px_var(--paper-shadow)] dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                        : 'border border-border/70 bg-card/90 text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] hover:bg-secondary/60 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                     )}
                   >
                     全部
@@ -472,10 +475,10 @@ export default function ShelfPage() {
                       onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
                       aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
                       className={cn(
-                        'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
+                        'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                         selectedCategoryId === UNCATEGORIZED_FILTER_ID
-                          ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                          : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
+                          ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_-18px_var(--paper-shadow)] dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                          : 'border border-border/70 bg-card/90 text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] hover:bg-secondary/60 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                       )}
                     >
                       未分类
@@ -488,10 +491,10 @@ export default function ShelfPage() {
                       onClick={() => changeSelectedCategory(category)}
                       aria-pressed={selectedCategoryId === category}
                       className={cn(
-                        'flex min-h-11 max-w-[9rem] shrink-0 snap-start items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
+                        'flex min-h-11 max-w-[9rem] shrink-0 snap-start items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
                         selectedCategoryId === category
-                          ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                          : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
+                          ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_-18px_var(--paper-shadow)] dark:shadow-[0_10px_26px_-22px_var(--primary)]'
+                          : 'border border-border/70 bg-card/90 text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] hover:bg-secondary/60 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
                       )}
                       title={category}
                     >
@@ -612,7 +615,7 @@ export default function ShelfPage() {
               <div
                 className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
               >
-                <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-primary/20 bg-card/90 px-4 py-3 shadow-lg  sm:px-6 sm:py-3.5">
+                <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-primary/20 bg-card/92 px-4 py-3 shadow-[0_20px_50px_-28px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_48%,transparent)] backdrop-blur-xl sm:px-6 sm:py-3.5">
                   <div className="flex min-w-0 items-center gap-3.5 border-r border-border/15 pr-4 sm:pr-6">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <CheckSquare className="h-4.5 w-4.5" />

@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="118" fill="#101216"/>
+  <!-- Warm night plate + parchment mark, aligned with BrandGlyph -->
+  <rect width="512" height="512" rx="118" fill="#141210"/>
   <rect x="74" y="74" width="364" height="364" rx="108" fill="#F0E6D2"/>
-  <path d="M150 174C187 155 225 157 256 181V367C225 345 187 343 150 362V174Z" fill="#151922"/>
-  <path d="M256 181C287 157 325 155 362 174V362C325 343 287 345 256 367V181Z" fill="#20242B"/>
+  <path d="M150 174C187 155 225 157 256 181V367C225 345 187 343 150 362V174Z" fill="#1C1915"/>
+  <path d="M256 181C287 157 325 155 362 174V362C325 343 287 345 256 367V181Z" fill="#2A2420"/>
   <path d="M196 218H318L228 304H320" stroke="#F0E6D2" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M256 181V367" stroke="#F0E6D2" stroke-opacity=".16" stroke-width="8" stroke-linecap="round"/>
+  <path d="M256 181V367" stroke="#F0E6D2" stroke-opacity=".18" stroke-width="8" stroke-linecap="round"/>
 </svg>

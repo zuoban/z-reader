@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "paper-motion-veil fixed inset-0 isolate z-50 bg-black/45 motion-reduce:duration-0",
+        "paper-motion-veil fixed inset-0 isolate z-50 bg-black/46 backdrop-blur-[2px] motion-reduce:duration-0",
         className
       )}
       {...props}
@@ -61,7 +61,7 @@ function DialogContent({
           data-slot="dialog-content"
           finalFocus={finalFocus}
           className={cn(
-            "paper-motion-panel paper-panel paper-stack pointer-events-auto relative grid w-full max-w-[calc(100vw-2rem)] gap-4 rounded-2xl p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5  sm:max-w-sm motion-reduce:duration-0",
+            "paper-motion-panel paper-panel paper-stack pointer-events-auto relative grid w-full max-w-[calc(100vw-2rem)] gap-4 rounded-2xl p-5 text-sm text-popover-foreground outline-none ring-1 ring-foreground/5 sm:max-w-sm motion-reduce:duration-0",
             className
           )}
           {...props}

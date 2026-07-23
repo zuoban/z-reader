@@ -152,6 +152,9 @@ export function ReaderToolbar({
     closeMobileActions();
   }
 
+  const chromeBtnClass =
+    "reader-chrome-btn border-0 bg-transparent shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]";
+
   return (
     <>
       <header
@@ -162,25 +165,30 @@ export function ReaderToolbar({
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
         }`}
         style={{
-          background: uiScheme.bg,
-          borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, isDark ? 0.15 : 0.08)}`,
+          background: `
+            linear-gradient(180deg, ${withOpacity(uiScheme.fg, isDark ? 0.04 : 0.03)} 0%, transparent 100%),
+            ${withOpacity(uiScheme.bg, isDark ? 0.94 : 0.92)}
+          `,
+          borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, isDark ? 0.18 : 0.1)}`,
+          boxShadow: `0 10px 28px -22px ${withOpacity(uiScheme.fg, isDark ? 0.55 : 0.22)}`,
+          backdropFilter: "blur(16px) saturate(1.15)",
           paddingTop: headerSafeAreaPaddingTop,
         }}
       >
-        <div className="pointer-events-auto mx-auto flex h-12 max-w-full items-center px-4 sm:px-6">
-          <div className="flex flex-1 items-center gap-2 overflow-hidden">
+        <div className="pointer-events-auto mx-auto flex h-12 max-w-full items-center px-3 sm:px-6">
+          <div className="flex flex-1 items-center gap-1.5 overflow-hidden sm:gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={onBack}
               title="返回书库"
-              className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              className="reader-chrome-icon h-10 w-10 shrink-0 border-0 bg-transparent shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="min-w-0 overflow-hidden">
               <h1
-                className="truncate text-base font-bold tracking-tight sm:text-lg"
+                className="truncate font-heading text-[0.98rem] font-semibold tracking-[-0.02em] sm:text-lg"
                 style={{ color: uiScheme.fg }}
               >
                 {bookTitle || "阅读中"}
@@ -188,7 +196,7 @@ export function ReaderToolbar({
             </div>
           </div>
 
-          <div className="relative flex items-center gap-1 sm:gap-4">
+          <div className="relative flex items-center gap-0.5 sm:gap-1.5">
             <div className="sm:hidden">
               <Button
                 ref={mobileActionsButtonRef}
@@ -196,7 +204,7 @@ export function ReaderToolbar({
                 aria-haspopup="dialog"
                 aria-label="更多阅读操作"
                 aria-controls={mobileActionsOpen ? mobileActionsMenuId : undefined}
-                className="flex h-10 w-10 items-center justify-center rounded-xl p-0 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                className="reader-chrome-icon h-10 w-10 border-0 bg-transparent p-0 shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                 onClick={() => setMobileActionsOpen((open) => !open)}
                 title="更多阅读操作"
                 type="button"
@@ -210,7 +218,7 @@ export function ReaderToolbar({
                 aria-hidden={!mobileActionsOpen}
                 aria-labelledby={mobileActionsTitleId}
                 className={cn(
-                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-48 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-xl border p-2 text-sm shadow-[0_18px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-[opacity,transform,visibility] duration-150 ease-out scrollbar-none",
+                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-2xl border p-1.5 text-sm shadow-[0_22px_48px_-28px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl transition-[opacity,transform,visibility] duration-150 ease-out scrollbar-none",
                   mobileActionsOpen
                     ? "visible translate-y-0 opacity-100"
                     : "pointer-events-none invisible -translate-y-1 opacity-0"
@@ -219,41 +227,42 @@ export function ReaderToolbar({
                 onKeyDown={handleMobileActionsKeyDown}
                 role="dialog"
                 style={{
-                  background: withOpacity(uiScheme.cardBg, isDark ? 0.94 : 0.98),
-                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.22 : 0.14),
+                  background: withOpacity(uiScheme.cardBg, isDark ? 0.96 : 0.98),
+                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.24 : 0.14),
                   color: uiScheme.fg,
                 }}
               >
-                  <div
-                    id={mobileActionsTitleId}
-                    className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground"
-                  >
-                    阅读操作
-                  </div>
-                  <button
-                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
-                    onClick={() => {
-                      closeMobileActions(false);
-                      onTocOpenChange(true);
-                    }}
-                    type="button"
-                  >
-                    <List className="h-4 w-4" />
-                    <span>目录</span>
-                  </button>
+                <div
+                  id={mobileActionsTitleId}
+                  className="px-2.5 pb-1.5 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]"
+                  style={{ color: withOpacity(uiScheme.fg, 0.48) }}
+                >
+                  阅读操作
+                </div>
                 <button
-                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  className="reader-mobile-menu-item"
+                  onClick={() => {
+                    closeMobileActions(false);
+                    onTocOpenChange(true);
+                  }}
+                  type="button"
+                >
+                  <List className="h-4 w-4 opacity-80" />
+                  <span>目录</span>
+                </button>
+                <button
+                  className="reader-mobile-menu-item"
                   onClick={() => {
                     closeMobileActions(false);
                     onBookmarksOpenChange(true);
                   }}
                   type="button"
                 >
-                  <BookmarkIcon className="h-4 w-4" />
+                  <BookmarkIcon className="h-4 w-4 opacity-80" />
                   <span>书签</span>
                 </button>
                 <button
-                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="reader-mobile-menu-item"
                   disabled={!canCreateBookmark || isSavingBookmark}
                   onClick={() => {
                     closeMobileActions(false);
@@ -261,12 +270,12 @@ export function ReaderToolbar({
                   }}
                   type="button"
                 >
-                  <BookmarkPlus className="h-4 w-4" />
+                  <BookmarkPlus className="h-4 w-4 opacity-80" />
                   <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
                 </button>
                 {onSaveOffline && (
                   <button
-                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="reader-mobile-menu-item"
                     disabled={isSavingOffline}
                     onClick={() => {
                       closeMobileActions(false);
@@ -274,139 +283,150 @@ export function ReaderToolbar({
                     }}
                     type="button"
                   >
-                    <Download className="h-4 w-4" />
-                    <span>{isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}</span>
+                    <Download className="h-4 w-4 opacity-80" />
+                    <span>
+                      {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}
+                    </span>
                   </button>
                 )}
-                <div>
-                  {mobileTtsControls}
-                </div>
+                <div className="px-1 py-0.5">{mobileTtsControls}</div>
                 <button
-                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  className="reader-mobile-menu-item"
                   onClick={() => {
                     closeMobileActions(false);
                     onThemeSettingsOpenChange(true);
                   }}
                   type="button"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4 opacity-80" />
                   <span>设置</span>
                 </button>
                 <button
-                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                  className="reader-mobile-menu-item"
                   onClick={() => {
                     closeMobileActions(false);
                     onToggleFullscreen();
                   }}
                   type="button"
                 >
-                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                  {isFullscreen ? (
+                    <Minimize className="h-4 w-4 opacity-80" />
+                  ) : (
+                    <Maximize className="h-4 w-4 opacity-80" />
+                  )}
                   <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
                 </button>
               </div>
             </div>
 
-            <div data-reader-toolbar-actions="desktop" className="hidden items-center gap-1 sm:flex sm:gap-4">
-            <ReaderTOCSheet
-              open={tocOpen}
-              onOpenChange={onTocOpenChange}
-              toc={toc}
-              bookTitle={bookTitle}
-              bookAuthor={bookAuthor}
-              tocListRef={tocListRef}
-              currentChapter={currentChapter}
-              currentChapterHref={currentChapterHref}
-              uiScheme={uiScheme}
-              overlayContainer={overlayContainer}
-              triggerClassName="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
-              triggerStyle={{}}
-              onLocateCurrent={onLocateCurrentChapter}
-              onGoTo={onGoTo}
-              trigger={
-                <div className="flex items-center gap-2">
-                  <List className="h-4 w-4" />
-                  <span className="hidden sm:inline">目录</span>
-                </div>
-              }
-            />
-
-            <ReaderBookmarksSheet
-              open={bookmarksOpen}
-              onOpenChange={onBookmarksOpenChange}
-              bookmarks={bookmarks}
-              bookTitle={bookTitle}
-              uiScheme={uiScheme}
-              overlayContainer={overlayContainer}
-              triggerClassName="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
-              triggerStyle={{}}
-              canCreate={canCreateBookmark}
-              isSaving={isSavingBookmark}
-              onCreate={onCreateBookmark}
-              onGoTo={onGoToBookmark}
-              onDelete={onDeleteBookmark}
-              trigger={
-                <div className="flex items-center gap-2">
-                  <BookmarkIcon className="h-4 w-4" />
-                  <span className="hidden sm:inline">书签</span>
-                </div>
-              }
-            />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!canCreateBookmark || isSavingBookmark}
-              onClick={onCreateBookmark}
-              title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
-              className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+            <div
+              data-reader-toolbar-actions="desktop"
+              className="hidden items-center gap-0.5 sm:flex sm:gap-1"
             >
-              <BookmarkPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">{isSavingBookmark ? "添加中..." : "添加"}</span>
-            </Button>
+              <ReaderTOCSheet
+                open={tocOpen}
+                onOpenChange={onTocOpenChange}
+                toc={toc}
+                bookTitle={bookTitle}
+                bookAuthor={bookAuthor}
+                tocListRef={tocListRef}
+                currentChapter={currentChapter}
+                currentChapterHref={currentChapterHref}
+                uiScheme={uiScheme}
+                overlayContainer={overlayContainer}
+                triggerClassName={chromeBtnClass}
+                triggerStyle={{}}
+                onLocateCurrent={onLocateCurrentChapter}
+                onGoTo={onGoTo}
+                trigger={
+                  <div className="flex items-center gap-2">
+                    <List className="h-4 w-4" />
+                    <span className="hidden sm:inline">目录</span>
+                  </div>
+                }
+              />
 
-            {onSaveOffline && (
+              <ReaderBookmarksSheet
+                open={bookmarksOpen}
+                onOpenChange={onBookmarksOpenChange}
+                bookmarks={bookmarks}
+                bookTitle={bookTitle}
+                uiScheme={uiScheme}
+                overlayContainer={overlayContainer}
+                triggerClassName={chromeBtnClass}
+                triggerStyle={{}}
+                canCreate={canCreateBookmark}
+                isSaving={isSavingBookmark}
+                onCreate={onCreateBookmark}
+                onGoTo={onGoToBookmark}
+                onDelete={onDeleteBookmark}
+                trigger={
+                  <div className="flex items-center gap-2">
+                    <BookmarkIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">书签</span>
+                  </div>
+                }
+              />
+
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={isSavingOffline}
-                onClick={onSaveOffline}
-                title="保存到此设备，退出登录后会自动清除"
-                className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+                disabled={!canCreateBookmark || isSavingBookmark}
+                onClick={onCreateBookmark}
+                title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
+                className={chromeBtnClass}
               >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">{isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}</span>
+                <BookmarkPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {isSavingBookmark ? "添加中..." : "添加"}
+                </span>
               </Button>
-            )}
 
-            {ttsControls}
+              {onSaveOffline && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={isSavingOffline}
+                  onClick={onSaveOffline}
+                  title="保存到此设备，退出登录后会自动清除"
+                  className={chromeBtnClass}
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}
+                  </span>
+                </Button>
+              )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleFullscreen}
-              title={isFullscreen ? "退出全屏" : "全屏阅读"}
-              className="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
-            >
-              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-              <span className="hidden sm:inline">{isFullscreen ? "退出" : "全屏"}</span>
-            </Button>
+              {ttsControls}
 
-            <ThemeSettings
-              theme={theme}
-              setTheme={setTheme}
-              uiScheme={uiScheme}
-              open={themeSettingsOpen}
-              onOpenChange={onThemeSettingsOpenChange}
-              overlayContainer={overlayContainer}
-              triggerClassName="flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
-              triggerStyle={{}}
-              trigger={
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">设置</span>
-                </div>
-              }
-            />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleFullscreen}
+                title={isFullscreen ? "退出全屏" : "全屏阅读"}
+                className={chromeBtnClass}
+              >
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                <span className="hidden sm:inline">{isFullscreen ? "退出" : "全屏"}</span>
+              </Button>
+
+              <ThemeSettings
+                theme={theme}
+                setTheme={setTheme}
+                uiScheme={uiScheme}
+                open={themeSettingsOpen}
+                onOpenChange={onThemeSettingsOpenChange}
+                overlayContainer={overlayContainer}
+                triggerClassName={chromeBtnClass}
+                triggerStyle={{}}
+                trigger={
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">设置</span>
+                  </div>
+                }
+              />
             </div>
           </div>
         </div>

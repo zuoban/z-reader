@@ -6,19 +6,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center rounded-xl border border-transparent text-[14px] font-semibold whitespace-nowrap outline-none transition-all duration-200 select-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 active:scale-[0.97]",
+  "inline-flex shrink-0 items-center justify-center rounded-xl border border-transparent text-[14px] font-semibold whitespace-nowrap outline-none transition-all duration-200 select-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 active:scale-[0.97]",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:opacity-90",
+        default:
+          "bg-primary text-primary-foreground shadow-[0_10px_24px_-18px_var(--paper-shadow)] hover:opacity-92",
         outline:
-          "border-border/60 bg-background hover:bg-secondary hover:border-border",
+          "border-border/65 bg-card/80 hover:bg-secondary hover:border-border shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_35%,transparent)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:opacity-80",
+          "bg-secondary text-secondary-foreground hover:opacity-85",
         ghost:
-          "hover:bg-secondary hover:text-foreground",
+          "hover:bg-secondary/80 hover:text-foreground",
         destructive:
-          "bg-destructive text-destructive-foreground hover:opacity-90",
+          "bg-destructive text-destructive-foreground shadow-[0_10px_24px_-18px_color-mix(in_srgb,var(--destructive)_45%,transparent)] hover:opacity-92",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

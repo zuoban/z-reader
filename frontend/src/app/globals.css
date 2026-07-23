@@ -69,109 +69,118 @@
   --z-modal: 80;
   --z-reader-overlay: 90;
   --z-skip-link: 100;
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #1a1a1a;
-  --primary-foreground: #ffffff;
-  --secondary: #f0eeea;
-  --secondary-foreground: #1a1a1a;
-  --muted: #f0eeea;
-  --muted-foreground: #68635d;
-  --subtle-foreground: #5b5751;
-  --accent: #f0eeea;
-  --accent-foreground: #1a1a1a;
-  --destructive: #d32f2f;
+  /* Warm paper light theme — soft ivory, ink, parchment edges */
+  --background: #f5f0e8;
+  --foreground: #1c1915;
+  --card: #faf7f1;
+  --card-foreground: #1c1915;
+  --popover: #fbf8f2;
+  --popover-foreground: #1c1915;
+  --primary: #1c1915;
+  --primary-foreground: #faf7f1;
+  --secondary: #ebe4d8;
+  --secondary-foreground: #1c1915;
+  --muted: #ebe4d8;
+  /* WCAG AA-friendly secondary text on warm paper (~#f5f0e8) */
+  --muted-foreground: #5f584e;
+  --subtle-foreground: #524c44;
+  --accent: #e8e0d2;
+  --accent-foreground: #1c1915;
+  --destructive: #c43b2e;
   --destructive-foreground: #ffffff;
-  --border: #e5e3df;
-  --input: #e5e3df;
-  --ring: #1a1a1a;
+  --border: #ddd4c6;
+  --input: #e4dccf;
+  --ring: #1c1915;
   --radius: 0.75rem;
   --control-touch-size: 2.75rem;
   --paper-duration-base: 280ms;
   --paper-duration-fast: 160ms;
   --paper-ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
-  --paper-edge: #e5e3df;
+  --paper-edge: #e2d9cb;
   --paper-motion-x: 0px;
   --paper-motion-y: 12px;
   --paper-motion-scale: 0.97;
-  --paper-shadow: rgba(0, 0, 0, 0.08);
-  --paper-shadow-soft: rgba(0, 0, 0, 0.04);
-  --glass-specular: rgba(255, 255, 255, 0.5);
-  --glass-tint: rgba(248, 246, 242, 0.6);
-  --shelf-surface: #f0eeea;
-  --shelf-surface-raised: #ffffff;
-  --shelf-surface-soft: #f5f3ef;
-  --surface-subtle: #f5f3ef;
-  --surface-raised: #ffffff;
-  --shelf-surface-hover: #e8e6e2;
-  --shelf-surface-selected: #e0deda;
-  --shelf-app-bg: #ffffff;
-  --shelf-header-bg: #ffffff;
-  --shelf-card-start: #ffffff;
-  --shelf-card-end: #ffffff;
-  --shelf-card-media: #f0eeea;
-  --shelf-detail-surface: #f6f6f6;
+  --paper-shadow: rgba(48, 36, 18, 0.12);
+  --paper-shadow-soft: rgba(48, 36, 18, 0.06);
+  --glass-specular: rgba(255, 252, 246, 0.62);
+  --glass-tint: rgba(250, 246, 238, 0.68);
+  --shelf-surface: #ebe4d8;
+  --shelf-surface-raised: #faf7f1;
+  --shelf-surface-soft: #f0e9de;
+  --surface-subtle: #f0e9de;
+  --surface-raised: #faf7f1;
+  --shelf-surface-hover: #e3dacc;
+  --shelf-surface-selected: #d9cfbe;
+  --shelf-app-bg: #f5f0e8;
+  --shelf-header-bg: color-mix(in srgb, #f5f0e8 92%, #faf7f1);
+  --shelf-card-start: #fbf8f2;
+  --shelf-card-end: #f6f1e8;
+  --shelf-card-media: #ebe4d8;
+  --shelf-detail-surface: #f2ece2;
 }
 
 .dark {
-  --background: #161412;
-  --foreground: #eee8dc;
-  --card: #1f1b17;
-  --card-foreground: #eee8dc;
+  --background: #141210;
+  --foreground: #f0e9dc;
+  --card: #1e1a16;
+  --card-foreground: #f0e9dc;
   --popover: #221e19;
-  --popover-foreground: #eee8dc;
+  --popover-foreground: #f0e9dc;
   --primary: #f0e6d2;
-  --primary-foreground: #161412;
+  --primary-foreground: #141210;
   --secondary: #28231e;
-  --secondary-foreground: #eee8dc;
+  --secondary-foreground: #f0e9dc;
   --muted: #28231e;
-  --muted-foreground: #9a8f82;
-  --subtle-foreground: #beb2a2;
+  /* Secondary text on charcoal night (~#141210) */
+  --muted-foreground: #b0a292;
+  --subtle-foreground: #c9bba8;
   --accent: #2e2822;
   --accent-foreground: #f0e6d2;
   --destructive: #f87171;
   --destructive-foreground: #ffffff;
-  --border: #352f28;
-  --input: #1f1b17;
+  --border: #3a322a;
+  --input: #1e1a16;
   --ring: #dbc7a4;
-  --paper-edge: #38312a;
-  --paper-shadow: rgba(0, 0, 0, 0.72);
-  --paper-shadow-soft: rgba(0, 0, 0, 0.42);
-  --glass-specular: rgba(255, 244, 220, 0.09);
-  --glass-tint: rgba(26, 22, 18, 0.72);
-  --shelf-surface: #1b1815;
+  --paper-edge: #3c342c;
+  --paper-shadow: rgba(0, 0, 0, 0.68);
+  --paper-shadow-soft: rgba(0, 0, 0, 0.4);
+  --glass-specular: rgba(255, 244, 220, 0.1);
+  --glass-tint: rgba(24, 20, 16, 0.74);
+  --shelf-surface: #1a1714;
   --shelf-surface-raised: #24201b;
-  --shelf-surface-soft: #1d1a17;
-  --surface-subtle: #1d1a17;
+  --shelf-surface-soft: #1c1916;
+  --surface-subtle: #1c1916;
   --surface-raised: #24201b;
-  --shelf-surface-hover: #29241f;
+  --shelf-surface-hover: #2a241e;
   --shelf-surface-selected: #f0e6d2;
-  --shelf-app-bg: #101216;
-  --shelf-header-bg: #111419;
-  --shelf-card-start: #1a1f27;
-  --shelf-card-end: #151920;
-  --shelf-card-media: #11151b;
-  --shelf-detail-surface: #181c23;
+  /* Keep shelf dark warm (not cool blue-gray) for paper cohesion */
+  --shelf-app-bg: #12100e;
+  --shelf-header-bg: #161310;
+  --shelf-card-start: #221e19;
+  --shelf-card-end: #1a1713;
+  --shelf-card-media: #161310;
+  --shelf-detail-surface: #1c1915;
 }
 
 /* Reader Specific Colors - Decoupled from App Theme */
+:root[data-reader-preset="light"] {
+  --reader-bg: #f6f1e8;
+  --reader-text: #1c1915;
+}
+
 :root[data-reader-preset="sepia"] {
-  --reader-bg: #f4ecd8;
-  --reader-text: #5c4a3a;
+  --reader-bg: #f3ead7;
+  --reader-text: #4f3d2e;
 }
 
 :root[data-reader-preset="green"] {
-  --reader-bg: #e5ede0;
+  --reader-bg: #e6ede1;
   --reader-text: #24352b;
 }
 
 :root[data-reader-preset="dark"] {
-  --reader-bg: #1a1a1a;
-  --reader-text: #d1d1d1;
+  --reader-bg: #141210;
+  --reader-text: #eee6d8;
 }
 
 @layer base {
@@ -181,11 +190,17 @@
 
   html {
     @apply font-sans;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
     @apply bg-background text-foreground;
     min-height: 100vh;
+    min-height: 100dvh;
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -195,6 +210,36 @@
   ::selection {
     background: color-mix(in srgb, var(--accent) 28%, transparent);
     color: var(--foreground);
+  }
+
+  /* Accessible keyboard focus — skip custom components that define their own */
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus:not(:focus-visible) {
+    outline: none;
   }
 }
 
@@ -206,6 +251,43 @@ foliate-view {
 
 foliate-view::part(filter) {
   filter: none;
+}
+
+/* App-level thin scrollbars (shelf sheets, dialogs) */
+.custom-scrollbar,
+.app-sheet-body,
+.category-sheet-body {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.app-sheet-body::-webkit-scrollbar,
+.category-sheet-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.app-sheet-body::-webkit-scrollbar-track,
+.category-sheet-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.app-sheet-body::-webkit-scrollbar-thumb,
+.category-sheet-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 16%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.app-sheet-body::-webkit-scrollbar-thumb:hover,
+.category-sheet-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 28%, transparent);
+  background-clip: padding-box;
 }
 
 [data-sonner-toaster] {
@@ -288,15 +370,23 @@ foliate-view::part(filter) {
 
   .editorial-panel {
     @apply border border-border bg-card;
+    box-shadow:
+      0 18px 48px -36px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 55%, transparent);
     transition: border-color var(--paper-duration-base) var(--paper-ease-soft),
       background-color var(--paper-duration-base) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft),
       opacity var(--paper-duration-base) var(--paper-ease-soft);
   }
 
   .paper-panel {
     @apply border border-border bg-card;
+    box-shadow:
+      0 18px 48px -36px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 55%, transparent);
     transition: border-color var(--paper-duration-base) var(--paper-ease-soft),
       background-color var(--paper-duration-base) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft),
       opacity var(--paper-duration-base) var(--paper-ease-soft);
   }
 
@@ -395,6 +485,72 @@ foliate-view::part(filter) {
       0 24px 70px -44px var(--paper-shadow),
       0 12px 30px -26px var(--paper-shadow-soft),
       inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 70%, transparent);
+  }
+
+  /* Reader chrome: shared toolbar / status affordances */
+  .reader-chrome-btn {
+    @apply flex min-h-10 items-center gap-2 rounded-xl px-2 text-xs font-medium transition-all sm:px-3 sm:text-sm;
+    color: color-mix(in srgb, var(--foreground) 62%, transparent);
+  }
+
+  .reader-chrome-btn:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted) 72%, transparent);
+  }
+
+  .reader-chrome-btn:active {
+    transform: scale(0.97);
+  }
+
+  .reader-chrome-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all;
+    color: color-mix(in srgb, var(--foreground) 62%, transparent);
+  }
+
+  .reader-chrome-icon:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted) 72%, transparent);
+  }
+
+  .reader-mobile-menu-item {
+    @apply flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors;
+  }
+
+  .reader-mobile-menu-item:hover {
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+  }
+
+  .reader-mobile-menu-item:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .dialog-close-btn {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors;
+  }
+
+  .dialog-close-btn:hover {
+    @apply bg-secondary text-foreground;
+  }
+
+  .category-chip-pill {
+    @apply inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-left text-[13px] font-semibold transition-all;
+    border-color: color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 78%, var(--background));
+    color: var(--muted-foreground);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
+  }
+
+  .category-chip-pill:hover {
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--secondary) 70%, var(--card));
+  }
+
+  .category-chip-pill[data-active="true"],
+  .category-chip-pill-active {
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    color: var(--primary);
   }
 
   .app-sheet-header,
@@ -594,27 +750,81 @@ foliate-view::part(filter) {
   }
 
   .shelf-book-card {
-    @apply bg-card/70 border border-border/50;
-    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease,
-      transform 0.2s ease;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--glass-specular) 28%, transparent) 0%,
+        transparent 42%
+      ),
+      var(--card);
+    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    box-shadow:
+      0 14px 38px -34px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 48%, transparent);
+    transition:
+      border-color var(--paper-duration-base) var(--paper-ease-soft),
+      background-color var(--paper-duration-base) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft),
+      transform var(--paper-duration-base) var(--paper-ease-soft);
   }
 
   .shelf-book-card:hover {
-    @apply bg-card border-primary/20;
-    box-shadow: 0 18px 46px -30px var(--paper-shadow);
-    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+    box-shadow:
+      0 22px 52px -34px var(--paper-shadow),
+      0 8px 18px -16px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 58%, transparent);
+    transform: translateY(-3px);
   }
 
   .shelf-book-card:active {
-    transform: translateY(0);
+    transform: translateY(-1px);
+    transition-duration: 80ms;
   }
 
   .dark .shelf-book-card {
-    @apply border-border/20;
+    background: linear-gradient(180deg, var(--shelf-card-start) 0%, var(--shelf-card-end) 100%);
+    border-color: color-mix(in srgb, var(--border) 55%, transparent);
+    box-shadow:
+      0 20px 56px -46px rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(255, 244, 220, 0.045);
   }
 
   .dark .shelf-book-card:hover {
-    @apply border-primary/30;
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    box-shadow:
+      0 26px 64px -48px rgba(0, 0, 0, 0.95),
+      inset 0 1px 0 rgba(255, 244, 220, 0.06);
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-120%);
+    }
+
+    100% {
+      transform: translateX(220%);
+    }
+  }
+
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      color-mix(in srgb, var(--glass-specular) 42%, transparent) 45%,
+      transparent 90%
+    );
+    transform: translateX(-120%);
+    animation: shimmer 1.8s ease-in-out infinite;
+    pointer-events: none;
   }
 
   @keyframes paperPanelIn {
@@ -1333,13 +1543,18 @@ foliate-view::part(filter) {
   .animate-login-float,
   .animate-login-drift,
   .paper-reveal,
-  .paper-reveal-soft {
-    animation: none;
+  .paper-reveal-soft,
+  .skeleton-shimmer::after {
+    animation: none !important;
   }
 
   .paper-reveal,
   .paper-reveal-soft {
     opacity: 1;
     filter: none;
+  }
+
+  .shelf-book-card:hover {
+    transform: none;
   }
 }

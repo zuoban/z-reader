@@ -1,34 +1,59 @@
 {
   "name": "Z Reader",
   "short_name": "Z Reader",
-  "description": "A quiet multi-format ebook reader for your personal library",
+  "description": "安静的多格式电子书阅读器，私有书库与多端续读",
   "start_url": "/shelf",
   "display": "standalone",
-  "background_color": "#080c18",
-  "theme_color": "#4f6ef7",
-  "orientation": "portrait",
+  "background_color": "#f5f0e8",
+  "theme_color": "#1c1915",
+  "orientation": "any",
+  "lang": "zh-CN",
   "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["books", "education", "entertainment"],
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "My Books",
-      "short_name": "Books",
+      "name": "我的书架",
+      "short_name": "书架",
       "url": "/shelf",
-      "description": "View your book library"
+      "description": "打开个人书库"
+    },
+    {
+      "name": "登录",
+      "short_name": "登录",
+      "url": "/login",
+      "description": "登录账号"
     }
   ]
 }

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
   <g transform="translate(34 36)">
-    <rect x="0" y="0" width="148" height="148" rx="38" fill="#151515"/>
-    <path d="M42 48C57 40.5 72 41.2 84 50.8V116.8C72 108.2 57 107.5 42 115V48Z" fill="#F7F3EA"/>
-    <path d="M84 50.8C96 41.2 111 40.5 126 48V115C111 107.5 96 108.2 84 116.8V50.8Z" fill="#FFFFFF"/>
-    <path d="M61 65H108L73 101H109" stroke="#151515" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="0" y="0" width="148" height="148" rx="38" fill="#1C1915"/>
+    <path d="M42 48C57 40.5 72 41.2 84 50.8V116.8C72 108.2 57 107.5 42 115V48Z" fill="#F0E6D2"/>
+    <path d="M84 50.8C96 41.2 111 40.5 126 48V115C111 107.5 96 108.2 84 116.8V50.8Z" fill="#FAF7F1"/>
+    <path d="M61 65H108L73 101H109" stroke="#1C1915" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <text x="220" y="105" font-family="Georgia, 'Times New Roman', serif" font-size="70" font-weight="600" letter-spacing="-2" fill="#151515">Z</text>
-  <text x="275" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="52" font-weight="750" letter-spacing="-2.2" fill="#151515">Reader</text>
-  <text x="224" y="146" font-family="PingFang SC, system-ui, sans-serif" font-size="16" font-weight="600" letter-spacing="4" fill="#6A6257">面向个人书架的开源阅读器</text>
-  <path d="M224 170H592" stroke="#D6CDBD" stroke-width="1.5"/>
+  <text x="220" y="105" font-family="Georgia, 'Times New Roman', serif" font-size="70" font-weight="600" letter-spacing="-2" fill="#1C1915">Z</text>
+  <text x="275" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="52" font-weight="750" letter-spacing="-2.2" fill="#1C1915">Reader</text>
+  <text x="224" y="146" font-family="PingFang SC, system-ui, sans-serif" font-size="16" font-weight="600" letter-spacing="4" fill="#6B6358">面向个人书架的开源阅读器</text>
+  <path d="M224 170H592" stroke="#DDD4C6" stroke-width="1.5"/>
 </svg>

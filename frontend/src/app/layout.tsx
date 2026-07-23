@@ -23,13 +23,13 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f5f0e8' },
-    { media: '(prefers-color-scheme: dark)', color: '#161412' },
+    { media: '(prefers-color-scheme: dark)', color: '#141210' },
   ],
 };
 
 export const metadata: Metadata = {
   title: 'Z Reader',
-  description: 'A refined online reading experience for your digital library',
+  description: '安静的多格式电子书阅读器，私有书库与多端续读',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -43,12 +43,12 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: 'Z Reader',
     title: 'Z Reader',
-    description: 'A refined online reading experience for your digital library',
+    description: '安静的多格式电子书阅读器，私有书库与多端续读',
   },
   twitter: {
     card: 'summary',
     title: 'Z Reader',
-    description: 'A refined online reading experience for your digital library',
+    description: '安静的多格式电子书阅读器，私有书库与多端续读',
   },
   icons: {
     shortcut: [
@@ -82,7 +82,7 @@ export default function RootLayout({
           <TooltipProvider>
             <a
               href="#main-content"
-              className="fixed left-4 top-4 z-[var(--z-skip-link)] -translate-y-16 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="fixed left-4 top-4 z-[var(--z-skip-link)] -translate-y-16 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               跳到主内容
             </a>

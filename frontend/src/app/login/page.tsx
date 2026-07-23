@@ -103,23 +103,24 @@ function LoginPageContent() {
       className="bg-background text-foreground"
       contentClassName="flex min-h-dvh flex-col items-center justify-center px-5 py-10"
     >
-      <div className="w-full max-w-[420px] rounded-2xl border border-border/65 bg-card/76 px-5 py-8 shadow-[0_24px_70px_-54px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] backdrop-blur sm:px-8 sm:py-10">
-        <div className="mb-12 flex flex-col items-center">
-          <BrandLogo className="mb-4 scale-110" />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+      <div className="paper-texture paper-panel relative w-full max-w-[420px] overflow-hidden rounded-[1.75rem] px-5 py-8 sm:rounded-[2rem] sm:px-8 sm:py-10">
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--glass-specular)_85%,transparent),transparent)]"
+        />
+        <div className="mb-10 flex flex-col items-center text-center">
+          <BrandLogo className="mb-5 scale-110" />
+          <h1 className="font-heading text-[1.75rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.9rem]">
             {mode === 'register' ? '创建账号' : '欢迎回来'}
           </h1>
-          <p className="text-[17px] font-medium text-muted-foreground">
-            {mode === 'register' ? '创建您的阅读账号' : '登录到您的书库'}
+          <p className="mt-2 text-[15px] font-medium leading-relaxed text-muted-foreground sm:text-base">
+            {mode === 'register' ? '创建您的阅读账号，开启私有书库' : '登录到您的书库，继续阅读'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="w-full space-y-6">
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
           <div className="space-y-2">
-            <Label
-              htmlFor="username"
-              className="text-sm font-bold text-foreground"
-            >
+            <Label htmlFor="username" className="text-sm font-semibold text-foreground">
               用户名
             </Label>
             <Input
@@ -136,7 +137,7 @@ function LoginPageContent() {
               autoFocus
               aria-invalid={Boolean(usernameError)}
               aria-describedby={usernameError ? 'username-error' : undefined}
-              className="h-12 w-full rounded-xl border border-border/70 bg-surface-subtle px-4 text-base shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/65"
+              className="h-12 w-full rounded-xl border border-border/70 bg-surface-subtle/90 px-4 text-base shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/60 focus-visible:border-primary/50 focus-visible:bg-card focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_10%,transparent)]"
             />
             {usernameError && (
               <p id="username-error" className="text-xs font-medium text-destructive" role="alert">
@@ -145,12 +146,8 @@ function LoginPageContent() {
             )}
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
-            <Label
-              htmlFor="password"
-              className="text-sm font-bold text-foreground"
-            >
+            <Label htmlFor="password" className="text-sm font-semibold text-foreground">
               密码
             </Label>
             <div className="relative">
@@ -167,12 +164,12 @@ function LoginPageContent() {
                 autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 aria-invalid={Boolean(passwordError)}
                 aria-describedby={passwordError ? 'password-error' : undefined}
-                className="h-12 w-full rounded-xl border border-border/70 bg-surface-subtle px-4 pr-12 text-base shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/65"
+                className="h-12 w-full rounded-xl border border-border/70 bg-surface-subtle/90 px-4 pr-12 text-base shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/60 focus-visible:border-primary/50 focus-visible:bg-card focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_10%,transparent)]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground sm:right-2 sm:h-9 sm:w-9"
+                className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground sm:right-2 sm:h-9 sm:w-9"
                 aria-label={showPassword ? '隐藏密码' : '显示密码'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -185,10 +182,12 @@ function LoginPageContent() {
             )}
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div role="alert" className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              <CircleAlert size={16} />
+            <div
+              role="alert"
+              className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              <CircleAlert size={16} className="shrink-0" />
               {error}
             </div>
           )}
@@ -196,15 +195,18 @@ function LoginPageContent() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex min-h-12 w-full items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+            aria-busy={isSubmitting}
+            className="flex min-h-12 w-full items-center justify-center rounded-xl bg-primary text-base font-semibold tracking-[0.01em] text-primary-foreground shadow-[0_12px_28px_-18px_var(--paper-shadow)] transition-all hover:opacity-92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:opacity-50"
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center gap-2">
-                <LoadingSpinner className="h-4 w-4 border-primary-foreground/20 border-t-primary-foreground" />
+                <LoadingSpinner className="h-4 w-4 border-primary-foreground/25 border-t-primary-foreground" />
                 {mode === 'register' ? '正在创建...' : '正在登录...'}
               </div>
+            ) : mode === 'register' ? (
+              '创建并进入书架'
             ) : (
-              mode === 'register' ? '创建并进入书架' : '进入书架'
+              '进入书架'
             )}
           </button>
         </form>
@@ -215,7 +217,7 @@ function LoginPageContent() {
             <button
               type="button"
               onClick={() => switchMode(mode === 'register' ? 'login' : 'register')}
-              className="cursor-pointer font-bold text-foreground hover:underline"
+              className="cursor-pointer rounded-sm font-semibold text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               {mode === 'register' ? '返回登录' : '立即创建'}
             </button>

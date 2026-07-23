@@ -111,15 +111,16 @@ interface BookCoverFaceProps {
   index: number;
 }
 
+/* Muted parchment-inspired covers — refined, not candy-pastel */
 const fallbackCoverGradients = [
-  'linear-gradient(135deg, #89CFF0 0%, #B4E4F7 100%)',
-  'linear-gradient(135deg, #A78BFA 0%, #C4B5FD 100%)',
-  'linear-gradient(135deg, #6EE7B7 0%, #A7F3D0 100%)',
-  'linear-gradient(135deg, #F9A8D4 0%, #FBCFE8 100%)',
-  'linear-gradient(135deg, #FCD34D 0%, #FDE68A 100%)',
-  'linear-gradient(135deg, #67E8F9 0%, #A5F3FC 100%)',
-  'linear-gradient(135deg, #FDBA74 0%, #FED7AA 100%)',
-  'linear-gradient(135deg, #86EFAC 0%, #BBF7D0 100%)',
+  'linear-gradient(155deg, #3d4f5f 0%, #6b8494 48%, #8fa3ad 100%)',
+  'linear-gradient(155deg, #4a3f55 0%, #7a6b88 48%, #a094ad 100%)',
+  'linear-gradient(155deg, #3f5248 0%, #6a8574 48%, #8fa99a 100%)',
+  'linear-gradient(155deg, #5c3f3c 0%, #8f6a64 48%, #b8948c 100%)',
+  'linear-gradient(155deg, #5c4e32 0%, #8f7d52 48%, #b8a878 100%)',
+  'linear-gradient(155deg, #36555a 0%, #5f8488 48%, #8aadb0 100%)',
+  'linear-gradient(155deg, #5a4634 0%, #8a7054 48%, #b49878 100%)',
+  'linear-gradient(155deg, #3a4a52 0%, #62757e 48%, #8a9aa3 100%)',
 ];
 
 function BookCoverFace({
@@ -138,10 +139,10 @@ function BookCoverFace({
           fill
           unoptimized
           sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 16vw"
-          className="object-cover"
+          className="object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.035]"
         />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04)_0%,transparent_35%,rgba(0,0,0,0.18)_100%)]" />
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none text-foreground shadow-sm backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.05)_0%,transparent_32%,rgba(0,0,0,0.22)_100%)]" />
+        <span className="absolute left-2.5 top-2.5 rounded-full border border-black/5 bg-background/92 px-2.5 py-1 text-[11px] font-semibold leading-none text-foreground shadow-[0_6px_14px_-10px_rgba(0,0,0,0.35)] backdrop-blur-sm dark:border-white/10">
           {categoryLabel}
         </span>
       </div>
@@ -152,20 +153,21 @@ function BookCoverFace({
 
   return (
     <div
-      className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-6 text-center text-white"
+      className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-5 text-center text-white sm:px-6"
       style={{ background }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_15%,rgba(255,255,255,0.24),transparent_34%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.12)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_12%,rgba(255,255,255,0.18),transparent_36%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.18)_100%)] transition-transform duration-500 ease-out group-hover/card:scale-[1.04]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent" />
       {categoryLabel && (
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none text-foreground shadow-sm backdrop-blur-sm">
+        <span className="absolute left-2.5 top-2.5 rounded-full border border-white/15 bg-black/25 px-2.5 py-1 text-[11px] font-semibold leading-none text-white/95 shadow-sm backdrop-blur-sm">
           {categoryLabel}
         </span>
       )}
-      <div className="relative mt-6 flex min-h-[7rem] flex-col items-center justify-center gap-3">
-        <h3 className="line-clamp-4 text-balance text-[1.28rem] font-bold leading-[1.24] text-white font-serif">
+      <div className="relative mt-6 flex min-h-[7rem] flex-col items-center justify-center gap-2.5">
+        <h3 className="line-clamp-4 text-balance font-serif text-[1.18rem] font-semibold leading-[1.28] tracking-[-0.02em] text-white drop-shadow-sm sm:text-[1.28rem]">
           {titleLabel}
         </h3>
-        <p className="line-clamp-2 text-[0.92rem] font-bold leading-tight text-white/82 font-serif">
+        <p className="line-clamp-2 font-serif text-[0.88rem] font-medium leading-tight text-white/80 sm:text-[0.92rem]">
           {authorLabel}
         </p>
       </div>
@@ -226,10 +228,8 @@ export function BookCard({
     <div className="flex w-full items-stretch" ref={coverRef}>
       <article
         className={cn(
-          'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/45 bg-card p-0 shadow-[0_14px_38px_-34px_var(--paper-shadow)] transition-all duration-300',
-          'hover:border-primary/18 hover:shadow-[0_20px_48px_-38px_var(--paper-shadow)]',
-          'dark:border-white/8 dark:bg-[linear-gradient(180deg,var(--shelf-card-start)_0%,var(--shelf-card-end)_100%)] dark:shadow-[0_20px_56px_-46px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,244,220,0.045)] dark:hover:border-primary/18 dark:hover:shadow-[0_24px_64px_-50px_rgba(0,0,0,0.95)]',
-          selected && 'border-primary ring-2 ring-primary dark:border-primary dark:ring-primary/70'
+          'group/card shelf-book-card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl p-0',
+          selected && 'border-primary ring-2 ring-primary/80 dark:border-primary dark:ring-primary/55'
         )}
         style={{
           '--paper-delay': `${Math.min(index, 10) * 28}ms`,
@@ -260,7 +260,7 @@ export function BookCard({
             </div>
           )}
 
-          <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50 dark:bg-[var(--shelf-card-media)]">
+          <div className="relative aspect-[3/4] overflow-hidden bg-[var(--shelf-card-media)]">
             <BookCoverFace
               coverUrl={coverUrl}
               titleLabel={titleLabel}
@@ -269,7 +269,7 @@ export function BookCard({
               index={index}
             />
             {book.processing_state === 'pending' && (
-              <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <span className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
                 正在生成封面
               </span>
             )}
@@ -278,41 +278,38 @@ export function BookCard({
           <div className="flex flex-1 flex-col p-3 pb-2 sm:p-3.5 sm:pb-2">
             <div className="mb-2.5 flex-1 sm:mb-3">
               <h3
-                className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-foreground"
+                className="line-clamp-2 text-[0.98rem] font-semibold leading-[1.3] tracking-[-0.015em] text-foreground"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h3>
 
-              <p className="mt-1.5 line-clamp-1 text-[0.85rem] font-medium text-muted-foreground">
+              <p className="mt-1.5 line-clamp-1 text-[0.84rem] font-medium text-muted-foreground">
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
 
-            <div className="mt-auto space-y-2 sm:space-y-3.5">
-            <div className="space-y-1 sm:space-y-1.5">
-              <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60 dark:bg-white/10">
-                <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-                  style={{ width: `${Math.max(progressValue, 1)}%` }}
-                />
+            <div className="mt-auto space-y-2 sm:space-y-3">
+              <div className="space-y-1 sm:space-y-1.5">
+                <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/70 dark:bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-primary/90 transition-[width] duration-700 ease-out"
+                    style={{ width: `${Math.max(progressValue, progressValue > 0 ? 2 : 0)}%` }}
+                  />
+                </div>
+                {progressValue > 0 ? (
+                  <p className="text-meta tabular-nums">
+                    {progressDisplay}% · {lastReadLabel}
+                  </p>
+                ) : (
+                  <p className="text-meta">{lastReadLabel}</p>
+                )}
               </div>
-              {progressValue > 0 ? (
-                <p className="text-meta tabular-nums">
-                  {progressDisplay}% · {lastReadLabel}
-                </p>
-              ) : (
-                <p className="text-meta">
-                  {lastReadLabel}
-                </p>
-              )}
-            </div>
-
             </div>
           </div>
         </button>
 
-        <div className="flex min-h-11 items-center justify-between gap-3 border-t border-border/35 px-3 py-2 sm:min-h-10 sm:px-3.5 dark:border-white/7">
+        <div className="flex min-h-11 items-center justify-between gap-3 border-t border-border/40 px-3 py-2 sm:min-h-10 sm:px-3.5 dark:border-white/8">
           {selectionMode ? (
             <button
               type="button"

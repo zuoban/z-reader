@@ -53,7 +53,6 @@ export function FileUploadAction({
         onChange={onChange}
         disabled={disabled}
         className="sr-only"
-        aria-hidden="true"
         tabIndex={-1}
       />
       <label
@@ -62,9 +61,11 @@ export function FileUploadAction({
         tabIndex={disabled ? -1 : 0}
         aria-label={title}
         aria-disabled={disabled}
+        aria-busy={Boolean(statusLabel)}
         onKeyDown={handleKeyDown}
         className={cn(
           buttonVariants({ variant: buttonVariant, size: buttonSize }),
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           disabled && 'pointer-events-none opacity-50',
           buttonClassName
         )}

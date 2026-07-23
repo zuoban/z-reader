@@ -199,27 +199,28 @@ export function ReaderTOCSheet({
                   />
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+                <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
                   <div
-                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-                    style={{ background: surface.surface }}
+                    className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
+                    style={{
+                      background: surface.surface,
+                      borderColor: surface.hairline,
+                      color: surface.fg,
+                    }}
                   >
-                    <List
-                      className="h-5 w-5 stroke-[1.75]"
-                      style={{ color: surface.fg }}
-                    />
+                    <List className="h-5 w-5" strokeWidth={1.75} />
                   </div>
                   <p
-                    className="text-sm font-medium tracking-tight"
+                    className="text-sm font-semibold tracking-tight"
                     style={{ color: surface.fg }}
                   >
                     未检测到目录结构
                   </p>
                   <p
-                    className="mt-1 text-xs leading-5"
+                    className="mt-1.5 max-w-[16rem] text-xs leading-5"
                     style={{ color: surface.muted }}
                   >
-                    该书籍可能没有定义标准目录
+                    该书籍可能没有定义标准目录，仍可通过翻页阅读
                   </p>
                 </div>
               )}

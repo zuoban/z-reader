@@ -22,20 +22,20 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className="flex min-h-[58vh] items-center justify-center">
+    <div className="flex min-h-[58vh] items-center justify-center px-1">
       <section
         className={cn(
-          'paper-panel paper-stack relative w-full max-w-2xl rounded-[2.25rem] px-6 py-12 text-center  sm:px-14 sm:py-16',
+          'paper-panel paper-texture paper-stack relative w-full max-w-2xl overflow-hidden rounded-[2rem] px-6 py-12 text-center sm:rounded-[2.25rem] sm:px-14 sm:py-16',
           className
         )}
       >
         <div
           aria-hidden="true"
-          className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)]"
+          className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--glass-specular)_90%,transparent),transparent)]"
         />
         <div className="relative mx-auto mb-8 inline-flex">
-          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[2rem] border border-primary/18 bg-[linear-gradient(180deg,rgba(250,247,242,0.38),rgba(250,247,242,0.08)),linear-gradient(145deg,color-mix(in_srgb,var(--primary)_12%,var(--card)),color-mix(in_srgb,var(--primary)_6%,transparent))] shadow-[0_16px_30px_-26px_var(--paper-shadow)]">
-            <Icon className="h-10 w-10 text-primary" />
+          <div className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-[1.85rem] border border-primary/16 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--glass-specular)_40%,transparent),transparent),linear-gradient(145deg,color-mix(in_srgb,var(--primary)_10%,var(--card)),color-mix(in_srgb,var(--primary)_4%,var(--surface-subtle)))] shadow-[0_16px_30px_-26px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_55%,transparent)]">
+            <Icon className="h-10 w-10 text-primary" strokeWidth={1.6} />
           </div>
         </div>
 
@@ -43,10 +43,10 @@ export function EmptyState({
           <p className="text-[11px] font-semibold tracking-[0.22em] text-muted-foreground uppercase">
             Personal Library
           </p>
-          <h2 className="font-heading text-[2rem] font-semibold leading-tight tracking-[-0.04em] text-foreground sm:text-[2.6rem]">
+          <h2 className="font-heading text-[2rem] font-semibold leading-tight tracking-[-0.03em] text-foreground sm:text-[2.5rem]">
             {title}
           </h2>
-          <p className="mx-auto max-w-md text-[15px] leading-8 text-muted-foreground sm:text-base">
+          <p className="mx-auto max-w-md text-[15px] leading-8 text-muted-foreground sm:text-base sm:leading-8">
             {description}
           </p>
         </div>

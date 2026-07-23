@@ -61,15 +61,18 @@ export function BatchCategorySheet({
         side="bottom"
         showCloseButton={false}
         finalFocus={false}
-        className="mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(86svh,38rem)] flex-col rounded-3xl border border-border/65 bg-popover/98 p-0 shadow-[0_24px_70px_-40px_var(--paper-shadow),0_10px_32px_-28px_var(--paper-shadow-soft)] ring-1 ring-white/45 backdrop-blur-md dark:ring-white/10 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(86svh,38rem)] flex-col rounded-3xl border p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:max-w-[420px] sm:-translate-x-1/2"
       >
-        <SheetHeader className="relative shrink-0 border-b border-border/55 bg-transparent px-5 pb-4 pt-5 pr-16 shadow-none sm:px-6">
+        <div className="flex justify-center pb-0.5 pt-2.5">
+          <div className="h-1 w-9 rounded-full bg-border/80" />
+        </div>
+        <SheetHeader className="app-sheet-header relative shrink-0 border-b border-border/50 bg-transparent px-5 pb-4 pt-2 pr-16 shadow-none sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/14 bg-primary/8 text-primary">
+            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
               <Tag className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-[19px] font-semibold tracking-tight">
+              <SheetTitle className="text-[1.15rem] font-semibold tracking-[-0.02em]">
                 批量设置分类
               </SheetTitle>
               <SheetDescription className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
@@ -80,7 +83,7 @@ export function BatchCategorySheet({
           <button
             type="button"
             onClick={() => handleOpenChange(false)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/62 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            className="dialog-close-btn absolute right-4 top-3 border border-border/55 bg-card/70"
             aria-label="关闭"
             title="关闭"
           >
@@ -89,13 +92,13 @@ export function BatchCategorySheet({
         </SheetHeader>
 
         <form className="flex min-h-0 flex-col overflow-hidden" onSubmit={handleSubmit}>
-          <div className="min-h-0 overflow-y-auto px-5 py-4 sm:px-6">
-            <div className="rounded-2xl border border-border/55 bg-muted/28 p-3.5">
+          <div className="app-sheet-body min-h-0 overflow-y-auto px-5 py-4 sm:px-6">
+            <div className="app-surface-panel rounded-2xl p-3.5">
               <div className="mb-2.5 flex items-center justify-between">
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
                   新标签
                 </p>
-                <span className="text-[10px] text-muted-foreground/40">
+                <span className="text-[10px] tabular-nums text-muted-foreground/45">
                   {categoryName.length}/50
                 </span>
               </div>
@@ -106,7 +109,7 @@ export function BatchCategorySheet({
                   maxLength={50}
                   placeholder="输入标签名称"
                   disabled={loading}
-                  className="h-11 rounded-xl border-border/70 bg-background/72 pr-10 text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/12"
+                  className="category-input h-11 rounded-xl pr-10 text-sm shadow-none"
                 />
                 {categoryName && (
                   <button
@@ -133,7 +136,7 @@ export function BatchCategorySheet({
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
                   已有标签
                 </p>
-                <span className="text-[10px] font-medium text-muted-foreground/45">
+                <span className="text-[10px] font-medium tabular-nums text-muted-foreground/45">
                   {normalizedCategories.length} 个
                 </span>
               </div>
@@ -146,9 +149,10 @@ export function BatchCategorySheet({
                       type="button"
                       onClick={() => setCategoryName(cat)}
                       disabled={loading}
+                      data-active={isSelected}
                       className={cn(
-                        'inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-border/65 bg-background/58 px-3 py-1.5 text-left text-[13px] font-semibold text-muted-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--paper-edge)_35%,transparent)] transition-colors disabled:cursor-not-allowed',
-                        isSelected && 'border-primary/45 bg-primary/10 text-primary'
+                        'category-chip-pill disabled:cursor-not-allowed disabled:opacity-50',
+                        isSelected && 'category-chip-pill-active'
                       )}
                       title={cat}
                     >
@@ -168,13 +172,13 @@ export function BatchCategorySheet({
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2 border-t border-border/55 bg-background/40 px-5 py-3.5 sm:grid sm:grid-cols-[1fr_auto_auto] sm:items-center sm:px-6">
+          <div className="app-sheet-footer flex shrink-0 flex-col gap-2 px-5 py-3.5 sm:grid sm:grid-cols-[1fr_auto_auto] sm:items-center sm:px-6">
             <Button
               type="button"
               variant="outline"
               onClick={() => void onSave(null)}
               disabled={loading}
-              className="h-10 rounded-xl border-border/65 bg-background/60 px-4 text-[13px] font-medium text-foreground/82 hover:bg-muted/70"
+              className="h-10 rounded-xl px-4 text-[13px] font-medium"
             >
               清空分类
             </Button>
@@ -182,14 +186,14 @@ export function BatchCategorySheet({
               type="button"
               variant="ghost"
               onClick={() => handleOpenChange(false)}
-              className="h-10 rounded-xl px-4 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:order-2"
+              className="h-10 rounded-xl px-4 text-[13px] font-medium text-muted-foreground sm:order-2"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-10 rounded-xl px-6 text-[13px] font-semibold shadow-[0_8px_18px_-14px_var(--paper-shadow)] transition-all active:scale-[0.98] sm:order-3"
+              className="h-10 rounded-xl px-6 text-[13px] font-semibold sm:order-3"
             >
               {loading ? '保存中...' : '保存'}
             </Button>

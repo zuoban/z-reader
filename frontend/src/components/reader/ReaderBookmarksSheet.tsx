@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
-import { getModernReaderSurface } from "@/lib/reader-ui";
+import { getModernReaderSurface, withOpacity } from "@/lib/reader-ui";
 
 interface ReaderBookmarksSheetProps {
   open: boolean;
@@ -228,18 +228,24 @@ export function ReaderBookmarksSheet({
           className="app-sheet-body relative min-h-0 overscroll-contain px-3 pb-3 pt-2.5 sm:px-4"
           style={{ background: "transparent" }}
         >
-          <div className="space-y-1.5 pb-4">
+          <div className="space-y-2 pb-4">
             {sortedBookmarks.length > 0 ? (
               sortedBookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-[1.15rem] transition-[background-color,transform] hover:-translate-y-[1px] group-focus-within:-translate-y-[1px]"
+                  className="group rounded-2xl transition-[background-color,box-shadow,transform] hover:-translate-y-px"
                   style={{
-                    background: surface.surfaceSoft,
-                    boxShadow: `inset 0 0 0 1px ${surface.hairline}`,
+                    background: `
+                      linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.03)} 0%, transparent 50%),
+                      ${surface.surfaceSoft}
+                    `,
+                    boxShadow: `
+                      inset 0 0 0 1px ${surface.hairline},
+                      inset 0 1px 0 ${withOpacity("#ffffff", 0.08)}
+                    `,
                   }}
                 >
-                  <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="flex items-center gap-2 px-3.5 py-3 sm:gap-3 sm:px-4 sm:py-3.5">
                     <button
                       type="button"
                       aria-label={`打开书签：${bookmark.chapter || "未识别章节"}，${formatPercent(bookmark.percentage)}`}
@@ -250,14 +256,14 @@ export function ReaderBookmarksSheet({
                       }}
                     >
                       <div
-                        className="truncate text-[15px] font-medium leading-6"
+                        className="truncate text-[14px] font-semibold leading-6 tracking-[-0.01em] sm:text-[15px]"
                         style={{ color: surface.fg }}
                       >
                         {bookmark.chapter || "未识别章节"}
                       </div>
                       {bookmark.note ? (
                         <p
-                          className="mt-1 line-clamp-2 text-[13px] leading-5"
+                          className="mt-1 line-clamp-2 text-[12.5px] leading-5 sm:text-[13px]"
                           style={{ color: surface.muted }}
                           title={bookmark.note}
                         >
@@ -265,11 +271,11 @@ export function ReaderBookmarksSheet({
                         </p>
                       ) : null}
                       <div
-                        className="mt-1.5 flex items-center gap-2 text-[12px] leading-5"
+                        className="mt-2 flex flex-wrap items-center gap-2 text-[12px] leading-5"
                         style={{ color: surface.muted }}
                       >
                         <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 tabular-nums"
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums"
                           style={{
                             background: surface.surfaceStrong,
                             color: surface.fg,
@@ -278,7 +284,7 @@ export function ReaderBookmarksSheet({
                           {formatPercent(bookmark.percentage)}
                         </span>
                         <span className="h-1 w-1 rounded-full bg-current opacity-30" />
-                        <span>{formatDate(bookmark.created_at)}</span>
+                        <span className="font-medium">{formatDate(bookmark.created_at)}</span>
                       </div>
                     </button>
                     <Button
@@ -291,7 +297,7 @@ export function ReaderBookmarksSheet({
                       }}
                       title="删除书签"
                       aria-label="删除书签"
-                      className="touch-target h-10 w-10 shrink-0 rounded-full opacity-80 transition-colors hover:bg-black/[0.045] hover:text-foreground sm:h-8 sm:w-8 sm:opacity-60 sm:group-hover:opacity-100"
+                      className="touch-target h-10 w-10 shrink-0 rounded-full opacity-75 transition-all hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:w-9 sm:opacity-55 sm:group-hover:opacity-100"
                       style={{ color: surface.muted }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -300,29 +306,28 @@ export function ReaderBookmarksSheet({
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
                 <div
-                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+                  className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
                   style={{
                     background: surface.surface,
+                    borderColor: surface.hairline,
+                    color: surface.fg,
                   }}
                 >
-                  <Bookmark
-                    className="h-5 w-5 stroke-[1.75]"
-                    style={{ color: surface.fg }}
-                  />
+                  <Bookmark className="h-5 w-5" strokeWidth={1.75} />
                 </div>
                 <p
-                  className="text-sm font-medium tracking-tight"
+                  className="text-sm font-semibold tracking-tight"
                   style={{ color: surface.fg }}
                 >
                   暂无书签
                 </p>
                 <p
-                  className="mt-1 text-xs leading-5"
+                  className="mt-1.5 max-w-[16rem] text-xs leading-5"
                   style={{ color: surface.muted }}
                 >
-                  阅读时点击上方按钮，即可保存当前位置。
+                  阅读时点击上方「添加」，即可保存当前位置。
                 </p>
               </div>
             )}

@@ -114,15 +114,17 @@ function SectionCard({
 }: SectionProps) {
   return (
     <section
-      className="space-y-4 rounded-[1.15rem] p-4"
+      className="space-y-4 rounded-[1.15rem] border p-4"
       style={{
-        background: withOpacity(uiScheme.buttonBg, 0.38),
+        background: withOpacity(uiScheme.buttonBg, 0.42),
+        borderColor: withOpacity(uiScheme.cardBorder, 0.28),
+        boxShadow: `inset 0 1px 0 ${withOpacity("#ffffff", 0.12)}`,
       }}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <h3
-            className="text-sm font-bold tracking-tight"
+            className="text-sm font-semibold tracking-tight"
             style={{ color: uiScheme.fg }}
           >
             {title}
@@ -224,16 +226,18 @@ function ReaderPreview({
 
   return (
     <section
-      className="mb-4 overflow-hidden rounded-[1.15rem] p-4"
+      className="mb-4 overflow-hidden rounded-[1.15rem] border p-4"
       aria-label="阅读效果预览"
       style={{
         background: preset.bg,
         color: preset.fg,
+        borderColor: withOpacity(preset.fg, 0.1),
+        boxShadow: `inset 0 1px 0 ${withOpacity(preset.fg, 0.06)}`,
       }}
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <span
-          className="text-[10px] font-black uppercase tracking-[0.18em]"
+          className="text-[10px] font-bold uppercase tracking-[0.16em]"
           style={{ color: withOpacity(preset.fg, 0.48) }}
         >
           Preview

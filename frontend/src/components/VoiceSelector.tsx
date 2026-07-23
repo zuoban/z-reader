@@ -53,10 +53,12 @@ export function VoiceSelector({
   const selectedVoice = voices.find(v => v.Name === settings.voiceName);
   const availableStyles = selectedVoice?.StyleList || [];
   const compactGlassStyle = {
-    background:
-      `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.045)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.26)}`,
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.14)}`,
-    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.16)`,
+    background: `
+      linear-gradient(145deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 40%),
+      ${withOpacity(uiScheme.buttonBg, 0.3)}
+    `,
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
+    boxShadow: `inset 0 1px 0 ${withOpacity("#ffffff", 0.14)}`,
   };
 
   const handleVoiceChange = useCallback((value: string) => {
@@ -147,9 +149,12 @@ export function VoiceSelector({
   }, [isPreviewing, buildSSML, stopPreview]);
 
   return (
-    <div className="flex flex-col gap-3.5 px-1 py-1">
-      <div className="flex items-center justify-between gap-3 px-2">
-        <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
+    <div className="flex flex-col gap-3 px-0.5 py-0.5">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <h3
+          className="text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{ color: uiScheme.mutedText }}
+        >
           声音设置
         </h3>
         <div className="flex items-center gap-1.5">
@@ -160,7 +165,7 @@ export function VoiceSelector({
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
               aria-label="重新加载语音"
-              className="h-9 rounded-lg px-2.5 text-xs font-bold transition-all hover:scale-[1.03]"
+              className="h-9 rounded-xl px-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
               style={{ ...compactGlassStyle, color: uiScheme.mutedText }}
             >
               {voicesLoading ? '加载中' : '重载'}
@@ -172,8 +177,14 @@ export function VoiceSelector({
             size="sm"
             onClick={handlePreview}
             aria-label={isPreviewing ? '停止语音试听' : '试听当前语音'}
-            className="h-9 rounded-lg px-2.5 text-xs font-bold transition-all hover:scale-[1.03]"
-            style={{ ...compactGlassStyle, color: isPreviewing ? uiScheme.link : uiScheme.mutedText }}
+            className="h-9 rounded-xl px-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
+            style={{
+              ...compactGlassStyle,
+              color: isPreviewing ? uiScheme.link : uiScheme.mutedText,
+              borderColor: isPreviewing
+                ? withOpacity(uiScheme.link, 0.28)
+                : withOpacity(uiScheme.cardBorder, 0.16),
+            }}
           >
             {isPreviewing ? '停止' : '试听'}
           </Button>

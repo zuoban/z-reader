@@ -33,6 +33,11 @@ import { api } from "@/lib/api";
 import { saveOfflineBook } from "@/lib/offline-books";
 import type { BookDownloadProgress, Bookmark } from "@/lib/api";
 import { withOpacity } from "@/lib/reader-ui";
+import {
+  applyThemeColor,
+  themeColorForAppMode,
+  themeColorForPreset,
+} from "@/lib/theme-color";
 import { toast } from "sonner";
 
 const MIN_IMAGE_SCALE = 1;
@@ -129,6 +134,33 @@ export default function ReadPage() {
   } = useProgress({ bookId });
   const { theme, setTheme, getStylesheet, getUIScheme } = useReaderTheme();
   const uiScheme = getUIScheme();
+
+  // Sync browser/PWA chrome color with the active reader preset.
+  useEffect(() => {
+    const root = document.documentElement;
+    const color = themeColorForPreset(theme.preset);
+    root.dataset.readerActivePreset = theme.preset;
+    root.style.colorScheme = theme.preset === "dark" ? "dark" : "light";
+    applyThemeColor(color);
+
+    return () => {
+      delete root.dataset.readerActivePreset;
+      const shelfPreset = root.dataset.readerPreset;
+      if (
+        shelfPreset === "light" ||
+        shelfPreset === "sepia" ||
+        shelfPreset === "green" ||
+        shelfPreset === "dark"
+      ) {
+        root.style.colorScheme = shelfPreset === "dark" ? "dark" : "light";
+        applyThemeColor(themeColorForPreset(shelfPreset));
+        return;
+      }
+      const shelfIsDark = root.classList.contains("dark");
+      root.style.colorScheme = shelfIsDark ? "dark" : "light";
+      applyThemeColor(themeColorForAppMode(shelfIsDark));
+    };
+  }, [theme.preset]);
 
   const [tocOpen, setTocOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);

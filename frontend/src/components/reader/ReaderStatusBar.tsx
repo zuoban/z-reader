@@ -28,6 +28,9 @@ export function ReaderStatusBar({
   onToggleToolbar,
   compactTrailingAction,
 }: ReaderStatusBarProps) {
+  const metaFont =
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
   if (!isToolbarVisible) {
     return (
       <div
@@ -38,11 +41,17 @@ export function ReaderStatusBar({
         }}
       >
         <div
-          className="pointer-events-auto flex min-h-11 items-center gap-1 rounded-xl border px-2 backdrop-blur-xl"
+          className="pointer-events-auto flex min-h-11 items-center gap-1 rounded-full border px-1.5 backdrop-blur-xl"
           style={{
-            background: withOpacity(uiScheme.bg, 0.78),
-            borderColor: withOpacity(uiScheme.cardBorder, 0.18),
-            boxShadow: `0 10px 30px -22px ${withOpacity(uiScheme.fg, 0.45)}`,
+            background: `
+              linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 100%),
+              ${withOpacity(uiScheme.bg, 0.82)}
+            `,
+            borderColor: withOpacity(uiScheme.cardBorder, 0.2),
+            boxShadow: `
+              0 12px 32px -20px ${withOpacity(uiScheme.fg, 0.4)},
+              inset 0 1px 0 ${withOpacity("#ffffff", 0.18)}
+            `,
           }}
         >
           <button
@@ -51,10 +60,10 @@ export function ReaderStatusBar({
             onClick={onToggleToolbar}
             title="展开操作栏"
             aria-label="展开操作栏"
-            className="touch-target paper-motion-interactive flex min-h-11 min-w-[52px] items-center justify-center rounded-lg px-2 text-xs font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
+            className="touch-target paper-motion-interactive flex min-h-10 min-w-[52px] items-center justify-center rounded-full px-3 text-xs font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
             style={{
-              color: withOpacity(uiScheme.fg, 0.72),
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
+              color: withOpacity(uiScheme.fg, 0.74),
+              fontFamily: metaFont,
               background: "transparent",
               border: "none",
               lineHeight: 1,
@@ -63,7 +72,7 @@ export function ReaderStatusBar({
             {percentage.toFixed(1)}%
           </button>
           <div
-            className="h-2.5 w-px shrink-0"
+            className="h-3 w-px shrink-0 opacity-25"
             style={{ backgroundColor: uiScheme.fg }}
           />
           {compactTrailingAction}
@@ -80,7 +89,7 @@ export function ReaderStatusBar({
       title="收起顶部操作栏"
       aria-label="收起顶部操作栏"
       aria-pressed={isToolbarVisible}
-      className="flex fixed inset-x-0 bottom-0 z-40 min-h-11 cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
+      className="fixed inset-x-0 bottom-0 z-40 flex min-h-11 cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
       style={{
         paddingBottom: safeAreaPaddingBottom,
         color: "inherit",
@@ -90,10 +99,10 @@ export function ReaderStatusBar({
       <div className="relative flex min-h-11 w-full max-w-5xl items-center px-4 text-xs font-medium sm:px-6">
         <div className="flex w-24 shrink-0 items-center">
           <span
-            className="tabular-nums tracking-normal font-semibold"
+            className="font-semibold tabular-nums tracking-normal"
             style={{
               color: withOpacity(uiScheme.fg, 0.72),
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+              fontFamily: metaFont,
             }}
           >
             {percentage.toFixed(1)}%
@@ -102,10 +111,10 @@ export function ReaderStatusBar({
 
         <div className="flex min-w-0 flex-1 items-center justify-center truncate px-4 text-center">
           <span
-            className="truncate font-semibold tracking-normal"
+            className="truncate font-medium tracking-normal"
             style={{
-              color: withOpacity(uiScheme.fg, 0.62),
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+              color: withOpacity(uiScheme.fg, 0.58),
+              fontFamily: metaFont,
             }}
           >
             {currentChapter || "—"}
@@ -114,10 +123,10 @@ export function ReaderStatusBar({
 
         <div className="flex w-24 shrink-0 items-center justify-end">
           <span
-            className="tabular-nums tracking-normal font-semibold"
+            className="font-semibold tabular-nums tracking-normal"
             style={{
               color: withOpacity(uiScheme.fg, 0.72),
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+              fontFamily: metaFont,
             }}
           >
             {currentPageLabel || "—"}

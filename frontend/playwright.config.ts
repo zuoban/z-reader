@@ -11,8 +11,10 @@ export default defineConfig({
   reporter: process.env.CI
     ? [['github'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
     : [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
-  // Keep visual baselines next to specs for easy review in PRs.
-  snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
+  // Platform-scoped baselines: CI (Linux) is the hard gate; macOS may keep
+  // darwin snapshots for local review via the same path template.
+  snapshotPathTemplate:
+    '{testDir}/{testFileDir}/{testFileName}-snapshots/{platform}/{arg}{ext}',
   expect: {
     toHaveScreenshot: {
       // Allow tiny antialiasing / font raster differences across machines.

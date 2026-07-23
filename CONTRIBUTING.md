@@ -36,12 +36,13 @@ npm run build
 npx playwright install chromium
 npm run test:e2e:ci
 
-# 改了纸质 UI / 布局时再跑视觉回归
-# npm run test:visual
+# 改了纸质 UI / 布局时：用 Docker 更新 Linux 基线（与 CI 一致）
+# npm run test:visual:update:linux
+# 本机 macOS 可选：npm run test:visual:update  （写入 darwin/）
 ```
 
-CI 在 push/PR 会跑上述门禁中的后端测试、lint、unit、功能 E2E 与前端 build。  
-视觉回归默认不进 CI（跨 OS 截图不稳定）；需要时可在 Actions 手动触发并勾选 `run_visual`。
+CI 在 push/PR 会跑后端测试、lint、unit、功能 E2E、**Linux 视觉回归**与前端 build。  
+视觉截图以 `tests/e2e/.../snapshots/linux/` 为准；请用 Docker 脚本更新，勿直接提交 macOS 截图当 Linux 基线。
 
 如果你的改动影响了 API、环境变量、部署方式或交互行为，请同步更新文档。
 

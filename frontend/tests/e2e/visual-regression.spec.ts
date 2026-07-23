@@ -14,7 +14,12 @@ import {
 /**
  * Visual regression baselines for the paper UI system.
  *
- * Update snapshots after intentional design changes:
+ * Snapshots are platform-scoped (`linux/` for CI, `darwin/` for local macOS).
+ *
+ * Update Linux (CI) baselines:
+ *   npm run test:visual:update:linux
+ *
+ * Update this machine only:
  *   npm run test:visual:update
  */
 test.describe('visual regression', () => {

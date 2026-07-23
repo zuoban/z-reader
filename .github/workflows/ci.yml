@@ -13,8 +13,8 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      run_visual:
-        description: Run visual regression (Linux baselines; optional)
+      update_visual_snapshots:
+        description: 'Also upload updated visual snapshots artifact (does not commit)'
         type: boolean
         default: false
 
@@ -167,8 +167,6 @@ jobs:
 
       - name: Install Playwright browser
         working-directory: frontend
-        # Cache hit: browsers restored, still need OS deps on the runner.
-        # Cache miss: download browsers + install OS deps.
         run: |
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
             npx playwright install-deps chromium
@@ -180,7 +178,6 @@ jobs:
         working-directory: frontend
         env:
           CI: true
-        # Auth + virtual grid + reader + shelf→reader + search + a11y. Visual opt-in.
         run: npm run test:e2e:ci
 
       - name: Upload Playwright report on failure
@@ -196,9 +193,7 @@ jobs:
 
   frontend-visual-test:
     name: Frontend Visual Regression
-    # Optional: macOS/local baselines do not match Ubuntu fonts by default.
-    # Enable via Actions → CI → Run workflow → run_visual.
-    if: github.event_name == 'workflow_dispatch' && inputs.run_visual == true
+    # Hard gate against committed linux/ baselines (Noto CJK fonts).
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs:
@@ -214,6 +209,11 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Install CJK fonts for stable screenshots
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-color-emoji
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -241,7 +241,7 @@ jobs:
           CI: true
         run: npm run test:visual -- --workers=1
 
-      - name: Upload visual diff artifacts
+      - name: Upload visual report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -249,9 +249,23 @@ jobs:
           path: |
             frontend/playwright-report
             frontend/test-results
-            frontend/tests/e2e/visual-regression.spec.ts-snapshots
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Refresh Linux snapshots (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch' && inputs.update_visual_snapshots
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm run test:visual:update -- --workers=1
+
+      - name: Upload refreshed Linux snapshots
+        if: github.event_name == 'workflow_dispatch' && inputs.update_visual_snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-snapshots-linux
+          path: frontend/tests/e2e/visual-regression.spec.ts-snapshots/linux
+          retention-days: 7
 
   docker-build:
     name: Docker Build Check
@@ -262,6 +276,7 @@ jobs:
       - frontend-build
       - frontend-unit-test
       - frontend-e2e-test
+      - frontend-visual-test
 
     steps:
       - name: Checkout repository

@@ -23,11 +23,14 @@ npm run test:e2e:virtual
 # Reader happy path only
 npm run test:e2e:reader
 
-# Visual regression (screenshot baselines)
+# Visual regression (uses {platform}/ subfolder — linux or darwin)
 npm run test:visual
 
-# Refresh baselines after intentional UI changes
+# Refresh baselines for *this* OS (writes darwin/ on macOS)
 npm run test:visual:update
+
+# Refresh Linux baselines (Docker + Noto CJK; matches CI)
+npm run test:visual:update:linux
 
 # Interactive UI mode
 npm run test:visual:ui
@@ -36,8 +39,10 @@ npm run test:visual:ui
 ## Visual baselines
 
 - Spec: `visual-regression.spec.ts`
-- Snapshots: `visual-regression.spec.ts-snapshots/`
-- Config: `playwright.config.ts` (`maxDiffPixelRatio: 0.02`, animations disabled)
+- Snapshots: `visual-regression.spec.ts-snapshots/{platform}/`
+  - **`linux/`** — CI hard gate (generated with Playwright Docker + fonts-noto-cjk)
+  - **`darwin/`** — optional local macOS baselines
+- Config: `playwright.config.ts` (`maxDiffPixelRatio: 0.02`, platform path template)
 
 Covered surfaces:
 
@@ -127,9 +132,10 @@ foliate). Prefer error/loading chrome for stable baselines.
 ## Updating snapshots
 
 1. Make the intentional UI change.
-2. Run `npm run test:visual:update` on the same OS you use for review (or Linux if CI visual is enabled).
-3. Review PNG diffs in the snapshots folder / Playwright report.
-4. Commit updated baselines with the UI change.
+2. Prefer **Linux** baselines for CI: `npm run test:visual:update:linux` (Docker required).
+3. Optionally refresh local macOS: `npm run test:visual:update` → `darwin/`.
+4. Review PNG diffs under `...-snapshots/linux/` (and darwin if used).
+5. Commit updated baselines with the UI change.
 
 ## CI notes
 
@@ -138,17 +144,12 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Specs | When |
 | --- | --- | --- |
 | Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | `auth-shelf` + virtual grid + reader + shelf→reader + **search** + a11y | every push/PR |
-| Frontend Visual Regression | `visual-regression.spec.ts` | manual `workflow_dispatch` + `run_visual` |
-
-Why visual is optional by default:
-
-- Screenshot pixels differ across macOS vs Ubuntu fonts and antialiasing.
-- Baselines in-repo were captured on developer machines; promoting them to a
-  hard CI gate requires regenerating on `ubuntu-latest` and committing those PNGs.
+| Frontend E2E (functional) | auth + virtual grid + reader + shelf→reader + search + a11y | every push/PR |
+| Frontend Visual Regression | `visual-regression.spec.ts` vs **`linux/`** + Noto CJK | every push/PR |
 
 Tips:
 
-- Use `PLAYWRIGHT_EXECUTABLE_PATH` only when pinning a custom Chromium.
-- On failure, CI uploads `playwright-report` / `test-results` artifacts (7 days).
+- Install `fonts-noto-cjk` on the runner (done in CI) so Chinese text matches Docker updates.
+- Manual dispatch option `update_visual_snapshots` regenerates and uploads `linux/` as an artifact.
+- On failure, CI uploads `playwright-report` / `test-results` (7 days).
 - Playwright browsers are cached via `~/.cache/ms-playwright`.

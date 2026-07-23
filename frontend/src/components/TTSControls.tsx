@@ -183,6 +183,8 @@ interface RateButtonsProps {
 
 const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
   <div
+    role="group"
+    aria-label="朗读倍速"
     className="grid grid-cols-5 gap-1 rounded-full p-1"
     style={{
       background: withOpacity(uiScheme.buttonBg, 0.32),
@@ -196,10 +198,11 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
         <button
           key={option.value}
           type="button"
+          aria-pressed={active}
           onClick={() => onChange(option.value)}
-          className="h-9 rounded-full px-1 text-[11px] font-black tabular-nums transition-[background-color,box-shadow,color,transform] hover:scale-[1.015] active:scale-[0.96]"
+          className="touch-control min-h-11 rounded-full px-1 text-xs font-bold tabular-nums transition-[background-color,box-shadow,color,transform] hover:scale-[1.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.96] sm:min-h-9"
           style={{
-            color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.52),
+            color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.72),
             background: active
               ? withOpacity(uiScheme.cardBg, 0.88)
               : 'transparent',
@@ -241,7 +244,7 @@ const TTSSectionCard = ({
           {title}
         </h3>
         {description ? (
-          <p className="text-[11px] font-medium leading-relaxed opacity-60" style={{ color: uiScheme.mutedText }}>
+          <p className="text-xs font-medium leading-relaxed" style={{ color: uiScheme.mutedText }}>
             {description}
           </p>
         ) : null}
@@ -1294,7 +1297,7 @@ export function TTSControls({
 
                 <div className="flex flex-col gap-4 px-1 py-1">
                   <div className="flex items-center justify-between gap-3 px-1">
-                    <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+                    <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
                       快捷控制
                     </h3>
                     {showSettingsPanel && (
@@ -1303,7 +1306,7 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="h-7 rounded-lg px-2 text-[10px] font-black uppercase tracking-wide  transition-all hover:scale-[1.03]"
+                        className="h-9 rounded-lg px-2.5 text-xs font-bold tracking-wide transition-all hover:scale-[1.03]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
                           background: withOpacity(uiScheme.buttonBg, 0.34),
@@ -1395,7 +1398,7 @@ export function TTSControls({
                   {detailsExpanded && (
                     <div className="paper-reveal-soft space-y-3 px-1 pt-2">
                       <div className="flex items-center justify-between gap-3 px-3">
-                        <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+                        <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
                           高亮方式
                         </h3>
                       </div>
@@ -1409,10 +1412,11 @@ export function TTSControls({
                             <button
                               key={mode}
                               type="button"
+                              aria-pressed={active}
                               onClick={() => handleHighlightModeChange(mode)}
-                              className="flex-1 rounded-lg py-2 text-[11px] font-bold transition-all"
+                              className="touch-control min-h-11 flex-1 rounded-lg py-2 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 sm:min-h-9"
                               style={{
-                                color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.4),
+                                color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.68),
                                 background: active ? uiScheme.cardBg : 'transparent',
                                 boxShadow: active ? `0 2px 8px ${withOpacity(uiScheme.fg, 0.1)}` : 'none',
                               }}
@@ -1428,11 +1432,11 @@ export function TTSControls({
                   {detailsExpanded && (
                     <div className="paper-reveal-soft space-y-3 px-1">
                       <div className="flex items-center justify-between gap-3 px-3">
-                        <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+                        <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
                           睡眠定时
                         </h3>
                         {sleepTimerActive && (
-                          <span className="text-[10px] font-black text-primary uppercase">
+                          <span className="text-xs font-bold text-primary">
                             {sleepTimer?.label}
                           </span>
                         )}
@@ -1446,8 +1450,9 @@ export function TTSControls({
                               key={minutes}
                               type="button"
                               variant="ghost"
+                              aria-pressed={active}
                               onClick={() => onSleepTimerMinutes?.(minutes)}
-                              className="h-9 rounded-xl text-[11px] font-bold transition-all"
+                              className="h-10 rounded-xl text-xs font-bold transition-all sm:h-9"
                               style={{
                                 color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
                                 background: active ? withOpacity(uiScheme.link, 0.12) : withOpacity(uiScheme.muted, 0.4),
@@ -1462,7 +1467,7 @@ export function TTSControls({
                           variant="ghost"
                           onClick={() => onClearSleepTimer?.()}
                           disabled={!sleepTimerActive}
-                          className="h-9 rounded-xl text-[11px] font-bold"
+                          className="h-10 rounded-xl text-xs font-bold sm:h-9"
                           style={{
                             color: sleepTimerActive ? uiScheme.mutedText : `${uiScheme.mutedText}40`,
                             background: withOpacity(uiScheme.muted, 0.2),

@@ -149,7 +149,7 @@ export function VoiceSelector({
   return (
     <div className="flex flex-col gap-3.5 px-1 py-1">
       <div className="flex items-center justify-between gap-3 px-2">
-        <h3 className="text-[11px] font-black uppercase tracking-wider opacity-40" style={{ color: uiScheme.mutedText }}>
+        <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
           声音设置
         </h3>
         <div className="flex items-center gap-1.5">
@@ -159,7 +159,8 @@ export function VoiceSelector({
               size="sm"
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
-              className="h-7.5 rounded-lg px-2 text-[10px] font-bold  transition-all hover:scale-[1.03]"
+              aria-label="重新加载语音"
+              className="h-9 rounded-lg px-2.5 text-xs font-bold transition-all hover:scale-[1.03]"
               style={{ ...compactGlassStyle, color: uiScheme.mutedText }}
             >
               {voicesLoading ? '加载中' : '重载'}
@@ -170,7 +171,8 @@ export function VoiceSelector({
             variant="ghost"
             size="sm"
             onClick={handlePreview}
-            className="h-7.5 rounded-lg px-2 text-[10px] font-bold  transition-all hover:scale-[1.03]"
+            aria-label={isPreviewing ? '停止语音试听' : '试听当前语音'}
+            className="h-9 rounded-lg px-2.5 text-xs font-bold transition-all hover:scale-[1.03]"
             style={{ ...compactGlassStyle, color: isPreviewing ? uiScheme.link : uiScheme.mutedText }}
           >
             {isPreviewing ? '停止' : '试听'}
@@ -197,11 +199,11 @@ export function VoiceSelector({
           <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none  transition-all hover:scale-[1.01]"
+              className="min-h-11 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none transition-all hover:scale-[1.01] sm:min-h-9"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="shrink-0 text-[10px] font-black uppercase opacity-40">语音</span>
+                <span className="shrink-0 text-xs font-bold" style={{ color: uiScheme.mutedText }}>语音</span>
                 <SelectValue placeholder="选择语音" className="truncate" />
               </div>
             </SelectTrigger>
@@ -238,11 +240,11 @@ export function VoiceSelector({
           >
             <SelectTrigger
               data-reader-interactive="true"
-              className="h-9 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none  transition-all hover:scale-[1.01]"
+              className="min-h-11 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none transition-all hover:scale-[1.01] sm:min-h-9"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="shrink-0 text-[10px] font-black uppercase opacity-40">风格</span>
+                <span className="shrink-0 text-xs font-bold" style={{ color: uiScheme.mutedText }}>风格</span>
                 <SelectValue placeholder="选择风格" className="truncate" />
               </div>
             </SelectTrigger>

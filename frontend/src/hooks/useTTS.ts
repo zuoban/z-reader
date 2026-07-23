@@ -8,8 +8,6 @@ import {
   TTSSettings,
   TTSMark,
   buildAzureSSML,
-  getTextFromSSML,
-  isSkippableTTSText,
   loadTTSSettings,
 } from '@/lib/tts';
 import {
@@ -17,22 +15,25 @@ import {
   TTS_MAX_NAV_RETRIES,
   TTS_NAV_RETRY_DELAY_MS,
   TTS_PRELOAD_SENTENCE_COUNT,
-  TTS_SESSION_TTL,
-  createTTSQueueSegmentId,
   formatRemainingTime,
   formatSleepTimerRemaining,
-  getTTSSessionKey,
   normalizeMetadataText,
   type TTSQueueSegment,
-  type TTSQueueSegmentState,
-  type TTSSessionSnapshot,
-  type TTSSleepTimer,
   type TTSVisibleStatus,
 } from '@/lib/tts-helpers';
+import {
+  countReadyQueueSegments,
+  getRelevantQueueSSMLs as getRelevantQueueSSMLsFromQueue,
+  isSpeakableSSML,
+  rebuildTTSSpeechQueue,
+  updateTTSQueueSegmentState as updateQueueSegmentStateInList,
+} from '@/lib/tts-queue';
 import { FoliateView } from '@/lib/types';
 import { useTTSForegroundResume } from '@/hooks/useTTSForegroundResume';
 import { useTTSMediaSession } from '@/hooks/useTTSMediaSession';
 import { useTTSResumePrompt } from '@/hooks/useTTSResumePrompt';
+import { useTTSSession } from '@/hooks/useTTSSession';
+import { useTTSSleepTimer } from '@/hooks/useTTSSleepTimer';
 import { useTTSVoices } from '@/hooks/useTTSVoices';
 import { useWakeLock } from '@/hooks/useWakeLock';
 
@@ -54,10 +55,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     detail: '选择开始后从当前位置朗读',
     tone: 'idle',
   });
-  const [sleepTimer, setSleepTimer] = useState<TTSSleepTimer>({
-    mode: 'off',
-    label: '未设置',
-  });
   const isLikelyIOS = useMemo(() => {
     if (typeof navigator === 'undefined') return false;
     const userAgent = navigator.userAgent || '';
@@ -73,8 +70,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const queueRef = useRef<TTSQueueSegment[]>([]);
   const activeSegmentIdRef = useRef<string | null>(null);
   const lastStatusTimeUpdateRef = useRef(0);
-  const sleepTimerRef = useRef<TTSSleepTimer>({ mode: 'off', label: '未设置' });
-  const sleepTimerTimeoutRef = useRef<number | null>(null);
   const shouldResumeOnForegroundRef = useRef(false);
   const resumeInFlightRef = useRef(false);
   const retryContinuationRef = useRef(false);
@@ -89,63 +84,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     toast.dismiss('tts-resume-hint');
   }, []);
 
-  const loadTTSSession = useCallback((): TTSSessionSnapshot | null => {
-    if (typeof window === 'undefined') return null;
-
-    const key = getTTSSessionKey(bookId);
-    if (!key) return null;
-
-    try {
-      const saved = localStorage.getItem(key);
-      if (!saved) return null;
-
-      const parsed = JSON.parse(saved) as TTSSessionSnapshot;
-      if (!parsed.cfi || Date.now() - parsed.timestamp > TTS_SESSION_TTL) {
-        localStorage.removeItem(key);
-        return null;
-      }
-      return parsed;
-    } catch {
-      return null;
-    }
-  }, [bookId]);
-
-  const saveTTSSession = useCallback(() => {
-    if (typeof window === 'undefined') return;
-
-    const key = getTTSSessionKey(bookId);
-    const cfi = viewRef.current?.lastLocation?.cfi;
-    if (!key || !cfi) return;
-
-    const mark = currentMarkRef.current;
-    const snapshot: TTSSessionSnapshot = {
-      cfi,
-      markName: mark?.name,
-      markText: mark?.text,
-      timestamp: Date.now(),
-      settings: ttsInstance.current.getSettings(),
-    };
-
-    try {
-      localStorage.setItem(key, JSON.stringify(snapshot));
-    } catch {
-      // localStorage may be unavailable in private browsing or under quota pressure.
-    }
-  }, [bookId, viewRef]);
-
-  const clearTTSSession = useCallback(() => {
-    if (typeof window === 'undefined') return;
-
-    const key = getTTSSessionKey(bookId);
-    if (!key) return;
-
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // Ignore storage cleanup failures.
-    }
-  }, [bookId]);
-
   const logTTS = useCallback((event: string, detail?: Record<string, unknown>) => {
     if (process.env.NODE_ENV === 'production') return;
 
@@ -157,46 +95,25 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     setTTSStatus(status);
   }, []);
 
-  const clearSleepTimerTimeout = useCallback(() => {
-    if (sleepTimerTimeoutRef.current !== null) {
-      window.clearTimeout(sleepTimerTimeoutRef.current);
-      sleepTimerTimeoutRef.current = null;
-    }
-  }, []);
-
-  const clearSleepTimer = useCallback(() => {
-    clearSleepTimerTimeout();
-    const nextTimer: TTSSleepTimer = { mode: 'off', label: '未设置' };
-    sleepTimerRef.current = nextTimer;
-    setSleepTimer(nextTimer);
-  }, [clearSleepTimerTimeout]);
-
-  const setSleepTimerForMinutes = useCallback((minutes: number) => {
-    clearSleepTimerTimeout();
-    const endsAt = Date.now() + minutes * 60 * 1000;
-    const nextTimer: TTSSleepTimer = {
-      mode: 'minutes',
-      minutes,
-      endsAt,
-      label: `${minutes} 分钟后停止`,
-    };
-    sleepTimerRef.current = nextTimer;
-    setSleepTimer(nextTimer);
-    sleepTimerTimeoutRef.current = window.setTimeout(() => {
-      updateVisibleStatus({
-        headline: '睡眠定时已结束',
-        detail: '已自动停止朗读',
-        tone: 'idle',
-      });
-      clearSleepTimer();
+  const {
+    sleepTimer,
+    sleepTimerRef,
+    setSleepTimerForMinutes,
+    clearSleepTimer,
+    clearSleepTimerTimeout,
+  } = useTTSSleepTimer({
+    onExpire: () => {
       stopRef.current();
-    }, Math.max(0, endsAt - Date.now()));
-    updateVisibleStatus({
-      headline: '已设置睡眠定时',
-      detail: `${minutes} 分钟后自动停止`,
-      tone: 'active',
-    });
-  }, [clearSleepTimer, clearSleepTimerTimeout, updateVisibleStatus]);
+    },
+    updateVisibleStatus,
+  });
+
+  const { loadTTSSession, saveTTSSession, clearTTSSession } = useTTSSession({
+    bookId,
+    viewRef,
+    currentMarkRef,
+    getSettings: () => ttsInstance.current.getSettings(),
+  });
 
   const updateSettings = useCallback((newSettings: Partial<TTSSettings>) => {
     setSettings(prev => {
@@ -291,45 +208,16 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     syncCurrentHighlight();
   }, [settings.highlightMode, syncCurrentHighlight]);
 
-  const isSpeakableSSML = useCallback((ssml: string | null | undefined): ssml is string => {
-    if (!ssml) return false;
-
-    const text = getTextFromSSML(ssml);
-    return Boolean(text && !isSkippableTTSText(text));
-  }, []);
-
   const updateQueueSegmentState = useCallback((
     segmentId: string,
-    nextState: TTSQueueSegmentState,
+    nextState: TTSQueueSegment['state'],
   ) => {
-    queueRef.current = queueRef.current.map((segment) => {
-      if (segment.id !== segmentId) return segment;
-      return { ...segment, state: nextState };
-    });
+    queueRef.current = updateQueueSegmentStateInList(
+      queueRef.current,
+      segmentId,
+      nextState
+    );
   }, []);
-
-  const createQueueSegment = useCallback((
-    ssml: string,
-    index: number,
-    source: TTSQueueSegment['source'],
-  ): TTSQueueSegment | null => {
-    const text = getTextFromSSML(ssml);
-    if (!text || isSkippableTTSText(text)) return null;
-
-    const enhancedSSML = buildSSML(ssml);
-    const fallbackSSML = buildSSML(text);
-    return {
-      id: createTTSQueueSegmentId(enhancedSSML, index),
-      index,
-      source,
-      ssml,
-      enhancedSSML,
-      fallbackSSML,
-      text,
-      state: source === 'current' ? 'idle' : 'queued',
-      createdAt: Date.now(),
-    };
-  }, [buildSSML]);
 
   const ensureTTS = useCallback(async () => {
     if (!viewRef.current) return false;
@@ -364,39 +252,22 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   }, [viewRef]);
 
   const rebuildSpeechQueue = useCallback((currentSSML?: string): TTSQueueSegment[] => {
-    const rawSegments = [
-      ...(currentSSML ? [{ ssml: currentSSML, source: 'current' as const }] : []),
-      ...getNextSSMLs(TTS_LOOKAHEAD_SENTENCE_COUNT).map((ssml) => ({
-        ssml,
-        source: 'lookahead' as const,
-      })),
-    ];
-
-    const seen = new Set<string>();
-    const queue: TTSQueueSegment[] = [];
-
-    rawSegments.forEach((rawSegment) => {
-      const segment = createQueueSegment(rawSegment.ssml, queue.length, rawSegment.source);
-      if (!segment || seen.has(segment.enhancedSSML)) return;
-
-      seen.add(segment.enhancedSSML);
-      queue.push(segment);
-    });
-
+    const queue = rebuildTTSSpeechQueue(
+      currentSSML,
+      getNextSSMLs(TTS_LOOKAHEAD_SENTENCE_COUNT),
+      buildSSML
+    );
     queueRef.current = queue;
     logTTS('queue-rebuilt', {
       size: queue.length,
       current: queue[0]?.id ?? null,
       lookahead: Math.max(queue.length - 1, 0),
     });
-
     return queue;
-  }, [createQueueSegment, getNextSSMLs, logTTS]);
+  }, [buildSSML, getNextSSMLs, logTTS]);
 
   const getRelevantQueueSSMLs = useCallback((): string[] => {
-    return queueRef.current
-      .filter((segment) => segment.state !== 'failed' && segment.state !== 'skipped')
-      .map((segment) => segment.enhancedSSML);
+    return getRelevantQueueSSMLsFromQueue(queueRef.current);
   }, []);
 
   // 预加载后续句子
@@ -435,7 +306,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       });
 
       if (preloadSegments.length > 0) {
-        const readyCount = queueRef.current.filter((segment) => segment.state === 'ready').length;
+        const readyCount = countReadyQueueSegments(queueRef.current);
         updateVisibleStatus({
           headline: '下一句已准备好',
           detail: `队列中 ${readyCount} 句可无缝衔接`,
@@ -562,7 +433,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   }, [
     attemptSpeakSegment,
     getRelevantQueueSSMLs,
-    isSpeakableSSML,
     logTTS,
     preloadNext,
     rebuildSpeechQueue,
@@ -669,7 +539,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     navigateToAdjacentTTSDocument,
     speakSSML,
     clearReaderHighlight,
-    isSpeakableSSML,
     logTTS,
   ]);
 
@@ -738,7 +607,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     }
 
     return false;
-  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, isSpeakableSSML, logTTS]);
+  }, [viewRef, ensureTTS, speakSSML, clearReaderHighlight, logTTS]);
 
   const resumePausedSpeech = useCallback(async (): Promise<boolean> => {
     const view = viewRef.current;
@@ -754,7 +623,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
 
     await ttsInstance.current.resume();
     return ttsInstance.current.getState() === 'playing';
-  }, [ensureTTS, isSpeakableSSML, speakSSML, viewRef]);
+  }, [ensureTTS, speakSSML, viewRef]);
 
   const start = useCallback(async () => {
     if (state === 'playing') {
@@ -847,7 +716,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     loadTTSSession,
     logTTS,
     getNextAndSpeak,
-    isSpeakableSSML,
     requestWakeLock,
     resumePausedSpeech,
     speakSSML,
@@ -1095,7 +963,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       const now = Date.now();
       if (duration > 0 && now - lastStatusTimeUpdateRef.current > 1800) {
         lastStatusTimeUpdateRef.current = now;
-        const readyCount = queueRef.current.filter((segment) => segment.state === 'ready').length;
+        const readyCount = countReadyQueueSegments(queueRef.current);
         const remainingSeconds = Math.max(duration - currentTime, 0);
         const timer = sleepTimerRef.current;
         const timerDetail =
@@ -1124,7 +992,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     });
   }, [
     clearReaderHighlight,
-    clearSleepTimer,
     clearTTSSession,
     dismissResumePrompt,
     logTTS,
@@ -1133,6 +1000,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     releaseWakeLock,
     saveTTSSession,
     settings.highlightMode,
+    sleepTimerRef,
     updateVisibleStatus,
     viewRef,
   ]);

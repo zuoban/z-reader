@@ -61,7 +61,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "paper-motion-menu paper-menu z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-popover/82 p-1.5 text-popover-foreground shadow-[0_24px_54px_-36px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] ring-1 ring-foreground/10 outline-none  data-closed:overflow-hidden",
+            "paper-motion-menu paper-menu z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-border/60 bg-popover/96 p-1.5 text-popover-foreground shadow-[0_24px_54px_-36px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] ring-1 ring-foreground/8 outline-none backdrop-blur-md data-closed:overflow-hidden",
             className
           )}
           style={{
@@ -113,7 +113,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "paper-motion-interactive group/dropdown-menu-item relative flex cursor-default items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm outline-hidden select-none data-inset:pl-7 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 focus:bg-muted/50 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
+        "paper-motion-interactive group/dropdown-menu-item relative flex min-h-10 cursor-default items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm outline-hidden select-none data-inset:pl-7 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 focus:bg-muted/55 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
         className
       )}
       {...props}

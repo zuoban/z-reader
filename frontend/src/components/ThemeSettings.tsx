@@ -188,9 +188,7 @@ function SliderField({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
-        <Label
-          className="text-xs font-bold tracking-wide text-muted-foreground/80"
-        >
+        <Label className="text-xs font-semibold tracking-wide text-muted-foreground">
           {label}
         </Label>
         <span className="rounded-lg border border-primary/15 bg-primary/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary">
@@ -199,21 +197,14 @@ function SliderField({
       </div>
       <div className="flex items-center gap-3.5">
         <span
-          className="w-6 shrink-0 text-center text-xs font-bold tabular-nums"
+          className="w-6 shrink-0 text-center text-xs font-semibold tabular-nums"
           style={{ color: uiScheme.mutedText }}
         >
           {minLabel}
         </span>
-        <Slider
-          value={value}
-          onValueChange={onValueChange}
-          min={min}
-          max={max}
-          step={step}
-          className="flex-1 [&_[role=slider]]:border-2 [&_[role=slider]]:border-background [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-transform [&_[role=slider]]:active:scale-125 [&_[role=track]]:h-1.5 [&_[role=track]]:bg-muted/30 [&_[data-orientation=horizontal]_[role=range]]:bg-primary/80"
-        />
+        <Slider value={value} onValueChange={onValueChange} min={min} max={max} step={step} className="flex-1" />
         <span
-          className="w-6 shrink-0 text-center text-xs font-bold tabular-nums"
+          className="w-6 shrink-0 text-center text-xs font-semibold tabular-nums"
           style={{ color: uiScheme.mutedText }}
         >
           {maxLabel}
@@ -250,7 +241,7 @@ function ReaderPreview({
           Preview
         </span>
         <span
-          className="rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums"
+          className="rounded-lg px-2 py-0.5 text-[10px] font-semibold tabular-nums"
           style={{
             background: withOpacity(preset.fg, 0.08),
             color: withOpacity(preset.fg, 0.58),

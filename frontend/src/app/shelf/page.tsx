@@ -290,7 +290,7 @@ export default function ShelfPage() {
     <AppScreen
       ambient="shelf"
       className="bg-[var(--shelf-app-bg)] font-sans"
-      contentClassName="flex min-h-screen w-full flex-col"
+      contentClassName="flex min-h-dvh w-full flex-col"
     >
       <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-[color:var(--shelf-header-bg)]/92 shadow-[0_12px_36px_-32px_var(--paper-shadow)] backdrop-blur-xl dark:border-white/8 dark:bg-[color:var(--shelf-header-bg)]/86 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
         <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between px-5 sm:px-7 lg:px-10">
@@ -328,7 +328,7 @@ export default function ShelfPage() {
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="shelf-account-menu w-48 rounded-xl border-border/40 p-1.5 shadow-lg backdrop-blur-md"
+                className="shelf-account-menu w-48 rounded-xl border-border/50 p-1.5 backdrop-blur-md"
               >
                 <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
                   {isDark ? (
@@ -360,12 +360,12 @@ export default function ShelfPage() {
         onDrop={handleShelfDrop}
       >
         {!isLoadingBooks && loadError ? (
-          <div>
-            <div className="shelf-container flex min-h-[28rem] flex-col items-center justify-center rounded-2xl px-6 py-12 text-center ">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+          <div className="flex min-h-[28rem] items-center justify-center">
+            <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/18 bg-destructive/10 text-destructive">
                 <AlertCircle className="h-7 w-7" />
               </div>
-              <h2 className="mt-5 font-heading text-2xl font-semibold text-foreground">
+              <h2 className="mt-5 font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
                 书架暂时无法加载
               </h2>
               <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
@@ -373,7 +373,7 @@ export default function ShelfPage() {
               </p>
               <Button
                 type="button"
-                className="mt-6 h-11 rounded-lg px-5"
+                className="mt-6 h-11 rounded-xl px-6"
                 onClick={() => void loadBooks()}
               >
                 重新加载
@@ -412,11 +412,17 @@ export default function ShelfPage() {
               }
             />
             {isDraggingBookFile && (
-              <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-background/78 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)]  sm:flex">
-                <div className="rounded-2xl border border-primary/16 bg-card/58 px-8 py-6 shadow-[0_18px_48px_-34px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_52%,transparent)] ">
-                  <Upload className="mx-auto h-8 w-8 text-primary" />
-                  <p className="mt-3 font-heading text-xl font-semibold">松开以批量导入</p>
-                  <p className="mt-1 text-sm text-muted-foreground">支持 EPUB、MOBI、AZW3、PDF</p>
+              <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-2xl border-2 border-dashed border-primary/35 bg-background/80 text-center backdrop-blur-[2px] sm:flex">
+                <div className="paper-panel rounded-2xl px-8 py-6">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                  <p className="mt-3 font-heading text-xl font-semibold tracking-[-0.02em]">
+                    松开以批量导入
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    支持 EPUB、MOBI、AZW3、PDF
+                  </p>
                 </div>
               </div>
             )}
@@ -537,19 +543,21 @@ export default function ShelfPage() {
               ) : filteredBooks.length === 0 ? (
                 <div className="flex min-h-[26rem] flex-col items-center justify-center px-8 py-16 text-center">
                   <div className="relative mb-6">
-                    <div className="absolute inset-0 animate-pulse blur-2xl bg-primary/10 rounded-full" />
-                    <Search className="relative h-12 w-12 text-primary/30" />
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10 blur-2xl motion-reduce:animate-none" />
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-border/50 bg-card/80 text-primary/45 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)]">
+                      <Search className="h-7 w-7" />
+                    </div>
                   </div>
-                  <h2 className="font-heading text-2xl font-bold text-foreground tracking-tight">
+                  <h2 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
                     未找到相关书籍
                   </h2>
-                  <p className="mt-2.5 max-w-sm text-sm leading-relaxed text-muted-foreground/80">
+                  <p className="mt-2.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
                     尝试使用不同的关键词搜索，或重置当前的分类筛选与排序。
                   </p>
                   <Button
                     type="button"
                     variant="outline"
-                    className="mt-8 h-11 rounded-xl px-6 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-bold"
+                    className="mt-8 h-11 rounded-xl border-primary/20 bg-primary/5 px-6 font-semibold text-primary hover:bg-primary/10"
                     onClick={clearShelfFilters}
                   >
                     重置所有筛选
@@ -596,13 +604,17 @@ export default function ShelfPage() {
                 </div>
               )}
               {isDraggingBookFile && (
-                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/80 text-center shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--paper-edge)_70%,transparent)] ">
-                  <div className="rounded-3xl border border-primary/15 bg-card/60 px-10 py-8 shadow-[0_24px_54px_-30px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_50%,transparent)] ">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
-                      <Upload className="h-8 w-8" />
+                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/82 text-center backdrop-blur-[2px]">
+                  <div className="paper-panel rounded-3xl px-10 py-8">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Upload className="h-7 w-7" />
                     </div>
-                    <p className="font-heading text-2xl font-bold tracking-tight">松开即可导入</p>
-                    <p className="mt-1.5 text-sm text-muted-foreground/80">支持 EPUB, PDF, MOBI, AZW3</p>
+                    <p className="font-heading text-2xl font-semibold tracking-[-0.02em]">
+                      松开即可导入
+                    </p>
+                    <p className="mt-1.5 text-sm text-muted-foreground">
+                      支持 EPUB、PDF、MOBI、AZW3
+                    </p>
                   </div>
                 </div>
               )}

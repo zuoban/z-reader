@@ -189,11 +189,12 @@ export function LoadingState({
   );
 
   return (
-    <div className={cn('flex min-h-screen items-center justify-center px-6 py-12', className)}>
+    <div className={cn('flex min-h-dvh items-center justify-center px-6 py-12', className)}>
       <div
         className={cn(
           'flex flex-col items-center',
-          card && 'rounded-[2rem] border border-border/40 bg-card/50 p-12 backdrop-blur-xl'
+          card &&
+            'paper-panel paper-texture rounded-[2rem] p-10 sm:p-12'
         )}
       >
         {content}

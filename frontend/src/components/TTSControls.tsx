@@ -1333,7 +1333,10 @@ export function TTSControls({
 
                 <div className="flex flex-col gap-4 px-1 py-1">
                   <div className="flex items-center justify-between gap-3 px-1">
-                    <h3 className="text-xs font-bold tracking-wide" style={{ color: uiScheme.mutedText }}>
+                    <h3
+                      className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                      style={{ color: uiScheme.mutedText }}
+                    >
                       快捷控制
                     </h3>
                     {showSettingsPanel && (
@@ -1342,7 +1345,7 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="h-9 rounded-lg px-2.5 text-xs font-bold tracking-wide transition-all hover:scale-[1.03]"
+                        className="h-9 rounded-xl px-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
                           background: withOpacity(uiScheme.buttonBg, 0.34),
@@ -1387,11 +1390,12 @@ export function TTSControls({
                         onClick={handleStartClick}
                         disabled={isPending}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        className="h-11 w-11 rounded-full shadow-lg transition-all active:scale-90"
+                        className="h-11 w-11 rounded-full transition-all active:scale-95"
                         style={{
                           background: uiScheme.fg,
                           color: uiScheme.cardBg,
                           cursor: isPending ? 'not-allowed' : 'pointer',
+                          boxShadow: `0 12px 24px -16px ${withOpacity(uiScheme.fg, 0.45)}`,
                         }}
                       >
                         {isPending ? (

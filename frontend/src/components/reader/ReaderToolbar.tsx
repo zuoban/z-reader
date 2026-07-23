@@ -29,6 +29,7 @@ import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
 import { withOpacity } from "@/lib/reader-ui";
+import { cn } from "@/lib/utils";
 
 interface ReaderToolbarProps {
   visible: boolean;
@@ -108,6 +109,7 @@ export function ReaderToolbar({
   const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
   const mobileActionsMenuRef = useRef<HTMLDivElement>(null);
   const mobileActionsMenuId = useId();
+  const mobileActionsTitleId = useId();
 
   function closeMobileActions(returnFocus = true) {
     setMobileActionsOpen(false);
@@ -120,7 +122,7 @@ export function ReaderToolbar({
     if (!mobileActionsOpen) return;
 
     const firstMenuItem = mobileActionsMenuRef.current?.querySelector<HTMLButtonElement>(
-      '[role="menuitem"]:not(:disabled)'
+      "button:not(:disabled)"
     );
     firstMenuItem?.focus();
   }, [mobileActionsOpen]);
@@ -191,7 +193,7 @@ export function ReaderToolbar({
               <Button
                 ref={mobileActionsButtonRef}
                 aria-expanded={mobileActionsOpen}
-                aria-haspopup="menu"
+                aria-haspopup="dialog"
                 aria-label="更多阅读操作"
                 aria-controls={mobileActionsOpen ? mobileActionsMenuId : undefined}
                 className="flex h-10 w-10 items-center justify-center rounded-xl p-0 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
@@ -202,21 +204,30 @@ export function ReaderToolbar({
               >
                 <MoreHorizontal className="h-5 w-5" />
               </Button>
-              {mobileActionsOpen && (
-                <div
-                  ref={mobileActionsMenuRef}
-                  id={mobileActionsMenuId}
-                  className="absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-48 rounded-xl border p-2 text-sm shadow-[0_18px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl"
-                  data-reader-interactive="true"
-                  onKeyDown={handleMobileActionsKeyDown}
-                  role="menu"
-                  style={{
-                    background: withOpacity(uiScheme.cardBg, isDark ? 0.94 : 0.98),
-                    borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.22 : 0.14),
-                    color: uiScheme.fg,
-                  }}
-                >
-                  <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">
+              <div
+                ref={mobileActionsMenuRef}
+                id={mobileActionsMenuId}
+                aria-hidden={!mobileActionsOpen}
+                aria-labelledby={mobileActionsTitleId}
+                className={cn(
+                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-48 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-xl border p-2 text-sm shadow-[0_18px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-[opacity,transform,visibility] duration-150 ease-out scrollbar-none",
+                  mobileActionsOpen
+                    ? "visible translate-y-0 opacity-100"
+                    : "pointer-events-none invisible -translate-y-1 opacity-0"
+                )}
+                data-reader-interactive="true"
+                onKeyDown={handleMobileActionsKeyDown}
+                role="dialog"
+                style={{
+                  background: withOpacity(uiScheme.cardBg, isDark ? 0.94 : 0.98),
+                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.22 : 0.14),
+                  color: uiScheme.fg,
+                }}
+              >
+                  <div
+                    id={mobileActionsTitleId}
+                    className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground"
+                  >
                     阅读操作
                   </div>
                   <button
@@ -225,7 +236,6 @@ export function ReaderToolbar({
                       closeMobileActions(false);
                       onTocOpenChange(true);
                     }}
-                    role="menuitem"
                     type="button"
                   >
                     <List className="h-4 w-4" />
@@ -237,7 +247,6 @@ export function ReaderToolbar({
                     closeMobileActions(false);
                     onBookmarksOpenChange(true);
                   }}
-                  role="menuitem"
                   type="button"
                 >
                   <BookmarkIcon className="h-4 w-4" />
@@ -250,7 +259,6 @@ export function ReaderToolbar({
                     closeMobileActions(false);
                     onCreateBookmark();
                   }}
-                  role="menuitem"
                   type="button"
                 >
                   <BookmarkPlus className="h-4 w-4" />
@@ -264,14 +272,13 @@ export function ReaderToolbar({
                       closeMobileActions(false);
                       onSaveOffline();
                     }}
-                    role="menuitem"
                     type="button"
                   >
                     <Download className="h-4 w-4" />
                     <span>{isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}</span>
                   </button>
                 )}
-                <div onClick={() => closeMobileActions()}>
+                <div>
                   {mobileTtsControls}
                 </div>
                 <button
@@ -280,7 +287,6 @@ export function ReaderToolbar({
                     closeMobileActions(false);
                     onThemeSettingsOpenChange(true);
                   }}
-                  role="menuitem"
                   type="button"
                 >
                   <Settings className="h-4 w-4" />
@@ -292,14 +298,12 @@ export function ReaderToolbar({
                     closeMobileActions(false);
                     onToggleFullscreen();
                   }}
-                  role="menuitem"
                   type="button"
                 >
                   {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                   <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
                 </button>
               </div>
-              )}
             </div>
 
             <div data-reader-toolbar-actions="desktop" className="hidden items-center gap-1 sm:flex sm:gap-4">

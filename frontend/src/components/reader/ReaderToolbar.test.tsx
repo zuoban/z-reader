@@ -157,12 +157,13 @@ describe('ReaderToolbar', () => {
     fireEvent.click(moreButton);
 
     expect(screen.getByText('阅读操作')).toBeInTheDocument();
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('menuitem', { name: '目录' })).toHaveFocus());
+    const mobileActions = screen.getByRole('dialog', { name: '阅读操作' });
+    expect(mobileActions).toBeInTheDocument();
+    await waitFor(() => expect(within(mobileActions).getByRole('button', { name: '目录' })).toHaveFocus());
 
-    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    fireEvent.keyDown(mobileActions, { key: 'Escape' });
 
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
     await waitFor(() => expect(moreButton).toHaveFocus());
   });
 });

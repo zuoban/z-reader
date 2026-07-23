@@ -756,7 +756,7 @@ export default function ReadPage() {
               onUpdateSettings={updateTTSSettings}
               uiScheme={uiScheme}
               variant="toolbar"
-              triggerClassName="flex h-auto w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-all hover:bg-muted/50"
+              triggerClassName="flex min-h-11 w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-all hover:bg-muted/50"
               triggerStyle={{}}
               triggerContent={
                 <>

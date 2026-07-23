@@ -44,4 +44,15 @@ describe('shelf-grid', () => {
     expect(twoColWide).toBeGreaterThan(twoColNarrow);
     expect(estimateShelfRowHeight(800, 3)).toBeGreaterThan(estimateShelfCardHeight(800, 3));
   });
+
+  it('treats non-positive width as the two-column mobile layout', () => {
+    expect(getShelfColumnCount(0)).toBe(2);
+    expect(getShelfColumnCount(-1)).toBe(2);
+  });
+
+  it('includes inter-row gap in row height estimates', () => {
+    const card = estimateShelfCardHeight(960, 4);
+    const row = estimateShelfRowHeight(960, 4);
+    expect(row - card).toBe(getShelfGapPx(960));
+  });
 });

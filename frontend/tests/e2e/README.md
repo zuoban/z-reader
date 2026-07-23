@@ -5,8 +5,11 @@
 ```bash
 cd frontend
 
-# Functional e2e (auth / shelf flows)
+# Functional e2e (auth / shelf / virtual grid)
 npm run test:e2e
+
+# Virtual shelf grid only
+npx playwright test tests/e2e/shelf-virtual-grid.spec.ts
 
 # Visual regression (screenshot baselines)
 npm run test:visual
@@ -41,6 +44,21 @@ Covered surfaces:
 | `reader-auth-loading-light` | Reader auth loading chrome |
 
 API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend.
+
+## Virtual grid functional e2e
+
+- Spec: `shelf-virtual-grid.spec.ts`
+- Fixture: `mockPaginatedShelfApis` / `makeMockBooks` in `helpers/fixtures.ts`
+
+Covers:
+
+| Case | Assertion |
+| --- | --- |
+| Short-page auto load | Multiple list requests without scrolling |
+| Scroll load-more | Cursor page 2+ after scrolling to end |
+| Virtualization | Mounted rows/cards ≪ catalog size |
+| Category filter | Grid stays interactive; non-matching books gone |
+| Manual load-more | Footer button fetches next cursor page |
 
 Reader **opened book** content is not snapshotted yet (depends on real EPUB bytes +
 foliate). Prefer error/loading chrome for stable baselines.

@@ -11,6 +11,7 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:virtual": "playwright test tests/e2e/shelf-virtual-grid.spec.ts",
     "test:visual": "playwright test tests/e2e/visual-regression.spec.ts",
     "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
     "test:visual:ui": "playwright test tests/e2e/visual-regression.spec.ts --ui"

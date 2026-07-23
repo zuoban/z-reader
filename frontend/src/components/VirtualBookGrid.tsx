@@ -236,7 +236,13 @@ export function VirtualBookGrid<T>({
   const virtualRows = virtualizer.getVirtualItems();
 
   return (
-    <div ref={listRef} className={cn('relative w-full', className)}>
+    <div
+      ref={listRef}
+      data-shelf-grid="virtual"
+      data-row-count={rowCount}
+      data-column-count={columnCount}
+      className={cn('relative w-full', className)}
+    >
       <div
         className={cn('relative w-full', listClassName)}
         style={{

@@ -286,6 +286,115 @@ export async function mockPopulatedShelfApis(page: Page) {
   });
 }
 
+const PAGINATED_CATEGORIES = ['古典', '科幻', '随笔'] as const;
+
+/** Deterministic catalog for pagination / virtual-list e2e. */
+export function makeMockBooks(count: number, startIndex = 0) {
+  return Array.from({ length: count }, (_, offset) => {
+    const n = startIndex + offset + 1;
+    const category = PAGINATED_CATEGORIES[n % PAGINATED_CATEGORIES.length];
+    return {
+      id: `book-${n}`,
+      user_id: MOCK_USER.id,
+      title: `测试图书 ${n}`,
+      author: `作者 ${((n - 1) % 12) + 1}`,
+      filename: `book-${n}.epub`,
+      format: 'epub',
+      size: 1_000_000 + n * 1000,
+      category,
+      created_at: `2026-01-${String((n % 28) + 1).padStart(2, '0')}T10:00:00Z`,
+      processing_state: 'ready' as const,
+    };
+  });
+}
+
+export type PaginatedShelfMock = {
+  /** Cursor values requested for list/search pages (null = first page). */
+  listCursors: Array<string | null>;
+  total: number;
+  books: ReturnType<typeof makeMockBooks>;
+};
+
+/**
+ * Cursor-paginated shelf APIs for virtual grid / infinite-load tests.
+ * Cursor is a decimal offset string; optional chunkSize caps each page
+ * (simulates short pages so fill-viewport load-more can fire without scrolling).
+ */
+export async function mockPaginatedShelfApis(
+  page: Page,
+  options: { total?: number; chunkSize?: number } = {}
+): Promise<PaginatedShelfMock> {
+  const total = options.total ?? 80;
+  const chunkSize = options.chunkSize;
+  const books = makeMockBooks(total);
+  const state: PaginatedShelfMock = {
+    listCursors: [],
+    total,
+    books,
+  };
+
+  const categoryCounts = books.reduce<Record<string, number>>((acc, book) => {
+    if (book.category) {
+      acc[book.category] = (acc[book.category] ?? 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  await mockShelfCommon(page);
+
+  await page.route('**/api/books**', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+
+    if (path.endsWith('/summary')) {
+      await json(route, {
+        total,
+        uncategorized: 0,
+        categories: categoryCounts,
+      });
+      return;
+    }
+    if (path.includes('/cover')) {
+      await route.fulfill({ status: 404, body: 'not found' });
+      return;
+    }
+
+    if (path.endsWith('/books') || path.endsWith('/search')) {
+      const cursorParam = url.searchParams.get('cursor');
+      const requestedLimit = Number(url.searchParams.get('limit') || '50');
+      const limit = Math.max(
+        1,
+        chunkSize ? Math.min(chunkSize, requestedLimit) : requestedLimit
+      );
+      const start = cursorParam ? Number.parseInt(cursorParam, 10) || 0 : 0;
+      state.listCursors.push(cursorParam);
+      const pageBooks = books.slice(start, start + limit);
+      const nextStart = start + pageBooks.length;
+      await json(route, {
+        books: pageBooks,
+        next_cursor: nextStart < total ? String(nextStart) : undefined,
+      });
+      return;
+    }
+
+    const bookMatch = path.match(/\/api\/books\/([^/]+)$/);
+    if (bookMatch) {
+      const book = books.find((item) => item.id === bookMatch[1]);
+      if (book) {
+        await json(route, book);
+        return;
+      }
+    }
+    await route.fallback();
+  });
+
+  return state;
+}
+
 export async function mockShelfLoadError(page: Page) {
   await page.route('**/api/progress**', async (route) => {
     await json(route, []);

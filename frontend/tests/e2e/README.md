@@ -8,8 +8,11 @@ cd frontend
 # All Playwright specs (functional + visual)
 npm run test:e2e
 
-# CI gate: auth + virtual grid + reader + shelf→reader + a11y (no screenshots)
+# CI gate: auth + virtual grid + reader + shelf→reader + search + a11y
 npm run test:e2e:ci
+
+# Shelf search only
+npm run test:e2e:search
 
 # Accessibility (axe serious/critical only)
 npm run test:e2e:a11y
@@ -67,6 +70,18 @@ API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend
 
 Gate policy: fail on **serious/critical** only; moderate/minor are logged.
 
+## Shelf search e2e
+
+- Spec: `shelf-search.spec.ts`
+- Fixture: `mockPopulatedShelfApis` filters `/api/books/search?q=`
+
+| Case | Assertion |
+| --- | --- |
+| Title search | Server search request + only matching cards |
+| Author search | e.g. 刘慈欣 → 三体 |
+| Clear search | Restore full shelf |
+| Empty + reset | Empty state then 重置所有筛选 |
+
 ## Shelf → reader navigation e2e
 
 - Spec: `shelf-to-reader.spec.ts`
@@ -123,7 +138,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Specs | When |
 | --- | --- | --- |
 | Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` + `reader-happy-path` + `shelf-to-reader` + `a11y` (`npm run test:e2e:ci`) | every push/PR |
+| Frontend E2E (functional) | `auth-shelf` + virtual grid + reader + shelf→reader + **search** + a11y | every push/PR |
 | Frontend Visual Regression | `visual-regression.spec.ts` | manual `workflow_dispatch` + `run_visual` |
 
 Why visual is optional by default:

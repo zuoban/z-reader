@@ -271,7 +271,20 @@ export async function mockPopulatedShelfApis(page: Page) {
       await route.fulfill({ status: 404, body: 'not found' });
       return;
     }
-    if (path.endsWith('/books') || path.endsWith('/search')) {
+    if (path.endsWith('/search')) {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      const matched = MOCK_BOOKS.filter((book) => {
+        if (!q) return true;
+        const haystack = [book.title, book.author, book.filename, book.category, book.format]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+      await json(route, { books: matched });
+      return;
+    }
+    if (path.endsWith('/books')) {
       await json(route, { books: MOCK_BOOKS });
       return;
     }

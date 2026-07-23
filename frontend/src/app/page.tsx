@@ -111,17 +111,17 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border/60 py-8">
+      <footer className="border-t border-border/55 bg-card/25 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 text-sm text-muted-foreground sm:px-7 md:flex-row lg:px-10">
-          <div className="flex items-center gap-2">
-            <BrandGlyph className="h-5 w-5 opacity-80" />
-            <span>Z Reader · 一款轻量级 EPUB 阅读器</span>
+          <div className="flex items-center gap-2.5">
+            <BrandGlyph className="h-5 w-5 opacity-85" />
+            <span className="font-medium text-foreground/75">Z Reader · 安静的私有书库</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 text-[13px]">
             <span>开源</span>
-            <span className="h-1 w-1 rounded-full bg-border" />
+            <span className="h-1 w-1 rounded-full bg-border" aria-hidden="true" />
             <span>自托管</span>
-            <span className="h-1 w-1 rounded-full bg-border" />
+            <span className="h-1 w-1 rounded-full bg-border" aria-hidden="true" />
             <span>隐私保护</span>
           </div>
         </div>

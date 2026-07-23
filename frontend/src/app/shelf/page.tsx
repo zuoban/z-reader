@@ -612,15 +612,20 @@ export default function ShelfPage() {
               <div
                 className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
               >
-                <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-primary/20 bg-card/92 px-4 py-3 shadow-[0_20px_50px_-28px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_48%,transparent)] backdrop-blur-xl sm:px-6 sm:py-3.5">
-                  <div className="flex min-w-0 items-center gap-3.5 border-r border-border/15 pr-4 sm:pr-6">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-primary/20 bg-card/94 px-4 py-3 shadow-[0_20px_50px_-28px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_48%,transparent)] backdrop-blur-xl sm:px-6 sm:py-3.5">
+                  <div className="flex min-w-0 items-center gap-3.5 border-r border-border/20 pr-4 sm:pr-6">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
                       <CheckSquare className="h-4.5 w-4.5" />
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-bold tracking-[0.15em] text-muted-foreground/60 uppercase">已选中</span>
-                      <span className="truncate text-sm font-bold text-foreground">
-                        {selectedCount} <span className="text-[11px] font-medium text-muted-foreground ml-0.5">本书籍</span>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                        已选中
+                      </span>
+                      <span className="truncate text-sm font-semibold text-foreground">
+                        {selectedCount}
+                        <span className="ml-1 text-[11px] font-medium text-muted-foreground">
+                          本书籍
+                        </span>
                       </span>
                     </div>
                   </div>

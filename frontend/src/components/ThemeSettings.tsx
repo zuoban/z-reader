@@ -193,9 +193,7 @@ function SliderField({
         >
           {label}
         </Label>
-        <span
-          className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold tabular-nums text-primary"
-        >
+        <span className="rounded-lg border border-primary/15 bg-primary/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary">
           {valueLabel}
         </span>
       </div>

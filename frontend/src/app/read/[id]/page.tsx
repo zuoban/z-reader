@@ -829,16 +829,17 @@ export default function ReadPage() {
             >
               <div
                 className="reader-page-frame h-full w-full overflow-hidden"
-                style={{
-                  background: "transparent",
-                }}
+                style={{ background: "transparent" }}
               >
                 <div
                   ref={containerRef}
                   className="reader-page-surface h-full w-full overflow-hidden"
                   style={{
                     background: uiScheme.bg,
-                    boxShadow: "none",
+                    boxShadow: `
+                      inset 0 1px 0 ${withOpacity(uiScheme.fg, theme.preset === "dark" ? 0.04 : 0.03)},
+                      inset 0 -1px 0 ${withOpacity(uiScheme.fg, theme.preset === "dark" ? 0.05 : 0.025)}
+                    `,
                   }}
                 />
               </div>
@@ -855,15 +856,34 @@ export default function ReadPage() {
             {zoomedImage && (
               <div
                 aria-modal="true"
-                className="fixed inset-0 z-[var(--z-reader-overlay)] flex min-h-svh items-center justify-center bg-[#1a1612]/80 p-3  sm:p-6"
+                aria-label="图片预览"
+                className="fixed inset-0 z-[var(--z-reader-overlay)] flex min-h-svh items-center justify-center p-3 sm:p-6"
                 data-reader-interactive="true"
                 role="dialog"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at center, rgba(40,32,24,0.42) 0%, transparent 62%),
+                    rgba(20,18,16,0.88)
+                  `,
+                  backdropFilter: "blur(8px) saturate(1.05)",
+                }}
+                onClick={handleImageClose}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    handleImageClose();
+                  }
+                }}
               >
                 <button
                   aria-label="关闭图片预览"
-                  className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-xl border border-white/16 bg-white/12 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_28px_-20px_rgba(0,0,0,0.8)]  transition-all hover:scale-[1.04] hover:bg-white/18 sm:right-5 sm:top-5"
+                  autoFocus
+                  className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/18 bg-black/35 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_28px_-18px_rgba(0,0,0,0.75)] transition-all hover:scale-[1.04] hover:bg-black/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:right-5 sm:top-5"
                   type="button"
-                  onClick={handleImageClose}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleImageClose();
+                  }}
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -888,15 +908,20 @@ export default function ReadPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt={zoomedImage.alt || "放大的书籍图片"}
-                    className="max-h-full max-w-full select-none object-contain shadow-[0_24px_80px_-36px_rgba(0,0,0,0.9)]"
+                    className="max-h-full max-w-full select-none rounded-lg object-contain shadow-[0_28px_80px_-28px_rgba(0,0,0,0.85)] ring-1 ring-white/10"
                     draggable={false}
                     src={zoomedImage.src}
                     style={{
                       transform: `translate3d(${imageZoom.x}px, ${imageZoom.y}px, 0) scale(${imageZoom.scale})`,
-                      transition: imageInteracting ? "none" : "transform 120ms ease-out",
+                      transition: imageInteracting
+                        ? "none"
+                        : "transform 160ms cubic-bezier(0.32, 0.72, 0, 1)",
                     }}
                   />
                 </div>
+                <p className="reader-image-hint pointer-events-none absolute inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] text-center text-[11px] font-medium tracking-wide text-white/60">
+                  双击缩放 · 拖动查看 · Esc 关闭
+                </p>
               </div>
             )}
           </div>

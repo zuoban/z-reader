@@ -553,6 +553,14 @@ foliate-view::part(filter) {
     color: var(--primary);
   }
 
+  .reader-page-surface {
+    transition: background-color var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .reader-image-hint {
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  }
+
   .shelf-filter-chip {
     display: inline-flex;
     min-height: 2.75rem;

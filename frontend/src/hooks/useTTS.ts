@@ -12,6 +12,23 @@ import {
   isSkippableTTSText,
   loadTTSSettings,
 } from '@/lib/tts';
+import {
+  TTS_LOOKAHEAD_SENTENCE_COUNT,
+  TTS_MAX_NAV_RETRIES,
+  TTS_NAV_RETRY_DELAY_MS,
+  TTS_PRELOAD_SENTENCE_COUNT,
+  TTS_SESSION_TTL,
+  createTTSQueueSegmentId,
+  formatRemainingTime,
+  formatSleepTimerRemaining,
+  getTTSSessionKey,
+  normalizeMetadataText,
+  type TTSQueueSegment,
+  type TTSQueueSegmentState,
+  type TTSSessionSnapshot,
+  type TTSSleepTimer,
+  type TTSVisibleStatus,
+} from '@/lib/tts-helpers';
 import { FoliateView } from '@/lib/types';
 import { useTTSForegroundResume } from '@/hooks/useTTSForegroundResume';
 import { useTTSMediaSession } from '@/hooks/useTTSMediaSession';
@@ -19,92 +36,10 @@ import { useTTSResumePrompt } from '@/hooks/useTTSResumePrompt';
 import { useTTSVoices } from '@/hooks/useTTSVoices';
 import { useWakeLock } from '@/hooks/useWakeLock';
 
-// TTS 导航重试配置
-const MAX_NAV_RETRIES = 8;
-const NAV_RETRY_DELAY_MS = 500;
-
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
   onHighlight?: (range: Range) => void;
   bookId?: string;
-}
-
-interface TTSSessionSnapshot {
-  cfi: string;
-  markName?: string;
-  markText?: string;
-  timestamp: number;
-  settings: TTSSettings;
-}
-
-type TTSQueueSegmentState =
-  | 'idle'
-  | 'queued'
-  | 'loading'
-  | 'ready'
-  | 'playing'
-  | 'failed'
-  | 'skipped';
-
-interface TTSQueueSegment {
-  id: string;
-  index: number;
-  source: 'current' | 'lookahead';
-  ssml: string;
-  enhancedSSML: string;
-  fallbackSSML: string;
-  text: string;
-  state: TTSQueueSegmentState;
-  createdAt: number;
-}
-
-interface TTSVisibleStatus {
-  headline: string;
-  detail?: string;
-  tone?: 'idle' | 'active' | 'warning' | 'error';
-}
-
-type TTSSleepTimerMode = 'off' | 'minutes';
-
-interface TTSSleepTimer {
-  mode: TTSSleepTimerMode;
-  minutes?: number;
-  endsAt?: number;
-  label: string;
-}
-
-const TTS_SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
-const TTS_LOOKAHEAD_SENTENCE_COUNT = 6;
-const TTS_PRELOAD_SENTENCE_COUNT = 5;
-
-function getTTSSessionKey(bookId?: string): string | null {
-  return bookId ? `z-reader-tts-session:${bookId}` : null;
-}
-
-function createTTSQueueSegmentId(ssml: string, index: number): string {
-  let hash = 0;
-  for (let i = 0; i < ssml.length; i += 1) {
-    hash = Math.imul(31, hash) + ssml.charCodeAt(i);
-    hash |= 0;
-  }
-  return `${index}:${Math.abs(hash).toString(36)}`;
-}
-
-function formatRemainingTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '即将结束';
-
-  const rounded = Math.ceil(seconds);
-  if (rounded < 60) return `剩余 ${rounded} 秒`;
-
-  const minutes = Math.floor(rounded / 60);
-  const restSeconds = rounded % 60;
-  return restSeconds > 0 ? `剩余 ${minutes} 分 ${restSeconds} 秒` : `剩余 ${minutes} 分`;
-}
-
-function formatSleepTimerRemaining(endsAt: number): string {
-  const remainingSeconds = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-  if (remainingSeconds <= 0) return '即将停止';
-  return formatRemainingTime(remainingSeconds);
 }
 
 export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
@@ -262,36 +197,6 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       tone: 'active',
     });
   }, [clearSleepTimer, clearSleepTimerTimeout, updateVisibleStatus]);
-
-  // Stable recursive parser — useCallback cannot reference itself during init.
-  const normalizeMetadataText = (value: unknown): string => {
-    if (typeof value === 'string') {
-      return value.trim();
-    }
-
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-
-    if (Array.isArray(value)) {
-      return value
-        .map(normalizeMetadataText)
-        .filter(Boolean)
-        .join(' / ');
-    }
-
-    if (value && typeof value === 'object') {
-      const record = value as Record<string, unknown>;
-      return (
-        normalizeMetadataText(record.name) ||
-        normalizeMetadataText(record.value) ||
-        normalizeMetadataText(record.label) ||
-        normalizeMetadataText(record.text)
-      );
-    }
-
-    return '';
-  };
 
   const updateSettings = useCallback((newSettings: Partial<TTSSettings>) => {
     setSettings(prev => {
@@ -686,7 +591,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
       await view.prev?.();
     }
 
-    await new Promise((resolve) => window.setTimeout(resolve, NAV_RETRY_DELAY_MS));
+    await new Promise((resolve) => window.setTimeout(resolve, TTS_NAV_RETRY_DELAY_MS));
 
     const afterContent = view.renderer?.getContents?.()[0];
     const afterDoc = afterContent?.doc;
@@ -720,7 +625,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     let inited = await ensureTTS();
     if (!inited) return false;
 
-    for (let attempt = 0; attempt < MAX_NAV_RETRIES; attempt += 1) {
+    for (let attempt = 0; attempt < TTS_MAX_NAV_RETRIES; attempt += 1) {
       let ssml = view.tts?.next?.();
 
       if (!ssml) {
@@ -799,13 +704,13 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     let inited = await ensureTTS();
     if (!inited) return false;
 
-    for (let attempt = 0; attempt < MAX_NAV_RETRIES; attempt += 1) {
+    for (let attempt = 0; attempt < TTS_MAX_NAV_RETRIES; attempt += 1) {
       let ssml = view.tts?.prev?.();
 
       if (!ssml) {
         try {
           await view.prev?.();
-          await new Promise(r => setTimeout(r, NAV_RETRY_DELAY_MS));
+          await new Promise(r => setTimeout(r, TTS_NAV_RETRY_DELAY_MS));
 
           inited = await ensureTTS();
           if (inited) {

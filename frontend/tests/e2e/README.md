@@ -8,7 +8,7 @@ cd frontend
 # All Playwright specs (functional + visual)
 npm run test:e2e
 
-# CI gate: auth + virtual grid + reader + a11y (no screenshots)
+# CI gate: auth + virtual grid + reader + shelf→reader + a11y (no screenshots)
 npm run test:e2e:ci
 
 # Accessibility (axe serious/critical only)
@@ -67,6 +67,16 @@ API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend
 
 Gate policy: fail on **serious/critical** only; moderate/minor are logged.
 
+## Shelf → reader navigation e2e
+
+- Spec: `shelf-to-reader.spec.ts`
+- Reuses `mockReaderHappyPath` + `fixtures/sample.epub`
+
+| Case | Assertion |
+| --- | --- |
+| Card → open → back | Shelf click opens `/read/:id`, EPUB loads, back returns to shelf |
+| Correct book id | Shelf card for `book-42` navigates to `/read/book-42` |
+
 ## Reader happy-path e2e
 
 - Spec: `reader-happy-path.spec.ts`
@@ -113,7 +123,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Specs | When |
 | --- | --- | --- |
 | Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` + `reader-happy-path` + `a11y` (`npm run test:e2e:ci`) | every push/PR |
+| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` + `reader-happy-path` + `shelf-to-reader` + `a11y` (`npm run test:e2e:ci`) | every push/PR |
 | Frontend Visual Regression | `visual-regression.spec.ts` | manual `workflow_dispatch` + `run_visual` |
 
 Why visual is optional by default:

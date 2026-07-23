@@ -12,6 +12,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      run_visual:
+        description: Run visual regression (Linux baselines; optional)
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   dependency-review:
@@ -29,6 +38,7 @@ jobs:
   backend-test:
     name: Backend Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -55,6 +65,7 @@ jobs:
   frontend-lint:
     name: Frontend Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -78,6 +89,7 @@ jobs:
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs:
       - frontend-lint
 
@@ -103,6 +115,7 @@ jobs:
   frontend-unit-test:
     name: Frontend Unit Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -124,8 +137,9 @@ jobs:
         run: npm run test:unit
 
   frontend-e2e-test:
-    name: Frontend E2E Test
+    name: Frontend E2E (functional)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs:
       - frontend-lint
 
@@ -144,17 +158,106 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install Playwright browser
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        # Cache hit: browsers restored, still need OS deps on the runner.
+        # Cache miss: download browsers + install OS deps.
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
-      - name: Run frontend E2E tests
+      - name: Run functional E2E tests
         working-directory: frontend
-        run: npm run test:e2e
+        env:
+          CI: true
+        # Auth + virtual grid only. Visual baselines are OS/font-sensitive and
+        # stay on an optional job until Linux snapshots are committed.
+        run: npm run test:e2e:ci
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  frontend-visual-test:
+    name: Frontend Visual Regression
+    # Optional: macOS/local baselines do not match Ubuntu fonts by default.
+    # Enable via Actions → CI → Run workflow → run_visual.
+    if: github.event_name == 'workflow_dispatch' && inputs.run_visual == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs:
+      - frontend-lint
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+
+      - name: Run visual regression
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm run test:visual -- --workers=1
+
+      - name: Upload visual diff artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-visual-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            frontend/tests/e2e/visual-regression.spec.ts-snapshots
+          retention-days: 7
+          if-no-files-found: ignore
 
   docker-build:
     name: Docker Build Check
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs:
       - backend-test
       - frontend-build

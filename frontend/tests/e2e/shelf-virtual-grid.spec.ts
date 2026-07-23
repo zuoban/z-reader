@@ -80,10 +80,18 @@ test.describe('shelf virtual grid', () => {
 
     expect(mock.listCursors.some((cursor) => cursor === '50')).toBe(true);
 
-    await expect(page.getByText(/已载入 \d+ \/ 120 本/)).toBeVisible({ timeout: 10_000 });
-    const loadedLabel = await page.getByText(/已载入 \d+ \/ 120 本/).textContent();
-    const loaded = Number(loadedLabel?.match(/已载入 (\d+)/)?.[1] ?? 0);
-    expect(loaded).toBeGreaterThan(50);
+    // Wait until the second page is merged into UI (footer count), not just requested.
+    await expect
+      .poll(
+        async () => {
+          const label = page.getByText(/已载入 \d+ \/ 120 本/);
+          if ((await label.count()) === 0) return 0;
+          const text = await label.textContent();
+          return Number(text?.match(/已载入 (\d+)/)?.[1] ?? 0);
+        },
+        { timeout: 15_000 }
+      )
+      .toBeGreaterThan(50);
   });
 
   test('virtualizes long shelves so only near-viewport cards mount', async ({ page }) => {
@@ -175,9 +183,16 @@ test.describe('shelf virtual grid', () => {
 
     expect(mock.listCursors.some((cursor) => cursor === '50')).toBe(true);
 
-    await expect(page.getByText(/已载入 \d+ \/ 110 本/)).toBeVisible({ timeout: 10_000 });
-    const loadedLabel = await page.getByText(/已载入 \d+ \/ 110 本/).textContent();
-    const loaded = Number(loadedLabel?.match(/已载入 (\d+)/)?.[1] ?? 0);
-    expect(loaded).toBeGreaterThan(50);
+    await expect
+      .poll(
+        async () => {
+          const label = page.getByText(/已载入 \d+ \/ 110 本/);
+          if ((await label.count()) === 0) return 0;
+          const text = await label.textContent();
+          return Number(text?.match(/已载入 (\d+)/)?.[1] ?? 0);
+        },
+        { timeout: 15_000 }
+      )
+      .toBeGreaterThan(50);
   });
 });

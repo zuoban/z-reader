@@ -26,9 +26,22 @@ npm run dev
 
 ```bash
 cd backend && go test ./...
-cd frontend && npm run lint
-cd frontend && npm run build
+
+cd frontend
+npm run lint:strict
+npm run test:unit
+npm run build
+
+# 功能 E2E（与 CI 门禁一致；首次需安装浏览器）
+npx playwright install chromium
+npm run test:e2e:ci
+
+# 改了纸质 UI / 布局时再跑视觉回归
+# npm run test:visual
 ```
+
+CI 在 push/PR 会跑上述门禁中的后端测试、lint、unit、功能 E2E 与前端 build。  
+视觉回归默认不进 CI（跨 OS 截图不稳定）；需要时可在 Actions 手动触发并勾选 `run_visual`。
 
 如果你的改动影响了 API、环境变量、部署方式或交互行为，请同步更新文档。
 

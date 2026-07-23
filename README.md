@@ -153,8 +153,13 @@ z-reader/
 
 仓库当前包含两条 GitHub Actions 工作流：
 
-- `CI`
-  在 `main` 分支 push、PR 和手动触发时运行后端测试、前端 lint、Docker 构建检查
+- `CI`（`.github/workflows/ci.yml`）
+  - 触发：`main` push、PR、`workflow_dispatch`
+  - **Backend**：`go test` / `go vet` / govulncheck
+  - **Frontend**：lint、build、Vitest unit、功能 E2E（auth + 虚拟书架）
+  - **Docker**：镜像构建检查（不推送）
+  - **Visual**（可选）：手动运行 workflow 并勾选 `run_visual`  
+    截图基线对 OS/字体敏感，默认不进门禁；本地用 `npm run test:visual`
 - `Build and Push Docker Image`
   在 `main` 分支 push 和手动触发时构建并推送镜像到 `ghcr.io`
 

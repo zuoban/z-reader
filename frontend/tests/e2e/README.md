@@ -5,11 +5,14 @@
 ```bash
 cd frontend
 
-# Functional e2e (auth / shelf / virtual grid)
+# All Playwright specs (functional + visual)
 npm run test:e2e
 
+# CI gate: auth + virtual grid only (no screenshots)
+npm run test:e2e:ci
+
 # Virtual shelf grid only
-npx playwright test tests/e2e/shelf-virtual-grid.spec.ts
+npm run test:e2e:virtual
 
 # Visual regression (screenshot baselines)
 npm run test:visual
@@ -66,12 +69,28 @@ foliate). Prefer error/loading chrome for stable baselines.
 ## Updating snapshots
 
 1. Make the intentional UI change.
-2. Run `npm run test:visual:update`.
+2. Run `npm run test:visual:update` on the same OS you use for review (or Linux if CI visual is enabled).
 3. Review PNG diffs in the snapshots folder / Playwright report.
 4. Commit updated baselines with the UI change.
 
 ## CI notes
 
-- Use a fixed Chromium binary when possible (`PLAYWRIGHT_EXECUTABLE_PATH`).
-- Prefer Linux CI agents for reproducible font rasterization.
-- On first CI setup, generate baselines on the same OS you use in CI.
+GitHub Actions (`.github/workflows/ci.yml`):
+
+| Job | Specs | When |
+| --- | --- | --- |
+| Frontend Unit Test | Vitest | every push/PR |
+| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` (`npm run test:e2e:ci`) | every push/PR |
+| Frontend Visual Regression | `visual-regression.spec.ts` | manual `workflow_dispatch` + `run_visual` |
+
+Why visual is optional by default:
+
+- Screenshot pixels differ across macOS vs Ubuntu fonts and antialiasing.
+- Baselines in-repo were captured on developer machines; promoting them to a
+  hard CI gate requires regenerating on `ubuntu-latest` and committing those PNGs.
+
+Tips:
+
+- Use `PLAYWRIGHT_EXECUTABLE_PATH` only when pinning a custom Chromium.
+- On failure, CI uploads `playwright-report` / `test-results` artifacts (7 days).
+- Playwright browsers are cached via `~/.cache/ms-playwright`.

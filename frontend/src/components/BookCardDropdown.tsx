@@ -70,7 +70,7 @@ export function BookCardDropdown({
         aria-label="更多操作"
         title="更多操作"
         className={cn(
-          'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-transparent text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90 sm:h-10 sm:w-10',
+          'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-transparent text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-90 sm:h-10 sm:w-10',
           triggerClassName
         )}
         onClick={(e) => e.stopPropagation()}
@@ -82,19 +82,19 @@ export function BookCardDropdown({
         align="start"
         alignOffset={0}
         sideOffset={10}
-        className="w-[16.5rem] overflow-hidden rounded-[20px] border border-border/55 bg-popover/95 p-1.5 shadow-[0_12px_38px_rgba(0,0,0,0.08)] backdrop-blur-xl font-sans"
+        className="app-dialog-shell paper-texture w-[16.5rem] overflow-hidden rounded-2xl border p-1.5 font-sans backdrop-blur-xl"
       >
-        <div className="px-3.5 pb-2.5 pt-3.5">
-          <div className="mb-3.5 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-bold tracking-wider text-muted-foreground/80 uppercase">
+        <div className="px-3 pb-2.5 pt-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               书籍详情
             </span>
-            <div className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+            <div className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-primary-foreground">
               {formatLabel}
             </div>
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-border/10 bg-[var(--shelf-detail-surface)] px-3.5 py-3.5">
+          <div className="app-surface-panel space-y-3 rounded-xl px-3.5 py-3">
             <DetailRow
               icon={<HardDrive className="h-4 w-4 stroke-[1.8]" />}
               label="大小"
@@ -113,7 +113,7 @@ export function BookCardDropdown({
           </div>
         </div>
 
-        <DropdownMenuSeparator className="mx-2.5 my-1.5 bg-border/50" />
+        <DropdownMenuSeparator className="mx-2.5 my-1.5 bg-border/55" />
 
         <div className="p-1">
           <DropdownMenuItem
@@ -121,11 +121,11 @@ export function BookCardDropdown({
               e.stopPropagation();
               onCategoryClick();
             }}
-            className="flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors focus:bg-secondary/80 focus:text-foreground"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors focus:bg-secondary/80 focus:text-foreground"
           >
-            <Tag className="h-4 w-4 text-muted-foreground/75 stroke-[1.8]" />
+            <Tag className="h-4 w-4 stroke-[1.8] text-muted-foreground" />
             <span>设置分类</span>
-            <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/40 stroke-[1.8]" />
+            <ChevronRight className="ml-auto h-3.5 w-3.5 stroke-[1.8] text-muted-foreground/55" />
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -135,11 +135,11 @@ export function BookCardDropdown({
             }}
             disabled={isDeleting}
             variant="destructive"
-            className="flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors"
           >
             <Trash2 className="h-4 w-4 stroke-[1.8]" />
             <span>{isDeleting ? '删除中...' : '删除图书'}</span>
-            <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-40 stroke-[1.8]" />
+            <ChevronRight className="ml-auto h-3.5 w-3.5 stroke-[1.8] opacity-45" />
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

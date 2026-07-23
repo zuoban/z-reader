@@ -44,13 +44,18 @@ const SHORTCUT_GROUPS = [
 function KeyCap({ value, uiScheme }: { value: string; uiScheme: ThemeColors }) {
   return (
     <kbd
-      className="inline-flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[11px] font-black tabular-nums shadow-sm"
+      className="inline-flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[11px] font-semibold tabular-nums tracking-tight"
       style={{
-        background:
-          `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.06)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.58)}`,
-        border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.26)}`,
+        background: `
+          linear-gradient(145deg, ${withOpacity(uiScheme.fg, 0.05)} 0%, transparent 42%),
+          ${withOpacity(uiScheme.buttonBg, 0.62)}
+        `,
+        border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.28)}`,
         color: uiScheme.fg,
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 16px -14px ${withOpacity(uiScheme.fg, 0.22)}`,
+        boxShadow: `
+          inset 0 1px 0 ${withOpacity("#ffffff", 0.16)},
+          0 6px 14px -12px ${withOpacity(uiScheme.fg, 0.28)}
+        `,
       }}
     >
       {value}
@@ -153,9 +158,9 @@ export function ReaderShortcutsSheet({
 
         <div className="app-sheet-body space-y-5 px-5 py-5 sm:px-6">
           {SHORTCUT_GROUPS.map((group) => (
-            <section key={group.title} className="space-y-3">
+            <section key={group.title} className="space-y-2.5">
               <h3
-                className="text-[11px] font-black uppercase tracking-[0.16em]"
+                className="text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: withOpacity(uiScheme.fg, 0.48) }}
               >
                 {group.title}
@@ -164,18 +169,27 @@ export function ReaderShortcutsSheet({
                 {group.items.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[1.15rem] p-3"
+                    className="rounded-2xl p-3.5"
                     style={{
-                      background: surface.surfaceSoft,
-                      boxShadow: `inset 0 0 0 1px ${surface.hairline}`,
+                      background: `
+                        linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.03)} 0%, transparent 55%),
+                        ${surface.surfaceSoft}
+                      `,
+                      boxShadow: `
+                        inset 0 0 0 1px ${surface.hairline},
+                        inset 0 1px 0 ${withOpacity("#ffffff", 0.08)}
+                      `,
                     }}
                   >
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {item.keys.map((key) => (
                         <KeyCap key={key} value={key} uiScheme={uiScheme} />
                       ))}
                     </div>
-                    <p className="mt-2 text-sm font-bold" style={{ color: uiScheme.fg }}>
+                    <p
+                      className="mt-2.5 text-sm font-semibold tracking-tight"
+                      style={{ color: uiScheme.fg }}
+                    >
                       {item.label}
                     </p>
                   </div>

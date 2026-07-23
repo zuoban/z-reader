@@ -27,7 +27,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
       <DropdownMenuTrigger
         aria-label="书籍排序方式"
         className={cn(
-          'group flex h-12 w-full items-center justify-between rounded-xl border border-transparent bg-shelf-surface-soft px-4 pr-3 text-[14px] font-medium transition-all hover:bg-shelf-surface-hover focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 dark:border-white/8 dark:bg-white/[0.055] dark:hover:bg-white/[0.075]',
+          'group flex h-12 w-full items-center justify-between rounded-xl border border-transparent bg-shelf-surface-soft px-4 pr-3 text-[14px] font-medium transition-all hover:bg-shelf-surface-hover focus-visible:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 dark:border-white/8 dark:bg-white/[0.055] dark:hover:bg-white/[0.075]',
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -44,7 +44,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="min-w-[140px] rounded-xl border border-border/40 bg-popover p-1 shadow-lg backdrop-blur-md"
+        className="min-w-[10rem] rounded-xl border border-border/50 bg-popover/96 p-1.5 shadow-[0_18px_42px_-28px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_45%,transparent)] backdrop-blur-md"
       >
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem
@@ -54,9 +54,9 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
               setOpen(false);
             }}
             className={cn(
-              'cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors focus:bg-secondary',
+              'min-h-10 cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors focus:bg-secondary',
               value === option.value
-                ? 'bg-secondary font-medium text-foreground'
+                ? 'bg-secondary font-semibold text-foreground'
                 : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
             )}
           >

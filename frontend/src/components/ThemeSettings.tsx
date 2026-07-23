@@ -151,12 +151,21 @@ function ValuePill({ label, active, onClick, uiScheme }: { label: string; active
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "touch-control flex-1 rounded-[1.25rem] px-3 py-2.5 text-[13px] font-bold transition-all active:scale-[0.96]",
-        active ? "shadow-md" : "hover:bg-muted/40"
+        "touch-control flex-1 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
       )}
       style={{
-        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.72),
-        background: active ? withOpacity(uiScheme.buttonBg, 0.82) : withOpacity(uiScheme.buttonBg, 0.4),
+        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.62),
+        background: active
+          ? withOpacity(uiScheme.cardBg, 0.9)
+          : withOpacity(uiScheme.buttonBg, 0.32),
+        border: `1px solid ${
+          active
+            ? withOpacity(uiScheme.cardBorder, 0.34)
+            : withOpacity(uiScheme.cardBorder, 0.12)
+        }`,
+        boxShadow: active
+          ? `0 8px 16px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 ${withOpacity("#ffffff", 0.12)}`
+          : "none",
       }}
     >
       {label}

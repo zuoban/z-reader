@@ -21,7 +21,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-border/40 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      'flex h-10 w-full items-center justify-between whitespace-nowrap rounded-xl border border-border/55 bg-card/80 px-3.5 py-2 text-sm shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] placeholder:text-muted-foreground transition-[border-color,box-shadow,background-color] focus:outline-none focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
       className
     )}
     {...props}
@@ -79,7 +79,7 @@ const SelectContent = React.forwardRef<
       <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-[var(--z-popover)] max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-border/40 bg-background text-popover-foreground shadow-sm',
+        'relative z-[var(--z-popover)] max-h-96 min-w-[8rem] overflow-hidden rounded-xl border border-border/55 bg-popover/96 text-popover-foreground shadow-[0_20px_48px_-32px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_46%,transparent)] backdrop-blur-md',
         className
       )}
       position={position}
@@ -88,7 +88,7 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          'p-1',
+          'p-1.5',
           position === 'popper' &&
             'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
         )}

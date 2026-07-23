@@ -254,22 +254,31 @@ export default function ShelfPage() {
   if (isLoading || !isAuthenticated) {
     return (
       <AppScreen ambient="shelf">
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-            <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px] animate-pulse" />
-            <div className="absolute -right-[10%] -bottom-[10%] h-[40%] w-[40%] rounded-full bg-accent/10 blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div
+          className="flex min-h-dvh items-center justify-center"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label="正在加载书库"
+        >
+          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-50">
+            <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px] animate-pulse motion-reduce:animate-none" />
+            <div
+              className="absolute -right-[10%] -bottom-[10%] h-[40%] w-[40%] rounded-full bg-accent/15 blur-[120px] animate-pulse motion-reduce:animate-none"
+              style={{ animationDelay: '1s' }}
+            />
           </div>
-          <div className="relative flex flex-col items-center gap-6">
-            <div className="relative">
-              <div className="absolute inset-0 animate-ping opacity-15 bg-primary rounded-full blur-xl" />
-              <LoadingSpinner className="relative h-11 w-11 border-primary/25" />
-            </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <p className="text-sm font-bold tracking-widest text-foreground/80 uppercase">Loading Library</p>
-              <div className="relative h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
+          <div className="relative flex flex-col items-center gap-5">
+            <LoadingSpinner className="h-10 w-10 border-primary/25" />
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Loading Library
+              </p>
+              <div className="relative h-1 w-28 overflow-hidden rounded-full bg-foreground/10">
                 <div className="absolute inset-y-0 left-0 w-2/5 rounded-full bg-primary" />
-                <div className="absolute inset-0 animate-[shimmer_1.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-primary-foreground/25 to-transparent" />
+                <div className="absolute inset-0 animate-[shimmer_1.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-primary-foreground/25 to-transparent motion-reduce:animate-none" />
               </div>
+              <span className="sr-only">正在加载书库…</span>
             </div>
           </div>
         </div>
@@ -460,26 +469,18 @@ export default function ShelfPage() {
                       type="button"
                       onClick={() => changeSelectedCategory(null)}
                       aria-pressed={selectedCategoryId === null}
-                    className={cn(
-                      'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] sm:min-h-8 sm:px-3.5',
-                      selectedCategoryId === null
-                        ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_-18px_var(--paper-shadow)] dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                        : 'border border-border/70 bg-card/90 text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] hover:bg-secondary/60 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
-                    )}
-                  >
-                    全部
-                  </button>
+                      data-active={selectedCategoryId === null}
+                      className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      全部
+                    </button>
                   {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
                     <button
                       type="button"
                       onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
                       aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                      className={cn(
-                        'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] sm:min-h-8 sm:px-3.5',
-                        selectedCategoryId === UNCATEGORIZED_FILTER_ID
-                          ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_-18px_var(--paper-shadow)] dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                          : 'border border-border/70 bg-card/90 text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] hover:bg-secondary/60 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
-                      )}
+                      data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                      className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       未分类
                     </button>
@@ -490,12 +491,8 @@ export default function ShelfPage() {
                       type="button"
                       onClick={() => changeSelectedCategory(category)}
                       aria-pressed={selectedCategoryId === category}
-                      className={cn(
-                        'flex min-h-11 max-w-[9rem] shrink-0 snap-start items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
-                        selectedCategoryId === category
-                          ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_-18px_var(--paper-shadow)] dark:shadow-[0_10px_26px_-22px_var(--primary)]'
-                          : 'border border-border/70 bg-card/90 text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)] hover:bg-secondary/60 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
-                      )}
+                      data-active={selectedCategoryId === category}
+                      className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:max-w-[10rem]"
                       title={category}
                     >
                       {category}

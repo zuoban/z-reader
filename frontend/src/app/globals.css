@@ -553,6 +553,69 @@ foliate-view::part(filter) {
     color: var(--primary);
   }
 
+  .shelf-filter-chip {
+    display: inline-flex;
+    min-height: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding-inline: 1rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition:
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (min-width: 640px) {
+    .shelf-filter-chip {
+      min-height: 2rem;
+      padding-inline: 0.875rem;
+    }
+  }
+
+  .shelf-filter-chip:active {
+    transform: scale(0.97);
+  }
+
+  .shelf-filter-chip[data-active="true"],
+  .shelf-filter-chip-active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 10px 22px -18px var(--paper-shadow);
+  }
+
+  .shelf-filter-chip:not([data-active="true"]):not(.shelf-filter-chip-active) {
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    color: var(--foreground);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 40%, transparent);
+  }
+
+  .shelf-filter-chip:not([data-active="true"]):not(.shelf-filter-chip-active):hover {
+    background: color-mix(in srgb, var(--secondary) 70%, var(--card));
+  }
+
+  .dark .shelf-filter-chip:not([data-active="true"]):not(.shelf-filter-chip-active) {
+    border-color: color-mix(in srgb, white 8%, transparent);
+    background: color-mix(in srgb, white 4.5%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .dark .shelf-filter-chip:not([data-active="true"]):not(.shelf-filter-chip-active):hover {
+    background: color-mix(in srgb, white 8%, transparent);
+    color: var(--foreground);
+  }
+
+  .dark .shelf-filter-chip[data-active="true"],
+  .dark .shelf-filter-chip-active {
+    box-shadow: 0 10px 26px -22px var(--primary);
+  }
+
   .app-sheet-header,
   .app-dialog-header,
   .category-sheet-header {
@@ -1556,5 +1619,42 @@ foliate-view::part(filter) {
 
   .shelf-book-card:hover {
     transform: none;
+  }
+}
+
+/* High-contrast mode: stronger borders and text for readability */
+@media (prefers-contrast: more) {
+  :root {
+    --border: #b8aea0;
+    --muted-foreground: #3f3a34;
+    --subtle-foreground: #2e2a25;
+    --ring: #000000;
+  }
+
+  .dark {
+    --border: #6a5f52;
+    --muted-foreground: #ddd2c2;
+    --subtle-foreground: #f0e8da;
+    --ring: #f0e6d2;
+  }
+
+  .shelf-book-card,
+  .paper-panel,
+  .app-sheet-shell,
+  .app-dialog-shell {
+    border-width: 1.5px;
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
   }
 }

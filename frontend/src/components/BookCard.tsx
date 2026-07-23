@@ -8,7 +8,6 @@ import { Book } from '@/lib/api';
 import { CategorySelector } from '@/components/CategorySelector';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
 
@@ -213,7 +212,6 @@ export function BookCard({
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
-  const readActionShortLabel = progressValue > 0 ? '继续' : '开始';
 
   function activateCard() {
     if (selectionMode) {
@@ -271,7 +269,7 @@ export function BookCard({
               index={index}
             />
             {book.processing_state === 'pending' && (
-              <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-[0.65rem] font-medium text-white backdrop-blur-sm">
+              <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
                 正在生成封面
               </span>
             )}
@@ -300,11 +298,11 @@ export function BookCard({
                 />
               </div>
               {progressValue > 0 ? (
-                <p className="text-[0.7rem] sm:text-[0.75rem] font-medium text-muted-foreground/50">
+                <p className="text-meta tabular-nums">
                   {progressDisplay}% · {lastReadLabel}
                 </p>
               ) : (
-                <p className="text-[0.7rem] sm:text-[0.75rem] font-medium text-muted-foreground/50">
+                <p className="text-meta">
                   {lastReadLabel}
                 </p>
               )}
@@ -314,49 +312,41 @@ export function BookCard({
           </div>
         </button>
 
-        <div className="flex items-center gap-1.5 px-3 pb-3 sm:px-3.5 sm:pb-3.5">
-              <Button
-                type="button"
-                size="xs"
-                className="h-8 min-w-0 flex-1 gap-1 rounded-lg bg-primary/92 px-2 text-[0.72rem] font-semibold leading-none text-primary-foreground shadow-none transition-all hover:opacity-90 active:scale-[0.98] sm:h-9 sm:gap-1.5 sm:px-3 sm:text-[0.85rem]"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  activateCard();
-                }}
-              >
-                <BookOpen className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
-                <span className="truncate whitespace-nowrap sm:hidden">{readActionShortLabel}</span>
-                <span className="hidden truncate whitespace-nowrap sm:inline">{readActionLabel}</span>
-              </Button>
+        <div className="flex min-h-11 items-center justify-between gap-3 border-t border-border/35 px-3 py-2 sm:min-h-10 sm:px-3.5 dark:border-white/7">
+          {selectionMode ? (
+            <button
+              type="button"
+              onClick={onSelectionToggle}
+              aria-pressed={selected}
+              className="touch-control -my-2 inline-flex min-w-0 items-center gap-1.5 rounded-lg text-meta transition-colors hover:text-foreground"
+            >
+              <Check
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0',
+                  selected ? 'text-foreground' : 'opacity-55'
+                )}
+              />
+              <span className="truncate">{selected ? '已选择' : '选择图书'}</span>
+            </button>
+          ) : (
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-meta">
+              <BookOpen className="h-3.5 w-3.5 shrink-0 text-foreground/72" />
+              <span className="truncate">{readActionLabel}</span>
+            </span>
+          )}
 
-              {!selectionMode && (
-                <BookCardDropdown
-                  formatLabel={formatLabel}
-                  sizeLabel={sizeLabel}
-                  uploadedAtLabel={uploadedAtLabel}
-                  lastReadLabel={lastReadLabel}
-                  isDeleting={isDeleting}
-                  onCategoryClick={() => setCategoryDialogOpen(true)}
-                  onDeleteClick={() => setDeleteConfirmOpen(true)}
-                  triggerClassName="h-8 w-8 shrink-0 rounded-lg border border-border/45 bg-card text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground active:scale-[0.95] sm:h-9 sm:w-9 dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
-                />
-              )}
-
-              {selectionMode && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 rounded-lg border-border/50 sm:h-9 sm:w-9"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectionToggle?.();
-                  }}
-                  aria-label={selected ? '取消选择' : '选择图书'}
-                >
-                  <Check className={cn('h-5 w-5', selected ? 'opacity-100' : 'opacity-30')} />
-                </Button>
-              )}
+          {!selectionMode && (
+            <BookCardDropdown
+              formatLabel={formatLabel}
+              sizeLabel={sizeLabel}
+              uploadedAtLabel={uploadedAtLabel}
+              lastReadLabel={lastReadLabel}
+              isDeleting={isDeleting}
+              onCategoryClick={() => setCategoryDialogOpen(true)}
+              onDeleteClick={() => setDeleteConfirmOpen(true)}
+              triggerClassName="h-9 w-9 shrink-0 rounded-lg border border-border/45 bg-card text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground active:scale-[0.95] dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
+            />
+          )}
         </div>
       </article>
       <CategorySelector

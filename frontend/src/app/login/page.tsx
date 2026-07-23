@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
@@ -9,9 +9,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={(
+        <AppScreen ambient="login">
+          <LoadingState title="加载中..." />
+        </AppScreen>
+      )}
+    >
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isLoading, isAuthenticated, login, register } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register'>(
+    searchParams.get('mode') === 'register' ? 'register' : 'login'
+  );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -119,7 +136,7 @@ export default function LoginPage() {
               autoFocus
               aria-invalid={Boolean(usernameError)}
               aria-describedby={usernameError ? 'username-error' : undefined}
-              className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
+              className="h-12 w-full rounded-xl border border-border/70 bg-surface-subtle px-4 text-base shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/65"
             />
             {usernameError && (
               <p id="username-error" className="text-xs font-medium text-destructive" role="alert">
@@ -150,7 +167,7 @@ export default function LoginPage() {
                 autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 aria-invalid={Boolean(passwordError)}
                 aria-describedby={passwordError ? 'password-error' : undefined}
-                className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 pr-12 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
+                className="h-12 w-full rounded-xl border border-border/70 bg-surface-subtle px-4 pr-12 text-base shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/65"
               />
               <button
                 type="button"

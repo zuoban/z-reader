@@ -12,7 +12,7 @@ const Slider = React.forwardRef<
   <SliderPrimitive.Root
     ref={ref}
     className={cn(
-      'paper-motion-surface relative flex w-full touch-none select-none items-center',
+      'paper-motion-surface relative flex min-h-11 w-full touch-none select-none items-center py-3',
       className
     )}
     {...props}
@@ -20,7 +20,7 @@ const Slider = React.forwardRef<
     <SliderPrimitive.Track className="paper-field relative h-2 w-full grow overflow-hidden rounded-full border border-border/45 bg-muted/36 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_45%,transparent)] ">
       <SliderPrimitive.Range className="paper-motion-progress absolute h-full rounded-full bg-[linear-gradient(90deg,color-mix(in_srgb,var(--primary)_86%,white_14%),color-mix(in_srgb,var(--primary)_64%,var(--glass-specular)_36%))] shadow-[0_0_18px_color-mix(in_srgb,var(--primary)_22%,transparent)]" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="paper-motion-interactive paper-control block h-[18px] w-[18px] rounded-full border border-primary/45 bg-card/80 shadow-[0_10px_18px_-14px_var(--paper-shadow),0_0_0_4px_color-mix(in_srgb,var(--primary)_8%,transparent),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_72%,transparent)]  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:scale-105 disabled:pointer-events-none disabled:opacity-50 hover:scale-110 active:scale-105" />
+    <SliderPrimitive.Thumb className="paper-motion-interactive paper-control block h-[18px] w-[18px] rounded-full border border-primary/45 bg-card/80 shadow-[0_10px_18px_-14px_var(--paper-shadow),0_0_0_4px_color-mix(in_srgb,var(--primary)_8%,transparent),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_72%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1 focus-visible:scale-105 disabled:pointer-events-none disabled:opacity-50 hover:scale-110 active:scale-105" />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;

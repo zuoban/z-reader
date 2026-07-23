@@ -38,7 +38,7 @@ export function ReaderStatusBar({
         }}
       >
         <div
-          className="pointer-events-auto flex min-h-9 items-center gap-1 rounded-xl border px-2 backdrop-blur-xl"
+          className="pointer-events-auto flex min-h-11 items-center gap-1 rounded-xl border px-2 backdrop-blur-xl"
           style={{
             background: withOpacity(uiScheme.bg, 0.78),
             borderColor: withOpacity(uiScheme.cardBorder, 0.18),
@@ -51,7 +51,7 @@ export function ReaderStatusBar({
             onClick={onToggleToolbar}
             title="展开操作栏"
             aria-label="展开操作栏"
-            className="paper-motion-interactive flex min-h-8 min-w-[52px] items-center justify-center rounded-lg px-2 text-[11px] font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
+            className="touch-target paper-motion-interactive flex min-h-11 min-w-[52px] items-center justify-center rounded-lg px-2 text-xs font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
             style={{
               color: withOpacity(uiScheme.fg, 0.72),
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
@@ -87,7 +87,7 @@ export function ReaderStatusBar({
         ...containerStyle,
       }}
     >
-      <div className="relative flex min-h-11 w-full max-w-5xl items-center px-4 text-[11px] font-medium sm:px-6 sm:text-[12px]">
+      <div className="relative flex min-h-11 w-full max-w-5xl items-center px-4 text-xs font-medium sm:px-6">
         <div className="flex w-24 shrink-0 items-center">
           <span
             className="tabular-nums tracking-normal font-semibold"

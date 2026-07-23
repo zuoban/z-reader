@@ -36,6 +36,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-raised: var(--surface-raised);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
@@ -78,6 +81,7 @@
   --secondary-foreground: #1a1a1a;
   --muted: #f0eeea;
   --muted-foreground: #68635d;
+  --subtle-foreground: #5b5751;
   --accent: #f0eeea;
   --accent-foreground: #1a1a1a;
   --destructive: #d32f2f;
@@ -86,6 +90,7 @@
   --input: #e5e3df;
   --ring: #1a1a1a;
   --radius: 0.75rem;
+  --control-touch-size: 2.75rem;
   --paper-duration-base: 280ms;
   --paper-duration-fast: 160ms;
   --paper-ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
@@ -100,6 +105,8 @@
   --shelf-surface: #f0eeea;
   --shelf-surface-raised: #ffffff;
   --shelf-surface-soft: #f5f3ef;
+  --surface-subtle: #f5f3ef;
+  --surface-raised: #ffffff;
   --shelf-surface-hover: #e8e6e2;
   --shelf-surface-selected: #e0deda;
   --shelf-app-bg: #ffffff;
@@ -123,6 +130,7 @@
   --secondary-foreground: #eee8dc;
   --muted: #28231e;
   --muted-foreground: #9a8f82;
+  --subtle-foreground: #beb2a2;
   --accent: #2e2822;
   --accent-foreground: #f0e6d2;
   --destructive: #f87171;
@@ -138,6 +146,8 @@
   --shelf-surface: #1b1815;
   --shelf-surface-raised: #24201b;
   --shelf-surface-soft: #1d1a17;
+  --surface-subtle: #1d1a17;
+  --surface-raised: #24201b;
   --shelf-surface-hover: #29241f;
   --shelf-surface-selected: #f0e6d2;
   --shelf-app-bg: #101216;
@@ -240,6 +250,17 @@ foliate-view::part(filter) {
     min-width: 44px;
   }
 
+  .touch-control {
+    min-height: var(--control-touch-size);
+    touch-action: manipulation;
+  }
+
+  .touch-target {
+    min-height: var(--control-touch-size);
+    min-width: var(--control-touch-size);
+    touch-action: manipulation;
+  }
+
   body {
     -webkit-overflow-scrolling: touch;
     -webkit-font-smoothing: antialiased;
@@ -249,6 +270,22 @@ foliate-view::part(filter) {
 }
 
 @layer utilities {
+  .text-meta {
+    color: var(--subtle-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .editorial-panel {
     @apply border border-border bg-card;
     transition: border-color var(--paper-duration-base) var(--paper-ease-soft),

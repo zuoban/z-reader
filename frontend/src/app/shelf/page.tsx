@@ -444,14 +444,21 @@ export default function ShelfPage() {
                   </div>
                 </div>
 
-                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  <span className="text-[13px] font-medium text-muted-foreground/70 mr-1">分类：</span>
+                <div className="relative -mx-5 sm:mx-0">
+                  <div
+                    role="group"
+                    aria-label="书籍分类筛选"
+                    className="scrollbar-none flex min-w-0 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-5 pb-1 sm:flex-wrap sm:overflow-visible sm:px-0"
+                  >
+                    <span className="sr-only sm:not-sr-only sm:mr-1 sm:text-[13px] sm:font-medium sm:text-muted-foreground/70">
+                      分类：
+                    </span>
                     <button
                       type="button"
                       onClick={() => changeSelectedCategory(null)}
                       aria-pressed={selectedCategoryId === null}
                     className={cn(
-                      'flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
+                      'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                       selectedCategoryId === null
                         ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
                         : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
@@ -465,7 +472,7 @@ export default function ShelfPage() {
                       onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
                       aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
                       className={cn(
-                        'flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
+                        'flex min-h-11 shrink-0 snap-start items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                         selectedCategoryId === UNCATEGORIZED_FILTER_ID
                           ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
                           : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
@@ -481,7 +488,7 @@ export default function ShelfPage() {
                       onClick={() => changeSelectedCategory(category)}
                       aria-pressed={selectedCategoryId === category}
                       className={cn(
-                        'flex min-h-11 max-w-[9rem] items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
+                        'flex min-h-11 max-w-[9rem] shrink-0 snap-start items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
                         selectedCategoryId === category
                           ? 'bg-primary text-primary-foreground dark:shadow-[0_10px_26px_-22px_var(--primary)]'
                           : 'border border-border bg-card text-foreground hover:bg-secondary/50 dark:border-white/8 dark:bg-white/[0.045] dark:text-muted-foreground dark:hover:bg-white/[0.08] dark:hover:text-foreground'
@@ -494,7 +501,7 @@ export default function ShelfPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="min-h-11 rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground sm:min-h-8 sm:px-3 dark:hover:bg-white/[0.08]"
+                    className="min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground sm:min-h-8 sm:px-3 dark:hover:bg-white/[0.08]"
                     onClick={() => setCategoryManagerOpen(true)}
                   >
                     <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
@@ -504,7 +511,7 @@ export default function ShelfPage() {
                     type="button"
                     variant={selectionMode ? "secondary" : "ghost"}
                     className={cn(
-                      "min-h-11 rounded-full px-4 text-[13px] font-medium sm:min-h-8 sm:px-3.5 transition-all active:scale-[0.97]",
+                      "min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium sm:min-h-8 sm:px-3.5 transition-all active:scale-[0.97]",
                       selectionMode
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
@@ -514,6 +521,7 @@ export default function ShelfPage() {
                     <CheckSquare className="h-3.5 w-3.5" />
                     <span className="ml-1.5">{selectionMode ? "取消选择" : "批量操作"}</span>
                   </Button>
+                  </div>
                 </div>
               </div>
             )}

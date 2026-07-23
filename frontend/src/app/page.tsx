@@ -14,7 +14,7 @@ const previewBooks = [
 
 export default function LandingPage() {
   const { isLoading, isAuthenticated } = useAuth({ redirectOnExpire: false });
-  const primaryHref = !isLoading && isAuthenticated ? '/shelf' : '/login';
+  const primaryHref = !isLoading && isAuthenticated ? '/shelf' : '/login?mode=register';
 
   return (
     <AppScreen
@@ -26,7 +26,7 @@ export default function LandingPage() {
         <BrandLogo compact />
         <nav>
           <Link
-            href={primaryHref}
+            href="/login"
             className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-foreground/78 transition-colors hover:bg-secondary/70 hover:text-foreground"
           >
             {!isLoading && isAuthenticated ? '进入书架' : '登录'}
@@ -51,7 +51,7 @@ export default function LandingPage() {
               href={primaryHref}
               className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
             >
-              {!isLoading && isAuthenticated ? '回到我的书架' : '立即开始'}
+              {!isLoading && isAuthenticated ? '回到我的书架' : '创建我的书库'}
             </Link>
             <Link
               href="/login"

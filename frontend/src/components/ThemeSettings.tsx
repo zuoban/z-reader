@@ -128,7 +128,10 @@ function SectionCard({
             {title}
           </h3>
           {description ? (
-            <p className="text-[11px] font-medium leading-relaxed opacity-60" style={{ color: uiScheme.mutedText }}>
+            <p
+              className="text-xs font-medium leading-relaxed"
+              style={{ color: uiScheme.mutedText }}
+            >
               {description}
             </p>
           ) : null}
@@ -144,13 +147,14 @@ function ValuePill({ label, active, onClick, uiScheme }: { label: string; active
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "flex-1 rounded-[1.25rem] px-3 py-2.5 text-xs font-bold transition-all active:scale-[0.96]",
+        "touch-control flex-1 rounded-[1.25rem] px-3 py-2.5 text-[13px] font-bold transition-all active:scale-[0.96]",
         active ? "shadow-md" : "hover:bg-muted/40"
       )}
       style={{
-        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.5),
-        background: active ? withOpacity(uiScheme.buttonBg, 0.82) : withOpacity(uiScheme.buttonBg, 0.28),
+        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.72),
+        background: active ? withOpacity(uiScheme.buttonBg, 0.82) : withOpacity(uiScheme.buttonBg, 0.4),
       }}
     >
       {label}
@@ -174,19 +178,19 @@ function SliderField({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
         <Label
-          className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70"
+          className="text-xs font-bold tracking-wide text-muted-foreground/80"
         >
           {label}
         </Label>
         <span
-          className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-black tabular-nums text-primary"
+          className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold tabular-nums text-primary"
         >
           {valueLabel}
         </span>
       </div>
       <div className="flex items-center gap-3.5">
         <span
-          className="w-6 shrink-0 text-center text-[10px] font-black tabular-nums opacity-40"
+          className="w-6 shrink-0 text-center text-xs font-bold tabular-nums"
           style={{ color: uiScheme.mutedText }}
         >
           {minLabel}
@@ -197,10 +201,10 @@ function SliderField({
           min={min}
           max={max}
           step={step}
-          className="flex-1 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-2 [&_[role=slider]]:border-background [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-transform [&_[role=slider]]:active:scale-125 [&_[role=track]]:h-1.5 [&_[role=track]]:bg-muted/30 [&_[data-orientation=horizontal]_[role=range]]:bg-primary/80"
+          className="flex-1 [&_[role=slider]]:border-2 [&_[role=slider]]:border-background [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-transform [&_[role=slider]]:active:scale-125 [&_[role=track]]:h-1.5 [&_[role=track]]:bg-muted/30 [&_[data-orientation=horizontal]_[role=range]]:bg-primary/80"
         />
         <span
-          className="w-6 shrink-0 text-center text-[10px] font-black tabular-nums opacity-40"
+          className="w-6 shrink-0 text-center text-xs font-bold tabular-nums"
           style={{ color: uiScheme.mutedText }}
         >
           {maxLabel}
@@ -409,7 +413,7 @@ export function ThemeSettings({
               <button
                 type="button"
                 onClick={() => onOpenChange?.(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                className="touch-target flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                 style={{
                   color: surface.muted,
                   background: surface.surfaceSoft,
@@ -442,10 +446,10 @@ export function ThemeSettings({
                   role="tab"
                   aria-selected={active}
                   onClick={() => setActiveSection(section.id)}
-                  className="h-9 rounded-[0.85rem] text-xs font-semibold transition-[background-color,color,transform] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                  className="touch-control h-11 rounded-[0.85rem] text-[13px] font-semibold transition-[background-color,color,transform] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-9 sm:text-xs"
                   style={{
                     background: active ? surface.bg : "transparent",
-                    color: active ? surface.fg : withOpacity(surface.fg, 0.56),
+                    color: active ? surface.fg : withOpacity(surface.fg, 0.72),
                   }}
                 >
                   {section.label}
@@ -472,7 +476,8 @@ export function ThemeSettings({
                         key={preset.key}
                         type="button"
                         onClick={() => setTheme({ preset: preset.key })}
-                        className="group relative overflow-hidden rounded-[1.5rem] border p-3 text-left transition-all duration-300 cursor-pointer active:scale-[0.96]"
+                        aria-pressed={isActive}
+                        className="touch-control group relative overflow-hidden rounded-[1.5rem] border p-3 text-left transition-all duration-300 cursor-pointer active:scale-[0.96]"
                         style={{
                           background: isActive
                             ? withOpacity(uiScheme.link, 0.08)
@@ -514,8 +519,8 @@ export function ThemeSettings({
                         </div>
                         <div className="mt-3 flex items-center justify-between">
                           <span
-                            className="text-[11px] font-bold tracking-wide"
-                            style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.6) }}
+                            className="text-xs font-bold tracking-wide"
+                            style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.72) }}
                           >
                             {preset.label}
                           </span>
@@ -553,65 +558,67 @@ export function ThemeSettings({
               uiScheme={uiScheme}
             >
               <div className="space-y-8" role="tabpanel" aria-label="排版设置">
-              <div className="space-y-3">
-                <Label className="pl-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/70">
-                  字型选择
-                </Label>
-                <div className="grid gap-2">
-                  {FONT_ORDER.map((key) => {
-                    const option = FONT_FAMILY_OPTIONS[key];
-                    const isActive = theme.fontFamily === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setTheme({ fontFamily: key })}
-                        className="flex items-center justify-between rounded-[1.25rem] border p-3 text-left transition-all active:scale-[0.98]"
-                        style={{
-                          background: isActive ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
-                          borderColor: isActive ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1),
-                        }}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.8) }}>
-                            {option.label}
-                          </p>
-                          <p className="mt-0.5 text-[10px] font-medium opacity-50" style={{ color: uiScheme.mutedText }}>
-                            {option.description}
-                          </p>
-                        </div>
-                        {isActive && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                      </button>
-                    );
-                  })}
+                <div className="space-y-3">
+                  <Label className="pl-1 text-xs font-bold tracking-wide text-muted-foreground/80">
+                    字型选择
+                  </Label>
+                  <div className="grid gap-2">
+                    {FONT_ORDER.map((key) => {
+                      const option = FONT_FAMILY_OPTIONS[key];
+                      const isActive = theme.fontFamily === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setTheme({ fontFamily: key })}
+                          aria-pressed={isActive}
+                          className="touch-control flex items-center justify-between rounded-[1.25rem] border p-3 text-left transition-all active:scale-[0.98]"
+                          style={{
+                            background: isActive ? withOpacity(uiScheme.buttonBg, 0.8) : withOpacity(uiScheme.buttonBg, 0.2),
+                            borderColor: isActive ? withOpacity(uiScheme.cardBorder, 0.4) : withOpacity(uiScheme.cardBorder, 0.1),
+                          }}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold" style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.8) }}>
+                              {option.label}
+                            </p>
+                            <p className="mt-0.5 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                              {option.description}
+                            </p>
+                          </div>
+                          {isActive && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                <SliderField
+                  label="字号大小"
+                  valueLabel={`${theme.fontSize}px`}
+                  minLabel="12"
+                  maxLabel="32"
+                  value={[theme.fontSize]}
+                  onValueChange={([value]) => setTheme({ fontSize: value })}
+                  min={12}
+                  max={32}
+                  step={1}
+                  uiScheme={uiScheme}
+                />
+
+                <SliderField
+                  label="行间距"
+                  valueLabel={theme.lineHeight.toFixed(2)}
+                  minLabel="1.2"
+                  maxLabel="2.2"
+                  value={[theme.lineHeight]}
+                  onValueChange={([value]) => setTheme({ lineHeight: value })}
+                  min={1.2}
+                  max={2.2}
+                  step={0.05}
+                  uiScheme={uiScheme}
+                />
               </div>
-
-              <SliderField
-                label="字号大小"
-                valueLabel={`${theme.fontSize}px`}
-                minLabel="12"
-                maxLabel="32"
-                value={[theme.fontSize]}
-                onValueChange={([value]) => setTheme({ fontSize: value })}
-                min={12}
-                max={32}
-                step={1}
-                uiScheme={uiScheme}
-              />
-
-              <SliderField
-                label="行间距"
-                valueLabel={theme.lineHeight.toFixed(2)}
-                minLabel="1.2"
-                maxLabel="2.2"
-                value={[theme.lineHeight]}
-                onValueChange={([value]) => setTheme({ lineHeight: value })}
-                min={1.2}
-                max={2.2}
-                step={0.05}
-                uiScheme={uiScheme}
-              />
-            </div>
             </SectionCard>
           )}
 

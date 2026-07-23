@@ -74,7 +74,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     buttonHoverBg: "#e4e4df",
     buttonText: "#262522",
     muted: "#eeeeea",
-    mutedText: "#77756f",
+    mutedText: "#625f59",
     accentText: "#4f5966",
   },
   sepia: {
@@ -89,7 +89,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     buttonHoverBg: "#e8d5b5",
     buttonText: "#433427",
     muted: "#f1e2c8",
-    mutedText: "#7c6751",
+    mutedText: "#65523e",
     accentText: "#8b4513",
   },
   green: {
@@ -104,7 +104,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     buttonHoverBg: "#cedbc8",
     buttonText: "#24352b",
     muted: "#d9e4d4",
-    mutedText: "#5b6e5f",
+    mutedText: "#46584a",
     accentText: "#4a7557",
   },
   dark: {
@@ -119,7 +119,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     buttonHoverBg: "#2a2420",
     buttonText: "#d4c5b2",
     muted: "#2a2420",
-    mutedText: "#7a7068",
+    mutedText: "#c0b29f",
     accentText: "#a06040",
   },
 };

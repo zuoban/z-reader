@@ -83,6 +83,7 @@ export function ReaderBookmarksSheet({
   open,
   onOpenChange,
   bookmarks,
+  bookTitle,
   uiScheme,
   overlayContainer,
   triggerClassName,
@@ -175,12 +176,18 @@ export function ReaderBookmarksSheet({
                   </span>
                 )}
               </div>
-              <SheetDescription
-                className="mt-1 pl-10 text-xs leading-5"
-                style={{ color: surface.muted }}
-              >
-                记录阅读进度，随时回到上次停留的位置
-              </SheetDescription>
+              <div className="mt-1 space-y-0.5 pl-10">
+                <SheetDescription
+                  className="truncate text-xs font-medium leading-5"
+                  style={{ color: surface.muted }}
+                  title={bookTitle || "当前书籍"}
+                >
+                  {bookTitle || "当前书籍"}
+                </SheetDescription>
+                <p className="text-xs leading-5" style={{ color: surface.muted }}>
+                  记录阅读进度，随时回到上次停留的位置
+                </p>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button
@@ -191,7 +198,7 @@ export function ReaderBookmarksSheet({
                 disabled={!canCreate || isSaving}
                 title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
                 aria-label="添加当前书签"
-                className="h-9 rounded-full px-3 text-[13px] font-medium shadow-none transition-colors hover:brightness-[0.985] disabled:hover:brightness-100"
+                className="h-10 rounded-full px-3 text-[13px] font-medium shadow-none transition-colors hover:brightness-[0.985] disabled:hover:brightness-100 sm:h-9"
                 style={{
                   background: surface.surfaceSoft,
                   color: surface.fg,
@@ -203,7 +210,7 @@ export function ReaderBookmarksSheet({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                className="touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-8 sm:w-8"
                 style={{
                   color: surface.muted,
                   background: surface.surfaceSoft,
@@ -226,7 +233,7 @@ export function ReaderBookmarksSheet({
               sortedBookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-[1.15rem] transition-[background-color,transform] hover:-translate-y-[1px]"
+                  className="group rounded-[1.15rem] transition-[background-color,transform] hover:-translate-y-[1px] group-focus-within:-translate-y-[1px]"
                   style={{
                     background: surface.surfaceSoft,
                     boxShadow: `inset 0 0 0 1px ${surface.hairline}`,
@@ -235,7 +242,8 @@ export function ReaderBookmarksSheet({
                   <div className="flex items-center gap-3 px-4 py-3.5">
                     <button
                       type="button"
-                      className="min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
+                      aria-label={`打开书签：${bookmark.chapter || "未识别章节"}，${formatPercent(bookmark.percentage)}`}
+                      className="min-h-11 min-w-0 flex-1 cursor-pointer rounded-xl px-1 py-0.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
                       onClick={() => {
                         onGoTo(bookmark);
                         onOpenChange(false);
@@ -283,7 +291,7 @@ export function ReaderBookmarksSheet({
                       }}
                       title="删除书签"
                       aria-label="删除书签"
-                      className="h-8 w-8 shrink-0 rounded-full opacity-60 transition-colors hover:bg-black/[0.045] hover:text-foreground group-hover:opacity-100"
+                      className="touch-target h-10 w-10 shrink-0 rounded-full opacity-80 transition-colors hover:bg-black/[0.045] hover:text-foreground sm:h-8 sm:w-8 sm:opacity-60 sm:group-hover:opacity-100"
                       style={{ color: surface.muted }}
                     >
                       <Trash2 className="h-4 w-4" />

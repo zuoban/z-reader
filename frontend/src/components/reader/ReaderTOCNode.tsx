@@ -32,10 +32,12 @@ function ReaderTOCNode({
   return (
     <div className="relative">
       <button
+        type="button"
+        aria-current={isCurrentChapter ? "page" : undefined}
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "group relative flex min-h-10 w-full items-center overflow-hidden rounded-[0.95rem] px-3.5 py-2 text-left transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.985]",
+          "touch-control group relative flex min-h-11 w-full items-center overflow-hidden rounded-[0.95rem] px-3.5 py-2 text-left transition-[background-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.985]",
           isCurrentChapter
             ? "z-10"
             : "hover:bg-muted/30",
@@ -46,6 +48,7 @@ function ReaderTOCNode({
           background: isCurrentChapter
             ? withOpacity(uiScheme.buttonBg, 0.68)
             : "transparent",
+          color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText,
           boxShadow: isCurrentChapter
             ? `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.08)}`
             : "none",
@@ -54,7 +57,7 @@ function ReaderTOCNode({
         <span
           className={cn(
             "mr-2 h-1.5 w-1.5 shrink-0 rounded-full transition-opacity duration-200",
-            isCurrentChapter ? "opacity-100" : "opacity-0 group-hover:opacity-35",
+            isCurrentChapter ? "opacity-100" : "opacity-0 group-hover:opacity-35 group-focus-visible:opacity-75",
           )}
           style={{
             background: isCurrentChapter
@@ -67,7 +70,7 @@ function ReaderTOCNode({
             "truncate text-[13px] leading-6 transition-opacity duration-200 sm:text-[13.5px]",
             isCurrentChapter
               ? "font-semibold tracking-tight"
-              : "font-medium opacity-68 group-hover:opacity-95",
+              : "font-medium opacity-80 group-hover:opacity-100",
           )}
           style={{
             color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText,

@@ -1,11 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 import { BookOpen, Check } from 'lucide-react';
 import { Book } from '@/lib/api';
-import { Card } from '@/components/ui/card';
 import { CategorySelector } from '@/components/CategorySelector';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
@@ -216,16 +215,6 @@ export function BookCard({
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
   const readActionShortLabel = progressValue > 0 ? '继续' : '开始';
 
-  function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: Element) {
-    if (!(target instanceof Element)) return false;
-
-    const interactiveTarget = target.closest(
-      'a, button, input, select, textarea, [role="button"], [role="menuitem"]'
-    );
-
-    return Boolean(interactiveTarget && interactiveTarget !== currentTarget);
-  }
-
   function activateCard() {
     if (selectionMode) {
       onSelectionToggle?.();
@@ -235,26 +224,13 @@ export function BookCard({
     onRead();
   }
 
-  function handleCardClick(event: MouseEvent<HTMLDivElement>) {
-    if (isNestedInteractiveTarget(event.target, event.currentTarget)) return;
-    activateCard();
-  }
-
-  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (isNestedInteractiveTarget(event.target, event.currentTarget)) return;
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-
-    event.preventDefault();
-    activateCard();
-  }
-
   return (
     <div className="flex w-full items-stretch" ref={coverRef}>
-      <Card
+      <article
         className={cn(
           'group/card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/45 bg-card p-0 shadow-[0_14px_38px_-34px_var(--paper-shadow)] transition-all duration-300',
           'hover:border-primary/18 hover:shadow-[0_20px_48px_-38px_var(--paper-shadow)]',
-          'dark:border-white/8 dark:bg-[linear-gradient(180deg,#1a1f27_0%,#151920_100%)] dark:shadow-[0_20px_56px_-46px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,244,220,0.045)] dark:hover:border-primary/18 dark:hover:shadow-[0_24px_64px_-50px_rgba(0,0,0,0.95)]',
+          'dark:border-white/8 dark:bg-[linear-gradient(180deg,var(--shelf-card-start)_0%,var(--shelf-card-end)_100%)] dark:shadow-[0_20px_56px_-46px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,244,220,0.045)] dark:hover:border-primary/18 dark:hover:shadow-[0_24px_64px_-50px_rgba(0,0,0,0.95)]',
           selected && 'border-primary ring-2 ring-primary dark:border-primary dark:ring-primary/70'
         )}
         style={{
@@ -264,57 +240,58 @@ export function BookCard({
           contentVisibility: 'auto',
           containIntrinsicSize: 'auto 28rem',
         } as CSSProperties}
-        onClick={handleCardClick}
-        onKeyDown={handleCardKeyDown}
-        role="button"
-        tabIndex={0}
-        aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
-        aria-pressed={selectionMode ? selected : undefined}
       >
-        {selectionMode && (
-          <div
-            className={cn(
-              'absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border transition-colors',
-              selected
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border/40 bg-white/80 backdrop-blur-sm dark:border-white/12 dark:bg-black/35'
-            )}
-            aria-hidden="true"
-          >
-            <Check className={cn('h-3 w-3', selected ? 'opacity-100' : 'opacity-30')} />
-          </div>
-        )}
-
-        <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50 dark:bg-[#11151b]">
-          <BookCoverFace
-            coverUrl={coverUrl}
-            titleLabel={titleLabel}
-            authorLabel={authorLabel}
-            categoryLabel={categoryLabel || formatLabel}
-            index={index}
-          />
-          {book.processing_state === 'pending' && (
-            <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-[0.65rem] font-medium text-white backdrop-blur-sm">
-              正在生成封面
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-1 flex-col p-3 sm:p-3.5">
-          <div className="mb-2.5 sm:mb-3 flex-1">
-            <h3
-              className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-foreground"
-              title={titleLabel}
+        <button
+          type="button"
+          onClick={activateCard}
+          aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
+          aria-pressed={selectionMode ? selected : undefined}
+          className="relative flex min-w-0 flex-1 cursor-pointer flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        >
+          {selectionMode && (
+            <div
+              className={cn(
+                'pointer-events-none absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border transition-colors',
+                selected
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border/40 bg-white/80 backdrop-blur-sm dark:border-white/12 dark:bg-black/35'
+              )}
+              aria-hidden="true"
             >
-              <HighlightedText text={titleLabel} query={searchQuery} />
-            </h3>
+              <Check className={cn('h-3 w-3', selected ? 'opacity-100' : 'opacity-30')} />
+            </div>
+          )}
 
-            <p className="mt-1.5 line-clamp-1 text-[0.85rem] font-medium text-gray-500 dark:text-muted-foreground">
-              <HighlightedText text={authorLabel} query={searchQuery} />
-            </p>
+          <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50 dark:bg-[var(--shelf-card-media)]">
+            <BookCoverFace
+              coverUrl={coverUrl}
+              titleLabel={titleLabel}
+              authorLabel={authorLabel}
+              categoryLabel={categoryLabel || formatLabel}
+              index={index}
+            />
+            {book.processing_state === 'pending' && (
+              <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-[0.65rem] font-medium text-white backdrop-blur-sm">
+                正在生成封面
+              </span>
+            )}
           </div>
 
-          <div className="mt-auto space-y-2 sm:space-y-3.5">
+          <div className="flex flex-1 flex-col p-3 pb-2 sm:p-3.5 sm:pb-2">
+            <div className="mb-2.5 flex-1 sm:mb-3">
+              <h3
+                className="line-clamp-2 text-[0.98rem] font-bold leading-[1.25] text-foreground"
+                title={titleLabel}
+              >
+                <HighlightedText text={titleLabel} query={searchQuery} />
+              </h3>
+
+              <p className="mt-1.5 line-clamp-1 text-[0.85rem] font-medium text-muted-foreground">
+                <HighlightedText text={authorLabel} query={searchQuery} />
+              </p>
+            </div>
+
+            <div className="mt-auto space-y-2 sm:space-y-3.5">
             <div className="space-y-1 sm:space-y-1.5">
               <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/60 dark:bg-white/10">
                 <div
@@ -333,7 +310,11 @@ export function BookCard({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
+            </div>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-1.5 px-3 pb-3 sm:px-3.5 sm:pb-3.5">
               <Button
                 type="button"
                 size="xs"
@@ -376,10 +357,8 @@ export function BookCard({
                   <Check className={cn('h-5 w-5', selected ? 'opacity-100' : 'opacity-30')} />
                 </Button>
               )}
-            </div>
-          </div>
         </div>
-      </Card>
+      </article>
       <CategorySelector
         bookId={book.id}
         currentCategory={book.category}

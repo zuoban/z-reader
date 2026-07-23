@@ -8,9 +8,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: var(--font-crimson), "Songti SC", "STSong", "Noto Serif CJK SC", ui-serif, Georgia, serif;
+  --font-serif: var(--font-crimson), var(--font-noto-serif-sc), "Songti SC", "STSong", "Noto Serif CJK SC", ui-serif, Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-heading: var(--font-playfair), "Songti SC", "STSong", "Noto Serif CJK SC", ui-serif, Georgia, serif;
+  --font-heading: var(--font-playfair), var(--font-noto-serif-sc), "Songti SC", "STSong", "Noto Serif CJK SC", ui-serif, Georgia, serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -57,7 +57,15 @@
 :root {
   --font-crimson: "Crimson Text";
   --font-playfair: "Playfair Display";
+  --font-noto-serif-sc: "Noto Serif SC";
   --status-bar-reserved: calc(env(safe-area-inset-bottom, 0px) + 2.75rem);
+  --z-content: 10;
+  --z-card-overlay: 30;
+  --z-reader-chrome: 50;
+  --z-popover: 60;
+  --z-modal: 80;
+  --z-reader-overlay: 90;
+  --z-skip-link: 100;
   --background: #ffffff;
   --foreground: #1a1a1a;
   --card: #ffffff;
@@ -69,7 +77,7 @@
   --secondary: #f0eeea;
   --secondary-foreground: #1a1a1a;
   --muted: #f0eeea;
-  --muted-foreground: #999999;
+  --muted-foreground: #68635d;
   --accent: #f0eeea;
   --accent-foreground: #1a1a1a;
   --destructive: #d32f2f;
@@ -94,6 +102,12 @@
   --shelf-surface-soft: #f5f3ef;
   --shelf-surface-hover: #e8e6e2;
   --shelf-surface-selected: #e0deda;
+  --shelf-app-bg: #ffffff;
+  --shelf-header-bg: #ffffff;
+  --shelf-card-start: #ffffff;
+  --shelf-card-end: #ffffff;
+  --shelf-card-media: #f0eeea;
+  --shelf-detail-surface: #f6f6f6;
 }
 
 .dark {
@@ -126,6 +140,12 @@
   --shelf-surface-soft: #1d1a17;
   --shelf-surface-hover: #29241f;
   --shelf-surface-selected: #f0e6d2;
+  --shelf-app-bg: #101216;
+  --shelf-header-bg: #111419;
+  --shelf-card-start: #1a1f27;
+  --shelf-card-end: #151920;
+  --shelf-card-media: #11151b;
+  --shelf-detail-surface: #181c23;
 }
 
 /* Reader Specific Colors - Decoupled from App Theme */
@@ -214,18 +234,10 @@ foliate-view::part(filter) {
     padding: 0;
   }
 
-  button:not(.size-4):not([role="menuitem"]):not(.h-4):not(.w-4):not(.h-9):not(.w-9):not(.h-8):not(.w-8):not(.min-h-8),
-  a:not([role="menuitem"]),
-  [role="button"]:not([role="menuitem"]),
-  input[type="submit"],
-  input[type="button"],
-  input[type="reset"] {
+  [data-slot="button"],
+  [data-slot="dropdown-menu-trigger"] {
     min-height: 44px;
     min-width: 44px;
-  }
-
-  * {
-    touch-action: pan-y;
   }
 
   body {

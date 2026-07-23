@@ -53,7 +53,7 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex min-h-svh items-center justify-center p-4"
+      className="fixed inset-0 z-[var(--z-modal)] flex min-h-svh items-center justify-center p-4"
       role="presentation"
       onClick={() => onOpenChange(false)}
     >

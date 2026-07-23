@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ReaderToolbar } from '@/components/reader/ReaderToolbar';
@@ -106,7 +106,7 @@ describe('ReaderToolbar', () => {
     expect(readAloud.compareDocumentPosition(settings)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('collapses reader actions behind a mobile overflow trigger', () => {
+  it('collapses reader actions behind a mobile overflow trigger', async () => {
     const { container } = render(
       <ReaderToolbar
         visible
@@ -158,5 +158,11 @@ describe('ReaderToolbar', () => {
 
     expect(screen.getByText('阅读操作')).toBeInTheDocument();
     expect(screen.getByRole('menu')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('menuitem', { name: '目录' })).toHaveFocus());
+
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    await waitFor(() => expect(moreButton).toHaveFocus());
   });
 });

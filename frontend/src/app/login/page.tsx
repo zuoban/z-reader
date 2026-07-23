@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +19,8 @@ export default function LoginPage() {
   const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -36,11 +38,15 @@ export default function LoginPage() {
     if (!trimmedUsername || !password) {
       if (!trimmedUsername) setUsernameError('请输入用户名');
       if (!password) setPasswordError(mode === 'register' ? '请输入密码' : '请输入访问密码');
+      requestAnimationFrame(() => {
+        (!trimmedUsername ? usernameRef : passwordRef).current?.focus();
+      });
       return;
     }
 
     if (mode === 'register' && password.length < 8) {
       setPasswordError('密码至少需要 8 个字符');
+      requestAnimationFrame(() => passwordRef.current?.focus());
       return;
     }
 
@@ -101,6 +107,7 @@ export default function LoginPage() {
             </Label>
             <Input
               id="username"
+              ref={usernameRef}
               type="text"
               value={username}
               onChange={(e) => {
@@ -110,10 +117,12 @@ export default function LoginPage() {
               placeholder="请输入用户名"
               autoComplete="username"
               autoFocus
+              aria-invalid={Boolean(usernameError)}
+              aria-describedby={usernameError ? 'username-error' : undefined}
               className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             {usernameError && (
-              <p className="text-xs font-medium text-red-500">
+              <p id="username-error" className="text-xs font-medium text-destructive" role="alert">
                 {usernameError}
               </p>
             )}
@@ -130,6 +139,7 @@ export default function LoginPage() {
             <div className="relative">
               <Input
                 id="password"
+                ref={passwordRef}
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => {
@@ -138,19 +148,21 @@ export default function LoginPage() {
                 }}
                 placeholder="请输入您的密码"
                 autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                aria-invalid={Boolean(passwordError)}
+                aria-describedby={passwordError ? 'password-error' : undefined}
                 className="h-12 w-full rounded-xl border border-border/55 bg-shelf-surface-soft px-4 pr-12 text-base shadow-none transition-all placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/15"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground"
+                className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground sm:right-2 sm:h-9 sm:w-9"
                 aria-label={showPassword ? '隐藏密码' : '显示密码'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
             {passwordError && (
-              <p className="text-xs font-medium text-red-500">
+              <p id="password-error" className="text-xs font-medium text-destructive" role="alert">
                 {passwordError}
               </p>
             )}
@@ -158,7 +170,7 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div role="alert" className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               <CircleAlert size={16} />
               {error}
             </div>

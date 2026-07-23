@@ -279,10 +279,10 @@ export default function ShelfPage() {
   return (
     <AppScreen
       ambient="shelf"
-      className="bg-background font-sans dark:bg-[#101216]"
+      className="bg-[var(--shelf-app-bg)] font-sans"
       contentClassName="flex min-h-screen w-full flex-col"
     >
-      <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-background/95 backdrop-blur-xl dark:border-white/8 dark:bg-[#111419]/82 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
+      <header className="sticky top-0 z-50 w-full border-b border-border/55 bg-[color:var(--shelf-header-bg)]/95 backdrop-blur-xl dark:border-white/8 dark:bg-[color:var(--shelf-header-bg)]/82 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
         <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between px-5 sm:px-7 lg:px-10">
           <ShelfBrand />
 
@@ -428,8 +428,8 @@ export default function ShelfPage() {
                       <button
                         type="button"
                         onClick={() => changeSearchQuery('')}
-                        aria-label="Clear search"
-                        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/60 transition-all hover:bg-muted hover:text-foreground"
+                        aria-label="清除搜索"
+                        className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/60 transition-all hover:bg-muted hover:text-foreground sm:right-2 sm:h-9 sm:w-9"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -446,9 +446,10 @@ export default function ShelfPage() {
 
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                   <span className="text-[13px] font-medium text-muted-foreground/70 mr-1">分类：</span>
-                  <button
-                    type="button"
-                    onClick={() => changeSelectedCategory(null)}
+                    <button
+                      type="button"
+                      onClick={() => changeSelectedCategory(null)}
+                      aria-pressed={selectedCategoryId === null}
                     className={cn(
                       'flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                       selectedCategoryId === null
@@ -462,6 +463,7 @@ export default function ShelfPage() {
                     <button
                       type="button"
                       onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
+                      aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
                       className={cn(
                         'flex min-h-11 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:px-3.5',
                         selectedCategoryId === UNCATEGORIZED_FILTER_ID
@@ -477,6 +479,7 @@ export default function ShelfPage() {
                       key={category}
                       type="button"
                       onClick={() => changeSelectedCategory(category)}
+                      aria-pressed={selectedCategoryId === category}
                       className={cn(
                         'flex min-h-11 max-w-[9rem] items-center justify-center truncate rounded-full px-4 text-[13px] font-medium transition-all active:scale-[0.97] sm:min-h-8 sm:max-w-[10rem] sm:px-3.5',
                         selectedCategoryId === category

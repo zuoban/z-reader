@@ -1,6 +1,14 @@
 "use client";
 
-import { type ReactNode, type RefObject, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeft,
   Bookmark as BookmarkIcon,
@@ -97,9 +105,49 @@ export function ReaderToolbar({
 }: ReaderToolbarProps) {
   const isDark = theme.preset === "dark";
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileActionsMenuRef = useRef<HTMLDivElement>(null);
+  const mobileActionsMenuId = useId();
 
-  function closeMobileActions() {
+  function closeMobileActions(returnFocus = true) {
     setMobileActionsOpen(false);
+    if (returnFocus) {
+      requestAnimationFrame(() => mobileActionsButtonRef.current?.focus());
+    }
+  }
+
+  useEffect(() => {
+    if (!mobileActionsOpen) return;
+
+    const firstMenuItem = mobileActionsMenuRef.current?.querySelector<HTMLButtonElement>(
+      '[role="menuitem"]:not(:disabled)'
+    );
+    firstMenuItem?.focus();
+  }, [mobileActionsOpen]);
+
+  useEffect(() => {
+    if (!mobileActionsOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (
+        !mobileActionsMenuRef.current?.contains(target) &&
+        !mobileActionsButtonRef.current?.contains(target)
+      ) {
+        closeMobileActions();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [mobileActionsOpen]);
+
+  function handleMobileActionsKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Escape") return;
+
+    event.preventDefault();
+    closeMobileActions();
   }
 
   return (
@@ -141,9 +189,11 @@ export function ReaderToolbar({
           <div className="relative flex items-center gap-1 sm:gap-4">
             <div className="sm:hidden">
               <Button
+                ref={mobileActionsButtonRef}
                 aria-expanded={mobileActionsOpen}
                 aria-haspopup="menu"
                 aria-label="更多阅读操作"
+                aria-controls={mobileActionsOpen ? mobileActionsMenuId : undefined}
                 className="flex h-10 w-10 items-center justify-center rounded-xl p-0 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                 onClick={() => setMobileActionsOpen((open) => !open)}
                 title="更多阅读操作"
@@ -154,34 +204,37 @@ export function ReaderToolbar({
               </Button>
               {mobileActionsOpen && (
                 <div
-                className="absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-48 rounded-xl border p-2 text-sm shadow-[0_18px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl"
-                data-reader-interactive="true"
-                role="menu"
-                style={{
-                  background: withOpacity(uiScheme.cardBg, isDark ? 0.94 : 0.98),
-                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.22 : 0.14),
-                  color: uiScheme.fg,
-                }}
-              >
-                <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">
-                  阅读操作
-                </div>
-                <button
-                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
-                  onClick={() => {
-                    closeMobileActions();
-                    onTocOpenChange(true);
+                  ref={mobileActionsMenuRef}
+                  id={mobileActionsMenuId}
+                  className="absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-48 rounded-xl border p-2 text-sm shadow-[0_18px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+                  data-reader-interactive="true"
+                  onKeyDown={handleMobileActionsKeyDown}
+                  role="menu"
+                  style={{
+                    background: withOpacity(uiScheme.cardBg, isDark ? 0.94 : 0.98),
+                    borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.22 : 0.14),
+                    color: uiScheme.fg,
                   }}
-                  role="menuitem"
-                  type="button"
                 >
-                  <List className="h-4 w-4" />
-                  <span>目录</span>
-                </button>
+                  <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">
+                    阅读操作
+                  </div>
+                  <button
+                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                    onClick={() => {
+                      closeMobileActions(false);
+                      onTocOpenChange(true);
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <List className="h-4 w-4" />
+                    <span>目录</span>
+                  </button>
                 <button
                   className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                   onClick={() => {
-                    closeMobileActions();
+                    closeMobileActions(false);
                     onBookmarksOpenChange(true);
                   }}
                   role="menuitem"
@@ -194,7 +247,7 @@ export function ReaderToolbar({
                   className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={!canCreateBookmark || isSavingBookmark}
                   onClick={() => {
-                    closeMobileActions();
+                    closeMobileActions(false);
                     onCreateBookmark();
                   }}
                   role="menuitem"
@@ -208,7 +261,7 @@ export function ReaderToolbar({
                     className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={isSavingOffline}
                     onClick={() => {
-                      closeMobileActions();
+                      closeMobileActions(false);
                       onSaveOffline();
                     }}
                     role="menuitem"
@@ -224,7 +277,7 @@ export function ReaderToolbar({
                 <button
                   className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                   onClick={() => {
-                    closeMobileActions();
+                    closeMobileActions(false);
                     onThemeSettingsOpenChange(true);
                   }}
                   role="menuitem"
@@ -236,7 +289,7 @@ export function ReaderToolbar({
                 <button
                   className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                   onClick={() => {
-                    closeMobileActions();
+                    closeMobileActions(false);
                     onToggleFullscreen();
                   }}
                   role="menuitem"

@@ -94,7 +94,7 @@ export function BookCardDropdown({
             </div>
           </div>
 
-          <div className="space-y-3 rounded-2xl bg-[#f6f6f6] dark:bg-zinc-900/60 border border-border/10 px-3.5 py-3.5">
+          <div className="space-y-3 rounded-2xl border border-border/10 bg-[var(--shelf-detail-surface)] px-3.5 py-3.5">
             <DetailRow
               icon={<HardDrive className="h-4 w-4 stroke-[1.8]" />}
               label="大小"

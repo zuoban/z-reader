@@ -370,7 +370,14 @@ async function downloadBookFile(id: string, options: FetchBookOptions = {}): Pro
 
   const persistPendingChunks = async () => {
     if (pendingBytes === 0) return;
-    const chunk = new Blob(pendingChunks, { type: contentType });
+    const chunk = new Blob(
+      pendingChunks.map((pendingChunk) => {
+        const copiedChunk = new Uint8Array(pendingChunk.byteLength);
+        copiedChunk.set(pendingChunk);
+        return copiedChunk.buffer;
+      }),
+      { type: contentType }
+    );
     pendingChunks = [];
     pendingBytes = 0;
     parts.push(chunk);

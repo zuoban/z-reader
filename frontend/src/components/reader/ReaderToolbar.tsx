@@ -271,7 +271,7 @@ export function ReaderToolbar({
                     <span>{isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}</span>
                   </button>
                 )}
-                <div onClick={closeMobileActions}>
+                <div onClick={() => closeMobileActions()}>
                   {mobileTtsControls}
                 </div>
                 <button

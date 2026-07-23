@@ -35,6 +35,7 @@ import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { SortSelector } from '@/components/SortSelector';
+import { VirtualBookGrid } from '@/components/VirtualBookGrid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -564,40 +565,55 @@ export default function ShelfPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative z-0 grid grid-cols-2 gap-3 py-2 sm:grid-cols-[repeat(auto-fit,minmax(11rem,12.5rem))] sm:justify-start sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(12rem,13rem))]">
-                  {filteredBooks.map((book, index) => (
-                    <BookCard
-                      key={`${book.id}:${book.cover_path ?? ''}:${book.format}`}
-                      book={book}
-                      index={index}
-                      categories={categories}
-                      bookCounts={bookCounts}
-                      onRead={() => router.push(`/read/${book.id}`)}
-                      onDelete={() => handleDelete(book.id)}
-                      onUpdate={loadBooks}
-                      isDeleting={deletingId === book.id}
-                      formatSize={formatFileSize}
-                      progressPercentage={progressByBookId[book.id] ?? null}
-                      searchQuery={searchQuery}
-                      selectionMode={selectionMode}
-                      selected={selectedBookIds.has(book.id)}
-                      onSelectionToggle={() => toggleBookSelection(book.id)}
-                    />
-                  ))}
+                <div className="relative z-0 py-2">
+                  <VirtualBookGrid
+                    items={filteredBooks}
+                    getItemKey={(book) =>
+                      `${book.id}:${book.cover_path ?? ''}:${book.format}`
+                    }
+                    onEndReached={() => {
+                      if (hasMoreBooks && !isLoadingMoreBooks) {
+                        void loadMoreBooks();
+                      }
+                    }}
+                    renderItem={(book, index) => (
+                      <BookCard
+                        book={book}
+                        index={index}
+                        categories={categories}
+                        bookCounts={bookCounts}
+                        onRead={() => router.push(`/read/${book.id}`)}
+                        onDelete={() => handleDelete(book.id)}
+                        onUpdate={loadBooks}
+                        isDeleting={deletingId === book.id}
+                        formatSize={formatFileSize}
+                        progressPercentage={progressByBookId[book.id] ?? null}
+                        searchQuery={searchQuery}
+                        selectionMode={selectionMode}
+                        selected={selectedBookIds.has(book.id)}
+                        onSelectionToggle={() => toggleBookSelection(book.id)}
+                      />
+                    )}
+                  />
                 </div>
               )}
-              {hasMoreBooks && (
+              {(hasMoreBooks || isLoadingMoreBooks) && (
                 <div className="flex flex-col items-center gap-2 py-8 text-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 rounded-xl px-6"
-                    disabled={isLoadingMoreBooks}
-                    onClick={() => void loadMoreBooks()}
-                  >
-                    {isLoadingMoreBooks ? <LoadingSpinner className="mr-2 h-4 w-4" /> : null}
-                    {isLoadingMoreBooks ? '加载中…' : '加载更多图书'}
-                  </Button>
+                  {isLoadingMoreBooks ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <LoadingSpinner className="h-4 w-4" />
+                      加载中…
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-xl px-6"
+                      onClick={() => void loadMoreBooks()}
+                    >
+                      加载更多图书
+                    </Button>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     已载入 {books.length} / {bookCounts.all} 本
                   </p>

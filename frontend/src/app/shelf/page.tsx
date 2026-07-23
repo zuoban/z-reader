@@ -1,7 +1,7 @@
 'use client';
 
 import type { DragEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
@@ -170,7 +170,7 @@ export default function ShelfPage() {
     });
   }
 
-  function toggleBookSelection(bookId: string) {
+  const toggleBookSelection = useCallback((bookId: string) => {
     setSelectedBookIds((current) => {
       const next = new Set(current);
       if (next.has(bookId)) {
@@ -180,7 +180,17 @@ export default function ShelfPage() {
       }
       return next;
     });
-  }
+  }, []);
+
+  const handleEndReached = useCallback(() => {
+    void loadMoreBooks();
+  }, [loadMoreBooks]);
+
+  const getBookItemKey = useCallback(
+    (book: (typeof filteredBooks)[number]) =>
+      `${book.id}:${book.cover_path ?? ''}:${book.format}`,
+    []
+  );
 
   function toggleVisibleSelection() {
     setSelectedBookIds((current) => {
@@ -568,14 +578,11 @@ export default function ShelfPage() {
                 <div className="relative z-0 py-2">
                   <VirtualBookGrid
                     items={filteredBooks}
-                    getItemKey={(book) =>
-                      `${book.id}:${book.cover_path ?? ''}:${book.format}`
-                    }
-                    onEndReached={() => {
-                      if (hasMoreBooks && !isLoadingMoreBooks) {
-                        void loadMoreBooks();
-                      }
-                    }}
+                    resetKey={`${selectedCategoryId ?? 'all'}:${searchQuery}:${sortBy}`}
+                    canLoadMore={hasMoreBooks}
+                    isLoadingMore={isLoadingMoreBooks}
+                    onEndReached={handleEndReached}
+                    getItemKey={getBookItemKey}
                     renderItem={(book, index) => (
                       <BookCard
                         book={book}
@@ -598,9 +605,13 @@ export default function ShelfPage() {
                 </div>
               )}
               {(hasMoreBooks || isLoadingMoreBooks) && (
-                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
                   {isLoadingMoreBooks ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div
+                      className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground"
+                      role="status"
+                      aria-live="polite"
+                    >
                       <LoadingSpinner className="h-4 w-4" />
                       加载中…
                     </div>
@@ -614,8 +625,9 @@ export default function ShelfPage() {
                       加载更多图书
                     </Button>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    已载入 {books.length} / {bookCounts.all} 本
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    已载入 {books.length}
+                    {bookCounts.all > 0 ? ` / ${bookCounts.all}` : ''} 本
                   </p>
                 </div>
               )}

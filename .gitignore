@@ -19,6 +19,9 @@ backend/data.db
 # Uploads
 uploads/
 
+# Local backups
+backend/backups/
+
 # Environment
 .env
 .env.local

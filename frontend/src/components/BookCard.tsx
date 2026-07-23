@@ -1,8 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import type { CSSProperties, ReactNode } from 'react';
-import { useState } from 'react';
+import { memo, useState, type CSSProperties, type ReactNode } from 'react';
 import { BookOpen, Check } from 'lucide-react';
 import { Book } from '@/lib/api';
 import { CategorySelector } from '@/components/CategorySelector';
@@ -175,7 +174,7 @@ function BookCoverFace({
   );
 }
 
-export function BookCard({
+export const BookCard = memo(function BookCard({
   book,
   index,
   categories,
@@ -232,11 +231,9 @@ export function BookCard({
           selected && 'border-primary ring-2 ring-primary/80 dark:border-primary dark:ring-primary/55'
         )}
         style={{
-          '--paper-delay': `${Math.min(index, 10) * 28}ms`,
-          // Keep long shelves responsive without changing their keyboard and
-          // selection semantics. The browser can defer offscreen paint/layout.
-          contentVisibility: 'auto',
-          containIntrinsicSize: 'auto 28rem',
+          // Virtual grid only mounts near-viewport rows; skip content-visibility
+          // so measureElement gets accurate heights.
+          '--paper-delay': `${Math.min(index, 8) * 24}ms`,
         } as CSSProperties}
       >
         <button
@@ -369,4 +366,4 @@ export function BookCard({
       />
     </div>
   );
-}
+});

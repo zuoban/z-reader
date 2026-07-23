@@ -11,7 +11,13 @@ export const SHELF_GRID_MIN_COL_PX = {
   lg: 192, // 12rem
 } as const;
 
-/** Card estimate: 3/4 cover + text + footer (~28rem in BookCard). */
+/**
+ * Non-cover body of BookCard (title, author, progress, footer).
+ * Tuned from actual layout; measureElement refines after paint.
+ */
+export const SHELF_CARD_BODY_HEIGHT_PX = 132;
+
+/** Fallback when width is unknown. */
 export const SHELF_CARD_ESTIMATE_HEIGHT_PX = 448;
 
 /**
@@ -37,4 +43,37 @@ export function getShelfRowCount(itemCount: number, columnCount: number): number
 
 export function getShelfGapPx(containerWidth: number): number {
   return containerWidth < 640 ? SHELF_GRID_GAP_PX.mobile : SHELF_GRID_GAP_PX.desktop;
+}
+
+/** Column content width given container, columns, and gap. */
+export function getShelfColumnWidth(
+  containerWidth: number,
+  columnCount: number,
+  gap: number
+): number {
+  if (containerWidth <= 0 || columnCount <= 0) return 160;
+  return Math.max(0, (containerWidth - gap * (columnCount - 1)) / columnCount);
+}
+
+/**
+ * Estimate card height from column width.
+ * Cover uses aspect-ratio 3/4 → height = width * 4/3.
+ */
+export function estimateShelfCardHeight(
+  containerWidth: number,
+  columnCount = getShelfColumnCount(containerWidth)
+): number {
+  const gap = getShelfGapPx(containerWidth);
+  const colWidth = getShelfColumnWidth(containerWidth, columnCount, gap);
+  const coverHeight = colWidth * (4 / 3);
+  return Math.round(coverHeight + SHELF_CARD_BODY_HEIGHT_PX);
+}
+
+/** Row height = card + inter-row gap (padding under each virtual row). */
+export function estimateShelfRowHeight(
+  containerWidth: number,
+  columnCount = getShelfColumnCount(containerWidth)
+): number {
+  const gap = getShelfGapPx(containerWidth);
+  return estimateShelfCardHeight(containerWidth, columnCount) + gap;
 }

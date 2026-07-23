@@ -11,10 +11,10 @@ import {
 } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import {
+  estimateShelfRowHeight,
   getShelfColumnCount,
   getShelfGapPx,
   getShelfRowCount,
-  SHELF_CARD_ESTIMATE_HEIGHT_PX,
 } from '@/lib/shelf-grid';
 import { cn } from '@/lib/utils';
 
@@ -22,8 +22,17 @@ export interface VirtualBookGridProps<T> {
   items: T[];
   getItemKey: (item: T, index: number) => string;
   renderItem: (item: T, index: number) => ReactNode;
-  /** Fired when the user scrolls near the end (for infinite load). */
+  /**
+   * When this value changes (filter / sort / search), scroll to the list top
+   * and allow another infinite-load cycle.
+   */
+  resetKey?: string | number;
+  /** Fired near the end for infinite load. Caller should no-op if busy. */
   onEndReached?: () => void;
+  /** Guard so the grid does not spam load-more while a page is in flight. */
+  canLoadMore?: boolean;
+  isLoadingMore?: boolean;
+  /** How many rows before the last to start loading. */
   endReachedOffsetRows?: number;
   className?: string;
   listClassName?: string;
@@ -34,16 +43,41 @@ export function VirtualBookGrid<T>({
   items,
   getItemKey,
   renderItem,
+  resetKey,
   onEndReached,
-  endReachedOffsetRows = 2,
+  canLoadMore = true,
+  isLoadingMore = false,
+  endReachedOffsetRows = 3,
   className,
   listClassName,
-  overscan = 4,
+  overscan = 5,
 }: VirtualBookGridProps<T>) {
   const listRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  // Start at 0 so SSR and hydration match; layout effect fills real width.
   const [width, setWidth] = useState(0);
   const [scrollMargin, setScrollMargin] = useState(0);
-  const endReachedForCountRef = useRef(-1);
+
+  // Stable refs for observer callbacks (avoid re-subscribe thrash).
+  const onEndReachedRef = useRef(onEndReached);
+  const canLoadMoreRef = useRef(canLoadMore);
+  const isLoadingMoreRef = useRef(isLoadingMore);
+  const loadLockRef = useRef(false);
+  const lastLoadAtRef = useRef(0);
+  const measureRafRef = useRef(0);
+
+  useEffect(() => {
+    onEndReachedRef.current = onEndReached;
+    canLoadMoreRef.current = canLoadMore;
+    isLoadingMoreRef.current = isLoadingMore;
+  });
+
+  // Clear in-flight lock when parent finishes loading.
+  useEffect(() => {
+    if (!isLoadingMore) {
+      loadLockRef.current = false;
+    }
+  }, [isLoadingMore]);
 
   const columnCount = useMemo(() => getShelfColumnCount(width || 360), [width]);
   const gap = useMemo(() => getShelfGapPx(width || 360), [width]);
@@ -51,69 +85,164 @@ export function VirtualBookGrid<T>({
     () => getShelfRowCount(items.length, columnCount),
     [items.length, columnCount]
   );
+  const estimatedRowHeight = useMemo(
+    () => estimateShelfRowHeight(width || 360, columnCount),
+    [width, columnCount]
+  );
 
-  const measure = useCallback(() => {
+  const applyChromeMeasure = useCallback(() => {
     const node = listRef.current;
     if (!node) return;
-    setWidth(node.clientWidth);
-    // Distance from document top — required by useWindowVirtualizer.
-    const top = node.getBoundingClientRect().top + window.scrollY;
-    setScrollMargin(top);
+    const nextWidth = node.clientWidth;
+    const nextMargin = node.getBoundingClientRect().top + window.scrollY;
+    setWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+    setScrollMargin((prev) => (Math.abs(prev - nextMargin) < 0.5 ? prev : nextMargin));
   }, []);
 
+  // Coalesce ResizeObserver / layout thrash into one paint frame.
+  const measureChrome = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (measureRafRef.current) return;
+    measureRafRef.current = window.requestAnimationFrame(() => {
+      measureRafRef.current = 0;
+      applyChromeMeasure();
+    });
+  }, [applyChromeMeasure]);
+
   useLayoutEffect(() => {
-    measure();
-  }, [measure, items.length]);
+    // First paint / item count change: measure immediately for correct scrollMargin.
+    applyChromeMeasure();
+  }, [applyChromeMeasure, items.length, resetKey]);
 
   useEffect(() => {
     const node = listRef.current;
     if (!node) return;
 
-    const ro = new ResizeObserver(() => measure());
+    const ro = new ResizeObserver(() => {
+      measureChrome();
+    });
     ro.observe(node);
-    window.addEventListener('resize', measure);
+    window.addEventListener('resize', measureChrome, { passive: true });
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('resize', measureChrome);
+      if (measureRafRef.current) {
+        window.cancelAnimationFrame(measureRafRef.current);
+        measureRafRef.current = 0;
+      }
     };
-  }, [measure]);
+  }, [measureChrome]);
+
+  const estimateSize = useCallback(() => estimatedRowHeight, [estimatedRowHeight]);
 
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
-    estimateSize: () => SHELF_CARD_ESTIMATE_HEIGHT_PX + gap,
+    estimateSize,
     overscan,
     scrollMargin,
-    // Recalculate when column layout changes.
-    getItemKey: (rowIndex) => `${columnCount}:${rowIndex}`,
+    getItemKey: (rowIndex) => `${columnCount}:${gap}:${rowIndex}`,
   });
 
-  const virtualRows = virtualizer.getVirtualItems();
-
-  // Infinite scroll: when the last visible row approaches the end.
+  // Remeasure cached sizes when layout breakpoints change.
   useEffect(() => {
-    if (!onEndReached || rowCount === 0) return;
-    const last = virtualRows[virtualRows.length - 1];
-    if (!last) return;
-    if (last.index < rowCount - 1 - endReachedOffsetRows) return;
-    // Fire once per items.length growth cycle to avoid spam.
-    if (endReachedForCountRef.current === items.length) return;
-    endReachedForCountRef.current = items.length;
-    onEndReached();
-  }, [endReachedOffsetRows, items.length, onEndReached, rowCount, virtualRows]);
+    virtualizer.measure();
+    // virtualizer identity is stable enough; key off layout inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- measure only on layout change
+  }, [columnCount, gap, estimatedRowHeight]);
 
-  // Reset end-reached guard when list shrinks (filter/search).
-  useEffect(() => {
-    if (items.length < endReachedForCountRef.current) {
-      endReachedForCountRef.current = -1;
+  // Filter / sort / search: jump back so users see the new list from the top.
+  useLayoutEffect(() => {
+    if (resetKey === undefined) return;
+    loadLockRef.current = false;
+    lastLoadAtRef.current = 0;
+    if (rowCount > 0) {
+      // Aligns window scroll with first row (accounts for scrollMargin).
+      virtualizer.scrollToIndex(0, { align: 'start', behavior: 'auto' });
+      return;
     }
-  }, [items.length]);
+    const node = listRef.current;
+    if (!node) return;
+    const target = node.getBoundingClientRect().top + window.scrollY - 12;
+    if (window.scrollY > target + 40) {
+      window.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on resetKey
+  }, [resetKey]);
+
+  const requestLoadMore = useCallback(() => {
+    if (!onEndReachedRef.current) return;
+    if (!canLoadMoreRef.current || isLoadingMoreRef.current) return;
+    if (loadLockRef.current) return;
+
+    const now = Date.now();
+    // Throttle bursts while scroll inertia fires many intersections.
+    if (now - lastLoadAtRef.current < 400) return;
+
+    loadLockRef.current = true;
+    lastLoadAtRef.current = now;
+    onEndReachedRef.current();
+  }, []);
+
+  /** True when the end probe is still within the prefetch window. */
+  const isSentinelNearViewport = useCallback(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return false;
+    const prefetchPx = Math.round(estimatedRowHeight * endReachedOffsetRows);
+    const rect = sentinel.getBoundingClientRect();
+    return rect.top <= window.innerHeight + prefetchPx;
+  }, [endReachedOffsetRows, estimatedRowHeight]);
+
+  // Sentinel at the bottom of the virtual list — more reliable than row-index checks.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !onEndReached) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          requestLoadMore();
+        }
+      },
+      {
+        root: null,
+        // Start loading a couple of viewports early.
+        rootMargin: `0px 0px ${Math.round(estimatedRowHeight * endReachedOffsetRows)}px 0px`,
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [endReachedOffsetRows, estimatedRowHeight, onEndReached, requestLoadMore, rowCount]);
+
+  // Short first pages / fast networks: if the sentinel is still on-screen after a
+  // page arrives, keep loading until the viewport is filled or pages run out.
+  useEffect(() => {
+    if (!onEndReached) return;
+    if (!canLoadMore || isLoadingMore) return;
+    if (rowCount === 0) return;
+    if (!isSentinelNearViewport()) return;
+    requestLoadMore();
+  }, [
+    canLoadMore,
+    isLoadingMore,
+    isSentinelNearViewport,
+    items.length,
+    onEndReached,
+    requestLoadMore,
+    rowCount,
+  ]);
+
+  const virtualRows = virtualizer.getVirtualItems();
 
   return (
     <div ref={listRef} className={cn('relative w-full', className)}>
       <div
         className={cn('relative w-full', listClassName)}
         style={{
-          height: virtualizer.getTotalSize(),
+          height: Math.max(virtualizer.getTotalSize(), 0),
+          // Hint the browser about the reserved list box for fewer layout thrash frames.
+          contain: 'layout style',
         }}
       >
         {virtualRows.map((virtualRow) => {
@@ -125,9 +254,9 @@ export function VirtualBookGrid<T>({
               key={virtualRow.key}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
-              className="absolute left-0 top-0 w-full"
+              className="absolute left-0 top-0 w-full will-change-transform"
               style={{
-                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                transform: `translate3d(0, ${virtualRow.start - scrollMargin}px, 0)`,
               }}
             >
               <div
@@ -151,6 +280,13 @@ export function VirtualBookGrid<T>({
           );
         })}
       </div>
+
+      {/* Load-more probe sits after the virtual space so it tracks true list end. */}
+      <div
+        ref={sentinelRef}
+        aria-hidden="true"
+        className="pointer-events-none h-px w-full"
+      />
     </div>
   );
 }

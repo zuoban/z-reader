@@ -180,8 +180,7 @@ jobs:
         working-directory: frontend
         env:
           CI: true
-        # Auth + virtual grid only. Visual baselines are OS/font-sensitive and
-        # stay on an optional job until Linux snapshots are committed.
+        # Auth + virtual grid + reader happy path. Visual baselines stay opt-in.
         run: npm run test:e2e:ci
 
       - name: Upload Playwright report on failure

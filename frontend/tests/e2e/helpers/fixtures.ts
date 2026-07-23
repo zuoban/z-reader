@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import type { Page, Route } from '@playwright/test';
 
 export const MOCK_USER = {
@@ -490,6 +492,164 @@ export async function mockAuthVerifyHanging(page: Page) {
     // Never resolve — page stays on ReaderAuthLoading.
     await new Promise(() => {});
   });
+}
+
+export type ReaderHappyPathMock = {
+  book: (typeof MOCK_BOOKS)[number];
+  progressSaves: Array<{ cfi: string; percentage: number }>;
+  fileHits: number;
+};
+
+const SAMPLE_EPUB_PATH = path.join(
+  process.cwd(),
+  'tests/e2e/fixtures/sample.epub'
+);
+
+/**
+ * Reader happy-path APIs: real minimal EPUB bytes + empty progress/bookmarks.
+ * Catch-all so nothing falls through to a live backend.
+ */
+export async function mockReaderHappyPath(
+  page: Page,
+  bookId = 'book-1'
+): Promise<ReaderHappyPathMock> {
+  const book = {
+    ...(MOCK_BOOKS.find((item) => item.id === bookId) ?? MOCK_BOOKS[0]),
+    id: bookId,
+    title: 'E2E Sample Book',
+    author: 'Fixture Author',
+    filename: 'sample.epub',
+    format: 'epub',
+    processing_state: 'ready' as const,
+  };
+
+  const state: ReaderHappyPathMock = {
+    book,
+    progressSaves: [],
+    fileHits: 0,
+  };
+
+  const epubBytes = readFileSync(SAMPLE_EPUB_PATH);
+
+  await page.route('**/api/**', async (route) => {
+    const method = route.request().method();
+    const url = new URL(route.request().url());
+    const pathName = url.pathname;
+
+    if (pathName.includes('/auth/verify')) {
+      await json(route, { valid: true, user: MOCK_USER });
+      return;
+    }
+
+    if (pathName.includes('/progress')) {
+      if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+        let body: { cfi?: string; percentage?: number } = {};
+        try {
+          body = route.request().postDataJSON() as typeof body;
+        } catch {
+          // ignore
+        }
+        const saved = {
+          book_id: book.id,
+          user_id: MOCK_USER.id,
+          cfi: body.cfi ?? '',
+          percentage: body.percentage ?? 0,
+          updated_at: new Date().toISOString(),
+        };
+        state.progressSaves.push({
+          cfi: saved.cfi,
+          percentage: saved.percentage,
+        });
+        await json(route, saved);
+        return;
+      }
+      if (/\/api\/progress\/[^/]+$/.test(pathName)) {
+        await json(route, {
+          book_id: book.id,
+          user_id: MOCK_USER.id,
+          cfi: '',
+          percentage: 0,
+          updated_at: '2026-01-20T08:00:00Z',
+        });
+        return;
+      }
+      await json(route, []);
+      return;
+    }
+
+    if (pathName.includes('/bookmarks')) {
+      if (method === 'POST') {
+        let body: { cfi?: string; percentage?: number; chapter?: string; note?: string } =
+          {};
+        try {
+          body = route.request().postDataJSON() as typeof body;
+        } catch {
+          // ignore
+        }
+        await json(route, {
+          id: 'bm-e2e-1',
+          book_id: book.id,
+          user_id: MOCK_USER.id,
+          cfi: body.cfi ?? 'epubcfi(/6/2!/4/2/2)',
+          percentage: body.percentage ?? 0,
+          chapter: body.chapter ?? '',
+          note: body.note ?? '',
+          created_at: new Date().toISOString(),
+        });
+        return;
+      }
+      await json(route, []);
+      return;
+    }
+
+    if (pathName.includes('/file')) {
+      state.fileHits += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/epub+zip',
+        headers: {
+          'Content-Length': String(epubBytes.byteLength),
+          'Accept-Ranges': 'bytes',
+        },
+        body: epubBytes,
+      });
+      return;
+    }
+
+    if (pathName.includes('/cover')) {
+      await route.fulfill({ status: 404, body: 'not found' });
+      return;
+    }
+
+    if (pathName.includes('/voices') || pathName.includes('/tts') || pathName.includes('/ssml')) {
+      await json(route, pathName.includes('/voices') ? [] : { error: 'tts disabled in e2e' }, 200);
+      return;
+    }
+
+    if (pathName.endsWith(`/books/${book.id}`)) {
+      await json(route, book);
+      return;
+    }
+
+    if (pathName.endsWith('/books') || pathName.endsWith('/search')) {
+      await json(route, { books: [book] });
+      return;
+    }
+
+    if (pathName.endsWith('/summary')) {
+      await json(route, { total: 1, uncategorized: 0, categories: {} });
+      return;
+    }
+
+    if (pathName.includes('/categories')) {
+      await json(route, []);
+      return;
+    }
+
+    await json(route, { error: `unmocked ${method} ${pathName}` }, 404);
+  });
+
+  return state;
 }
 
 export async function gotoStable(page: Page, path: string) {

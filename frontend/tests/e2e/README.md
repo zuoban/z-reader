@@ -8,11 +8,14 @@ cd frontend
 # All Playwright specs (functional + visual)
 npm run test:e2e
 
-# CI gate: auth + virtual grid only (no screenshots)
+# CI gate: auth + virtual grid + reader happy path (no screenshots)
 npm run test:e2e:ci
 
 # Virtual shelf grid only
 npm run test:e2e:virtual
+
+# Reader happy path only
+npm run test:e2e:reader
 
 # Visual regression (screenshot baselines)
 npm run test:visual
@@ -48,6 +51,20 @@ Covered surfaces:
 
 API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend.
 
+## Reader happy-path e2e
+
+- Spec: `reader-happy-path.spec.ts`
+- Fixture EPUB: `fixtures/sample.epub` (minimal 2-chapter package)
+- API mock: `mockReaderHappyPath` in `helpers/fixtures.ts`
+
+| Case | Assertion |
+| --- | --- |
+| Open book | File download + toolbar title from EPUB metadata |
+| Chrome / TOC | Status bar → toolbar → TOC labels |
+| Back | Returns to `/shelf` |
+| Page + TOC jump | Keyboard next + chapter navigation |
+| Progress | At least one progress save while paging |
+
 ## Virtual grid functional e2e
 
 - Spec: `shelf-virtual-grid.spec.ts`
@@ -80,7 +97,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Specs | When |
 | --- | --- | --- |
 | Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` (`npm run test:e2e:ci`) | every push/PR |
+| Frontend E2E (functional) | `auth-shelf` + `shelf-virtual-grid` + `reader-happy-path` (`npm run test:e2e:ci`) | every push/PR |
 | Frontend Visual Regression | `visual-regression.spec.ts` | manual `workflow_dispatch` + `run_visual` |
 
 Why visual is optional by default:

@@ -8,10 +8,29 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: process.env.CI
+    ? [['github'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
+    : [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+  // Keep visual baselines next to specs for easy review in PRs.
+  snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
+  expect: {
+    toHaveScreenshot: {
+      // Allow tiny antialiasing / font raster differences across machines.
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+    },
+  },
   use: {
     baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    // Stable desktop chrome for visual baselines.
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+    locale: 'zh-CN',
+    timezoneId: 'Asia/Shanghai',
   },
   webServer: {
     command: 'npm run dev',
@@ -24,6 +43,8 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+        deviceScaleFactor: 1,
         ...(executablePath ? { launchOptions: { executablePath } } : {}),
       },
     },

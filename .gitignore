@@ -48,6 +48,11 @@ npm-debug.log*
 coverage/
 frontend/test-results/
 frontend/playwright-report/
+frontend/blob-report/
+frontend/test-results-*/
+# Diff images from failed visual runs (baselines themselves are committed)
+frontend/tests/e2e/**/*-snapshots/*-diff.png
+frontend/tests/e2e/**/*-snapshots/*-actual.png
 
 # Cache
 .cache/

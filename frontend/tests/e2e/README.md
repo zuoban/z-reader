@@ -28,15 +28,22 @@ Covered surfaces:
 
 | Snapshot | Surface |
 | --- | --- |
-| `landing-light` | Marketing landing |
+| `landing-light` / `landing-dark` | Marketing landing |
 | `login-light` / `login-dark` | Login |
 | `login-register-light` | Register mode |
 | `shelf-empty-light` / `shelf-empty-dark` | Empty library |
 | `shelf-populated-light` / `shelf-populated-dark` | Library with mock books |
 | `shelf-error-light` | Load failure state |
 | `shelf-populated-mobile-light` | Mobile shelf (390×844) |
+| `shelf-selection-light` | Batch selection bar |
+| `shelf-filter-classical-light` | Category filter applied |
+| `reader-error-light` / `reader-error-dark` | Reader open failure |
+| `reader-auth-loading-light` | Reader auth loading chrome |
 
 API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend.
+
+Reader **opened book** content is not snapshotted yet (depends on real EPUB bytes +
+foliate). Prefer error/loading chrome for stable baselines.
 
 ## Updating snapshots
 

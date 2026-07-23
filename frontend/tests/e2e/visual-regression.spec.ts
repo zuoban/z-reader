@@ -4,8 +4,10 @@ import {
   installBrowserStubs,
   mockAuthUnauthorized,
   mockAuthVerified,
+  mockAuthVerifyHanging,
   mockEmptyShelfApis,
   mockPopulatedShelfApis,
+  mockReaderBookOpenError,
   mockShelfLoadError,
 } from './helpers/fixtures';
 
@@ -29,6 +31,14 @@ test.describe('visual regression', () => {
     await gotoStable(page, '/');
     await expect(page.getByRole('heading', { name: 'Z Reader' })).toBeVisible();
     await expect(page).toHaveScreenshot('landing-light.png', { fullPage: true });
+  });
+
+  test('landing page — dark', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'dark' });
+    await mockAuthUnauthorized(page);
+    await gotoStable(page, '/');
+    await expect(page.getByRole('heading', { name: 'Z Reader' })).toBeVisible();
+    await expect(page).toHaveScreenshot('landing-dark.png', { fullPage: true });
   });
 
   test('login page — light', async ({ page }) => {
@@ -116,6 +126,73 @@ test.describe('visual regression', () => {
       timeout: 15_000,
     });
     await expect(page).toHaveScreenshot('shelf-populated-mobile-light.png', {
+      fullPage: true,
+    });
+  });
+
+  test('shelf selection mode — light', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    await mockPopulatedShelfApis(page);
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByRole('button', { name: /批量操作/ }).click();
+    await expect(page.getByText('已选中')).toBeVisible();
+    await expect(page).toHaveScreenshot('shelf-selection-light.png', { fullPage: true });
+  });
+
+  test('shelf category filter — light', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    await mockPopulatedShelfApis(page);
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByRole('button', { name: '古典', exact: true }).click();
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '阅读《三体》' })).toHaveCount(0);
+    await expect(page).toHaveScreenshot('shelf-filter-classical-light.png', {
+      fullPage: true,
+    });
+  });
+
+  test('reader open error — light', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    // Catch-all API mock includes auth verify — no separate auth route needed.
+    await mockReaderBookOpenError(page, 'book-1');
+    await gotoStable(page, '/read/book-1');
+    await expect(page).toHaveURL(/\/read\/book-1/);
+    await expect(page.getByText('无法打开本书', { exact: true })).toBeVisible({
+      timeout: 25_000,
+    });
+    await expect(page.getByRole('button', { name: '返回书库' })).toBeVisible();
+    await expect(page).toHaveScreenshot('reader-error-light.png', { fullPage: true });
+  });
+
+  test('reader open error — dark', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'dark', authenticated: true });
+    await mockReaderBookOpenError(page, 'book-1');
+    await gotoStable(page, '/read/book-1');
+    await expect(page).toHaveURL(/\/read\/book-1/);
+    await expect(page.getByText('无法打开本书', { exact: true })).toBeVisible({
+      timeout: 25_000,
+    });
+    await expect(page).toHaveScreenshot('reader-error-dark.png', { fullPage: true });
+  });
+
+  test('reader auth loading — light', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerifyHanging(page);
+    await page.goto('/read/book-1', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('加载中...')).toBeVisible({ timeout: 10_000 });
+    // Freeze motion before capture.
+    await page.addStyleTag({
+      content: '*,*::before,*::after{animation:none!important;transition:none!important;}',
+    });
+    await expect(page).toHaveScreenshot('reader-auth-loading-light.png', {
       fullPage: true,
     });
   });

@@ -85,6 +85,14 @@ export async function prepareVisualPage(page: Page) {
         filter: none !important;
         animation: none !important;
       }
+      /* Hide Next.js dev error toast/overlay so screenshots stay clean. */
+      nextjs-portal,
+      [data-nextjs-toast],
+      [data-nextjs-dialog-overlay] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
     `,
   });
 
@@ -291,6 +299,87 @@ export async function mockShelfLoadError(page: Page) {
       return;
     }
     await json(route, { error: 'database unavailable' }, 500);
+  });
+}
+
+/**
+ * Reader book open fails after auth succeeds.
+ * Uses a single catch-all API mock so nothing falls through to a live backend
+ * (which can 401 and bounce the app back to /login).
+ */
+export async function mockReaderBookOpenError(page: Page, bookId = 'book-1') {
+  const book = MOCK_BOOKS.find((item) => item.id === bookId) ?? MOCK_BOOKS[0];
+
+  await page.route('**/api/**', async (route) => {
+    const method = route.request().method();
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+
+    if (path.includes('/auth/verify')) {
+      await json(route, { valid: true, user: MOCK_USER });
+      return;
+    }
+
+    if (path.includes('/progress')) {
+      if (method !== 'GET') {
+        await json(route, {
+          book_id: book.id,
+          user_id: MOCK_USER.id,
+          cfi: '',
+          percentage: 0,
+          updated_at: '2026-01-20T08:00:00Z',
+        });
+        return;
+      }
+      // getProgress(/api/progress/:id) or list
+      if (/\/api\/progress\/[^/]+$/.test(path)) {
+        await json(route, {
+          book_id: book.id,
+          user_id: MOCK_USER.id,
+          cfi: '',
+          percentage: 0,
+          updated_at: '2026-01-20T08:00:00Z',
+        });
+        return;
+      }
+      await json(route, []);
+      return;
+    }
+
+    if (path.includes('/bookmarks')) {
+      await json(route, []);
+      return;
+    }
+
+    if (path.includes('/file')) {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'book file unavailable' }),
+      });
+      return;
+    }
+
+    if (path.includes('/cover')) {
+      await route.fulfill({ status: 404, body: 'not found' });
+      return;
+    }
+
+    if (path.endsWith(`/books/${book.id}`)) {
+      await json(route, book);
+      return;
+    }
+
+    // Never fall through to a real backend during visual runs.
+    await json(route, { error: `unmocked ${method} ${path}` }, 404);
+  });
+}
+
+/** Keep auth verify pending so reader shows auth loading chrome. */
+export async function mockAuthVerifyHanging(page: Page) {
+  await page.route('**/api/auth/verify**', async () => {
+    // Never resolve — page stays on ReaderAuthLoading.
+    await new Promise(() => {});
   });
 }
 

@@ -238,7 +238,8 @@ async function authedFetch(
         ...options,
         credentials: options.credentials ?? 'include',
         headers,
-        signal: abortRequest?.controller.signal,
+        // Prefer caller signal (e.g. cover cancel); fall back to timeout controller.
+        signal: options.signal ?? abortRequest?.controller.signal,
       });
       handleUnauthorized(res);
       if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
@@ -671,15 +672,33 @@ export const api = {
     return parseJsonResponse<Book>(res, '上传封面成功但响应为空');
   },
 
-  fetchCover: async (id: string, size?: 'thumb'): Promise<Blob | null> => {
+  fetchCover: async (
+    id: string,
+    size?: 'thumb',
+    signal?: AbortSignal
+  ): Promise<Blob | null> => {
     const query = size ? `?size=${size}` : '';
-    const res = await authedFetch(`/api/books/${id}/cover${query}`, {
-      credentials: 'include',
-    }, DEFAULT_TIMEOUT);
-    if (!res.ok) {
-      return null;
+    try {
+      const res = await authedFetch(
+        `/api/books/${id}/cover${query}`,
+        {
+          credentials: 'include',
+          signal,
+        },
+        // When the caller supplies a signal (virtual list cancel), skip the
+        // default timeout controller so abort ownership stays with the caller.
+        signal ? null : DEFAULT_TIMEOUT
+      );
+      if (!res.ok) {
+        return null;
+      }
+      return res.blob();
+    } catch (error) {
+      if (signal?.aborted || isAbortLikeError(error)) {
+        return null;
+      }
+      throw error;
     }
-    return res.blob();
   },
 
   getProgress: async (bookId: string): Promise<Progress> => {

@@ -102,12 +102,20 @@ function formatDateTime(dateString: string): string {
   }).format(date);
 }
 
+/** Match shelf grid density: 2 cols mobile, ~3–4 sm, denser on desktop. */
+export const SHELF_COVER_SIZES =
+  '(max-width: 640px) 45vw, (max-width: 1024px) 28vw, (max-width: 1536px) 16vw, 200px';
+
+/** Prefer eager decode for the first row or two above the fold. */
+export const SHELF_COVER_PRIORITY_COUNT = 6;
+
 interface BookCoverFaceProps {
   coverUrl: string | null;
   titleLabel: string;
   authorLabel: string;
   categoryLabel: string;
   index: number;
+  priority?: boolean;
 }
 
 /* Muted parchment-inspired covers — refined, not candy-pastel */
@@ -128,6 +136,7 @@ function BookCoverFace({
   authorLabel,
   categoryLabel,
   index,
+  priority = false,
 }: BookCoverFaceProps) {
   if (coverUrl) {
     return (
@@ -137,7 +146,10 @@ function BookCoverFace({
           alt={titleLabel}
           fill
           unoptimized
-          sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 16vw"
+          priority={priority}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding={priority ? 'sync' : 'async'}
+          sizes={SHELF_COVER_SIZES}
           className="object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.035]"
         />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.05)_0%,transparent_32%,rgba(0,0,0,0.22)_100%)]" />
@@ -264,6 +276,7 @@ export const BookCard = memo(function BookCard({
               authorLabel={authorLabel}
               categoryLabel={categoryLabel || formatLabel}
               index={index}
+              priority={index < SHELF_COVER_PRIORITY_COUNT}
             />
             {book.processing_state === 'pending' && (
               <span className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">

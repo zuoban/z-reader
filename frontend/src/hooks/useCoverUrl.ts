@@ -7,39 +7,59 @@ import { api } from '@/lib/api';
 // the browser with parallel HTTP requests (browser limit ~6 per domain).
 const MAX_CONCURRENT = 6;
 const MAX_CACHED_COVERS = 200;
-const pendingQueue: Array<() => void> = [];
+/** Start loading slightly before cards enter the viewport. */
+const COVER_ROOT_MARGIN = '240px 0px';
+
+type CoverJob = {
+  run: () => void;
+  cancelled: boolean;
+};
+
+const pendingQueue: CoverJob[] = [];
 let activeCount = 0;
 
-function scheduleCoverFetch(fetchFn: () => void): () => void {
-  let cancelled = false;
-
-  const run = async () => {
-    if (cancelled) return;
-    activeCount++;
-    try {
-      await fetchFn();
-    } catch {
-      // ignore fetch errors
-    } finally {
-      activeCount--;
-      processQueue();
-    }
+/**
+ * Schedule a cover download. Returns a cancel function that aborts both the
+ * queue slot (if still waiting) and any in-flight work.
+ */
+export function scheduleCoverFetch(
+  fetchFn: (signal: AbortSignal) => Promise<void>
+): () => void {
+  const controller = new AbortController();
+  const job: CoverJob = {
+    cancelled: false,
+    run: () => {
+      if (job.cancelled) return;
+      activeCount += 1;
+      void (async () => {
+        try {
+          await fetchFn(controller.signal);
+        } catch {
+          // ignore fetch/abort errors
+        } finally {
+          activeCount -= 1;
+          processQueue();
+        }
+      })();
+    },
   };
 
-  pendingQueue.push(() => {
-    if (!cancelled) run();
-  });
+  pendingQueue.push(job);
   processQueue();
 
   return () => {
-    cancelled = true;
+    job.cancelled = true;
+    controller.abort();
+    const index = pendingQueue.indexOf(job);
+    if (index >= 0) pendingQueue.splice(index, 1);
   };
 }
 
 function processQueue() {
   while (activeCount < MAX_CONCURRENT && pendingQueue.length > 0) {
     const next = pendingQueue.shift();
-    next?.();
+    if (!next || next.cancelled) continue;
+    next.run();
   }
 }
 
@@ -85,25 +105,35 @@ export function clearCoverUrlCache() {
   coverUrlCache.clear();
 }
 
+export function getCoverCacheSizeForTests() {
+  return coverUrlCache.size;
+}
+
 /**
  * Lazy-loads a book cover URL using IntersectionObserver.
- * Only fetches when the element enters the viewport, and respects
- * a global concurrency limit.
+ * Only fetches when the element is near the viewport, cancels when it leaves
+ * before completion, and respects a global concurrency limit.
  */
-export function useCoverUrl(bookId: string, coverVersion?: string, size?: 'thumb'): {
+export function useCoverUrl(
+  bookId: string,
+  coverVersion?: string,
+  size?: 'thumb'
+): {
   coverUrl: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
 } {
   const cacheKey = `${bookId}:${size ?? 'full'}:${coverVersion ?? ''}`;
-  const [fetchedCover, setFetchedCover] = useState<{ cacheKey: string; url: string } | null>(null);
+  const [fetchedCover, setFetchedCover] = useState<{
+    cacheKey: string;
+    url: string;
+  } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
-  const fetchedBookIds = useRef(new Set<string>());
-  const coverUrl = getCachedCoverUrl(cacheKey) ??
+  const inFlightKeyRef = useRef<string | null>(null);
+  const coverUrl =
+    getCachedCoverUrl(cacheKey) ??
     (fetchedCover?.cacheKey === cacheKey ? fetchedCover.url : null);
 
   useEffect(() => {
-    // The cache is read during rendering so a cached cover does not require a
-    // synchronous state update in this effect.
     if (getCachedCoverUrl(cacheKey)) {
       return;
     }
@@ -113,26 +143,52 @@ export function useCoverUrl(bookId: string, coverVersion?: string, size?: 'thumb
 
     let disposed = false;
     let cancelFetch: (() => void) | undefined;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting || fetchedBookIds.current.has(cacheKey)) return;
-        fetchedBookIds.current.add(cacheKey);
-        observer.disconnect();
 
-        cancelFetch = scheduleCoverFetch(async () => {
-          const blob = await api.fetchCover(bookId, size);
-          if (!blob) return;
+    const stopFetch = () => {
+      cancelFetch?.();
+      cancelFetch = undefined;
+      if (inFlightKeyRef.current === cacheKey) {
+        inFlightKeyRef.current = null;
+      }
+    };
+
+    const startFetch = () => {
+      if (disposed || inFlightKeyRef.current === cacheKey) return;
+      if (getCachedCoverUrl(cacheKey)) return;
+
+      inFlightKeyRef.current = cacheKey;
+      cancelFetch = scheduleCoverFetch(async (signal) => {
+        try {
+          const blob = await api.fetchCover(bookId, size, signal);
+          if (!blob || disposed || signal.aborted) return;
 
           const url = URL.createObjectURL(blob);
-          if (disposed) {
+          if (disposed || signal.aborted) {
             URL.revokeObjectURL(url);
             return;
           }
           setCachedCoverUrl(bookId, cacheKey, url);
           setFetchedCover({ cacheKey, url });
-        });
+        } finally {
+          if (inFlightKeyRef.current === cacheKey) {
+            inFlightKeyRef.current = null;
+          }
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          startFetch();
+          return;
+        }
+        // Left the prefetch band before the cover was cached — free the slot.
+        if (!getCachedCoverUrl(cacheKey)) {
+          stopFetch();
+        }
       },
-      { rootMargin: '200px' } // Start loading 200px before entering viewport
+      { root: null, rootMargin: COVER_ROOT_MARGIN, threshold: 0 }
     );
 
     observer.observe(element);
@@ -140,7 +196,7 @@ export function useCoverUrl(bookId: string, coverVersion?: string, size?: 'thumb
     return () => {
       disposed = true;
       observer.disconnect();
-      cancelFetch?.();
+      stopFetch();
     };
   }, [bookId, cacheKey, size]);
 

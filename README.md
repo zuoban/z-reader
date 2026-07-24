@@ -130,11 +130,9 @@ cd backend && go test ./...
 cd backend && go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
 cd backend && go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
 
-# 书库性能基准（先运行 1,000 本书规模）
-cd backend && go test ./storage -run '^$' -bench 'BenchmarkLibrary.*1000$' -benchtime=3x
-
-# 10,000 本书规模基准（耗时更长，建议在 CI 或独立机器执行）
-cd backend && go test ./storage -run '^$' -bench 'BenchmarkLibrary.*10000$' -benchtime=3x
+# 书库性能基准（固定 1,000 / 10,000 本数据集；约 1–2 分钟）
+cd backend && go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=10x -count=1
+# 结果与运行环境见 docs/performance-baseline.md
 
 # 前端检查
 cd frontend && npm run lint

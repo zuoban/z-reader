@@ -687,7 +687,16 @@ func bookSearchGramIndexPrefix(userID, gram string) []byte {
 }
 
 func bookSearchGramIndexKey(userID, gram, bookID string) []byte {
-	return append(bookSearchGramIndexPrefix(userID, gram), []byte(bookID)...)
+	key := make([]byte, 0, len(userID)+len(gram)+len(bookID)+2*len(bookSortSeparator))
+	return appendBookSearchGramIndexKey(key, userID, gram, bookID)
+}
+
+func appendBookSearchGramIndexKey(key []byte, userID, gram, bookID string) []byte {
+	key = append(key, userID...)
+	key = append(key, bookSortSeparator...)
+	key = append(key, gram...)
+	key = append(key, bookSortSeparator...)
+	return append(key, bookID...)
 }
 
 // bookSearchGrams produces deduplicated adjacent-rune grams. It works for
@@ -1365,15 +1374,24 @@ func (db *DB) searchBooksByGrams(
 		gramBucket := tx.Bucket(BookSearchGramIndex)
 		searchBucket := tx.Bucket(BookSearchIndex)
 		booksBucket := tx.Bucket(BooksBucket)
+		selectedGram, selectedCount := mostSelectiveBookSearchGram(gramBucket, userID, grams)
+		if selectedCount == 0 {
+			return nil
+		}
 		candidateIDs := make(map[string]struct{})
-		prefix := bookSearchGramIndexPrefix(userID, grams[0])
+		prefix := bookSearchGramIndexPrefix(userID, selectedGram)
 		gramCursor := gramBucket.Cursor()
 		for key, _ := gramCursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = gramCursor.Next() {
 			candidateIDs[strings.TrimPrefix(string(key), string(prefix))] = struct{}{}
 		}
-		for _, gram := range grams[1:] {
+		for _, gram := range grams {
+			if gram == selectedGram {
+				continue
+			}
+			keyBuffer := make([]byte, 0, len(userID)+len(gram)+48+2*len(bookSortSeparator))
 			for bookID := range candidateIDs {
-				if gramBucket.Get(bookSearchGramIndexKey(userID, gram, bookID)) == nil {
+				key := appendBookSearchGramIndexKey(keyBuffer[:0], userID, gram, bookID)
+				if gramBucket.Get(key) == nil {
 					delete(candidateIDs, bookID)
 				}
 			}
@@ -1436,6 +1454,33 @@ func (db *DB) searchBooksByGrams(
 		books[i] = candidates[i].book
 	}
 	return books, books[len(books)-1].ID, nil
+}
+
+// mostSelectiveBookSearchGram finds the query gram with the fewest postings.
+// Starting an intersection with that gram avoids repeatedly probing the full
+// library for titles that share a common prefix.
+func mostSelectiveBookSearchGram(bucket *bbolt.Bucket, userID string, grams []string) (string, int) {
+	selectedGram := ""
+	selectedCount := -1
+	for _, gram := range grams {
+		prefix := bookSearchGramIndexPrefix(userID, gram)
+		cursor := bucket.Cursor()
+		count := 0
+		for key, _ := cursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = cursor.Next() {
+			count++
+			if selectedCount >= 0 && count >= selectedCount {
+				break
+			}
+		}
+		if count == 0 {
+			return gram, 0
+		}
+		if selectedCount < 0 || count < selectedCount {
+			selectedGram = gram
+			selectedCount = count
+		}
+	}
+	return selectedGram, selectedCount
 }
 
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {

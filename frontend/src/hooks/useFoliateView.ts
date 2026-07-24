@@ -114,6 +114,71 @@ async function waitForFoliateView() {
   }
 }
 
+/** Soft-wait until condition is true or timeout (ms). */
+async function waitUntil(predicate: () => boolean, timeoutMs: number) {
+  if (predicate()) return;
+  const started = performance.now();
+  while (performance.now() - started < timeoutMs) {
+    await sleep(32);
+    if (predicate()) return;
+  }
+}
+
+let foliateScriptPromise: Promise<void> | null = null;
+
+/** Load foliate view.js once; safe to call from prefetch + init. */
+function ensureFoliateScript(): Promise<void> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("阅读器只能在浏览器中加载"));
+  }
+  if (customElements.get("foliate-view")) {
+    return Promise.resolve();
+  }
+  if (foliateScriptPromise) return foliateScriptPromise;
+
+  foliateScriptPromise = (async () => {
+    const { injectFoliatePolyfills } = await import("@/lib/foliate-polyfills");
+    injectFoliatePolyfills();
+
+    const existing = document.querySelector(
+      'script[src="/foliate/view.js"]'
+    ) as HTMLScriptElement | null;
+    if (existing) {
+      await waitForFoliateView();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "/foliate/view.js";
+    script.type = "module";
+    script.crossOrigin = "anonymous";
+    script.referrerPolicy = "no-referrer-when-downgrade";
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        reject(new Error("加载阅读器脚本超时，请检查网络连接"));
+      }, 15000);
+      script.onload = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      script.onerror = (event) => {
+        window.clearTimeout(timeout);
+        console.error("Failed to load foliate script:", event);
+        reject(new Error("加载阅读器脚本失败，请尝试使用 Chrome 浏览器"));
+      };
+      document.head.appendChild(script);
+    });
+
+    await waitForFoliateView();
+  })().catch((err) => {
+    foliateScriptPromise = null;
+    throw err;
+  });
+
+  return foliateScriptPromise;
+}
+
 interface UseFoliateViewOptions {
   bookId: string;
   containerRef: RefObject<HTMLDivElement | null>;
@@ -156,20 +221,22 @@ export function useFoliateView({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [readerReady, setReaderReady] = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState("初始化中...");
+  const [loadingMsg, setLoadingMsg] = useState("准备阅读环境…");
+  const [loadingDetail, setLoadingDetail] = useState("正在并行加载引擎与书籍");
 
   const destroyedRef = useRef(false);
   const progressRef = useRef(progress);
+  const progressLoadingRef = useRef(progressLoading);
   const themeRef = useRef(theme);
   const getStylesheetRef = useRef(getStylesheet);
   const updateProgressRef = useRef(updateProgress);
   const onImageOpenRef = useRef(onImageOpen);
-  const scriptLoadedRef = useRef(false);
   const appliedRemoteProgressRef = useRef<string | null>(null);
   const imageDocCleanupsRef = useRef<Map<Document, () => void>>(new Map());
   const firstDocumentLoadedRef = useRef(false);
   const revealScheduledRef = useRef(false);
   const compatibilityModeRef = useRef(false);
+  const filePrefetchRef = useRef<Promise<File | Blob> | null>(null);
 
   useEffect(() => {
     if (!currentCFI && progress?.cfi) {
@@ -182,11 +249,63 @@ export function useFoliateView({
 
   useEffect(() => {
     progressRef.current = progress;
+    progressLoadingRef.current = progressLoading;
     themeRef.current = theme;
     getStylesheetRef.current = getStylesheet;
     updateProgressRef.current = updateProgress;
     onImageOpenRef.current = onImageOpen;
-  }, [getStylesheet, onImageOpen, progress, theme, updateProgress]);
+  }, [getStylesheet, onImageOpen, progress, progressLoading, theme, updateProgress]);
+
+  // Prefetch foliate engine + book file as soon as auth is ready (do not wait for progress).
+  useEffect(() => {
+    if (!isAuthenticated || !bookId) {
+      filePrefetchRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    void ensureFoliateScript().catch(() => {
+      // initReader will surface the error if the engine still fails.
+    });
+
+    const promise = (async () => {
+      const { api } = await import("@/lib/api");
+      return api.createBookFile(bookId, {
+        onProgress: ({
+          downloadedBytes,
+          totalBytes,
+          percentage,
+          bytesPerSecond,
+          resumed,
+        }) => {
+          if (cancelled || destroyedRef.current) return;
+          const percentageLabel =
+            percentage === null ? "" : ` ${Math.floor(percentage)}%`;
+          const sizeLabel =
+            totalBytes === null
+              ? formatDownloadBytes(downloadedBytes)
+              : `${formatDownloadBytes(downloadedBytes)} / ${formatDownloadBytes(totalBytes)}`;
+          const speedLabel =
+            bytesPerSecond && bytesPerSecond >= 1024
+              ? ` · ${formatDownloadBytes(bytesPerSecond)}/s`
+              : "";
+          setLoadingMsg(
+            `${resumed ? "继续下载" : "下载书籍"}${percentageLabel} · ${sizeLabel}${speedLabel}`
+          );
+          setLoadingDetail("书籍文件与阅读器引擎并行加载中");
+        },
+      });
+    })();
+
+    filePrefetchRef.current = promise;
+    void promise.catch(() => {
+      // Swallow here; initReader awaits the same promise and handles errors.
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId, isAuthenticated]);
 
   const applyRendererPreferences = useCallback((renderer?: FoliateView["renderer"] | null) => {
     if (!renderer) return;
@@ -403,48 +522,17 @@ export function useFoliateView({
       setReaderReady(false);
       firstDocumentLoadedRef.current = false;
       revealScheduledRef.current = false;
-      setLoadingMsg(compatibilityModeRef.current ? "加载兼容阅读模式..." : "加载阅读器...");
+      setLoadingMsg(
+        compatibilityModeRef.current ? "加载兼容阅读模式…" : "加载阅读器引擎…"
+      );
+      setLoadingDetail("引擎、书籍与阅读进度并行准备");
 
-      if (!customElements.get("foliate-view") && !scriptLoadedRef.current) {
-        scriptLoadedRef.current = true;
-
-        setLoadingMsg("加载阅读器引擎...");
-
-        // Inject compatibility polyfills for older mobile browsers
-        const { injectFoliatePolyfills } = await import("@/lib/foliate-polyfills");
-        injectFoliatePolyfills();
-
-        const script = document.createElement("script");
-        script.src = "/foliate/view.js";
-        script.type = "module";
-        script.crossOrigin = "anonymous";
-        // Add referrerpolicy for better mobile browser compatibility
-        script.referrerPolicy = "no-referrer-when-downgrade";
-
-        const loadPromise = new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error("加载阅读器脚本超时，请检查网络连接"));
-          }, 15000);
-
-          script.onload = () => {
-            clearTimeout(timeout);
-            resolve();
-          };
-          script.onerror = (event) => {
-            clearTimeout(timeout);
-            console.error("Failed to load foliate script:", event);
-            reject(new Error("加载阅读器脚本失败，请尝试使用 Chrome 浏览器"));
-          };
-        });
-
-        document.head.appendChild(script);
-        await loadPromise;
-      }
-
-      await waitForFoliateView();
+      // Engine may already be warming from the prefetch effect.
+      await ensureFoliateScript();
 
       if (destroyedRef.current) return;
-      setLoadingMsg("创建视图...");
+      setLoadingMsg("创建视图…");
+      setLoadingDetail("正在挂载阅读画布");
 
       const view = document.createElement("foliate-view") as unknown as FoliateView;
       view.style.height = "100%";
@@ -517,26 +605,53 @@ export function useFoliateView({
       });
 
       if (destroyedRef.current) return;
-      setLoadingMsg("获取书籍...");
+      setLoadingMsg("获取书籍…");
+      setLoadingDetail("等待预取完成（通常已在后台进行）");
 
-      // Dynamic import to avoid circular dependency
-      const { api } = await import("@/lib/api");
-      const file = await api.createBookFile(bookId, {
-        onProgress: ({ downloadedBytes, totalBytes, percentage, bytesPerSecond, resumed }) => {
-          if (destroyedRef.current) return;
-          const percentageLabel = percentage === null ? '' : ` ${Math.floor(percentage)}%`;
-          const sizeLabel = totalBytes === null
-            ? formatDownloadBytes(downloadedBytes)
-            : `${formatDownloadBytes(downloadedBytes)} / ${formatDownloadBytes(totalBytes)}`;
-          const speedLabel = bytesPerSecond && bytesPerSecond >= 1024
-            ? ` · ${formatDownloadBytes(bytesPerSecond)}/s`
-            : '';
-          setLoadingMsg(`${resumed ? '继续下载' : '下载书籍'}${percentageLabel} · ${sizeLabel}${speedLabel}`);
-        },
-      });
+      // Prefer the in-flight prefetch started on auth; fall back if missing.
+      let file: File | Blob;
+      if (filePrefetchRef.current) {
+        file = await filePrefetchRef.current;
+      } else {
+        const { api } = await import("@/lib/api");
+        file = await api.createBookFile(bookId, {
+          onProgress: ({
+            downloadedBytes,
+            totalBytes,
+            percentage,
+            bytesPerSecond,
+            resumed,
+          }) => {
+            if (destroyedRef.current) return;
+            const percentageLabel =
+              percentage === null ? "" : ` ${Math.floor(percentage)}%`;
+            const sizeLabel =
+              totalBytes === null
+                ? formatDownloadBytes(downloadedBytes)
+                : `${formatDownloadBytes(downloadedBytes)} / ${formatDownloadBytes(totalBytes)}`;
+            const speedLabel =
+              bytesPerSecond && bytesPerSecond >= 1024
+                ? ` · ${formatDownloadBytes(bytesPerSecond)}/s`
+                : "";
+            setLoadingMsg(
+              `${resumed ? "继续下载" : "下载书籍"}${percentageLabel} · ${sizeLabel}${speedLabel}`
+            );
+          },
+        });
+      }
 
       if (destroyedRef.current) return;
-      setLoadingMsg("打开书籍...");
+
+      // Soft-wait for progress so we open near the last location without blocking
+      // cold starts when the progress API is slow.
+      if (progressLoadingRef.current) {
+        setLoadingDetail("同步阅读进度（最多约 0.4 秒）");
+        await waitUntil(() => !progressLoadingRef.current, 400);
+      }
+
+      if (destroyedRef.current) return;
+      setLoadingMsg("打开书籍…");
+      setLoadingDetail("解析章节并定位阅读位置");
 
       try {
         await withTimeout(
@@ -620,9 +735,14 @@ export function useFoliateView({
   }, [cleanInlineStyles, readerReady, theme, viewRef]);
 
   useEffect(() => {
-    if (!isAuthenticated || progressLoading) return;
+    // Start as soon as auth is ready — do not wait for progress API.
+    if (!isAuthenticated) return;
 
     destroyedRef.current = false;
+    setLoading(true);
+    setError(null);
+    setLoadingMsg("准备阅读环境…");
+    setLoadingDetail("引擎、书籍与进度并行加载");
     queueMicrotask(() => {
       void initReader();
     });
@@ -630,7 +750,7 @@ export function useFoliateView({
     return () => {
       cleanupReader();
     };
-  }, [cleanupReader, initReader, isAuthenticated, progressLoading]);
+  }, [cleanupReader, initReader, isAuthenticated, bookId]);
 
   return {
     toc,
@@ -644,6 +764,7 @@ export function useFoliateView({
     error,
     loading,
     loadingMsg,
+    loadingDetail,
     cleanupReader,
   };
 }

@@ -218,6 +218,7 @@ export default function ReadPage() {
     error,
     loading,
     loadingMsg,
+    loadingDetail,
     cleanupReader,
   } = useFoliateReader({
     bookId,
@@ -435,6 +436,7 @@ export default function ReadPage() {
             {loading && (
               <ReaderLoadingOverlay
                 loadingMsg={loadingMsg}
+                loadingDetail={loadingDetail}
                 readerContentInsetTop={readerContentInsetTop}
                 statusBarReservedSpace={statusBarReservedSpace}
                 uiScheme={uiScheme}

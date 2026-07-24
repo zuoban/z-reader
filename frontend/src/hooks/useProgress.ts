@@ -17,10 +17,41 @@ interface UseProgressOptions {
   debounceDelay?: number;
 }
 
+function readOfflineProgressSnapshot(bookId: string): ProgressSnapshot | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cachedRaw = localStorage.getItem(`z-reader-offline-progress:${bookId}`);
+    if (!cachedRaw) return null;
+    const cached = JSON.parse(cachedRaw) as {
+      cfi?: string;
+      percentage?: number;
+      updated_at?: string;
+      device_id?: string;
+    };
+    if (!cached.cfi) return null;
+    return {
+      cfi: cached.cfi,
+      percentage: cached.percentage ?? 0,
+      updated_at: cached.updated_at,
+      device_id: cached.device_id,
+      remote: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1000 }: UseProgressOptions) {
-  const [progress, setProgress] = useState<ProgressSnapshot | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const lastSavedRef = useRef<ProgressSnapshot | null>(null);
+  // Hydrate offline progress synchronously so the reader can open without waiting on network.
+  const [progress, setProgress] = useState<ProgressSnapshot | null>(() => {
+    const offline = readOfflineProgressSnapshot(bookId);
+    return offline;
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we already have offline progress, treat progress as ready for open; still refresh remote.
+    return !readOfflineProgressSnapshot(bookId);
+  });
+  const lastSavedRef = useRef<ProgressSnapshot | null>(progress);
   const pendingSaveRef = useRef<{ cfi: string; percentage: number } | null>(null);
   const savingRef = useRef(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

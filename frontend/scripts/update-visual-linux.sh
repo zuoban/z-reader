@@ -10,8 +10,11 @@ IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-jammy"
 echo "Using image: ${IMAGE}"
 echo "Working dir: ${ROOT}"
 
+# Anonymous volume for node_modules so Linux npm ci does not clobber the
+# host's platform-native bindings (e.g. macOS arm64 lightningcss/rolldown).
 docker run --rm \
   -v "${ROOT}:/work" \
+  -v /work/node_modules \
   -w /work \
   -e CI=true \
   -e HOME=/tmp \

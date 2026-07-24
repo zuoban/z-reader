@@ -13,6 +13,10 @@ export function ReaderAuthLoading({ uiScheme }: ReaderAuthLoadingProps) {
     <div
       className="flex h-dvh items-center justify-center"
       style={{ background: uiScheme.bg }}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="正在验证登录"
     >
       <div className="flex flex-col items-center gap-4">
         <div
@@ -22,12 +26,20 @@ export function ReaderAuthLoading({ uiScheme }: ReaderAuthLoadingProps) {
             borderTopColor: uiScheme.fg,
           }}
         />
-        <p
-          className="text-sm font-medium tracking-wide"
-          style={{ color: uiScheme.mutedText }}
-        >
-          加载中...
-        </p>
+        <div className="text-center">
+          <p
+            className="text-sm font-semibold tracking-wide"
+            style={{ color: uiScheme.fg }}
+          >
+            验证登录…
+          </p>
+          <p
+            className="mt-1.5 text-xs leading-5"
+            style={{ color: uiScheme.mutedText }}
+          >
+            登录通过后将立即并行加载书籍
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -83,6 +95,7 @@ export function ReaderErrorState({
 
 interface ReaderLoadingOverlayProps {
   loadingMsg: string;
+  loadingDetail?: string;
   readerContentInsetTop: string;
   statusBarReservedSpace: string;
   uiScheme: ThemeColors;
@@ -90,13 +103,18 @@ interface ReaderLoadingOverlayProps {
 
 export function ReaderLoadingOverlay({
   loadingMsg,
+  loadingDetail = "引擎、书籍与进度并行准备中",
   readerContentInsetTop,
   statusBarReservedSpace,
   uiScheme,
 }: ReaderLoadingOverlayProps) {
   return (
     <div
-      className="absolute z-20 flex flex-col items-center justify-center"
+      className="absolute z-20 flex flex-col items-center justify-center overflow-hidden"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label={loadingMsg}
       style={{
         top: readerContentInsetTop,
         right: 0,
@@ -107,8 +125,29 @@ export function ReaderLoadingOverlay({
         `,
       }}
     >
+      {/* Page skeleton for perceived readiness */}
       <div
-        className="paper-reveal-soft paper-panel paper-stack flex min-w-[260px] flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8"
+        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl opacity-40 sm:inset-x-16"
+        aria-hidden="true"
+      >
+        <div
+          className="mb-6 h-3 w-1/3 rounded-full"
+          style={{ background: withOpacity(uiScheme.fg, 0.08) }}
+        />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="mb-3 h-2.5 rounded-full"
+            style={{
+              width: `${72 + ((i * 13) % 28)}%`,
+              background: withOpacity(uiScheme.fg, 0.06 + (i % 3) * 0.015),
+            }}
+          />
+        ))}
+      </div>
+
+      <div
+        className="paper-reveal-soft paper-panel paper-stack relative z-10 flex min-w-[min(100%,280px)] max-w-sm flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8"
         style={{
           background: `
             linear-gradient(145deg, ${withOpacity(uiScheme.fg, 0.05)} 0%, transparent 40%),
@@ -144,7 +183,7 @@ export function ReaderLoadingOverlay({
             {loadingMsg}
           </p>
           <p className="mt-1.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
-            正在准备阅读环境与书籍内容
+            {loadingDetail}
           </p>
         </div>
       </div>

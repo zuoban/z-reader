@@ -111,8 +111,12 @@ npm run dev
   `NEXT_PUBLIC_API_URL`
 - 公网部署请将 `CADDY_SITE` 设为域名（如 `reader.example.com`），并映射/开放 80/443；Caddy 会自动申请并续期 HTTPS 证书。
 - 服务启动后会立即生成一份在线备份，并按 `BACKUP_INTERVAL_HOURS` 周期执行。备份包含主数据库、会话数据库、上传文件、SHA-256 清单，并在发布前执行校验；请将 `BACKUP_DIR` 所在持久化目录同步到异地存储。
-- 恢复前先停止服务，再使用 `cd backend && go run ./cmd/verify-backup --dir <备份目录>` 验证清单和数据库快照；随后用备份中的 `data.db`、`data.db.sessions` 与 `uploads/` 替换对应持久化文件，最后启动服务并验证 `/readyz`。
+- 恢复前先停止服务，并把当前 `data.db`、`data.db.sessions` 和 `uploads/` 移至安全位置。
+  本地开发可运行 `cd backend && go run ./cmd/restore-backup --dir <备份目录>`；Compose 部署可使用
+  `cd backend && go run ./cmd/restore-backup --dir <备份目录> --db ../data/data.db --uploads ../uploads`。
+  该命令会先校验备份，且只写入不存在的目标，避免误覆盖。启动服务后访问 `/readyz`，收到 `{"status":"ready"}` 才算恢复完成。
 - `/healthz` 是存活探针，`/readyz` 会检查数据库与上传目录；启用 `METRICS_ENABLED=true` 后可在内网采集 `/metrics`。
+- 面向个人/家庭部署的初始恢复目标是：RPO 不超过 24 小时、RTO 不超过 30 分钟。每月用异地备份完成一次上述恢复，并记录耗时和问题；实际部署后可据此调整目标。
 - `NEXT_SERVER_API_URL` 主要用于本地开发或 SSR 代理到独立后端
 - 如需启用 TTS，请使用你自己的语音服务配置，不要把可直接使用的密钥提交到仓库
 

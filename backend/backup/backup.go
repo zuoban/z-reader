@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -24,6 +25,14 @@ type Config struct {
 	Dir           string
 	UploadDir     string
 	RetentionDays int
+}
+
+// RestoreConfig identifies a new, empty application data location to restore
+// into. Restore refuses to overwrite existing files so an operator cannot
+// accidentally replace a running library.
+type RestoreConfig struct {
+	DBPath    string
+	UploadDir string
 }
 
 type Manifest struct {
@@ -123,6 +132,100 @@ func Verify(path string) error {
 		}
 	}
 	return nil
+}
+
+// Restore verifies a backup and copies it into an empty application data
+// location. The application must be stopped before its restored files are
+// used. Existing targets are rejected rather than overwritten.
+func Restore(source string, config RestoreConfig) error {
+	if config.DBPath == "" {
+		return fmt.Errorf("database path is required")
+	}
+	if config.UploadDir == "" {
+		return fmt.Errorf("upload directory is required")
+	}
+	if err := Verify(source); err != nil {
+		return fmt.Errorf("verify backup before restore: %w", err)
+	}
+
+	mainDBPath := filepath.Clean(config.DBPath)
+	sessionDBPath := mainDBPath + ".sessions"
+	uploadDir := filepath.Clean(config.UploadDir)
+	for _, path := range []string{mainDBPath, sessionDBPath, uploadDir} {
+		if err := requireAbsent(path); err != nil {
+			return err
+		}
+	}
+
+	if err := os.MkdirAll(filepath.Dir(mainDBPath), 0700); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(uploadDir), 0700); err != nil {
+		return err
+	}
+
+	mainDBTemp, err := os.CreateTemp(filepath.Dir(mainDBPath), ".restore-data-*")
+	if err != nil {
+		return err
+	}
+	mainDBTempPath := mainDBTemp.Name()
+	if err := mainDBTemp.Close(); err != nil {
+		os.Remove(mainDBTempPath)
+		return err
+	}
+	defer os.Remove(mainDBTempPath)
+
+	sessionDBTemp, err := os.CreateTemp(filepath.Dir(sessionDBPath), ".restore-sessions-*")
+	if err != nil {
+		return err
+	}
+	sessionDBTempPath := sessionDBTemp.Name()
+	if err := sessionDBTemp.Close(); err != nil {
+		os.Remove(sessionDBTempPath)
+		return err
+	}
+	defer os.Remove(sessionDBTempPath)
+
+	uploadTempDir, err := os.MkdirTemp(filepath.Dir(uploadDir), ".restore-uploads-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(uploadTempDir)
+
+	if err := copyFile(filepath.Join(source, "data.db"), mainDBTempPath); err != nil {
+		return fmt.Errorf("restore main database: %w", err)
+	}
+	if err := copyFile(filepath.Join(source, "data.db.sessions"), sessionDBTempPath); err != nil {
+		return fmt.Errorf("restore session database: %w", err)
+	}
+	if err := copyTree(filepath.Join(source, "uploads"), uploadTempDir); err != nil {
+		return fmt.Errorf("restore uploads: %w", err)
+	}
+
+	if err := os.Rename(mainDBTempPath, mainDBPath); err != nil {
+		return err
+	}
+	if err := os.Rename(sessionDBTempPath, sessionDBPath); err != nil {
+		os.Remove(mainDBPath)
+		return err
+	}
+	if err := os.Rename(uploadTempDir, uploadDir); err != nil {
+		os.Remove(mainDBPath)
+		os.Remove(sessionDBPath)
+		return err
+	}
+	return nil
+}
+
+func requireAbsent(path string) error {
+	_, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("restore target already exists: %s", path)
 }
 
 func buildManifest(root string, createdAt time.Time) (Manifest, error) {

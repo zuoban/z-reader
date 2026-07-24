@@ -73,6 +73,43 @@ func TestSaveProgressUpdatesBookLastReadAt(t *testing.T) {
 	}
 }
 
+func TestMostSelectiveBookSearchGramPrefersSmallestPostingList(t *testing.T) {
+	db := openTestDB(t)
+	const userID = "search-user"
+	for index, title := range []string{
+		"公共词 独特标题",
+		"公共词 普通标题一",
+		"公共词 普通标题二",
+	} {
+		if err := db.SaveBook(&models.Book{
+			ID:        "search-book-" + string(rune('a'+index)),
+			UserID:    userID,
+			Title:     title,
+			Filename:  "search.epub",
+			Format:    "epub",
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var selected string
+	var count int
+	if err := db.View(func(tx *bbolt.Tx) error {
+		selected, count = mostSelectiveBookSearchGram(
+			tx.Bucket(BookSearchGramIndex),
+			userID,
+			[]string{"公共", "独特"},
+		)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if selected != "独特" || count != 1 {
+		t.Fatalf("selected gram = %q with %d postings, want 独特 with 1", selected, count)
+	}
+}
+
 func TestListProgressFiltersByUser(t *testing.T) {
 	db := openTestDB(t)
 

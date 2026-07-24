@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -53,6 +56,16 @@ jobs:
       - name: Run backend tests
         working-directory: backend
         run: go test ./...
+
+      - name: Verify Go formatting
+        working-directory: backend
+        run: |
+          unformatted="$(find . -name '*.go' -type f -exec gofmt -l {} +)"
+          if [ -n "$unformatted" ]; then
+            echo "The following Go files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
 
       - name: Run Go static checks
         working-directory: backend

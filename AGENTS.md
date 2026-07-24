@@ -50,15 +50,24 @@ npm run lint
 
 ## Test Commands
 
-Currently, the project does not have automated tests configured. When adding tests:
+Automated checks are configured and must be run for the area you change:
 
-- **Backend**: Place Go tests alongside source files with `_test.go` suffix
+- **Backend**: Place Go tests alongside source files with `_test.go` suffix.
   ```bash
   cd backend && go test ./...
-  cd backend && go test -v ./handlers  # Run specific package
+  cd backend && go test -v ./handlers  # Run a specific package
   ```
 
-- **Frontend**: Consider using Jest or Vitest with React Testing Library
+- **Frontend**: Use Vitest and React Testing Library for unit/component tests.
+  ```bash
+  cd frontend && npm run lint:strict
+  cd frontend && npm run test:unit
+  cd frontend && npm run build
+  ```
+
+- **End-to-end / visual changes**: Run the relevant Playwright suite in `frontend`.
+  `npm run test:e2e:ci` protects core flows; `npm run test:visual` protects committed Linux
+  visual baselines.
 
 ## Code Style Guidelines
 

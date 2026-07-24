@@ -20,7 +20,7 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 
 | 组件 | 技术 |
 | --- | --- |
-| 后端 | Go 1.23+, Gin, bbolt |
+| 后端 | Go 1.25+, Gin, bbolt |
 | 前端 | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui |
 | 阅读引擎 | foliate-js |
 | 反向代理 | Caddy |
@@ -160,6 +160,10 @@ z-reader/
   - **Docker**：镜像构建检查（不推送）
   - 视觉基线按平台分目录：`linux/`（CI 门禁）与 `darwin/`（本机 macOS 可选）
   - 更新 Linux 基线：`cd frontend && npm run test:visual:update:linux`（需 Docker）
+- `CodeQL`（`.github/workflows/codeql.yml`）
+  - 分析 Go 与 TypeScript/JavaScript 代码；在 PR、主分支变更及每周定时运行
+- `Dependabot`（`.github/dependabot.yml`）
+  - 每周检查 GitHub Actions、Docker、Go modules 与 npm 依赖更新
 - `Build and Push Docker Image`
   在 `main` 分支 push 和手动触发时构建并推送镜像到 `ghcr.io`
 

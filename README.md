@@ -131,7 +131,7 @@ cd backend && go test ./handlers ./middleware ./services ./storage -coverprofile
 cd backend && go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
 
 # 书库性能基准（固定 1,000 / 10,000 本数据集；约 1–2 分钟）
-cd backend && go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=10x -count=1
+cd backend && go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=100x -count=1
 # 结果与运行环境见 docs/performance-baseline.md
 
 # 前端检查

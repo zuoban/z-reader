@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,8 +27,9 @@ type benchmarkFixture struct {
 }
 
 var (
-	benchmarkFixtureRoot string
-	benchmarkFixtures    = map[int]*benchmarkFixture{
+	benchmarkFixtureRoot     string
+	benchmarkProgressStartAt = time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
+	benchmarkFixtures        = map[int]*benchmarkFixture{
 		benchmarkLibrarySize1000:  {},
 		benchmarkLibrarySize10000: {},
 	}
@@ -222,6 +224,72 @@ func benchmarkLibrarySummary(b *testing.B, size int) {
 	b.ResetTimer()
 	for index := 0; index < b.N; index++ {
 		if _, err := db.GetBookLibrarySummary("benchmark-user"); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkLibraryProgressSave1000(b *testing.B) {
+	benchmarkLibraryProgressSave(b, benchmarkLibrarySize1000)
+}
+
+func BenchmarkLibraryProgressSave10000(b *testing.B) {
+	benchmarkLibraryProgressSave(b, benchmarkLibrarySize10000)
+}
+
+func BenchmarkLibraryProgressSaveParallel1000(b *testing.B) {
+	benchmarkLibraryProgressSaveParallel(b, benchmarkLibrarySize1000)
+}
+
+func BenchmarkLibraryProgressSaveParallel10000(b *testing.B) {
+	benchmarkLibraryProgressSaveParallel(b, benchmarkLibrarySize10000)
+}
+
+// benchmarkLibraryProgressSaveParallel measures the contention caused by many
+// devices saving progress across a small working set of books. bbolt has a
+// single writer, so this scenario catches regressions in the write transaction.
+func benchmarkLibraryProgressSaveParallel(b *testing.B, size int) {
+	b.Helper()
+	db := openBenchmarkLibrary(b, size)
+	bookIDs := make([]string, 100)
+	for index := range bookIDs {
+		bookIDs[index] = fmt.Sprintf("benchmark-%05d", index)
+	}
+
+	var sequence atomic.Uint64
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			offset := sequence.Add(1)
+			progress := &models.Progress{
+				BookID:     bookIDs[int(offset%uint64(len(bookIDs)))],
+				CFI:        "epubcfi(/6/2[chapter]!/4/1:123)",
+				Percentage: float64(offset%10_000) / 100,
+				DeviceID:   "benchmark-device",
+				UpdatedAt:  benchmarkProgressStartAt.Add(time.Duration(offset) * time.Millisecond),
+			}
+			if err := db.SaveProgress(progress, "benchmark-user"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func benchmarkLibraryProgressSave(b *testing.B, size int) {
+	b.Helper()
+	db := openBenchmarkLibrary(b, size)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for index := 0; index < b.N; index++ {
+		progress := &models.Progress{
+			BookID:     "benchmark-00042",
+			CFI:        "epubcfi(/6/2[chapter]!/4/1:123)",
+			Percentage: float64(index%10_000) / 100,
+			DeviceID:   "benchmark-device",
+			UpdatedAt:  benchmarkProgressStartAt.Add(time.Duration(index) * time.Millisecond),
+		}
+		if err := db.SaveProgress(progress, "benchmark-user"); err != nil {
 			b.Fatal(err)
 		}
 	}

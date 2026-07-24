@@ -8,7 +8,7 @@
 
 ```bash
 cd backend
-go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=10x -count=1
+go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=100x -count=1
 ```
 
 完整运行会花约 1–2 分钟，主要时间用于一次 10,000 本的真实索引夹具构建。
@@ -23,8 +23,14 @@ go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=10x 
 
 | 场景 | 1,000 本 | 10,000 本 |
 | --- | ---: | ---: |
-| 精准标题搜索 | 168,650 ns/op · 41,992 B/op · 774 allocs/op | 2,378,921 ns/op · 854,394 B/op · 41,033 allocs/op |
-| 书架首屏（50 本） | 126,596 ns/op · 46,240 B/op · 1,097 allocs/op | 124,300 ns/op · 46,320 B/op · 1,095 allocs/op |
-| 书架摘要 | 5,888 ns/op · 2,074 B/op · 43 allocs/op | 8,921 ns/op · 2,074 B/op · 43 allocs/op |
+| 精准标题搜索 | 172,434 ns/op · 53,464 B/op · 2,208 allocs/op | 2,027,845 ns/op · 843,386 B/op · 39,656 allocs/op |
+| 书架首屏（50 本） | 120,144 ns/op · 43,728 B/op · 782 allocs/op | 144,196 ns/op · 46,336 B/op · 1,098 allocs/op |
+| 书架摘要 | 4,286 ns/op · 2,072 B/op · 43 allocs/op | 4,659 ns/op · 2,072 B/op · 43 allocs/op |
+| 阅读进度保存（顺序） | 8,062,225 ns/op · 63,856 B/op · 286 allocs/op | 8,900,058 ns/op · 105,286 B/op · 383 allocs/op |
+| 阅读进度保存（并发，100 本工作集） | 8,111,222 ns/op · 107,791 B/op · 298 allocs/op | 9,059,568 ns/op · 147,773 B/op · 408 allocs/op |
 
-10,000 本的首屏和摘要保持稳定，说明持久化索引有效。标题搜索从候选数最少的 gram 开始交集，并复用查询键缓冲区；相对本次优化前的 2,515,262 / 34,425,925 ns/op，分别提升约 14 倍和 15 倍。相对优化前的 1,287,664 / 23,112,504 B/op，分配也显著下降。优化依据来自 `pprof`：原路径从常见 gram 开始，导致大量 bbolt 查找和键分配。
+10,000 本的首屏保持在亚毫秒、摘要保持在微秒级，说明持久化索引有效。标题搜索从候选数最少的 gram 开始交集，并复用查询键缓冲区；相对本次优化前的 2,515,262 / 34,425,925 ns/op，分别提升约 15 倍和 17 倍。相对优化前的 1,287,664 / 23,112,504 B/op，分配也显著下降。优化依据来自 `pprof`：原路径从常见 gram 开始，导致大量 bbolt 查找和键分配。
+
+进度保存基准会更新书籍的最近阅读时间、书架排序索引和进度时间索引。并发场景通过
+`b.RunParallel` 模拟多个设备在 100 本活跃书籍间保存进度；bbolt 的单写事务会让该场景对
+写锁持有时间的回归保持敏感。

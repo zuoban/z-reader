@@ -199,3 +199,103 @@ func TestDBMigrationsAndHashedSessions(t *testing.T) {
 	// Clean up db
 	db.Close()
 }
+
+func TestOpenMigratesLegacyV4Indexes(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "legacy.db")
+	legacyDB, err := bbolt.Open(dbPath, 0600, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updatedAt := time.Now().UTC().Truncate(time.Second)
+	book := &models.Book{
+		ID:          "legacy-book",
+		UserID:      "legacy-user",
+		Title:       "Legacy title",
+		Author:      "Legacy author",
+		Filename:    "legacy.epub",
+		Format:      "epub",
+		ContentHash: "legacy-content-hash",
+		CreatedAt:   updatedAt,
+	}
+	bookData, err := book.MarshalDB()
+	if err != nil {
+		legacyDB.Close()
+		t.Fatal(err)
+	}
+	progress := &models.Progress{
+		BookID:     book.ID,
+		UserID:     book.UserID,
+		CFI:        "epubcfi(/6/2)",
+		Percentage: 25,
+		UpdatedAt:  updatedAt,
+	}
+	progressData, err := json.Marshal(progress)
+	if err != nil {
+		legacyDB.Close()
+		t.Fatal(err)
+	}
+
+	err = legacyDB.Update(func(tx *bbolt.Tx) error {
+		for _, bucket := range [][]byte{
+			BooksBucket,
+			ProgressBucket,
+			BookmarksBucket,
+			UsersBucket,
+			UserBooksIndex,
+			UsernameIndex,
+			BookSortIndex,
+			SystemMetaBucket,
+		} {
+			if _, err := tx.CreateBucket(bucket); err != nil {
+				return err
+			}
+		}
+		if err := tx.Bucket(BooksBucket).Put([]byte(book.ID), bookData); err != nil {
+			return err
+		}
+		if err := tx.Bucket(UserBooksIndex).Put([]byte(book.UserID+":"+book.ID), []byte{}); err != nil {
+			return err
+		}
+		if err := tx.Bucket(ProgressBucket).Put(progressKey(book.UserID, book.ID), progressData); err != nil {
+			return err
+		}
+		return tx.Bucket(SystemMetaBucket).Put([]byte("schema_version"), []byte("4"))
+	})
+	if err != nil {
+		legacyDB.Close()
+		t.Fatal(err)
+	}
+	if err := legacyDB.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	books, err := db.ListBooks(book.UserID)
+	if err != nil || len(books) != 1 || books[0].ID != book.ID {
+		t.Fatalf("migrated books = %+v, err = %v", books, err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		if tx.Bucket(BookSearchIndex).Get(bookSearchIndexKey(book.UserID, book.ID)) == nil {
+			t.Fatal("expected book search index to be rebuilt")
+		}
+		if got := tx.Bucket(BookContentIndex).Get(bookContentIndexKey(book.UserID, book.ContentHash)); string(got) != book.ID {
+			t.Fatalf("content index = %q, want %q", got, book.ID)
+		}
+		if tx.Bucket(ProgressTimeIndex).Get(progressTimeIndexKey(progress)) == nil {
+			t.Fatal("expected progress time index to be rebuilt")
+		}
+		version, err := strconv.Atoi(string(tx.Bucket(SystemMetaBucket).Get([]byte("schema_version"))))
+		if err != nil || version <= 4 {
+			t.Fatalf("schema version = %d, err = %v; want a newer version", version, err)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*.*.*'
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -56,6 +58,19 @@ jobs:
       - name: Run backend tests
         working-directory: backend
         run: go test ./...
+
+      - name: Verify backend coverage baseline
+        working-directory: backend
+        run: |
+          go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
+          go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
+
+      - name: Upload backend coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+          retention-days: 14
 
       - name: Verify Go formatting
         working-directory: backend
@@ -126,7 +141,7 @@ jobs:
         run: npm run build
 
   frontend-unit-test:
-    name: Frontend Unit Test
+    name: Frontend Unit & Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -145,9 +160,16 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run frontend unit tests
+      - name: Run frontend unit tests and coverage baseline check
         working-directory: frontend
-        run: npm run test:unit
+        run: npm run test:coverage:check
+
+      - name: Upload frontend coverage summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/coverage-summary.json
+          retention-days: 14
 
   frontend-e2e-test:
     name: Frontend E2E (functional)

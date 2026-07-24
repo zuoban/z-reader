@@ -192,7 +192,9 @@ test.describe('visual regression', () => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerifyHanging(page);
     await page.goto('/read/book-1', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('加载中...')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('status', { name: '正在验证登录' })).toBeVisible({
+      timeout: 10_000,
+    });
     // Freeze motion before capture.
     await page.addStyleTag({
       content: '*,*::before,*::after{animation:none!important;transition:none!important;}',

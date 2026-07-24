@@ -25,12 +25,20 @@ npm run dev
 ## 提交前检查
 
 ```bash
-cd backend && go test ./...
+(
+  cd backend
+  go test ./...
+  go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
+  go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
+)
 
-cd frontend
-npm run lint:strict
-npm run test:unit
-npm run build
+(
+  cd frontend
+  npm run lint:strict
+  npm run test:unit
+  npm run test:coverage:check
+  npm run build
+)
 
 # 功能 E2E（与 CI 门禁一致：auth / 虚拟书架 / 阅读器 / 串联 / 搜索 / 批量 / a11y；首次需安装浏览器）
 npx playwright install chromium

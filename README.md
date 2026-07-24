@@ -122,6 +122,10 @@ npm run dev
 # 后端测试
 cd backend && go test ./...
 
+# 后端核心模块覆盖率基线（handlers / middleware / services / storage）
+cd backend && go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
+cd backend && go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
+
 # 书库性能基准（先运行 1,000 本书规模）
 cd backend && go test ./storage -run '^$' -bench 'BenchmarkLibrary.*1000$' -benchtime=3x
 
@@ -130,11 +134,21 @@ cd backend && go test ./storage -run '^$' -bench 'BenchmarkLibrary.*10000$' -ben
 
 # 前端检查
 cd frontend && npm run lint
+cd frontend && npm run test:coverage:check
 cd frontend && npm run build
 
 # Docker 构建
 docker build -t z-reader .
 ```
+
+覆盖率基线只应在测试范围有意调整、且 PR 说明原因时更新：
+
+```bash
+cd backend && go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json --write
+cd frontend && npm run test:coverage:baseline
+```
+
+不得通过降低基线来掩盖未覆盖的新增或变更逻辑。
 
 ## 项目结构
 
@@ -154,8 +168,9 @@ z-reader/
 仓库当前包含两条 GitHub Actions 工作流：
 
 - `CI`（`.github/workflows/ci.yml`）
-  - 触发：`main` push、PR、`workflow_dispatch`
+  - 触发：`main` push、符合 SemVer 的发布 tag、PR、`workflow_dispatch`
   - **Backend**：`go test` / `go vet` / govulncheck
+  - **Coverage**：核心后端模块与前端数据链路不低于提交的覆盖率基线
   - **Frontend**：lint、build、Vitest unit、功能 E2E（含搜索/批量）、**视觉回归（Linux 基线）**
   - **Docker**：镜像构建检查（不推送）
   - 视觉基线按平台分目录：`linux/`（CI 门禁）与 `darwin/`（本机 macOS 可选）
@@ -165,7 +180,7 @@ z-reader/
 - `Dependabot`（`.github/dependabot.yml`）
   - 每周检查 GitHub Actions、Docker、Go modules 与 npm 依赖更新
 - `Build and Push Docker Image`
-  在 `main` 分支 push 和手动触发时构建并推送镜像到 `ghcr.io`
+  在 `main` 分支、发布 tag 或手动触发时构建并推送镜像到 `ghcr.io`
 
 ## 参与贡献
 
@@ -174,6 +189,7 @@ z-reader/
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [发布检查清单](docs/release-checklist.md)
 
 ## 许可证
 

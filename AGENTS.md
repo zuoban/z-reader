@@ -62,6 +62,7 @@ Automated checks are configured and must be run for the area you change:
   ```bash
   cd frontend && npm run lint:strict
   cd frontend && npm run test:unit
+  cd frontend && npm run test:coverage:check
   cd frontend && npm run build
   ```
 

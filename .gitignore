@@ -49,6 +49,7 @@ npm-debug.log*
 
 # Test
 coverage/
+backend/coverage.out
 frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/

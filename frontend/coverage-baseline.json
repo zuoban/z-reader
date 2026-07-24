@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "files": {
+    "src/hooks/useCoverUrl.ts": {
+      "statements": 29.8,
+      "branches": 14.03,
+      "functions": 43.75,
+      "lines": 31.91
+    },
+    "src/hooks/useProgress.ts": {
+      "statements": 53.96,
+      "branches": 29.31,
+      "functions": 84.84,
+      "lines": 55.91
+    },
+    "src/hooks/useShelfData.ts": {
+      "statements": 83.05,
+      "branches": 58.91,
+      "functions": 81.92,
+      "lines": 87.53
+    },
+    "src/lib/api.ts": {
+      "statements": 51.79,
+      "branches": 43.85,
+      "functions": 53.22,
+      "lines": 55.44
+    },
+    "src/lib/reader-page.ts": {
+      "statements": 63.15,
+      "branches": 34.48,
+      "functions": 71.42,
+      "lines": 64.51
+    },
+    "src/lib/shelf-grid.ts": {
+      "statements": 95.83,
+      "branches": 94.44,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/lib/tts-helpers.ts": {
+      "statements": 82.85,
+      "branches": 75,
+      "functions": 83.33,
+      "lines": 83.33
+    },
+    "src/lib/tts-queue.ts": {
+      "statements": 96.66,
+      "branches": 90,
+      "functions": 100,
+      "lines": 100
+    }
+  }
+}

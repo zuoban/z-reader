@@ -59,6 +59,10 @@ jobs:
         working-directory: backend
         run: go test ./...
 
+      - name: Exercise backup restore readiness
+        working-directory: backend
+        run: go test ./backup -run '^TestCreateVerifyRestoreAndReady$' -count=1
+
       - name: Verify backend coverage baseline
         working-directory: backend
         run: |

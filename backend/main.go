@@ -100,22 +100,8 @@ func main() {
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
 	r.POST("/api/register", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Register)
 	r.POST("/api/logout", authHandler.Logout)
-	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-	r.GET("/readyz", func(c *gin.Context) {
-		if err := db.Check(); err != nil {
-			logger.Error("Readiness check failed", "request_id", logger.RequestID(c.Request.Context()), "error", err)
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
-			return
-		}
-		if info, err := os.Stat(cfg.UploadDir); err != nil || !info.IsDir() {
-			logger.Error("Readiness upload directory check failed", "request_id", logger.RequestID(c.Request.Context()), "error", err)
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "ready"})
-	})
+	r.GET("/healthz", handlers.Health)
+	r.GET("/readyz", handlers.Ready(db, cfg.UploadDir))
 	if cfg.MetricsEnabled {
 		r.GET("/metrics", middleware.MetricsHandler)
 	}

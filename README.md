@@ -156,7 +156,7 @@ z-reader/
 - `CI`（`.github/workflows/ci.yml`）
   - 触发：`main` push、PR、`workflow_dispatch`
   - **Backend**：`go test` / `go vet` / govulncheck
-  - **Frontend**：lint、build、Vitest unit、功能 E2E、**视觉回归（Linux 基线）**
+  - **Frontend**：lint、build、Vitest unit、功能 E2E（含搜索/批量）、**视觉回归（Linux 基线）**
   - **Docker**：镜像构建检查（不推送）
   - 视觉基线按平台分目录：`linux/`（CI 门禁）与 `darwin/`（本机 macOS 可选）
   - 更新 Linux 基线：`cd frontend && npm run test:visual:update:linux`（需 Docker）

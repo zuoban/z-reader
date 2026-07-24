@@ -8,11 +8,14 @@ cd frontend
 # All Playwright specs (functional + visual)
 npm run test:e2e
 
-# CI gate: auth + virtual grid + reader + shelf→reader + search + a11y
+# CI gate: auth + virtual grid + reader + shelf→reader + search + batch + a11y
 npm run test:e2e:ci
 
 # Shelf search only
 npm run test:e2e:search
+
+# Shelf batch selection only
+npm run test:e2e:batch
 
 # Accessibility (axe serious/critical only)
 npm run test:e2e:a11y
@@ -74,6 +77,17 @@ API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend
 | Reader | open chrome, TOC sheet |
 
 Gate policy: fail on **serious/critical** only; moderate/minor are logged.
+
+## Shelf batch operations e2e
+
+- Spec: `shelf-batch.spec.ts`
+- Fixture: `mockMutableShelfApis` (POST `/batch/category`, `/batch/delete`)
+
+| Case | Assertion |
+| --- | --- |
+| Batch category | Select book → set 科幻 → API + exit selection |
+| Batch delete | Select all → confirm → empty shelf |
+| Cancel delete | Dialog dismiss leaves catalog intact |
 
 ## Shelf search e2e
 
@@ -144,7 +158,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | Job | Specs | When |
 | --- | --- | --- |
 | Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | auth + virtual grid + reader + shelf→reader + search + a11y | every push/PR |
+| Frontend E2E (functional) | auth + virtual grid + reader + shelf→reader + search + batch + a11y | every push/PR |
 | Frontend Visual Regression | `visual-regression.spec.ts` vs **`linux/`** + Noto CJK | every push/PR |
 
 Tips:

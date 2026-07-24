@@ -32,7 +32,7 @@ npm run lint:strict
 npm run test:unit
 npm run build
 
-# 功能 E2E（与 CI 门禁一致：auth / 虚拟书架 / 阅读器 / 书架串联 / 搜索 / a11y；首次需安装浏览器）
+# 功能 E2E（与 CI 门禁一致：auth / 虚拟书架 / 阅读器 / 串联 / 搜索 / 批量 / a11y；首次需安装浏览器）
 npx playwright install chromium
 npm run test:e2e:ci
 

@@ -248,6 +248,28 @@ export async function mockEmptyShelfApis(page: Page) {
   });
 }
 
+function buildCategoryCounts(books: typeof MOCK_BOOKS) {
+  return books.reduce<Record<string, number>>((acc, book) => {
+    const category = book.category?.trim();
+    if (category) {
+      acc[category] = (acc[category] ?? 0) + 1;
+    }
+    return acc;
+  }, {});
+}
+
+function matchesSearchQuery(
+  book: (typeof MOCK_BOOKS)[number],
+  query: string
+): boolean {
+  if (!query) return true;
+  const haystack = [book.title, book.author, book.filename, book.category, book.format]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
 export async function mockPopulatedShelfApis(page: Page) {
   await mockShelfCommon(page);
 
@@ -262,8 +284,8 @@ export async function mockPopulatedShelfApis(page: Page) {
     if (path.endsWith('/summary')) {
       await json(route, {
         total: MOCK_BOOKS.length,
-        uncategorized: 1,
-        categories: { 古典: 1, 科幻: 1, 随笔: 1 },
+        uncategorized: MOCK_BOOKS.filter((book) => !book.category).length,
+        categories: buildCategoryCounts(MOCK_BOOKS),
       });
       return;
     }
@@ -273,14 +295,7 @@ export async function mockPopulatedShelfApis(page: Page) {
     }
     if (path.endsWith('/search')) {
       const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
-      const matched = MOCK_BOOKS.filter((book) => {
-        if (!q) return true;
-        const haystack = [book.title, book.author, book.filename, book.category, book.format]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return haystack.includes(q);
-      });
+      const matched = MOCK_BOOKS.filter((book) => matchesSearchQuery(book, q));
       await json(route, { books: matched });
       return;
     }
@@ -299,6 +314,110 @@ export async function mockPopulatedShelfApis(page: Page) {
     }
     await route.fallback();
   });
+}
+
+export type MutableShelfMock = {
+  books: Array<(typeof MOCK_BOOKS)[number]>;
+  deleteCalls: string[][];
+  categoryCalls: Array<{ ids: string[]; category: string | null }>;
+};
+
+/**
+ * Mutable catalog for batch delete / category e2e (POST handlers + live list).
+ */
+export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock> {
+  const state: MutableShelfMock = {
+    books: MOCK_BOOKS.map((book) => ({ ...book })),
+    deleteCalls: [],
+    categoryCalls: [],
+  };
+
+  await mockShelfCommon(page);
+
+  await page.route('**/api/books**', async (route) => {
+    const method = route.request().method();
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+
+    if (method === 'POST' && path.includes('/batch/delete')) {
+      let ids: string[] = [];
+      try {
+        const body = route.request().postDataJSON() as { ids?: string[] };
+        ids = body.ids ?? [];
+      } catch {
+        // ignore
+      }
+      state.deleteCalls.push(ids);
+      const idSet = new Set(ids);
+      state.books = state.books.filter((book) => !idSet.has(book.id));
+      await json(route, { deleted_ids: ids });
+      return;
+    }
+
+    if (method === 'POST' && path.includes('/batch/category')) {
+      let ids: string[] = [];
+      let category: string | null = null;
+      try {
+        const body = route.request().postDataJSON() as {
+          ids?: string[];
+          category?: string | null;
+        };
+        ids = body.ids ?? [];
+        category = body.category?.trim() || null;
+      } catch {
+        // ignore
+      }
+      state.categoryCalls.push({ ids, category });
+      const idSet = new Set(ids);
+      state.books = state.books.map((book) =>
+        idSet.has(book.id) ? { ...book, category: category ?? undefined } : book
+      );
+      const updated = state.books.filter((book) => idSet.has(book.id));
+      await json(route, { books: updated });
+      return;
+    }
+
+    if (method !== 'GET') {
+      await route.fallback();
+      return;
+    }
+
+    if (path.endsWith('/summary')) {
+      await json(route, {
+        total: state.books.length,
+        uncategorized: state.books.filter((book) => !book.category).length,
+        categories: buildCategoryCounts(state.books),
+      });
+      return;
+    }
+    if (path.includes('/cover')) {
+      await route.fulfill({ status: 404, body: 'not found' });
+      return;
+    }
+    if (path.endsWith('/search')) {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      const matched = state.books.filter((book) => matchesSearchQuery(book, q));
+      await json(route, { books: matched });
+      return;
+    }
+    if (path.endsWith('/books')) {
+      await json(route, { books: state.books });
+      return;
+    }
+    const bookMatch = path.match(/\/api\/books\/([^/]+)$/);
+    if (bookMatch) {
+      const book = state.books.find((item) => item.id === bookMatch[1]);
+      if (book) {
+        await json(route, book);
+        return;
+      }
+      await json(route, { error: 'not found' }, 404);
+      return;
+    }
+    await route.fallback();
+  });
+
+  return state;
 }
 
 const PAGINATED_CATEGORIES = ['古典', '科幻', '随笔'] as const;

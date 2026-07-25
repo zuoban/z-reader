@@ -18,6 +18,16 @@
 		reverse_proxy localhost:8080
 	}
 
+	# Health endpoints stay reachable through the public proxy so deployment
+	# probes and the documented recovery check do not bypass Caddy.
+	handle /healthz {
+		reverse_proxy localhost:8080
+	}
+
+	handle /readyz {
+		reverse_proxy localhost:8080
+	}
+
 	# All other requests -> Next.js frontend
 	handle {
 		reverse_proxy localhost:3000

@@ -355,6 +355,10 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
+          load: true
           tags: z-reader:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke test container lifecycle
+        run: bash docker/smoke-test.sh z-reader:ci

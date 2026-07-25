@@ -133,6 +133,10 @@ cd backend && go run ./cmd/check-coverage --profile coverage.out --baseline cove
 
 # 书库性能基准（固定 1,000 / 10,000 本数据集；约 1–2 分钟）
 cd backend && go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=100x -count=1
+
+# 容器启动、健康检查与持久化卷替换 smoke test（先构建镜像）
+docker build -t z-reader:ci .
+bash docker/smoke-test.sh z-reader:ci
 # 结果与运行环境见 docs/performance-baseline.md
 
 # 前端检查

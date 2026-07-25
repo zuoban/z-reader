@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"z-reader/backend/middleware"
 	"z-reader/backend/models"
 	"z-reader/backend/storage"
 )
@@ -62,6 +64,39 @@ func TestProgressSaveCreatesNewRecord(t *testing.T) {
 	}
 	if resp.CFI != "epubcfi(/6/2!/4/2/6)" || resp.Percentage != 25.5 {
 		t.Fatalf("unexpected progress: %+v", resp)
+	}
+}
+
+func TestProgressSaveRecordsOperationMetric(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db, userID := setupProgressTestDB(t)
+	handler := NewProgressHandler(db)
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("userID", userID)
+	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
+	ctx.Request = httptest.NewRequest(
+		http.MethodPost,
+		"/api/progress/book-progress",
+		bytes.NewBufferString(`{"cfi":"epubcfi(/6/2!/4/2/6)","percentage":25.5}`),
+	)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Save(ctx)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	metricsRouter := gin.New()
+	metricsRouter.GET("/metrics", middleware.MetricsHandler)
+	metricsRecorder := httptest.NewRecorder()
+	metricsRouter.ServeHTTP(metricsRecorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if metricsRecorder.Code != http.StatusOK ||
+		!strings.Contains(metricsRecorder.Body.String(), `operation="progress_save"`) {
+		t.Fatalf("expected progress metric, got status=%d body=%s", metricsRecorder.Code, metricsRecorder.Body.String())
 	}
 }
 

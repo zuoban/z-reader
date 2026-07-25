@@ -116,6 +116,7 @@ npm run dev
   `cd backend && go run ./cmd/restore-backup --dir <备份目录> --db ../data/data.db --uploads ../uploads`。
   该命令会先校验备份，且只写入不存在的目标，避免误覆盖。启动服务后访问 `/readyz`，收到 `{"status":"ready"}` 才算恢复完成。
 - `/healthz` 是存活探针，`/readyz` 会检查数据库与上传目录；启用 `METRICS_ENABLED=true` 后可在内网采集 `/metrics`。
+- Prometheus、Grafana dashboard 与告警建议见 [`docs/observability.md`](docs/observability.md)；指标端点默认不对公网暴露。
 - 面向个人/家庭部署的初始恢复目标是：RPO 不超过 24 小时、RTO 不超过 30 分钟。每月用异地备份完成一次上述恢复，并记录耗时和问题；实际部署后可据此调整目标。
 - `NEXT_SERVER_API_URL` 主要用于本地开发或 SSR 代理到独立后端
 - 如需启用 TTS，请使用你自己的语音服务配置，不要把可直接使用的密钥提交到仓库

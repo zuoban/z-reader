@@ -10,6 +10,7 @@ import (
 	"z-reader/backend/models"
 	"z-reader/backend/response"
 	"z-reader/backend/storage"
+	"z-reader/backend/telemetry"
 )
 
 const (
@@ -162,6 +163,7 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		UpdatedAt:  time.Now(),
 	}
 
+	writeStartedAt := time.Now()
 	if err := h.db.SaveProgressIfCurrent(progress, userID, req.ExpectedUpdatedAt); err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
@@ -182,6 +184,7 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		response.InternalError(c, "保存阅读进度失败")
 		return
 	}
+	telemetry.Observe("progress_save", time.Since(writeStartedAt), 1)
 
 	c.JSON(http.StatusOK, progress)
 }

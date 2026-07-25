@@ -1,0 +1,39 @@
+groups:
+  - name: z-reader
+    rules:
+      - alert: ZReaderMetricsTargetDown
+        expr: up{job="z-reader"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Z Reader metrics target is unreachable
+          description: Prometheus has been unable to scrape {{ $labels.instance }} for 5 minutes.
+
+      - alert: ZReaderHighServerErrorRate
+        expr: |
+          sum(rate(z_reader_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(z_reader_http_requests_total[5m])), 0.001)
+          > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Z Reader server error rate is above 5%
+          description: More than 5% of completed requests have returned 5xx responses for 10 minutes.
+
+      - alert: ZReaderSlowOperationP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (operation, le) (
+              rate(z_reader_operation_duration_seconds_bucket[5m])
+            )
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Z Reader operation p95 exceeds 1 second
+          description: Operation {{ $labels.operation }} has exceeded a 1 second p95 for 10 minutes.

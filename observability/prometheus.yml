@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  # Run Prometheus on the same Docker network as z-reader. The application
+  # service exposes port 8080 only to that internal network by default.
+  - job_name: z-reader
+    static_configs:
+      - targets:
+          - z-reader:8080

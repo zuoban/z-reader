@@ -30,6 +30,7 @@ source of truth for the Docker image version and the GitHub Release.
     npm run lint:strict
     npm run test:coverage:check
     npm run build
+    npm run test:js-budget
     npm run test:e2e:ci
     npm run test:visual
   )

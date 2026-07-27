@@ -20,6 +20,7 @@ import (
 	"z-reader/backend/logger"
 	"z-reader/backend/middleware"
 	"z-reader/backend/storage"
+	"z-reader/backend/telemetry"
 )
 
 func main() {
@@ -34,6 +35,7 @@ func main() {
 	}
 
 	logger.Info("Server starting", "port", cfg.AppPort)
+	telemetry.ConfigureBackupSchedule(time.Duration(cfg.BackupIntervalHours) * time.Hour)
 
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
 		logger.Error("Failed to create upload directory", "error", err)
@@ -205,11 +207,13 @@ func startSessionCleaner(ctx context.Context, db *storage.DB) {
 func startBackupWorker(ctx context.Context, db *storage.DB, cfg *config.Config) {
 	interval := time.Duration(cfg.BackupIntervalHours) * time.Hour
 	createBackup := func() {
+		startedAt := time.Now()
 		path, err := backup.Create(db, backup.Config{
 			Dir:           cfg.BackupDir,
 			UploadDir:     cfg.UploadDir,
 			RetentionDays: cfg.BackupRetentionDays,
 		})
+		telemetry.ObserveBackup(time.Since(startedAt), err)
 		if err != nil {
 			logger.Error("Failed to create verified backup", "error", err)
 			return

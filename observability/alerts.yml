@@ -50,3 +50,26 @@ groups:
         annotations:
           summary: Z Reader TTS queue is above 80% capacity
           description: TTS requests have waited at more than 80% of the configured queue capacity for 5 minutes.
+
+      - alert: ZReaderBackupFailure
+        expr: |
+          z_reader_backup_enabled == 1
+          and increase(z_reader_backup_failures_total[1h]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Z Reader verified backup failed
+          description: A configured automated backup has failed within the last hour.
+
+      - alert: ZReaderBackupOverdue
+        expr: |
+          z_reader_backup_enabled == 1
+          and time() - z_reader_backup_last_success_timestamp_seconds
+          > z_reader_backup_interval_seconds * 2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Z Reader backup is overdue
+          description: No verified backup has completed within twice the configured backup interval.

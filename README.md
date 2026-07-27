@@ -5,6 +5,11 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 
 项目目前以自部署为主要使用方式，欢迎 issue、讨论和 PR。
 
+- 工程路线图：[ROADMAP.md](ROADMAP.md)
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 适合上手的任务：[good first issue](https://github.com/zuoban/z-reader/labels/good%20first%20issue) · [help wanted](https://github.com/zuoban/z-reader/labels/help%20wanted)
+- 安全报告：[SECURITY.md](SECURITY.md)
+
 ## 功能概览
 
 - 支持 `EPUB`、`MOBI`、`AZW3`、`PDF` 文件上传与阅读

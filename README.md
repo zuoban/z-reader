@@ -201,6 +201,7 @@ z-reader/
 - [SECURITY.md](SECURITY.md)
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - [架构说明](docs/architecture.md) 与 [架构决策记录](docs/adr/README.md)
+- [支持矩阵](docs/support-matrix.md)
 - [发布检查清单](docs/release-checklist.md)
 
 ## 许可证

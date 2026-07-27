@@ -88,16 +88,22 @@ func TestMetricsHandlerReportsRateLimitRejections(t *testing.T) {
 	})
 
 	recordRateLimitRejection(rateLimitScopeClientIP)
+	recordRateLimitRejection(rateLimitScopeUser)
+	recordRateLimitRejection(rateLimitScopeCustom)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/metrics", MetricsHandler)
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 
-	if !strings.Contains(
-		recorder.Body.String(),
+	body := recorder.Body.String()
+	for _, want := range []string{
 		`z_reader_rate_limit_rejections_total{scope="client_ip"} 1`,
-	) {
-		t.Fatalf("expected client IP rate-limit metric, got %s", recorder.Body.String())
+		`z_reader_rate_limit_rejections_total{scope="user"} 1`,
+		`z_reader_rate_limit_rejections_total{scope="custom"} 1`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected %q in metrics body, got %s", want, body)
+		}
 	}
 }

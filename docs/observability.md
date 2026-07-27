@@ -21,7 +21,7 @@ METRICS_ENABLED=true
 
 - [`observability/prometheus.yml`](../observability/prometheus.yml)：15 秒抓取配置。
 - [`observability/alerts.yml`](../observability/alerts.yml)：目标不可达、5xx 比例、操作 p95
-  延迟与 TTS 队列饱和四条告警规则。
+  延迟、TTS 队列饱和、备份失败与备份超期六条告警规则。
 - [`observability/grafana-dashboard.json`](../observability/grafana-dashboard.json)：可在 Grafana
   的 **Dashboards → New → Import** 导入的总览 dashboard。
 
@@ -46,6 +46,13 @@ HTTP 指标以请求方法、路由模板和状态码聚合，不包含用户、
 - `z_reader_tts_queue_depth`：等待合成槽位的请求数（不含正在合成的请求）。
 - `z_reader_tts_concurrency_limit` 与 `z_reader_tts_queue_capacity`：当前配置的并发与排队上限。
 
+自动备份启用后，还会输出以下 backup 指标。它们只记录聚合状态，不包含备份路径或错误详情：
+
+- `z_reader_backup_enabled`、`z_reader_backup_interval_seconds`：是否启用及其配置间隔。
+- `z_reader_backup_attempts_total`、`z_reader_backup_failures_total`：已完成尝试与失败次数。
+- `z_reader_backup_last_success_timestamp_seconds`、`z_reader_backup_last_duration_seconds`：最近一次
+  已校验备份的完成时间与耗时。
+
 以下 PromQL 可直接用于排障：
 
 ```promql
@@ -63,14 +70,20 @@ sum(rate(z_reader_http_requests_total{status=~"5.."}[5m]))
 clamp_min(sum(rate(z_reader_http_requests_total[5m])), 0.001)
 ```
 
-## 需要外部采集器的运行告警
+```promql
+# 最近一次已校验备份距今的秒数；超过两个备份周期会触发告警
+time() - z_reader_backup_last_success_timestamp_seconds
+```
 
-部分运行信号不应伪装成应用指标，应由相应基础设施采集器负责：
+## 运行告警与外部采集器
+
+备份与 TTS 使用应用指标；就绪状态和磁盘空间则应由相应基础设施采集器负责：
 
 | 风险 | 推荐信号 | 建议阈值 |
 | --- | --- | --- |
 | 就绪失败 | Blackbox exporter 采集 `/readyz` 的 `probe_success` | 连续 5 分钟失败，紧急 |
-| 备份失败 | 日志系统匹配 `Failed to create verified backup` | 任意一次失败，紧急 |
+| 备份失败 | `increase(z_reader_backup_failures_total[1h])` | 任意一次失败，紧急 |
+| 备份超期 | 备份距今时间超过两个 `z_reader_backup_interval_seconds` | 持续 15 分钟，警告 |
 | 数据盘空间不足 | Node exporter 的 `node_filesystem_avail_bytes / node_filesystem_size_bytes` | 少于 10%，警告；少于 5%，紧急 |
 | TTS 过载 | `z_reader_tts_queue_depth / z_reader_tts_queue_capacity` | 超过 80% 持续 5 分钟，警告 |
 

@@ -263,6 +263,94 @@
       ],
       "title": "TTS synthesis queue",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(time() - z_reader_backup_last_success_timestamp_seconds) and (z_reader_backup_enabled == 1)",
+          "legendFormat": "age since verified backup",
+          "refId": "A"
+        },
+        {
+          "expr": "(z_reader_backup_interval_seconds * 2) and (z_reader_backup_enabled == 1)",
+          "legendFormat": "overdue threshold",
+          "refId": "B"
+        }
+      ],
+      "title": "Backup freshness",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(z_reader_backup_attempts_total[24h])",
+          "legendFormat": "attempts in 24h",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(z_reader_backup_failures_total[24h])",
+          "legendFormat": "failures in 24h",
+          "refId": "B"
+        }
+      ],
+      "title": "Backup attempts",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

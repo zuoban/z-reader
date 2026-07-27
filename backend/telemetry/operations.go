@@ -24,6 +24,43 @@ var operations = struct {
 	items map[string]*operationMetric
 }{items: make(map[string]*operationMetric)}
 
+type backupMetric struct {
+	enabled         bool
+	intervalSeconds float64
+	attempts        uint64
+	failures        uint64
+	lastSuccessUnix int64
+	lastDurationSec float64
+}
+
+var backupMetrics struct {
+	mu     sync.Mutex
+	metric backupMetric
+}
+
+// ConfigureBackupSchedule records whether automated backups are enabled and
+// their configured interval. It is called once during application startup.
+func ConfigureBackupSchedule(interval time.Duration) {
+	backupMetrics.mu.Lock()
+	backupMetrics.metric.enabled = interval > 0
+	backupMetrics.metric.intervalSeconds = interval.Seconds()
+	backupMetrics.mu.Unlock()
+}
+
+// ObserveBackup records one completed verified-backup attempt. It deliberately
+// stores no path, user, or error text in metrics.
+func ObserveBackup(elapsed time.Duration, err error) {
+	backupMetrics.mu.Lock()
+	defer backupMetrics.mu.Unlock()
+	backupMetrics.metric.attempts++
+	if err != nil {
+		backupMetrics.metric.failures++
+		return
+	}
+	backupMetrics.metric.lastSuccessUnix = time.Now().Unix()
+	backupMetrics.metric.lastDurationSec = elapsed.Seconds()
+}
+
 // Observe records an operation's elapsed time and its bounded work-unit count
 // (for example, candidate records considered by a search).
 func Observe(name string, elapsed time.Duration, itemCount int) {
@@ -94,4 +131,30 @@ func AppendPrometheus(output *strings.Builder) {
 		fmt.Fprintf(output, "z_reader_operation_duration_seconds_count{operation=%q} %d\n", row.name, row.metric.count)
 		fmt.Fprintf(output, "z_reader_operation_items_total{operation=%q} %d\n", row.name, row.metric.items)
 	}
+
+	backupMetrics.mu.Lock()
+	backup := backupMetrics.metric
+	backupMetrics.mu.Unlock()
+	output.WriteString("# HELP z_reader_backup_enabled Whether automated backups are enabled.\n")
+	output.WriteString("# TYPE z_reader_backup_enabled gauge\n")
+	if backup.enabled {
+		output.WriteString("z_reader_backup_enabled 1\n")
+	} else {
+		output.WriteString("z_reader_backup_enabled 0\n")
+	}
+	output.WriteString("# HELP z_reader_backup_interval_seconds Configured backup interval.\n")
+	output.WriteString("# TYPE z_reader_backup_interval_seconds gauge\n")
+	fmt.Fprintf(output, "z_reader_backup_interval_seconds %.0f\n", backup.intervalSeconds)
+	output.WriteString("# HELP z_reader_backup_attempts_total Completed backup attempts.\n")
+	output.WriteString("# TYPE z_reader_backup_attempts_total counter\n")
+	fmt.Fprintf(output, "z_reader_backup_attempts_total %d\n", backup.attempts)
+	output.WriteString("# HELP z_reader_backup_failures_total Failed backup attempts.\n")
+	output.WriteString("# TYPE z_reader_backup_failures_total counter\n")
+	fmt.Fprintf(output, "z_reader_backup_failures_total %d\n", backup.failures)
+	output.WriteString("# HELP z_reader_backup_last_success_timestamp_seconds Unix timestamp of the latest verified backup.\n")
+	output.WriteString("# TYPE z_reader_backup_last_success_timestamp_seconds gauge\n")
+	fmt.Fprintf(output, "z_reader_backup_last_success_timestamp_seconds %d\n", backup.lastSuccessUnix)
+	output.WriteString("# HELP z_reader_backup_last_duration_seconds Duration of the latest verified backup.\n")
+	output.WriteString("# TYPE z_reader_backup_last_duration_seconds gauge\n")
+	fmt.Fprintf(output, "z_reader_backup_last_duration_seconds %.6f\n", backup.lastDurationSec)
 }

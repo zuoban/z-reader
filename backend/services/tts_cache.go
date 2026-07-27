@@ -6,10 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -62,13 +64,14 @@ type ttsRuntimeState struct {
 
 var ttsRuntime struct {
 	once  sync.Once
-	state *ttsRuntimeState
+	state atomic.Pointer[ttsRuntimeState]
 }
 
 func getTTSRuntime() *ttsRuntimeState {
 	ttsRuntime.once.Do(func() {
 		config := loadTTSCacheConfig()
-		ttsRuntime.state = newTTSRuntimeState(config)
+		state := newTTSRuntimeState(config)
+		ttsRuntime.state.Store(state)
 		logger.Info(
 			"TTS cache configured",
 			"dir", config.Dir,
@@ -80,7 +83,58 @@ func getTTSRuntime() *ttsRuntimeState {
 			"queue_wait_seconds", int(config.QueueWait.Seconds()),
 		)
 	})
-	return ttsRuntime.state
+	return ttsRuntime.state.Load()
+}
+
+// TTSQueueMetrics is a point-in-time view of the bounded TTS synthesis queue.
+// It contains configuration and aggregate work counts only.
+type TTSQueueMetrics struct {
+	Active           int
+	Queued           int
+	QueueCapacity    int
+	ConcurrencyLimit int
+}
+
+// TTSQueueMetricsSnapshot returns false until TTS has been used for the first
+// time. Reading metrics must not initialize the runtime or create its cache.
+func TTSQueueMetricsSnapshot() (TTSQueueMetrics, bool) {
+	runtime := ttsRuntime.state.Load()
+	if runtime == nil {
+		return TTSQueueMetrics{}, false
+	}
+
+	active := len(runtime.semaphore)
+	queued := len(runtime.queue) - active
+	if queued < 0 {
+		queued = 0
+	}
+	return TTSQueueMetrics{
+		Active:           active,
+		Queued:           queued,
+		QueueCapacity:    runtime.config.MaxQueued,
+		ConcurrencyLimit: runtime.config.MaxConcurrent,
+	}, true
+}
+
+// AppendTTSPrometheus adds TTS queue gauges when the TTS runtime is active.
+func AppendTTSPrometheus(output *strings.Builder) {
+	metrics, ok := TTSQueueMetricsSnapshot()
+	if !ok {
+		return
+	}
+
+	output.WriteString("# HELP z_reader_tts_active_syntheses Active TTS syntheses.\n")
+	output.WriteString("# TYPE z_reader_tts_active_syntheses gauge\n")
+	fmt.Fprintf(output, "z_reader_tts_active_syntheses %d\n", metrics.Active)
+	output.WriteString("# HELP z_reader_tts_queue_depth TTS requests waiting for a synthesis slot.\n")
+	output.WriteString("# TYPE z_reader_tts_queue_depth gauge\n")
+	fmt.Fprintf(output, "z_reader_tts_queue_depth %d\n", metrics.Queued)
+	output.WriteString("# HELP z_reader_tts_queue_capacity Configured TTS queue capacity.\n")
+	output.WriteString("# TYPE z_reader_tts_queue_capacity gauge\n")
+	fmt.Fprintf(output, "z_reader_tts_queue_capacity %d\n", metrics.QueueCapacity)
+	output.WriteString("# HELP z_reader_tts_concurrency_limit Configured concurrent TTS synthesis limit.\n")
+	output.WriteString("# TYPE z_reader_tts_concurrency_limit gauge\n")
+	fmt.Fprintf(output, "z_reader_tts_concurrency_limit %d\n", metrics.ConcurrencyLimit)
 }
 
 func newTTSRuntimeState(config ttsCacheConfig) *ttsRuntimeState {

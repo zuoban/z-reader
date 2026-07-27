@@ -21,7 +21,7 @@ METRICS_ENABLED=true
 
 - [`observability/prometheus.yml`](../observability/prometheus.yml)：15 秒抓取配置。
 - [`observability/alerts.yml`](../observability/alerts.yml)：目标不可达、5xx 比例、操作 p95
-  延迟三条告警规则。
+  延迟与 TTS 队列饱和四条告警规则。
 - [`observability/grafana-dashboard.json`](../observability/grafana-dashboard.json)：可在 Grafana
   的 **Dashboards → New → Import** 导入的总览 dashboard。
 
@@ -39,6 +39,12 @@ HTTP 指标以请求方法、路由模板和状态码聚合，不包含用户、
 - `book_upload_write`
 - `cover_thumbnail`
 - `progress_save`
+
+当 TTS 首次被实际使用后，还会输出以下 gauge；单独访问 `/metrics` 不会初始化 TTS：
+
+- `z_reader_tts_active_syntheses`：正在合成的请求数。
+- `z_reader_tts_queue_depth`：等待合成槽位的请求数（不含正在合成的请求）。
+- `z_reader_tts_concurrency_limit` 与 `z_reader_tts_queue_capacity`：当前配置的并发与排队上限。
 
 以下 PromQL 可直接用于排障：
 
@@ -66,7 +72,7 @@ clamp_min(sum(rate(z_reader_http_requests_total[5m])), 0.001)
 | 就绪失败 | Blackbox exporter 采集 `/readyz` 的 `probe_success` | 连续 5 分钟失败，紧急 |
 | 备份失败 | 日志系统匹配 `Failed to create verified backup` | 任意一次失败，紧急 |
 | 数据盘空间不足 | Node exporter 的 `node_filesystem_avail_bytes / node_filesystem_size_bytes` | 少于 10%，警告；少于 5%，紧急 |
-| TTS 过载 | `/api/tts/*` 的 HTTP 429 比例与 5xx 比例 | 10 分钟内持续升高，警告 |
+| TTS 过载 | `z_reader_tts_queue_depth / z_reader_tts_queue_capacity` | 超过 80% 持续 5 分钟，警告 |
 
 告警应发送到你能实际响应的渠道。个人部署通常只需一个即时通知渠道；不要为单人项目配置
 无人值守的多级值班流程。处理告警时记录时间、影响、根因和修复，作为每月可靠性复盘的输入。

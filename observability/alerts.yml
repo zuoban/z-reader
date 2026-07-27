@@ -37,3 +37,16 @@ groups:
         annotations:
           summary: Z Reader operation p95 exceeds 1 second
           description: Operation {{ $labels.operation }} has exceeded a 1 second p95 for 10 minutes.
+
+      - alert: ZReaderTTSQueueSaturation
+        expr: |
+          z_reader_tts_queue_depth
+          /
+          clamp_min(z_reader_tts_queue_capacity, 1)
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Z Reader TTS queue is above 80% capacity
+          description: TTS requests have waited at more than 80% of the configured queue capacity for 5 minutes.

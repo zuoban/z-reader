@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -61,5 +62,42 @@ func TestTTSAudioCacheExpiresEntries(t *testing.T) {
 	}
 	if cache.bytes != 0 || len(cache.items) != 0 {
 		t.Fatal("expected expired entry to be removed")
+	}
+}
+
+func TestTTSQueueMetricsSnapshotAndPrometheusOutput(t *testing.T) {
+	runtime := newTTSRuntimeState(ttsCacheConfig{
+		MaxConcurrent: 2,
+		MaxQueued:     3,
+	})
+	runtime.semaphore <- struct{}{}
+	runtime.queue <- struct{}{}
+	runtime.queue <- struct{}{}
+
+	previous := ttsRuntime.state.Load()
+	ttsRuntime.state.Store(runtime)
+	t.Cleanup(func() { ttsRuntime.state.Store(previous) })
+
+	metrics, ok := TTSQueueMetricsSnapshot()
+	if !ok {
+		t.Fatal("expected initialized TTS queue metrics")
+	}
+	if metrics.Active != 1 || metrics.Queued != 1 ||
+		metrics.QueueCapacity != 3 || metrics.ConcurrencyLimit != 2 {
+		t.Fatalf("unexpected TTS queue metrics: %#v", metrics)
+	}
+
+	var output strings.Builder
+	AppendTTSPrometheus(&output)
+	body := output.String()
+	for _, expected := range []string{
+		"z_reader_tts_active_syntheses 1",
+		"z_reader_tts_queue_depth 1",
+		"z_reader_tts_queue_capacity 3",
+		"z_reader_tts_concurrency_limit 2",
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("expected metric %q in output: %s", expected, body)
+		}
 	}
 }

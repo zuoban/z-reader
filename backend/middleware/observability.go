@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"z-reader/backend/logger"
+	"z-reader/backend/services"
 	"z-reader/backend/telemetry"
 )
 
@@ -147,6 +148,7 @@ func MetricsHandler(c *gin.Context) {
 		fmt.Fprintf(&output, "z_reader_http_request_duration_seconds_count{%s} %d\n", labels, row.metric.count)
 	}
 	telemetry.AppendPrometheus(&output)
+	services.AppendTTSPrometheus(&output)
 
 	c.Data(http.StatusOK, "text/plain; version=0.0.4; charset=utf-8", []byte(output.String()))
 }

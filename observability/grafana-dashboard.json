@@ -209,6 +209,60 @@
       ],
       "title": "Operation work rate",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "z_reader_tts_active_syntheses",
+          "legendFormat": "active syntheses",
+          "refId": "A"
+        },
+        {
+          "expr": "z_reader_tts_queue_depth",
+          "legendFormat": "queued requests",
+          "refId": "B"
+        },
+        {
+          "expr": "z_reader_tts_concurrency_limit",
+          "legendFormat": "concurrency limit",
+          "refId": "C"
+        },
+        {
+          "expr": "z_reader_tts_queue_capacity",
+          "legendFormat": "queue capacity",
+          "refId": "D"
+        }
+      ],
+      "title": "TTS synthesis queue",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

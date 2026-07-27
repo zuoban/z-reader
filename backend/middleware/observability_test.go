@@ -61,3 +61,15 @@ func TestMetricsHandlerReportsOperationHistogram(t *testing.T) {
 		t.Fatalf("expected operation metrics, got status=%d body=%s", recorder.Code, body)
 	}
 }
+
+func TestMetricsHandlerDoesNotInitializeTTSRuntime(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/metrics", MetricsHandler)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if strings.Contains(recorder.Body.String(), "z_reader_tts_queue_depth") {
+		t.Fatalf("expected inactive TTS metrics to be omitted, got %s", recorder.Body.String())
+	}
+}

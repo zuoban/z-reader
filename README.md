@@ -139,6 +139,8 @@ cd backend && go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -
 # 容器启动、健康检查与持久化卷替换 smoke test（先构建镜像）
 docker build -t z-reader:ci .
 bash docker/smoke-test.sh z-reader:ci
+
+# 已运行实例的 HTTP 核心链路压测（参数和完整示例见 docs/performance-baseline.md）
 # 结果与运行环境见 docs/performance-baseline.md
 
 # 前端检查

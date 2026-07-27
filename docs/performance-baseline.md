@@ -34,3 +34,29 @@ go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=100x
 进度保存基准会更新书籍的最近阅读时间、书架排序索引和进度时间索引。并发场景通过
 `b.RunParallel` 模拟多个设备在 100 本活跃书籍间保存进度；bbolt 的单写事务会让该场景对
 写锁持有时间的回归保持敏感。
++
+## HTTP 核心链路压测
+
+除数据库 microbenchmark 外，仓库还提供不依赖外部压测平台的 HTTP 压测命令。它会登录一次来
+建立会话并报告登录延迟，然后分别压测书架首屏、搜索和进度保存，输出请求数、失败数、
+P50/P95/P99 和吞吐。登录接口有意启用限流，因此不会被重复压测。
+
+只在非生产环境或专用测试账号运行；进度场景会更新指定测试书的阅读位置。先准备测试账号、
+至少一本测试书和可搜索的关键词。密码默认从环境变量读取，避免写入终端历史和进程列表：
+
+```bash
+read -r -s -p 'Load-test password: ' Z_READER_LOADTEST_PASSWORD
+export Z_READER_LOADTEST_PASSWORD
+cd backend
+go run ./cmd/loadtest \
+  --base-url http://127.0.0.1:8080 \
+  --username <load-test-user> \
+  --book-id <test-book-id> \
+  --search-query <known-title-token> \
+  --concurrency 4 \
+  --duration 30s
+unset Z_READER_LOADTEST_PASSWORD
+```
+
+同一硬件、Go 版本、数据规模和命令下保存输出，才能用于比较。性能 PR 应附上前后结果；
+任何 P95 或吞吐超过 10% 的退化都应说明原因。

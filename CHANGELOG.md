@@ -10,6 +10,7 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ### Added
 
+- Frontend first-screen JS budget gate, Web Vitals/CLS regression checks, and offline shell budget docs.
 - Core coverage baselines for backend request/storage modules and frontend reader/shelf data modules.
 - CodeQL analysis, Dependabot updates, release checklist, and stricter CI quality gates.
 

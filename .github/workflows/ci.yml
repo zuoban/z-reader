@@ -168,6 +168,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Check first-screen JS budget
+        working-directory: frontend
+        run: npm run test:js-budget
+
   frontend-unit-test:
     name: Frontend Unit & Coverage
     runs-on: ubuntu-latest

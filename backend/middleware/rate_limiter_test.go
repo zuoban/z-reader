@@ -76,6 +76,10 @@ func TestRateLimiterBoundsTrackedVisitors(t *testing.T) {
 }
 
 func TestRateLimiterMiddlewareReturns429(t *testing.T) {
+	previous := rateLimitRejections.clientIP.Load()
+	rateLimitRejections.clientIP.Store(0)
+	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
+
 	rl := NewRateLimiter(1, 5*time.Minute)
 	// First request allowed
 	rl.Allow("10.0.0.99")
@@ -96,9 +100,16 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	if got := w.Header().Get("Retry-After"); got != "300" {
 		t.Fatalf("expected Retry-After 300, got %q", got)
 	}
+	if got := rateLimitRejections.clientIP.Load(); got != 1 {
+		t.Fatalf("client IP rejections = %d, want 1", got)
+	}
 }
 
 func TestRateLimitByUserUsesSeparateUserQuotas(t *testing.T) {
+	previous := rateLimitRejections.user.Load()
+	rateLimitRejections.user.Store(0)
+	t.Cleanup(func() { rateLimitRejections.user.Store(previous) })
+
 	rl := NewRateLimiter(1, time.Minute)
 	handler := RateLimitByUser(rl)
 
@@ -121,5 +132,62 @@ func TestRateLimitByUserUsesSeparateUserQuotas(t *testing.T) {
 	}
 	if status := request("user-a"); status != http.StatusTooManyRequests {
 		t.Fatalf("expected repeated user request to be limited, got %d", status)
+	}
+	if got := rateLimitRejections.user.Load(); got != 1 {
+		t.Fatalf("user rejections = %d, want 1", got)
+	}
+}
+
+func TestRateLimitByUserFallsBackToClientIP(t *testing.T) {
+	rl := NewRateLimiter(1, time.Minute)
+	handler := RateLimitByUser(rl)
+
+	request := func() int {
+		gin.SetMode(gin.TestMode)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/tts", nil)
+		c.Request.RemoteAddr = "10.0.0.55:12345"
+		handler(c)
+		return w.Code
+	}
+
+	if status := request(); status != http.StatusOK {
+		t.Fatalf("expected first unauthenticated request to pass, got %d", status)
+	}
+	if status := request(); status != http.StatusTooManyRequests {
+		t.Fatalf("expected second unauthenticated request to share IP quota, got %d", status)
+	}
+}
+
+func TestRateLimitByKeyRecordsCustomScope(t *testing.T) {
+	previous := rateLimitRejections.custom.Load()
+	rateLimitRejections.custom.Store(0)
+	t.Cleanup(func() { rateLimitRejections.custom.Store(previous) })
+
+	rl := NewRateLimiter(1, time.Minute)
+	handler := RateLimitByKey(rl, func(c *gin.Context) string {
+		return c.GetHeader("X-Quota-Key")
+	})
+
+	request := func(key string) int {
+		gin.SetMode(gin.TestMode)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/limited", nil)
+		c.Request.Header.Set("X-Quota-Key", key)
+		c.Request.RemoteAddr = "10.0.0.77:12345"
+		handler(c)
+		return w.Code
+	}
+
+	if status := request("quota-a"); status != http.StatusOK {
+		t.Fatalf("expected first custom-key request to pass, got %d", status)
+	}
+	if status := request("quota-a"); status != http.StatusTooManyRequests {
+		t.Fatalf("expected repeated custom-key request to be limited, got %d", status)
+	}
+	if got := rateLimitRejections.custom.Load(); got != 1 {
+		t.Fatalf("custom rejections = %d, want 1", got)
 	}
 }

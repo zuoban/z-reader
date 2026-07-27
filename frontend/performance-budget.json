@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "description": "First-screen JS budgets from production prerender HTML. maxBytes is ~10% headroom over the recorded baseline.",
+  "firstScreenJs": {
+    "home": {
+      "bytes": 659893,
+      "maxBytes": 725883,
+      "files": 11
+    },
+    "login": {
+      "bytes": 664714,
+      "maxBytes": 731186,
+      "files": 12
+    },
+    "shelf": {
+      "bytes": 918610,
+      "maxBytes": 1010472,
+      "files": 13
+    }
+  },
+  "webVitals": {
+    "login": {
+      "lcpMsMax": 3500,
+      "clsMax": 0.1
+    },
+    "shelf": {
+      "lcpMsMax": 4000,
+      "clsMax": 0.15,
+      "inpMsMax": 300
+    }
+  },
+  "offline": {
+    "staticShellRoutes": [
+      "/",
+      "/login",
+      "/manifest.json"
+    ],
+    "minHitRate": 0.8
+  }
+}

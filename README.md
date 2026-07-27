@@ -147,6 +147,8 @@ bash docker/smoke-test.sh z-reader:ci
 cd frontend && npm run lint
 cd frontend && npm run test:coverage:check
 cd frontend && npm run build
+cd frontend && npm run test:js-budget
+# Web Vitals / CLS 回归（Playwright）：cd frontend && npm run test:e2e:perf
 
 # Docker 构建
 docker build -t z-reader .

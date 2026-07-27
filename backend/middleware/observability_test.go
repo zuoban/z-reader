@@ -73,3 +73,37 @@ func TestMetricsHandlerDoesNotInitializeTTSRuntime(t *testing.T) {
 		t.Fatalf("expected inactive TTS metrics to be omitted, got %s", recorder.Body.String())
 	}
 }
+
+func TestMetricsHandlerReportsRateLimitRejections(t *testing.T) {
+	previousClientIP := rateLimitRejections.clientIP.Load()
+	previousUser := rateLimitRejections.user.Load()
+	previousCustom := rateLimitRejections.custom.Load()
+	rateLimitRejections.clientIP.Store(0)
+	rateLimitRejections.user.Store(0)
+	rateLimitRejections.custom.Store(0)
+	t.Cleanup(func() {
+		rateLimitRejections.clientIP.Store(previousClientIP)
+		rateLimitRejections.user.Store(previousUser)
+		rateLimitRejections.custom.Store(previousCustom)
+	})
+
+	recordRateLimitRejection(rateLimitScopeClientIP)
+	recordRateLimitRejection(rateLimitScopeUser)
+	recordRateLimitRejection(rateLimitScopeCustom)
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/metrics", MetricsHandler)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	body := recorder.Body.String()
+	for _, want := range []string{
+		`z_reader_rate_limit_rejections_total{scope="client_ip"} 1`,
+		`z_reader_rate_limit_rejections_total{scope="user"} 1`,
+		`z_reader_rate_limit_rejections_total{scope="custom"} 1`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected %q in metrics body, got %s", want, body)
+		}
+	}
+}

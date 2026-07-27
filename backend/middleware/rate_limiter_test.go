@@ -76,6 +76,10 @@ func TestRateLimiterBoundsTrackedVisitors(t *testing.T) {
 }
 
 func TestRateLimiterMiddlewareReturns429(t *testing.T) {
+	previous := rateLimitRejections.clientIP.Load()
+	rateLimitRejections.clientIP.Store(0)
+	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
+
 	rl := NewRateLimiter(1, 5*time.Minute)
 	// First request allowed
 	rl.Allow("10.0.0.99")
@@ -95,6 +99,9 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	}
 	if got := w.Header().Get("Retry-After"); got != "300" {
 		t.Fatalf("expected Retry-After 300, got %q", got)
+	}
+	if got := rateLimitRejections.clientIP.Load(); got != 1 {
+		t.Fatalf("client IP rejections = %d, want 1", got)
 	}
 }
 

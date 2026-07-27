@@ -53,6 +53,9 @@ HTTP 指标以请求方法、路由模板和状态码聚合，不包含用户、
 - `z_reader_backup_last_success_timestamp_seconds`、`z_reader_backup_last_duration_seconds`：最近一次
   已校验备份的完成时间与耗时。
 
+限流拒绝会输出 `z_reader_rate_limit_rejections_total`，其中 `scope` 只可能是 `client_ip`、`user`
+或 `custom`。它不包含真实 IP 或用户标识；如需定位具体接口，请结合 HTTP 指标中的 429 路由聚合。
+
 以下 PromQL 可直接用于排障：
 
 ```promql
@@ -73,6 +76,11 @@ clamp_min(sum(rate(z_reader_http_requests_total[5m])), 0.001)
 ```promql
 # 最近一次已校验备份距今的秒数；超过两个备份周期会触发告警
 time() - z_reader_backup_last_success_timestamp_seconds
+```
+
+```promql
+# 五分钟内按限流策略分组的拒绝速率
+sum by (scope) (rate(z_reader_rate_limit_rejections_total[5m]))
 ```
 
 ## 运行告警与外部采集器

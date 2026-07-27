@@ -73,3 +73,31 @@ func TestMetricsHandlerDoesNotInitializeTTSRuntime(t *testing.T) {
 		t.Fatalf("expected inactive TTS metrics to be omitted, got %s", recorder.Body.String())
 	}
 }
+
+func TestMetricsHandlerReportsRateLimitRejections(t *testing.T) {
+	previousClientIP := rateLimitRejections.clientIP.Load()
+	previousUser := rateLimitRejections.user.Load()
+	previousCustom := rateLimitRejections.custom.Load()
+	rateLimitRejections.clientIP.Store(0)
+	rateLimitRejections.user.Store(0)
+	rateLimitRejections.custom.Store(0)
+	t.Cleanup(func() {
+		rateLimitRejections.clientIP.Store(previousClientIP)
+		rateLimitRejections.user.Store(previousUser)
+		rateLimitRejections.custom.Store(previousCustom)
+	})
+
+	recordRateLimitRejection(rateLimitScopeClientIP)
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/metrics", MetricsHandler)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if !strings.Contains(
+		recorder.Body.String(),
+		`z_reader_rate_limit_rejections_total{scope="client_ip"} 1`,
+	) {
+		t.Fatalf("expected client IP rate-limit metric, got %s", recorder.Body.String())
+	}
+}

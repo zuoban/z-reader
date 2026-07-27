@@ -4,9 +4,28 @@
 
 ## 开始之前
 
-- 先阅读根目录的 [README.md](README.md)
+- 先阅读根目录的 [README.md](README.md) 与工程路线图 [ROADMAP.md](ROADMAP.md)
 - 讨论较大的功能改动时，建议先开 issue 说明背景和方案
 - 提交前请确保没有把本地密钥、数据库、上传文件或构建产物带进仓库
+
+## 找任务
+
+适合第一次贡献的入口：
+
+| 入口 | 说明 |
+| --- | --- |
+| [good first issue](https://github.com/zuoban/z-reader/labels/good%20first%20issue) | 范围小、路径清楚，适合新人 |
+| [help wanted](https://github.com/zuoban/z-reader/labels/help%20wanted) | 欢迎外部协助，可能需要更多上下文 |
+| [security](https://github.com/zuoban/z-reader/labels/security) | 非敏感的加固或公开跟进；**漏洞请走** [SECURITY.md](SECURITY.md) |
+
+认领前请在 issue 下留言，避免重复劳动。安全漏洞不要开公开 issue。
+
+当前种子任务示例：
+
+- [#50](https://github.com/zuoban/z-reader/issues/50) docs: production Web Vitals measurement steps (`good first issue`)
+- [#51](https://github.com/zuoban/z-reader/issues/51) test: a11y for empty/error shelf states (`good first issue`)
+- [#52](https://github.com/zuoban/z-reader/issues/52) loadtest upload/TTS scenarios (`help wanted`)
+- [#53](https://github.com/zuoban/z-reader/issues/53) production Web Vitals archive script (`help wanted`)
 
 ## 本地开发
 

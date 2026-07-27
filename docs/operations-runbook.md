@@ -61,6 +61,47 @@ docker compose logs --tail=200 z-reader
 Z Reader 实例，访问 `/readyz`，并确认至少一本书和登录会话可用。记录开始/结束时间、
 备份时间、问题和处理结果；以 RPO 不超过 24 小时、RTO 不超过 30 分钟为初始目标。
 
+### 每月演练清单
+
+在**非生产**空目录或隔离主机上按顺序执行；不要覆盖正在使用的 `data/` / `uploads/`。
+
+1. **取异地副本**：从本机磁盘以外的位置（另一台机器、对象存储、外置盘）复制最近一份
+   `backup-*` 目录。若只有本机副本，先 `cp -R` 到隔离路径以模拟“脱离原卷”。
+2. **校验**：
+   ```bash
+   (cd backend && go run ./cmd/verify-backup --dir "<offsite-or-isolated-backup-dir>")
+   ```
+3. **恢复到空目标**（示例路径可改）：
+   ```bash
+   mkdir -p /tmp/z-reader-drill/restored
+   (cd backend && go run ./cmd/restore-backup \
+     --dir "<offsite-or-isolated-backup-dir>" \
+     --db /tmp/z-reader-drill/restored/data.db \
+     --uploads /tmp/z-reader-drill/restored/uploads)
+   ```
+4. **启动隔离实例并探活**（Compose 示例：把挂载指到演练目录，或临时改端口）：
+   ```bash
+   curl --fail --show-error http://127.0.0.1:<drill-port>/readyz
+   ```
+5. **业务抽查**：登录成功；书架至少可见一本已恢复图书（或上传列表非空）。
+6. **记录**下方表格：开始/结束、备份 `created_at`、RTO、问题与跟进。
+7. **清理**：确认生产未被动后，删除演练目录与临时容器。
+
+初始目标：
+
+| 指标 | 目标 |
+| --- | --- |
+| RPO | ≤ 24 小时（最近已校验备份的年龄） |
+| RTO | ≤ 30 分钟（从开始取副本到 `/readyz` 成功） |
+
+### 恢复演练记录
+
+新完成的演练追加一行；不要改写历史行。`范围` 写清是否包含完整 `/readyz` 与登录抽查。
+
+| 日期 (UTC) | 操作者 | 备份 `created_at` | 异地/隔离来源 | 开始 | 结束 | RTO | 范围 | 结果 | 问题与跟进 |
+| --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- |
+| 2026-07-27 | maintainer | 2026-07-26T21:04:26.135553Z | 本机 backup 复制到 `/tmp` 隔离目录 | 13:22:49Z | 13:22:50Z | 1s | CLI：`verify-backup` + `restore-backup`；14 个上传文件落盘 | 通过 | 未拉起 Compose `/readyz`；下次月度演练补完整探活与登录抽查 |
+
 ## 从备份恢复
 
 恢复会拒绝覆盖已有数据库和上传目录。这是防止误覆盖的保护，不能绕过。以下示例适用于

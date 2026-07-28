@@ -16,6 +16,7 @@ import (
 
 	"z-reader/backend/backup"
 	"z-reader/backend/config"
+	"z-reader/backend/diagnostics"
 	"z-reader/backend/handlers"
 	"z-reader/backend/logger"
 	"z-reader/backend/middleware"
@@ -106,6 +107,9 @@ func main() {
 	r.GET("/readyz", handlers.Ready(db, cfg.UploadDir))
 	if cfg.MetricsEnabled {
 		r.GET("/metrics", middleware.MetricsHandler)
+	}
+	if cfg.PprofEnabled {
+		diagnostics.RegisterPprofRoutes(r)
 	}
 
 	api := r.Group("/api")

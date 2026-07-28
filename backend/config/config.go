@@ -16,6 +16,7 @@ type Config struct {
 	AllowedOrigins      []string
 	TrustedProxies      []string
 	MetricsEnabled      bool
+	PprofEnabled        bool
 	BackupDir           string
 	BackupIntervalHours int
 	BackupRetentionDays int
@@ -105,6 +106,7 @@ func Load() (*Config, error) {
 		AllowedOrigins:      getAllowedOrigins(),
 		TrustedProxies:      getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
 		MetricsEnabled:      getEnvBool("METRICS_ENABLED", false),
+		PprofEnabled:        getEnvBool("PPROF_ENABLED", false),
 		BackupDir:           getEnv("BACKUP_DIR", "./backups"),
 		BackupIntervalHours: getEnvInt("BACKUP_INTERVAL_HOURS", 24),
 		BackupRetentionDays: getEnvInt("BACKUP_RETENTION_DAYS", 7),

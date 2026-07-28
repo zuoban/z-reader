@@ -34,6 +34,7 @@ func TestLoadReadsUploadLimit(t *testing.T) {
 	t.Setenv("UPLOAD_DIR", "")
 	t.Setenv("DB_PATH", "")
 	t.Setenv("ALLOWED_ORIGINS", "")
+	t.Setenv("PPROF_ENABLED", "true")
 
 	cfg, err := Load()
 	if err != nil {
@@ -45,6 +46,9 @@ func TestLoadReadsUploadLimit(t *testing.T) {
 	}
 	if cfg.MaxRequestBodyBytes != 2048 {
 		t.Fatalf("expected MaxRequestBodyBytes=2048, got %d", cfg.MaxRequestBodyBytes)
+	}
+	if !cfg.PprofEnabled {
+		t.Fatal("expected PprofEnabled=true")
 	}
 
 	wantProxies := []string{"127.0.0.1", "10.0.0.0/8"}

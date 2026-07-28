@@ -105,6 +105,7 @@ npm run dev
 | `TTS_MAX_QUEUED` | TTS 等待队列最大请求数 | `12` |
 | `TTS_QUEUE_WAIT_SECONDS` | TTS 请求最大排队秒数 | `30` |
 | `METRICS_ENABLED` | 是否公开 Prometheus 格式的 `/metrics`（建议只在内网启用） | `false` |
+| `PPROF_ENABLED` | 是否启用 Go pprof 性能诊断端点（仅受信任内网短时启用） | `false` |
 | `BACKUP_DIR` | 自动备份目录 | `./backups` |
 | `BACKUP_INTERVAL_HOURS` | 自动备份间隔；设为 `0` 可关闭 | `24` |
 | `BACKUP_RETENTION_DAYS` | 备份保留天数；设为 `0` 不自动清理 | `7` |
@@ -121,6 +122,8 @@ npm run dev
   `cd backend && go run ./cmd/restore-backup --dir <备份目录> --db ../data/data.db --uploads ../uploads`。
   该命令会先校验备份，且只写入不存在的目标，避免误覆盖。启动服务后访问 `/readyz`，收到 `{"status":"ready"}` 才算恢复完成。
 - `/healthz` 是存活探针，`/readyz` 会检查数据库与上传目录；启用 `METRICS_ENABLED=true` 后可在内网采集 `/metrics`。
+- `PPROF_ENABLED=true` 只应在短时性能排障时启用。pprof 端点没有应用认证，Compose 的 Caddy 不会代理
+  `/debug/pprof/*`；详细用法见 [`docs/performance-baseline.md`](docs/performance-baseline.md)。
 - Prometheus、Grafana dashboard 与告警建议见 [`docs/observability.md`](docs/observability.md)；指标端点默认不对公网暴露。
 - 部署、升级、回滚、备份恢复和常见故障的可执行步骤见
   [`docs/operations-runbook.md`](docs/operations-runbook.md)。

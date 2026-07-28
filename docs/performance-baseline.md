@@ -72,6 +72,33 @@ unset Z_READER_LOADTEST_PASSWORD
 上传与 TTS 队列对外部依赖和副作用更敏感：上传会写入书库，TTS 依赖外部语音服务和本地
 缓存；请在隔离环境中按需压测，不要把生产数据当作压测夹具。
 
+## 后端：按需 pprof 排障
+
+性能问题先用指标和压测确认，再短时启用 `PPROF_ENABLED=true` 重启后端。该开关默认关闭；pprof
+端点没有应用认证，Compose 的 Caddy 也不会代理 `/debug/pprof/*`，因此只能通过受信任内网或容器
+内部访问，绝不能公开到互联网。
+
+本地开发可采集 30 秒 CPU profile：
+
+```bash
+cd backend
+PPROF_ENABLED=true go run .
+go tool pprof 'http://127.0.0.1:8080/debug/pprof/profile?seconds=30'
+```
+
+Compose 部署时，先在 `.env` 临时设置 `PPROF_ENABLED=true` 并重启服务；然后从容器内部采集，
+再复制到本机分析：
+
+```bash
+docker compose exec z-reader wget -O /tmp/z-reader-cpu.pprof \
+  'http://127.0.0.1:8080/debug/pprof/profile?seconds=30'
+docker cp z-reader:/tmp/z-reader-cpu.pprof ./z-reader-cpu.pprof
+go tool pprof ./z-reader-cpu.pprof
+```
+
+排障结束后立刻把 `PPROF_ENABLED` 改回 `false` 并重启。除 CPU profile 外，还可采集
+`/debug/pprof/heap`、`/debug/pprof/goroutine?debug=1` 和 `/debug/pprof/trace?seconds=5`。
+
 ## 前端：首屏 JavaScript 预算
 
 生产构建后，从预渲染 HTML 统计关键页面首屏同步/异步脚本体积。预算保存在

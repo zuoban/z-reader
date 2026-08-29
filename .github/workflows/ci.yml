@@ -70,7 +70,7 @@ jobs:
           go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
 
       - name: Upload backend coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
           path: backend/coverage.out
@@ -197,7 +197,7 @@ jobs:
         run: npm run test:coverage:check
 
       - name: Upload frontend coverage summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
           path: frontend/coverage/coverage-summary.json
@@ -249,7 +249,7 @@ jobs:
 
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-e2e-report
           path: |
@@ -310,7 +310,7 @@ jobs:
 
       - name: Upload visual report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-visual-report
           path: |
@@ -328,7 +328,7 @@ jobs:
 
       - name: Upload refreshed Linux snapshots
         if: github.event_name == 'workflow_dispatch' && inputs.update_visual_snapshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visual-snapshots-linux
           path: frontend/tests/e2e/visual-regression.spec.ts-snapshots/linux

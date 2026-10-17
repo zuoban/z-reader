@@ -25,7 +25,7 @@ Z Reader 是一个面向个人书架场景的在线电子书阅读器，提供�
 
 | 组件 | 技术 |
 | --- | --- |
-| 后端 | Go 1.25+, Gin, bbolt |
+| 后端 | Go 1.26.9+, Gin, bbolt |
 | 前端 | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui |
 | 阅读引擎 | foliate-js |
 | 反向代理 | Caddy |
@@ -63,7 +63,7 @@ docker compose up -d
 
 环境要求：
 
-- Go 1.25+
+- Go 1.26.9+
 - Node.js 20+
 - npm
 

@@ -31,6 +31,8 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 - Update Next.js, image-processing, and affected frontend tooling dependencies to
   patched versions identified by the repository's dependency alerts.
+- Update sharp to 0.35.5 and x/net to 0.60.0 to address the image-decoding and
+  HTTP/2 vulnerabilities caught by release CI. Build the backend with Go 1.26.9.
 
 ### Added
 
@@ -43,6 +45,8 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 - No database migration or new TTS credentials are required. Keep persistent data
   volumes and reopen/refresh an existing reader after upgrading.
+- From-source builds now require Go 1.26.9 or later; the Docker image includes the
+  updated backend and needs no host Go installation.
 - Android process termination and vendor battery restrictions can still interrupt
   web audio. Word highlighting uses estimated timing within a speech chunk.
 - See [mobile background reading](docs/tts-background-playback.md) for diagnostics,

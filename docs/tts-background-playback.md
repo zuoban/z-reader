@@ -12,6 +12,8 @@ below the backend's 32 KiB limit. Exceptionally long sentences are split without
 dropping their text.
 
 The text queue reads detached book sections and stores text plus EPUB CFIs.
+Consumed text history is bounded; moving backward beyond that history reloads
+the previous sentence by CFI instead of retaining the entire book in memory.
 Playback and prefetching do not navigate the visible renderer. Highlighting and
 scrolling run only while the page is visible. Returning to the foreground aligns
 the view with the current spoken location. Voice, rate, style, or highlight

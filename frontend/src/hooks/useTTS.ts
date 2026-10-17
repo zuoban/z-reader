@@ -320,7 +320,7 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
     try {
       await fillingRef.current?.promise;
       if (operation !== operationRef.current) return;
-      if (direction < 0 && (currentMarkRef.current?.sentenceIndex ?? 0) === 0) {
+      if (direction < 0 && (currentMarkRef.current?.sentenceIndex ?? 0) <= source.firstSentenceIndex) {
         const cfi = currentMarkRef.current?.cfi;
         const previous = cfi ? await viewRef.current?.getTTSPreviousCFI?.(cfi) : null;
         if (operation !== operationRef.current) return;

@@ -35,17 +35,22 @@ test.describe('background TTS', () => {
     const result = await page.evaluate(async () => {
       const view = document.querySelector('foliate-view') as HTMLElement & {
         getTTSSentences: () => AsyncIterable<{ text: string; cfi: string; sectionIndex: number }>;
+        getTTSPreviousCFI: (cfi: string) => Promise<string | null>;
         renderer: { getContents: () => Array<{ index: number }> };
       };
       const before = view.renderer.getContents()[0].index;
-      const sentences = [];
+      const sentences: Array<{ text: string; cfi: string; sectionIndex: number }> = [];
       for await (const sentence of view.getTTSSentences()) sentences.push(sentence);
-      return { before, after: view.renderer.getContents()[0].index, sentences };
+      const secondChapter = sentences.findIndex(item => item.sectionIndex !== sentences[0].sectionIndex);
+      const previous = await view.getTTSPreviousCFI(sentences[secondChapter].cfi);
+      return { before, after: view.renderer.getContents()[0].index, sentences,
+        previous, expectedPrevious: sentences[secondChapter - 1].cfi };
     });
     expect(new Set(result.sentences.map(sentence => sentence.sectionIndex)).size).toBe(2);
     expect(result.sentences.some(sentence => sentence.text.includes('样例书第二章'))).toBe(true);
     expect(result.sentences.every(sentence => sentence.cfi.startsWith('epubcfi('))).toBe(true);
     expect(result.after).toBe(result.before);
+    expect(result.previous).toBe(result.expectedPrevious);
   });
 
   test('decodes and continues a second chunk while hidden using the same audio element', async ({ page }) => {
@@ -72,7 +77,7 @@ test.describe('background TTS', () => {
     await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
     const expand = page.getByRole('button', { name: '展开操作栏' });
     if (await expand.isVisible()) await expand.click();
-    await page.getByRole('button', { name: '朗读', exact: true }).first().click();
+    await page.getByRole('button', { name: '朗读控制', exact: true }).first().click();
     await page.getByTitle('开始', { exact: true }).click();
     await page.waitForFunction(() =>
       (window as typeof window & { ttsPlays: number }).ttsPlays >= 1);

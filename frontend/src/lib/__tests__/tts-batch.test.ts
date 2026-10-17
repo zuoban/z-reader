@@ -79,4 +79,16 @@ describe('TTS text buffer', () => {
     expect(estimateTTSDuration(text, 100)).toBe(estimateTTSDuration(text) / 2);
     expect(estimateTTSDuration('one two three four five')).toBe(2);
   });
+
+  it('bounds consumed text history during long reading sessions', async () => {
+    async function* many() {
+      for (let i = 0; i < 800; i++) yield sentence('短句。', i);
+    }
+    const buffer = new TTSSpeechBuffer(many());
+    const current = await buffer.chunk(700, 1, settings);
+    expect(current?.marks[0].cfi).toBe('word-700');
+    expect(buffer.firstSentenceIndex).toBe(444);
+    expect(await buffer.chunk(443, 1, settings)).toBeNull();
+    expect((await buffer.chunk(699, 1, settings))?.marks[0].cfi).toBe('word-699');
+  });
 });

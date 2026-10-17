@@ -223,9 +223,10 @@ export function useShelfData(isAuthenticated: boolean) {
       loadGenerationRef.current += 1;
       searchGenerationRef.current += 1;
       loadingMoreRef.current = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear private data on logout.
       setNextCursor(undefined);
-	  setSearchResults(null);
-	  setSearchNextCursor(undefined);
+      setSearchResults(null);
+      setSearchNextCursor(undefined);
       setLibrarySummary(null);
       return;
     }
@@ -241,6 +242,7 @@ export function useShelfData(isAuthenticated: boolean) {
     const query = searchQuery.trim();
     const generation = ++searchGenerationRef.current;
     if (!isAuthenticated || !query) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear an invalidated search.
       setSearchResults(null);
       setSearchNextCursor(undefined);
       setIsSearching(false);

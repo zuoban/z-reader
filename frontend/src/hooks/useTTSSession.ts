@@ -47,7 +47,7 @@ export function useTTSSession({
     if (typeof window === 'undefined') return;
 
     const key = getTTSSessionKey(bookId);
-    const cfi = viewRef.current?.lastLocation?.cfi;
+    const cfi = currentMarkRef.current?.cfi || viewRef.current?.lastLocation?.cfi;
     if (!key || !cfi) return;
 
     const mark = currentMarkRef.current;

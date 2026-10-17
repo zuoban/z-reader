@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,11 +14,11 @@
     "test:coverage:baseline": "npm run test:coverage && node scripts/check-coverage-baseline.mjs coverage/coverage-summary.json coverage-baseline.json --write",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test tests/e2e/auth-shelf.spec.ts tests/e2e/shelf-virtual-grid.spec.ts tests/e2e/reader-happy-path.spec.ts tests/e2e/shelf-to-reader.spec.ts tests/e2e/shelf-search.spec.ts tests/e2e/shelf-batch.spec.ts tests/e2e/a11y.spec.ts tests/e2e/performance-budget.spec.ts",
+    "test:e2e:ci": "playwright test tests/e2e/auth-shelf.spec.ts tests/e2e/shelf-virtual-grid.spec.ts tests/e2e/reader-happy-path.spec.ts tests/e2e/tts-background.spec.ts tests/e2e/shelf-to-reader.spec.ts tests/e2e/shelf-search.spec.ts tests/e2e/shelf-batch.spec.ts tests/e2e/a11y.spec.ts tests/e2e/performance-budget.spec.ts",
     "test:e2e:search": "playwright test tests/e2e/shelf-search.spec.ts",
     "test:e2e:batch": "playwright test tests/e2e/shelf-batch.spec.ts",
     "test:e2e:virtual": "playwright test tests/e2e/shelf-virtual-grid.spec.ts",
-    "test:e2e:reader": "playwright test tests/e2e/reader-happy-path.spec.ts tests/e2e/shelf-to-reader.spec.ts",
+    "test:e2e:reader": "playwright test tests/e2e/reader-happy-path.spec.ts tests/e2e/tts-background.spec.ts tests/e2e/shelf-to-reader.spec.ts",
     "test:e2e:a11y": "playwright test tests/e2e/a11y.spec.ts",
     "test:e2e:perf": "playwright test tests/e2e/performance-budget.spec.ts",
     "test:js-budget": "node scripts/check-js-budget.mjs",
@@ -39,7 +39,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.7.0",
-    "next": "^16.2.11",
+    "next": "^16.3.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sonner": "^2.0.7",
@@ -55,19 +55,19 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.11",
+    "eslint-config-next": "^16.3.6",
     "jsdom": "^29.1.0",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "tailwindcss": "^4",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "next": {
-      "postcss": "8.5.22"
+      "postcss": "8.5.23"
     },
-    "sharp": "0.35.3"
+    "sharp": "0.35.4"
   }
 }

@@ -739,6 +739,7 @@ export function useFoliateView({
     if (!isAuthenticated) return;
 
     destroyedRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset UI for the external book load.
     setLoading(true);
     setError(null);
     setLoadingMsg("准备阅读环境…");

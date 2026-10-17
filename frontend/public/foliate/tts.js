@@ -22,7 +22,12 @@ const getAlphabet = el => {
 }
 
 const getSegmenter = (lang = 'en', granularity = 'word') => {
-    const segmenter = new Intl.Segmenter(lang, { granularity })
+    let segmenter
+    try {
+        segmenter = new Intl.Segmenter(lang || undefined, { granularity })
+    } catch {
+        segmenter = new Intl.Segmenter(undefined, { granularity })
+    }
     const granularityIsWord = granularity === 'word'
     return function* (strs, makeRange) {
         const str = strs.join('')
@@ -227,6 +232,30 @@ function* getSentences(doc, textWalker) {
 
         if (!yieldedSentence && !rangeIsEmpty(blockRange)) {
             yield blockRange
+        }
+    }
+}
+
+// Materialize text and CFIs without keeping live reader ranges in the queue.
+// Detached section documents work while the renderer is hidden or on another chapter.
+export function* getTTSSentences(doc, textWalker, getCFI, startRange) {
+    for (const range of getSentences(doc, textWalker)) {
+        if (startRange) {
+            const start = createBoundaryRange(startRange, true)
+            if (createBoundaryRange(range, false)
+                .compareBoundaryPoints(Range.START_TO_START, start) <= 0) continue
+            if (range.compareBoundaryPoints(Range.START_TO_START, start) < 0)
+                range.setStart(start.startContainer, start.startOffset)
+        }
+        const { entries, ssml } = getFragmentWithMarks(range, textWalker, 'word')
+        for (const mark of Array.from(ssml.getElementsByTagName('mark'))) mark.remove()
+        yield {
+            ssml: new XMLSerializer().serializeToString(ssml),
+            text: range.toString(),
+            cfi: getCFI(range),
+            words: entries.map(([, wordRange]) => ({
+                text: wordRange.toString(), cfi: getCFI(wordRange),
+            })),
         }
     }
 }

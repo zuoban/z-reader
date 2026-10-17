@@ -2,6 +2,7 @@
 
 import { API_BASE, createAbortController, isAbortLikeError } from '@/lib/config';
 import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
+import { recordTTSDiagnostic } from '@/lib/tts-diagnostics';
 
 export type TTSState = 'stopped' | 'playing' | 'paused';
 export type TTSHighlightMode = 'word' | 'sentence';
@@ -17,6 +18,9 @@ export interface TTSMark {
   name: string;
   text: string;
   range?: Range;
+  cfi?: string;
+  sentenceIndex?: number;
+  weight?: number;
 }
 
 export interface Voice {
@@ -342,9 +346,11 @@ export function buildAzureSSML(content: string, settings: TTSSettings): string {
   );
   const speak = doc.documentElement;
   speak.setAttribute('version', '1.0');
-  speak.setAttribute('xmlns', 'http://www.w3.org/2001/10/synthesis');
-  speak.setAttribute('xmlns:mstts', 'http://www.w3.org/2001/mstts');
-  speak.setAttribute('xml:lang', lang);
+  speak.setAttributeNS('http://www.w3.org/2000/xmlns/',
+    'xmlns', 'http://www.w3.org/2001/10/synthesis');
+  speak.setAttributeNS('http://www.w3.org/2000/xmlns/',
+    'xmlns:mstts', 'http://www.w3.org/2001/mstts');
+  speak.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:lang', lang);
 
   const voice = doc.createElementNS('http://www.w3.org/2001/10/synthesis', 'voice');
   voice.setAttribute('name', settings.voiceName);
@@ -394,9 +400,6 @@ interface PreloadedAudio {
   ssml: string;
   marks: TTSMark[];
   timestamp: number;
-  audio: HTMLAudioElement;
-  audioUrl: string;
-  ready: boolean;
 }
 
 interface CachedAudio {
@@ -487,6 +490,9 @@ export class BackendTTS {
   private onEnd: (() => void) | null = null;
   private onTimeUpdate: ((currentTime: number, duration: number) => void) | null = null;
   private currentSSML: string = '';
+  private audioSSML: string = '';
+  private speechId = 0;
+  private audioSpeechId = -1;
   private abortController: AbortController | null = null;
   
   private preloadedQueue: PreloadedAudio[] = [];
@@ -504,12 +510,19 @@ export class BackendTTS {
   private synthesisLatencySamples: number[] = [];
   private maxSynthesisLatencySamples: number = 8;
   private consecutivePreloadMisses: number = 0;
-  private suppressPauseEvent = false;
+  private playbackRequestId = 0;
+  private replacingSource = false;
+  private wantsPlayback = false;
 
   private onPreloadTrigger: (() => void) | null = null;
 
   private logMetric(event: string, detail?: TTSMetricDetail): void {
-    if (process.env.NODE_ENV === 'production') return;
+    recordTTSDiagnostic(event, {
+      state: this.state, paused: this.audio?.paused, ended: this.audio?.ended,
+      time: this.audio?.currentTime, duration: this.audio?.duration,
+      readyState: this.audio?.readyState, ...detail,
+    });
+    if (process.env.NODE_ENV !== 'development') return;
 
     const queueDetail = {
       preloaded: this.preloadedQueue.length,
@@ -552,6 +565,7 @@ export class BackendTTS {
 
   setState(state: TTSState): void {
     this.state = state;
+    this.logMetric('state-change', { state });
     this.onStateChange?.(state);
   }
 
@@ -582,37 +596,13 @@ export class BackendTTS {
     }
   }
 
-  private createPreparedAudio(audioUrl: string): HTMLAudioElement {
-    const audio = new Audio(audioUrl);
-    audio.preload = 'auto';
-    audio.autoplay = false;
-    audio.setAttribute('playsinline', 'true');
-    audio.setAttribute('webkit-playsinline', 'true');
-    audio.crossOrigin = 'anonymous';
-    audio.load();
-    return audio;
-  }
-
-  private releasePreloadedAudio(preloaded: PreloadedAudio): void {
-    preloaded.audio.pause();
-    preloaded.audio.removeAttribute('src');
-    preloaded.audio.load();
-    URL.revokeObjectURL(preloaded.audioUrl);
-  }
-
   private trimPreloadQueue(): void {
     while (this.preloadedQueue.length > this.maxPreloadCount) {
-      const removed = this.preloadedQueue.shift();
-      if (removed) {
-        this.releasePreloadedAudio(removed);
-      }
+      this.preloadedQueue.shift();
     }
   }
 
   private releaseAllPreloadedAudio(): void {
-    this.preloadedQueue.forEach((preloaded) => {
-      this.releasePreloadedAudio(preloaded);
-    });
     this.preloadedQueue = [];
   }
 
@@ -668,203 +658,168 @@ export class BackendTTS {
   }
 
   async speak(ssml: string, marks?: TTSMark[], isContinuous?: boolean): Promise<void> {
+    if (isSSMLTooLarge(ssml)) throw new Error('当前段落过长，无法直接朗读');
+
+    const requestId = ++this.playbackRequestId;
+    ++this.speechId;
+    this.wantsPlayback = true;
+    this.abortController?.abort();
     this.currentSSML = ssml;
     this.preloadTriggered = false;
-
-    if (marks && marks.length > 0) {
-      this.marks = marks;
-    } else {
-      this.marks = [{ name: '0', text: stripSSML(ssml) }];
-    }
-
-    if (isSSMLTooLarge(ssml)) {
-      this.logMetric('speak.skipped-too-large', { ssmlBytes: getUTF8ByteLength(ssml) });
-      throw new Error('当前段落过长，无法直接朗读');
-    }
-
-    // 检查缓存，如果命中则无需取消任何请求
-    const cached = this.audioCache.get(ssml);
-    if (cached) {
-      this.logMetric('speak.cache-hit', {
-        source: 'memory',
-        bytes: cached.blob.size,
-        continuous: Boolean(isContinuous),
-      });
-      this.consecutivePreloadMisses = 0;
-      this.stopInternal(isContinuous);
-      this.marks = cached.marks;
-      const audioUrl = URL.createObjectURL(cached.blob);
-      this.audioUrl = audioUrl;
-      await this.playAudio(audioUrl);
-      return;
-    }
-
-    // 检查预加载队列，如果命中则无需取消任何请求
-    const preloadedIndex = this.preloadedQueue.findIndex(p => p.ssml === ssml);
-    if (preloadedIndex !== -1) {
-      this.stopInternal(isContinuous);
-      const preloaded = this.preloadedQueue[preloadedIndex];
-      this.preloadedQueue.splice(preloadedIndex, 1);
-      this.logMetric('speak.preload-hit', {
-        bytes: preloaded.blob.size,
-        ready: preloaded.ready,
-        ageMs: Date.now() - preloaded.timestamp,
-        continuous: Boolean(isContinuous),
-      });
-      this.consecutivePreloadMisses = 0;
-      this.marks = preloaded.marks;
-      this.audioCache.set(ssml, { blob: preloaded.blob, marks: preloaded.marks });
-      this.audioUrl = preloaded.audioUrl;
-      await this.playAudio(preloaded.audioUrl, preloaded.audio);
-      return;
-    }
-
-    // 只在需要新请求时才停止当前播放
-    this.logMetric('speak.network-start', {
-      continuous: Boolean(isContinuous),
-      ssmlBytes: ssml.length,
-    });
-    if (isContinuous) {
-      this.consecutivePreloadMisses += 1;
-    }
-    this.cancelAllPreloads();
-    this.stopInternal(isContinuous);
+    this.replacingSource = true;
+    this.audio?.pause();
+    const speechMarks = marks?.length ? marks : [{ name: '0', text: stripSSML(ssml) }];
 
     try {
-      const start = performance.now();
-      const { blob, audioUrl } = await this.fetchAudioBlob(ssml);
-      const latencyMs = Math.round(performance.now() - start);
-      this.recordSynthesisLatency(latencyMs);
-      this.logMetric('speak.network-complete', {
-        bytes: blob.size,
-        latencyMs,
-        averageLatencyMs: Math.round(this.getAverageSynthesisLatency()),
-        preloadMisses: this.consecutivePreloadMisses,
-      });
-      this.audioUrl = audioUrl;
-      this.audioCache.set(ssml, { blob, marks: this.marks });
-      await this.playAudio(audioUrl);
-    } catch (error) {
-      if (isAbortLikeError(error)) {
-        this.logMetric('speak.network-abort');
-        return;
+      const cached = this.audioCache.get(ssml);
+      const preloadedIndex = this.preloadedQueue.findIndex(item => item.ssml === ssml);
+      const preloaded = preloadedIndex >= 0
+        ? this.preloadedQueue.splice(preloadedIndex, 1)[0]
+        : undefined;
+      let blob = cached?.blob ?? preloaded?.blob;
+      if (!blob) {
+        this.consecutivePreloadMisses += isContinuous ? 1 : 0;
+        const start = performance.now();
+        blob = await this.fetchAudioBlob(ssml);
+        this.recordSynthesisLatency(performance.now() - start);
+      } else {
+        this.consecutivePreloadMisses = 0;
       }
-      this.logMetric('speak.network-error', {
-        message: error instanceof Error ? error.message : String(error),
+      if (requestId !== this.playbackRequestId) {
+        throw new DOMException('Playback was cancelled', 'AbortError');
+      }
+      this.marks = speechMarks;
+      this.audioCache.set(ssml, { blob, marks: speechMarks });
+      this.logMetric('speak.ready', {
+        requestId, continuous: Boolean(isContinuous),
+        source: cached ? 'cache' : preloaded ? 'preload' : 'network', bytes: blob.size,
       });
-      this.setState('stopped');
+      await this.playAudio(blob, requestId);
+    } catch (error) {
+      if (requestId === this.playbackRequestId) {
+        this.replacingSource = false;
+        this.setState(isAbortLikeError(error) ? 'paused' : 'stopped');
+      }
       throw error;
     }
   }
 
-  private async fetchAudioBlob(ssml: string): Promise<{ blob: Blob; audioUrl: string }> {
+  private async fetchAudioBlob(ssml: string): Promise<Blob> {
     const { controller, timeoutId } = createAbortController(60000);
-
     this.abortController = controller;
-
     try {
-      const response = await fetch(`${API_BASE}/api/ssml`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          ssml: ssml,
-          output_format: 'audio-24khz-48kbitrate-mono-mp3',
-        }),
-        signal: controller.signal,
-      });
-
-      handleAuthResponse(response);
-      if (!response.ok) {
-        throw new Error(`语音合成失败，状态码：${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      return { blob, audioUrl };
+      return await this.fetchAudioBlobWithController(ssml, controller);
     } finally {
       clearTimeout(timeoutId);
-      this.abortController = null;
+      if (this.abortController === controller) this.abortController = null;
     }
   }
 
-  private async playAudio(audioUrl: string, preparedAudio?: HTMLAudioElement): Promise<void> {
-    const audio = preparedAudio ?? this.getOrCreateAudio();
-    this.audio = audio;
-
-    this.suppressPauseEvent = true;
-    audio.pause();
-    audio.currentTime = 0;
-    if (audio.src !== audioUrl) {
-      audio.src = audioUrl;
-      audio.load();
+  private updateCurrentMark(audio: HTMLAudioElement): void {
+    if (!this.marks.length) return;
+    const total = this.marks.reduce((sum, mark) => sum + (mark.weight ?? (mark.text.length || 1)), 0);
+    const progress = Number.isFinite(audio.duration) && audio.duration > 0
+      ? Math.min(audio.currentTime / audio.duration, 1) : 0;
+    let remaining = total * progress;
+    let index = 0;
+    while (index < this.marks.length - 1) {
+      remaining -= this.marks[index].weight ?? (this.marks[index].text.length || 1);
+      if (remaining < 0) break;
+      index += 1;
     }
+    if (this.currentMarkIndex !== index) {
+      this.currentMarkIndex = index;
+      this.onMarkChange?.(this.marks[index], index);
+    }
+  }
 
-    this.currentMarkIndex = 0;
+  private async playAudio(blob: Blob, requestId: number): Promise<void> {
+    const audio = this.getOrCreateAudio();
+    const previousUrl = this.audioUrl;
+    const audioUrl = URL.createObjectURL(blob);
+    this.audioUrl = audioUrl;
+    this.audioSSML = this.currentSSML;
+    this.audioSpeechId = this.speechId;
+    this.currentMarkIndex = -1;
 
     audio.onplay = () => {
+      if (this.audioUrl !== audioUrl) return;
+      if (!this.wantsPlayback) { audio.pause(); return; }
+      this.replacingSource = false;
       this.setState('playing');
-      if (this.marks.length > 0) {
-        this.onMarkChange?.(this.marks[0], 0);
-      }
+      this.updateCurrentMark(audio);
     };
-
     audio.onended = () => {
-      this.releaseAudioUrl();
+      if (this.audioUrl !== audioUrl || !audio.ended) return;
+      this.logMetric('audio.ended', { requestId });
       this.preloadTriggered = false;
-      if (this.state === 'playing') {
-        this.onEnd?.();
-      } else {
-        this.setState('stopped');
-      }
+      if (this.state === 'playing') this.onEnd?.();
     };
-
     audio.onerror = () => {
-      this.releaseAudioUrl();
-      this.preloadTriggered = false;
-      this.setState('stopped');
-      console.error('Audio error');
+      if (this.audioUrl !== audioUrl) return;
+      this.logMetric('audio.error', { requestId, code: audio.error?.code });
+      this.replacingSource = false;
+      this.setState('paused');
     };
-
     audio.onpause = () => {
-      if (this.suppressPauseEvent) {
-        this.suppressPauseEvent = false;
-        return;
-      }
-      if (this.state === 'playing') {
-        this.setState('paused');
-      }
+      this.logMetric('audio.pause', {
+        requestId, paused: audio.paused, ended: audio.ended, replacing: this.replacingSource,
+      });
+      // A queued pause from the old source can arrive after play() has already
+      // made the same element active again. Natural completion also emits pause.
+      if (this.audioUrl !== audioUrl || this.replacingSource ||
+          !audio.paused || audio.ended) return;
+      if (this.state === 'playing') this.setState('paused');
     };
-
     audio.ontimeupdate = () => {
-      if (this.onTimeUpdate) {
-        const duration = audio.duration || 0;
-        this.onTimeUpdate(audio.currentTime, duration);
-        
-        const adaptiveConfig = this.getAdaptivePreloadConfig(duration);
-        const remainingSeconds = duration - audio.currentTime;
-        if (!this.preloadTriggered && duration > 0 &&
-            (audio.currentTime >= duration * adaptiveConfig.progressThreshold ||
-              remainingSeconds <= adaptiveConfig.remainingSeconds)) {
-          this.preloadTriggered = true;
-          this.logMetric('preload.triggered', {
-            reason: adaptiveConfig.reason,
-            currentTime: Math.round(audio.currentTime * 10) / 10,
-            duration: Math.round(duration * 10) / 10,
-            remainingSeconds: Math.round(remainingSeconds * 10) / 10,
-            progressThreshold: adaptiveConfig.progressThreshold,
-            triggerRemainingSeconds: adaptiveConfig.remainingSeconds,
-            averageLatencyMs: Math.round(this.getAverageSynthesisLatency()),
-            preloadMisses: this.consecutivePreloadMisses,
-          });
-          this.onPreloadTrigger?.();
-        }
+      if (this.audioUrl !== audioUrl) return;
+      this.updateCurrentMark(audio);
+      const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      this.onTimeUpdate?.(audio.currentTime, duration);
+      const config = this.getAdaptivePreloadConfig(duration);
+      if (!this.preloadTriggered && duration > 0 &&
+          (audio.currentTime >= duration * config.progressThreshold ||
+            duration - audio.currentTime <= config.remainingSeconds)) {
+        this.preloadTriggered = true;
+        this.onPreloadTrigger?.();
       }
     };
+    // Assign the new source directly. Emptying src/load() between sentences
+    // tears down Android's active media session and is unnecessary here.
+    audio.src = audioUrl;
+    if (previousUrl) URL.revokeObjectURL(previousUrl);
+    try {
+      await audio.play();
+      if (requestId !== this.playbackRequestId) {
+        throw new DOMException('Playback was cancelled', 'AbortError');
+      }
+      this.replacingSource = false;
+      this.setState('playing');
+      this.logMetric('audio.play-resolved', { requestId });
+    } catch (error) {
+      this.logMetric('audio.play-rejected', {
+        requestId, name: error instanceof Error ? error.name : 'unknown',
+      });
+      throw error;
+    }
+  }
 
-    await audio.play();
+  hasAudio(ssml: string): boolean {
+    return this.audioCache.has(ssml) || this.preloadedQueue.some(item => item.ssml === ssml);
+  }
+
+  hasCurrentAudio(): boolean {
+    return Boolean(this.audioUrl && this.audioSpeechId === this.speechId &&
+      this.audioSSML === this.currentSSML &&
+      this.audio?.src && !this.audio.ended && !this.audio.error);
+  }
+
+  hasEnded(): boolean {
+    return this.audioSpeechId === this.speechId && Boolean(this.audio?.ended);
+  }
+
+  needsResume(): boolean {
+    return this.hasCurrentAudio() && Boolean(this.audio?.paused);
   }
 
   async preload(ssml: string, marks?: TTSMark[]): Promise<void> {
@@ -916,7 +871,7 @@ export class BackendTTS {
     if (this.audioCache.has(ssml)) return;
     if (this.preloadedQueue.some(p => p.ssml === ssml)) return;
 
-    const controller = new AbortController();
+    const { controller, timeoutId } = createAbortController(60000);
     this.preloadAbortControllers.set(ssml, controller);
     const start = performance.now();
     
@@ -926,24 +881,13 @@ export class BackendTTS {
         : [{ name: '0', text: stripSSML(ssml) }];
 
       const blob = await this.fetchAudioBlobWithController(ssml, controller);
-      const audioUrl = URL.createObjectURL(blob);
-      const audio = this.createPreparedAudio(audioUrl);
+      if (controller.signal.aborted) return;
       const preloaded: PreloadedAudio = {
         blob,
         ssml,
         marks: marksArray,
         timestamp: Date.now(),
-        audio,
-        audioUrl,
-        ready: false,
       };
-
-      const markReady = () => {
-        preloaded.ready = true;
-      };
-
-      audio.oncanplaythrough = markReady;
-      audio.onloadeddata = markReady;
 
       this.preloadedQueue.push(preloaded);
       this.trimPreloadQueue();
@@ -967,7 +911,10 @@ export class BackendTTS {
       });
       console.error('Preload failed:', error);
     } finally {
-      this.preloadAbortControllers.delete(ssml);
+      clearTimeout(timeoutId);
+      if (this.preloadAbortControllers.get(ssml) === controller) {
+        this.preloadAbortControllers.delete(ssml);
+      }
     }
   }
 
@@ -1021,7 +968,6 @@ export class BackendTTS {
       const isRelevant = relevantSSMLs.includes(p.ssml);
       if (!isRelevant) {
         toRemove.push(p.ssml);
-        this.releasePreloadedAudio(p);
       }
       return isRelevant;
     });
@@ -1101,45 +1047,44 @@ export class BackendTTS {
   }
 
   pause(): void {
-    if (this.audio && this.state === 'playing') {
-      this.suppressPauseEvent = true;
-      this.audio.pause();
-      this.setState('paused');
-    }
+    this.wantsPlayback = false;
+    ++this.playbackRequestId;
+    this.abortController?.abort();
+    this.abortController = null;
+    this.replacingSource = false;
+    this.setState('paused');
+    this.audio?.pause();
   }
 
   async resume(): Promise<void> {
-    if (this.audio && this.state === 'paused') {
-      await this.audio.play();
-      this.setState('playing');
-    }
+    if (!this.hasCurrentAudio()) throw new Error('当前音频需要重新准备');
+    // Actual element state is authoritative, including when a browser has
+    // paused playback before the page received the corresponding event.
+    this.wantsPlayback = true;
+    if (this.audio?.paused) await this.audio.play();
+    this.setState('playing');
   }
 
   stop(): void {
-    this.stopInternal(false);
-  }
-
-  private stopInternal(preservePlayingState?: boolean): void {
-    // 只取消当前播放的请求，保留预加载请求
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
-    }
-
+    this.wantsPlayback = false;
+    ++this.playbackRequestId;
+    this.abortController?.abort();
+    this.abortController = null;
+    this.replacingSource = false;
+    this.setState('stopped');
     if (this.audio) {
-      this.suppressPauseEvent = true;
+      this.audio.onplay = null;
+      this.audio.onpause = null;
+      this.audio.onended = null;
+      this.audio.onerror = null;
+      this.audio.ontimeupdate = null;
       this.audio.pause();
-      this.audio.currentTime = 0;
       this.audio.removeAttribute('src');
       this.audio.load();
     }
-
     this.releaseAudioUrl();
-    if (!preservePlayingState) {
-      this.setState('stopped');
-      this.preloadTriggered = false;
-    }
-    this.currentMarkIndex = 0;
+    this.preloadTriggered = false;
+    this.currentMarkIndex = -1;
   }
 
   isSpeaking(): boolean {

@@ -12,6 +12,14 @@ export interface LastLocation {
   location?: { current?: number };
 }
 
+export interface TTSSentence {
+  ssml: string;
+  text: string;
+  cfi: string;
+  sectionIndex: number;
+  words: Array<{ text: string; cfi: string }>;
+}
+
 export interface FoliateView {
   book?: {
     metadata?: {
@@ -47,6 +55,9 @@ export interface FoliateView {
   lastLocation?: LastLocation;
   init?: (options?: { lastLocation?: string | null; showTextStart?: boolean }) => Promise<void>;
   initTTS?: (granularity?: string, highlight?: (range: Range) => void) => Promise<void>;
+  getTTSSentences?: (cfi?: string) => AsyncIterable<TTSSentence>;
+  getTTSPreviousCFI?: (cfi: string) => Promise<string | null>;
+  resolveCFI?: (cfi: string) => { index: number; anchor: (doc: Document) => Range };
   goTo?: (target: string | number) => Promise<void>;
   prev?: () => Promise<void>;
   next?: () => Promise<void>;

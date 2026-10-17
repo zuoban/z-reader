@@ -586,6 +586,47 @@ export class View extends HTMLElement {
         this.tts = new TTS(doc, textWalker, highlight || (range =>
             this.renderer.scrollToAnchor(range, true)), granularity)
     }
+    async *getTTSSentences(cfi = this.lastLocation?.cfi) {
+        const { getTTSSentences } = await import('./tts.js')
+        const start = cfi ? this.resolveCFI(cfi) : { index: 0 }
+        for (let index = start.index; index < this.book.sections.length; index++) {
+            const section = this.book.sections[index]
+            if (section.linear === 'no' || !section.createDocument) continue
+            const doc = await section.createDocument()
+            if (!doc?.body) continue
+            const startRange = index === start.index ? start.anchor?.(doc) : null
+            for (const sentence of getTTSSentences(doc, textWalker,
+                range => this.getCFI(index, range), startRange)) {
+                yield { ...sentence, sectionIndex: index }
+            }
+        }
+    }
+    async getTTSPreviousCFI(cfi) {
+        const { getTTSSentences } = await import('./tts.js')
+        const start = this.resolveCFI(cfi)
+        for (let index = start.index; index >= 0; index--) {
+            const section = this.book.sections[index]
+            if (section.linear === 'no' || !section.createDocument) continue
+            const doc = await section.createDocument()
+            if (!doc?.body) continue
+            const anchor = index === start.index ? start.anchor?.(doc) : null
+            let previous = null
+            for (const sentence of getTTSSentences(doc, textWalker,
+                range => this.getCFI(index, range))) {
+                if (anchor) {
+                    const range = this.resolveCFI(sentence.cfi).anchor(doc)
+                    const end = range.cloneRange()
+                    end.collapse(false)
+                    const point = anchor.cloneRange()
+                    point.collapse(true)
+                    if (end.compareBoundaryPoints(Range.START_TO_START, point) > 0) break
+                }
+                previous = sentence.cfi
+            }
+            if (previous) return previous
+        }
+        return null
+    }
     startMediaOverlay() {
         const { index } = this.renderer.getContents()[0]
         return this.mediaOverlay.start(index)

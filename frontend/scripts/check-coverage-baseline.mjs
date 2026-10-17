@@ -10,6 +10,10 @@ const coreFiles = [
   'src/lib/shelf-grid.ts',
   'src/lib/tts-helpers.ts',
   'src/lib/tts-queue.ts',
+  'src/hooks/useTTS.ts',
+  'src/hooks/useTTSMediaSession.ts',
+  'src/lib/tts.ts',
+  'src/lib/tts-batch.ts',
 ];
 
 const [summaryPath, baselinePath, mode] = process.argv.slice(2);

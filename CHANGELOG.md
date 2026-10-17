@@ -8,6 +8,50 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-18
+
+### Fixed
+
+- Android background speech now reuses a single audio element and replaces its
+  source directly, preserving media-session continuity between speech chunks.
+- Natural completion, external pauses, explicit pause/stop, and stale synthesis
+  responses are handled separately. Recovery checks actual media state and keeps
+  the current audio position when possible.
+- Speech uses a short initial chunk and longer subsequent chunks with a duration
+  based lookahead buffer. Detached chapter text and CFI locations allow background
+  continuation without waiting for renderer navigation or layout.
+- Lock-screen play resumes idempotently; updating highlights no longer clears or
+  repeatedly registers system media controls. Released screen wake locks can be
+  acquired again.
+- Speech sessions persist the spoken CFI, including in the background. Permission
+  failures retain the current content instead of skipping sentences.
+- Service-worker cache refreshes the matching Foliate and frontend APIs on upgrade.
+
+### Security
+
+- Update Next.js, image-processing, and affected frontend tooling dependencies to
+  patched versions identified by the repository's dependency alerts.
+- Update sharp to 0.35.5 and x/net to 0.60.0 to address the image-decoding and
+  HTTP/2 vulnerabilities caught by release CI. Build the backend with Go 1.26.9.
+
+### Added
+
+- Opt-in local speech diagnostics and regression tests for background continuation,
+  real browser audio decoding, detached chapters, pause/resume, and cancellation.
+- Opt-in pprof endpoints on a separate, protected diagnostics listener; disabled by
+  default. Existing `/healthz` and `/readyz` routes are unchanged.
+
+### Upgrade notes and limitations
+
+- No database migration or new TTS credentials are required. Keep persistent data
+  volumes and reopen/refresh an existing reader after upgrading.
+- From-source builds now require Go 1.26.9 or later; the Docker image includes the
+  updated backend and needs no host Go installation.
+- Android process termination and vendor battery restrictions can still interrupt
+  web audio. Word highlighting uses estimated timing within a speech chunk.
+- See [mobile background reading](docs/tts-background-playback.md) for diagnostics,
+  device acceptance checks, and rollback guidance.
+
 ## [0.1.0] - 2026-07-27
 
 First official release for personal and household self-hosting. This tag freezes the
@@ -61,5 +105,6 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/zuoban/z-reader/releases/tag/v0.1.1
 [0.1.0]: https://github.com/zuoban/z-reader/releases/tag/v0.1.0

@@ -18,6 +18,8 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
   and other speech controls, so monolingual voices also accept the request.
 - Refresh the service-worker cache so existing readers receive the updated speech
   builder after upgrading.
+- Compile the container backend for the requested target architecture instead of
+  forcing amd64, and reject a binary/image architecture mismatch during builds.
 
 ### Upgrade notes
 

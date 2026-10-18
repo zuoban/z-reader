@@ -1,10 +1,7 @@
 # Stage 1: Build Go backend
-FROM golang:1.26.9-alpine AS backend-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine AS backend-builder
 
 WORKDIR /app/backend
-
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
 
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -12,6 +9,8 @@ COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 COPY backend/ ./
+ARG TARGETOS
+ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/z-reader main.go
 
 # Stage 2: Build Next.js frontend
@@ -41,6 +40,11 @@ RUN mkdir -p /app/data /app/uploads /app/frontend
 
 # Copy backend binary
 COPY --from=backend-builder /app/z-reader /app/z-reader
+RUN machine="$(od -An -t x1 -j 18 -N 2 /app/z-reader | tr -d '[:space:]')" && \
+    case "$(uname -m):$machine" in \
+      x86_64:3e00|aarch64:b700) ;; \
+      *) echo "Backend binary does not match image architecture" >&2; exit 1 ;; \
+    esac
 
 # Copy Next.js standalone output
 COPY --from=frontend-builder /app/frontend/.next/standalone /app/frontend

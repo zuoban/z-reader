@@ -1,3 +1,5 @@
+import foliateAssets from '@/lib/foliate-assets.generated.json';
+
 export interface BookPreview {
   title?: string;
   author?: string;
@@ -33,7 +35,8 @@ async function ensureFoliateLoaded(): Promise<void> {
   if (!foliateLoadPromise) {
     foliateLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = '/foliate/view.js';
+      script.src = foliateAssets.entry;
+      script.dataset.foliateEntry = 'true';
       script.type = 'module';
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('加载阅读器脚本失败'));

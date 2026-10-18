@@ -340,7 +340,7 @@ function segmentStyle(active: boolean, uiScheme: ThemeColors) {
   } as const;
 }
 
-interface TTSControlsProps {
+export interface TTSControlsProps {
   state: TTSState;
   settings: TTSSettings;
   voices: Voice[];
@@ -376,6 +376,7 @@ interface TTSControlsProps {
   };
   onSleepTimerMinutes?: (minutes: number) => void;
   onClearSleepTimer?: () => void;
+  initialExpanded?: boolean;
 }
 
 export function TTSControls({
@@ -405,8 +406,9 @@ export function TTSControls({
   sleepTimer,
   onSleepTimerMinutes,
   onClearSleepTimer,
+  initialExpanded = false,
 }: TTSControlsProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [position, setPosition] = useState({ x: 22, y: 12 });

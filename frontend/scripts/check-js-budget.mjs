@@ -45,7 +45,10 @@ if (mode === '--print') {
 }
 
 if (mode === '--write') {
-  const document = toBudgetDocument(measured);
+  const previous = JSON.parse(await readFile(budgetPath, 'utf8').catch(() => '{}'));
+  const baseline = toBudgetDocument(measured);
+  // Updating JS measurements must retain independently configured browser budgets.
+  const document = { ...baseline, ...previous, firstScreenJs: baseline.firstScreenJs };
   await writeFile(budgetPath, `${JSON.stringify(document, null, 2)}\n`);
   console.log(`Wrote frontend JS budget baseline to ${path.relative(frontendRoot, budgetPath)}`);
   for (const [route, entry] of Object.entries(document.firstScreenJs)) {

@@ -113,6 +113,11 @@ export default function ShelfPage() {
     sortBy,
     setSortBy,
   } = useShelfData(isAuthenticated || Boolean(user));
+  const isLibraryEmpty =
+    books.length === 0 &&
+    bookCounts.all === 0 &&
+    selectedCategoryId === null &&
+    searchQuery.trim().length === 0;
   const uploadStatusLabel = uploadProgress
     ? `上传 ${uploadProgress.current}/${uploadProgress.total}`
     : isUploading
@@ -392,7 +397,7 @@ export default function ShelfPage() {
               </Button>
             </div>
           </div>
-        ) : !isLoadingBooks && books.length === 0 ? (
+        ) : !isLoadingBooks && isLibraryEmpty ? (
           <div className="relative">
             <EmptyState
               icon={BookOpen}
@@ -441,7 +446,7 @@ export default function ShelfPage() {
           </div>
         ) : (
           <div className="flex min-w-0 flex-col gap-4">
-            {!isLoadingBooks && books.length > 0 && (
+            {!isLoadingBooks && !isLibraryEmpty && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
                   <div className="group relative w-full flex-1">

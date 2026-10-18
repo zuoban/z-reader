@@ -90,6 +90,31 @@ test.describe('shelf batch operations', () => {
     await expect(page.getByText('书架还是空的')).toBeVisible({ timeout: 10_000 });
   });
 
+  test('keeps filters available after deleting the last uncategorized book', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    const mock = await mockMutableShelfApis(page);
+
+    await gotoStable(page, '/shelf');
+    const filters = page.getByRole('group', { name: '书籍分类筛选' });
+    await filters.getByRole('button', { name: '未分类', exact: true }).click();
+    await expect(page.getByRole('button', { name: '阅读《人类简史》' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: /批量操作/ }).click();
+    await page.getByRole('button', { name: '选择《人类简史》' }).click();
+    await page.getByRole('button', { name: '批量删除', exact: true }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: '确认删除' }).click();
+
+    await expect.poll(() => mock.books.length).toBe(3);
+    await expect(page.getByText('未找到相关书籍', { exact: true })).toBeVisible();
+    await expect(page.getByText('书架还是空的', { exact: true })).toHaveCount(0);
+    await expect(filters).toBeVisible();
+    await filters.getByRole('button', { name: '全部', exact: true }).click();
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '阅读《人类简史》' })).toHaveCount(0);
+  });
+
   test('can cancel batch delete without removing books', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);

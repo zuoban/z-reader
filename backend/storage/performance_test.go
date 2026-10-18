@@ -311,3 +311,47 @@ func TestBenchmarkLibraryFixtureSupportsShelfQueries(t *testing.T) {
 		t.Fatalf("summary = %+v, err = %v", summary, err)
 	}
 }
+
+// Broad queries and deep cursors must scale with the page rather than the shelf.
+func BenchmarkLibraryBroadSearch10000(b *testing.B) {
+	benchmarkLibrarySearchScenario(b, "性能测试", "", nil)
+}
+
+func BenchmarkLibrarySingleRuneSearch10000(b *testing.B) {
+	benchmarkLibrarySearchScenario(b, "书", "", nil)
+}
+
+func BenchmarkLibraryDeepSearch10000(b *testing.B) {
+	benchmarkLibrarySearchScenario(b, "性能测试", "benchmark-08999", nil)
+}
+
+func BenchmarkLibraryCategorySearch10000(b *testing.B) {
+	category := "分类-03"
+	benchmarkLibrarySearchScenario(b, "性能测试", "benchmark-08993", &category)
+}
+
+func benchmarkLibrarySearchScenario(b *testing.B, query, cursor string, category *string) {
+	b.Helper()
+	db := openBenchmarkLibrary(b, benchmarkLibrarySize10000)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		books, _, err := db.SearchBooks("benchmark-user", query, cursor, 50, "title", category)
+		if err != nil || len(books) != 50 {
+			b.Fatalf("search = %d books, %v", len(books), err)
+		}
+	}
+}
+
+func BenchmarkLibraryDeepCategoryPage10000(b *testing.B) {
+	db := openBenchmarkLibrary(b, benchmarkLibrarySize10000)
+	category := "分类-03"
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		books, _, err := db.ListBooksBySortedCursor("benchmark-user", "benchmark-08993", 50, "title", &category)
+		if err != nil || len(books) != 50 {
+			b.Fatalf("page = %d books, %v", len(books), err)
+		}
+	}
+}

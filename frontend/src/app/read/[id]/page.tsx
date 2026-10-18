@@ -22,7 +22,7 @@ import {
 } from "@/components/reader/ReaderStateViews";
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderImageZoomOverlay } from "@/components/reader/ReaderImageZoomOverlay";
-import { TTSControls } from "@/components/TTSControls";
+import { DeferredTTSControls } from "@/components/DeferredTTSControls";
 import { api, type BookDownloadProgress } from "@/lib/api";
 import { saveOfflineBook } from "@/lib/offline-books";
 import { formatOfflineDownloadLabel } from "@/lib/reader-page";
@@ -82,6 +82,7 @@ export default function ReadPage() {
   const [offlineDownloadProgress, setOfflineDownloadProgress] =
     useState<BookDownloadProgress | null>(null);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
+  const [ttsRequested, setTTSRequested] = useState(false);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(
     null
   );
@@ -133,7 +134,7 @@ export default function ReadPage() {
     clearSleepTimer,
     resume: resumeTTS,
     restoreCurrentHighlight: restoreTTSHighlight,
-  } = useTTS({ viewRef, onHighlight: handleHighlight, bookId });
+  } = useTTS({ viewRef, onHighlight: handleHighlight, bookId, voicesEnabled: ttsRequested });
 
   const handleTTSExpandedChange = useCallback(
     (expanded: boolean) => {
@@ -325,6 +326,7 @@ export default function ReadPage() {
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
   const sharedTTSControlsProps = {
+    onRequest: () => setTTSRequested(true),
     state: ttsState,
     settings: ttsSettings,
     voices,
@@ -402,7 +404,7 @@ export default function ReadPage() {
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
           ttsControls={
-            <TTSControls
+            <DeferredTTSControls
               {...sharedTTSControlsProps}
               variant="toolbar"
               triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
@@ -416,7 +418,7 @@ export default function ReadPage() {
             />
           }
           mobileTtsControls={
-            <TTSControls
+            <DeferredTTSControls
               {...sharedTTSControlsProps}
               variant="toolbar"
               triggerClassName="flex min-h-11 w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-all hover:bg-muted/50"
@@ -502,7 +504,7 @@ export default function ReadPage() {
             isToolbarVisible={isHeaderVisible}
             onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
             compactTrailingAction={
-              <TTSControls
+              <DeferredTTSControls
                 {...sharedTTSControlsProps}
                 variant="toolbar"
                 triggerClassName="paper-motion-interactive inline-flex size-4! shrink-0 items-center justify-center rounded-[5px] p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-[9px]! hover:bg-black/5 dark:hover:bg-white/5"

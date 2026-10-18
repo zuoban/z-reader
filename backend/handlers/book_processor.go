@@ -61,6 +61,9 @@ func (h *BooksHandler) enqueueBookProcessing(book *models.Book) {
 // Close drains accepted background jobs. Call it after the HTTP server has
 // stopped accepting requests and before closing the database.
 func (h *BooksHandler) Close() {
+	if h.legacyHashes != nil {
+		h.legacyHashes.close()
+	}
 	if h.processor == nil {
 		return
 	}

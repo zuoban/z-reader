@@ -6,9 +6,11 @@ import '@fontsource/playfair-display/latin-400.css';
 import '@fontsource/playfair-display/latin-500.css';
 import '@fontsource/playfair-display/latin-600.css';
 import '@fontsource/playfair-display/latin-700.css';
-import '@fontsource/noto-serif-sc/chinese-simplified-400.css';
-import '@fontsource/noto-serif-sc/chinese-simplified-600.css';
-import '@fontsource/noto-serif-sc/chinese-simplified-700.css';
+// Unicode ranges keep arbitrary book titles covered without downloading the full CJK font.
+import '@fontsource/noto-serif-sc/400.css';
+import '@fontsource/noto-serif-sc/600.css';
+import '@fontsource/noto-serif-sc/700.css';
+import './fonts/noto-serif-sc-compat.css';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';

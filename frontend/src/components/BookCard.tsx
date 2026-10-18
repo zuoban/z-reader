@@ -1,14 +1,18 @@
 'use client';
 
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { memo, useState, type CSSProperties, type ReactNode } from 'react';
 import { BookOpen, Check } from 'lucide-react';
 import { Book } from '@/lib/api';
-import { CategorySelector } from '@/components/CategorySelector';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
+
+const CategorySelector = dynamic(() => import('@/components/CategorySelector')
+  .then((module) => module.CategorySelector));
+const ConfirmDialog = dynamic(() => import('@/components/ConfirmDialog')
+  .then((module) => module.ConfirmDialog));
 
 interface BookCardProps {
   book: Book;
@@ -356,7 +360,7 @@ export const BookCard = memo(function BookCard({
           )}
         </div>
       </article>
-      <CategorySelector
+      {categoryDialogOpen && <CategorySelector
         bookId={book.id}
         currentCategory={book.category}
         categories={categories}
@@ -364,8 +368,8 @@ export const BookCard = memo(function BookCard({
         onUpdate={onUpdate}
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
-      />
-      <ConfirmDialog
+      />}
+      {deleteConfirmOpen && <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
         title="删除图书"
@@ -376,7 +380,7 @@ export const BookCard = memo(function BookCard({
           onDelete();
           setDeleteConfirmOpen(false);
         }}
-      />
+      />}
     </div>
   );
 });

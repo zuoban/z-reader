@@ -4,12 +4,14 @@ const CACHE_PREFIX = 'z-reader-offline-books-v1:';
 const CACHE_KEY_PREFIX = '/__z-reader-offline-books/';
 const PARTIAL_DOWNLOAD_KEY_PREFIX = `${CACHE_KEY_PREFIX}partial/`;
 const QUOTA_HEADROOM = 0.9;
+const QUOTA_CHECK_INTERVAL = 8 * 1024 * 1024;
 
 export interface PartialBookDownload {
   chunks: Blob[];
   downloadedBytes: number;
   totalBytes: number | null;
   contentType: string;
+  etag?: string;
 }
 
 interface PartialBookDownloadMeta {
@@ -17,6 +19,7 @@ interface PartialBookDownloadMeta {
   downloadedBytes: number;
   totalBytes: number | null;
   contentType: string;
+  etag?: string;
   updatedAt: number;
 }
 
@@ -47,8 +50,8 @@ function supportsOfflineBooks(): boolean {
 async function ensureCapacity(bytes: number) {
   if (!navigator.storage?.estimate) return;
   const estimate = await navigator.storage.estimate();
-  if (!estimate.quota || !estimate.usage) return;
-  if (estimate.usage + bytes > estimate.quota * QUOTA_HEADROOM) {
+  if (!estimate.quota) return;
+  if ((estimate.usage ?? 0) + bytes > estimate.quota * QUOTA_HEADROOM) {
     throw new Error('设备离线存储空间不足，请先移除不再需要的离线图书');
   }
 }
@@ -115,6 +118,7 @@ export async function getPartialBookDownload(
       downloadedBytes: meta.downloadedBytes,
       totalBytes: Number.isFinite(meta.totalBytes) ? meta.totalBytes : null,
       contentType: meta.contentType || 'application/octet-stream',
+      etag: typeof meta.etag === 'string' ? meta.etag : undefined,
     };
   } catch {
     return null;
@@ -130,29 +134,63 @@ export async function appendPartialBookDownload(
 ): Promise<void> {
   if (!userId || !supportsOfflineBooks() || chunk.size === 0) return;
 
-  await ensureCapacity(chunk.size);
-  const cache = await caches.open(cacheName(userId));
-  const metaResponse = await cache.match(partialDownloadMetaRequest(bookId));
-  const previous = metaResponse
-    ? await metaResponse.json() as PartialBookDownloadMeta
-    : null;
-  const chunks = previous?.chunks ?? 0;
-  const downloadedBytes = (previous?.downloadedBytes ?? 0) + chunk.size;
-  const meta: PartialBookDownloadMeta = {
-    chunks: chunks + 1,
-    downloadedBytes,
-    totalBytes,
-    contentType: contentType || previous?.contentType || 'application/octet-stream',
-    updatedAt: Date.now(),
-  };
+  const writer = await createPartialBookDownloadWriter(userId, bookId, totalBytes, contentType);
+  await writer.append(chunk);
+}
 
-  await cache.put(partialDownloadChunkRequest(bookId, chunks), new Response(chunk));
-  await cache.put(
-    partialDownloadMetaRequest(bookId),
-    new Response(JSON.stringify(meta), {
-      headers: { 'Content-Type': 'application/json' },
-    })
-  );
+export interface PartialBookDownloadWriter {
+  append: (chunk: Blob) => Promise<void>;
+}
+
+// A download owns one writer and serializes append calls. Commit metadata only
+// after its chunk is durable, so any storage failure leaves a resumable prefix.
+export async function createPartialBookDownloadWriter(
+  userId: string,
+  bookId: string,
+  totalBytes: number | null,
+  contentType: string,
+  initialDownload?: PartialBookDownload | null,
+  etag?: string
+): Promise<PartialBookDownloadWriter> {
+  if (!userId || !supportsOfflineBooks()) return { append: async () => {} };
+  const cache = await caches.open(cacheName(userId));
+  let chunks = initialDownload?.chunks.length ?? 0;
+  let downloadedBytes = initialDownload?.downloadedBytes ?? 0;
+  if (initialDownload === undefined) {
+    const response = await cache.match(partialDownloadMetaRequest(bookId));
+    if (response) {
+      const previous = await response.json() as PartialBookDownloadMeta;
+      chunks = previous.chunks;
+      downloadedBytes = previous.downloadedBytes;
+    }
+  }
+  let bytesSinceQuotaCheck = QUOTA_CHECK_INTERVAL;
+
+  return {
+    async append(chunk) {
+      if (!chunk.size) return;
+      if (bytesSinceQuotaCheck >= QUOTA_CHECK_INTERVAL) {
+        await ensureCapacity(chunk.size);
+        bytesSinceQuotaCheck = 0;
+      }
+      const meta: PartialBookDownloadMeta = {
+        chunks: chunks + 1,
+        downloadedBytes: downloadedBytes + chunk.size,
+        totalBytes,
+        contentType: contentType || 'application/octet-stream',
+        etag: etag || initialDownload?.etag,
+        updatedAt: Date.now(),
+      };
+      await cache.put(partialDownloadChunkRequest(bookId, chunks), new Response(chunk));
+      await cache.put(
+        partialDownloadMetaRequest(bookId),
+        new Response(JSON.stringify(meta), { headers: { 'Content-Type': 'application/json' } })
+      );
+      chunks = meta.chunks;
+      downloadedBytes = meta.downloadedBytes;
+      bytesSinceQuotaCheck += chunk.size;
+    },
+  };
 }
 
 export async function clearPartialBookDownload(userId: string, bookId: string): Promise<void> {
@@ -168,20 +206,44 @@ export async function clearPartialBookDownload(userId: string, bookId: string): 
   );
 }
 
-export async function getOfflineBook(userId: string, bookId: string): Promise<File | Blob | null> {
+export interface OfflineBookEntry {
+  file: File | Blob;
+  contentHash: string;
+}
+
+export async function getOfflineBookEntry(
+  userId: string,
+  bookId: string,
+  expectedContentHash?: string
+): Promise<OfflineBookEntry | null> {
   if (!userId || !supportsOfflineBooks()) return null;
   const cache = await caches.open(cacheName(userId));
   const response = await cache.match(cacheRequest(bookId));
   if (!response) return null;
+  const contentHash = response.headers.get('X-Z-Reader-Content-Hash') ?? '';
+  if (expectedContentHash !== undefined && (
+    !expectedContentHash || contentHash !== expectedContentHash
+  )) return null;
 
   const blob = await response.blob();
   const encodedFilename = response.headers.get('X-Z-Reader-Filename');
   const filename = encodedFilename ? decodeURIComponent(encodedFilename) : `${bookId}.epub`;
   try {
-    return new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+    return {
+      file: new File([blob], filename, { type: blob.type || 'application/octet-stream' }),
+      contentHash,
+    };
   } catch {
-    return blob;
+    return { file: blob, contentHash };
   }
+}
+
+export async function getOfflineBook(
+  userId: string,
+  bookId: string,
+  expectedContentHash?: string
+): Promise<File | Blob | null> {
+  return (await getOfflineBookEntry(userId, bookId, expectedContentHash))?.file ?? null;
 }
 
 export async function removeOfflineBook(userId: string, bookId: string) {

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -21,7 +22,6 @@ import {
   Settings,
 } from "lucide-react";
 
-import { ThemeSettings } from "@/components/ThemeSettings";
 import { Button } from "@/components/ui/button";
 import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
@@ -30,6 +30,9 @@ import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
 import { withOpacity } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
+
+const ThemeSettings = dynamic(() => import("@/components/ThemeSettings")
+  .then((module) => module.ThemeSettings));
 
 interface ReaderToolbarProps {
   visible: boolean;
@@ -106,6 +109,7 @@ export function ReaderToolbar({
 }: ReaderToolbarProps) {
   const isDark = theme.preset === "dark";
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [settingsRequested, setSettingsRequested] = useState(false);
   const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
   const mobileActionsMenuRef = useRef<HTMLDivElement>(null);
   const mobileActionsMenuId = useId();
@@ -412,12 +416,15 @@ export function ReaderToolbar({
                 <span className="hidden sm:inline">{isFullscreen ? "退出" : "全屏"}</span>
               </Button>
 
-              <ThemeSettings
+              {settingsRequested || themeSettingsOpen ? <ThemeSettings
                 theme={theme}
                 setTheme={setTheme}
                 uiScheme={uiScheme}
                 open={themeSettingsOpen}
-                onOpenChange={onThemeSettingsOpenChange}
+                onOpenChange={(open) => {
+                  setSettingsRequested(true);
+                  onThemeSettingsOpenChange(open);
+                }}
                 overlayContainer={overlayContainer}
                 triggerClassName={chromeBtnClass}
                 triggerStyle={{}}
@@ -427,7 +434,21 @@ export function ReaderToolbar({
                     <span className="hidden sm:inline">设置</span>
                   </div>
                 }
-              />
+              /> : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  title="阅读设置"
+                  className={chromeBtnClass}
+                  onClick={() => {
+                    setSettingsRequested(true);
+                    onThemeSettingsOpenChange(true);
+                  }}
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">设置</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>

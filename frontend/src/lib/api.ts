@@ -7,11 +7,7 @@ import {
   normalizeRequestError,
 } from '@/lib/config';
 import {
-  appendPartialBookDownload,
   clearOfflineBooks,
-  clearPartialBookDownload,
-  getOfflineBook,
-  getPartialBookDownload,
   removeOfflineBook,
 } from '@/lib/offline-books';
 
@@ -40,13 +36,20 @@ export interface BookDownloadProgress {
   resumed: boolean;
 }
 
-interface FetchBookOptions {
+export interface FetchBookOptions {
   onProgress?: (progress: BookDownloadProgress) => void;
+  signal?: AbortSignal;
 }
 
 export interface BookPage {
 	books: Book[];
 	next_cursor?: string;
+}
+
+export interface BookQueryOptions {
+  category?: string;
+  uncategorized?: boolean;
+  signal?: AbortSignal;
 }
 
 export interface BookLibrarySummary {
@@ -177,6 +180,9 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
 
   for (const base of apiBases) {
     const { controller, timeoutId } = createAbortController(timeout);
+    const abort = () => controller.abort(options.signal?.reason);
+    if (options.signal?.aborted) abort();
+    else options.signal?.addEventListener('abort', abort, { once: true });
     try {
       const res = await fetch(`${base}${path}`, {
         ...options,
@@ -203,6 +209,7 @@ async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: nu
       }
     } finally {
       clearTimeout(timeoutId);
+      options.signal?.removeEventListener('abort', abort);
     }
   }
 
@@ -258,179 +265,6 @@ async function authedFetch(
   }
 
   throw normalizeRequestError(lastError);
-}
-
-function parseContentRange(value: string | null): { start: number; totalBytes: number | null } | null {
-  if (!value) return null;
-  const match = /^bytes\s+(\d+)-\d+\/(\d+|\*)$/i.exec(value.trim());
-  if (!match) return null;
-  const start = Number(match[1]);
-  const totalBytes = match[2] === '*' ? null : Number(match[2]);
-  if (!Number.isFinite(start) || (totalBytes !== null && !Number.isFinite(totalBytes))) {
-    return null;
-  }
-  return { start, totalBytes };
-}
-
-function contentLength(response: Response): number | null {
-  const value = Number(response.headers.get('Content-Length'));
-  return Number.isFinite(value) && value >= 0 ? value : null;
-}
-
-function createDownloadProgressReporter(
-  onProgress: FetchBookOptions['onProgress'],
-  initialBytes: number,
-  totalBytes: number | null,
-  resumed: boolean
-) {
-  const startedAt = performance.now();
-  let lastReportedAt = 0;
-
-  return (downloadedBytes: number, force = false) => {
-    if (!onProgress) return;
-    const now = performance.now();
-    if (!force && now - lastReportedAt < 160) return;
-    lastReportedAt = now;
-    const elapsedMs = now - startedAt;
-    const transferredBytes = Math.max(0, downloadedBytes - initialBytes);
-    const bytesPerSecond = elapsedMs > 0 && transferredBytes > 0
-      ? (transferredBytes * 1000) / elapsedMs
-      : null;
-    const percentage = totalBytes && totalBytes > 0
-      ? Math.min(100, (downloadedBytes / totalBytes) * 100)
-      : null;
-    onProgress({
-      downloadedBytes,
-      totalBytes,
-      percentage,
-      bytesPerSecond,
-      resumed,
-    });
-  };
-}
-
-async function getBookFileResponse(id: string, startAt: number): Promise<Response> {
-  return authedFetch('/api/books/' + id + '/file', {
-    credentials: 'include',
-    headers: startAt > 0 ? { Range: `bytes=${startAt}-` } : undefined,
-  }, null);
-}
-
-async function downloadBookFile(id: string, options: FetchBookOptions = {}): Promise<Blob> {
-  const userId = getCurrentUser()?.id ?? '';
-  let partialDownload = await getPartialBookDownload(userId, id);
-  let downloadedBytes = partialDownload?.downloadedBytes ?? 0;
-  let response = await getBookFileResponse(id, downloadedBytes);
-
-  if (response.status === 416 && downloadedBytes > 0) {
-    await clearPartialBookDownload(userId, id);
-    partialDownload = null;
-    downloadedBytes = 0;
-    response = await getBookFileResponse(id, 0);
-  }
-
-  const range = parseContentRange(response.headers.get('Content-Range'));
-  const canAppend = downloadedBytes > 0 &&
-    response.status === 206 &&
-    range?.start === downloadedBytes;
-
-  if (downloadedBytes > 0 && !canAppend) {
-    await clearPartialBookDownload(userId, id);
-    partialDownload = null;
-    downloadedBytes = 0;
-
-    if (response.status !== 200) {
-      response = await getBookFileResponse(id, 0);
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(`加载书籍失败：${response.status} ${response.statusText}`);
-  }
-
-  const responseLength = contentLength(response);
-  const totalBytes = range?.totalBytes ?? (
-    responseLength === null
-      ? partialDownload?.totalBytes ?? null
-      : downloadedBytes + responseLength
-  );
-  const contentType = response.headers.get('Content-Type') ||
-    partialDownload?.contentType ||
-    'application/octet-stream';
-  const initialBytes = downloadedBytes;
-  const reportProgress = createDownloadProgressReporter(
-    options.onProgress,
-    initialBytes,
-    totalBytes,
-    initialBytes > 0
-  );
-  const parts = partialDownload?.chunks ?? [];
-  let canResume = Boolean(userId);
-  let pendingChunks: Uint8Array[] = [];
-  let pendingBytes = 0;
-
-  const persistPendingChunks = async () => {
-    if (pendingBytes === 0) return;
-    const chunk = new Blob(
-      pendingChunks.map((pendingChunk) => {
-        const copiedChunk = new Uint8Array(pendingChunk.byteLength);
-        copiedChunk.set(pendingChunk);
-        return copiedChunk.buffer;
-      }),
-      { type: contentType }
-    );
-    pendingChunks = [];
-    pendingBytes = 0;
-    parts.push(chunk);
-    if (!canResume) return;
-    try {
-      await appendPartialBookDownload(userId, id, chunk, totalBytes, contentType);
-    } catch {
-      // Reading remains available if the browser declines temporary storage.
-      canResume = false;
-      await clearPartialBookDownload(userId, id);
-    }
-  };
-
-  reportProgress(downloadedBytes, true);
-  try {
-    if (!response.body) {
-      const file = await response.blob();
-      if (file.size === 0) throw new Error('书籍文件为空');
-      pendingChunks.push(new Uint8Array(await file.arrayBuffer()));
-      pendingBytes += file.size;
-      downloadedBytes += file.size;
-      await persistPendingChunks();
-    } else {
-      const reader = response.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (!value?.byteLength) continue;
-        pendingChunks.push(value);
-        pendingBytes += value.byteLength;
-        downloadedBytes += value.byteLength;
-        reportProgress(downloadedBytes);
-
-        if (pendingBytes >= 1024 * 1024) {
-          await persistPendingChunks();
-        }
-      }
-      await persistPendingChunks();
-    }
-
-    if (downloadedBytes === 0) throw new Error('书籍文件为空');
-    if (totalBytes !== null && downloadedBytes < totalBytes) {
-      throw new Error('书籍下载未完成，请重试以继续下载');
-    }
-
-    reportProgress(downloadedBytes, true);
-    await clearPartialBookDownload(userId, id);
-    return new Blob(parts, { type: contentType });
-  } catch (error) {
-    // Completed chunks remain in the per-account cache for a later Range request.
-    throw error;
-  }
 }
 
 function shouldRetryWithNextApiBase(
@@ -495,31 +329,54 @@ export const api = {
     return fetchApi<Book[]>('/api/books');
   },
 
-  listBooksPage: async (cursor?: string, limit = 20, sort = 'recent_read'): Promise<BookPage> => {
+  listBooksPage: async (
+    cursor?: string, limit = 20, sort = 'recent_read', options: BookQueryOptions = {}
+  ): Promise<BookPage> => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor) params.set('cursor', cursor);
     if (sort) params.set('sort', sort);
-    return fetchApi<BookPage>(`/api/books?${params.toString()}`);
+    if (options.category) params.set('category', options.category);
+    else if (options.uncategorized) params.set('uncategorized', 'true');
+    return fetchApi<BookPage>(`/api/books?${params.toString()}`, { signal: options.signal });
   },
 
   searchBooks: async (
     query: string,
     cursor?: string,
     limit = 20,
-    sort = 'recent_read'
+    sort = 'recent_read',
+    options: BookQueryOptions = {}
   ): Promise<BookPage> => {
     const params = new URLSearchParams({ q: query, limit: String(limit) });
     if (cursor) params.set('cursor', cursor);
     if (sort) params.set('sort', sort);
-    return fetchApi<BookPage>(`/api/books/search?${params.toString()}`);
+    if (options.category) params.set('category', options.category);
+    else if (options.uncategorized) params.set('uncategorized', 'true');
+    return fetchApi<BookPage>(`/api/books/search?${params.toString()}`, { signal: options.signal });
   },
+
+  getBooksStatus: async (bookIds: string[]): Promise<Book[]> => {
+    const books: Book[] = [];
+    for (let offset = 0; offset < bookIds.length; offset += 500) {
+      const params = new URLSearchParams({ book_ids: bookIds.slice(offset, offset + 500).join(',') });
+      const result = await fetchApi<{ books: Book[] }>(`/api/books/status?${params}`);
+      books.push(...(result.books ?? []));
+    }
+    return books;
+  },
+
+  renameBookCategory: async (from: string, to: string | null): Promise<{
+    updated_ids: string[]; category?: string;
+  }> => fetchApi('/api/books/categories', {
+    method: 'PATCH', body: JSON.stringify({ from, to }),
+  }),
 
   getBookLibrarySummary: async (): Promise<BookLibrarySummary> => {
     return fetchApi<BookLibrarySummary>('/api/books/summary');
   },
 
-  getBook: async (id: string): Promise<Book> => {
-    return fetchApi<Book>(`/api/books/${id}`);
+  getBook: async (id: string, signal?: AbortSignal): Promise<Book> => {
+    return fetchApi<Book>(`/api/books/${id}`, { signal });
   },
 
   updateBook: async (id: string, data: { title?: string; author?: string; category?: string | null }): Promise<Book> => {
@@ -593,67 +450,13 @@ export const api = {
   },
 
   fetchBook: async (id: string, options: FetchBookOptions = {}): Promise<Blob> => {
-    try {
-      return await downloadBookFile(id, options);
-    } catch (error) {
-      console.error('Failed to fetch book:', error);
-      throw error;
-    }
+    const { fetchBook } = await import('@/lib/book-download');
+    return fetchBook(id, options, bookDownloadContext);
   },
 
   createBookFile: async (id: string, options: FetchBookOptions = {}): Promise<File | Blob> => {
-    let book: Book;
-    let blob: Blob;
-    try {
-      [book, blob] = await Promise.all([
-        api.getBook(id),
-        api.fetchBook(id, options),
-      ]);
-    } catch (error) {
-      const offlineBook = await getOfflineBook(getCurrentUser()?.id ?? '', id);
-      if (offlineBook) return offlineBook;
-      throw error;
-    }
-
-    // Try using File constructor first, fallback to Blob for compatibility
-    let file: File | Blob;
-    try {
-      file = new File([blob], book.filename, {
-        type: blob.type,
-        lastModified: Date.parse(book.created_at) || Date.now(),
-      });
-    } catch (error) {
-      console.warn('File constructor not supported, using Blob fallback:', error);
-      // Fallback: just return the blob - foliate can work with Blob objects
-      file = blob;
-    }
-
-    // Ensure arrayBuffer method exists (some older browsers don't have it on Blob)
-    if (!file.arrayBuffer || typeof file.arrayBuffer !== 'function') {
-      console.warn('Blob.arrayBuffer not supported, adding polyfill');
-      (file as Blob & { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer = async function() {
-        const reader = new FileReader();
-        return new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
-
-    // Ensure slice method exists
-    if (!file.slice || typeof file.slice !== 'function') {
-      console.warn('Blob.slice not supported, adding polyfill');
-      (file as Blob & { slice: (start?: number, end?: number) => Blob }).slice = function(
-        this: Blob,
-        start?: number,
-        end?: number
-      ) {
-        return blob.slice.call(this, start, end);
-      };
-    }
-
-    return file;
+    const { createBookFile } = await import('@/lib/book-download');
+    return createBookFile(id, options, bookDownloadContext);
   },
 
   uploadCover: async (id: string, file: Blob, filename = 'cover.png'): Promise<Book> => {
@@ -790,6 +593,16 @@ export const api = {
   deleteBookmark: async (bookId: string, bookmarkId: string): Promise<void> => {
     await fetchApi(`/api/books/${bookId}/bookmarks/${bookmarkId}`, { method: 'DELETE' });
   },
+};
+
+const bookDownloadContext = {
+  getUserId: () => getCurrentUser()?.id ?? '',
+  getToken,
+  getBook: (id: string, signal?: AbortSignal) => api.getBook(id, signal),
+  fetchBook: (id: string, options: FetchBookOptions) => api.fetchBook(id, options),
+  requestFile: (path: string, options: RequestInit) => authedFetch(path, options, null),
+  isApiError: (error: unknown) => error instanceof ApiError,
+  authChangedError: () => new ApiError('登录状态已变更，请重新打开书籍', 401),
 };
 
 export const auth = {

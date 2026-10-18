@@ -14,6 +14,10 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 - Preserve SSML language elements when sanitizing speech requests. This fixes a
   v0.1.1 regression where sentence language tags were escaped and spoken aloud.
+- Remove language overrides from newly generated speech, retaining their text
+  and other speech controls, so monolingual voices also accept the request.
+- Refresh the service-worker cache so existing readers receive the updated speech
+  builder after upgrading.
 
 ### Upgrade notes
 

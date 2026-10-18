@@ -1,0 +1,1 @@
+<speak xmlns="http://www.w3.org/2001/10/synthesis" version="1.0" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="zh-CN"><voice name="zh-CN-XiaoxiaoMultilingualNeural"><mstts:express-as style="general" styledegree="1.0"><prosody rate="+0%">第一句。<break time="320ms"/><break time="240ms"/>Second sentence.<break time="320ms"/></prosody></mstts:express-as></voice></speak>

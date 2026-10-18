@@ -9,9 +9,24 @@ import (
 )
 
 func TestEscapeSSML_BackgroundChunkSpeaksOnlyBookText(t *testing.T) {
-	// The frontend contract test generates this same chunk through Foliate and
-	// TTSSpeechBuffer, so changes to either side cannot silently drift apart.
-	input, err := os.ReadFile("testdata/background-tts.ssml")
+	for _, test := range []struct {
+		fixture   string
+		languages string
+	}{
+		{"background-tts.ssml", "zh-CN,en-US"}, // v0.1.1 clients still in use
+		{"background-tts-v012.ssml", ""},       // current frontend contract
+	} {
+		t.Run(test.fixture, func(t *testing.T) {
+			assertBackgroundChunkText(t, test.fixture, test.languages)
+		})
+	}
+}
+
+func assertBackgroundChunkText(t *testing.T, fixture, wantLanguages string) {
+	t.Helper()
+	// The frontend contract test generates the current payload through Foliate
+	// and TTSSpeechBuffer; the legacy payload also covers already-open clients.
+	input, err := os.ReadFile("testdata/" + fixture)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,8 +58,8 @@ func TestEscapeSSML_BackgroundChunkSpeaksOnlyBookText(t *testing.T) {
 	if got, want := spoken.String(), "第一句。Second sentence."; got != want {
 		t.Errorf("speech contains XML markup instead of only book text: got %q, want %q", got, want)
 	}
-	if got := strings.Join(languages, ","); got != "zh-CN,en-US" {
-		t.Errorf("sentence language elements were not preserved: %q", got)
+	if got := strings.Join(languages, ","); got != wantLanguages {
+		t.Errorf("sentence language elements changed: got %q, want %q", got, wantLanguages)
 	}
 }
 

@@ -390,6 +390,12 @@ export function buildAzureSSML(content: string, settings: TTSSettings): string {
     prosody.appendChild(doc.createTextNode(content));
   }
 
+  // Monolingual voices reject lang elements. Multilingual voices can detect
+  // language from the text, so keep the contents without a language override.
+  Array.from(prosody.getElementsByTagNameNS('*', 'lang')).forEach((language) => {
+    language.replaceWith(...Array.from(language.childNodes));
+  });
+
   enhanceProsodyBreaks(doc, prosody);
 
   return new XMLSerializer().serializeToString(doc);

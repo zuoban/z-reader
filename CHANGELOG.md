@@ -8,6 +8,18 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-18
+
+### Fixed
+
+- Preserve SSML language elements when sanitizing speech requests. This fixes a
+  v0.1.1 regression where sentence language tags were escaped and spoken aloud.
+
+### Upgrade notes
+
+- Reload an already open reader after upgrading to discard audio clips that were
+  synthesized and buffered before the fix.
+
 ## [0.1.1] - 2026-10-18
 
 ### Fixed
@@ -105,6 +117,7 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/zuoban/z-reader/releases/tag/v0.1.2
 [0.1.1]: https://github.com/zuoban/z-reader/releases/tag/v0.1.1
 [0.1.0]: https://github.com/zuoban/z-reader/releases/tag/v0.1.0

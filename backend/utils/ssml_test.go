@@ -1,9 +1,69 @@
 package utils
 
 import (
+	"encoding/xml"
+	"io"
+	"os"
 	"strings"
 	"testing"
 )
+
+func TestEscapeSSML_BackgroundChunkSpeaksOnlyBookText(t *testing.T) {
+	// The frontend contract test generates this same chunk through Foliate and
+	// TTSSpeechBuffer, so changes to either side cannot silently drift apart.
+	input, err := os.ReadFile("testdata/background-tts.ssml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoder := xml.NewDecoder(strings.NewReader(EscapeSSML(strings.TrimSpace(string(input)))))
+	var spoken strings.Builder
+	var languages []string
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("sanitized speech must be valid XML: %v", err)
+		}
+		switch token := token.(type) {
+		case xml.StartElement:
+			if token.Name.Local == "lang" {
+				for _, attr := range token.Attr {
+					if attr.Name.Space == "http://www.w3.org/XML/1998/namespace" &&
+						attr.Name.Local == "lang" {
+						languages = append(languages, attr.Value)
+					}
+				}
+			}
+		case xml.CharData:
+			spoken.Write(token)
+		}
+	}
+	if got, want := spoken.String(), "第一句。Second sentence."; got != want {
+		t.Errorf("speech contains XML markup instead of only book text: got %q, want %q", got, want)
+	}
+	if got := strings.Join(languages, ","); got != "zh-CN,en-US" {
+		t.Errorf("sentence language elements were not preserved: %q", got)
+	}
+}
+
+func TestEscapeSSML_PreservesLanguageElementsOnly(t *testing.T) {
+	for _, input := range []string{
+		`<lang>正文</lang>`,
+		`<lang xml:lang="zh-CN">正文</lang>`,
+		`<lang xml:lang="en-US"/>`,
+	} {
+		if output := EscapeSSML(input); output != input {
+			t.Errorf("language markup changed: got %q, want %q", output, input)
+		}
+	}
+	for _, input := range []string{`<language>正文</language>`, `<lang-unsafe>正文</lang-unsafe>`} {
+		if output := EscapeSSML(input); strings.Contains(output, "<") {
+			t.Errorf("unknown tag must still be escaped: %q", output)
+		}
+	}
+}
 
 func TestEscapeSSML_PreservesSpeakWithAttributes(t *testing.T) {
 	input := `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="zh-CN"><voice name="zh-CN-XiaoxiaoMultilingualNeural"><mstts:express-as style="general" styledegree="1.0"><prosody rate="+0%">你好世界</prosody></mstts:express-as></voice></speak>`

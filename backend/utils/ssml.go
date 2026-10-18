@@ -16,6 +16,7 @@ var PreserveTags = []TagPattern{
 	{Name: "break", Pattern: `<break\s+[^>]*\/>`},
 	{Name: "bookmark", Pattern: `<bookmark\s+[^>]*\/>`},
 	{Name: "speak", Pattern: `<speak\b[^>]*>|<\/speak>`},
+	{Name: "lang", Pattern: `<lang(?:\s+[^>]*)?/?>|</lang>`},
 	{Name: "prosody", Pattern: `<prosody\s+[^>]*>|<\/prosody>`},
 	{Name: "emphasis", Pattern: `<emphasis\s+[^>]*>|<\/emphasis>`},
 	{Name: "voice", Pattern: `<voice\s+[^>]*>|<\/voice>`},

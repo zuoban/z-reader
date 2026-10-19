@@ -1,14 +1,18 @@
 'use client';
 
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { memo, useState, type CSSProperties, type ReactNode } from 'react';
 import { BookOpen, Check } from 'lucide-react';
 import { Book } from '@/lib/api';
-import { CategorySelector } from '@/components/CategorySelector';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
+
+const CategorySelector = dynamic(() => import('@/components/CategorySelector')
+  .then((module) => module.CategorySelector));
+const ConfirmDialog = dynamic(() => import('@/components/ConfirmDialog')
+  .then((module) => module.ConfirmDialog));
 
 interface BookCardProps {
   book: Book;
@@ -112,7 +116,6 @@ export const SHELF_COVER_PRIORITY_COUNT = 6;
 interface BookCoverFaceProps {
   coverUrl: string | null;
   titleLabel: string;
-  authorLabel: string;
   categoryLabel: string;
   index: number;
   priority?: boolean;
@@ -133,7 +136,6 @@ const fallbackCoverGradients = [
 function BookCoverFace({
   coverUrl,
   titleLabel,
-  authorLabel,
   categoryLabel,
   index,
   priority = false,
@@ -174,13 +176,11 @@ function BookCoverFace({
           {categoryLabel}
         </span>
       )}
-      <div className="relative mt-6 flex min-h-[7rem] flex-col items-center justify-center gap-2.5">
-        <h3 className="line-clamp-4 text-balance font-serif text-[1.18rem] font-semibold leading-[1.28] tracking-[-0.02em] text-white drop-shadow-sm sm:text-[1.28rem]">
-          {titleLabel}
-        </h3>
-        <p className="line-clamp-2 font-serif text-[0.88rem] font-medium leading-tight text-white/80 sm:text-[0.92rem]">
-          {authorLabel}
-        </p>
+      <div aria-hidden="true" className="relative mt-4 flex flex-col items-center gap-3">
+        <span className="h-px w-8 bg-white/35" />
+        <span className="font-serif text-5xl font-medium leading-none text-white/90 drop-shadow-sm sm:text-6xl">
+          {Array.from(titleLabel)[0]?.toLocaleUpperCase()}
+        </span>
       </div>
     </div>
   );
@@ -239,7 +239,7 @@ export const BookCard = memo(function BookCard({
     <div className="flex w-full items-stretch" ref={coverRef}>
       <article
         className={cn(
-          'group/card shelf-book-card paper-reveal-soft relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl p-0',
+          'group/card shelf-book-card paper-reveal-soft relative flex w-full flex-col overflow-hidden rounded-2xl p-0',
           selected && 'border-primary ring-2 ring-primary/80 dark:border-primary dark:ring-primary/55'
         )}
         style={{
@@ -269,11 +269,10 @@ export const BookCard = memo(function BookCard({
             </div>
           )}
 
-          <div className="relative aspect-[3/4] overflow-hidden bg-[var(--shelf-card-media)]">
+          <div className="relative aspect-[5/6] overflow-hidden bg-[var(--shelf-card-media)]">
             <BookCoverFace
               coverUrl={coverUrl}
               titleLabel={titleLabel}
-              authorLabel={authorLabel}
               categoryLabel={categoryLabel || formatLabel}
               index={index}
               priority={index < SHELF_COVER_PRIORITY_COUNT}
@@ -285,16 +284,16 @@ export const BookCard = memo(function BookCard({
             )}
           </div>
 
-          <div className="flex flex-1 flex-col p-3 pb-2 sm:p-3.5 sm:pb-2">
-            <div className="mb-2.5 flex-1 sm:mb-3">
-              <h3
+          <div className="flex flex-1 flex-col gap-2.5 p-3 pb-2 sm:px-3.5">
+            <div className="flex-1">
+              <h2
                 className="line-clamp-2 text-[0.98rem] font-semibold leading-[1.3] tracking-[-0.015em] text-foreground"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
-              </h3>
+              </h2>
 
-              <p className="mt-1.5 line-clamp-1 text-[0.84rem] font-medium text-muted-foreground">
+              <p className="mt-1 line-clamp-1 text-[0.84rem] font-medium text-muted-foreground">
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
@@ -319,13 +318,13 @@ export const BookCard = memo(function BookCard({
           </div>
         </button>
 
-        <div className="flex min-h-11 items-center justify-between gap-3 border-t border-border/40 px-3 py-2 sm:min-h-10 sm:px-3.5 dark:border-white/8">
+        <div className="flex min-h-11 items-center justify-between gap-1 border-t border-border/40 px-2 py-1 sm:px-2.5 dark:border-white/8">
           {selectionMode ? (
             <button
               type="button"
               onClick={onSelectionToggle}
               aria-pressed={selected}
-              className="touch-control -my-2 inline-flex min-w-0 items-center gap-1.5 rounded-lg text-meta transition-colors hover:text-foreground"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1 text-meta transition-colors hover:bg-secondary/60 hover:text-foreground"
             >
               <Check
                 className={cn(
@@ -336,10 +335,15 @@ export const BookCard = memo(function BookCard({
               <span className="truncate">{selected ? '已选择' : '选择图书'}</span>
             </button>
           ) : (
-            <span className="inline-flex min-w-0 items-center gap-1.5 text-meta">
+            <button
+              type="button"
+              onClick={onRead}
+              aria-label={`${readActionLabel}：${titleLabel}`}
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1 text-meta transition-colors hover:bg-secondary/60 hover:text-foreground"
+            >
               <BookOpen className="h-3.5 w-3.5 shrink-0 text-foreground/72" />
               <span className="truncate">{readActionLabel}</span>
-            </span>
+            </button>
           )}
 
           {!selectionMode && (
@@ -351,12 +355,12 @@ export const BookCard = memo(function BookCard({
               isDeleting={isDeleting}
               onCategoryClick={() => setCategoryDialogOpen(true)}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
-              triggerClassName="h-9 w-9 shrink-0 rounded-lg border border-border/45 bg-card text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground active:scale-[0.95] dark:border-white/8 dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
+              triggerClassName="h-11 w-11 shrink-0 rounded-lg bg-transparent text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground dark:hover:bg-white/[0.08]"
             />
           )}
         </div>
       </article>
-      <CategorySelector
+      {categoryDialogOpen && <CategorySelector
         bookId={book.id}
         currentCategory={book.category}
         categories={categories}
@@ -364,8 +368,8 @@ export const BookCard = memo(function BookCard({
         onUpdate={onUpdate}
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
-      />
-      <ConfirmDialog
+      />}
+      {deleteConfirmOpen && <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
         title="删除图书"
@@ -376,7 +380,7 @@ export const BookCard = memo(function BookCard({
           onDelete();
           setDeleteConfirmOpen(false);
         }}
-      />
+      />}
     </div>
   );
 });

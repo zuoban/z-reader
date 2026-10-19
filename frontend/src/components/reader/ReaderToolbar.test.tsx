@@ -151,7 +151,7 @@ describe('ReaderToolbar', () => {
     );
 
     const moreButton = screen.getByTitle('更多阅读操作');
-    expect(moreButton.closest('.sm\\:hidden')).toBeInTheDocument();
+    expect(moreButton.closest('.lg\\:hidden')).toBeInTheDocument();
     expect(container.querySelector('[data-reader-toolbar-actions="desktop"]')).toHaveClass('hidden');
 
     fireEvent.click(moreButton);

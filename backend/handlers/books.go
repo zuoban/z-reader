@@ -58,9 +58,10 @@ const (
 )
 
 type BooksHandler struct {
-	cfg       *config.Config
-	db        *storage.DB
-	processor *bookProcessor
+	cfg          *config.Config
+	db           *storage.DB
+	processor    *bookProcessor
+	legacyHashes *legacyHashBackfill
 }
 
 type bookCursorPageResponse struct {
@@ -70,6 +71,7 @@ type bookCursorPageResponse struct {
 
 func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
 	handler := &BooksHandler{cfg: cfg, db: db}
+	handler.legacyHashes = newLegacyHashBackfill(handler)
 	handler.processor = newBookProcessor(handler)
 	return handler
 }
@@ -82,7 +84,8 @@ func (h *BooksHandler) List(c *gin.Context) {
 	_, hasCursor := c.GetQuery("cursor")
 	limitValue, hasLimit := c.GetQuery("limit")
 	sortValue, hasSort := c.GetQuery("sort")
-	if hasCursor || hasLimit || hasSort {
+	category := requestedBookCategory(c)
+	if hasCursor || hasLimit || hasSort || category != nil {
 		limit := 20
 		if hasLimit {
 			parsed, err := strconv.Atoi(limitValue)
@@ -96,7 +99,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 			limit = 100
 		}
 
-		books, nextCursor, err := h.db.ListBooksBySortedCursor(userID, c.Query("cursor"), limit, sortValue)
+		books, nextCursor, err := h.db.ListBooksBySortedCursor(userID, c.Query("cursor"), limit, sortValue, category)
 		if err != nil {
 			response.InternalError(c, "获取书籍列表失败")
 			return
@@ -188,6 +191,7 @@ func (h *BooksHandler) Search(c *gin.Context) {
 		c.Query("cursor"),
 		limit,
 		c.Query("sort"),
+		requestedBookCategory(c),
 	)
 	if err != nil {
 		response.InternalError(c, "搜索图书失败")
@@ -809,45 +813,12 @@ func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*mo
 	if err != nil || existing != nil {
 		return existing, err
 	}
-
-	books, err := h.db.ListBooks(userID)
-	if err != nil {
+	// A legacy backlog must be checked before accepting new content. File I/O
+	// belongs to the bounded worker; indexed libraries require no legacy scan.
+	if err := h.legacyHashes.catchUp(userID); err != nil {
 		return nil, err
 	}
-
-	for i := range books {
-		if books[i].ContentHash != "" {
-			continue
-		}
-
-		path, pathErr := resolveUploadPath(h.cfg.UploadDir, books[i].Filename)
-		if pathErr != nil {
-			logger.Warn("Skipped invalid stored book path during duplicate check",
-				slog.String("book_id", books[i].ID),
-				slog.Any("error", pathErr),
-			)
-			continue
-		}
-
-		storedHash, err := hashFile(path)
-		if err != nil {
-			logger.Warn("Failed to hash existing book during duplicate check",
-				slog.String("book_id", books[i].ID),
-				slog.Any("error", err),
-			)
-			continue
-		}
-
-		books[i].ContentHash = storedHash
-		if err := h.db.SaveBook(&books[i]); err != nil {
-			return nil, err
-		}
-		if storedHash == contentHash {
-			return &books[i], nil
-		}
-	}
-
-	return nil, nil
+	return h.db.FindBookByContentHash(userID, contentHash)
 }
 
 func duplicateBookMessage(book *models.Book) string {

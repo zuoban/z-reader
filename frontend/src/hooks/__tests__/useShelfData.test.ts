@@ -11,6 +11,7 @@ vi.mock('@/lib/api', () => ({
     listBooks: vi.fn(),
     listBooksPage: vi.fn(),
     searchBooks: vi.fn(),
+    getBooksStatus: vi.fn(),
     getBookLibrarySummary: vi.fn(),
     listProgress: vi.fn(),
     uploadBook: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('@/lib/api', () => ({
     deleteBooks: vi.fn(),
     updateBook: vi.fn(),
     updateBooksCategory: vi.fn(),
+    renameBookCategory: vi.fn(),
     uploadCover: vi.fn(),
   },
 }));
@@ -44,13 +46,14 @@ const mockBook = (overrides: Partial<Book> = {}): Book => ({
 
 describe('useShelfData', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     localStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(api.listBooksPage).mockImplementation(async () => ({
       books: await api.listBooks(),
     }));
     vi.mocked(api.getBookLibrarySummary).mockRejectedValue(new Error('summary unavailable'));
+    vi.mocked(api.getBooksStatus).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -75,6 +78,73 @@ describe('useShelfData', () => {
     expect(api.listBooks).toHaveBeenCalled();
   });
 
+  it('shows the first page while progress and summary are still pending', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([mockBook()]);
+    let resolveProgress!: (value: Awaited<ReturnType<typeof api.listProgress>>) => void;
+    let resolveSummary!: (value: Awaited<ReturnType<typeof api.getBookLibrarySummary>>) => void;
+    vi.mocked(api.listProgress).mockReturnValue(new Promise((resolve) => {
+      resolveProgress = resolve;
+    }));
+    vi.mocked(api.getBookLibrarySummary).mockReturnValue(new Promise((resolve) => {
+      resolveSummary = resolve;
+    }));
+
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.books).toHaveLength(1));
+    expect(result.current.isLoadingBooks).toBe(false);
+    expect(result.current.progressByBookId).toEqual({});
+
+    await act(async () => {
+      resolveProgress([{
+        book_id: 'book-1', user_id: 'user-1', cfi: 'cfi', percentage: 42, updated_at: '',
+      }]);
+      resolveSummary({ total: 90, uncategorized: 0, categories: { 科幻: 90 } });
+    });
+    expect(result.current.progressByBookId['book-1']).toBe(42);
+    expect(result.current.bookCounts.all).toBe(90);
+  });
+
+  it('requests an unloaded category from the server with its own cursor', async () => {
+    vi.mocked(api.listBooksPage)
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'other', category: '其他' })] })
+      .mockResolvedValueOnce({
+        books: [mockBook({ id: 'remote', category: '科幻' })], next_cursor: 'remote',
+      })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'remote-2', category: '科幻' })] });
+    vi.mocked(api.getBookLibrarySummary).mockResolvedValue({
+      total: 101, uncategorized: 0, categories: { 其他: 99, 科幻: 2 },
+    });
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+
+    act(() => result.current.setSelectedCategoryId('科幻'));
+    await vi.waitFor(() => {
+      expect(result.current.filteredBooks.map((book) => book.id)).toEqual(['remote']);
+    });
+    expect(api.listBooksPage).toHaveBeenLastCalledWith(
+      undefined, 50, 'recent_read', expect.objectContaining({ category: '科幻' })
+    );
+    await act(async () => result.current.loadMoreBooks());
+    expect(result.current.filteredBooks.map((book) => book.id)).toEqual(['remote', 'remote-2']);
+    expect(api.listBooksPage).toHaveBeenLastCalledWith(
+      'remote', 50, 'recent_read', expect.objectContaining({ category: '科幻' })
+    );
+  });
+
+  it('does not wait for progress before displaying a subsequent page', async () => {
+    vi.mocked(api.listBooksPage)
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'first' })], next_cursor: 'first' })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'second' })] });
+    vi.mocked(api.listProgress).mockResolvedValueOnce([])
+      .mockReturnValueOnce(new Promise(() => {}));
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    act(() => { void result.current.loadMoreBooks(); });
+    await vi.waitFor(() => expect(result.current.books).toHaveLength(2));
+    expect(result.current.isLoadingMoreBooks).toBe(false);
+  });
+
   it('loads subsequent cursor pages only when requested', async () => {
     vi.mocked(api.listBooksPage)
       .mockResolvedValueOnce({ books: [mockBook({ id: 'first' })], next_cursor: 'first' })
@@ -95,8 +165,10 @@ describe('useShelfData', () => {
       expect(result.current.books.map((book) => book.id)).toEqual(['first', 'second']);
     });
 
-    expect(api.listBooksPage).toHaveBeenNthCalledWith(1, undefined, 50, 'recent_read');
-    expect(api.listBooksPage).toHaveBeenNthCalledWith(2, 'first', 50, 'recent_read');
+    expect(api.listBooksPage).toHaveBeenNthCalledWith(1, undefined, 50, 'recent_read',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(api.listBooksPage).toHaveBeenNthCalledWith(2, 'first', 50, 'recent_read',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(api.listProgress).toHaveBeenNthCalledWith(1, { bookIds: ['first'] });
     expect(api.listProgress).toHaveBeenNthCalledWith(2, { bookIds: ['second'] });
   });
@@ -121,7 +193,8 @@ describe('useShelfData', () => {
       expect(result.current.isSearching).toBe(false);
     });
 
-    expect(api.searchBooks).toHaveBeenCalledWith('Remote', undefined, 50, 'recent_read');
+    expect(api.searchBooks).toHaveBeenCalledWith('Remote', undefined, 50, 'recent_read',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(result.current.filteredBooks.map((book) => book.id)).toEqual(['remote']);
   });
 
@@ -292,7 +365,8 @@ describe('useShelfData', () => {
     });
 
     await vi.waitFor(() => {
-      expect(api.listBooksPage).toHaveBeenLastCalledWith(undefined, 50, 'title');
+      expect(api.listBooksPage).toHaveBeenLastCalledWith(undefined, 50, 'title',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }));
     });
   });
 
@@ -492,7 +566,7 @@ describe('useShelfData', () => {
       { book_id: 'book-1', user_id: 'u1', cfi: 'cfi-1', percentage: 10, updated_at: '' },
       { book_id: 'book-2', user_id: 'u1', cfi: 'cfi-2', percentage: 20, updated_at: '' },
     ]);
-    vi.mocked(api.deleteBook).mockResolvedValue(undefined);
+    vi.mocked(api.deleteBooks).mockResolvedValue({ deleted_ids: ['book-1', 'book-2'] });
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -587,11 +661,12 @@ describe('useShelfData', () => {
     ];
     vi.mocked(api.listBooks).mockResolvedValue(books);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    vi.mocked(api.updateBooksCategory).mockResolvedValue({
-      books: [
+    vi.mocked(api.renameBookCategory).mockImplementation(async () => {
+      vi.mocked(api.listBooks).mockResolvedValue([
         mockBook({ id: 'book-1', title: 'One', category: '新分类' }),
         mockBook({ id: 'book-2', title: 'Two', category: '新分类' }),
-      ],
+      ]);
+      return { updated_ids: ['book-1', 'book-2'] };
     });
 
     const { result } = renderHook(() => useShelfData(true));
@@ -608,7 +683,7 @@ describe('useShelfData', () => {
       await result.current.handleRenameCategory('旧分类', '新分类');
     });
 
-    expect(api.updateBooksCategory).toHaveBeenCalledWith(['book-1', 'book-2'], '新分类');
+    expect(api.renameBookCategory).toHaveBeenCalledWith('旧分类', '新分类');
     expect(result.current.selectedCategoryId).toBe('新分类');
     expect(result.current.books.filter((book) => book.category === '新分类')).toHaveLength(2);
   });
@@ -618,9 +693,7 @@ describe('useShelfData', () => {
       mockBook({ id: 'book-1', category: '旧分类' }),
     ]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    vi.mocked(api.updateBooksCategory).mockResolvedValue({
-      books: [mockBook({ id: 'book-1', category: undefined })],
-    });
+    vi.mocked(api.renameBookCategory).mockResolvedValue({ updated_ids: ['book-1'] });
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -742,10 +815,43 @@ describe('useShelfData', () => {
     expect(result.current.loadError).toBe('Backend unavailable');
   });
 
+  it('ignores progress from a previous sort and aborts its page request', async () => {
+    let resolveOld!: (value: Awaited<ReturnType<typeof api.listProgress>>) => void;
+    vi.mocked(api.listBooksPage)
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'old' })] })
+      .mockResolvedValue({ books: [mockBook({ id: 'new' })] });
+    vi.mocked(api.listProgress)
+      .mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }))
+      .mockResolvedValue([]);
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.books[0]?.id).toBe('old'));
+    const oldSignal = vi.mocked(api.listBooksPage).mock.calls[0][3]?.signal;
+    act(() => result.current.setSortBy('title'));
+    await vi.waitFor(() => expect(result.current.books[0]?.id).toBe('new'));
+    await act(async () => resolveOld([
+      { book_id: 'old', user_id: 'u', cfi: '', percentage: 90, updated_at: '' },
+    ]));
+    expect(oldSignal?.aborted).toBe(true);
+    expect(result.current.progressByBookId).toEqual({});
+  });
+
+  it('keeps a selected category when an incomplete page cannot prove its removal', async () => {
+    vi.mocked(api.listBooksPage).mockResolvedValue({ books: [] });
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    act(() => result.current.setSelectedCategoryId('远端分类'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    expect(result.current.selectedCategoryId).toBe('远端分类');
+  });
+
   it('clears selected category when it no longer exists', async () => {
     const books = [mockBook({ id: '1', category: '科幻' })];
     vi.mocked(api.listBooks).mockResolvedValue(books);
     vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.getBookLibrarySummary).mockResolvedValue({
+      total: 1, uncategorized: 0, categories: { 科幻: 1 },
+    });
 
     const { result } = renderHook(() => useShelfData(true));
 
@@ -760,6 +866,9 @@ describe('useShelfData', () => {
 
     // Change books to different category
     vi.mocked(api.listBooks).mockResolvedValue([mockBook({ id: '1', category: '奇幻' })]);
+    vi.mocked(api.getBookLibrarySummary).mockResolvedValue({
+      total: 1, uncategorized: 0, categories: { 奇幻: 1 },
+    });
 
     await act(async () => {
       await result.current.loadBooks();
@@ -771,5 +880,59 @@ describe('useShelfData', () => {
 
     // Category should be cleared since 科幻 no longer exists
     expect(result.current.selectedCategoryId).toBeNull();
+  });
+
+  it('does not erase search progress when the slower background page arrives', async () => {
+    let resolvePage!: (value: Awaited<ReturnType<typeof api.listBooksPage>>) => void;
+    vi.mocked(api.listBooksPage).mockResolvedValueOnce({ books: [mockBook()] })
+      .mockReturnValue(new Promise(resolve => { resolvePage = resolve; }));
+    vi.mocked(api.searchBooks).mockResolvedValue({ books: [mockBook({ id: 'found' })] });
+    vi.mocked(api.listProgress).mockImplementation(async ({ bookIds } = {}) =>
+      bookIds?.includes('found') ? [
+        { book_id: 'found', user_id: 'u', cfi: '', percentage: 88, updated_at: '' },
+      ] : []);
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    act(() => result.current.setSearchQuery('star'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    act(() => result.current.setSortBy('title'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(result.current.progressByBookId.found).toBe(88);
+    await act(async () => resolvePage({ books: [mockBook()] }));
+    expect(result.current.progressByBookId.found).toBe(88);
+  });
+
+  it('renames all category books even when none are in the selected page', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([mockBook({ category: 'A' })]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.getBookLibrarySummary).mockResolvedValue({
+      total: 71, uncategorized: 0, categories: { A: 1, B: 70 },
+    });
+    const ids = Array.from({ length: 70 }, (_, i) => `remote-${i}`);
+    vi.mocked(api.renameBookCategory).mockResolvedValue({ updated_ids: ids });
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    act(() => result.current.setSelectedCategoryId('A'));
+    let renamed;
+    await act(async () => { renamed = await result.current.handleRenameCategory('B', 'C'); });
+    expect(api.renameBookCategory).toHaveBeenCalledWith('B', 'C');
+    expect(renamed).toEqual({ successCount: 70, failedCount: 0 });
+    expect(result.current.selectedCategoryId).toBe('A');
+  });
+
+  it('does not overwrite refreshed counts with a late pre-delete summary', async () => {
+    let resolveSummary!: (value: Awaited<ReturnType<typeof api.getBookLibrarySummary>>) => void;
+    vi.mocked(api.listBooks).mockResolvedValue([mockBook()]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.deleteBook).mockResolvedValue(undefined);
+    vi.mocked(api.getBookLibrarySummary)
+      .mockReturnValueOnce(new Promise(resolve => { resolveSummary = resolve; }))
+      .mockResolvedValue({ total: 0, uncategorized: 0, categories: {} });
+    const { result } = renderHook(() => useShelfData(true));
+    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await act(async () => { await result.current.handleDelete('book-1'); });
+    expect(result.current.bookCounts.all).toBe(0);
+    await act(async () => resolveSummary({ total: 1, uncategorized: 1, categories: {} }));
+    expect(result.current.bookCounts.all).toBe(0);
   });
 });

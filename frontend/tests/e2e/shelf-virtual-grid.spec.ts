@@ -160,6 +160,27 @@ test.describe('shelf virtual grid', () => {
     await expect(page.getByRole('button', { name: '阅读《测试图书 2》' })).toHaveCount(0);
   });
 
+  test('finds a category whose books were outside the initial unfiltered page', async ({ page }) => {
+    await installBrowserStubs(page, { authenticated: true });
+    await mockAuthVerified(page);
+    const mock = await mockPaginatedShelfApis(page, { total: 80, chunkSize: 50 });
+    mock.books[79].category = '远端分类';
+    await page.route('**/api/books/summary', route => route.fulfill({ json: {
+      total: 80, uncategorized: 0, categories: { 远端分类: 1 },
+    } }));
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《测试图书 1》' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '阅读《测试图书 80》' })).toHaveCount(0);
+    const filteredRequest = page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/api/books') &&
+        url.searchParams.get('category') === '远端分类' && !url.searchParams.has('cursor');
+    });
+    await page.getByRole('button', { name: '远端分类', exact: true }).click();
+    await filteredRequest;
+    await expect(page.getByRole('button', { name: '阅读《测试图书 80》' })).toBeVisible();
+  });
+
   test('manual load-more control fetches the next page', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);

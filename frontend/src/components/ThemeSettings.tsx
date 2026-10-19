@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
-import { RotateCcw, Settings, X } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw, Settings, X } from "lucide-react";
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "editorial",
@@ -221,10 +221,12 @@ function ReaderPreview({
 }) {
   const preset = PRESET_STYLES[theme.preset];
   const fontStack = FONT_FAMILY_OPTIONS[theme.fontFamily].stack;
+  const passageId = useId();
+  const [expanded, setExpanded] = useState(true);
 
   return (
     <section
-      className="mb-4 overflow-hidden rounded-[1.15rem] border p-4"
+      className="mb-3 overflow-hidden rounded-[1.15rem] border px-3 py-2"
       aria-label="阅读效果预览"
       style={{
         background: preset.bg,
@@ -233,15 +235,15 @@ function ReaderPreview({
         boxShadow: `inset 0 1px 0 ${withOpacity(preset.fg, 0.06)}`,
       }}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex min-h-9 items-center justify-between gap-2">
         <span
-          className="text-[10px] font-bold uppercase tracking-[0.16em]"
-          style={{ color: withOpacity(preset.fg, 0.48) }}
+          className="text-xs font-semibold"
+          style={{ color: withOpacity(preset.fg, 0.7) }}
         >
-          Preview
+          阅读预览
         </span>
         <span
-          className="rounded-lg px-2 py-0.5 text-[10px] font-semibold tabular-nums"
+          className="mr-auto rounded-lg px-2 py-0.5 text-[11px] font-medium tabular-nums"
           style={{
             background: withOpacity(preset.fg, 0.08),
             color: withOpacity(preset.fg, 0.58),
@@ -249,27 +251,33 @@ function ReaderPreview({
         >
           {theme.fontSize}px · {theme.lineHeight.toFixed(2)}
         </span>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={passageId}
+          onClick={() => setExpanded((value) => !value)}
+          className="flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          style={{ color: withOpacity(preset.fg, 0.8) }}
+        >
+          {expanded ? "收起预览" : "展开预览"}
+          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
       </div>
-      <div
-        className="space-y-3"
+      <p
+        id={passageId}
+        hidden={!expanded}
+        className="pb-2 pt-1"
         style={{
           fontFamily: fontStack,
-          fontSize: `${Math.min(Math.max(theme.fontSize, 14), 22)}px`,
+          fontSize: `${theme.fontSize}px`,
           lineHeight: theme.lineHeight,
-          paddingInline: `${Math.min(theme.pagePaddingX, 28)}px`,
-          paddingBlock: `${Math.min(theme.pagePaddingY, 24)}px`,
+          fontWeight: 400,
+          textIndent: theme.chineseIndent ? "2em" : undefined,
+          fontVariantEastAsian: theme.punctuationSqueeze ? "proportional-width" : undefined,
         }}
       >
-        <p className="font-semibold">文字应该安静地留在页面里。</p>
-        <p
-          style={{
-            color: withOpacity(preset.fg, 0.76),
-            marginBlock: `${Math.min(theme.paragraphSpacing, 1.8)}em 0`,
-          }}
-        >
-          调整字号、行距与字体时，先在这里感受一小段阅读节奏，再回到正文继续。
-        </p>
-      </div>
+        文字应该安静地留在页面里。
+      </p>
     </section>
   );
 }

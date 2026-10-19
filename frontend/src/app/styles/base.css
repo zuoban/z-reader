@@ -1,0 +1,149 @@
+/* Global document defaults, scrollbars, toast integration, and touch targets. */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    color: var(--foreground);
+  }
+
+  /* Accessible keyboard focus — skip custom components that define their own */
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+.custom-scrollbar,
+.app-sheet-body {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.app-sheet-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.app-sheet-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.app-sheet-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 16%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.app-sheet-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 28%, transparent);
+  background-clip: padding-box;
+}
+
+[data-sonner-toaster] {
+  --toast-close-button-start: unset !important;
+  --toast-close-button-end: 0.875rem !important;
+  --toast-close-button-transform: translateY(-50%) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  left: auto !important;
+  right: 0.875rem !important;
+  top: 50% !important;
+  min-height: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  width: 1.75rem;
+  transform: translateY(-50%) !important;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 48%, transparent);
+  box-shadow: none;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  color: color-mix(in srgb, var(--foreground) 76%, transparent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  [data-slot="button"],
+  [data-slot="dropdown-menu-trigger"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .touch-control {
+    min-height: var(--control-touch-size);
+    touch-action: manipulation;
+  }
+
+  .touch-target {
+    min-height: var(--control-touch-size);
+    min-width: var(--control-touch-size);
+    touch-action: manipulation;
+  }
+
+  body {
+    -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}

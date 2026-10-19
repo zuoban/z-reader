@@ -15,7 +15,7 @@ export const SHELF_GRID_MIN_COL_PX = {
  * Non-cover body of BookCard (title, author, progress, footer).
  * Tuned from actual layout; measureElement refines after paint.
  */
-export const SHELF_CARD_BODY_HEIGHT_PX = 132;
+export const SHELF_CARD_BODY_HEIGHT_PX = 156;
 
 /** Fallback when width is unknown. */
 export const SHELF_CARD_ESTIMATE_HEIGHT_PX = 448;
@@ -57,7 +57,7 @@ export function getShelfColumnWidth(
 
 /**
  * Estimate card height from column width.
- * Cover uses aspect-ratio 3/4 → height = width * 4/3.
+ * Cover uses aspect-ratio 5/6 → height = width * 6/5.
  */
 export function estimateShelfCardHeight(
   containerWidth: number,
@@ -65,7 +65,7 @@ export function estimateShelfCardHeight(
 ): number {
   const gap = getShelfGapPx(containerWidth);
   const colWidth = getShelfColumnWidth(containerWidth, columnCount, gap);
-  const coverHeight = colWidth * (4 / 3);
+  const coverHeight = colWidth * (6 / 5);
   return Math.round(coverHeight + SHELF_CARD_BODY_HEIGHT_PX);
 }
 

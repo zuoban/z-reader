@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/performance-results/
 
 # next.js
 /.next/
@@ -19,6 +20,8 @@
 
 # production
 /build
+/public/foliate/built/
+/src/lib/foliate-assets.generated.json
 
 # misc
 .DS_Store

@@ -5,6 +5,7 @@ import type { RefObject } from "react";
 import { FoliateView, type TOCItem } from "@/lib/types";
 import type { ReaderTheme } from "@/hooks/useReaderTheme";
 import { PRESET_STYLES } from "@/hooks/useReaderTheme";
+import foliateAssets from "@/lib/foliate-assets.generated.json";
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -106,7 +107,7 @@ async function waitForFoliateView() {
   }
   if (!customElements.get("foliate-view")) {
     // Check if the script was loaded at all
-    const script = document.querySelector('script[src="/foliate/view.js"]');
+    const script = document.querySelector('script[data-foliate-entry]');
     if (!script) {
       throw new Error("阅读器脚本未加载，请检查网络连接");
     }
@@ -137,11 +138,20 @@ function ensureFoliateScript(): Promise<void> {
   if (foliateScriptPromise) return foliateScriptPromise;
 
   foliateScriptPromise = (async () => {
+    // Start the static module graph alongside the entry and compatibility helpers.
+    for (const href of foliateAssets.preload) {
+      if (document.querySelector(`link[rel="modulepreload"][href="${href}"]`)) continue;
+      const preload = document.createElement("link");
+      preload.rel = "modulepreload";
+      preload.href = href;
+      preload.crossOrigin = "anonymous";
+      document.head.appendChild(preload);
+    }
     const { injectFoliatePolyfills } = await import("@/lib/foliate-polyfills");
     injectFoliatePolyfills();
 
     const existing = document.querySelector(
-      'script[src="/foliate/view.js"]'
+      'script[data-foliate-entry]'
     ) as HTMLScriptElement | null;
     if (existing) {
       await waitForFoliateView();
@@ -149,7 +159,8 @@ function ensureFoliateScript(): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = "/foliate/view.js";
+    script.src = foliateAssets.entry;
+    script.dataset.foliateEntry = "true";
     script.type = "module";
     script.crossOrigin = "anonymous";
     script.referrerPolicy = "no-referrer-when-downgrade";
@@ -237,6 +248,7 @@ export function useFoliateView({
   const revealScheduledRef = useRef(false);
   const compatibilityModeRef = useRef(false);
   const filePrefetchRef = useRef<Promise<File | Blob> | null>(null);
+  const downloadControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!currentCFI && progress?.cfi) {
@@ -264,6 +276,8 @@ export function useFoliateView({
     }
 
     let cancelled = false;
+    const controller = new AbortController();
+    downloadControllerRef.current = controller;
     void ensureFoliateScript().catch(() => {
       // initReader will surface the error if the engine still fails.
     });
@@ -271,6 +285,7 @@ export function useFoliateView({
     const promise = (async () => {
       const { api } = await import("@/lib/api");
       return api.createBookFile(bookId, {
+        signal: controller.signal,
         onProgress: ({
           downloadedBytes,
           totalBytes,
@@ -304,6 +319,8 @@ export function useFoliateView({
 
     return () => {
       cancelled = true;
+      controller.abort();
+      if (downloadControllerRef.current === controller) downloadControllerRef.current = null;
     };
   }, [bookId, isAuthenticated]);
 
@@ -482,6 +499,7 @@ export function useFoliateView({
 
   const cleanupReader = useCallback(() => {
     destroyedRef.current = true;
+    downloadControllerRef.current?.abort();
     cleanupHeaderInteractionDocuments();
     cleanupImageZoomDocuments();
 
@@ -614,7 +632,10 @@ export function useFoliateView({
         file = await filePrefetchRef.current;
       } else {
         const { api } = await import("@/lib/api");
+        const controller = new AbortController();
+        downloadControllerRef.current = controller;
         file = await api.createBookFile(bookId, {
+          signal: controller.signal,
           onProgress: ({
             downloadedBytes,
             totalBytes,
@@ -744,11 +765,13 @@ export function useFoliateView({
     setError(null);
     setLoadingMsg("准备阅读环境…");
     setLoadingDetail("引擎、书籍与进度并行加载");
+    let cancelled = false;
     queueMicrotask(() => {
-      void initReader();
+      if (!cancelled) void initReader();
     });
 
     return () => {
+      cancelled = true;
       cleanupReader();
     };
   }, [cleanupReader, initReader, isAuthenticated, bookId]);

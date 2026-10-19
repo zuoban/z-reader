@@ -94,9 +94,16 @@ export function useShelfData(isAuthenticated: boolean) {
   const [searchResults, setSearchResults] = useState<Book[] | null>(null);
   const [searchNextCursor, setSearchNextCursor] = useState<string | undefined>();
   const [isSearching, setIsSearching] = useState(false);
+  const [queryRevision, setQueryRevision] = useState(0);
   const loadGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
   const searchGenerationRef = useRef(0);
+  const summaryGenerationRef = useRef(0);
+  const loadAbortRef = useRef<AbortController | null>(null);
+  const moreAbortRef = useRef<AbortController | null>(null);
+  const categoryOptions = useMemo(() => selectedCategoryId === UNCATEGORIZED_FILTER_ID
+    ? { uncategorized: true }
+    : selectedCategoryId ? { category: selectedCategoryId } : {}, [selectedCategoryId]);
 
   const setSortBy = useCallback((option: SortOption) => {
     setSortByState(option);
@@ -104,8 +111,10 @@ export function useShelfData(isAuthenticated: boolean) {
   }, []);
 
   const loadLibrarySummary = useCallback(async () => {
+    const generation = ++summaryGenerationRef.current;
     try {
       const summary = await api.getBookLibrarySummary();
+      if (generation !== summaryGenerationRef.current) return;
       setLibrarySummary({
         total: summary.total,
         uncategorized: summary.uncategorized,
@@ -113,60 +122,60 @@ export function useShelfData(isAuthenticated: boolean) {
       });
     } catch {
       // The visible books remain usable if aggregate filter data cannot load.
-      setLibrarySummary(null);
+      if (generation === summaryGenerationRef.current) setLibrarySummary(null);
     }
   }, []);
 
   const loadBooks = useCallback(async () => {
+    loadAbortRef.current?.abort();
+    moreAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
     const loadGeneration = ++loadGenerationRef.current;
-    let hasLoadedFirstPage = false;
+    const summaryGeneration = ++summaryGenerationRef.current;
     loadingMoreRef.current = false;
     setIsLoadingMoreBooks(false);
     setNextCursor(undefined);
     setIsLoadingBooks(true);
     setLoadError(null);
+    setProgressByBookId({});
+    // Aggregate data enriches the shelf; it must never hold up the first page.
+    void api.getBookLibrarySummary().then((summary) => {
+      if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted ||
+        summaryGeneration !== summaryGenerationRef.current) return;
+      setLibrarySummary({ ...summary, categories: summary.categories ?? {} });
+    }).catch(() => {});
     try {
-      const firstPageRequest = api.listBooksPage(undefined, BOOK_PAGE_SIZE, sortBy);
-      const [firstPage, progressData, summary] = await Promise.all([
-        firstPageRequest,
-        firstPageRequest.then((page) => api.listProgress({
-          bookIds: (page.books ?? []).map((book) => book.id),
-        })).catch(() => []),
-        api.getBookLibrarySummary().catch(() => null),
-      ]);
-      if (loadGeneration !== loadGenerationRef.current) return;
+      const firstPage = await api.listBooksPage(undefined, BOOK_PAGE_SIZE, sortBy, {
+        ...categoryOptions, signal: controller.signal,
+      });
+      if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted) return;
 
       setBooks(firstPage.books || []);
-      hasLoadedFirstPage = true;
       setNextCursor(firstPage.next_cursor);
-      setLibrarySummary(summary ? {
-        total: summary.total,
-        uncategorized: summary.uncategorized,
-        categories: summary.categories ?? {},
-      } : null);
-      setProgressByBookId(
-        Object.fromEntries(
-          (progressData || []).map((progress) => [progress.book_id, progress.percentage])
-        )
-      );
       setIsLoadingBooks(false);
-    } catch (err) {
-      if (loadGeneration !== loadGenerationRef.current) return;
-      if (!hasLoadedFirstPage) {
-        setBooks([]);
-        setProgressByBookId({});
-        setLibrarySummary(null);
-        setNextCursor(undefined);
-        setLoadError(err instanceof Error ? err.message : '书架加载失败');
-      } else {
-        setLoadError('书架剩余图书加载失败，请刷新重试');
+      const ids = (firstPage.books ?? []).map((book) => book.id);
+      if (ids.length > 0) {
+        void api.listProgress({ bookIds: ids }).then((progressData) => {
+          if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted) return;
+          setProgressByBookId((current) => ({
+            ...current,
+            ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
+          }));
+        }).catch(() => {});
       }
+    } catch (err) {
+      if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted) return;
+      setBooks([]);
+      setProgressByBookId({});
+      setNextCursor(undefined);
+      setLoadError(err instanceof Error ? err.message : '书架加载失败');
     } finally {
       if (loadGeneration === loadGenerationRef.current) {
         setIsLoadingBooks(false);
       }
     }
-  }, [sortBy]);
+  }, [categoryOptions, sortBy]);
 
   const loadMoreBooks = useCallback(async () => {
     const query = searchQuery.trim();
@@ -175,18 +184,23 @@ export function useShelfData(isAuthenticated: boolean) {
     if (!cursor || loadingMoreRef.current) return;
 
     const loadGeneration = loadGenerationRef.current;
+    const searchGeneration = searchGenerationRef.current;
+    const controller = new AbortController();
+    moreAbortRef.current = controller;
     loadingMoreRef.current = true;
     setIsLoadingMoreBooks(true);
     try {
       const page = isSearch
-        ? await api.searchBooks(query, cursor, BOOK_PAGE_SIZE, sortBy)
-        : await api.listBooksPage(cursor, BOOK_PAGE_SIZE, sortBy);
-      if (loadGeneration !== loadGenerationRef.current) return;
-
-      const progressData = await api.listProgress({
-        bookIds: (page.books ?? []).map((book) => book.id),
-      }).catch(() => []);
-      if (loadGeneration !== loadGenerationRef.current) return;
+        ? await api.searchBooks(query, cursor, BOOK_PAGE_SIZE, sortBy, {
+          ...categoryOptions, signal: controller.signal,
+        })
+        : await api.listBooksPage(cursor, BOOK_PAGE_SIZE, sortBy, {
+          ...categoryOptions, signal: controller.signal,
+        });
+      const isCurrent = () => !controller.signal.aborted &&
+        loadGeneration === loadGenerationRef.current &&
+        searchGeneration === searchGenerationRef.current;
+      if (!isCurrent()) return;
 
       const mergeBooks = (currentBooks: Book[]) => {
         const byID = new Map(currentBooks.map((book) => [book.id, book]));
@@ -200,34 +214,43 @@ export function useShelfData(isAuthenticated: boolean) {
         setBooks(mergeBooks);
         setNextCursor(page.next_cursor);
       }
-      setProgressByBookId((current) => ({
-        ...current,
-        ...Object.fromEntries(
-          progressData.map((progress) => [progress.book_id, progress.percentage])
-        ),
-      }));
+      const ids = (page.books ?? []).map((book) => book.id);
+      if (ids.length > 0) {
+        void api.listProgress({ bookIds: ids }).then((progressData) => {
+          if (!isCurrent()) return;
+          setProgressByBookId((current) => ({
+            ...current,
+            ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
+          }));
+        }).catch(() => {});
+      }
     } catch (err) {
-      if (loadGeneration === loadGenerationRef.current) {
+      if (!controller.signal.aborted && loadGeneration === loadGenerationRef.current) {
         toast.error(err instanceof Error ? err.message : '加载更多图书失败');
       }
     } finally {
-      loadingMoreRef.current = false;
-      if (loadGeneration === loadGenerationRef.current) {
+      if (moreAbortRef.current === controller) {
+        loadingMoreRef.current = false;
         setIsLoadingMoreBooks(false);
       }
     }
-  }, [nextCursor, searchNextCursor, searchQuery, sortBy]);
+  }, [categoryOptions, nextCursor, searchNextCursor, searchQuery, sortBy]);
 
   useEffect(() => {
     if (!isAuthenticated) {
       loadGenerationRef.current += 1;
       searchGenerationRef.current += 1;
+      summaryGenerationRef.current += 1;
       loadingMoreRef.current = false;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear private data on logout.
       setNextCursor(undefined);
       setSearchResults(null);
       setSearchNextCursor(undefined);
       setLibrarySummary(null);
+      setBooks([]);
+      setProgressByBookId({});
+      loadAbortRef.current?.abort();
+      moreAbortRef.current?.abort();
       return;
     }
 
@@ -235,14 +258,21 @@ export function useShelfData(isAuthenticated: boolean) {
       void loadBooks();
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [isAuthenticated, loadBooks]);
+    return () => {
+      window.clearTimeout(timeoutId);
+      loadAbortRef.current?.abort();
+      moreAbortRef.current?.abort();
+    };
+  }, [isAuthenticated, loadBooks, queryRevision]);
 
   useEffect(() => {
     const query = searchQuery.trim();
     const generation = ++searchGenerationRef.current;
+    moreAbortRef.current?.abort();
+    loadingMoreRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Invalidate pending pagination.
+    setIsLoadingMoreBooks(false);
     if (!isAuthenticated || !query) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear an invalidated search.
       setSearchResults(null);
       setSearchNextCursor(undefined);
       setIsSearching(false);
@@ -250,15 +280,28 @@ export function useShelfData(isAuthenticated: boolean) {
     }
 
     setIsSearching(true);
+    const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
-      void api.searchBooks(query, undefined, BOOK_PAGE_SIZE, sortBy)
+      void api.searchBooks(query, undefined, BOOK_PAGE_SIZE, sortBy, {
+        ...categoryOptions, signal: controller.signal,
+      })
         .then((page) => {
-          if (generation !== searchGenerationRef.current) return;
+          if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
           setSearchResults(page.books ?? []);
           setSearchNextCursor(page.next_cursor);
+          const ids = (page.books ?? []).map((book) => book.id);
+          if (ids.length > 0) {
+            void api.listProgress({ bookIds: ids }).then((progressData) => {
+              if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
+              setProgressByBookId((current) => ({
+                ...current,
+                ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
+              }));
+            }).catch(() => {});
+          }
         })
         .catch((err) => {
-          if (generation !== searchGenerationRef.current) return;
+          if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
           setSearchResults([]);
           setSearchNextCursor(undefined);
           toast.error(err instanceof Error ? err.message : '搜索图书失败');
@@ -270,15 +313,18 @@ export function useShelfData(isAuthenticated: boolean) {
         });
     }, SEARCH_DEBOUNCE_MS);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [isAuthenticated, searchQuery, sortBy]);
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [categoryOptions, isAuthenticated, queryRevision, searchQuery, sortBy]);
 
   const pendingBookIDs = useMemo(
-    () => books
+    () => [...new Map([...books, ...(searchResults ?? [])].map((book) => [book.id, book])).values()]
       .filter((book) => book.processing_state === 'pending')
       .map((book) => book.id)
       .join(','),
-    [books]
+    [books, searchResults]
   );
 
   useEffect(() => {
@@ -289,10 +335,12 @@ export function useShelfData(isAuthenticated: boolean) {
     const refreshProcessedBooks = async () => {
       const ids = pendingBookIDs.split(',').filter(Boolean);
       try {
-        const updatedBooks = await Promise.all(ids.map((id) => api.getBook(id)));
+        if (document.visibilityState === 'hidden') return;
+        const updatedBooks = await api.getBooksStatus(ids);
         if (stopped) return;
         const updatedByID = new Map(updatedBooks.map((book) => [book.id, book]));
         setBooks((current) => current.map((book) => updatedByID.get(book.id) ?? book));
+        setSearchResults((current) => current?.map((book) => updatedByID.get(book.id) ?? book) ?? null);
       } catch {
         // Keep the current shelf usable and retry while the jobs are pending.
       } finally {
@@ -316,13 +364,14 @@ export function useShelfData(isAuthenticated: boolean) {
 
   useEffect(() => {
     if (!selectedCategoryId || selectedCategoryId === UNCATEGORIZED_FILTER_ID) return;
-    if (!categories.includes(selectedCategoryId)) {
+    // Only the full-library summary can prove a category no longer exists.
+    if (librarySummary && !categories.includes(selectedCategoryId)) {
       const timeoutId = window.setTimeout(() => {
         setSelectedCategoryId(null);
       }, 0);
       return () => window.clearTimeout(timeoutId);
     }
-  }, [categories, selectedCategoryId]);
+  }, [categories, librarySummary, selectedCategoryId]);
 
   const filteredBooks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -528,18 +577,41 @@ export function useShelfData(isAuthenticated: boolean) {
   const handleRenameCategory = useCallback(async (category: string, nextCategory: string | null) => {
     const currentCategory = category.trim();
     if (!currentCategory) return { successCount: 0, failedCount: 0 };
-
-    const ids = books
-      .filter((book) => book.category?.trim() === currentCategory)
-      .map((book) => book.id);
-    const result = await handleUpdateCategoryMany(ids, nextCategory);
-
-    if (result.successCount > 0 && selectedCategoryId === currentCategory) {
-      setSelectedCategoryId(nextCategory?.trim() || null);
+    const normalized = nextCategory?.trim() || null;
+    setIsUpdatingManyCategories(true);
+    try {
+      const result = await api.renameBookCategory(currentCategory, normalized);
+      // Invalidate pages and summaries captured before the mutation committed.
+      loadGenerationRef.current += 1;
+      searchGenerationRef.current += 1;
+      summaryGenerationRef.current += 1;
+      loadAbortRef.current?.abort();
+      moreAbortRef.current?.abort();
+      const ids = new Set(result.updated_ids);
+      const update = (items: Book[]) => items.map(book => ids.has(book.id)
+        ? { ...book, category: normalized ?? undefined } : book);
+      setBooks(update);
+      setSearchResults(items => items ? update(items) : null);
+      setLibrarySummary(summary => {
+        if (!summary) return summary;
+        const categories = { ...summary.categories };
+        const count = categories[currentCategory] ?? result.updated_ids.length;
+        delete categories[currentCategory];
+        if (normalized) categories[normalized] = (categories[normalized] ?? 0) + count;
+        return { ...summary, categories,
+          uncategorized: summary.uncategorized + (normalized ? 0 : count) };
+      });
+      if (selectedCategoryId === currentCategory) setSelectedCategoryId(normalized);
+      setQueryRevision(value => value + 1);
+      toast.success(normalized ? `已设置为「${normalized}」` : '已清空分类');
+      return { successCount: result.updated_ids.length, failedCount: 0 };
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '修改分类失败');
+      return { successCount: 0, failedCount: 1 };
+    } finally {
+      setIsUpdatingManyCategories(false);
     }
-
-    return result;
-  }, [books, handleUpdateCategoryMany, selectedCategoryId]);
+  }, [selectedCategoryId]);
 
   return {
     books,

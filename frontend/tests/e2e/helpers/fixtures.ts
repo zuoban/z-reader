@@ -394,14 +394,20 @@ export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock
       await route.fulfill({ status: 404, body: 'not found' });
       return;
     }
+    const category = url.searchParams.get('category');
+    const uncategorized = url.searchParams.get('uncategorized') === 'true';
+    const categoryBooks = state.books.filter((book) =>
+      (!category || book.category === category) &&
+      (!uncategorized || !book.category)
+    );
     if (path.endsWith('/search')) {
       const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
-      const matched = state.books.filter((book) => matchesSearchQuery(book, q));
+      const matched = categoryBooks.filter((book) => matchesSearchQuery(book, q));
       await json(route, { books: matched });
       return;
     }
     if (path.endsWith('/books')) {
-      await json(route, { books: state.books });
+      await json(route, { books: categoryBooks });
       return;
     }
     const bookMatch = path.match(/\/api\/books\/([^/]+)$/);
@@ -426,7 +432,7 @@ const PAGINATED_CATEGORIES = ['古典', '科幻', '随笔'] as const;
 export function makeMockBooks(count: number, startIndex = 0) {
   return Array.from({ length: count }, (_, offset) => {
     const n = startIndex + offset + 1;
-    const category = PAGINATED_CATEGORIES[n % PAGINATED_CATEGORIES.length];
+    const category: string = PAGINATED_CATEGORIES[n % PAGINATED_CATEGORIES.length];
     return {
       id: `book-${n}`,
       user_id: MOCK_USER.id,
@@ -506,11 +512,18 @@ export async function mockPaginatedShelfApis(
       );
       const start = cursorParam ? Number.parseInt(cursorParam, 10) || 0 : 0;
       state.listCursors.push(cursorParam);
-      const pageBooks = books.slice(start, start + limit);
+      const category = url.searchParams.get('category');
+      const uncategorized = url.searchParams.get('uncategorized') === 'true';
+      const query = url.searchParams.get('q')?.toLowerCase();
+      const matchingBooks = books.filter(book =>
+        (!category || book.category === category) &&
+        (!uncategorized || !book.category) &&
+        (!query || `${book.title} ${book.author}`.toLowerCase().includes(query)));
+      const pageBooks = matchingBooks.slice(start, start + limit);
       const nextStart = start + pageBooks.length;
       await json(route, {
         books: pageBooks,
-        next_cursor: nextStart < total ? String(nextStart) : undefined,
+        next_cursor: nextStart < matchingBooks.length ? String(nextStart) : undefined,
       });
       return;
     }

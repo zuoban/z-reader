@@ -1,0 +1,171 @@
+/* Shared paper surfaces and reusable controls. */
+
+@layer utilities {
+  .text-meta {
+    color: var(--subtle-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .paper-panel {
+    @apply border border-border bg-card;
+    box-shadow: var(--paper-shadow-panel);
+    transition: border-color var(--paper-duration-base) var(--paper-ease-soft),
+      background-color var(--paper-duration-base) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft),
+      opacity var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .paper-stack {
+    box-shadow: none;
+  }
+
+  .paper-control {
+    @apply border border-border bg-card;
+    transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-control:hover {
+    background: var(--secondary);
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px -4px var(--paper-shadow-soft);
+  }
+
+  .app-sheet-shell,
+  .app-dialog-shell {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 42%, transparent) 0%, transparent 10rem),
+      color-mix(in srgb, var(--popover) 94%, var(--background));
+    border-color: color-mix(in srgb, var(--border) 76%, transparent);
+    box-shadow: var(--paper-shadow-floating);
+  }
+
+  .dialog-close-btn {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors;
+    border-radius: var(--paper-radius-control);
+  }
+
+  .dialog-close-btn:hover {
+    @apply bg-secondary text-foreground;
+  }
+
+  .app-sheet-header {
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+
+  .app-sheet-icon {
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+    color: var(--primary);
+  }
+
+  .app-sheet-body {
+    max-height: min(58svh, 30rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-surface-panel {
+    background: color-mix(in srgb, var(--card) 86%, var(--background));
+    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    box-shadow: var(--paper-shadow-control);
+  }
+
+  .app-sheet-footer,
+  .app-dialog-footer {
+    background: color-mix(in srgb, var(--card) 64%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 48%, transparent);
+  }
+
+  .paper-field {
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: none;
+    transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-field:focus-within,
+  .paper-field:focus-visible {
+    box-shadow: none;
+    border-color: var(--primary);
+  }
+
+  .paper-menu {
+    background: var(--popover);
+    border: 1px solid var(--border);
+    box-shadow: none;
+    transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .paper-chip {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  /* SVG noise keeps shared surfaces tactile without affecting pointer events. */
+  .paper-texture {
+    position: relative;
+  }
+
+  .paper-texture::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+    background-repeat: repeat;
+    mix-blend-mode: multiply;
+  }
+
+  .dark .paper-texture::before {
+    opacity: 0.02;
+    mix-blend-mode: screen;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .shelf-book-card,
+  .paper-panel,
+  .app-sheet-shell,
+  .app-dialog-shell {
+    border-width: 1.5px;
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+}

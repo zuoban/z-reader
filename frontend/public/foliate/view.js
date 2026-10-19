@@ -2,6 +2,7 @@ import * as CFI from './epubcfi.js'
 import { TOCProgress, SectionProgress } from './progress.js'
 import { Overlayer } from './overlayer.js'
 import { textWalker } from './text-walker.js'
+import { makeZipLoader } from './zip-loader.js'
 
 const SEARCH_PREFIX = 'foliate-search:'
 
@@ -26,21 +27,6 @@ const isFB2 = ({ name, type }) =>
 const isFBZ = ({ name, type }) =>
     type === 'application/x-zip-compressed-fb2'
     || name.endsWith('.fb2.zip') || name.endsWith('.fbz')
-
-const makeZipLoader = async file => {
-    const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } =
-        await import('./vendor/zip.js')
-    configure({ useWebWorkers: false })
-    const reader = new ZipReader(new BlobReader(file))
-    const entries = await reader.getEntries()
-    const map = new Map(entries.map(entry => [entry.filename, entry]))
-    const load = f => (name, ...args) =>
-        map.has(name) ? f(map.get(name), ...args) : null
-    const loadText = load(entry => entry.getData(new TextWriter()))
-    const loadBlob = load((entry, type) => entry.getData(new BlobWriter(type)))
-    const getSize = name => map.get(name)?.uncompressedSize ?? 0
-    return { entries, loadText, loadBlob, getSize }
-}
 
 const getFileEntries = async entry => entry.isFile ? entry
     : (await Promise.all(Array.from(
@@ -87,20 +73,30 @@ export const makeBook = async file => {
     else if (!file.size) throw new NotFoundError('File not found')
     else if (await isZip(file)) {
         const loader = await makeZipLoader(file)
-        if (isCBZ(file)) {
-            const { makeComicBook } = await import('./comic-book.js')
-            book = makeComicBook(loader, file)
+        try {
+            if (isCBZ(file)) {
+                const { makeComicBook } = await import('./comic-book.js')
+                book = makeComicBook(loader, file)
+            }
+            else if (isFBZ(file)) {
+                const { makeFB2 } = await import('./fb2.js')
+                const { entries } = loader
+                const entry = entries.find(entry => entry.filename.endsWith('.fb2'))
+                const blob = await loader.loadBlob((entry ?? entries[0]).filename)
+                book = await makeFB2(blob)
+            }
+            else {
+                const { EPUB } = await import('./epub.js')
+                book = await new EPUB(loader).init()
+            }
+        } catch (error) {
+            loader.destroy()
+            throw error
         }
-        else if (isFBZ(file)) {
-            const { makeFB2 } = await import('./fb2.js')
-            const { entries } = loader
-            const entry = entries.find(entry => entry.filename.endsWith('.fb2'))
-            const blob = await loader.loadBlob((entry ?? entries[0]).filename)
-            book = await makeFB2(blob)
-        }
-        else {
-            const { EPUB } = await import('./epub.js')
-            book = await new EPUB(loader).init()
+        const destroy = book.destroy?.bind(book)
+        book.destroy = () => {
+            destroy?.()
+            loader.destroy()
         }
     }
     else if (await isPDF(file)) {
@@ -297,6 +293,8 @@ export class View extends HTMLElement {
     close() {
         this.renderer?.destroy()
         this.renderer?.remove()
+        this.book?.destroy?.()
+        this.book = null
         this.#sectionProgress = null
         this.#tocProgress = null
         this.#pageProgress = null

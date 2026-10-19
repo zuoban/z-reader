@@ -123,6 +123,8 @@ func main() {
 		api.GET("/books", booksHandler.List)
 		api.GET("/books/summary", booksHandler.Summary)
 		api.GET("/books/search", booksHandler.Search)
+		api.GET("/books/status", booksHandler.Status)
+		api.PATCH("/books/categories", booksHandler.RenameCategory)
 		api.GET("/books/:id", booksHandler.Get)
 		api.POST("/books", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.Upload)
 		api.POST("/books/batch/delete", booksHandler.BatchDelete)

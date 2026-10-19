@@ -1,10 +1,8 @@
-'use client';
-
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Bookmark, Cloud, Palette, Server, Smartphone, Upload } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandGlyph, BrandLogo } from '@/components/AppShell';
+import { LandingAuthLink, LandingAuthProvider } from '@/components/LandingAuthLinks';
 
 const previewBooks = [
   { title: '《西游记》', meta: '54% · 1分钟前', tone: 'from-[#8f7d52] to-[#5c4e32]' },
@@ -13,10 +11,8 @@ const previewBooks = [
 ];
 
 export default function LandingPage() {
-  const { isLoading, isAuthenticated } = useAuth({ redirectOnExpire: false });
-  const primaryHref = !isLoading && isAuthenticated ? '/shelf' : '/login?mode=register';
-
   return (
+    <LandingAuthProvider>
     <AppScreen
       ambient="shelf"
       className="bg-background text-foreground"
@@ -25,12 +21,7 @@ export default function LandingPage() {
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-7 lg:px-10">
         <BrandLogo compact />
         <nav>
-          <Link
-            href="/login"
-            className="inline-flex min-h-11 items-center rounded-xl border border-transparent px-3.5 text-sm font-semibold text-foreground/80 transition-all hover:border-border/60 hover:bg-card/70 hover:text-foreground"
-          >
-            {!isLoading && isAuthenticated ? '进入书架' : '登录'}
-          </Link>
+          <LandingAuthLink />
         </nav>
       </header>
 
@@ -47,12 +38,7 @@ export default function LandingPage() {
             把 EPUB、MOBI、AZW3 和 PDF 收进自己的书架，在干净安静的界面里继续每一次阅读。
           </p>
           <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
-            <Link
-              href={primaryHref}
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-[0_14px_32px_-18px_var(--paper-shadow)] transition-all hover:opacity-92 active:scale-[0.98]"
-            >
-              {!isLoading && isAuthenticated ? '回到我的书架' : '创建我的书库'}
-            </Link>
+            <LandingAuthLink primary />
             <Link
               href="/login"
               className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border/70 bg-card/80 px-8 text-base font-semibold text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_45%,transparent)] transition-all hover:bg-secondary/80 active:scale-[0.98]"
@@ -127,6 +113,7 @@ export default function LandingPage() {
         </div>
       </footer>
     </AppScreen>
+    </LandingAuthProvider>
   );
 }
 

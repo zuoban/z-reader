@@ -1,0 +1,110 @@
+/* Reader palettes, Foliate host, chrome, and responsive sheets. */
+
+@layer utilities {
+  .reader-chrome-btn {
+    @apply flex min-h-10 items-center gap-2 px-2 text-xs font-medium transition-all sm:px-3 sm:text-sm;
+    border-radius: var(--paper-radius-control);
+    color: color-mix(in srgb, var(--foreground) 62%, transparent);
+  }
+
+  .reader-chrome-btn:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted) 72%, transparent);
+  }
+
+  .reader-chrome-btn:active {
+    transform: scale(0.97);
+  }
+
+  .reader-chrome-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center transition-all;
+    border-radius: var(--paper-radius-control);
+    color: color-mix(in srgb, var(--foreground) 62%, transparent);
+  }
+
+  .reader-chrome-icon:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted) 72%, transparent);
+  }
+
+  .reader-mobile-menu-item {
+    @apply flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium transition-colors;
+    border-radius: var(--paper-radius-control);
+  }
+
+  .reader-mobile-menu-item:hover {
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+  }
+
+  .reader-mobile-menu-item:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .reader-page-surface {
+    transition: background-color var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .reader-image-hint {
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  }
+
+  .reader-sidebar-sheet-body {
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .reader-bottom-sheet-centered {
+    translate: 0 0;
+  }
+
+  @media (min-width: 640px) {
+    /* Outrank the sheet's side utilities while keeping mobile positioning intact. */
+    .reader-bottom-sheet-centered[data-slot="sheet-content"][data-side="bottom"] {
+      left: 50%;
+      right: auto;
+      translate: -50% 0;
+    }
+  }
+
+  .reading-status-panel {
+    background: color-mix(in srgb, var(--card) 96%, var(--background));
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px -4px var(--paper-shadow-soft);
+  }
+}
+
+:root[data-reader-preset="light"] {
+  --reader-bg: #f6f1e8;
+  --reader-text: #1c1915;
+}
+
+:root[data-reader-preset="sepia"] {
+  --reader-bg: #f3ead7;
+  --reader-text: #4f3d2e;
+}
+
+:root[data-reader-preset="green"] {
+  --reader-bg: #e6ede1;
+  --reader-text: #24352b;
+}
+
+:root[data-reader-preset="dark"] {
+  --reader-bg: #141210;
+  --reader-text: #eee6d8;
+}
+
+foliate-view {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+foliate-view::part(filter) {
+  filter: none;
+}
+
+@media (max-width: 640px) {
+  foliate-view {
+    padding: 0;
+  }
+}

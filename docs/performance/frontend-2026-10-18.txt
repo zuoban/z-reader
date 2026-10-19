@@ -1,0 +1,100 @@
+Z Reader frontend performance verification — 2026-10-18
+
+Environment: Apple M1, macOS darwin/arm64
+Runtime versions: {"node": "v22.22.3", "next": "16.4.2", "playwright": "1.59.1", "chromium": {"name": "chromium", "revision": "1217", "installByDefault": true, "browserVersion": "147.0.7727.15", "title": "Chrome for Testing"}}
+go version go1.27.2 darwin/arm64
+Production browser run: 2026-10-18T13:54:25.797Z
+
+Command (cwd=frontend):
+  rtk npm run test:perf:production
+Local run used PLAYWRIGHT_EXECUTABLE_PATH for the matching Chromium 1217 binary.
+The runner built Next.js standalone and Go, used temporary data and isolated ports,
+and removed its servers/data on exit. No other benchmarks/E2E ran concurrently.
+
+Production browser results (Playwright stdout, ANSI removed):
+[production mobile] {
+  lcp: 2124,
+  cls: 0,
+  longestTask: 110,
+  firstAudio: 0,
+  interaction: 0,
+  workers: [],
+  fontBytes: 126008
+}
+
+[production reader] {
+  shelfMs: 392,
+  shelfLcpMs: 276,
+  shelfCls: 0.10582721333503722,
+  shelfInteractionMs: 0,
+  readerMs: 4662,
+  audioMs: 500.1999999284744,
+  longestTaskMs: 0,
+  fileRequests: 2,
+  bytes: 4195460
+}
+
+Stats: {"startTime": "2026-10-18T13:54:25.797Z", "duration": 11087.172, "expected": 2, "skipped": 0, "unexpected": 0, "flaky": 0}
+
+Interpretation:
+- Mobile: 390x844 viewport, CPU 4x, 1.6 Mbps down / 0.75 Mbps up / 40 ms RTT.
+- Font bytes use Resource Timing decodedBodySize for actual WOFF/WOFF2 responses.
+- Shelf uses real registration, login, upload and Go storage APIs.
+- Reader fixture is 4,195,460 bytes; 8 Mbps down / 40 ms RTT. Stored padding
+  fixes transfer size; compressed XML/chapter files exercise the real ZIP worker.
+- Reader readiness requires actual renderer body text, rather than title/chrome.
+- File requests: one initial open + one explicit offline save. Reload reuses the
+  authenticated, hash-matched offline file without another content request.
+- External voice/audio requests are deterministic PCM fixtures. The first-audio
+  time measures frontend loading/decoding, not external speech-service latency.
+- Zero long-task duration means no task over the browser's 50 ms threshold.
+- Zero Event Timing value means no delivered interaction sample above the
+  observer threshold; a single scripted interaction is not population INP.
+- CPU/network constraints and strict production budgets have no dev-mode multiplier.
+
+First-screen JS, raw script bytes from production prerender HTML:
+{
+  "home": {
+    "bytes": 672633,
+    "maxBytes": 725883,
+    "files": 11
+  },
+  "login": {
+    "bytes": 687902,
+    "maxBytes": 731186,
+    "files": 12
+  },
+  "shelf": {
+    "bytes": 926602,
+    "maxBytes": 1010472,
+    "files": 14
+  }
+}
+
+
+The existing byte ceilings were preserved. --write was also exercised against a
+copy of the budget file and retained production, webVitals and offline fields.
+
+Foliate native ESM output:
+  hash d8aeae6d93c420ef; 20 modules; 273543 source -> 136442 minified bytes.
+  Original modules/vendor assets remain readable and generated output is ignored.
+  PDF/MOBI imports and actual PDF canvas/text/font rendering passed browser checks.
+  PDF standard_fonts/FoxitSymbol.pfb returned HTTP 200.
+
+Fonts:
+  Noto Serif SC 400/600/700 use local Unicode subsets plus 17664 bytes of compatibility fonts.
+  cmap comparison: all 7946 formerly covered code points remain; coverage 13686.
+  Historical 4592840 bytes for three monolithic files is an asset-size measure;
+  it is not a measured before-page network transfer baseline.
+
+Final validation:
+  rtk npm run lint:strict                         PASS
+  rtk npm run test:coverage:check                 PASS: 176 tests / 26 files; all core baselines met
+  rtk proxy node --test scripts/build-foliate.test.mjs  PASS: 3 tests
+  rtk npm run test:e2e:ci                         PASS: 32 tests
+  rtk npm run test:visual                         PASS: 16 macOS tests (earlier verification)
+  rtk npm run test:perf:production                PASS: 2 tests, production build + JS budget
+  rtk git diff --check                           PASS (final working-tree check)
+
+Linux visual baselines were not executed locally or changed; CI retains that hard gate.
+Coverage runs the complete unit suite. Performance runs the final production build.

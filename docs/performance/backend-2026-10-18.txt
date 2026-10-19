@@ -1,0 +1,169 @@
+Backend performance evidence — 2026-10-18
+
+Machine: Apple M1, darwin/arm64; go version go1.27.2 darwin/arm64.
+Benchmark process reports 8 logical processors (the -8 benchmark suffix).
+Storage: normal bbolt synchronous durability; NoSync is not enabled.
+Dataset: 10,000 indexed books, 50-book page, 10 categories, deterministic fixture.
+Each result uses -benchtime=100x -count=1 -benchmem. Fixtures are generated
+outside measured regions and copied before each scenario. These are local
+microbenchmarks, not production API p95 measurements.
+
+BASELINE SOURCE
+Commit: ec86292305610cadc2d3854d23711fe7df4fdcd5
+The measured baseline used a temporary copy of backend/, with storage/db.go and
+storage/performance_test.go restored exactly from that commit. New storage query
+implementation and feature-test files were removed. A benchmark-only file added
+the broad, single-rune and deep-query scenarios below using the old SearchBooks
+signature. Other storage/model/telemetry production sources were unchanged from
+that commit. The active workspace was not reset or altered for the baseline.
+The temporary copy was removed after verification.
+
+Reproduce a baseline checkout, from the repository root:
+  rtk proxy git archive --format=tar --output=/tmp/z-reader-backend-before.tar ec86292305610cadc2d3854d23711fe7df4fdcd5 backend
+  rtk proxy mkdir -p /tmp/z-reader-backend-before
+  rtk proxy tar -xf /tmp/z-reader-backend-before.tar -C /tmp/z-reader-backend-before
+Add storage/broad_search_benchmark_test.go in the extracted backend with:
+
+package storage
+import "testing"
+func BenchmarkLibraryBroadSearch10000(b *testing.B) { benchmarkBroadBefore(b, "性能测试", "") }
+func BenchmarkLibrarySingleRuneSearch10000(b *testing.B) { benchmarkBroadBefore(b, "书", "") }
+func BenchmarkLibraryDeepSearch10000(b *testing.B) { benchmarkBroadBefore(b, "性能测试", "benchmark-08999") }
+func benchmarkBroadBefore(b *testing.B, query, cursor string) {
+    db := openBenchmarkLibrary(b, benchmarkLibrarySize10000)
+    b.ReportAllocs()
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        books, _, err := db.SearchBooks("benchmark-user", query, cursor, 50, "title")
+        if err != nil || len(books) != 50 { b.Fatalf("search = %d, %v", len(books), err) }
+    }
+}
+
+Run with cwd = extracted backend directory:
+  rtk proxy go test ./storage -run '^$' -bench 'BenchmarkLibrary(Search10000|FirstPage10000|ProgressSave10000|BroadSearch10000|SingleRuneSearch10000|DeepSearch10000)$' -benchtime=100x -count=1 -benchmem
+
+Baseline captured output:
+goos: darwin
+goarch: arm64
+pkg: z-reader/backend/storage
+cpu: Apple M1
+BenchmarkLibraryBroadSearch10000-8             100    39802265 ns/op    23408771 B/op    499262 allocs/op
+BenchmarkLibrarySingleRuneSearch10000-8        100       97439 ns/op       39636 B/op      1173 allocs/op
+BenchmarkLibraryDeepSearch10000-8              100    31155312 ns/op    13663737 B/op    499244 allocs/op
+BenchmarkLibrarySearch10000-8                  100     1969778 ns/op      855375 B/op     41024 allocs/op
+BenchmarkLibraryFirstPage10000-8               100       85337 ns/op       32979 B/op       739 allocs/op
+BenchmarkLibraryProgressSave10000-8            100     8429181 ns/op      104041 B/op       342 allocs/op
+PASS
+ok z-reader/backend/storage 83.843s
+
+OPTIMIZED SOURCE
+The final working tree for this task; production query/index/hash changes are in
+backend/storage/{db.go,book_queries.go,library_indexes.go} and
+backend/handlers/{books.go,book_queries.go,legacy_hash_backfill.go,book_processor.go}.
+Run with cwd = current backend directory:
+  rtk proxy go test ./storage -run '^$' -bench 'BenchmarkLibrary(Search10000|FirstPage10000|ProgressSave10000|BroadSearch10000|SingleRuneSearch10000|DeepSearch10000|CategorySearch10000|DeepCategoryPage10000)$' -benchtime=100x -count=1 -benchmem
+
+Optimized captured output:
+goos: darwin
+goarch: arm64
+pkg: z-reader/backend/storage
+cpu: Apple M1
+BenchmarkLibrarySearch10000-8                  100      110321 ns/op      142473 B/op       953 allocs/op
+BenchmarkLibraryFirstPage10000-8               100       85685 ns/op       33179 B/op       750 allocs/op
+BenchmarkLibraryProgressSave10000-8            100     9355683 ns/op       80890 B/op       299 allocs/op
+BenchmarkLibraryBroadSearch10000-8             100       95195 ns/op       49916 B/op       921 allocs/op
+BenchmarkLibrarySingleRuneSearch10000-8        100       84624 ns/op       48347 B/op       881 allocs/op
+BenchmarkLibraryDeepSearch10000-8              100      105758 ns/op       50517 B/op       941 allocs/op
+BenchmarkLibraryCategorySearch10000-8          100       91965 ns/op       48261 B/op       799 allocs/op
+BenchmarkLibraryDeepCategoryPage10000-8        100       83458 ns/op       31691 B/op       640 allocs/op
+PASS
+ok z-reader/backend/storage 61.453s
+
+Matched elapsed-time comparison:
+  exact search:       1.970 -> 0.110 ms (~18x faster)
+  broad search:      39.802 -> 0.095 ms (~418x faster)
+  deep broad search: 31.155 -> 0.106 ms (~295x faster)
+  single rune:        0.097 -> 0.085 ms (already bounded)
+  first page:         0.085 -> 0.086 ms (similar)
+  progress save:      8.429 -> 9.356 ms (no elapsed-time improvement)
+Progress allocations fell 342 -> 299 and bytes 104041 -> 80890 (~22% lower).
+The last optimized run preceded the independent whole-category rename endpoint
+integration; its query/progress benchmarked paths and fixture were unchanged.
+
+Interpretation:
+- Broad and deep searches seek the sorted index and stop at one page/lookahead.
+- Selective queries use durable posting counts, the rarest posting list and one
+  exact text comparison. Counts avoid re-counting postings on every request.
+- Single-rune search already used sorted early stop; its time remains similar.
+- First-page list timings remain similar.
+- Progress changes only recent_read keys in the user and category indexes and
+  decodes/verifies the book once. Synchronous commit latency remains dominant;
+  these results do not establish a progress latency improvement. Compare
+  allocation/byte reductions as well as elapsed time.
+- Category search and deep category pages are new functionality. No prior
+  server-side category-index baseline exists. Their scenarios use 分类-03 and
+  cursor benchmark-08993, returning 50 books in title order.
+- Deep broad search uses cursor benchmark-08999 in title order.
+
+VERIFICATION
+Run with cwd = backend:
+  rtk proxy go test ./... -count=1
+  rtk proxy go vet ./...
+  rtk proxy go test ./handlers ./middleware ./services ./storage -coverprofile=/tmp/z-reader-backend-perf-coverage.out -count=1
+  rtk proxy go run ./cmd/check-coverage --profile /tmp/z-reader-backend-perf-coverage.out --baseline coverage-baseline.json
+  rtk proxy go test ./storage ./handlers -race -run 'Test(SaveProgressIfCurrentAllowsOnlyOneConcurrentWriter|Category|MissingHash|Backfill|HashBatch|LegacyHash|LegacyDuplicateHash|ContentHashBackfill|BookStatus|DuplicateMiss|BookCategoryCursor|MigrationTen|RenameCategory)' -count=1
+  rtk proxy gofmt -l handlers/books.go handlers/book_processor.go handlers/book_queries.go handlers/book_query_performance_test.go handlers/legacy_hash_backfill.go storage/db.go storage/book_queries.go storage/library_indexes.go storage/performance_test.go storage/query_performance_test.go main.go
+
+All commands passed; gofmt returned no files. Tests cover filtered pagination
+and search, owner isolation, category mutations and summary/gram consistency,
+optimistic progress concurrency, durable hash backlog reopen and page deletion,
+startup background recovery/retries, atomic hash batches, metadata preservation,
+legacy duplicate promotion after deletion, and migration failure rollback.
+
+Operational behavior:
+- Schema migration 10 rebuilds the category sort index, gram counts, missing-hash
+  backlog and legacy content membership in one transaction. A record failure
+  rolls back schema version and all rebuilt indexes. It performs metadata work;
+  legacy file hashing runs after startup in one worker, 16 files per batch.
+- Each hash batch performs one durable transaction. Between automatic batches
+  the worker yields for 100ms; it revisits failed files after one minute.
+- Hash-index misses with no backlog read at most one backlog index entry. If
+  legacy records remain, the upload waits for the single worker's user-specific
+  pass so their duplicates are checked before acceptance. Unreadable files keep
+  their durable backlog entries for retry, preserving prior per-check behavior.
+- Worker shutdown is checked between files and batches; an in-flight file hash
+  finishes before graceful shutdown completes.
+- Existing ListBooksBySortedCursor/SearchBooks callers remain valid. An optional
+  final *string filter uses nil=all, pointer-to-empty=uncategorized, other=category.
+- GET /api/books and /api/books/search: category=<actual category> or
+  uncategorized=true; an actual nonempty category takes precedence.
+- GET /api/books/status?book_ids=id1,id2 returns {"books":[Book,...]}, at most
+  500 unique requested IDs; unknown and unowned IDs are omitted.
+
+Pagination compatibility: PATCH /api/books/categories accepts
+{"from":"source","to":"destination"} or to:null/empty to remove a complete
+category. Both fields are required; names are trimmed; source must be nonempty.
+Response: {"updated_ids":[...],"category":"destination"}; category is omitted
+when removing. It uses the user/category index and one transaction to update
+all source books (including unloaded pages), search/index counts and summary.
+Regression coverage includes >50 source books, a different unselected category,
+user isolation, invalid input, and rollback after a stored-record error.
+
+Final coverage baseline output after whole-category integration:
+handlers: 51.65% (734/1421 statements), baseline 45.36%
+middleware: 87.90% (138/157 statements), baseline 86.11%
+services: 16.71% (66/395 statements), baseline 12.13%
+storage: 64.10% (900/1404 statements), baseline 51.96%
+Backend core coverage meets the committed baseline.
+
+Follow-up progress-only stability check (current tree, 5 repetitions):
+  rtk proxy go test ./storage -run '^$' -bench '^BenchmarkLibraryProgressSave10000$' -benchmem -benchtime=100x -count=5
+BenchmarkLibraryProgressSave10000-8 100 8332178 ns/op 80429 B/op 293 allocs/op
+BenchmarkLibraryProgressSave10000-8 100 8539510 ns/op 80723 B/op 293 allocs/op
+BenchmarkLibraryProgressSave10000-8 100 8480080 ns/op 80764 B/op 293 allocs/op
+BenchmarkLibraryProgressSave10000-8 100 8538585 ns/op 80767 B/op 293 allocs/op
+BenchmarkLibraryProgressSave10000-8 100 8609260 ns/op 80581 B/op 292 allocs/op
+PASS; storage 82.854s (including fixture construction).
+Median 8.539 ms; range 8.332-8.609 ms. The earlier 9.356 ms sample was not
+reproduced here. These fsync-dominated local timings show variance, rather than
+a proven read-progress latency improvement; the allocation reduction persists.

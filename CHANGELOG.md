@@ -8,6 +8,46 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-19
+
+### Changed
+
+- Speed up large libraries with category indexes, adaptive search, batched status
+  refreshes, and resumable background backfill of missing content hashes.
+- Share resumable book downloads, bound cache writes, load ZIP worker assets on
+  demand, and defer reader controls to reduce startup work.
+- Improve mobile search, sorting, category management, and batch actions. Keep
+  compact reader controls below 1024px and simplify book cards with a working
+  reading button.
+- Bundle a distinct Chinese calligraphic reading font, share font faces with EPUB
+  chapters, and show the selected font size in a compact, collapsible preview.
+- Split shared styles by responsibility and expand responsive, visual, and
+  production-performance regression coverage.
+
+### Fixed
+
+- Limit status queries to 100 book IDs per request so real UUIDs do not exceed
+  HTTP request limits and leave processing-state refreshes stuck on HTTP 431.
+- Move keyboard focus into the reader action menu immediately and consume Escape
+  when closing it, preventing an unintended return to the shelf.
+
+### Security
+
+- Update the two development-only `brace-expansion` versions to 1.1.21 and 5.0.12,
+  addressing the dependency alerts for quadratic-time expansion.
+
+### Upgrade notes and limitations
+
+- Keep persistent data and uploads volumes and verify a backup before upgrading.
+  The first startup automatically builds the new library indexes; allow it to
+  finish before restarting the service. Missing legacy content hashes are filled
+  in the background.
+- Reload open readers after upgrading. Saved reading preferences remain usable;
+  the existing classic font option now uses the bundled calligraphic face.
+- For rollback, deploy v0.1.2 and restore the verified pre-upgrade backup using the
+  [operations runbook](docs/operations-runbook.md). Existing mobile background-audio
+  limitations remain unchanged.
+
 ## [0.1.2] - 2026-10-18
 
 ### Fixed
@@ -123,7 +163,8 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/zuoban/z-reader/releases/tag/v0.1.3
 [0.1.2]: https://github.com/zuoban/z-reader/releases/tag/v0.1.2
 [0.1.1]: https://github.com/zuoban/z-reader/releases/tag/v0.1.1
 [0.1.0]: https://github.com/zuoban/z-reader/releases/tag/v0.1.0

@@ -24,9 +24,10 @@ interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
   onHighlight?: (range: Range) => void;
   bookId?: string;
+  voicesEnabled?: boolean;
 }
 
-export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
+export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const stateRef = useRef<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
@@ -61,7 +62,9 @@ export function useTTS({ viewRef, onHighlight, bookId }: UseTTSOptions) {
   const isLikelyIOS = useMemo(() => typeof navigator !== 'undefined' &&
     (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)), []);
-  const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(settings.voiceName);
+  const { voices, voicesLoading, voicesError, loadVoices } = useTTSVoices(
+    settings.voiceName, voicesEnabled,
+  );
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const dismissResumePrompt = useCallback(() => {
     setResumePromptVisible(false);

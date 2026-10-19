@@ -11,6 +11,9 @@ import {
   removeOfflineBook,
 } from '@/lib/offline-books';
 
+// Keep encoded UUID status paths below 4 KiB, leaving room for HTTP headers.
+const BOOK_STATUS_BATCH_SIZE = 100;
+
 export interface Book {
   id: string;
   user_id: string;
@@ -357,8 +360,10 @@ export const api = {
 
   getBooksStatus: async (bookIds: string[]): Promise<Book[]> => {
     const books: Book[] = [];
-    for (let offset = 0; offset < bookIds.length; offset += 500) {
-      const params = new URLSearchParams({ book_ids: bookIds.slice(offset, offset + 500).join(',') });
+    for (let offset = 0; offset < bookIds.length; offset += BOOK_STATUS_BATCH_SIZE) {
+      const params = new URLSearchParams({
+        book_ids: bookIds.slice(offset, offset + BOOK_STATUS_BATCH_SIZE).join(','),
+      });
       const result = await fetchApi<{ books: Book[] }>(`/api/books/status?${params}`);
       books.push(...(result.books ?? []));
     }

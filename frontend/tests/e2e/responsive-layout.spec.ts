@@ -3,6 +3,7 @@ import {
   gotoStable,
   installBrowserStubs,
   mockAuthVerified,
+  mockMutableShelfApis,
   mockPopulatedShelfApis,
   mockReaderHappyPath,
 } from './helpers/fixtures';
@@ -17,6 +18,7 @@ test.describe('responsive reading and shelf controls', () => {
       await mockAuthVerified(page);
       await mockPopulatedShelfApis(page);
       await gotoStable(page, '/shelf');
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
       const search = page.getByRole('searchbox', { name: '搜索书库' });
       const sort = page.getByRole('button', { name: '书籍排序方式' });
       await expect(search).toHaveCSS('font-size', '16px');
@@ -60,6 +62,9 @@ test.describe('responsive reading and shelf controls', () => {
       await gotoStable(page, '/read/book-1');
       const title = page.getByRole('heading', { name: 'E2E Sample Book' });
       await expect(title).toBeVisible({ timeout: 30_000 });
+      const toolbarBox = await page.locator('header.reader-chrome').boundingBox();
+      const contentBox = await page.locator('.reader-page-frame').boundingBox();
+      expect(contentBox!.y).toBeGreaterThanOrEqual(toolbarBox!.y + toolbarBox!.height);
       const back = page.getByRole('button', { name: '返回书库', exact: true });
       await expect(back).toBeInViewport({ ratio: 1 });
       expect((await title.boundingBox())!.width).toBeGreaterThanOrEqual(120);
@@ -71,12 +76,59 @@ test.describe('responsive reading and shelf controls', () => {
     });
   }
 
+  for (const width of [390, 818, 1023]) {
+    test(`reader menu icons align before and after loading read-aloud at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 923 });
+      await installBrowserStubs(page, { authenticated: true });
+      await mockReaderHappyPath(page);
+      await gotoStable(page, '/read/book-1');
+      await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+
+      const more = page.getByRole('button', { name: '更多阅读操作', exact: true });
+      await more.click();
+      const actions = page.getByRole('dialog', { name: '阅读操作' });
+
+      async function expectAlignedMenu() {
+        const buttons = actions.getByRole('button');
+        await expect(buttons).toHaveCount(7);
+        const geometry = await buttons.evaluateAll((elements) => elements.map((button) => {
+          const row = button.getBoundingClientRect();
+          const icon = button.querySelector('svg')!.getBoundingClientRect();
+          const label = button.querySelector('span')!.getBoundingClientRect();
+          return {
+            iconLeft: icon.x,
+            iconWidth: icon.width,
+            labelLeft: label.x,
+            rowHeight: row.height,
+            centerOffset: icon.y + icon.height / 2 - (row.y + row.height / 2),
+          };
+        }));
+        for (const item of geometry) {
+          expect(item.iconLeft).toBeCloseTo(geometry[0].iconLeft, 1);
+          expect(item.iconWidth).toBeCloseTo(geometry[0].iconWidth, 1);
+          expect(item.labelLeft).toBeCloseTo(geometry[0].labelLeft, 1);
+          expect(item.rowHeight).toBeCloseTo(geometry[0].rowHeight, 1);
+          expect(item.rowHeight).toBeGreaterThanOrEqual(44);
+          expect(item.centerOffset).toBeCloseTo(0, 1);
+        }
+      }
+
+      await expectAlignedMenu();
+      await actions.getByRole('button', { name: '朗读控制', exact: true }).click();
+      await page.getByRole('button', { name: '关闭朗读控制', exact: true }).click();
+      if (!await actions.isVisible()) await more.click();
+      await expectAlignedMenu();
+    });
+  }
+
   test('book card footer opens the book', async ({ page }) => {
     await installBrowserStubs(page, { authenticated: true });
     await mockAuthVerified(page);
     await mockPopulatedShelfApis(page);
     await gotoStable(page, '/shelf');
-    await expect(page.getByText('红楼梦', { exact: true })).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: '红楼梦', exact: true })).toHaveCount(1);
     await expect(page.getByText('曹雪芹', { exact: true })).toHaveCount(1);
     const read = page.getByRole('button', { name: '继续阅读：红楼梦', exact: true });
     await expect(read).toBeVisible();
@@ -84,6 +136,64 @@ test.describe('responsive reading and shelf controls', () => {
     await read.click();
     await expect(page).toHaveURL(/\/read\/book-1/);
     await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+  });
+
+  for (const width of [390, 818, 1280]) {
+    test(`book cards align with mixed title lengths at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 923 });
+      await installBrowserStubs(page, { authenticated: true });
+      await mockAuthVerified(page);
+      const shelf = await mockMutableShelfApis(page);
+      shelf.books = shelf.books.slice(0, 2);
+      shelf.books[0].title = 'Go 语言精进之路：从新手到高手的编程思想、方法和技巧';
+      shelf.books[1].title = '中国近代史';
+      await gotoStable(page, '/shelf');
+
+      const cards = page.locator('article.shelf-book-card');
+      await expect(cards).toHaveCount(2);
+      const geometry = await cards.evaluateAll((elements) => elements.map((card) => {
+        const bounds = card.getBoundingClientRect();
+        const footer = card.querySelector(':scope > div')!.getBoundingClientRect();
+        const progress = card.querySelector('.h-1')!.getBoundingClientRect();
+        const title = card.querySelector('h2')!.getBoundingClientRect();
+        const cover = card.querySelector(':scope > button > div')!.getBoundingClientRect();
+        return {
+          top: bounds.top,
+          height: bounds.height,
+          footerTop: footer.top,
+          progressTop: progress.top,
+          titleHeight: title.height,
+          coverWidth: cover.width,
+          coverHeight: cover.height,
+        };
+      }));
+
+      expect(geometry[0].titleHeight).toBeGreaterThan(geometry[1].titleHeight);
+      expect(geometry[0].top).toBeCloseTo(geometry[1].top, 1);
+      expect(geometry[0].height).toBeCloseTo(geometry[1].height, 1);
+      expect(geometry[0].footerTop).toBeCloseTo(geometry[1].footerTop, 1);
+      expect(geometry[0].progressTop).toBeCloseTo(geometry[1].progressTop, 1);
+      for (const card of geometry) {
+        expect(card.coverHeight).toBeCloseTo(card.coverWidth * 6 / 5, 1);
+      }
+    });
+  }
+
+  test('long fallback titles stay between cover labels on narrow phones', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    await installBrowserStubs(page, { authenticated: true });
+    await mockAuthVerified(page);
+    const shelf = await mockMutableShelfApis(page);
+    const title = '一本关于世界历史与人类文明漫长旅途的书';
+    shelf.books[0].title = title;
+    await gotoStable(page, '/shelf');
+    const card = page.getByRole('button', { name: `阅读《${title}》`, exact: true });
+    const cover = card.locator('.book-cover-fallback');
+    const collection = await cover.locator(':scope > span').first().boundingBox();
+    const category = await cover.locator(':scope > span').last().boundingBox();
+    const coverTitle = await cover.locator('p').boundingBox();
+    expect(coverTitle!.y).toBeGreaterThanOrEqual(collection!.y + collection!.height);
+    expect(coverTitle!.y + coverTitle!.height).toBeLessThanOrEqual(category!.y);
   });
 
   test('reader and preview load the same bundled Chinese font at the selected size', async ({

@@ -8,6 +8,39 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-19
+
+### Changed
+
+- Unify the landing page, login, library, and reader controls around a modern
+  study theme with paper-white surfaces, forest-green accents, and clearer type.
+- Refine light and dark palettes, responsive layouts, shared library previews,
+  and interaction states for reading on phones, tablets, and desktops.
+- Refresh all 23 Linux and macOS visual baselines and extend responsive layout
+  coverage for mixed book-title lengths and lazy-loaded reader controls.
+- Match Linux snapshot generation to the pinned Ubuntu 24.04 amd64 CI runner.
+
+### Fixed
+
+- Keep book cards in the same shelf row equal in height, with aligned reading
+  progress and footer actions while preserving cover proportions.
+- Align all seven reader action-menu icons and labels before and after the
+  read-aloud controls load, using consistent icon sizes and row heights.
+- Keep the reader toolbar clear of the reading surface and preserve the initial
+  shelf scroll position and browser theme colors.
+
+### Upgrade notes and limitations
+
+- No database migration or new configuration is required. Preserve the existing
+  data and uploads volumes, and reload open pages to receive the refreshed UI.
+- A real-book reload in the local development in-app browser encountered a
+  reading-position initialization timeout. Automated reader tests pass; the cause
+  of that browser-specific observation remains unconfirmed.
+- Existing mobile background-audio limitations remain unchanged. This UI release
+  does not modify the backend, speech pipeline, or vendored reader engine.
+- For rollback, deploy v0.1.3 with the same persistent volumes. Follow the
+  [operations runbook](docs/operations-runbook.md) if backup restoration is needed.
+
 ## [0.1.3] - 2026-10-19
 
 ### Changed
@@ -163,7 +196,8 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/zuoban/z-reader/releases/tag/v0.1.4
 [0.1.3]: https://github.com/zuoban/z-reader/releases/tag/v0.1.3
 [0.1.2]: https://github.com/zuoban/z-reader/releases/tag/v0.1.2
 [0.1.1]: https://github.com/zuoban/z-reader/releases/tag/v0.1.1

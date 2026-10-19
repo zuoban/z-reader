@@ -4,12 +4,12 @@
   .reader-chrome-btn {
     @apply flex min-h-10 items-center gap-2 px-2 text-xs font-medium transition-all sm:px-3 sm:text-sm;
     border-radius: var(--paper-radius-control);
-    color: color-mix(in srgb, var(--foreground) 62%, transparent);
+    color: var(--muted-foreground);
   }
 
   .reader-chrome-btn:hover {
-    color: var(--foreground);
-    background: color-mix(in srgb, var(--muted) 72%, transparent);
+    color: var(--primary);
+    background: var(--secondary);
   }
 
   .reader-chrome-btn:active {
@@ -19,12 +19,12 @@
   .reader-chrome-icon {
     @apply flex h-10 w-10 shrink-0 items-center justify-center transition-all;
     border-radius: var(--paper-radius-control);
-    color: color-mix(in srgb, var(--foreground) 62%, transparent);
+    color: var(--muted-foreground);
   }
 
   .reader-chrome-icon:hover {
-    color: var(--foreground);
-    background: color-mix(in srgb, var(--muted) 72%, transparent);
+    color: var(--primary);
+    background: var(--secondary);
   }
 
   .reader-mobile-menu-item {

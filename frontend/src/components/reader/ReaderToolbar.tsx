@@ -157,7 +157,7 @@ export function ReaderToolbar({
   }
 
   const chromeBtnClass =
-    "reader-chrome-btn border-0 bg-transparent shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]";
+    "reader-chrome-btn border-0 bg-transparent shadow-none";
 
   return (
     <>
@@ -169,17 +169,13 @@ export function ReaderToolbar({
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
         }`}
         style={{
-          background: `
-            linear-gradient(180deg, ${withOpacity(uiScheme.fg, isDark ? 0.04 : 0.03)} 0%, transparent 100%),
-            ${withOpacity(uiScheme.bg, isDark ? 0.94 : 0.92)}
-          `,
-          borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, isDark ? 0.18 : 0.1)}`,
-          boxShadow: `0 10px 28px -22px ${withOpacity(uiScheme.fg, isDark ? 0.55 : 0.22)}`,
-          backdropFilter: "blur(16px) saturate(1.15)",
+          background: withOpacity(uiScheme.bg, 0.96),
+          borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, 0.7)}`,
+          backdropFilter: "blur(12px)",
           paddingTop: headerSafeAreaPaddingTop,
         }}
       >
-        <div className="pointer-events-auto mx-auto flex h-12 max-w-full items-center px-3 sm:px-6">
+        <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-full items-center px-3 sm:px-6">
           <div className="flex flex-1 items-center gap-1.5 overflow-hidden sm:gap-2">
             <Button
               variant="ghost"
@@ -187,7 +183,7 @@ export function ReaderToolbar({
               onClick={onBack}
               title="返回书库"
               aria-label="返回书库"
-              className="reader-chrome-icon h-10 w-10 shrink-0 border-0 bg-transparent shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+              className="reader-chrome-icon h-10 w-10 shrink-0 border-0 bg-transparent shadow-none"
             >
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </Button>
@@ -209,7 +205,7 @@ export function ReaderToolbar({
                 aria-haspopup="dialog"
                 aria-label="更多阅读操作"
                 aria-controls={mobileActionsOpen ? mobileActionsMenuId : undefined}
-                className="reader-chrome-icon h-10 w-10 border-0 bg-transparent p-0 shadow-none hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                className="reader-chrome-icon h-10 w-10 border-0 bg-transparent p-0 shadow-none"
                 onClick={() => setMobileActionsOpen((open) => !open)}
                 title="更多阅读操作"
                 type="button"
@@ -294,7 +290,7 @@ export function ReaderToolbar({
                     </span>
                   </button>
                 )}
-                <div className="px-1 py-0.5">{mobileTtsControls}</div>
+                {mobileTtsControls}
                 <button
                   className="reader-mobile-menu-item"
                   onClick={() => {

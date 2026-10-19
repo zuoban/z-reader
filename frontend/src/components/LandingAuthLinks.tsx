@@ -20,7 +20,7 @@ export function LandingAuthLink({ primary = false }: { primary?: boolean }) {
   return primary ? (
     <Link
       href={authenticated ? '/shelf' : '/login?mode=register'}
-      className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-[0_14px_32px_-18px_var(--paper-shadow)] transition-all hover:opacity-92 active:scale-[0.98]"
+      className="app-primary-link"
     >
       {authenticated ? '回到我的书架' : '创建我的书库'}
     </Link>

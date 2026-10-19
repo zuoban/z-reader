@@ -65,6 +65,7 @@ export function VirtualBookGrid<T>({
   const loadLockRef = useRef(false);
   const lastLoadAtRef = useRef(0);
   const measureRafRef = useRef(0);
+  const previousResetKeyRef = useRef(resetKey);
 
   useEffect(() => {
     onEndReachedRef.current = onEndReached;
@@ -152,6 +153,9 @@ export function VirtualBookGrid<T>({
 
   // Filter / sort / search: jump back so users see the new list from the top.
   useLayoutEffect(() => {
+    // Initial mounting must leave the shelf heading and filter controls in view.
+    if (previousResetKeyRef.current === resetKey) return;
+    previousResetKeyRef.current = resetKey;
     if (resetKey === undefined) return;
     loadLockRef.current = false;
     lastLoadAtRef.current = 0;

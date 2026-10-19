@@ -1,0 +1,53 @@
+/* Entry-page compositions and the shared, non-interactive library illustration. */
+
+@layer utilities {
+  .app-ambient {
+    background: radial-gradient(ellipse at 85% 5%, var(--surface-subtle), transparent 55%);
+  }
+
+  .app-ambient[data-variant="login"] {
+    background: linear-gradient(120deg, var(--surface-subtle), var(--background) 65%);
+  }
+
+  .landing-hero {
+    @apply grid items-center gap-12 py-12 sm:py-16 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16 lg:py-24;
+  }
+
+  .library-preview {
+    @apply relative rounded-2xl border border-border bg-card p-5 sm:p-7;
+    container-type: inline-size;
+    box-shadow: 0 24px 64px -40px var(--paper-shadow);
+  }
+
+  .preview-cover {
+    @apply relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-r-md p-3 text-[#fff9e8] sm:p-4;
+    background: var(--cover-color);
+    box-shadow: 3px 5px 8px rgb(20 32 22 / 12%);
+  }
+
+  .preview-cover::after {
+    content: "";
+    position: absolute;
+    inset: 9px 9px 9px 13px;
+    border: 1px solid rgb(255 249 232 / 24%);
+    pointer-events: none;
+  }
+
+  .auth-layout {
+    @apply mx-auto grid w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card;
+    @apply lg:max-w-5xl lg:grid-cols-[1fr_1fr];
+    box-shadow: var(--paper-shadow-panel);
+  }
+
+  .auth-editorial {
+    @apply hidden flex-col justify-between border-r border-border bg-surface-subtle p-10 lg:flex;
+  }
+
+  .auth-form-panel {
+    @apply w-full px-6 py-9 sm:px-10 sm:py-12;
+  }
+
+  .entry-feature {
+    @apply border-t border-border py-6;
+  }
+}

@@ -63,6 +63,11 @@ test.describe('reader happy path', () => {
     await ensureToolbarVisible(page);
     await page.getByTitle('返回书库').click();
     await expect(page).toHaveURL(/\/shelf/, { timeout: 15_000 });
+    const shelfBackground = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--background').trim()
+    );
+    await expect(page.locator('meta[data-z-reader-theme-color]'))
+      .toHaveAttribute('content', shelfBackground);
   });
 
   test('turns pages with keyboard and can open the next chapter via TOC', async ({

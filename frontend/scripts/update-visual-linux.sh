@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Generate / refresh visual baselines on Linux (Playwright Docker image).
-# Use this so committed screenshots match GitHub Actions ubuntu-latest.
+# Match the Ubuntu 24.04 amd64 visual runner, including on ARM hosts.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLAYWRIGHT_VERSION="$(node -p "require('${ROOT}/node_modules/@playwright/test/package.json').version")"
-IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-jammy"
+IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
 
 echo "Using image: ${IMAGE}"
 echo "Working dir: ${ROOT}"
@@ -13,6 +13,7 @@ echo "Working dir: ${ROOT}"
 # Anonymous volume for node_modules so Linux npm ci does not clobber the
 # host's platform-native bindings (e.g. macOS arm64 lightningcss/rolldown).
 docker run --rm \
+  --platform linux/amd64 \
   -v "${ROOT}:/work" \
   -v /work/node_modules \
   -w /work \

@@ -50,7 +50,7 @@ describe('BookCard', () => {
   it('shows the fallback author only once', () => {
     renderCard();
     expect(screen.getAllByText('曹雪芹')).toHaveLength(1);
-    expect(screen.getAllByText('红楼梦')).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { name: '红楼梦' })).toHaveLength(1);
   });
 
   it('selects a book from the footer without opening it in selection mode', () => {

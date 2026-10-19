@@ -294,8 +294,8 @@ jobs:
 
   frontend-visual-test:
     name: Frontend Visual Regression
-    # Hard gate against committed linux/ baselines (Noto CJK fonts).
-    runs-on: ubuntu-latest
+    # Match the Ubuntu release used by the local snapshot generator.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     needs:
       - frontend-lint

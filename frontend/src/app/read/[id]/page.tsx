@@ -66,7 +66,7 @@ export default function ReadPage() {
         shelfPreset === "dark"
       ) {
         root.style.colorScheme = shelfPreset === "dark" ? "dark" : "light";
-        applyThemeColor(themeColorForPreset(shelfPreset));
+        applyThemeColor(themeColorForAppMode(shelfPreset === "dark"));
         return;
       }
       const shelfIsDark = root.classList.contains("dark");
@@ -321,7 +321,8 @@ export default function ReadPage() {
     boxShadow: `0 -4px 20px -8px rgba(0, 0, 0, ${isDarkPreset ? 0.4 : 0.05})`,
   } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
-  const readerContentInsetTop = "calc(env(safe-area-inset-top, 0px) + 2.75rem)";
+  const readerContentInsetTop =
+    "calc(env(safe-area-inset-top, 0px) + var(--reader-toolbar-height))";
   const statusBarReservedSpace = "var(--status-bar-reserved)";
   const statusBarSafeAreaPaddingBottom = "env(safe-area-inset-bottom, 0px)";
 
@@ -421,11 +422,11 @@ export default function ReadPage() {
             <DeferredTTSControls
               {...sharedTTSControlsProps}
               variant="toolbar"
-              triggerClassName="flex min-h-11 w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-all hover:bg-muted/50"
+              triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
               triggerStyle={{}}
               triggerContent={
                 <>
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="size-4 opacity-80" />
                   <span>朗读</span>
                 </>
               }

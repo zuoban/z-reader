@@ -1,6 +1,53 @@
 /* Shared paper surfaces and reusable controls. */
 
 @layer utilities {
+  .book-cover-spine::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 8px;
+    background: linear-gradient(90deg, rgb(0 0 0 / 16%), rgb(255 255 255 / 12%), transparent);
+    pointer-events: none;
+  }
+
+  .app-container {
+    @apply mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-12;
+  }
+
+  .app-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary;
+  }
+
+  .app-primary-link,
+  .app-secondary-link {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold;
+    transition: background-color var(--paper-duration-fast),
+      color var(--paper-duration-fast), transform var(--paper-duration-fast);
+  }
+
+  .app-primary-link {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98];
+  }
+
+  .app-secondary-link {
+    @apply border border-border bg-card text-foreground hover:bg-secondary active:scale-[0.98];
+  }
+
+  .app-field {
+    @apply h-12 rounded-lg border border-border bg-card text-base shadow-none;
+    transition: border-color var(--paper-duration-fast),
+      box-shadow var(--paper-duration-fast);
+  }
+
+  .app-field::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .app-field:focus-visible {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
   .text-meta {
     color: var(--subtle-foreground);
     font-size: 0.75rem;
@@ -46,10 +93,8 @@
 
   .app-sheet-shell,
   .app-dialog-shell {
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--paper-edge) 42%, transparent) 0%, transparent 10rem),
-      color-mix(in srgb, var(--popover) 94%, var(--background));
-    border-color: color-mix(in srgb, var(--border) 76%, transparent);
+    background: var(--popover);
+    border-color: var(--border);
     box-shadow: var(--paper-shadow-floating);
   }
 
@@ -111,7 +156,7 @@
   .paper-menu {
     background: var(--popover);
     border: 1px solid var(--border);
-    box-shadow: none;
+    box-shadow: var(--paper-shadow-floating);
     transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
       opacity var(--paper-duration-fast) var(--paper-ease-soft);

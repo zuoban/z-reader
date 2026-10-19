@@ -67,7 +67,12 @@ const ConfirmDialog = dynamic(
 
 function ShelfBrand() {
   return (
-    <BrandLogo compact className="drop-shadow-[0_10px_24px_rgba(0,0,0,0.08)] dark:drop-shadow-[0_16px_34px_rgba(0,0,0,0.4)]" />
+    <div className="flex items-center gap-5">
+      <BrandLogo compact />
+      <span className="hidden border-l border-border pl-5 text-xs tracking-widest text-muted-foreground sm:block">
+        私人藏书室
+      </span>
+    </div>
   );
 }
 
@@ -309,8 +314,8 @@ export default function ShelfPage() {
       className="bg-[var(--shelf-app-bg)] font-sans"
       contentClassName="flex min-h-dvh w-full flex-col"
     >
-      <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-[color:var(--shelf-header-bg)]/92 shadow-[0_12px_36px_-32px_var(--paper-shadow)] backdrop-blur-xl dark:border-white/8 dark:bg-[color:var(--shelf-header-bg)]/86 dark:shadow-[0_18px_48px_-42px_rgba(0,0,0,0.9)]">
-        <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center justify-between px-5 sm:px-7 lg:px-10">
+      <header className="shelf-header sticky top-0 z-50 w-full border-b border-border backdrop-blur-md">
+        <div className="app-container flex h-[4.5rem] items-center justify-between">
           <ShelfBrand />
 
           <div className="flex items-center gap-1.5">
@@ -321,7 +326,7 @@ export default function ShelfPage() {
               title="上传书籍"
               multiple
               buttonSize="icon-sm"
-              buttonClassName="h-11 w-11 rounded-xl border border-primary bg-primary px-0 text-[14px] font-semibold text-primary-foreground shadow-[0_12px_28px_-18px_var(--paper-shadow)] transition-all hover:opacity-92 active:scale-[0.98] sm:h-10 sm:w-auto sm:rounded-xl sm:px-5 dark:border-primary/25 dark:shadow-[0_14px_34px_-22px_var(--primary)]"
+              buttonClassName="h-11 w-11 rounded-lg bg-primary px-0 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:w-auto sm:px-5"
             >
               {isUploading ? (
                 <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
@@ -335,7 +340,7 @@ export default function ShelfPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 rounded-xl border border-border/70 bg-card/90 text-foreground shadow-none hover:bg-secondary/70 sm:h-10 sm:w-10 dark:border-white/10 dark:bg-white/[0.045] dark:text-primary dark:hover:bg-white/[0.085]"
+                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
                   aria-label="账户与设置"
                   title="账户与设置"
                 >
@@ -370,13 +375,27 @@ export default function ShelfPage() {
       <main
         id="shelf-main"
         aria-label="书库"
-        className="relative z-10 mx-auto w-full max-w-[1920px] flex-1 px-5 py-6 sm:px-7 sm:py-8 lg:px-10 lg:py-9"
+        className="app-container relative z-10 flex-1 py-7 sm:py-10"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
-        <h1 className="sr-only">我的书库</h1>
+        <div className="mb-7 flex items-end justify-between gap-4 border-b border-border pb-6 sm:mb-8 sm:pb-7">
+          <div>
+            <p className="app-eyebrow mb-2 text-[10px]">The personal collection</p>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">我的书库</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">世界很大，从手边的一本书开始。</p>
+          </div>
+          {!isLoadingBooks && !loadError && (
+            <p className="shrink-0 pb-1 text-xs text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
+              <span className="mr-1.5 font-serif text-3xl tabular-nums text-primary sm:text-4xl">
+                {bookCounts.all}
+              </span>
+              本藏书
+            </p>
+          )}
+        </div>
         {!isLoadingBooks && loadError ? (
           <div className="flex min-h-[28rem] items-center justify-center">
             <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">
@@ -446,19 +465,19 @@ export default function ShelfPage() {
             )}
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-6">
             {!isLoadingBooks && !isLibraryEmpty && (
-              <div className="flex flex-col gap-4">
+              <div className="shelf-toolbar flex flex-col gap-4">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="group relative min-w-0 flex-1">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 transition-colors" />
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="search"
                       value={searchQuery}
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名或作者..."
                       aria-label="搜索书库"
-                      className="h-12 rounded-xl border border-transparent bg-shelf-surface-soft pl-11 pr-11 text-base font-medium text-foreground shadow-none transition-all placeholder:text-muted-foreground/60 hover:bg-shelf-surface-hover focus:bg-shelf-surface-soft focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 sm:text-sm dark:border-white/8 dark:bg-white/[0.055] dark:text-foreground dark:placeholder:text-muted-foreground/60 dark:hover:bg-white/[0.075] dark:focus:bg-white/[0.07]"
+                      className="app-field pl-11 pr-11 sm:text-sm"
                     />
                     {searchQuery && (
                       <button

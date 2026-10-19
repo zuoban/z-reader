@@ -4,7 +4,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { memo, useState, type CSSProperties, type ReactNode } from 'react';
 import { BookOpen, Check } from 'lucide-react';
-import { Book } from '@/lib/api';
+import type { Book } from '@/lib/api';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
@@ -121,16 +121,10 @@ interface BookCoverFaceProps {
   priority?: boolean;
 }
 
-/* Muted parchment-inspired covers — refined, not candy-pastel */
-const fallbackCoverGradients = [
-  'linear-gradient(155deg, #3d4f5f 0%, #6b8494 48%, #8fa3ad 100%)',
-  'linear-gradient(155deg, #4a3f55 0%, #7a6b88 48%, #a094ad 100%)',
-  'linear-gradient(155deg, #3f5248 0%, #6a8574 48%, #8fa99a 100%)',
-  'linear-gradient(155deg, #5c3f3c 0%, #8f6a64 48%, #b8948c 100%)',
-  'linear-gradient(155deg, #5c4e32 0%, #8f7d52 48%, #b8a878 100%)',
-  'linear-gradient(155deg, #36555a 0%, #5f8488 48%, #8aadb0 100%)',
-  'linear-gradient(155deg, #5a4634 0%, #8a7054 48%, #b49878 100%)',
-  'linear-gradient(155deg, #3a4a52 0%, #62757e 48%, #8a9aa3 100%)',
+/* Clothbound colors keep missing artwork intentional and readable. */
+const fallbackCoverColors = [
+  '#37584b', '#627582', '#9b724b', '#7e5653',
+  '#5d6650', '#526b6d', '#7e674c', '#605e75',
 ];
 
 function BookCoverFace({
@@ -162,26 +156,26 @@ function BookCoverFace({
     );
   }
 
-  const background = fallbackCoverGradients[index % fallbackCoverGradients.length];
+  const coverColor = fallbackCoverColors[index % fallbackCoverColors.length];
 
   return (
     <div
-      className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-5 text-center text-white sm:px-6"
-      style={{ background }}
+      className="book-cover-fallback book-cover-spine relative flex h-full w-full flex-col overflow-hidden px-6 py-6 text-center"
+      style={{ '--cover-color': coverColor } as CSSProperties}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_12%,rgba(255,255,255,0.18),transparent_36%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.18)_100%)] transition-transform duration-500 ease-out group-hover/card:scale-[1.04]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent" />
+      <span className="relative z-10 shrink-0 text-[8px] font-medium tracking-[0.18em] opacity-80">
+        Z / COLLECTION
+      </span>
+      <div aria-hidden="true" className="relative z-10 my-3 flex min-h-0 flex-1 items-center justify-center overflow-hidden border-y border-current/25 py-2">
+        <p className="line-clamp-3 max-h-full w-full break-words font-heading text-lg font-semibold leading-relaxed tracking-[0.04em] sm:text-xl">
+          {titleLabel}
+        </p>
+      </div>
       {categoryLabel && (
-        <span className="absolute left-2.5 top-2.5 rounded-full border border-white/15 bg-black/25 px-2.5 py-1 text-[11px] font-semibold leading-none text-white/95 shadow-sm backdrop-blur-sm">
+        <span className="relative z-10 shrink-0 truncate text-[10px] tracking-[0.12em] opacity-85">
           {categoryLabel}
         </span>
       )}
-      <div aria-hidden="true" className="relative mt-4 flex flex-col items-center gap-3">
-        <span className="h-px w-8 bg-white/35" />
-        <span className="font-serif text-5xl font-medium leading-none text-white/90 drop-shadow-sm sm:text-6xl">
-          {Array.from(titleLabel)[0]?.toLocaleUpperCase()}
-        </span>
-      </div>
     </div>
   );
 }
@@ -236,10 +230,10 @@ export const BookCard = memo(function BookCard({
   }
 
   return (
-    <div className="flex w-full items-stretch" ref={coverRef}>
+    <div className="flex h-full w-full items-stretch" ref={coverRef}>
       <article
         className={cn(
-          'group/card shelf-book-card paper-reveal-soft relative flex w-full flex-col overflow-hidden rounded-2xl p-0',
+          'group/card shelf-book-card paper-reveal-soft relative flex w-full flex-col overflow-hidden rounded-xl p-0',
           selected && 'border-primary ring-2 ring-primary/80 dark:border-primary dark:ring-primary/55'
         )}
         style={{
@@ -287,7 +281,7 @@ export const BookCard = memo(function BookCard({
           <div className="flex flex-1 flex-col gap-2.5 p-3 pb-2 sm:px-3.5">
             <div className="flex-1">
               <h2
-                className="line-clamp-2 text-[0.98rem] font-semibold leading-[1.3] tracking-[-0.015em] text-foreground"
+                className="line-clamp-2 font-heading text-[0.98rem] font-semibold leading-[1.3] tracking-[-0.015em] text-foreground"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
@@ -341,7 +335,7 @@ export const BookCard = memo(function BookCard({
               aria-label={`${readActionLabel}：${titleLabel}`}
               className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1 text-meta transition-colors hover:bg-secondary/60 hover:text-foreground"
             >
-              <BookOpen className="h-3.5 w-3.5 shrink-0 text-foreground/72" />
+              <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="truncate">{readActionLabel}</span>
             </button>
           )}

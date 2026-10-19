@@ -125,10 +125,9 @@ export function ReaderToolbar({
   useEffect(() => {
     if (!mobileActionsOpen) return;
 
-    const firstMenuItem = mobileActionsMenuRef.current?.querySelector<HTMLButtonElement>(
+    mobileActionsMenuRef.current?.querySelector<HTMLButtonElement>(
       "button:not(:disabled)"
-    );
-    firstMenuItem?.focus();
+    )?.focus();
   }, [mobileActionsOpen]);
 
   useEffect(() => {
@@ -153,6 +152,7 @@ export function ReaderToolbar({
     if (event.key !== "Escape") return;
 
     event.preventDefault();
+    event.stopPropagation();
     closeMobileActions();
   }
 
@@ -202,7 +202,7 @@ export function ReaderToolbar({
           </div>
 
           <div className="relative flex items-center gap-0.5 sm:gap-1.5">
-            <div className="sm:hidden">
+            <div className="lg:hidden">
               <Button
                 ref={mobileActionsButtonRef}
                 aria-expanded={mobileActionsOpen}
@@ -223,7 +223,7 @@ export function ReaderToolbar({
                 aria-hidden={!mobileActionsOpen}
                 aria-labelledby={mobileActionsTitleId}
                 className={cn(
-                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-2xl border p-1.5 text-sm shadow-[0_22px_48px_-28px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl transition-[opacity,transform,visibility] duration-150 ease-out scrollbar-none",
+                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-2xl border p-1.5 text-sm shadow-[0_22px_48px_-28px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl transition-[opacity,transform] duration-150 ease-out scrollbar-none",
                   mobileActionsOpen
                     ? "visible translate-y-0 opacity-100"
                     : "pointer-events-none invisible -translate-y-1 opacity-0"
@@ -326,7 +326,7 @@ export function ReaderToolbar({
 
             <div
               data-reader-toolbar-actions="desktop"
-              className="hidden items-center gap-0.5 sm:flex sm:gap-1"
+              className="hidden items-center gap-1 lg:flex"
             >
               <ReaderTOCSheet
                 open={tocOpen}

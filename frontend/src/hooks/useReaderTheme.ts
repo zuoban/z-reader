@@ -2,6 +2,8 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
+import { getReaderFontFaces } from "@/lib/reader-fonts";
+
 export type ReaderFontFamily = "editorial" | "classic" | "humanist";
 
 export interface ReaderTheme {
@@ -31,12 +33,12 @@ export const FONT_FAMILY_OPTIONS: Record<
   editorial: {
     label: "杂志衬线",
     description: "更有书页感，适合长篇阅读",
-    stack: '"Noto Serif SC", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
+    stack: '"Crimson Text", "Noto Serif SC", "Iowan Old Style", Georgia, serif',
   },
   classic: {
-    label: "经典衬线",
-    description: "更接近传统纸书的气质",
-    stack: '"Noto Serif SC", Georgia, "Times New Roman", Times, serif',
+    label: "书卷楷体",
+    description: "霞鹜文楷，带有手写笔意的书卷气质",
+    stack: '"LXGW WenKai TC", "Kaiti SC", KaiTi, serif',
   },
   humanist: {
     label: "人文无衬线",
@@ -322,7 +324,10 @@ export function useReaderTheme() {
     const scrollbarThumbHover = withOpacity(preset.fg, isDark ? 0.34 : 0.26);
     const hrColor = withOpacity(preset.fg, isDark ? 0.14 : 0.12);
 
+    const fontFaces = typeof document === "undefined" ? "" : getReaderFontFaces(document);
+
     return `
+      ${fontFaces}
       html {
         background: ${preset.bg} !important;
         color: ${preset.fg} !important;

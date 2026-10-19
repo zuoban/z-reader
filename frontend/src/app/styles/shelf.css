@@ -1,0 +1,205 @@
+/* Shelf cards, category controls, and the account menu. */
+
+@layer utilities {
+  .category-chip-pill {
+    @apply inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-left text-[13px] font-semibold transition-all;
+    border-color: color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 78%, var(--background));
+    color: var(--muted-foreground);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 40%, transparent);
+  }
+
+  .category-chip-pill:hover {
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--secondary) 70%, var(--card));
+  }
+
+  .category-chip-pill[data-active="true"],
+  .category-chip-pill-active {
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    color: var(--primary);
+  }
+
+  .shelf-filter-chip {
+    display: inline-flex;
+    min-height: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding-inline: 1rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition:
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (min-width: 640px) {
+    .shelf-filter-chip {
+      min-height: 2rem;
+      padding-inline: 0.875rem;
+    }
+  }
+
+  .shelf-filter-chip:active {
+    transform: scale(0.97);
+  }
+
+  .shelf-filter-chip[data-active="true"] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 10px 22px -18px var(--paper-shadow);
+  }
+
+  .shelf-filter-chip:not([data-active="true"]) {
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    color: var(--foreground);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 40%, transparent);
+  }
+
+  .shelf-filter-chip:not([data-active="true"]):hover {
+    background: color-mix(in srgb, var(--secondary) 70%, var(--card));
+  }
+
+  .dark .shelf-filter-chip:not([data-active="true"]) {
+    border-color: color-mix(in srgb, white 8%, transparent);
+    background: color-mix(in srgb, white 4.5%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .dark .shelf-filter-chip:not([data-active="true"]):hover {
+    background: color-mix(in srgb, white 8%, transparent);
+    color: var(--foreground);
+  }
+
+  .dark .shelf-filter-chip[data-active="true"] {
+    box-shadow: 0 10px 26px -22px var(--primary);
+  }
+
+  .category-input {
+    background: color-mix(in srgb, var(--input) 84%, var(--background));
+    border-color: color-mix(in srgb, var(--border) 86%, transparent);
+  }
+
+  .category-input:focus-visible {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  .shelf-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .shelf-book-card {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--glass-specular) 28%, transparent) 0%,
+        transparent 42%
+      ),
+      var(--card);
+    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    box-shadow:
+      0 14px 38px -34px var(--paper-shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 48%, transparent);
+    transition:
+      border-color var(--paper-duration-base) var(--paper-ease-soft),
+      background-color var(--paper-duration-base) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft),
+      transform var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .shelf-book-card:hover {
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+    box-shadow:
+      0 22px 52px -34px var(--paper-shadow),
+      0 8px 18px -16px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 58%, transparent);
+    transform: translateY(-3px);
+  }
+
+  .shelf-book-card:active {
+    transform: translateY(-1px);
+    transition-duration: 80ms;
+  }
+
+  .dark .shelf-book-card {
+    background: linear-gradient(180deg, var(--shelf-card-start) 0%, var(--shelf-card-end) 100%);
+    border-color: color-mix(in srgb, var(--border) 55%, transparent);
+    box-shadow:
+      0 20px 56px -46px rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(255, 244, 220, 0.045);
+  }
+
+  .dark .shelf-book-card:hover {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    box-shadow:
+      0 26px 64px -48px rgba(0, 0, 0, 0.95),
+      inset 0 1px 0 rgba(255, 244, 220, 0.06);
+  }
+
+  .shelf-account-menu[data-slot="dropdown-menu-content"] {
+    background-color: var(--background);
+    background-image:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--paper-edge) 42%, transparent) 0%,
+        transparent 46%
+      );
+    border-color: color-mix(in srgb, var(--border) 76%, transparent);
+    box-shadow:
+      0 18px 42px -28px var(--paper-shadow),
+      0 8px 20px -16px var(--paper-shadow-soft),
+      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 58%, transparent);
+  }
+
+  .shelf-account-menu .shelf-account-menu-item {
+    min-height: 2.45rem;
+    gap: 0.7rem;
+    border-radius: 0.85rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.9rem;
+    font-weight: 520;
+    color: color-mix(in srgb, var(--foreground) 84%, var(--muted-foreground));
+    transition:
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .shelf-account-menu .shelf-account-menu-item[data-slot="dropdown-menu-item"] svg {
+    width: 1rem;
+    height: 1rem;
+    color: color-mix(in srgb, var(--muted-foreground) 74%, var(--foreground));
+  }
+
+  .shelf-account-menu .shelf-account-menu-item:focus,
+  .shelf-account-menu .shelf-account-menu-item:hover {
+    background: color-mix(in srgb, var(--muted) 58%, transparent);
+    color: var(--foreground);
+    transform: translateX(1px);
+  }
+
+  .shelf-account-menu .shelf-account-menu-danger {
+    color: color-mix(in srgb, var(--destructive) 86%, var(--foreground));
+  }
+
+  .shelf-account-menu .shelf-account-menu-danger[data-slot="dropdown-menu-item"] svg {
+    color: color-mix(in srgb, var(--destructive) 84%, var(--muted-foreground));
+  }
+
+  .shelf-account-menu .shelf-account-menu-danger:focus,
+  .shelf-account-menu .shelf-account-menu-danger:hover {
+    background: color-mix(in srgb, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+}

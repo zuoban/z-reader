@@ -1,0 +1,87 @@
+/* Shared reveal and loading motion, including reduced-motion preferences. */
+
+@layer utilities {
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-120%);
+    }
+
+    100% {
+      transform: translateX(220%);
+    }
+  }
+
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      color-mix(in srgb, var(--glass-specular) 42%, transparent) 45%,
+      transparent 90%
+    );
+    transform: translateX(-120%);
+    animation: shimmer 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes paperShelfRevealSoft {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .paper-reveal-soft {
+    opacity: 0;
+    animation: paperShelfRevealSoft 460ms ease-out forwards;
+    animation-delay: var(--paper-delay, 0ms);
+    will-change: transform, opacity;
+  }
+
+  @keyframes paperShimmer {
+    0% {
+      background-position: 180% 0;
+    }
+
+    100% {
+      background-position: -180% 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .paper-reveal-soft,
+  .skeleton-shimmer::after {
+    animation: none !important;
+  }
+
+  .paper-reveal-soft {
+    opacity: 1;
+    filter: none;
+  }
+
+  .shelf-book-card:hover {
+    transform: none;
+  }
+}

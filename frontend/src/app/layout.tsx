@@ -10,6 +10,8 @@ import '@fontsource/playfair-display/latin-700.css';
 import '@fontsource/noto-serif-sc/400.css';
 import '@fontsource/noto-serif-sc/600.css';
 import '@fontsource/noto-serif-sc/700.css';
+import '@fontsource/lxgw-wenkai-tc/400.css';
+import '@fontsource/lxgw-wenkai-tc/700.css';
 import './fonts/noto-serif-sc-compat.css';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';

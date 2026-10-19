@@ -58,10 +58,12 @@ Covered surfaces:
 | `shelf-populated-light` / `shelf-populated-dark` | Library with mock books |
 | `shelf-error-light` | Load failure state |
 | `shelf-populated-mobile-light` | Mobile shelf (390×844) |
-| `shelf-selection-light` | Batch selection bar |
+| `shelf-selection-light` / `shelf-selection-mobile-light` | Desktop/mobile batch selection bar |
 | `shelf-filter-classical-light` | Category filter applied |
 | `reader-error-light` / `reader-error-dark` | Reader open failure |
 | `reader-auth-loading-light` | Reader auth loading chrome |
+| `reader-tablet-light` | Compact reader toolbar at 640px |
+| `reader-settings-mobile-light` / `reader-settings-mobile-dark` | Compact, collapsible reading preview |
 
 API calls are mocked in `helpers/fixtures.ts` so runs do not need a live backend.
 
@@ -140,8 +142,21 @@ Covers:
 | Category filter | Grid stays interactive; non-matching books gone |
 | Manual load-more | Footer button fetches next cursor page |
 
-Reader **opened book** content is not snapshotted yet (depends on real EPUB bytes +
-foliate). Prefer error/loading chrome for stable baselines.
+Reader toolbar and settings snapshots use the deterministic in-repo EPUB fixture.
+They wait for metadata/fonts and disable motion before capture. Full-page shelf
+captures reset scroll position so hidden fixed skip links remain off-screen.
+
+## Responsive layout regressions
+
+`responsive-layout.spec.ts` is included in `test:e2e:ci` and verifies:
+
+- Search and sort share one row at 320/375/390px, with readable search text and a visible more menu.
+- Batch counts stay on one line and all actions remain inside the viewport.
+- Reader back/title remain visible at 640/768/1023px, with working overflow actions.
+- In dark landscape mode with reduced motion, keyboard activation moves focus into the menu;
+  Escape returns focus without leaving the reader, and the menu can reopen to settings.
+- The book footer opens the reader, and fallback title/author text is not duplicated.
+- Real chapter documents load the same bundled Chinese face and selected size as the preview.
 
 ## Updating snapshots
 

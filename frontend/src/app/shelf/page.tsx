@@ -9,6 +9,7 @@ import {
   BookOpen,
   CheckSquare,
   LogOut,
+  MoreHorizontal,
   Moon,
   Plus,
   Search,
@@ -448,8 +449,8 @@ export default function ShelfPage() {
           <div className="flex min-w-0 flex-col gap-4">
             {!isLoadingBooks && !isLibraryEmpty && (
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="group relative w-full flex-1">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="group relative min-w-0 flex-1">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 transition-colors" />
                     <Input
                       type="search"
@@ -457,7 +458,7 @@ export default function ShelfPage() {
                       onChange={(event) => changeSearchQuery(event.target.value)}
                       placeholder="搜索书名或作者..."
                       aria-label="搜索书库"
-                      className="h-12 rounded-xl border border-transparent bg-shelf-surface-soft pl-11 pr-11 text-[14px] font-medium text-foreground shadow-none transition-all placeholder:text-muted-foreground/60 hover:bg-shelf-surface-hover focus:bg-shelf-surface-soft focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 dark:border-white/8 dark:bg-white/[0.055] dark:text-foreground dark:placeholder:text-muted-foreground/60 dark:hover:bg-white/[0.075] dark:focus:bg-white/[0.07]"
+                      className="h-12 rounded-xl border border-transparent bg-shelf-surface-soft pl-11 pr-11 text-base font-medium text-foreground shadow-none transition-all placeholder:text-muted-foreground/60 hover:bg-shelf-surface-hover focus:bg-shelf-surface-soft focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 sm:text-sm dark:border-white/8 dark:bg-white/[0.055] dark:text-foreground dark:placeholder:text-muted-foreground/60 dark:hover:bg-white/[0.075] dark:focus:bg-white/[0.07]"
                     />
                     {searchQuery && (
                       <button
@@ -471,7 +472,7 @@ export default function ShelfPage() {
                     )}
                   </div>
 
-                  <div className="w-full sm:w-[10.5rem]">
+                  <div className="w-12 shrink-0 sm:w-[10.5rem]">
                     <SortSelector
                       value={sortBy}
                       onChange={setSortBy}
@@ -479,11 +480,11 @@ export default function ShelfPage() {
                   </div>
                 </div>
 
-                <div className="relative -mx-5 sm:mx-0">
+                <div className="relative flex min-w-0 items-center gap-2">
                   <div
                     role="group"
                     aria-label="书籍分类筛选"
-                    className="scrollbar-none flex min-w-0 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-5 pb-1 sm:flex-wrap sm:overflow-visible sm:px-0"
+                    className="scrollbar-none flex min-w-0 flex-1 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
                   >
                     <span className="sr-only sm:not-sr-only sm:mr-1 sm:text-[13px] sm:font-medium sm:text-muted-foreground/70">
                       分类：
@@ -497,53 +498,78 @@ export default function ShelfPage() {
                     >
                       全部
                     </button>
-                  {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
-                      aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                      data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                      className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      未分类
-                    </button>
-                  )}
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => changeSelectedCategory(category)}
-                      aria-pressed={selectedCategoryId === category}
-                      data-active={selectedCategoryId === category}
-                      className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:max-w-[10rem]"
-                      title={category}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground sm:min-h-8 sm:px-3 dark:hover:bg-white/[0.08]"
-                    onClick={() => setCategoryManagerOpen(true)}
-                  >
-                    <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
-                    管理
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={selectionMode ? "secondary" : "ghost"}
-                    className={cn(
-                      "min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium sm:min-h-8 sm:px-3.5 transition-all active:scale-[0.97]",
-                      selectionMode
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
+                    {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
+                        aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                        data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                        className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      >
+                        未分类
+                      </button>
                     )}
-                    onClick={toggleSelectionMode}
-                  >
-                    <CheckSquare className="h-3.5 w-3.5" />
-                    <span className="ml-1.5">{selectionMode ? "取消选择" : "批量操作"}</span>
-                  </Button>
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => changeSelectedCategory(category)}
+                        aria-pressed={selectedCategoryId === category}
+                        data-active={selectedCategoryId === category}
+                        className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:max-w-[10rem]"
+                        title={category}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="hidden shrink-0 items-center gap-1 sm:flex">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground sm:min-h-8 sm:px-3 dark:hover:bg-white/[0.08]"
+                      onClick={() => setCategoryManagerOpen(true)}
+                    >
+                      <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+                      管理
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={selectionMode ? "secondary" : "ghost"}
+                      className={cn(
+                        "min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium sm:min-h-8 sm:px-3.5 transition-all active:scale-[0.97]",
+                        selectionMode
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
+                      )}
+                      onClick={toggleSelectionMode}
+                    >
+                      <CheckSquare className="h-3.5 w-3.5" />
+                      <span className="ml-1.5">{selectionMode ? "取消选择" : "批量操作"}</span>
+                    </Button>
+                  </div>
+                  <div className="shrink-0 self-start sm:hidden">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        aria-label="更多书库操作"
+                        className={cn(
+                          'flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground',
+                          selectionMode && 'border-primary bg-primary text-primary-foreground'
+                        )}
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => setCategoryManagerOpen(true)}>
+                          <Settings2 className="h-4 w-4" />
+                          管理分类
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={toggleSelectionMode}>
+                          <CheckSquare className="h-4 w-4" />
+                          {selectionMode ? '取消选择' : '批量操作'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
@@ -658,29 +684,38 @@ export default function ShelfPage() {
               <div
                 className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
               >
-                <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-primary/20 bg-card/94 px-4 py-3 shadow-[0_20px_50px_-28px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_48%,transparent)] backdrop-blur-xl sm:px-6 sm:py-3.5">
-                  <div className="flex min-w-0 items-center gap-3.5 border-r border-border/20 pr-4 sm:pr-6">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
-                      <CheckSquare className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                <div
+                  role="region"
+                  aria-label="书籍批量操作"
+                  className="pointer-events-auto flex flex-col gap-2 rounded-2xl border border-primary/20 bg-card/94 p-3 shadow-[var(--paper-shadow-floating)] backdrop-blur-xl sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+                >
+                  <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto">
+                    <div className="flex items-center gap-2 whitespace-nowrap text-sm">
+                      <CheckSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="text-muted-foreground">
                         已选中
                       </span>
-                      <span className="truncate text-sm font-semibold text-foreground">
-                        {selectedCount}
-                        <span className="ml-1 text-[11px] font-medium text-muted-foreground">
-                          本书籍
-                        </span>
+                      <span className="font-semibold tabular-nums text-foreground" aria-live="polite">
+                        {selectedCount} 本
                       </span>
                     </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 rounded-xl text-muted-foreground sm:hidden"
+                      onClick={toggleSelectionMode}
+                      aria-label="退出选择"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-2.5 sm:flex sm:flex-1 sm:items-center sm:justify-end">
+                  <div className="grid w-full min-w-0 grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-1 sm:items-center sm:justify-end">
                     <Button
                       type="button"
                       variant="outline"
-                      className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium border-border/35 hover:bg-muted/50 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      className="min-h-11 min-w-0 rounded-xl border-border/50 px-1 text-xs font-medium hover:bg-muted/50 sm:px-3 sm:text-sm"
                       onClick={toggleVisibleSelection}
                     >
                       {allVisibleSelected ? '取消全选' : '选择已加载'}
@@ -689,25 +724,27 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium border-primary/18 bg-primary/5 text-primary hover:bg-primary/10 transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      aria-label="批量分类"
+                      className="min-h-11 min-w-0 gap-1 rounded-xl border-primary/18 bg-primary/5 px-1 text-xs font-medium text-primary hover:bg-primary/10 sm:gap-2 sm:px-3 sm:text-sm"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
                       <Tag className="h-4 w-4 shrink-0" />
-                      <span className="hidden sm:inline ml-2">批量分类</span>
-                      <span className="sm:hidden ml-1.5">分类</span>
+                      <span className="hidden sm:inline">批量分类</span>
+                      <span className="sm:hidden">分类</span>
                     </Button>
                     
                     <Button
                       type="button"
                       variant="destructive"
-                      className="min-h-[44px] min-w-0 rounded-xl px-2.5 text-xs font-medium shadow-sm transition-all active:scale-95 sm:px-4 sm:text-sm"
+                      aria-label="批量删除"
+                      className="min-h-11 min-w-0 gap-1 rounded-xl px-1 text-xs font-medium shadow-sm sm:gap-2 sm:px-3 sm:text-sm"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
                       <Trash2 className="h-4 w-4 shrink-0" />
-                      <span className="hidden sm:inline ml-2">批量删除</span>
-                      <span className="sm:hidden ml-1.5">删除</span>
+                      <span className="hidden sm:inline">批量删除</span>
+                      <span className="sm:hidden">删除</span>
                     </Button>
 
                     <Button

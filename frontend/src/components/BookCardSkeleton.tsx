@@ -6,15 +6,15 @@ export function BookCardSkeleton() {
   return (
     <div className="flex w-full items-stretch">
       <div className="shelf-book-card relative flex w-full flex-col overflow-hidden rounded-2xl">
-        <div className="skeleton-shimmer relative aspect-[3/4] overflow-hidden bg-[var(--shelf-card-media)]">
+        <div className="skeleton-shimmer relative aspect-[5/6] overflow-hidden bg-[var(--shelf-card-media)]">
           <div className="absolute inset-0 bg-gradient-to-b from-muted/25 to-muted/10" />
           <div className="absolute left-2.5 top-2.5">
             <Skeleton className="h-5 w-12 rounded-full" />
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col p-3 sm:p-3.5">
-          <div className="mb-2.5 flex-1 sm:mb-3">
+        <div className="flex flex-1 flex-col gap-2.5 p-3 pb-2 sm:px-3.5">
+          <div className="flex-1">
             <div className="space-y-1.5">
               <Skeleton className="h-4 w-[85%] rounded-md" />
               <Skeleton className="h-4 w-[55%] rounded-md" />
@@ -27,6 +27,10 @@ export function BookCardSkeleton() {
             </div>
             <Skeleton className="h-3 w-[50%] rounded-md" />
           </div>
+        </div>
+        <div className="flex h-[3.25rem] items-center justify-between border-t border-border/40 px-3">
+          <Skeleton className="h-3 w-16 rounded-md" />
+          <Skeleton className="h-4 w-4 rounded-md" />
         </div>
       </div>
     </div>

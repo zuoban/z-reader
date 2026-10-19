@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   gotoStable,
   installBrowserStubs,
@@ -8,8 +8,21 @@ import {
   mockEmptyShelfApis,
   mockPopulatedShelfApis,
   mockReaderBookOpenError,
+  mockReaderHappyPath,
   mockShelfLoadError,
+  prepareVisualPage,
 } from './helpers/fixtures';
+
+async function expectStableScreenshot(
+  page: Page,
+  name: string,
+  options: { fullPage?: boolean } = {},
+) {
+  // The virtual grid can restore scroll position after data arrives. Full-page
+  // capture must start at the top so off-screen fixed controls stay off-screen.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page).toHaveScreenshot(name, options);
+}
 
 /**
  * Visual regression baselines for the paper UI system.
@@ -35,7 +48,7 @@ test.describe('visual regression', () => {
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/');
     await expect(page.getByRole('heading', { name: 'Z Reader' })).toBeVisible();
-    await expect(page).toHaveScreenshot('landing-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'landing-light.png', { fullPage: true });
   });
 
   test('landing page — dark', async ({ page }) => {
@@ -43,7 +56,7 @@ test.describe('visual regression', () => {
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/');
     await expect(page.getByRole('heading', { name: 'Z Reader' })).toBeVisible();
-    await expect(page).toHaveScreenshot('landing-dark.png', { fullPage: true });
+    await expectStableScreenshot(page, 'landing-dark.png', { fullPage: true });
   });
 
   test('login page — light', async ({ page }) => {
@@ -51,7 +64,7 @@ test.describe('visual regression', () => {
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/login');
     await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
-    await expect(page).toHaveScreenshot('login-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'login-light.png', { fullPage: true });
   });
 
   test('login page — dark', async ({ page }) => {
@@ -59,7 +72,7 @@ test.describe('visual regression', () => {
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/login');
     await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
-    await expect(page).toHaveScreenshot('login-dark.png', { fullPage: true });
+    await expectStableScreenshot(page, 'login-dark.png', { fullPage: true });
   });
 
   test('login register mode — light', async ({ page }) => {
@@ -67,7 +80,7 @@ test.describe('visual regression', () => {
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/login?mode=register');
     await expect(page.getByRole('heading', { name: '创建账号' })).toBeVisible();
-    await expect(page).toHaveScreenshot('login-register-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'login-register-light.png', { fullPage: true });
   });
 
   test('empty shelf — light', async ({ page }) => {
@@ -76,7 +89,7 @@ test.describe('visual regression', () => {
     await mockEmptyShelfApis(page);
     await gotoStable(page, '/shelf');
     await expect(page.getByText('书架还是空的')).toBeVisible({ timeout: 15_000 });
-    await expect(page).toHaveScreenshot('shelf-empty-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'shelf-empty-light.png', { fullPage: true });
   });
 
   test('empty shelf — dark', async ({ page }) => {
@@ -85,7 +98,7 @@ test.describe('visual regression', () => {
     await mockEmptyShelfApis(page);
     await gotoStable(page, '/shelf');
     await expect(page.getByText('书架还是空的')).toBeVisible({ timeout: 15_000 });
-    await expect(page).toHaveScreenshot('shelf-empty-dark.png', { fullPage: true });
+    await expectStableScreenshot(page, 'shelf-empty-dark.png', { fullPage: true });
   });
 
   test('populated shelf — light', async ({ page }) => {
@@ -98,7 +111,7 @@ test.describe('visual regression', () => {
       timeout: 15_000,
     });
     await expect(page.getByRole('button', { name: '阅读《三体》' })).toBeVisible();
-    await expect(page).toHaveScreenshot('shelf-populated-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'shelf-populated-light.png', { fullPage: true });
   });
 
   test('populated shelf — dark', async ({ page }) => {
@@ -109,7 +122,7 @@ test.describe('visual regression', () => {
     await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page).toHaveScreenshot('shelf-populated-dark.png', { fullPage: true });
+    await expectStableScreenshot(page, 'shelf-populated-dark.png', { fullPage: true });
   });
 
   test('shelf load error — light', async ({ page }) => {
@@ -118,7 +131,7 @@ test.describe('visual regression', () => {
     await mockShelfLoadError(page);
     await gotoStable(page, '/shelf');
     await expect(page.getByText('书架暂时无法加载')).toBeVisible({ timeout: 15_000 });
-    await expect(page).toHaveScreenshot('shelf-error-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'shelf-error-light.png', { fullPage: true });
   });
 
   test('populated shelf — mobile light', async ({ page }) => {
@@ -130,7 +143,7 @@ test.describe('visual regression', () => {
     await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page).toHaveScreenshot('shelf-populated-mobile-light.png', {
+    await expectStableScreenshot(page, 'shelf-populated-mobile-light.png', {
       fullPage: true,
     });
   });
@@ -145,7 +158,7 @@ test.describe('visual regression', () => {
     });
     await page.getByRole('button', { name: /批量操作/ }).click();
     await expect(page.getByText('已选中')).toBeVisible();
-    await expect(page).toHaveScreenshot('shelf-selection-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'shelf-selection-light.png', { fullPage: true });
   });
 
   test('shelf category filter — light', async ({ page }) => {
@@ -159,7 +172,7 @@ test.describe('visual regression', () => {
     await page.getByRole('button', { name: '古典', exact: true }).click();
     await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible();
     await expect(page.getByRole('button', { name: '阅读《三体》' })).toHaveCount(0);
-    await expect(page).toHaveScreenshot('shelf-filter-classical-light.png', {
+    await expectStableScreenshot(page, 'shelf-filter-classical-light.png', {
       fullPage: true,
     });
   });
@@ -174,7 +187,7 @@ test.describe('visual regression', () => {
       timeout: 25_000,
     });
     await expect(page.getByRole('button', { name: '返回书库' })).toBeVisible();
-    await expect(page).toHaveScreenshot('reader-error-light.png', { fullPage: true });
+    await expectStableScreenshot(page, 'reader-error-light.png', { fullPage: true });
   });
 
   test('reader open error — dark', async ({ page }) => {
@@ -185,7 +198,7 @@ test.describe('visual regression', () => {
     await expect(page.getByText('无法打开本书', { exact: true })).toBeVisible({
       timeout: 25_000,
     });
-    await expect(page).toHaveScreenshot('reader-error-dark.png', { fullPage: true });
+    await expectStableScreenshot(page, 'reader-error-dark.png', { fullPage: true });
   });
 
   test('reader auth loading — light', async ({ page }) => {
@@ -199,8 +212,47 @@ test.describe('visual regression', () => {
     await page.addStyleTag({
       content: '*,*::before,*::after{animation:none!important;transition:none!important;}',
     });
-    await expect(page).toHaveScreenshot('reader-auth-loading-light.png', {
+    await expectStableScreenshot(page, 'reader-auth-loading-light.png', {
       fullPage: true,
     });
   });
+
+  test('mobile shelf selection — light', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    await mockPopulatedShelfApis(page);
+    await gotoStable(page, '/shelf');
+    await page.getByRole('button', { name: '更多书库操作' }).click();
+    await page.getByRole('menuitem', { name: '批量操作', exact: true }).click();
+    await page.getByRole('button', { name: '选择《红楼梦》', exact: true }).click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByRole('region', { name: '书籍批量操作' })).toBeVisible();
+    await expectStableScreenshot(page, 'shelf-selection-mobile-light.png');
+  });
+
+  test('tablet reader toolbar — light', async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 800 });
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page);
+    await gotoStable(page, '/read/book-1');
+    await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+    await prepareVisualPage(page);
+    await expectStableScreenshot(page, 'reader-tablet-light.png');
+  });
+
+  for (const preset of ['light', 'dark'] as const) {
+    test(`mobile reader settings — ${preset}`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await installBrowserStubs(page, { preset, authenticated: true });
+      await mockReaderHappyPath(page);
+      await gotoStable(page, '/read/book-1');
+      await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+      await page.getByRole('button', { name: '更多阅读操作' }).click();
+      await page.getByRole('button', { name: '设置', exact: true }).click();
+      await expect(page.getByRole('heading', { name: '阅读偏好' })).toBeVisible();
+      await prepareVisualPage(page);
+      await expectStableScreenshot(page, `reader-settings-mobile-${preset}.png`);
+    });
+  }
 });

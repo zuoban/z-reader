@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown } from 'lucide-react';
+import { ArrowDownWideNarrow, Check, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import {
   DropdownMenu,
@@ -26,18 +26,20 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         aria-label="书籍排序方式"
+        title={`排序：${currentOption?.label}`}
         className={cn(
-          'group flex h-12 w-full items-center justify-between rounded-xl border border-transparent bg-shelf-surface-soft px-4 pr-3 text-[14px] font-medium transition-all hover:bg-shelf-surface-hover focus-visible:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 dark:border-white/8 dark:bg-white/[0.055] dark:hover:bg-white/[0.075]',
+          'group flex h-12 w-full items-center justify-center rounded-xl border border-transparent bg-shelf-surface-soft text-sm font-medium transition-colors hover:bg-shelf-surface-hover focus-visible:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 sm:justify-between sm:pl-4 sm:pr-3 dark:border-white/8 dark:bg-white/[0.055] dark:hover:bg-white/[0.075]',
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="min-w-0 truncate text-foreground">
+        <ArrowDownWideNarrow className="h-5 w-5 sm:hidden" aria-hidden="true" />
+        <span className="hidden min-w-0 truncate text-foreground sm:block">
           {currentOption?.label}
         </span>
         <ChevronDown
           className={cn(
-            'h-4 w-4 shrink-0 text-foreground/50 transition-transform duration-200',
+            'hidden h-4 w-4 shrink-0 text-foreground/50 transition-transform duration-200 sm:block',
             open && 'rotate-180'
           )}
         />

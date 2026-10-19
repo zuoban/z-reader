@@ -290,7 +290,7 @@ export function ReaderToolbar({
                     </span>
                   </button>
                 )}
-                <div className="px-1 py-0.5">{mobileTtsControls}</div>
+                {mobileTtsControls}
                 <button
                   className="reader-mobile-menu-item"
                   onClick={() => {

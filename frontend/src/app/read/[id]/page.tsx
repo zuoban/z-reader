@@ -422,11 +422,11 @@ export default function ReadPage() {
             <DeferredTTSControls
               {...sharedTTSControlsProps}
               variant="toolbar"
-              triggerClassName="flex min-h-11 w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-normal text-foreground transition-all hover:bg-muted/50"
+              triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
               triggerStyle={{}}
               triggerContent={
                 <>
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="size-4 opacity-80" />
                   <span>朗读</span>
                 </>
               }

@@ -76,6 +76,53 @@ test.describe('responsive reading and shelf controls', () => {
     });
   }
 
+  for (const width of [390, 818, 1023]) {
+    test(`reader menu icons align before and after loading read-aloud at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 923 });
+      await installBrowserStubs(page, { authenticated: true });
+      await mockReaderHappyPath(page);
+      await gotoStable(page, '/read/book-1');
+      await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+
+      const more = page.getByRole('button', { name: '更多阅读操作', exact: true });
+      await more.click();
+      const actions = page.getByRole('dialog', { name: '阅读操作' });
+
+      async function expectAlignedMenu() {
+        const buttons = actions.getByRole('button');
+        await expect(buttons).toHaveCount(7);
+        const geometry = await buttons.evaluateAll((elements) => elements.map((button) => {
+          const row = button.getBoundingClientRect();
+          const icon = button.querySelector('svg')!.getBoundingClientRect();
+          const label = button.querySelector('span')!.getBoundingClientRect();
+          return {
+            iconLeft: icon.x,
+            iconWidth: icon.width,
+            labelLeft: label.x,
+            rowHeight: row.height,
+            centerOffset: icon.y + icon.height / 2 - (row.y + row.height / 2),
+          };
+        }));
+        for (const item of geometry) {
+          expect(item.iconLeft).toBeCloseTo(geometry[0].iconLeft, 1);
+          expect(item.iconWidth).toBeCloseTo(geometry[0].iconWidth, 1);
+          expect(item.labelLeft).toBeCloseTo(geometry[0].labelLeft, 1);
+          expect(item.rowHeight).toBeCloseTo(geometry[0].rowHeight, 1);
+          expect(item.rowHeight).toBeGreaterThanOrEqual(44);
+          expect(item.centerOffset).toBeCloseTo(0, 1);
+        }
+      }
+
+      await expectAlignedMenu();
+      await actions.getByRole('button', { name: '朗读控制', exact: true }).click();
+      await page.getByRole('button', { name: '关闭朗读控制', exact: true }).click();
+      if (!await actions.isVisible()) await more.click();
+      await expectAlignedMenu();
+    });
+  }
+
   test('book card footer opens the book', async ({ page }) => {
     await installBrowserStubs(page, { authenticated: true });
     await mockAuthVerified(page);

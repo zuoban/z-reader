@@ -11,28 +11,15 @@ interface AppScreenProps {
 }
 
 function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
-  if (variant === 'shelf') {
-    return (
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--shelf-surface-soft)_78%,transparent)_0%,transparent_52%),linear-gradient(180deg,color-mix(in_srgb,var(--paper-edge)_22%,transparent)_0%,transparent_28%)]" />
-        <div className="absolute -left-[12%] top-[8%] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--primary)_5%,transparent)_0%,transparent_68%)] blur-2xl" />
-        <div className="absolute -right-[10%] bottom-[6%] h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--paper-edge)_35%,transparent)_0%,transparent_70%)] blur-2xl" />
-        <div className="absolute inset-0 opacity-0 dark:opacity-100 dark:bg-[linear-gradient(180deg,rgba(240,230,210,0.04)_0%,transparent_36%,rgba(0,0,0,0.14)_100%)]" />
-      </div>
-    );
-  }
+  if (variant === 'none') return null;
 
-  if (variant === 'login') {
-    return (
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,color-mix(in_srgb,var(--shelf-surface-soft)_88%,transparent)_0%,transparent_55%),linear-gradient(180deg,transparent_40%,color-mix(in_srgb,var(--paper-edge)_28%,transparent)_100%)]" />
-        <div className="absolute left-[8%] top-[18%] h-64 w-64 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--primary)_6%,transparent)_0%,transparent_70%)] blur-2xl" />
-        <div className="absolute right-[6%] bottom-[14%] h-72 w-72 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--paper-edge)_40%,transparent)_0%,transparent_72%)] blur-2xl" />
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div
+      aria-hidden="true"
+      className="app-ambient pointer-events-none absolute inset-0"
+      data-variant={variant}
+    />
+  );
 }
 
 export function AppScreen({
@@ -81,20 +68,20 @@ export function BrandGlyph({ className }: { className?: string }) {
         y="8"
         width="48"
         height="48"
-        rx="15"
-        className="fill-[#1c1915] dark:fill-primary"
+        rx="12"
+        className="fill-primary"
       />
       <path
         d="M18 20.2C22.7 17.8 27.6 18 32 21.1V45.8C27.6 42.9 22.7 42.7 18 45.2V20.2Z"
-        className="fill-[#f0e6d2] dark:fill-[#1c1915]"
+        className="fill-primary-foreground opacity-80"
       />
       <path
         d="M32 21.1C36.4 18 41.3 17.8 46 20.2V45.2C41.3 42.7 36.4 42.9 32 45.8V21.1Z"
-        className="fill-[#faf7f1] dark:fill-[#2a2420]"
+        className="fill-primary-foreground"
       />
       <path
         d="M24.1 26.1H39.8L28.2 38.1H40.2"
-        className="stroke-[#1c1915] dark:stroke-primary"
+        className="stroke-primary"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="4.2"

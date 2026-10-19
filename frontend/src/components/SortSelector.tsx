@@ -28,7 +28,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
         aria-label="书籍排序方式"
         title={`排序：${currentOption?.label}`}
         className={cn(
-          'group flex h-12 w-full items-center justify-center rounded-xl border border-transparent bg-shelf-surface-soft text-sm font-medium transition-colors hover:bg-shelf-surface-hover focus-visible:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/12 sm:h-11 sm:justify-between sm:pl-4 sm:pr-3 dark:border-white/8 dark:bg-white/[0.055] dark:hover:bg-white/[0.075]',
+          'app-field group flex w-full items-center justify-center text-sm font-medium hover:bg-secondary sm:justify-between sm:pl-4 sm:pr-3',
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -46,7 +46,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="min-w-[10rem] rounded-xl border border-border/50 bg-popover/96 p-1.5 shadow-[0_18px_42px_-28px_var(--paper-shadow),inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_45%,transparent)] backdrop-blur-md"
+        className="paper-menu min-w-[10rem] rounded-xl p-1.5"
       >
         {SORT_OPTIONS.map((option) => (
           <DropdownMenuItem

@@ -3,6 +3,7 @@ import {
   gotoStable,
   installBrowserStubs,
   mockAuthVerified,
+  mockMutableShelfApis,
   mockPopulatedShelfApis,
   mockReaderHappyPath,
 } from './helpers/fixtures';
@@ -17,6 +18,7 @@ test.describe('responsive reading and shelf controls', () => {
       await mockAuthVerified(page);
       await mockPopulatedShelfApis(page);
       await gotoStable(page, '/shelf');
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
       const search = page.getByRole('searchbox', { name: '搜索书库' });
       const sort = page.getByRole('button', { name: '书籍排序方式' });
       await expect(search).toHaveCSS('font-size', '16px');
@@ -60,6 +62,9 @@ test.describe('responsive reading and shelf controls', () => {
       await gotoStable(page, '/read/book-1');
       const title = page.getByRole('heading', { name: 'E2E Sample Book' });
       await expect(title).toBeVisible({ timeout: 30_000 });
+      const toolbarBox = await page.locator('header.reader-chrome').boundingBox();
+      const contentBox = await page.locator('.reader-page-frame').boundingBox();
+      expect(contentBox!.y).toBeGreaterThanOrEqual(toolbarBox!.y + toolbarBox!.height);
       const back = page.getByRole('button', { name: '返回书库', exact: true });
       await expect(back).toBeInViewport({ ratio: 1 });
       expect((await title.boundingBox())!.width).toBeGreaterThanOrEqual(120);
@@ -76,7 +81,7 @@ test.describe('responsive reading and shelf controls', () => {
     await mockAuthVerified(page);
     await mockPopulatedShelfApis(page);
     await gotoStable(page, '/shelf');
-    await expect(page.getByText('红楼梦', { exact: true })).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: '红楼梦', exact: true })).toHaveCount(1);
     await expect(page.getByText('曹雪芹', { exact: true })).toHaveCount(1);
     const read = page.getByRole('button', { name: '继续阅读：红楼梦', exact: true });
     await expect(read).toBeVisible();
@@ -84,6 +89,23 @@ test.describe('responsive reading and shelf controls', () => {
     await read.click();
     await expect(page).toHaveURL(/\/read\/book-1/);
     await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+  });
+
+  test('long fallback titles stay between cover labels on narrow phones', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    await installBrowserStubs(page, { authenticated: true });
+    await mockAuthVerified(page);
+    const shelf = await mockMutableShelfApis(page);
+    const title = '一本关于世界历史与人类文明漫长旅途的书';
+    shelf.books[0].title = title;
+    await gotoStable(page, '/shelf');
+    const card = page.getByRole('button', { name: `阅读《${title}》`, exact: true });
+    const cover = card.locator('.book-cover-fallback');
+    const collection = await cover.locator(':scope > span').first().boundingBox();
+    const category = await cover.locator(':scope > span').last().boundingBox();
+    const coverTitle = await cover.locator('p').boundingBox();
+    expect(coverTitle!.y).toBeGreaterThanOrEqual(collection!.y + collection!.height);
+    expect(coverTitle!.y + coverTitle!.height).toBeLessThanOrEqual(category!.y);
   });
 
   test('reader and preview load the same bundled Chinese font at the selected size', async ({

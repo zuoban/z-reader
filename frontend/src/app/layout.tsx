@@ -26,8 +26,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f0e8' },
-    { media: '(prefers-color-scheme: dark)', color: '#141210' },
+    { media: '(prefers-color-scheme: light)', color: '#f7f8f4' },
+    { media: '(prefers-color-scheme: dark)', color: '#151d19' },
   ],
 };
 
@@ -101,15 +101,12 @@ export default function RootLayout({
               toastOptions={{
                 closeButtonAriaLabel: '关闭通知',
                 style: {
-                  background:
-                    'linear-gradient(135deg, color-mix(in srgb, var(--glass-specular) 18%, transparent) 0%, transparent 34%), color-mix(in srgb, var(--card) 86%, transparent)',
+                  background: 'var(--card)',
                   color: 'var(--foreground)',
-                  border: '1px solid color-mix(in srgb, var(--border), transparent 35%)',
-                  borderRadius: '1rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-xl)',
                   paddingRight: '3.25rem',
-                  boxShadow:
-                    '0 20px 44px -28px var(--paper-shadow), inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 46%, transparent)',
-                  backdropFilter: 'blur(20px) saturate(1.25)',
+                  boxShadow: 'var(--paper-shadow-floating)',
                 },
               }}
             />

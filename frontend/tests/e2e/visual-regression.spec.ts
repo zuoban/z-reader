@@ -83,6 +83,32 @@ test.describe('visual regression', () => {
     await expectStableScreenshot(page, 'login-register-light.png', { fullPage: true });
   });
 
+  for (const entry of [
+    { path: '/', heading: 'Z Reader', preset: 'light', snapshot: 'landing-mobile-light.png' },
+    { path: '/login', heading: '欢迎回来', preset: 'dark', snapshot: 'login-mobile-dark.png' },
+    {
+      path: '/login?mode=register', heading: '创建账号', preset: 'light',
+      snapshot: 'login-register-mobile-light.png',
+    },
+  ] as const) {
+    test(`mobile entry — ${entry.snapshot}`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await installBrowserStubs(page, { preset: entry.preset });
+      await mockAuthUnauthorized(page);
+      await gotoStable(page, entry.path);
+      await expect(page.getByRole('heading', { name: entry.heading })).toBeVisible();
+      const background = await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--background').trim()
+      );
+      await expect(page.locator('meta[data-z-reader-theme-color]'))
+        .toHaveAttribute('content', background);
+      expect(await page.evaluate(() =>
+        document.documentElement.scrollWidth <= window.innerWidth
+      )).toBe(true);
+      await expectStableScreenshot(page, entry.snapshot, { fullPage: true });
+    });
+  }
+
   test('empty shelf — light', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);

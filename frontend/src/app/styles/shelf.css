@@ -28,7 +28,7 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
+    border-radius: var(--radius-lg);
     padding-inline: 1rem;
     font-size: 0.8125rem;
     font-weight: 500;
@@ -42,7 +42,7 @@
 
   @media (min-width: 640px) {
     .shelf-filter-chip {
-      min-height: 2rem;
+      min-height: 2.25rem;
       padding-inline: 0.875rem;
     }
   }
@@ -68,21 +68,6 @@
     background: color-mix(in srgb, var(--secondary) 70%, var(--card));
   }
 
-  .dark .shelf-filter-chip:not([data-active="true"]) {
-    border-color: color-mix(in srgb, white 8%, transparent);
-    background: color-mix(in srgb, white 4.5%, transparent);
-    color: var(--muted-foreground);
-  }
-
-  .dark .shelf-filter-chip:not([data-active="true"]):hover {
-    background: color-mix(in srgb, white 8%, transparent);
-    color: var(--foreground);
-  }
-
-  .dark .shelf-filter-chip[data-active="true"] {
-    box-shadow: 0 10px 26px -22px var(--primary);
-  }
-
   .category-input {
     background: color-mix(in srgb, var(--input) 84%, var(--background));
     border-color: color-mix(in srgb, var(--border) 86%, transparent);
@@ -99,67 +84,46 @@
     box-shadow: none;
   }
 
+  .shelf-header {
+    background: color-mix(in srgb, var(--background) 94%, transparent);
+  }
+
   .shelf-book-card {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--glass-specular) 28%, transparent) 0%,
-        transparent 42%
-      ),
-      var(--card);
-    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-    box-shadow:
-      0 14px 38px -34px var(--paper-shadow),
-      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 48%, transparent);
-    transition:
-      border-color var(--paper-duration-base) var(--paper-ease-soft),
-      background-color var(--paper-duration-base) var(--paper-ease-soft),
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 6px -4px var(--paper-shadow);
+    transition: border-color var(--paper-duration-base) var(--paper-ease-soft),
       box-shadow var(--paper-duration-base) var(--paper-ease-soft),
       transform var(--paper-duration-base) var(--paper-ease-soft);
   }
 
   .shelf-book-card:hover {
-    border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
-    box-shadow:
-      0 22px 52px -34px var(--paper-shadow),
-      0 8px 18px -16px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--glass-specular) 58%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+    box-shadow: 0 12px 24px -16px var(--paper-shadow);
     transform: translateY(-3px);
   }
 
   .shelf-book-card:active {
     transform: translateY(-1px);
-    transition-duration: 80ms;
   }
 
-  .dark .shelf-book-card {
-    background: linear-gradient(180deg, var(--shelf-card-start) 0%, var(--shelf-card-end) 100%);
-    border-color: color-mix(in srgb, var(--border) 55%, transparent);
-    box-shadow:
-      0 20px 56px -46px rgba(0, 0, 0, 0.9),
-      inset 0 1px 0 rgba(255, 244, 220, 0.045);
+  .book-cover-fallback {
+    background: var(--cover-color);
+    color: #fff9e8;
   }
 
-  .dark .shelf-book-card:hover {
-    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-    box-shadow:
-      0 26px 64px -48px rgba(0, 0, 0, 0.95),
-      inset 0 1px 0 rgba(255, 244, 220, 0.06);
+  .book-cover-fallback::after {
+    content: "";
+    position: absolute;
+    inset: 12px 12px 12px 16px;
+    border: 1px solid rgb(255 249 232 / 25%);
+    pointer-events: none;
   }
 
   .shelf-account-menu[data-slot="dropdown-menu-content"] {
-    background-color: var(--background);
-    background-image:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--paper-edge) 42%, transparent) 0%,
-        transparent 46%
-      );
-    border-color: color-mix(in srgb, var(--border) 76%, transparent);
-    box-shadow:
-      0 18px 42px -28px var(--paper-shadow),
-      0 8px 20px -16px var(--paper-shadow-soft),
-      inset 0 1px 0 color-mix(in srgb, var(--paper-edge) 58%, transparent);
+    background: var(--popover);
+    border-color: var(--border);
+    box-shadow: var(--paper-shadow-floating);
   }
 
   .shelf-account-menu .shelf-account-menu-item {

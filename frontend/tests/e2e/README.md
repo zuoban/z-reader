@@ -32,7 +32,7 @@ npm run test:visual
 # Refresh baselines for *this* OS (writes darwin/ on macOS)
 npm run test:visual:update
 
-# Refresh Linux baselines (Docker + Noto CJK; matches CI)
+# Refresh Linux baselines (Ubuntu 24.04 amd64 + Noto CJK; matches CI)
 npm run test:visual:update:linux
 
 # Interactive UI mode
@@ -43,7 +43,7 @@ npm run test:visual:ui
 
 - Spec: `visual-regression.spec.ts`
 - Snapshots: `visual-regression.spec.ts-snapshots/{platform}/`
-  - **`linux/`** — CI hard gate (generated with Playwright Docker + fonts-noto-cjk)
+  - **`linux/`** — CI hard gate (Ubuntu 24.04 amd64, Playwright + fonts-noto-cjk)
   - **`darwin/`** — optional local macOS baselines
 - Config: `playwright.config.ts` (`maxDiffPixelRatio: 0.02`, platform path template)
 
@@ -179,6 +179,9 @@ GitHub Actions (`.github/workflows/ci.yml`):
 Tips:
 
 - Install `fonts-noto-cjk` on the runner (done in CI) so Chinese text matches Docker updates.
+- The Docker generator uses the matching `noble` image and `linux/amd64`, including
+  on ARM hosts. A different Ubuntu release or architecture can change font metrics
+  and full-page screenshot heights.
 - Manual dispatch option `update_visual_snapshots` regenerates and uploads `linux/` as an artifact.
 - On failure, CI uploads `playwright-report` / `test-results` (7 days).
 - Playwright browsers are cached via `~/.cache/ms-playwright`.

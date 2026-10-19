@@ -18,6 +18,7 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
   and interaction states for reading on phones, tablets, and desktops.
 - Refresh all 23 Linux and macOS visual baselines and extend responsive layout
   coverage for mixed book-title lengths and lazy-loaded reader controls.
+- Match Linux snapshot generation to the pinned Ubuntu 24.04 amd64 CI runner.
 
 ### Fixed
 

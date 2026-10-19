@@ -68,3 +68,14 @@ config stayed outside the repository. The standard project regeneration command 
 
 The final pre-commit checks also passed: strict ESLint, 191 unit tests, coverage
 baseline and production build.
+
+### Release CI baseline alignment
+
+The Ubuntu 24.04 amd64 PR runner passed 19 visual cases but consistently differed
+in four login/register captures from the Ubuntu 22.04 arm64 production captures.
+All three attempts were byte-identical: desktop full-page heights differed by 1px,
+and mobile registration differed in font rendering and rounding. The actual CI
+screenshots were visually reviewed before replacing only those four Linux files.
+The visual runner and Docker generator now both target Ubuntu 24.04 amd64; the
+existing 2% pixel threshold is unchanged. Source artifact: PR #75, CI run
+39271655417, `playwright-visual-report` (artifact 12195453110).

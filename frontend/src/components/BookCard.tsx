@@ -230,7 +230,7 @@ export const BookCard = memo(function BookCard({
   }
 
   return (
-    <div className="flex w-full items-stretch" ref={coverRef}>
+    <div className="flex h-full w-full items-stretch" ref={coverRef}>
       <article
         className={cn(
           'group/card shelf-book-card paper-reveal-soft relative flex w-full flex-col overflow-hidden rounded-xl p-0',

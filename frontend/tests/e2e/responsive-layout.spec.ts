@@ -91,6 +91,47 @@ test.describe('responsive reading and shelf controls', () => {
     await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
   });
 
+  for (const width of [390, 818, 1280]) {
+    test(`book cards align with mixed title lengths at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 923 });
+      await installBrowserStubs(page, { authenticated: true });
+      await mockAuthVerified(page);
+      const shelf = await mockMutableShelfApis(page);
+      shelf.books = shelf.books.slice(0, 2);
+      shelf.books[0].title = 'Go 语言精进之路：从新手到高手的编程思想、方法和技巧';
+      shelf.books[1].title = '中国近代史';
+      await gotoStable(page, '/shelf');
+
+      const cards = page.locator('article.shelf-book-card');
+      await expect(cards).toHaveCount(2);
+      const geometry = await cards.evaluateAll((elements) => elements.map((card) => {
+        const bounds = card.getBoundingClientRect();
+        const footer = card.querySelector(':scope > div')!.getBoundingClientRect();
+        const progress = card.querySelector('.h-1')!.getBoundingClientRect();
+        const title = card.querySelector('h2')!.getBoundingClientRect();
+        const cover = card.querySelector(':scope > button > div')!.getBoundingClientRect();
+        return {
+          top: bounds.top,
+          height: bounds.height,
+          footerTop: footer.top,
+          progressTop: progress.top,
+          titleHeight: title.height,
+          coverWidth: cover.width,
+          coverHeight: cover.height,
+        };
+      }));
+
+      expect(geometry[0].titleHeight).toBeGreaterThan(geometry[1].titleHeight);
+      expect(geometry[0].top).toBeCloseTo(geometry[1].top, 1);
+      expect(geometry[0].height).toBeCloseTo(geometry[1].height, 1);
+      expect(geometry[0].footerTop).toBeCloseTo(geometry[1].footerTop, 1);
+      expect(geometry[0].progressTop).toBeCloseTo(geometry[1].progressTop, 1);
+      for (const card of geometry) {
+        expect(card.coverHeight).toBeCloseTo(card.coverWidth * 6 / 5, 1);
+      }
+    });
+  }
+
   test('long fallback titles stay between cover labels on narrow phones', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 844 });
     await installBrowserStubs(page, { authenticated: true });

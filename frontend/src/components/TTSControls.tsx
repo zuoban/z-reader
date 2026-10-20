@@ -342,6 +342,7 @@ function segmentStyle(active: boolean, uiScheme: ThemeColors) {
 
 export interface TTSControlsProps {
   state: TTSState;
+  preparing?: boolean;
   settings: TTSSettings;
   voices: Voice[];
   voicesLoading?: boolean;
@@ -352,6 +353,7 @@ export interface TTSControlsProps {
   onNext: () => void | Promise<void>;
   onPrev: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
+  onPreviewStart?: () => void;
   uiScheme: ThemeColors;
   variant?: 'floating' | 'toolbar';
   triggerContent?: ReactNode;
@@ -381,6 +383,7 @@ export interface TTSControlsProps {
 
 export function TTSControls({
   state,
+  preparing = false,
   settings,
   voices,
   voicesLoading = false,
@@ -391,6 +394,7 @@ export function TTSControls({
   onNext,
   onPrev,
   onUpdateSettings,
+  onPreviewStart,
   uiScheme,
   variant = 'floating',
   triggerContent,
@@ -411,6 +415,9 @@ export function TTSControls({
   const [expanded, setExpanded] = useState(initialExpanded);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const operationRef = useRef(0);
+  const pendingRef = useRef(false);
+  const isBusy = isPending || preparing;
   const [position, setPosition] = useState({ x: 22, y: 12 });
   const [isDragging, setIsDragging] = useState(false);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -466,25 +473,32 @@ export function TTSControls({
   }, [isDragging]);
 
   const handleStartClick = async () => {
-    if (isPending) return;
+    if (pendingRef.current || preparing) return;
+    const operation = ++operationRef.current;
+    pendingRef.current = true;
     const shouldCloseAfterStart = !isPlaying;
     setIsPending(true);
     try {
       await onStart();
-      if (shouldCloseAfterStart) {
+      if (operation === operationRef.current && shouldCloseAfterStart) {
         setExpanded(false);
       }
     } finally {
-      setTimeout(() => setIsPending(false), 300);
+      if (operation === operationRef.current) {
+        pendingRef.current = false;
+        setIsPending(false);
+      }
     }
   };
 
-  const handleStopClick = async () => {
-    if (isPending) return;
-    setIsPending(true);
-    await onStop();
-    setTimeout(() => setIsPending(false), 300);
+  const handleStopClick = () => {
+    operationRef.current += 1;
+    pendingRef.current = false;
+    setIsPending(false);
+    onStop();
   };
+
+  useEffect(() => () => { operationRef.current += 1; }, []);
 
   const commitPosition = useCallback((nextPosition: { x: number; y: number }) => {
     positionRef.current = nextPosition;
@@ -839,7 +853,7 @@ export function TTSControls({
                     }),
                   }
                 ),
-                opacity: isPending ? 0.72 : 1,
+                opacity: isBusy ? 0.72 : 1,
               }}
             >
               {triggerContent ?? <Volume2 className="relative z-10 h-4 w-4" />}
@@ -983,7 +997,7 @@ export function TTSControls({
                 <div className="flex items-center justify-center gap-2.5">
                   <ControlButton
                     onClick={onPrev}
-                    disabled={!isActive || isPending}
+                    disabled={!isActive || isBusy}
                     title="上一句"
                     active={isActive}
                     uiScheme={uiScheme}
@@ -996,7 +1010,7 @@ export function TTSControls({
                       variant="default"
                       size="icon"
                       onClick={handleStartClick}
-                      disabled={isPending}
+                      disabled={isBusy}
                       title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                       className="relative h-12 w-12 rounded-full transition-[box-shadow,transform,opacity] hover:scale-[1.01] active:scale-95 disabled:opacity-60"
                       style={{
@@ -1009,7 +1023,7 @@ export function TTSControls({
                           `0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
                       }}
                     >
-                      {isPending ? (
+                      {isBusy ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : isPaused ? (
                         <Play className="ml-0.5 h-4 w-4 fill-current" />
@@ -1023,7 +1037,7 @@ export function TTSControls({
 
                   <ControlButton
                     onClick={onNext}
-                    disabled={!isActive || isPending}
+                    disabled={!isActive || isBusy}
                     title="下一句"
                     active={isActive}
                     uiScheme={uiScheme}
@@ -1033,7 +1047,7 @@ export function TTSControls({
 
                   <ControlButton
                     onClick={handleStopClick}
-                    disabled={!isActive || isPending}
+                    disabled={!isActive && !isBusy}
                     title="停止"
                     active={isActive}
                     variant="danger"
@@ -1130,6 +1144,7 @@ export function TTSControls({
                   voicesError={voicesError}
                   onReloadVoices={onReloadVoices}
                   onUpdateSettings={onUpdateSettings}
+                  onPreviewStart={onPreviewStart}
                   uiScheme={uiScheme}
                   overlayContainer={overlayContainer}
                 />
@@ -1192,7 +1207,7 @@ export function TTSControls({
                   }),
                 }
               ),
-              opacity: isPending ? 0.72 : 1,
+              opacity: isBusy ? 0.72 : 1,
             }}
           >
             <Volume2 className="relative z-10 h-4 w-4" />
@@ -1377,7 +1392,7 @@ export function TTSControls({
                   >
                     <ControlButton
                       onClick={onPrev}
-                      disabled={!isActive || isPending}
+                      disabled={!isActive || isBusy}
                       title="上一句"
                       active={isActive}
                       uiScheme={uiScheme}
@@ -1390,17 +1405,17 @@ export function TTSControls({
                         variant="ghost"
                         size="icon"
                         onClick={handleStartClick}
-                        disabled={isPending}
+                        disabled={isBusy}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                         className="h-11 w-11 rounded-full transition-all active:scale-95"
                         style={{
                           background: uiScheme.fg,
                           color: uiScheme.cardBg,
-                          cursor: isPending ? 'not-allowed' : 'pointer',
+                          cursor: isBusy ? 'not-allowed' : 'pointer',
                           boxShadow: `0 12px 24px -16px ${withOpacity(uiScheme.fg, 0.45)}`,
                         }}
                       >
-                        {isPending ? (
+                        {isBusy ? (
                           <Loader2 className="h-5 w-5 animate-spin" />
                         ) : isPaused ? (
                           <Play className="ml-0.5 h-5 w-5 fill-current" />
@@ -1414,7 +1429,7 @@ export function TTSControls({
 
                     <ControlButton
                       onClick={onNext}
-                      disabled={!isActive || isPending}
+                      disabled={!isActive || isBusy}
                       title="下一句"
                       active={isActive}
                       uiScheme={uiScheme}
@@ -1424,7 +1439,7 @@ export function TTSControls({
 
                     <ControlButton
                       onClick={handleStopClick}
-                      disabled={!isActive || isPending}
+                      disabled={!isActive && !isBusy}
                       title="停止"
                       active={isActive}
                       uiScheme={uiScheme}
@@ -1538,6 +1553,7 @@ export function TTSControls({
                         voicesError={voicesError}
                         onReloadVoices={onReloadVoices}
                         onUpdateSettings={onUpdateSettings}
+                        onPreviewStart={onPreviewStart}
                         uiScheme={uiScheme}
                         overlayContainer={overlayContainer}
                       />

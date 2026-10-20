@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -9,11 +9,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { buildAzureSSML, TTSSettings, Voice } from '@/lib/tts';
+import { buildAzureSSML } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
+import { claimTTSAudioFocus } from '@/lib/tts-audio-focus';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 import { withOpacity } from '@/lib/reader-ui';
+import type { TTSSettings, Voice } from '@/lib/tts';
 
 // 性别标签
 const GENDER_LABELS: Record<string, string> = {
@@ -28,8 +30,20 @@ interface VoiceSelectorProps {
   voicesError?: string | null;
   onReloadVoices?: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
+  onPreviewStart?: () => void;
+  onPreviewEnd?: () => void;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
+}
+
+interface PreviewSession {
+  controller: AbortController;
+  timeoutId: ReturnType<typeof setTimeout>;
+  audio: HTMLAudioElement | null;
+  url: string | null;
+  disposed: boolean;
+  releaseFocus?: () => void;
+  onEnd?: () => void;
 }
 
 export function VoiceSelector({
@@ -39,18 +53,22 @@ export function VoiceSelector({
   voicesError = null,
   onReloadVoices,
   onUpdateSettings,
+  onPreviewStart,
+  onPreviewEnd,
   uiScheme,
   overlayContainer,
 }: VoiceSelectorProps) {
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewRef = useRef<PreviewSession | null>(null);
+  const mountedRef = useRef(true);
 
   // 仅保留中文语音
   const zhVoices = voices.filter(v => v.Locale.startsWith('zh'));
 
   // 当前选中语音支持的风格
-  const selectedVoice = voices.find(v => v.Name === settings.voiceName);
+  const selectedVoice = voices.find(v =>
+    (v.ShortName || v.Name) === settings.voiceName || v.Name === settings.voiceName);
   const availableStyles = selectedVoice?.StyleList || [];
   const compactGlassStyle = {
     background: `
@@ -62,8 +80,13 @@ export function VoiceSelector({
   };
 
   const handleVoiceChange = useCallback((value: string) => {
-    onUpdateSettings({ voiceName: value });
-  }, [onUpdateSettings]);
+    const nextVoice = voices.find(voice => (voice.ShortName || voice.Name) === value);
+    onUpdateSettings({
+      voiceName: value,
+      ...(settings.style && !nextVoice?.StyleList?.includes(settings.style)
+        ? { style: undefined } : {}),
+    });
+  }, [onUpdateSettings, settings.style, voices]);
 
   const handleStyleChange = useCallback((value: string) => {
     onUpdateSettings({ style: value === '__clear__' ? undefined : value });
@@ -73,35 +96,77 @@ export function VoiceSelector({
     return buildAzureSSML(text, settings);
   }, [settings]);
 
-  // 停止试听
-  const stopPreview = useCallback(() => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current = null;
+  const finishPreview = useCallback((session: PreviewSession) => {
+    if (session.disposed) return;
+    session.disposed = true;
+    session.releaseFocus?.();
+    clearTimeout(session.timeoutId);
+    session.controller.abort();
+    if (session.audio) {
+      session.audio.onended = null;
+      session.audio.onerror = null;
+      session.audio.pause();
+      session.audio.removeAttribute('src');
+      session.audio.load();
+      session.audio = null;
     }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+    if (session.url) {
+      URL.revokeObjectURL(session.url);
+      session.url = null;
     }
-    setIsPreviewing(false);
+    if (previewRef.current === session) {
+      previewRef.current = null;
+      if (mountedRef.current) setIsPreviewing(false);
+    }
+    session.onEnd?.();
   }, []);
 
-  // 试听
+  const stopPreview = useCallback(() => {
+    if (previewRef.current) finishPreview(previewRef.current);
+  }, [finishPreview]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      stopPreview();
+    };
+  }, [stopPreview]);
+
+  useEffect(() => () => stopPreview(), [
+    settings.voiceName, settings.style, settings.rate, stopPreview,
+  ]);
+
   const handlePreview = useCallback(async () => {
-    if (isPreviewing) {
+    if (previewRef.current) {
       stopPreview();
       return;
     }
 
+    const { controller, timeoutId } = createAbortController(30000);
+    const session: PreviewSession = {
+      controller, timeoutId, audio: null, url: null, disposed: false, onEnd: onPreviewEnd,
+    };
+    previewRef.current = session;
     setIsPreviewing(true);
-
-    const text = '你好，这是一个语音试听示例。';
+    setPreviewError(null);
+    const isActive = () => previewRef.current === session && !session.disposed;
+    controller.signal.addEventListener('abort', () => {
+      if (!isActive()) return;
+      setPreviewError('语音试听超时，请重试。');
+      finishPreview(session);
+    }, { once: true });
 
     try {
-      const ssml = buildSSML(text);
-      const { controller, timeoutId } = createAbortController(30000);
-      abortControllerRef.current = controller;
-
+      const releaseFocus = claimTTSAudioFocus(session, stopPreview);
+      session.releaseFocus = releaseFocus;
+      if (!isActive()) {
+        releaseFocus();
+        return;
+      }
+      onPreviewStart?.();
+      if (!isActive()) return;
+      const ssml = buildSSML('你好，这是一个语音试听示例。');
       const response = await fetch(`${API_BASE}/api/ssml`, {
         method: 'POST',
         headers: {
@@ -115,38 +180,34 @@ export function VoiceSelector({
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-      abortControllerRef.current = null;
-
+      if (!isActive()) return;
       handleAuthResponse(response);
       if (!response.ok) {
         throw new Error(`语音试听失败，状态码：${response.status}`);
       }
 
       const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
-
-      const audio = new Audio(audioUrl);
-      previewAudioRef.current = audio;
-
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        previewAudioRef.current = null;
-        setIsPreviewing(false);
-      };
-
+      if (!isActive()) return;
+      clearTimeout(timeoutId);
+      session.url = URL.createObjectURL(blob);
+      const audio = new Audio(session.url);
+      session.audio = audio;
+      audio.onended = () => finishPreview(session);
       audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        previewAudioRef.current = null;
-        setIsPreviewing(false);
+        if (isActive()) setPreviewError('语音试听失败，请重试。');
+        finishPreview(session);
       };
 
       await audio.play();
-    } catch (err) {
-      console.error('Preview error:', err);
-      stopPreview();
+      // A browser may settle play() after this session has already been cancelled.
+      if (!isActive()) audio.pause();
+    } catch {
+      if (isActive()) {
+        setPreviewError('语音试听失败，请重试。');
+        finishPreview(session);
+      }
     }
-  }, [isPreviewing, buildSSML, stopPreview]);
+  }, [buildSSML, finishPreview, onPreviewStart, onPreviewEnd, stopPreview]);
 
   return (
     <div className="flex flex-col gap-3 px-0.5 py-0.5">
@@ -191,6 +252,12 @@ export function VoiceSelector({
         </div>
       </div>
 
+      {previewError && (
+        <p role="alert" className="px-1 text-xs" style={{ color: uiScheme.link }}>
+          {previewError}
+        </p>
+      )}
+
       {(voicesLoading || voicesError) && (
         <div
           className="paper-motion-surface paper-field rounded-2xl border px-3 py-1.5 text-xs"
@@ -207,8 +274,12 @@ export function VoiceSelector({
 
       {zhVoices.length > 0 && (
         <div className="space-y-1.5 px-1">
-          <Select value={settings.voiceName} onValueChange={handleVoiceChange}>
+          <Select
+            value={selectedVoice?.ShortName || selectedVoice?.Name || settings.voiceName}
+            onValueChange={handleVoiceChange}
+          >
             <SelectTrigger
+              aria-label="语音"
               data-reader-interactive="true"
               className="min-h-11 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none transition-all hover:scale-[1.01] sm:min-h-9"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
@@ -230,8 +301,8 @@ export function VoiceSelector({
             >
               {zhVoices.map((voice) => (
                 <SelectItem
-                  key={voice.Name}
-                  value={voice.Name}
+                  key={voice.ShortName || voice.Name}
+                  value={voice.ShortName || voice.Name}
                   className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
                   style={{ color: uiScheme.fg }}
                 >
@@ -250,6 +321,7 @@ export function VoiceSelector({
             onValueChange={handleStyleChange}
           >
             <SelectTrigger
+              aria-label="风格"
               data-reader-interactive="true"
               className="min-h-11 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none transition-all hover:scale-[1.01] sm:min-h-9"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}

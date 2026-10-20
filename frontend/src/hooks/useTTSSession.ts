@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import {
   TTS_SESSION_TTL,
   getTTSSessionKey,
@@ -22,6 +22,23 @@ export function useTTSSession({
   currentMarkRef,
   getSettings,
 }: UseTTSSessionOptions) {
+  const pendingRef = useRef<{ key: string; snapshot: TTSSessionSnapshot } | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastWriteRef = useRef<number | null>(null);
+  const writePending = useCallback(() => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (!pending) return;
+    try {
+      localStorage.setItem(pending.key, JSON.stringify(pending.snapshot));
+      lastWriteRef.current = Date.now();
+    } catch {
+      // Storage availability must never interrupt narration.
+    }
+  }, []);
+  useEffect(() => () => writePending(), [bookId, writePending]);
   const loadTTSSession = useCallback((): TTSSessionSnapshot | null => {
     if (typeof window === 'undefined') return null;
 
@@ -43,7 +60,7 @@ export function useTTSSession({
     }
   }, [bookId]);
 
-  const saveTTSSession = useCallback(() => {
+  const saveTTSSession = useCallback((flush = false) => {
     if (typeof window === 'undefined') return;
 
     const key = getTTSSessionKey(bookId);
@@ -59,18 +76,26 @@ export function useTTSSession({
       settings: getSettings(),
     };
 
-    try {
-      localStorage.setItem(key, JSON.stringify(snapshot));
-    } catch {
-      // localStorage may be unavailable in private browsing or under quota pressure.
+    pendingRef.current = { key, snapshot };
+    const elapsed = lastWriteRef.current === null ? Infinity : Date.now() - lastWriteRef.current;
+    if (flush || elapsed >= 2000) {
+      writePending();
+    } else if (timerRef.current === null) {
+      timerRef.current = setTimeout(writePending, 2000 - elapsed);
     }
-  }, [bookId, currentMarkRef, getSettings, viewRef]);
+  }, [bookId, currentMarkRef, getSettings, viewRef, writePending]);
+
+  const flushTTSSession = useCallback(() => saveTTSSession(true), [saveTTSSession]);
 
   const clearTTSSession = useCallback(() => {
     if (typeof window === 'undefined') return;
 
     const key = getTTSSessionKey(bookId);
     if (!key) return;
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    pendingRef.current = null;
+    lastWriteRef.current = null;
 
     try {
       localStorage.removeItem(key);
@@ -82,6 +107,7 @@ export function useTTSSession({
   return {
     loadTTSSession,
     saveTTSSession,
+    flushTTSSession,
     clearTTSSession,
   };
 }

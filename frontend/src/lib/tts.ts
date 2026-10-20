@@ -1,8 +1,11 @@
 'use client';
 
-import { API_BASE, createAbortController, isAbortLikeError } from '@/lib/config';
+import { API_BASE, createAbortController } from '@/lib/config';
 import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
 import { recordTTSDiagnostic } from '@/lib/tts-diagnostics';
+import { enhanceProsodyBreaks } from '@/lib/tts-text';
+import { classifyTTSError, parseTTSRetryAfter, TTSRequestError } from '@/lib/tts-request';
+import { claimTTSAudioFocus } from '@/lib/tts-audio-focus';
 
 export type TTSState = 'stopped' | 'playing' | 'paused';
 export type TTSHighlightMode = 'word' | 'sentence';
@@ -20,6 +23,8 @@ export interface TTSMark {
   range?: Range;
   cfi?: string;
   sentenceIndex?: number;
+  sentenceCfi?: string;
+  sentenceText?: string;
   weight?: number;
 }
 
@@ -110,8 +115,9 @@ export function saveTTSSettings(settings: TTSSettings): void {
 export function mergeVoicesWithFallback(voices: Voice[], preferredVoiceName?: string): Voice[] {
   const merged = new Map<string, Voice>();
 
-  for (const voice of [...voices, ...FALLBACK_ZH_VOICES]) {
-    merged.set(voice.Name, voice);
+  for (const voice of [...FALLBACK_ZH_VOICES, ...voices]) {
+    const name = voice.ShortName || voice.Name;
+    merged.set(name, { ...voice, Name: name, ShortName: name });
   }
 
   if (preferredVoiceName && !merged.has(preferredVoiceName)) {
@@ -221,112 +227,13 @@ export function isSkippableTTSText(text: string): boolean {
   if (!normalized) return true;
 
   const compact = normalized.replace(/\s+/g, '');
-  if (/^\d{1,4}$/.test(compact)) return true;
   if (/^[·•*_\-.。．…]+$/.test(compact)) return true;
   if (/^[\p{P}\p{S}]+$/u.test(compact) && compact.length <= 8) return true;
   if (/^\.{3,}$/.test(compact) || /^…+$/.test(compact)) return true;
-  if (/^[·•*-]\d{1,4}$/.test(compact)) return true;
   if (isTableLikeTTSText(text)) return true;
   if (isCodeLikeTTSText(text)) return true;
 
   return false;
-}
-
-function normalizeTextNodeForTTS(text: string): string {
-  return text
-    .replace(/[\u00a0\u200b-\u200d\ufeff]/g, ' ')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\s*\r?\n\s*/g, '\n')
-    .replace(/\n{3,}/g, '\n\n');
-}
-
-function getBreakTimeForCharacter(character: string): string | null {
-  if ('，,、'.includes(character)) return '120ms';
-  if ('；;'.includes(character)) return '220ms';
-  if ('：:'.includes(character)) return '180ms';
-  if ('。.!！？?'.includes(character)) return '320ms';
-  if (character === '…') return '260ms';
-  return null;
-}
-
-function createBreakElement(doc: XMLDocument, time: string): Element {
-  const breakElement = doc.createElementNS(
-    'http://www.w3.org/2001/10/synthesis',
-    'break',
-  );
-  breakElement.setAttribute('time', time);
-  return breakElement;
-}
-
-function appendTextWithBreaks(doc: XMLDocument, fragment: DocumentFragment, text: string): void {
-  const normalized = normalizeTextNodeForTTS(text);
-  let buffer = '';
-  let charactersSinceBreak = 0;
-
-  const flushBuffer = () => {
-    if (!buffer) return;
-    fragment.appendChild(doc.createTextNode(buffer));
-    buffer = '';
-  };
-
-  const appendBreak = (time: string) => {
-    flushBuffer();
-    fragment.appendChild(createBreakElement(doc, time));
-    charactersSinceBreak = 0;
-  };
-
-  for (const character of normalized) {
-    if (character === '\n') {
-      buffer += ' ';
-      appendBreak('360ms');
-      continue;
-    }
-
-    buffer += character;
-    if (!/\s/.test(character)) {
-      charactersSinceBreak += 1;
-    }
-
-    const breakTime = getBreakTimeForCharacter(character);
-    if (breakTime) {
-      appendBreak(breakTime);
-      continue;
-    }
-
-    if (charactersSinceBreak >= 90 && /[\s，,、；;：:]/.test(character)) {
-      appendBreak('180ms');
-    }
-  }
-
-  flushBuffer();
-}
-
-function shouldEnhanceTextNode(node: Node): boolean {
-  if (!node.textContent?.trim()) return false;
-
-  const parent = node.parentElement;
-  if (!parent) return false;
-
-  const preservedParents = new Set(['break', 'bookmark', 'mark', 'phoneme', 'say-as', 'sub']);
-  return !preservedParents.has(parent.localName.toLowerCase());
-}
-
-function enhanceProsodyBreaks(doc: XMLDocument, root: Element): void {
-  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const textNodes: Text[] = [];
-
-  while (walker.nextNode()) {
-    const node = walker.currentNode;
-    if (node instanceof Text && shouldEnhanceTextNode(node)) {
-      textNodes.push(node);
-    }
-  }
-
-  textNodes.forEach((textNode) => {
-    const fragment = doc.createDocumentFragment();
-    appendTextWithBreaks(doc, fragment, textNode.data);
-    textNode.replaceWith(fragment);
-  });
 }
 
 export function buildAzureSSML(content: string, settings: TTSSettings): string {
@@ -508,6 +415,7 @@ export class BackendTTS {
   private pendingPreloadTasks: PreloadTask[] = [];
   private queuedPreloadKeys: Set<string> = new Set();
   private preloadAbortControllers: Map<string, AbortController> = new Map();
+  private preloadPromises = new Map<string, Promise<void>>();
   
   private audioCache: LRUCache<CachedAudio> = new LRUCache(10);
   private preloadTriggered: boolean = false;
@@ -519,6 +427,14 @@ export class BackendTTS {
   private playbackRequestId = 0;
   private replacingSource = false;
   private wantsPlayback = false;
+  private playbackWaitController: AbortController | null = null;
+  private sessionStartedAt: number | null = null;
+  private sessionPlayed = false;
+  private lastEndedAt: number | null = null;
+  private markBoundaries: number[] = [];
+  private providerRetryNotBefore = 0;
+  private providerRetryError: TTSRequestError | null = null;
+  private releaseAudioFocus: (() => void) | null = null;
 
   private onPreloadTrigger: (() => void) | null = null;
 
@@ -569,7 +485,14 @@ export class BackendTTS {
     return this.settings;
   }
 
+  beginSession(): void {
+    this.sessionStartedAt = performance.now();
+    this.sessionPlayed = false;
+    this.lastEndedAt = null;
+  }
+
   setState(state: TTSState): void {
+    if (this.state === state) return;
     this.state = state;
     this.logMetric('state-change', { state });
     this.onStateChange?.(state);
@@ -665,8 +588,13 @@ export class BackendTTS {
 
   async speak(ssml: string, marks?: TTSMark[], isContinuous?: boolean): Promise<void> {
     if (isSSMLTooLarge(ssml)) throw new Error('当前段落过长，无法直接朗读');
+    this.releaseAudioFocus = claimTTSAudioFocus(this, () => this.pause());
 
     const requestId = ++this.playbackRequestId;
+    this.playbackWaitController?.abort();
+    const waitController = new AbortController();
+    this.playbackWaitController = waitController;
+    this.sessionStartedAt ??= performance.now();
     ++this.speechId;
     this.wantsPlayback = true;
     this.abortController?.abort();
@@ -678,6 +606,27 @@ export class BackendTTS {
 
     try {
       const cached = this.audioCache.get(ssml);
+      // Share only this chunk's in-flight prefetch. Other future requests must
+      // never block playback, navigation, pause, or stop.
+      if (!cached && this.preloadPromises.has(ssml)) {
+        const prefetch = this.preloadPromises.get(ssml)!;
+        await new Promise<void>((resolve, reject) => {
+          const abort = () => reject(Object.assign(new Error('朗读操作已取消'), {
+            name: 'AbortError',
+          }));
+          waitController.signal.addEventListener('abort', abort, { once: true });
+          void prefetch.then(() => {
+            waitController.signal.removeEventListener('abort', abort);
+            resolve();
+          }, error => {
+            waitController.signal.removeEventListener('abort', abort);
+            reject(error);
+          });
+        });
+        if (requestId !== this.playbackRequestId) {
+          throw new DOMException('Playback was cancelled', 'AbortError');
+        }
+      }
       const preloadedIndex = this.preloadedQueue.findIndex(item => item.ssml === ssml);
       const preloaded = preloadedIndex >= 0
         ? this.preloadedQueue.splice(preloadedIndex, 1)[0]
@@ -685,6 +634,7 @@ export class BackendTTS {
       let blob = cached?.blob ?? preloaded?.blob;
       if (!blob) {
         this.consecutivePreloadMisses += isContinuous ? 1 : 0;
+        if (this.lastEndedAt !== null) this.logMetric('buffer-miss');
         const start = performance.now();
         blob = await this.fetchAudioBlob(ssml);
         this.recordSynthesisLatency(performance.now() - start);
@@ -695,6 +645,13 @@ export class BackendTTS {
         throw new DOMException('Playback was cancelled', 'AbortError');
       }
       this.marks = speechMarks;
+      const totalWeight = speechMarks.reduce((sum, mark) => sum +
+        Math.max(0.001, mark.weight ?? mark.text.length), 0);
+      let cumulative = 0;
+      this.markBoundaries = speechMarks.map(mark => {
+        cumulative += Math.max(0.001, mark.weight ?? mark.text.length);
+        return cumulative / totalWeight;
+      });
       this.audioCache.set(ssml, { blob, marks: speechMarks });
       this.logMetric('speak.ready', {
         requestId, continuous: Boolean(isContinuous),
@@ -704,14 +661,14 @@ export class BackendTTS {
     } catch (error) {
       if (requestId === this.playbackRequestId) {
         this.replacingSource = false;
-        this.setState(isAbortLikeError(error) ? 'paused' : 'stopped');
+        this.setState('paused');
       }
       throw error;
     }
   }
 
   private async fetchAudioBlob(ssml: string): Promise<Blob> {
-    const { controller, timeoutId } = createAbortController(60000);
+    const { controller, timeoutId } = createAbortController(65000);
     this.abortController = controller;
     try {
       return await this.fetchAudioBlobWithController(ssml, controller);
@@ -723,16 +680,16 @@ export class BackendTTS {
 
   private updateCurrentMark(audio: HTMLAudioElement): void {
     if (!this.marks.length) return;
-    const total = this.marks.reduce((sum, mark) => sum + (mark.weight ?? (mark.text.length || 1)), 0);
     const progress = Number.isFinite(audio.duration) && audio.duration > 0
       ? Math.min(audio.currentTime / audio.duration, 1) : 0;
-    let remaining = total * progress;
-    let index = 0;
-    while (index < this.marks.length - 1) {
-      remaining -= this.marks[index].weight ?? (this.marks[index].text.length || 1);
-      if (remaining < 0) break;
-      index += 1;
+    let low = 0;
+    let high = this.marks.length - 1;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (progress < this.markBoundaries[middle]) high = middle;
+      else low = middle + 1;
     }
+    const index = low;
     if (this.currentMarkIndex !== index) {
       this.currentMarkIndex = index;
       this.onMarkChange?.(this.marks[index], index);
@@ -758,6 +715,7 @@ export class BackendTTS {
     audio.onended = () => {
       if (this.audioUrl !== audioUrl || !audio.ended) return;
       this.logMetric('audio.ended', { requestId });
+      this.lastEndedAt = performance.now();
       this.preloadTriggered = false;
       if (this.state === 'playing') this.onEnd?.();
     };
@@ -801,6 +759,15 @@ export class BackendTTS {
       }
       this.replacingSource = false;
       this.setState('playing');
+      const now = performance.now();
+      if (!this.sessionPlayed && this.sessionStartedAt !== null) {
+        this.logMetric('first-audio', { latencyMs: Math.round(now - this.sessionStartedAt) });
+        this.sessionPlayed = true;
+      }
+      if (this.lastEndedAt !== null) {
+        this.logMetric('chunk-gap', { gapMs: Math.round(now - this.lastEndedAt) });
+        this.lastEndedAt = null;
+      }
       this.logMetric('audio.play-resolved', { requestId });
     } catch (error) {
       this.logMetric('audio.play-rejected', {
@@ -838,9 +805,10 @@ export class BackendTTS {
     if (this.audioCache.has(ssml)) return;
     
     if (this.preloadedQueue.some(p => p.ssml === ssml)) return;
-    if (this.queuedPreloadKeys.has(ssml) || this.preloadAbortControllers.has(ssml)) return;
+    const existing = this.preloadPromises.get(ssml);
+    if (existing) return existing;
 
-    return new Promise((resolve) => {
+    const promise = new Promise<void>((resolve) => {
       this.queuedPreloadKeys.add(ssml);
       this.pendingPreloadTasks.push({ ssml, marks, resolve });
       this.logMetric('preload.enqueued', {
@@ -848,6 +816,11 @@ export class BackendTTS {
       });
       this.pumpPreloadQueue();
     });
+    this.preloadPromises.set(ssml, promise);
+    void promise.finally(() => {
+      if (this.preloadPromises.get(ssml) === promise) this.preloadPromises.delete(ssml);
+    });
+    return promise;
   }
 
   private pumpPreloadQueue(): void {
@@ -877,7 +850,7 @@ export class BackendTTS {
     if (this.audioCache.has(ssml)) return;
     if (this.preloadedQueue.some(p => p.ssml === ssml)) return;
 
-    const { controller, timeoutId } = createAbortController(60000);
+    const { controller, timeoutId } = createAbortController(65000);
     this.preloadAbortControllers.set(ssml, controller);
     const start = performance.now();
     
@@ -905,7 +878,7 @@ export class BackendTTS {
         averageLatencyMs: Math.round(this.getAverageSynthesisLatency()),
       });
     } catch (error) {
-      if (isAbortLikeError(error)) {
+      if (classifyTTSError(error) === 'cancelled') {
         this.logMetric('preload.abort', {
           latencyMs: Math.round(performance.now() - start),
         });
@@ -915,7 +888,7 @@ export class BackendTTS {
         latencyMs: Math.round(performance.now() - start),
         message: error instanceof Error ? error.message : String(error),
       });
-      console.error('Preload failed:', error);
+      if (process.env.NODE_ENV === 'development') console.error('Preload failed:', error);
     } finally {
       clearTimeout(timeoutId);
       if (this.preloadAbortControllers.get(ssml) === controller) {
@@ -925,6 +898,10 @@ export class BackendTTS {
   }
 
   private async fetchAudioBlobWithController(ssml: string, controller: AbortController): Promise<Blob> {
+    if (this.providerRetryError && Date.now() < this.providerRetryNotBefore) {
+      throw new TTSRequestError(this.providerRetryError.status, this.providerRetryError.code,
+        this.providerRetryNotBefore - Date.now());
+    }
     try {
       const response = await fetch(`${API_BASE}/api/ssml`, {
         method: 'POST',
@@ -941,15 +918,26 @@ export class BackendTTS {
 
       handleAuthResponse(response);
       if (!response.ok) {
-        throw new Error(`语音合成失败，状态码：${response.status}`);
+        const body = await response.json().catch(() => null) as { code?: string } | null;
+        const error = new TTSRequestError(response.status, body?.code,
+          parseTTSRetryAfter(response.headers.get('Retry-After')));
+        // A failed background prefetch must not discard a provider's cooldown.
+        // It applies to every following chunk, including a different SSML key.
+        if ([429, 503].includes(response.status) && error.retryAfterMs > 0) {
+          const retryNotBefore = Date.now() + error.retryAfterMs;
+          if (retryNotBefore > this.providerRetryNotBefore) {
+            this.providerRetryNotBefore = retryNotBefore;
+            this.providerRetryError = error;
+          }
+        }
+        throw error;
       }
 
       return await response.blob();
     } catch (error) {
-      if (isAbortLikeError(error)) {
-        throw error;
-      }
-      throw new Error(`获取语音失败：${error}`);
+      // Keep names and status intact so timeout, cancellation, permission and
+      // retryable provider errors can follow different recovery paths.
+      throw error;
     }
   }
 
@@ -1022,6 +1010,7 @@ export class BackendTTS {
       controller.abort();
     }
     this.preloadAbortControllers.clear();
+    this.preloadPromises.clear();
     this.pendingPreloadTasks.forEach((task) => {
       this.queuedPreloadKeys.delete(task.ssml);
       task.resolve();
@@ -1053,7 +1042,10 @@ export class BackendTTS {
   }
 
   pause(): void {
+    this.releaseAudioFocus?.();
+    this.releaseAudioFocus = null;
     this.wantsPlayback = false;
+    this.playbackWaitController?.abort();
     ++this.playbackRequestId;
     this.abortController?.abort();
     this.abortController = null;
@@ -1064,15 +1056,24 @@ export class BackendTTS {
 
   async resume(): Promise<void> {
     if (!this.hasCurrentAudio()) throw new Error('当前音频需要重新准备');
+    this.releaseAudioFocus = claimTTSAudioFocus(this, () => this.pause());
     // Actual element state is authoritative, including when a browser has
     // paused playback before the page received the corresponding event.
     this.wantsPlayback = true;
+    const requestId = ++this.playbackRequestId;
     if (this.audio?.paused) await this.audio.play();
+    if (requestId !== this.playbackRequestId || !this.wantsPlayback) {
+      throw Object.assign(new Error('朗读操作已取消'), { name: 'AbortError' });
+    }
     this.setState('playing');
   }
 
   stop(): void {
+    this.releaseAudioFocus?.();
+    this.releaseAudioFocus = null;
     this.wantsPlayback = false;
+    this.playbackWaitController?.abort();
+    this.playbackWaitController = null;
     ++this.playbackRequestId;
     this.abortController?.abort();
     this.abortController = null;
@@ -1091,6 +1092,14 @@ export class BackendTTS {
     this.releaseAudioUrl();
     this.preloadTriggered = false;
     this.currentMarkIndex = -1;
+    this.marks = [];
+    this.markBoundaries = [];
+    this.currentSSML = '';
+    this.audioSSML = '';
+    this.audioSpeechId = -1;
+    this.sessionStartedAt = null;
+    this.sessionPlayed = false;
+    this.lastEndedAt = null;
   }
 
   isSpeaking(): boolean {

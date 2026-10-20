@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "scripts": {
     "predev": "node scripts/build-foliate.mjs",
@@ -29,7 +29,9 @@
     "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
     "test:visual:update:linux": "bash scripts/update-visual-linux.sh",
     "test:visual:ui": "playwright test tests/e2e/visual-regression.spec.ts --ui",
-    "test:perf:production": "node scripts/run-production-performance.mjs"
+    "test:perf:production": "node scripts/run-production-performance.mjs",
+    "test:tts:provider": "node scripts/measure-tts-provider.mjs",
+    "test:tts:provider:cli": "node --test scripts/measure-tts-provider.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

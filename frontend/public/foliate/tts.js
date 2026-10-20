@@ -44,19 +44,42 @@ const getSegmenter = (lang = 'en', granularity = 'word') => {
             const endIndex = strIndex
             const endOffset = end - (sum - strs[strIndex].length) + 1
             yield [(name++).toString(),
-                makeRange(startIndex, startOffset, endIndex, endOffset)]
+                makeRange(startIndex, startOffset, endIndex, endOffset),
+                { start: index, end: index + segment.length }]
         }
     }
 }
 
 const textNodeFilter = NodeFilter.SHOW_TEXT | NodeFilter.SHOW_CDATA_SECTION
 
+const excludedRoles = new Set(['doc-pagebreak', 'doc-footnote', 'doc-endnote',
+    'doc-noteref', 'doc-backlink'])
+const excludedTypes = new Set(['pagebreak', 'footnote', 'endnote', 'rearnote', 'noteref'])
+const excludedTags = new Set(['script', 'style', 'head', 'template', 'noscript'])
+
+const isElementAllowedForTTS = el => {
+    if (excludedTags.has(el.localName.toLowerCase()) || el.hasAttribute('hidden') ||
+        el.getAttribute('aria-hidden')?.toLowerCase() === 'true') return false
+    const roles = (el.getAttribute('role') || '').split(/\s+/)
+    const types = (el.getAttributeNS('http://www.idpf.org/2007/ops', 'type') ||
+        el.getAttribute('epub:type') || '').split(/\s+/)
+    if (roles.some(role => excludedRoles.has(role)) ||
+        types.some(type => excludedTypes.has(type))) return false
+    const style = el.getAttribute('style') || ''
+    return !/(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)\s*(?:!important)?\s*(?:;|$)/i
+        .test(style)
+}
+
 const isTextNodeAllowedForTTS = node => {
-    for (let el = node.parentElement; el; el = el.parentElement) {
-        const name = el.tagName.toLowerCase()
-        if (name === 'script' || name === 'style') return false
-    }
+    for (let el = node.parentElement; el; el = el.parentElement)
+        if (!isElementAllowedForTTS(el)) return false
     return true
+}
+
+const ttsNodeFilter = node => {
+    if (node.nodeType === Node.ELEMENT_NODE)
+        return isElementAllowedForTTS(node) ? NodeFilter.FILTER_SKIP : NodeFilter.FILTER_REJECT
+    return isTextNodeAllowedForTTS(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
 }
 
 const getClippedTextEntries = (range, func) => {
@@ -114,7 +137,7 @@ const fragmentToSSML = (fragment, inherited) => {
         if (!node) return
         if (node.nodeType === 3) return ssml.createTextNode(node.textContent)
         if (node.nodeType === 4) return ssml.createCDATASection(node.textContent)
-        if (node.nodeType !== 1) return
+        if (node.nodeType !== 1 || !isElementAllowedForTTS(node)) return
 
         let el
         const nodeName = node.nodeName.toLowerCase()
@@ -168,12 +191,22 @@ const getFragmentWithMarks = (range, textWalker, granularity) => {
 
     const segmenter = getSegmenter(lang, granularity)
     const fragment = range.cloneContents()
+    // cloneContents omits a common inline ancestor when both boundaries are in one text node.
+    // Preserve its speech semantics before inserting marks into the detached fragment.
+    let ancestor = range.commonAncestorContainer
+    if (ancestor.nodeType !== Node.ELEMENT_NODE) ancestor = ancestor.parentElement
+    for (; ancestor && !blockTags.has(ancestor.localName.toLowerCase());
+        ancestor = ancestor.parentElement) {
+        const wrapper = ancestor.cloneNode(false)
+        wrapper.append(...fragment.childNodes)
+        fragment.append(wrapper)
+    }
 
     // we need ranges on both the original document (for highlighting)
     // and the document fragment (for inserting marks)
     // so unfortunately need to do it twice, as you can't copy the ranges
     const entries = getClippedTextEntries(range, segmenter)
-    const fragmentEntries = [...textWalker(fragment, segmenter)]
+    const fragmentEntries = [...textWalker(fragment, segmenter, ttsNodeFilter)]
 
     for (const [name, range] of fragmentEntries) {
         const mark = document.createElement('foliate-mark')
@@ -198,7 +231,10 @@ const rangeEndsAfterStart = (a, b) =>
 
 function* getBlocks(doc) {
     let last
-    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT)
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT, {
+        acceptNode: node => isElementAllowedForTTS(node)
+            ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+    })
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
         const name = node.tagName.toLowerCase()
         if (blockTags.has(name)) {
@@ -224,13 +260,13 @@ function* getSentences(doc, textWalker) {
         const sentenceSegmenter = getSegmenter(lang, 'sentence')
         let yieldedSentence = false
 
-        for (const [, sentenceRange] of textWalker(blockRange, sentenceSegmenter)) {
+        for (const [, sentenceRange] of getClippedTextEntries(blockRange, sentenceSegmenter)) {
             if (rangeIsEmpty(sentenceRange)) continue
             yieldedSentence = true
             yield sentenceRange
         }
 
-        if (!yieldedSentence && !rangeIsEmpty(blockRange)) {
+        if (!yieldedSentence && getClippedTextEntries(blockRange, (strs) => strs).join('').trim()) {
             yield blockRange
         }
     }
@@ -249,12 +285,24 @@ export function* getTTSSentences(doc, textWalker, getCFI, startRange) {
         }
         const { entries, ssml } = getFragmentWithMarks(range, textWalker, 'word')
         for (const mark of Array.from(ssml.getElementsByTagName('mark'))) mark.remove()
+        let offset = 0
+        const textRanges = getClippedTextEntries(range, function* (strs, makeRange) {
+            for (const [index, text] of strs.entries()) {
+                const start = offset
+                offset += text.length
+                yield { start, end: offset,
+                    cfi: getCFI(makeRange(index, 0, index, text.length)) }
+            }
+        })
+        const text = ssml.documentElement.textContent
         yield {
             ssml: new XMLSerializer().serializeToString(ssml),
-            text: range.toString(),
+            text,
             cfi: getCFI(range),
-            words: entries.map(([, wordRange]) => ({
-                text: wordRange.toString(), cfi: getCFI(wordRange),
+            textRanges,
+            words: entries.map(([, wordRange, position]) => ({
+                text: text.slice(position.start, position.end),
+                cfi: getCFI(wordRange), ...position,
             })),
         }
     }

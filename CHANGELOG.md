@@ -8,6 +8,57 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-20
+
+### Fixed
+
+- Keep sentence navigation responsive while future speech requests are pending;
+  navigate original sentences and reload expired history using exact EPUB CFIs.
+- Split long passages into duration-bounded chunks without losing text, word
+  positions, formatting, or resumable offsets. Avoid repeating pronunciation
+  overrides when an oversized phoneme or alias must be split.
+- Preserve the current audio and playback position when changing highlight mode,
+  and ignore settings updates that do not change a value.
+- Distinguish cancellation, timeout, permission, invalid SSML, and provider
+  failures. Retry temporary failures with cancellable backoff, honor Retry-After
+  from background prefetch, and retain failed chunks for manual recovery.
+- Apply a single 55-second backend queue/endpoint/synthesis deadline, preserve
+  independent cancellation for shared work, and sanitize public provider errors.
+- Keep Stop available while preparing speech, reject stale asynchronous playback,
+  and coordinate voice previews with narration to prevent overlapping audio.
+- Read numeric body content while excluding semantic page markers and non-content.
+  Avoid artificial pauses inside decimals, versions, abbreviations, and URLs,
+  including tokens split across inline formatting.
+- Prefer current provider voice metadata over fallback data, clear unsupported
+  styles on voice changes, and release preview requests, timers, and audio URLs.
+
+### Changed
+
+- Estimate word timing using spoken length and punctuation, calibrate buffering
+  from decoded audio duration, and coalesce progress writes with lifecycle flushes.
+- Bound retained text and avoid repeatedly parsing or copying entire long passages
+  when preparing a short first chunk or skipping a sentence.
+
+### Added
+
+- Privacy-filtered local first-audio, chunk-gap, buffer, retry, and recovery
+  diagnostics; backend cache/result counters and queue/synthesis histograms.
+- An opt-in real-provider measurement script, isolated sample results, and
+  regression coverage for cancellation, CFI slicing, pronunciation, and previews.
+
+### Upgrade notes and limitations
+
+- No database migration or new speech-service configuration is required. Preserve
+  data and uploads volumes, and refresh open readers for the matching frontend and
+  Foliate assets. Existing saved settings and sessions remain usable.
+- Word highlighting remains an estimate because the current provider returns MP3
+  without word-boundary timestamps. Operating-system process termination and
+  device-specific background restrictions still require real-device acceptance.
+- The isolated two-sample provider measurement observed 2555.2 ms to first browser
+  playback and a 27 ms inter-chunk gap. It is a single sample, not a latency SLA.
+- Roll back to v0.1.4 with the same persistent volumes. See the
+  [background reading guide](docs/tts-background-playback.md) for diagnostics.
+
 ## [0.1.4] - 2026-10-19
 
 ### Changed
@@ -196,7 +247,8 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/zuoban/z-reader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/zuoban/z-reader/releases/tag/v0.1.4
 [0.1.3]: https://github.com/zuoban/z-reader/releases/tag/v0.1.3
 [0.1.2]: https://github.com/zuoban/z-reader/releases/tag/v0.1.2

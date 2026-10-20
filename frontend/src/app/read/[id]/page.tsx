@@ -116,6 +116,7 @@ export default function ReadPage() {
 
   const {
     state: ttsState,
+    preparing: ttsPreparing,
     settings: ttsSettings,
     updateSettings: updateTTSSettings,
     start: startTTS,
@@ -133,6 +134,7 @@ export default function ReadPage() {
     setSleepTimerForMinutes,
     clearSleepTimer,
     resume: resumeTTS,
+    pause: pauseTTS,
     restoreCurrentHighlight: restoreTTSHighlight,
   } = useTTS({ viewRef, onHighlight: handleHighlight, bookId, voicesEnabled: ttsRequested });
 
@@ -329,6 +331,10 @@ export default function ReadPage() {
   const sharedTTSControlsProps = {
     onRequest: () => setTTSRequested(true),
     state: ttsState,
+    preparing: ttsPreparing,
+    onPreviewStart: () => {
+      if (ttsState === 'playing' || ttsPreparing) pauseTTS();
+    },
     settings: ttsSettings,
     voices,
     voicesLoading,

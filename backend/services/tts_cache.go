@@ -26,6 +26,7 @@ const (
 	defaultTTSMaxConcurrency     = 3
 	defaultTTSMaxQueued          = 12
 	defaultTTSQueueWait          = 30 * time.Second
+	defaultTTSSynthesisTimeout   = 55 * time.Second
 )
 
 var ErrTTSBusy = errors.New("tts service is busy")
@@ -60,6 +61,79 @@ type ttsRuntimeState struct {
 	cache     *ttsAudioCache
 	semaphore chan struct{}
 	queue     chan struct{}
+	metrics   ttsMetrics
+}
+
+// Buckets and labels are fixed so content and provider identifiers never affect cardinality.
+var ttsDurationBuckets = [...]float64{0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10, 30, 55}
+
+type ttsHistogram struct {
+	buckets [len(ttsDurationBuckets)]uint64
+	count   uint64
+	sum     float64
+}
+
+func (h *ttsHistogram) observe(seconds float64) {
+	h.count++
+	h.sum += seconds
+	for i, boundary := range ttsDurationBuckets {
+		if seconds <= boundary {
+			h.buckets[i]++
+		}
+	}
+}
+
+type ttsMetrics struct {
+	mutex     sync.Mutex
+	cache     [2][2]uint64
+	results   [4]uint64
+	queueWait ttsHistogram
+	synthesis ttsHistogram
+}
+
+func (m *ttsMetrics) recordCache(layer int, hit bool) {
+	result := 1
+	if hit {
+		result = 0
+	}
+	m.mutex.Lock()
+	m.cache[layer][result]++
+	m.mutex.Unlock()
+}
+
+func (m *ttsMetrics) recordResult(err error) {
+	result := 0
+	if errors.Is(err, context.Canceled) {
+		result = 2
+	} else if errors.Is(err, ErrTTSBusy) {
+		result = 3
+	} else if err != nil {
+		result = 1
+	}
+	m.mutex.Lock()
+	m.results[result]++
+	m.mutex.Unlock()
+}
+
+func (m *ttsMetrics) observeQueueWait(duration time.Duration) {
+	m.mutex.Lock()
+	m.queueWait.observe(duration.Seconds())
+	m.mutex.Unlock()
+}
+
+func (m *ttsMetrics) observeSynthesis(duration time.Duration) {
+	m.mutex.Lock()
+	m.synthesis.observe(duration.Seconds())
+	m.mutex.Unlock()
+}
+
+func appendTTSHistogram(output *strings.Builder, name, help string, histogram ttsHistogram) {
+	fmt.Fprintf(output, "# HELP %s %s\n# TYPE %s histogram\n", name, help, name)
+	for i, boundary := range ttsDurationBuckets {
+		fmt.Fprintf(output, "%s_bucket{le=%q} %d\n", name, strconv.FormatFloat(boundary, 'g', -1, 64), histogram.buckets[i])
+	}
+	fmt.Fprintf(output, "%s_bucket{le=\"+Inf\"} %d\n", name, histogram.count)
+	fmt.Fprintf(output, "%s_sum %s\n%s_count %d\n", name, strconv.FormatFloat(histogram.sum, 'g', -1, 64), name, histogram.count)
 }
 
 var ttsRuntime struct {
@@ -135,6 +209,29 @@ func AppendTTSPrometheus(output *strings.Builder) {
 	output.WriteString("# HELP z_reader_tts_concurrency_limit Configured concurrent TTS synthesis limit.\n")
 	output.WriteString("# TYPE z_reader_tts_concurrency_limit gauge\n")
 	fmt.Fprintf(output, "z_reader_tts_concurrency_limit %d\n", metrics.ConcurrencyLimit)
+	runtime := ttsRuntime.state.Load()
+	if runtime == nil {
+		return
+	}
+	runtime.metrics.mutex.Lock()
+	cache, results := runtime.metrics.cache, runtime.metrics.results
+	queueWait, synthesis := runtime.metrics.queueWait, runtime.metrics.synthesis
+	runtime.metrics.mutex.Unlock()
+	output.WriteString("# HELP z_reader_tts_cache_requests_total TTS cache lookups by layer and result.\n")
+	output.WriteString("# TYPE z_reader_tts_cache_requests_total counter\n")
+	for layer, layerName := range []string{"memory", "disk"} {
+		for result, resultName := range []string{"hit", "miss"} {
+			fmt.Fprintf(output, "z_reader_tts_cache_requests_total{layer=%q,result=%q} %d\n", layerName, resultName, cache[layer][result])
+		}
+	}
+	output.WriteString("# HELP z_reader_tts_requests_total Completed TTS callers including cache hits and shared waiters.\n")
+	output.WriteString("# TYPE z_reader_tts_requests_total counter\n")
+	for i, result := range []string{"success", "failure", "cancelled", "busy"} {
+		fmt.Fprintf(output, "z_reader_tts_requests_total{result=%q} %d\n", result, results[i])
+	}
+	appendTTSHistogram(output, "z_reader_tts_queue_wait_seconds", "Time waiting for a synthesis slot, including rejected or cancelled work.", queueWait)
+	appendTTSHistogram(output, "z_reader_tts_synthesis_duration_seconds", "Synthesis duration including endpoint refresh, excluding queue wait and cache hits.", synthesis)
+
 }
 
 func newTTSRuntimeState(config ttsCacheConfig) *ttsRuntimeState {
@@ -278,6 +375,8 @@ type ttsInflightCall struct {
 	done    chan struct{}
 	cancel  context.CancelFunc
 	waiters atomic.Int64
+	key     string
+	ctx     context.Context
 }
 
 var ttsInflight struct {
@@ -289,32 +388,40 @@ func callTTSAPIWithCache(ssml, outputFormat string) ([]byte, error) {
 	return callTTSAPIWithCacheContext(context.Background(), ssml, outputFormat)
 }
 
-func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) (data []byte, err error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	runtime := getTTSRuntime()
+	defer func() { runtime.metrics.recordResult(err) }()
 	key := ttsCacheKey(ssml, outputFormat)
 	if data, ok := runtime.cache.get(key); ok {
+		runtime.metrics.recordCache(0, true)
 		logger.Info("TTS cache hit", "source", "memory", "key", key, "bytes", len(data))
 		return data, nil
 	}
 
+	runtime.metrics.recordCache(0, false)
 	if data, ok := readDiskTTSCache(runtime.config, key); ok {
+		runtime.metrics.recordCache(1, true)
 		runtime.cache.set(key, data)
 		logger.Info("TTS cache hit", "source", "disk", "key", key, "bytes", len(data))
 		return data, nil
 	}
 
+	runtime.metrics.recordCache(1, false)
 	ttsInflight.mutex.Lock()
 	if ttsInflight.calls == nil {
 		ttsInflight.calls = make(map[string]*ttsInflightCall)
 	}
-	if call, ok := ttsInflight.calls[key]; ok {
+	if call, ok := ttsInflight.calls[key]; ok && call.ctx.Err() == nil {
 		call.waiters.Add(1)
 		ttsInflight.mutex.Unlock()
 		return waitForTTSCall(ctx, call)
 	}
 
-	workCtx, cancel := context.WithCancel(context.Background())
-	call := &ttsInflightCall{done: make(chan struct{}), cancel: cancel}
+	workCtx, cancel := context.WithTimeout(context.Background(), defaultTTSSynthesisTimeout)
+	call := &ttsInflightCall{done: make(chan struct{}), cancel: cancel, key: key, ctx: workCtx}
 	call.waiters.Store(1)
 	ttsInflight.calls[key] = call
 	ttsInflight.mutex.Unlock()
@@ -323,7 +430,9 @@ func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) 
 		defer cancel()
 		defer func() {
 			ttsInflight.mutex.Lock()
-			delete(ttsInflight.calls, key)
+			if ttsInflight.calls[key] == call {
+				delete(ttsInflight.calls, key)
+			}
 			ttsInflight.mutex.Unlock()
 			close(call.done)
 		}()
@@ -357,22 +466,30 @@ func waitForTTSCall(ctx context.Context, call *ttsInflightCall) ([]byte, error) 
 		}
 		return append([]byte(nil), call.data...), nil
 	case <-ctx.Done():
+		ttsInflight.mutex.Lock()
 		if call.waiters.Add(-1) == 0 {
 			call.cancel()
+			if ttsInflight.calls[call.key] == call {
+				delete(ttsInflight.calls, call.key)
+			}
 		}
+		ttsInflight.mutex.Unlock()
 		return nil, ctx.Err()
 	}
 }
 
 func callTTSAPIThrottled(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
 	runtime := getTTSRuntime()
+	queueStart := time.Now()
 	release, err := acquireTTSSlotContext(ctx, runtime)
+	runtime.metrics.observeQueueWait(time.Since(queueStart))
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
 	start := time.Now()
+	defer func() { runtime.metrics.observeSynthesis(time.Since(start)) }()
 	data, err := callTTSAPI(ctx, ssml, outputFormat, false)
 	logger.Info(
 		"TTS API call",

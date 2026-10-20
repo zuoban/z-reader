@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/singleflight"
-
 	"z-reader/backend/utils"
 )
 
@@ -42,72 +40,108 @@ var endpointCache struct {
 	mutex sync.RWMutex
 }
 
-var endpointGroup singleflight.Group
+type endpointInflightCall struct {
+	done    chan struct{}
+	ctx     context.Context
+	cancel  context.CancelFunc
+	waiters int
+	data    *EndpointCache
+	err     error
+}
 
-func GetEndpoint() (*EndpointCache, error) {
-	endpointCache.mutex.RLock()
-	if endpointCache.data != nil {
-		cache := endpointCache.data
-		endpointCache.mutex.RUnlock()
-		now := time.Now().Unix()
-		if cache.ExpiredAt-now > EndpointRefreshThreshold {
-			return cache, nil
-		}
-	} else {
-		endpointCache.mutex.RUnlock()
-	}
+var endpointRefresh struct {
+	mutex sync.Mutex
+	call  *endpointInflightCall
+}
 
-	// Use singleflight to prevent thundering herd: only one goroutine
-	// will call refreshEndpointCache at a time, others will wait and
-	// share the result.
-	v, err, _ := endpointGroup.Do("endpoint", func() (interface{}, error) {
-		return refreshEndpointCache()
-	})
-	if err != nil {
+func GetEndpoint() (*EndpointCache, error) { return GetEndpointContext(context.Background()) }
+
+func GetEndpointContext(ctx context.Context) (*EndpointCache, error) {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return v.(*EndpointCache), nil
+	endpointCache.mutex.RLock()
+	cache := endpointCache.data
+	endpointCache.mutex.RUnlock()
+	if cache != nil && cache.ExpiredAt-time.Now().Unix() > EndpointRefreshThreshold {
+		return cache, nil
+	}
+
+	endpointRefresh.mutex.Lock()
+	call := endpointRefresh.call
+	if call == nil || call.ctx.Err() != nil {
+		workCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		call = &endpointInflightCall{done: make(chan struct{}), ctx: workCtx, cancel: cancel}
+		endpointRefresh.call = call
+		go func() {
+			defer cancel()
+			call.data, call.err = refreshEndpointCacheContext(workCtx)
+			endpointRefresh.mutex.Lock()
+			if endpointRefresh.call == call {
+				endpointRefresh.call = nil
+			}
+			close(call.done)
+			endpointRefresh.mutex.Unlock()
+		}()
+	}
+	call.waiters++
+	endpointRefresh.mutex.Unlock()
+	select {
+	case <-call.done:
+		return call.data, call.err
+	case <-ctx.Done():
+		endpointRefresh.mutex.Lock()
+		call.waiters--
+		if call.waiters == 0 {
+			call.cancel()
+			if endpointRefresh.call == call {
+				endpointRefresh.call = nil
+			}
+		}
+		endpointRefresh.mutex.Unlock()
+		return nil, ctx.Err()
+	}
 }
 
 func refreshEndpointCache() (*EndpointCache, error) {
-	endpointCache.mutex.Lock()
-	defer endpointCache.mutex.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return refreshEndpointCacheContext(ctx)
+}
 
-	// Double-check after acquiring write lock: another goroutine may have
-	// already refreshed the cache while we were waiting.
-	if endpointCache.data != nil {
-		now := time.Now().Unix()
-		if endpointCache.data.ExpiredAt-now > EndpointRefreshThreshold {
-			return endpointCache.data, nil
-		}
+func refreshEndpointCacheContext(ctx context.Context) (*EndpointCache, error) {
+	endpointCache.mutex.RLock()
+	previous := endpointCache.data
+	endpointCache.mutex.RUnlock()
+	if previous != nil && previous.ExpiredAt-time.Now().Unix() > EndpointRefreshThreshold {
+		return previous, nil
 	}
 
-	resp, err := callEndpointAPI()
+	resp, err := callEndpointAPIContext(ctx)
 	if err != nil {
-		// If we still have a cached endpoint (even expired), return it
-		// instead of failing completely.
-		if endpointCache.data != nil {
-			return endpointCache.data, nil
+		// Retain the existing best-effort endpoint fallback, but never bypass cancellation.
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if previous != nil {
+			return previous, nil
 		}
 		return nil, err
 	}
-
 	exp, err := parseJWTExp(resp.T)
 	if err != nil {
-		if endpointCache.data != nil {
-			return endpointCache.data, nil
+		if previous != nil {
+			return previous, nil
 		}
+		return nil, TTSHTTPError(err)
+	}
+	cache := &EndpointCache{Endpoint: resp.R, Token: resp.T, ExpiredAt: exp, ClientID: utils.GenerateUUID()}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-
-	cache := &EndpointCache{
-		Endpoint:  resp.R,
-		Token:     resp.T,
-		ExpiredAt: exp,
-		ClientID:  utils.GenerateUUID(),
-	}
-
+	endpointCache.mutex.Lock()
 	endpointCache.data = cache
+	endpointCache.mutex.Unlock()
 	return cache, nil
 }
 
@@ -139,6 +173,10 @@ func parseJWTExp(token string) (int64, error) {
 func callEndpointAPI() (*EndpointResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	return callEndpointAPIContext(ctx)
+}
+
+func callEndpointAPIContext(ctx context.Context) (*EndpointResponse, error) {
 
 	url := "https://dev.microsofttranslator.com/apps/endpoint?api-version=1.0"
 	signature, err := buildSignature(url)
@@ -168,7 +206,7 @@ func callEndpointAPI() (*EndpointResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("语音服务端点返回状态码 %d", resp.StatusCode)
+		return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), false)
 	}
 
 	var endpointResp EndpointResponse

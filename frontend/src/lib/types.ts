@@ -17,7 +17,9 @@ export interface TTSSentence {
   text: string;
   cfi: string;
   sectionIndex: number;
-  words: Array<{ text: string; cfi: string }>;
+  /** UTF-16 offsets into text, materialized while the source document is available. */
+  textRanges?: Array<{ start: number; end: number; cfi: string }>;
+  words: Array<{ text: string; cfi: string; start?: number; end?: number }>;
 }
 
 export interface FoliateView {

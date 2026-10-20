@@ -5,19 +5,29 @@ prefetching store MP3 blobs; they do not create additional media players. A new
 chunk replaces the element's source directly. The source is emptied only when
 the user stops reading or leaves the reader.
 
-The first chunk targets about 12 seconds of speech. Later chunks target about
-90 seconds, with about 180 seconds of future speech prepared in advance. These
-are text-based estimates adjusted for the selected speech rate. SSML remains
+The first chunk is capped at 12 estimated seconds. Stable text slices of at most
+6 estimated seconds retain exact source offsets, word CFIs, and the original
+sentence range. Later chunks target 90 seconds, with about 180 seconds of future
+speech prepared in advance. Estimates include punctuation, Latin word
+length/syllables, and the selected speech rate. Buffer planning learns a bounded
+correction from decoded audio duration. SSML remains
 below the backend's 32 KiB limit. Exceptionally long sentences are split without
 dropping their text.
 
 The text queue reads detached book sections and stores text plus EPUB CFIs.
 Consumed text history is bounded; moving backward beyond that history reloads
 the previous sentence by CFI instead of retaining the entire book in memory.
+Next/previous controls navigate original sentences rather than internal slices;
+skipping never waits for unrelated audio prefetch. Numeric body text is read,
+while semantic page markers, footnotes, hidden content, scripts, and styles are
+excluded. Oversized pronunciation overrides use plain text when they must be split.
 Playback and prefetching do not navigate the visible renderer. Highlighting and
 scrolling run only while the page is visible. Returning to the foreground aligns
-the view with the current spoken location. Voice, rate, style, or highlight
-changes rebuild the buffer from the saved spoken location.
+the view with the current spoken location. Voice, rate, and style changes rebuild
+the buffer from the saved spoken location. Highlight mode switches the visual
+range without replacing audio, losing playback time, or rebuilding speech.
+Progress writes are coalesced over two seconds and flushed on pause, navigation,
+visibility changes, settings updates, and teardown.
 
 ## Pause and resume
 
@@ -31,6 +41,16 @@ changes rebuild the buffer from the saved spoken location.
   work so a late synthesis response cannot restart playback.
 - Permission failures retain the current chunk and saved session. They are not
   treated as malformed sentences and do not skip book content.
+
+- Timeouts and temporary network/provider errors receive two cancellable retries
+  with backoff. Rate-limit delays are honored even when received by prefetch;
+  waits longer than one minute are surfaced for manual recovery. Only a provider
+  `invalid_ssml` response receives one plain-text fallback. Exhausted retries
+  preserve the chunk and expose a recovery action.
+- The server queue/endpoint/synthesis budget totals 55 seconds; the client allows
+  65 seconds per attempt. Stop remains enabled during initial preparation and
+  retry waits. Voice previews and book audio share local audio focus so either
+  playback stops the other, including when resumed from Media Session.
 
 Media Session provides system playback controls. Screen Wake Lock keeps the
 screen on when available and is reacquired after an automatic release. Neither
@@ -48,6 +68,9 @@ localStorage.setItem('z-reader-tts-diagnostics', '1');
 Read `window.__zReaderTTSDiagnostics` after reproducing. The in-memory ring keeps
 the most recent 200 events, including visibility, playback state, media pause/end,
 source replacement state, `play()` resolution/rejection, and preload outcomes.
+First-audio latency, inter-chunk gaps, buffer misses, retry/recovery, buffer
+readiness, and duration corrections are also recorded. Metadata is allowlisted
+to finite categories, booleans, and numbers.
 It is not uploaded and is lost on page reload. Events do not include book text,
 SSML, authentication tokens, or audio URLs. Disable it with:
 
@@ -92,3 +115,18 @@ container image normally, keeping `data/` and `uploads/` volumes. The release
 bumps the service-worker cache version so the new frontend receives the matching
 Foliate APIs. Reopen/refresh an already open reader after upgrading. Rollback uses
 the previous image tag with the same persistent volumes.
+
+## Real-provider measurement
+
+Use `npm run test:tts:provider` only against an isolated deployment with your
+speech service enabled. It requires `TTS_BENCH_BASE_URL` and `TTS_BENCH_TOKEN`
+(the complete Authorization header value, for example `Bearer <session-token>`).
+No destination or token is assumed. Keep credentials in the environment and out
+of command history or report files.
+
+The script synthesizes two generic samples, measures request-to-`playing`,
+request latency and bytes, prefetch readiness, and inter-chunk gaps on one audio
+element. It prints aggregate JSON without text, URLs, credentials, or raw errors.
+Endpoint latency includes any backend cache effects; browser `playing` indicates
+decoder playback onset, not a physical measurement at the speaker. See the
+[recorded isolated sample](performance/tts-provider-2026-10-20.json).

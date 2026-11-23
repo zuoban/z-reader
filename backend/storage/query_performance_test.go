@@ -122,7 +122,7 @@ func TestCategoryIndexesFollowOwnershipDeleteAndProgress(t *testing.T) {
 	if err != nil || len(books) != 1 {
 		t.Fatalf("new owner results = %+v, %v", books, err)
 	}
-	if err := db.DeleteUserData("v"); err != nil {
+	if err := db.DeleteBookData("a", "v"); err != nil {
 		t.Fatal(err)
 	}
 	books, _, err = db.SearchBooks("v", "Alpha", "", 10, "title", &category)

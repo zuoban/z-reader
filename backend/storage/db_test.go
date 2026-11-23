@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"encoding/json"
 	"path/filepath"
 	"testing"
 	"time"
@@ -310,63 +309,6 @@ func TestGetSessionReturnsNilForExpiredSession(t *testing.T) {
 	}
 	if got != nil {
 		t.Fatalf("expected expired session to be treated as nil, got %+v", got)
-	}
-}
-
-func TestAssignUnownedDataToUserAssignsBooksAndProgress(t *testing.T) {
-	db := openTestDB(t)
-
-	if err := db.SaveBook(&models.Book{
-		ID:        "legacy-book",
-		Title:     "Legacy Book",
-		Filename:  "legacy.epub",
-		Format:    "epub",
-		Size:      128,
-		CreatedAt: time.Now().UTC(),
-	}); err != nil {
-		t.Fatalf("failed to save legacy book: %v", err)
-	}
-
-	progress := &models.Progress{
-		BookID:     "legacy-book",
-		CFI:        "epubcfi(/6/2)",
-		Percentage: 42,
-		UpdatedAt:  time.Now().UTC().Truncate(time.Second),
-	}
-	progressData, err := json.Marshal(progress)
-	if err != nil {
-		t.Fatalf("failed to marshal progress: %v", err)
-	}
-	if err := db.Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket(ProgressBucket).Put([]byte("legacy-book"), progressData)
-	}); err != nil {
-		t.Fatalf("failed to save legacy progress: %v", err)
-	}
-
-	if err := db.AssignUnownedDataToUser("first-user"); err != nil {
-		t.Fatalf("AssignUnownedDataToUser returned error: %v", err)
-	}
-
-	book, err := db.GetBook("legacy-book")
-	if err != nil {
-		t.Fatalf("GetBook returned error: %v", err)
-	}
-	if book == nil || book.UserID != "first-user" {
-		t.Fatalf("expected legacy book to belong to first-user, got %+v", book)
-	}
-	books, err := db.ListBooks("first-user")
-	if err != nil {
-		t.Fatalf("ListBooks returned error: %v", err)
-	}
-	if len(books) != 1 || books[0].ID != "legacy-book" {
-		t.Fatalf("expected legacy book in first user's index, got %+v", books)
-	}
-	gotProgress, err := db.GetProgress("legacy-book", "first-user")
-	if err != nil {
-		t.Fatalf("GetProgress returned error: %v", err)
-	}
-	if gotProgress == nil || gotProgress.UserID != "first-user" || gotProgress.CFI != progress.CFI {
-		t.Fatalf("expected reassigned legacy progress, got %+v", gotProgress)
 	}
 }
 

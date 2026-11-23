@@ -223,7 +223,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 			response.BadRequest(c, "书名不能超过 500 个字符")
 			return
 		}
-		book.Title = title
+		req.Title.Value = &title
 	}
 	if req.Author.Set && req.Author.Value != nil {
 		author := strings.TrimSpace(*req.Author.Value)
@@ -231,7 +231,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 			response.BadRequest(c, "作者不能超过 500 个字符")
 			return
 		}
-		book.Author = author
+		req.Author.Value = &author
 	}
 	if req.Category.Set {
 		category := normalizeBookCategory(req.Category.Value)
@@ -239,55 +239,48 @@ func (h *BooksHandler) Update(c *gin.Context) {
 			response.BadRequest(c, "分类不能超过 50 个字符")
 			return
 		}
-		book.Category = category
+		req.Category.Value = category
 	}
 
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
-
-	if err := h.db.SaveBook(book); err != nil {
+	book, err = h.db.UpdateBook(id, storage.PersonalLibrary, func(book *models.Book) bool {
+		pending := book.ProcessingState == models.BookProcessingPending
+		if req.Title.Value != nil {
+			book.Title = *req.Title.Value
+			book.PendingTitleEdited = pending
+		}
+		if req.Author.Value != nil {
+			book.Author = *req.Author.Value
+			book.PendingAuthorEdited = pending
+		}
+		if req.Category.Set {
+			book.Category = req.Category.Value
+		}
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if err == storage.ErrNotFound {
+		response.NotFound(c, "书籍不存在")
+		return
+	}
+	if err != nil {
 		response.InternalError(c, "保存书籍失败")
 		return
 	}
-
 	c.JSON(http.StatusOK, book)
 }
 
 func (h *BooksHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
+	book, err := h.db.DeleteBook(c.Param("id"), storage.PersonalLibrary)
+	if err == storage.ErrNotFound {
 		response.NotFound(c, "书籍不存在")
 		return
 	}
-
-	if err := h.db.DeleteBookData(id, storage.PersonalLibrary); err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "书籍不存在")
-			return
-		}
+	if err != nil {
 		response.InternalError(c, "删除书籍失败")
 		return
 	}
 
-	if path, err := resolveUploadPath(h.cfg.UploadDir, book.Filename); err == nil {
-		removeFileIfExists(path)
-	}
-	if book.CoverPath != "" {
-		if path, err := resolveUploadPath(h.cfg.UploadDir, book.CoverPath); err == nil {
-			removeFileIfExists(path)
-		}
-	}
-	if book.CoverThumbPath != "" {
-		if path, err := resolveUploadPath(h.cfg.UploadDir, book.CoverThumbPath); err == nil {
-			removeFileIfExists(path)
-		}
-	}
-
+	h.removeUploadFiles(book.Filename, book.CoverPath, book.CoverThumbPath)
 	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
 }
 
@@ -321,24 +314,9 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 		return
 	}
 
-	for _, book := range deletedBooks {
-		if path, err := resolveUploadPath(h.cfg.UploadDir, book.Filename); err == nil {
-			removeFileIfExists(path)
-		}
-		if book.CoverPath != "" {
-			if path, err := resolveUploadPath(h.cfg.UploadDir, book.CoverPath); err == nil {
-				removeFileIfExists(path)
-			}
-		}
-		if book.CoverThumbPath != "" {
-			if path, err := resolveUploadPath(h.cfg.UploadDir, book.CoverThumbPath); err == nil {
-				removeFileIfExists(path)
-			}
-		}
-	}
-
 	deletedIDs := make([]string, 0, len(deletedBooks))
 	for _, book := range deletedBooks {
+		h.removeUploadFiles(book.Filename, book.CoverPath, book.CoverThumbPath)
 		deletedIDs = append(deletedIDs, book.ID)
 	}
 
@@ -431,6 +409,14 @@ func normalizeBookFormat(format string, filename string) string {
 		return format
 	}
 	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
+}
+
+func (h *BooksHandler) removeUploadFiles(names ...string) {
+	for _, name := range names {
+		if path, err := resolveUploadPath(h.cfg.UploadDir, name); err == nil {
+			removeFileIfExists(path)
+		}
+	}
 }
 
 func removeFileIfExists(path string) {

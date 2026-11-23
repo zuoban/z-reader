@@ -268,44 +268,51 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 		return
 	}
 
-	// Refresh before saving so a quick rename, category change, or deletion is
-	// not overwritten by metadata extraction that started earlier.
-	book, err = h.db.GetBookForUser(job.bookID, job.userID)
-	if err != nil {
-		logger.Error("Failed to reload book after background processing",
-			slog.String("book_id", job.bookID),
-			slog.Any("error", err),
-		)
-		return
-	}
-	if book == nil || book.ProcessingState != models.BookProcessingPending {
-		return
-	}
-
-	if metadata.Title != "" && book.Title == job.initialTitle {
-		book.Title = metadata.Title
-	}
-	if metadata.Author != "" && book.Author == "" {
-		book.Author = metadata.Author
-	}
+	var cover bookCover
 	if len(coverData) > 0 && book.CoverPath == "" {
-		coverFilename, coverErr := h.writeExtractedCover(book.ID, coverData, contentType)
-		if coverErr != nil {
+		cover, err = h.prepareExtractedCover(book.ID, coverData, contentType)
+		if err != nil {
 			logger.Warn("Failed to cache EPUB cover during background processing",
 				slog.String("book_id", book.ID),
-				slog.Any("error", coverErr),
+				slog.Any("error", err),
 			)
-		} else {
-			book.CoverPath = coverFilename
-			h.attachCoverThumbnail(book)
 		}
 	}
+	h.completeBookPreview(job, book.Filename, *metadata, cover)
+}
 
-	book.ProcessingState = models.BookProcessingReady
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
-	if err := h.db.SaveBook(book); err != nil {
+func (h *BooksHandler) completeBookPreview(job bookProcessingJob, filename string, metadata epubMetadata, cover bookCover) {
+	var previousThumb string
+	book, err := h.db.UpdateBook(job.bookID, job.userID, func(book *models.Book) bool {
+		if book.ProcessingState != models.BookProcessingPending || book.Filename != filename {
+			return false
+		}
+		if metadata.Title != "" && !book.PendingTitleEdited && book.Title == job.initialTitle {
+			book.Title = metadata.Title
+		}
+		if metadata.Author != "" && !book.PendingAuthorEdited && book.Author == "" {
+			book.Author = metadata.Author
+		}
+		if cover.path != "" && book.CoverPath == "" {
+			previousThumb = book.CoverThumbPath
+			cover.apply(book)
+		}
+		book.ProcessingState = models.BookProcessingReady
+		book.PendingTitleEdited = false
+		book.PendingAuthorEdited = false
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if cover.path != "" {
+		if err != nil || book.CoverPath != cover.path {
+			h.removeUploadFiles(cover.path, cover.thumb)
+		} else {
+			h.removeUploadFiles(previousThumb)
+		}
+	}
+	if err != nil && err != storage.ErrNotFound {
 		logger.Error("Failed to save processed book preview",
-			slog.String("book_id", book.ID),
+			slog.String("book_id", job.bookID),
 			slog.Any("error", err),
 		)
 	}
@@ -317,24 +324,18 @@ func (h *BooksHandler) markBookProcessingFailed(job bookProcessingJob, processin
 		slog.Any("error", processingErr),
 	)
 
-	// Reload before saving so concurrent edits or deletions are never clobbered
-	// or resurrected by a failure from an earlier background extraction.
-	latest, err := h.db.GetBookForUser(job.bookID, job.userID)
-	if err != nil {
-		logger.Error("Failed to reload book before marking processing failed",
-			slog.String("book_id", job.bookID),
-			slog.Any("error", err),
-		)
-		return
-	}
-	if latest == nil || latest.ProcessingState != models.BookProcessingPending {
-		return
-	}
-
-	latest.ProcessingState = models.BookProcessingFailed
-	if err := h.db.SaveBook(latest); err != nil {
+	_, err := h.db.UpdateBook(job.bookID, job.userID, func(book *models.Book) bool {
+		if book.ProcessingState != models.BookProcessingPending {
+			return false
+		}
+		book.ProcessingState = models.BookProcessingFailed
+		book.PendingTitleEdited = false
+		book.PendingAuthorEdited = false
+		return true
+	})
+	if err != nil && err != storage.ErrNotFound {
 		logger.Error("Failed to save EPUB processing status",
-			slog.String("book_id", latest.ID),
+			slog.String("book_id", job.bookID),
 			slog.Any("error", err),
 		)
 	}

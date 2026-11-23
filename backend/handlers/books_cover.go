@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
 	_ "image/png"
+	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -15,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"z-reader/backend/logger"
 	"z-reader/backend/models"
@@ -35,19 +38,23 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		response.NotFound(c, "书籍不存在")
 		return
 	}
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
 	thumbnailRequested := c.Query("size") == "thumb"
 	if thumbnailRequested && book.CoverThumbPath == "" && book.CoverPath != "" {
-		h.attachCoverThumbnail(book)
-		if book.CoverThumbPath != "" {
-			if err := h.db.SaveBook(book); err != nil {
-				logger.Warn("Failed to persist cover thumbnail path",
-					slog.String("book_id", book.ID),
-					slog.Any("error", err),
-				)
-			}
+		latest, err := h.cacheCoverThumbnail(book)
+		if err == storage.ErrNotFound {
+			response.NotFound(c, "书籍不存在")
+			return
+		}
+		if err != nil {
+			logger.Warn("Failed to persist cover thumbnail path",
+				slog.String("book_id", book.ID),
+				slog.Any("error", err),
+			)
+		} else {
+			book = latest
 		}
 	}
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
 	if thumbnailRequested && book.CoverThumbPath != "" {
 		thumbnailPath, err := resolveUploadPath(h.cfg.UploadDir, book.CoverThumbPath)
 		if err != nil {
@@ -159,42 +166,26 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 		return
 	}
 
-	coverFilename := id + ".cover" + ext
-	coverPath, err := resolveUploadPath(h.cfg.UploadDir, coverFilename)
+	source, err := file.Open()
 	if err != nil {
-		response.Forbidden(c, "封面保存被拒绝")
+		response.InternalError(c, "保存封面失败")
 		return
 	}
-	previousCoverPath := book.CoverPath
-	previousCoverThumbPath := book.CoverThumbPath
-	if err := c.SaveUploadedFile(file, coverPath); err != nil {
+	defer source.Close()
+	cover, err := h.prepareCover(id, ext, source)
+	if err != nil {
 		response.InternalError(c, "保存封面失败")
 		return
 	}
 
-	book.CoverPath = coverFilename
-	book.CoverThumbPath = ""
-	h.attachCoverThumbnail(book)
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
-	if err := h.db.SaveBook(book); err != nil {
-		os.Remove(coverPath)
-		if book.CoverThumbPath != "" {
-			if thumbnailPath, pathErr := resolveUploadPath(h.cfg.UploadDir, book.CoverThumbPath); pathErr == nil {
-				removeFileIfExists(thumbnailPath)
-			}
-		}
-		response.InternalError(c, "保存书籍失败")
+	book, err = h.commitCover(book, cover, true)
+	if err == storage.ErrNotFound {
+		response.NotFound(c, "书籍不存在")
 		return
 	}
-	if previousCoverPath != "" && previousCoverPath != coverFilename {
-		if path, err := resolveUploadPath(h.cfg.UploadDir, previousCoverPath); err == nil {
-			os.Remove(path)
-		}
-	}
-	if previousCoverThumbPath != "" && previousCoverThumbPath != book.CoverThumbPath {
-		if path, err := resolveUploadPath(h.cfg.UploadDir, previousCoverThumbPath); err == nil {
-			removeFileIfExists(path)
-		}
+	if err != nil {
+		response.InternalError(c, "保存书籍失败")
+		return
 	}
 
 	c.JSON(http.StatusOK, book)
@@ -225,32 +216,72 @@ func validateUploadedCover(file *multipart.FileHeader, ext string) error {
 	return nil
 }
 
-func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {
-	coverFilename, err := h.writeExtractedCover(book.ID, coverData, contentType)
-	if err != nil {
-		logger.Warn("Failed to cache EPUB cover to disk",
-			slog.String("book_id", book.ID),
-			slog.Any("error", err),
-		)
-		return
-	}
+type bookCover struct {
+	path  string
+	thumb string
+}
 
-	book.CoverPath = coverFilename
-	book.CoverThumbPath = ""
-	h.attachCoverThumbnail(book)
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
-	if err := h.db.SaveBook(book); err != nil {
-		logger.Warn("Failed to update book cover path",
+func (cover bookCover) apply(book *models.Book) {
+	book.CoverPath = cover.path
+	book.CoverThumbPath = cover.thumb
+}
+
+func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {
+	cover, err := h.prepareExtractedCover(book.ID, coverData, contentType)
+	if err == nil {
+		_, err = h.commitCover(book, cover, false)
+	}
+	if err != nil && err != storage.ErrNotFound {
+		logger.Warn("Failed to cache EPUB cover",
 			slog.String("book_id", book.ID),
 			slog.Any("error", err),
 		)
-		if coverPath, pathErr := resolveUploadPath(h.cfg.UploadDir, coverFilename); pathErr == nil {
-			removeFileIfExists(coverPath)
-		}
 	}
 }
 
-func (h *BooksHandler) writeExtractedCover(bookID string, coverData []byte, contentType string) (string, error) {
+func (h *BooksHandler) commitCover(snapshot *models.Book, cover bookCover, replace bool) (*models.Book, error) {
+	var previous bookCover
+	book, err := h.db.UpdateBook(snapshot.ID, snapshot.UserID, func(book *models.Book) bool {
+		if !replace && (book.CoverPath != "" || book.Filename != snapshot.Filename) {
+			return false
+		}
+		previous = bookCover{path: book.CoverPath, thumb: book.CoverThumbPath}
+		cover.apply(book)
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if err != nil || book.CoverPath != cover.path {
+		h.removeUploadFiles(cover.path, cover.thumb)
+	} else {
+		h.removeUploadFiles(previous.path, previous.thumb)
+	}
+	return book, err
+}
+
+func (h *BooksHandler) cacheCoverThumbnail(snapshot *models.Book) (*models.Book, error) {
+	thumb := h.prepareCoverThumbnail(snapshot.ID, snapshot.CoverPath)
+	if thumb == "" {
+		return snapshot, nil
+	}
+	return h.commitCoverThumbnail(snapshot, thumb)
+}
+
+func (h *BooksHandler) commitCoverThumbnail(snapshot *models.Book, thumb string) (*models.Book, error) {
+	book, err := h.db.UpdateBook(snapshot.ID, snapshot.UserID, func(book *models.Book) bool {
+		if book.CoverPath != snapshot.CoverPath || book.CoverThumbPath != "" {
+			return false
+		}
+		book.CoverThumbPath = thumb
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if err != nil || book.CoverThumbPath != thumb {
+		h.removeUploadFiles(thumb)
+	}
+	return book, err
+}
+
+func (h *BooksHandler) prepareExtractedCover(bookID string, data []byte, contentType string) (bookCover, error) {
 	ext := ".jpg"
 	switch contentType {
 	case "image/png":
@@ -260,16 +291,42 @@ func (h *BooksHandler) writeExtractedCover(bookID string, coverData []byte, cont
 	case "image/gif":
 		ext = ".gif"
 	}
+	return h.prepareCover(bookID, ext, bytes.NewReader(data))
+}
 
-	coverFilename := bookID + ".cover" + ext
-	coverPath, err := resolveUploadPath(h.cfg.UploadDir, coverFilename)
+func (h *BooksHandler) prepareCover(bookID, ext string, source io.Reader) (bookCover, error) {
+	filename, err := h.writeCoverFile(bookID, ext, func(target io.Writer) error {
+		_, err := io.Copy(target, source)
+		return err
+	})
+	if err != nil {
+		return bookCover{}, err
+	}
+	return bookCover{path: filename, thumb: h.prepareCoverThumbnail(bookID, filename)}, nil
+}
+
+// Each candidate owns its files until a transaction publishes their paths.
+// Other requests can safely remove replaced files without reusing those paths.
+func (h *BooksHandler) writeCoverFile(bookID, suffix string, write func(io.Writer) error) (string, error) {
+	filename := bookID + "." + uuid.NewString() + ".cover" + suffix
+	path, err := resolveUploadPath(h.cfg.UploadDir, filename)
 	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(coverPath, coverData, 0644); err != nil {
+	target, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if err != nil {
 		return "", err
 	}
-	return coverFilename, nil
+	writeErr := write(target)
+	closeErr := target.Close()
+	if writeErr != nil || closeErr != nil {
+		removeFileIfExists(path)
+		if writeErr != nil {
+			return "", writeErr
+		}
+		return "", closeErr
+	}
+	return filename, nil
 }
 
 func (h *BooksHandler) createCoverThumbnail(bookID, coverFilename string) (string, error) {
@@ -315,47 +372,20 @@ func (h *BooksHandler) createCoverThumbnail(bookID, coverFilename string) (strin
 		}
 	}
 
-	thumbnailFilename := bookID + ".cover.thumb.jpg"
-	thumbnailPath, err := resolveUploadPath(h.cfg.UploadDir, thumbnailFilename)
-	if err != nil {
-		return "", err
-	}
-	tempPath := thumbnailPath + ".tmp"
-	target, err := os.Create(tempPath)
-	if err != nil {
-		return "", err
-	}
-	encodeErr := jpeg.Encode(target, thumbnail, &jpeg.Options{Quality: 82})
-	closeErr := target.Close()
-	if encodeErr != nil || closeErr != nil {
-		removeFileIfExists(tempPath)
-		if encodeErr != nil {
-			return "", encodeErr
-		}
-		return "", closeErr
-	}
-	if err := os.Rename(tempPath, thumbnailPath); err != nil {
-		removeFileIfExists(tempPath)
-		return "", err
-	}
-	return thumbnailFilename, nil
+	return h.writeCoverFile(bookID, ".thumb.jpg", func(target io.Writer) error {
+		return jpeg.Encode(target, thumbnail, &jpeg.Options{Quality: 82})
+	})
 }
 
-func (h *BooksHandler) attachCoverThumbnail(book *models.Book) {
-	if book == nil || book.CoverPath == "" {
-		return
-	}
+func (h *BooksHandler) prepareCoverThumbnail(bookID, coverPath string) string {
 	startedAt := time.Now()
-	thumbnailPath, err := h.createCoverThumbnail(book.ID, book.CoverPath)
+	thumbnailPath, err := h.createCoverThumbnail(bookID, coverPath)
 	telemetry.Observe("cover_thumbnail", time.Since(startedAt), 1)
 	if err != nil {
 		logger.Warn("Failed to create cover thumbnail",
-			slog.String("book_id", book.ID),
+			slog.String("book_id", bookID),
 			slog.Any("error", err),
 		)
-		return
 	}
-	if thumbnailPath != "" {
-		book.CoverThumbPath = thumbnailPath
-	}
+	return thumbnailPath
 }

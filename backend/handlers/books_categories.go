@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"z-reader/backend/models"
 	"z-reader/backend/response"
 	"z-reader/backend/storage"
 )
@@ -60,20 +61,16 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 	id := c.Param("id")
 
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
+	book, err := h.db.UpdateBook(id, storage.PersonalLibrary, func(book *models.Book) bool {
+		book.Category = nil
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if err == storage.ErrNotFound {
 		response.NotFound(c, "书籍不存在")
 		return
 	}
-
-	book.Category = nil
-	book.Format = normalizeBookFormat(book.Format, book.Filename)
-
-	if err := h.db.SaveBook(book); err != nil {
+	if err != nil {
 		response.InternalError(c, "保存书籍失败")
 		return
 	}

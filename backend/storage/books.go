@@ -423,72 +423,114 @@ func rebuildLibrarySummaryIndex(tx *bbolt.Tx) error {
 
 func (db *DB) SaveBook(book *models.Book) error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(BooksBucket)
-		idxB := tx.Bucket(UserBooksIndex)
-
-		// If updating existing book, check if UserID changed
-		existing := b.Get([]byte(book.ID))
 		var oldBook *models.Book
-		var oldUserID string
-		if existing != nil {
+		if data := tx.Bucket(BooksBucket).Get([]byte(book.ID)); data != nil {
 			var previous models.Book
-			if err := previous.UnmarshalDB(existing); err == nil {
-				oldUserID = previous.UserID
+			if err := previous.UnmarshalDB(data); err == nil {
 				oldBook = &previous
 			}
 		}
+		return saveBookInTx(tx, book, oldBook)
+	})
+}
 
-		book.Category = normalizeCategoryName(book.Category)
-		data, err := book.MarshalDB()
+func getOwnedBookInTx(tx *bbolt.Tx, id, userID string) (*models.Book, error) {
+	data := tx.Bucket(BooksBucket).Get([]byte(id))
+	if data == nil {
+		return nil, ErrNotFound
+	}
+	var book models.Book
+	if err := book.UnmarshalDB(data); err != nil {
+		return nil, err
+	}
+	if book.UserID != userID {
+		return nil, ErrNotFound
+	}
+	return &book, nil
+}
+
+// UpdateBook merges changes into an existing owned book in a write transaction.
+// The callback may edit the supplied book fields, except its ID and owner.
+// It must do no I/O.
+// Returning false leaves the record unchanged and returns the current book.
+func (db *DB) UpdateBook(id, userID string, merge func(*models.Book) bool) (*models.Book, error) {
+	var book models.Book
+	err := db.Update(func(tx *bbolt.Tx) error {
+		previous, err := getOwnedBookInTx(tx, id, userID)
 		if err != nil {
 			return err
 		}
-		if err := b.Put([]byte(book.ID), data); err != nil {
-			return err
+		book = *previous
+		if !merge(&book) {
+			book = *previous
+			return nil
 		}
-
-		// Update user_books index
-		if oldUserID != book.UserID {
-			if oldUserID != "" {
-				if err := removeBookFromUserIndex(idxB, book.ID, oldUserID); err != nil {
-					return err
-				}
-			}
-			if err := addBookToUserIndex(idxB, book.ID, book.UserID); err != nil {
-				return err
-			}
-		}
-		if oldBook != nil {
-			if err := adjustLibrarySummary(tx, oldBook, -1); err != nil {
-				return err
-			}
-			if err := removeBookFromContentIndex(tx, oldBook); err != nil {
-				return err
-			}
-			if err := removeBookFromSortIndex(tx, oldBook); err != nil {
-				return err
-			}
-			if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
-				return err
-			}
-			if err := removeBookFromSearchGramIndex(tx, oldBook); err != nil {
-				return err
-			}
-		}
-		if err := addBookToSortIndex(tx, book); err != nil {
-			return err
-		}
-		if err := addBookToSearchIndex(tx, book); err != nil {
-			return err
-		}
-		if err := addBookToSearchGramIndex(tx, book); err != nil {
-			return err
-		}
-		if err := addBookToContentIndex(tx, book); err != nil {
-			return err
-		}
-		return adjustLibrarySummary(tx, book, 1)
+		return saveBookInTx(tx, &book, previous)
 	})
+	if err != nil {
+		return nil, err
+	}
+	return &book, nil
+}
+
+func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
+	b := tx.Bucket(BooksBucket)
+	idxB := tx.Bucket(UserBooksIndex)
+	var oldUserID string
+	if oldBook != nil {
+		oldUserID = oldBook.UserID
+	}
+
+	book.Category = normalizeCategoryName(book.Category)
+	data, err := book.MarshalDB()
+	if err != nil {
+		return err
+	}
+	if err := b.Put([]byte(book.ID), data); err != nil {
+		return err
+	}
+
+	// Update user_books index
+	if oldUserID != book.UserID {
+		if oldUserID != "" {
+			if err := removeBookFromUserIndex(idxB, book.ID, oldUserID); err != nil {
+				return err
+			}
+		}
+		if err := addBookToUserIndex(idxB, book.ID, book.UserID); err != nil {
+			return err
+		}
+	}
+	if oldBook != nil {
+		if err := adjustLibrarySummary(tx, oldBook, -1); err != nil {
+			return err
+		}
+		if err := removeBookFromContentIndex(tx, oldBook); err != nil {
+			return err
+		}
+		if err := removeBookFromSortIndex(tx, oldBook); err != nil {
+			return err
+		}
+		if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
+			return err
+		}
+		if err := removeBookFromSearchGramIndex(tx, oldBook); err != nil {
+			return err
+		}
+	}
+	if err := addBookToSortIndex(tx, book); err != nil {
+		return err
+	}
+	if err := addBookToSearchIndex(tx, book); err != nil {
+		return err
+	}
+	if err := addBookToSearchGramIndex(tx, book); err != nil {
+		return err
+	}
+	if err := addBookToContentIndex(tx, book); err != nil {
+		return err
+	}
+	return adjustLibrarySummary(tx, book, 1)
 }
 
 func (db *DB) CreateBook(book *models.Book) error {
@@ -504,7 +546,7 @@ func (db *DB) CreateBook(book *models.Book) error {
 			}
 		}
 
-		data, err := json.Marshal(book)
+		data, err := book.MarshalDB()
 		if err != nil {
 			return err
 		}
@@ -727,24 +769,17 @@ func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]model
 
 func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, error) {
 	booksBucket := tx.Bucket(BooksBucket)
-	bookData := booksBucket.Get([]byte(id))
-	if bookData == nil {
-		return nil, ErrNotFound
-	}
-	var book models.Book
-	if err := book.UnmarshalDB(bookData); err != nil {
+	book, err := getOwnedBookInTx(tx, id, userID)
+	if err != nil {
 		return nil, err
 	}
-	if book.UserID != userID {
-		return nil, ErrNotFound
-	}
-	if err := adjustLibrarySummary(tx, &book, -1); err != nil {
+	if err := adjustLibrarySummary(tx, book, -1); err != nil {
 		return nil, err
 	}
-	if err := removeBookFromContentIndex(tx, &book); err != nil {
+	if err := removeBookFromContentIndex(tx, book); err != nil {
 		return nil, err
 	}
-	if err := removeBookFromSortIndex(tx, &book); err != nil {
+	if err := removeBookFromSortIndex(tx, book); err != nil {
 		return nil, err
 	}
 	if err := booksBucket.Delete([]byte(id)); err != nil {
@@ -778,20 +813,32 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 			return nil, err
 		}
 	}
-	if err := removeBookFromSearchIndex(tx, &book); err != nil {
+	if err := removeBookFromSearchIndex(tx, book); err != nil {
 		return nil, err
 	}
-	if err := removeBookFromSearchGramIndex(tx, &book); err != nil {
+	if err := removeBookFromSearchGramIndex(tx, book); err != nil {
 		return nil, err
 	}
-	return &book, nil
+	return book, nil
 }
 
 func (db *DB) DeleteBookData(id string, userID string) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		_, err := deleteBookDataInTx(tx, id, userID)
+	_, err := db.DeleteBook(id, userID)
+	return err
+}
+
+// DeleteBook returns the committed deletion's row for file cleanup.
+func (db *DB) DeleteBook(id, userID string) (*models.Book, error) {
+	var book *models.Book
+	err := db.Update(func(tx *bbolt.Tx) error {
+		var err error
+		book, err = deleteBookDataInTx(tx, id, userID)
 		return err
 	})
+	if err != nil {
+		return nil, err
+	}
+	return book, nil
 }
 
 func (db *DB) DeleteBooksData(ids []string, userID string) ([]models.Book, error) {

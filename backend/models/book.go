@@ -20,6 +20,10 @@ type Book struct {
 	Category        *string    `json:"category,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	LastReadAt      *time.Time `json:"last_read_at,omitempty"`
+
+	// Keep explicit edits distinguishable from fallback metadata after a restart.
+	PendingTitleEdited  bool `json:"-"`
+	PendingAuthorEdited bool `json:"-"`
 }
 
 // MarshalDB serializes Book for database storage (includes all fields).
@@ -39,6 +43,9 @@ func (b Book) MarshalDB() ([]byte, error) {
 		Category        *string    `json:"category,omitempty"`
 		CreatedAt       time.Time  `json:"created_at"`
 		LastReadAt      *time.Time `json:"last_read_at,omitempty"`
+
+		PendingTitleEdited  bool `json:"pending_title_edited,omitempty"`
+		PendingAuthorEdited bool `json:"pending_author_edited,omitempty"`
 	}
 	return json.Marshal(dbBook{
 		ID:              b.ID,
@@ -55,6 +62,9 @@ func (b Book) MarshalDB() ([]byte, error) {
 		Category:        b.Category,
 		CreatedAt:       b.CreatedAt,
 		LastReadAt:      b.LastReadAt,
+
+		PendingTitleEdited:  b.PendingTitleEdited,
+		PendingAuthorEdited: b.PendingAuthorEdited,
 	})
 }
 
@@ -75,6 +85,9 @@ func (b *Book) UnmarshalDB(data []byte) error {
 		Category        *string    `json:"category,omitempty"`
 		CreatedAt       time.Time  `json:"created_at"`
 		LastReadAt      *time.Time `json:"last_read_at,omitempty"`
+
+		PendingTitleEdited  bool `json:"pending_title_edited,omitempty"`
+		PendingAuthorEdited bool `json:"pending_author_edited,omitempty"`
 	}
 	var db dbBook
 	if err := json.Unmarshal(data, &db); err != nil {
@@ -94,6 +107,8 @@ func (b *Book) UnmarshalDB(data []byte) error {
 	b.Category = db.Category
 	b.CreatedAt = db.CreatedAt
 	b.LastReadAt = db.LastReadAt
+	b.PendingTitleEdited = db.PendingTitleEdited
+	b.PendingAuthorEdited = db.PendingAuthorEdited
 	return nil
 }
 

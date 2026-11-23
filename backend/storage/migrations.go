@@ -238,7 +238,7 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 		}
 
 		book.Category = nextCategory
-		data, err := json.Marshal(book)
+		data, err := book.MarshalDB()
 		if err != nil {
 			return err
 		}

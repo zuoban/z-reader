@@ -276,7 +276,16 @@ func TestMarkBookProcessingFailedDoesNotResurrectDeletedOrOverwriteEdits(t *test
 	category := "Sci-Fi"
 	editedBook.Title = "User Renamed Title"
 	editedBook.Category = &category
-	if err := db.SaveBook(editedBook); err != nil {
+	if _, err := db.UpdateBook(editedBook.ID, editedBook.UserID, func(current *models.Book) bool {
+		current.Title = editedBook.Title
+		current.Category = editedBook.Category
+		return true
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	lastRead := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	if err := db.SaveProgress(&models.Progress{BookID: editedBook.ID, UpdatedAt: lastRead}, editedBook.UserID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -309,8 +318,13 @@ func TestMarkBookProcessingFailedDoesNotResurrectDeletedOrOverwriteEdits(t *test
 	if gotEdited.ProcessingState != models.BookProcessingFailed {
 		t.Fatalf("expected failed processing state, got %q", gotEdited.ProcessingState)
 	}
-	if gotEdited.Title != "User Renamed Title" || gotEdited.Category == nil || *gotEdited.Category != "Sci-Fi" {
+	if gotEdited.Title != "User Renamed Title" || gotEdited.Category == nil || *gotEdited.Category != "Sci-Fi" ||
+		gotEdited.LastReadAt == nil || !gotEdited.LastReadAt.Equal(lastRead) {
 		t.Fatalf("concurrent edits were overwritten on failure: %+v", gotEdited)
+	}
+	indexed, err := db.FindBookByContentHash(editedBook.UserID, editedBook.ContentHash)
+	if err != nil || indexed == nil || indexed.ID != editedBook.ID {
+		t.Fatalf("failed book content index = %+v, %v", indexed, err)
 	}
 }
 

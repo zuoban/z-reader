@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -162,6 +163,110 @@ func TestBooksListReturnsCursorPageWhenRequested(t *testing.T) {
 	}
 	if len(page.Books) != 1 || page.Books[0].ID != "book-b" || page.NextCursor != "book-b" {
 		t.Fatalf("unexpected cursor page: %+v", page)
+	}
+}
+
+// pausedBookUpdateBody lets another write finish before PATCH can apply its title.
+type pausedBookUpdateBody struct {
+	io.Reader
+	started chan struct{}
+	resume  <-chan struct{}
+}
+
+func (body *pausedBookUpdateBody) Read(p []byte) (int, error) {
+	if body.started != nil {
+		close(body.started)
+		body.started = nil
+		<-body.resume
+	}
+	return body.Reader.Read(p)
+}
+
+func TestBooksUpdateAfterConcurrentChange(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, deleted := range []bool{false, true} {
+		name := "merges latest fields"
+		if deleted {
+			name = "does not recreate deleted book"
+		}
+		t.Run(name, func(t *testing.T) {
+			db := openHandlerTestDB(t)
+			userID := storage.PersonalLibrary
+			book := &models.Book{
+				ID: "book-patch", UserID: userID, Title: "Original",
+				Filename: "book-patch.epub", ContentHash: "test-hash",
+			}
+			if err := db.CreateBook(book); err != nil {
+				t.Fatal(err)
+			}
+			handler := newBooksHandler(t, &config.Config{UploadDir: t.TempDir()}, db)
+			router := gin.New()
+			router.PATCH("/api/books/:id", handler.Update)
+			started, resume, done := make(chan struct{}), make(chan struct{}), make(chan struct{})
+			body := &pausedBookUpdateBody{Reader: strings.NewReader(`{"title":"Renamed"}`), started: started, resume: resume}
+			req := httptest.NewRequest(http.MethodPatch, "/api/books/"+book.ID, body)
+			req.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			go func() {
+				defer close(done)
+				router.ServeHTTP(recorder, req)
+			}()
+			defer func() {
+				if resume != nil {
+					close(resume)
+				}
+				<-done
+			}()
+
+			select {
+			case <-started:
+			case <-done:
+				t.Fatalf("PATCH finished before reading the body: %d %s", recorder.Code, recorder.Body.String())
+			case <-time.After(5 * time.Second):
+				t.Fatal("PATCH did not begin reading the body")
+			}
+			category := "Updated category"
+			lastReadAt := time.Now().UTC()
+			if deleted {
+				if err := db.DeleteBookData(book.ID, userID); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if _, err := db.UpdateBooksCategory([]string{book.ID}, userID, &category); err != nil {
+					t.Fatal(err)
+				}
+				if err := db.SaveProgress(&models.Progress{BookID: book.ID, CFI: "epubcfi(/6/4)", UpdatedAt: lastReadAt}, userID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			close(resume)
+			resume = nil
+			<-done
+
+			stored, err := db.GetBookForUser(book.ID, userID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if deleted {
+				if recorder.Code != http.StatusNotFound || stored != nil {
+					t.Fatalf("expected deleted book to stay absent: status=%d book=%+v", recorder.Code, stored)
+				}
+				return
+			}
+			if recorder.Code != http.StatusOK || stored == nil || stored.Title != "Renamed" ||
+				stored.Category == nil || *stored.Category != category ||
+				stored.LastReadAt == nil || !stored.LastReadAt.Equal(lastReadAt) {
+				t.Fatalf("PATCH did not preserve the latest fields: status=%d book=%+v", recorder.Code, stored)
+			}
+			results, _, err := db.SearchBooks(userID, "Renamed", "", 10, "recent_read", &category)
+			if err != nil || len(results) != 1 || results[0].ID != book.ID {
+				t.Fatalf("updated title and category missing from search: books=%+v error=%v", results, err)
+			}
+			summary, err := db.GetBookLibrarySummary(userID)
+			if err != nil || summary.Total != 1 || summary.Categories[category] != 1 {
+				t.Fatalf("unexpected library summary after update: %+v error=%v", summary, err)
+			}
+		})
 	}
 }
 

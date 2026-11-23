@@ -41,7 +41,7 @@ describe('TTSControls', () => {
     });
   });
 
-  it('uses text-button sizing for a custom toolbar trigger', () => {
+  it('uses text-button sizing for a custom toolbar trigger', async () => {
     render(
       <TTSControls
         state="stopped"
@@ -59,6 +59,10 @@ describe('TTSControls', () => {
         triggerContent={<span>朗读</span>}
       />,
     );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(screen.getByRole('button', { name: '朗读控制' })).not.toHaveClass('size-11');
   });

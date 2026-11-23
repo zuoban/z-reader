@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
 import { useShelfData } from '@/hooks/useShelfData';
 import { api } from '@/lib/api';
@@ -69,7 +69,7 @@ describe('useShelfData', () => {
     const { result } = renderHook(() => useShelfData(true));
 
     // Wait for async load
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -90,7 +90,7 @@ describe('useShelfData', () => {
     }));
 
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.books).toHaveLength(1));
+    await waitFor(() => expect(result.current.books).toHaveLength(1));
     expect(result.current.isLoadingBooks).toBe(false);
     expect(result.current.progressByBookId).toEqual({});
 
@@ -116,10 +116,10 @@ describe('useShelfData', () => {
     });
     vi.mocked(api.listProgress).mockResolvedValue([]);
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
 
     act(() => result.current.setSelectedCategoryId('科幻'));
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.filteredBooks.map((book) => book.id)).toEqual(['remote']);
     });
     expect(api.listBooksPage).toHaveBeenLastCalledWith(
@@ -139,9 +139,9 @@ describe('useShelfData', () => {
     vi.mocked(api.listProgress).mockResolvedValueOnce([])
       .mockReturnValueOnce(new Promise(() => {}));
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
     act(() => { void result.current.loadMoreBooks(); });
-    await vi.waitFor(() => expect(result.current.books).toHaveLength(2));
+    await waitFor(() => expect(result.current.books).toHaveLength(2));
     expect(result.current.isLoadingMoreBooks).toBe(false);
   });
 
@@ -153,7 +153,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
     expect(result.current.books.map((book) => book.id)).toEqual(['first']);
@@ -161,7 +161,7 @@ describe('useShelfData', () => {
     await act(async () => {
       await result.current.loadMoreBooks();
     });
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.books.map((book) => book.id)).toEqual(['first', 'second']);
     });
 
@@ -181,7 +181,7 @@ describe('useShelfData', () => {
     });
 
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -189,7 +189,7 @@ describe('useShelfData', () => {
       result.current.setSearchQuery('Remote');
       await vi.advanceTimersByTimeAsync(300);
     });
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isSearching).toBe(false);
     });
 
@@ -219,7 +219,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -242,7 +242,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -265,7 +265,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -300,7 +300,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -319,7 +319,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -339,7 +339,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -356,7 +356,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -364,7 +364,7 @@ describe('useShelfData', () => {
       result.current.setSortBy('title');
     });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(api.listBooksPage).toHaveBeenLastCalledWith(undefined, 50, 'title',
         expect.objectContaining({ signal: expect.any(AbortSignal) }));
     });
@@ -379,7 +379,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -403,7 +403,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -429,7 +429,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -451,7 +451,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -473,7 +473,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -495,7 +495,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -517,7 +517,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -541,7 +541,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -570,7 +570,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -594,7 +594,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -622,7 +622,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -641,7 +641,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -671,7 +671,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -697,7 +697,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -720,7 +720,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -743,7 +743,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -779,7 +779,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -792,7 +792,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -807,7 +807,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -824,10 +824,10 @@ describe('useShelfData', () => {
       .mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }))
       .mockResolvedValue([]);
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.books[0]?.id).toBe('old'));
+    await waitFor(() => expect(result.current.books[0]?.id).toBe('old'));
     const oldSignal = vi.mocked(api.listBooksPage).mock.calls[0][3]?.signal;
     act(() => result.current.setSortBy('title'));
-    await vi.waitFor(() => expect(result.current.books[0]?.id).toBe('new'));
+    await waitFor(() => expect(result.current.books[0]?.id).toBe('new'));
     await act(async () => resolveOld([
       { book_id: 'old', user_id: 'u', cfi: '', percentage: 90, updated_at: '' },
     ]));
@@ -839,7 +839,7 @@ describe('useShelfData', () => {
     vi.mocked(api.listBooksPage).mockResolvedValue({ books: [] });
     vi.mocked(api.listProgress).mockResolvedValue([]);
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
     act(() => result.current.setSelectedCategoryId('远端分类'));
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     expect(result.current.selectedCategoryId).toBe('远端分类');
@@ -855,7 +855,7 @@ describe('useShelfData', () => {
 
     const { result } = renderHook(() => useShelfData(true));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoadingBooks).toBe(false);
     });
 
@@ -892,7 +892,7 @@ describe('useShelfData', () => {
         { book_id: 'found', user_id: 'u', cfi: '', percentage: 88, updated_at: '' },
       ] : []);
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
     act(() => result.current.setSearchQuery('star'));
     await act(async () => { await vi.advanceTimersByTimeAsync(300); });
     act(() => result.current.setSortBy('title'));
@@ -911,7 +911,7 @@ describe('useShelfData', () => {
     const ids = Array.from({ length: 70 }, (_, i) => `remote-${i}`);
     vi.mocked(api.renameBookCategory).mockResolvedValue({ updated_ids: ids });
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
     act(() => result.current.setSelectedCategoryId('A'));
     let renamed;
     await act(async () => { renamed = await result.current.handleRenameCategory('B', 'C'); });
@@ -929,7 +929,7 @@ describe('useShelfData', () => {
       .mockReturnValueOnce(new Promise(resolve => { resolveSummary = resolve; }))
       .mockResolvedValue({ total: 0, uncategorized: 0, categories: {} });
     const { result } = renderHook(() => useShelfData(true));
-    await vi.waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
     await act(async () => { await result.current.handleDelete('book-1'); });
     expect(result.current.bookCounts.all).toBe(0);
     await act(async () => resolveSummary({ total: 1, uncategorized: 1, categories: {} }));

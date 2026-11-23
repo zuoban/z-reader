@@ -56,7 +56,7 @@ export function CategorySelector({
     setLoading(true);
     try {
       if (nextCategory !== null && nextCategory.length > 50) {
-        toast.error('Category name exceeds 50 characters');
+        toast.error('分类名称不能超过 50 个字符');
         return;
       }
 
@@ -64,7 +64,7 @@ export function CategorySelector({
       onUpdate();
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to set category');
+      toast.error(err instanceof Error ? err.message : '设置分类失败');
     } finally {
       setLoading(false);
     }
@@ -81,15 +81,15 @@ export function CategorySelector({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="app-dialog-shell paper-texture max-w-[420px] rounded-2xl border p-0"
+        className="app-dialog-shell max-w-[420px] rounded-2xl border p-0"
         showCloseButton={false}
       >
-        <div className="flex items-start justify-between border-b border-border/45 px-6 pb-4 pt-6">
+        <div className="flex items-start justify-between border-b border-border/60 px-6 pb-4 pt-5">
           <div>
-            <DialogTitle className="font-heading text-[1.2rem] font-semibold tracking-[-0.02em] text-foreground">
+            <DialogTitle className="font-heading text-lg font-medium text-foreground">
               设置分类
             </DialogTitle>
-            <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
+            <DialogDescription className="mt-1 text-sm leading-5 text-muted-foreground">
               将此书归入分类，便于管理
             </DialogDescription>
           </div>
@@ -106,11 +106,11 @@ export function CategorySelector({
         <form onSubmit={handleSubmit}>
           <div className="max-h-[18rem] overflow-y-auto px-6 py-5">
             <div className="app-surface-panel rounded-xl px-4 py-3.5">
-              <div className="mb-2.5 flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground">
                   新建分类
                 </p>
-                <span className="text-[11px] tabular-nums text-muted-foreground/45">
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
                   {categoryName.length}/50
                 </span>
               </div>
@@ -121,13 +121,13 @@ export function CategorySelector({
                   maxLength={50}
                   placeholder="输入分类名称"
                   disabled={loading}
-                  className="category-input h-10 rounded-lg px-3 text-[14px] shadow-none"
+                  className="category-input h-10 rounded-lg px-3 pr-9 text-sm shadow-none"
                 />
                 {categoryName && (
                   <button
                     type="button"
                     onClick={() => setCategoryName('')}
-                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-muted/60 hover:text-muted-foreground"
+                    className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     aria-label="清空输入"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -135,7 +135,7 @@ export function CategorySelector({
                 )}
               </div>
               {isNewCategory && (
-                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[13px] font-medium text-primary">
+                <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                   <Plus className="h-3.5 w-3.5" />
                   {trimmedCategoryName}
                 </div>
@@ -144,11 +144,11 @@ export function CategorySelector({
 
             {filteredCategories.length > 0 && (
               <div className="mt-4">
-                <div className="mb-2.5 flex items-center justify-between px-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
+                <div className="mb-2.5 flex items-center justify-between px-0.5">
+                  <p className="text-xs font-medium text-muted-foreground">
                     已有分类
                   </p>
-                  <span className="text-[11px] tabular-nums text-muted-foreground/45">
+                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
                     {filteredCategories.length}
                   </span>
                 </div>
@@ -163,26 +163,26 @@ export function CategorySelector({
                         disabled={loading}
                         title={cat}
                         className={cn(
-                          'app-surface-panel flex w-full min-h-11 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-all disabled:opacity-50',
-                          isSelected && 'border-primary/35 bg-primary/[0.06] ring-2 ring-primary/12'
+                          'app-surface-panel flex w-full min-h-11 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-colors disabled:opacity-50',
+                          isSelected && 'border-primary/40 bg-primary/[0.06] ring-1 ring-primary/15'
                         )}
                       >
                         <div
                           className={cn(
-                            'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all',
+                            'flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border transition-colors',
                             isSelected
                               ? 'border-primary bg-primary'
-                              : 'border-border/65 bg-card'
+                              : 'border-border bg-card'
                           )}
                         >
                           {isSelected && (
                             <Check className="h-3 w-3 text-primary-foreground" />
                           )}
                         </div>
-                        <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-foreground">
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                           {cat}
                         </span>
-                        <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground/65">
+                        <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                           {bookCounts[cat] || 0} 本
                         </span>
                       </button>
@@ -198,14 +198,14 @@ export function CategorySelector({
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="h-10 rounded-xl px-4 text-[14px] font-medium text-muted-foreground"
+              className="h-10 rounded-lg px-4 text-sm font-medium text-muted-foreground"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-10 rounded-xl px-6 text-[14px] font-semibold"
+              className="h-10 rounded-lg px-5 text-sm font-medium"
             >
               {loading ? '保存中...' : '保存'}
             </Button>

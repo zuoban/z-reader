@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
-import { getModernReaderSurface, withOpacity } from "@/lib/reader-ui";
+import { getModernReaderSurface } from "@/lib/reader-ui";
 
 interface ReaderBookmarksSheetProps {
   open: boolean;
@@ -124,13 +124,13 @@ export function ReaderBookmarksSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,38rem)] flex-col overflow-hidden rounded-2xl p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2"
         style={{
           background: surface.bg,
           borderColor: surface.border,
           color: surface.fg,
           boxShadow: surface.shadow,
-          backdropFilter: "blur(18px)",
+          backdropFilter: "blur(14px)",
         }}
       >
         <div className="flex justify-center pb-1 pt-2.5">
@@ -198,19 +198,19 @@ export function ReaderBookmarksSheet({
                 disabled={!canCreate || isSaving}
                 title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
                 aria-label="添加当前书签"
-                className="h-10 rounded-full px-3 text-[13px] font-medium shadow-none transition-colors hover:brightness-[0.985] disabled:hover:brightness-100 sm:h-9"
+                className="h-10 rounded-lg px-3 text-[13px] font-medium shadow-none transition-colors hover:brightness-[0.985] disabled:hover:brightness-100 sm:h-9"
                 style={{
                   background: surface.surfaceSoft,
                   color: surface.fg,
                 }}
               >
-                <BookmarkPlus className="h-4 w-4" />
+                <BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />
                 {isSaving ? "保存中" : "添加"}
               </Button>
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-8 sm:w-8"
+                className="touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-9 sm:w-9"
                 style={{
                   color: surface.muted,
                   background: surface.surfaceSoft,
@@ -233,37 +233,31 @@ export function ReaderBookmarksSheet({
               sortedBookmarks.map((bookmark) => (
                 <div
                   key={bookmark.id}
-                  className="group rounded-2xl transition-[background-color,box-shadow,transform] hover:-translate-y-px"
+                  className="group rounded-xl border transition-colors"
                   style={{
-                    background: `
-                      linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.03)} 0%, transparent 50%),
-                      ${surface.surfaceSoft}
-                    `,
-                    boxShadow: `
-                      inset 0 0 0 1px ${surface.hairline},
-                      inset 0 1px 0 ${withOpacity("#ffffff", 0.08)}
-                    `,
+                    background: surface.surfaceSoft,
+                    borderColor: surface.hairline,
                   }}
                 >
-                  <div className="flex items-center gap-2 px-3.5 py-3 sm:gap-3 sm:px-4 sm:py-3.5">
+                  <div className="flex items-center gap-2 px-3.5 py-3 sm:gap-3 sm:px-4">
                     <button
                       type="button"
                       aria-label={`打开书签：${bookmark.chapter || "未识别章节"}，${formatPercent(bookmark.percentage)}`}
-                      className="min-h-11 min-w-0 flex-1 cursor-pointer rounded-xl px-1 py-0.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
+                      className="min-h-10 min-w-0 flex-1 cursor-pointer rounded-lg px-1 py-0.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
                       onClick={() => {
                         onGoTo(bookmark);
                         onOpenChange(false);
                       }}
                     >
                       <div
-                        className="truncate text-[14px] font-semibold leading-6 tracking-[-0.01em] sm:text-[15px]"
+                        className="truncate text-sm font-medium leading-6"
                         style={{ color: surface.fg }}
                       >
                         {bookmark.chapter || "未识别章节"}
                       </div>
                       {bookmark.note ? (
                         <p
-                          className="mt-1 line-clamp-2 text-[12.5px] leading-5 sm:text-[13px]"
+                          className="mt-1 line-clamp-2 text-xs leading-5"
                           style={{ color: surface.muted }}
                           title={bookmark.note}
                         >
@@ -271,11 +265,11 @@ export function ReaderBookmarksSheet({
                         </p>
                       ) : null}
                       <div
-                        className="mt-2 flex flex-wrap items-center gap-2 text-[12px] leading-5"
+                        className="mt-2 flex flex-wrap items-center gap-2 text-xs leading-5"
                         style={{ color: surface.muted }}
                       >
                         <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums"
+                          className="inline-flex items-center rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums"
                           style={{
                             background: surface.surfaceStrong,
                             color: surface.fg,
@@ -284,7 +278,7 @@ export function ReaderBookmarksSheet({
                           {formatPercent(bookmark.percentage)}
                         </span>
                         <span className="h-1 w-1 rounded-full bg-current opacity-30" />
-                        <span className="font-medium">{formatDate(bookmark.created_at)}</span>
+                        <span>{formatDate(bookmark.created_at)}</span>
                       </div>
                     </button>
                     <Button
@@ -297,10 +291,10 @@ export function ReaderBookmarksSheet({
                       }}
                       title="删除书签"
                       aria-label="删除书签"
-                      className="touch-target h-10 w-10 shrink-0 rounded-full opacity-75 transition-all hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:w-9 sm:opacity-55 sm:group-hover:opacity-100"
+                      className="touch-target h-9 w-9 shrink-0 rounded-lg opacity-75 transition-colors hover:bg-destructive/10 hover:text-destructive sm:opacity-60 sm:group-hover:opacity-100"
                       style={{ color: surface.muted }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                     </Button>
                   </div>
                 </div>
@@ -315,10 +309,10 @@ export function ReaderBookmarksSheet({
                     color: surface.fg,
                   }}
                 >
-                  <Bookmark className="h-5 w-5" strokeWidth={1.75} />
+                  <Bookmark className="h-5 w-5" strokeWidth={1.5} />
                 </div>
                 <p
-                  className="text-sm font-semibold tracking-tight"
+                  className="text-sm font-medium tracking-tight"
                   style={{ color: surface.fg }}
                 >
                   暂无书签

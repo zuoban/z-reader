@@ -74,9 +74,9 @@ const OfflineBooksDialog = dynamic(
 
 function ShelfBrand() {
   return (
-    <div className="flex items-center gap-5">
+    <div className="flex items-center gap-4">
       <BrandLogo compact />
-      <span className="hidden border-l border-border pl-5 text-xs tracking-widest text-muted-foreground sm:block">
+      <span className="hidden border-l border-border pl-4 text-xs text-muted-foreground sm:block">
         私人藏书室
       </span>
     </div>
@@ -304,7 +304,7 @@ export default function ShelfPage() {
 
   if (isLoading || (!isAuthenticated && !isOffline)) {
     return (
-      <AppScreen ambient="shelf">
+      <AppScreen>
         <div
           className="flex min-h-dvh items-center justify-center"
           role="status"
@@ -312,25 +312,11 @@ export default function ShelfPage() {
           aria-busy="true"
           aria-label="正在加载书库"
         >
-          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-50">
-            <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px] animate-pulse motion-reduce:animate-none" />
-            <div
-              className="absolute -right-[10%] -bottom-[10%] h-[40%] w-[40%] rounded-full bg-accent/15 blur-[120px] animate-pulse motion-reduce:animate-none"
-              style={{ animationDelay: '1s' }}
-            />
-          </div>
-          <div className="relative flex flex-col items-center gap-5">
-            <LoadingSpinner className="h-10 w-10 border-primary/25" />
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                Loading Library
-              </p>
-              <div className="relative h-1 w-28 overflow-hidden rounded-full bg-foreground/10">
-                <div className="absolute inset-y-0 left-0 w-2/5 rounded-full bg-primary" />
-                <div className="absolute inset-0 animate-[shimmer_1.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-primary-foreground/25 to-transparent motion-reduce:animate-none" />
-              </div>
-              <span className="sr-only">正在加载书库…</span>
-            </div>
+          <div className="flex flex-col items-center gap-4">
+            <LoadingSpinner className="h-9 w-9 border-primary/20" />
+            <p className="text-xs font-medium text-muted-foreground">
+              正在加载书库
+            </p>
           </div>
         </div>
       </AppScreen>
@@ -339,15 +325,14 @@ export default function ShelfPage() {
 
   return (
     <AppScreen
-      ambient="shelf"
       className="bg-[var(--shelf-app-bg)] font-sans"
       contentClassName="flex min-h-dvh w-full flex-col"
     >
       <header className="shelf-header sticky top-0 z-50 w-full border-b border-border backdrop-blur-md">
-        <div className="app-container flex h-[4.5rem] items-center justify-between">
+        <div className="app-container flex h-16 items-center justify-between">
           <ShelfBrand />
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {!isOffline && (
               <FileUploadAction
                 accept={SUPPORTED_FORMATS_ACCEPT}
@@ -356,12 +341,12 @@ export default function ShelfPage() {
                 title="上传书籍"
                 multiple
                 buttonSize="icon-sm"
-                buttonClassName="h-11 w-11 rounded-lg bg-primary px-0 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:w-auto sm:px-5"
+                buttonClassName="h-11 w-11 gap-1.5 rounded-lg bg-primary px-0 text-sm font-medium text-primary-foreground hover:bg-primary/92 sm:h-10 sm:w-auto sm:px-4"
               >
                 {isUploading ? (
                   <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
                 ) : (
-                  <Upload className="h-4 w-4" />
+                  <Upload className="h-4 w-4" strokeWidth={1.5} />
                 )}
                 <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
               </FileUploadAction>
@@ -372,23 +357,23 @@ export default function ShelfPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
+                    className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary sm:h-10 sm:w-10"
                     aria-label="书架设置"
                     title="书架设置"
                   >
-                    <UserRound className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    <UserRound className="h-4 w-4" strokeWidth={1.5} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  sideOffset={10}
-                  className="shelf-account-menu w-48 rounded-xl border-border/50 p-1.5 backdrop-blur-md"
+                  sideOffset={8}
+                  className="shelf-account-menu w-48 rounded-xl border-border p-1.5"
                 >
                   <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
                     {isDark ? (
-                      <Sun className="h-4 w-4" />
+                      <Sun className="h-4 w-4" strokeWidth={1.5} />
                     ) : (
-                      <Moon className="h-4 w-4" />
+                      <Moon className="h-4 w-4" strokeWidth={1.5} />
                     )}
                     {isDark ? '亮色模式' : '暗色模式'}
                   </DropdownMenuItem>
@@ -396,14 +381,14 @@ export default function ShelfPage() {
                     className="shelf-account-menu-item"
                     onClick={() => setOfflineBooksOpen(true)}
                   >
-                    <HardDrive className="h-4 w-4" />
+                    <HardDrive className="h-4 w-4" strokeWidth={1.5} />
                     离线图书管理
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => { void logout().catch(() => toast.error('退出失败，请重试')); }}
                     className="shelf-account-menu-item shelf-account-menu-danger"
                   >
-                    <LogOut className="h-4 w-4" /> 退出登录
+                    <LogOut className="h-4 w-4" strokeWidth={1.5} /> 退出登录
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -413,26 +398,26 @@ export default function ShelfPage() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
+                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary sm:h-10 sm:w-10"
                   onClick={() => setOfflineBooksOpen(true)}
                   aria-label="离线图书管理"
                   title="离线图书管理"
                 >
-                  <HardDrive className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                  <HardDrive className="h-4 w-4" strokeWidth={1.5} />
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
+                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary sm:h-10 sm:w-10"
                   onClick={toggleTheme}
                   aria-label={isDark ? '亮色模式' : '暗色模式'}
                   title={isDark ? '亮色模式' : '暗色模式'}
                 >
                   {isDark ? (
-                    <Sun className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    <Sun className="h-4 w-4" strokeWidth={1.5} />
                   ) : (
-                    <Moon className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    <Moon className="h-4 w-4" strokeWidth={1.5} />
                   )}
                 </Button>
               </>
@@ -444,43 +429,38 @@ export default function ShelfPage() {
       <main
         id="shelf-main"
         aria-label="书库"
-        className="app-container relative z-10 flex-1 py-7 sm:py-10"
+        className="app-container relative z-10 flex-1 py-6 sm:py-8"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
-        <div className="mb-7 flex items-end justify-between gap-4 border-b border-border pb-6 sm:mb-8 sm:pb-7">
-          <div>
-            <p className="app-eyebrow mb-2 text-[10px]">The personal collection</p>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">我的书库</h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">世界很大，从手边的一本书开始。</p>
-          </div>
+        <div className="mb-6 flex items-baseline justify-between gap-4 border-b border-border pb-4 sm:mb-7">
+          <h1 className="font-heading text-2xl font-medium tracking-[-0.02em] text-foreground sm:text-3xl">
+            我的书库
+          </h1>
           {!isOffline && !isLoadingBooks && !loadError && (
-            <p className="shrink-0 pb-1 text-xs text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
-              <span className="mr-1.5 font-serif text-3xl tabular-nums text-primary sm:text-4xl">
-                {bookCounts.all}
-              </span>
-              本藏书
+            <p className="shrink-0 text-xs text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
+              共 <span className="font-mono text-sm font-medium tabular-nums text-foreground">{bookCounts.all}</span> 本
             </p>
           )}
         </div>
         {isOffline ? (
-          <div className="flex min-h-[28rem] items-center justify-center">
-            <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                <WifiOff className="h-7 w-7" />
+          <div className="flex min-h-[26rem] items-center justify-center">
+            <div className="paper-panel w-full max-w-lg rounded-2xl px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                <WifiOff className="h-6 w-6" strokeWidth={1.5} />
               </div>
-              <h2 className="mt-5 font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
+              <h2 className="mt-4 font-heading text-xl font-medium text-foreground">
                 当前处于离线状态
               </h2>
               <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                暂时无法连接到服务器，请检查网络后重试，或直接打开已保存到此设备的离线图书继续阅读。
+                暂时无法连接到服务器，请检查网络后重试，或直接打开已保存到此设备的离线图书。
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <Button
                   type="button"
-                  className="h-11 rounded-xl px-6"
+                  className="h-10 rounded-lg px-5"
                   disabled={isRetryingAuth}
                   onClick={() => void handleRetryConnection()}
                 >
@@ -489,22 +469,22 @@ export default function ShelfPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 rounded-xl px-6"
+                  className="h-10 rounded-lg px-5"
                   onClick={() => setOfflineBooksOpen(true)}
                 >
-                  <HardDrive className="mr-2 h-4 w-4" />
+                  <HardDrive className="h-4 w-4" strokeWidth={1.5} />
                   打开离线图书
                 </Button>
               </div>
             </div>
           </div>
         ) : !isLoadingBooks && loadError ? (
-          <div className="flex min-h-[28rem] items-center justify-center">
-            <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/18 bg-destructive/10 text-destructive">
-                <AlertCircle className="h-7 w-7" />
+          <div className="flex min-h-[26rem] items-center justify-center">
+            <div className="paper-panel w-full max-w-lg rounded-2xl px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+                <AlertCircle className="h-6 w-6" strokeWidth={1.5} />
               </div>
-              <h2 className="mt-5 font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
+              <h2 className="mt-4 font-heading text-xl font-medium text-foreground">
                 书架暂时无法加载
               </h2>
               <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
@@ -512,7 +492,7 @@ export default function ShelfPage() {
               </p>
               <Button
                 type="button"
-                className="mt-6 h-11 rounded-xl px-6"
+                className="mt-6 h-10 rounded-lg px-5"
                 onClick={() => void loadBooks()}
               >
                 重新加载
@@ -524,7 +504,7 @@ export default function ShelfPage() {
             <EmptyState
               icon={BookOpen}
               title="书架还是空的"
-              description="上传你的第一本 EPUB、MOBI、AZW3 或 PDF，开始你的阅读之旅"
+              description="上传你的第一本 EPUB、MOBI、AZW3 或 PDF，开始阅读"
               tags={['EPUB', 'MOBI', 'AZW3', 'PDF']}
               action={
                 <FileUploadAction
@@ -534,16 +514,16 @@ export default function ShelfPage() {
                   title="上传书籍"
                   multiple
                   wrapperClassName="w-full sm:w-auto"
-                  buttonClassName="h-11 w-full rounded-xl border border-primary/12 bg-primary px-8 text-sm font-semibold tracking-[0.02em] text-primary-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/18 hover:bg-primary/92 active:scale-[0.985] sm:w-auto sm:px-10"
+                  buttonClassName="h-11 w-full rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/92 active:scale-[0.98] sm:w-auto sm:px-8"
                 >
                   {isUploading ? (
                     <>
-                      <LoadingSpinner className="mr-2.5 h-4 w-4" />
+                      <LoadingSpinner className="mr-2 h-4 w-4 border-primary-foreground/30 border-t-primary-foreground" />
                       {uploadStatusLabel ?? '添加中...'}
                     </>
                   ) : (
                     <>
-                      <Plus className="mr-2.5 h-4 w-4" />
+                      <Plus className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
                       添加第一本书
                     </>
                   )}
@@ -607,7 +587,7 @@ export default function ShelfPage() {
                     aria-label="书籍分类筛选"
                     className="scrollbar-none flex min-w-0 flex-1 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
                   >
-                    <span className="sr-only sm:not-sr-only sm:mr-1 sm:text-[13px] sm:font-medium sm:text-muted-foreground/70">
+                    <span className="sr-only sm:not-sr-only sm:mr-1 sm:text-[13px] sm:font-medium sm:text-muted-foreground">
                       分类：
                     </span>
                     <button
@@ -648,25 +628,25 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground sm:min-h-8 sm:px-3 dark:hover:bg-white/[0.08]"
+                      className="min-h-9 shrink-0 snap-start rounded-lg px-3 text-[13px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
                       onClick={() => setCategoryManagerOpen(true)}
                     >
-                      <Settings2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+                      <Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                       管理
                     </Button>
                     <Button
                       type="button"
                       variant={selectionMode ? "secondary" : "ghost"}
                       className={cn(
-                        "min-h-11 shrink-0 snap-start rounded-full px-4 text-[13px] font-medium sm:min-h-8 sm:px-3.5 transition-all active:scale-[0.97]",
+                        "min-h-9 shrink-0 snap-start rounded-lg px-3 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]",
                         selectionMode
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground dark:hover:bg-white/[0.08]"
+                          ? "bg-primary text-primary-foreground hover:bg-primary/92"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                       )}
                       onClick={toggleSelectionMode}
                     >
-                      <CheckSquare className="h-3.5 w-3.5" />
-                      <span className="ml-1.5">{selectionMode ? "取消选择" : "批量操作"}</span>
+                      <CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      <span>{selectionMode ? "取消选择" : "批量操作"}</span>
                     </Button>
                   </div>
                   <div className="shrink-0 self-start sm:hidden">
@@ -674,7 +654,7 @@ export default function ShelfPage() {
                       <DropdownMenuTrigger
                         aria-label="更多书库操作"
                         className={cn(
-                          'flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground',
+                          'flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-card text-foreground',
                           selectionMode && 'border-primary bg-primary text-primary-foreground'
                         )}
                       >
@@ -698,30 +678,27 @@ export default function ShelfPage() {
 
             <section
               className={cn(
-                'shelf-container relative rounded-3xl transition-all duration-500 bg-transparent',
+                'shelf-container relative bg-transparent',
                 selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
               )}
             >
               {isLoadingBooks || isSearching ? (
                 <BookCardSkeletonGrid count={6} />
               ) : filteredBooks.length === 0 ? (
-                <div className="flex min-h-[26rem] flex-col items-center justify-center px-8 py-16 text-center">
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10 blur-2xl motion-reduce:animate-none" />
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-border/50 bg-card/80 text-primary/45 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--glass-specular)_40%,transparent)]">
-                      <Search className="h-7 w-7" />
-                    </div>
+                <div className="flex min-h-[24rem] flex-col items-center justify-center px-6 py-14 text-center">
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground">
+                    <Search className="h-5 w-5" strokeWidth={1.5} />
                   </div>
-                  <h2 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                  <h2 className="font-heading text-xl font-medium text-foreground">
                     未找到相关书籍
                   </h2>
-                  <p className="mt-2.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                    尝试使用不同的关键词搜索，或重置当前的分类筛选与排序。
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                    换个关键词试试，或重置当前的分类与排序条件
                   </p>
                   <Button
                     type="button"
                     variant="outline"
-                    className="mt-8 h-11 rounded-xl border-primary/20 bg-primary/5 px-6 font-semibold text-primary hover:bg-primary/10"
+                    className="mt-6 h-10 rounded-lg px-5 text-sm font-medium"
                     onClick={clearShelfFilters}
                   >
                     重置所有筛选
@@ -772,7 +749,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-11 rounded-xl px-6"
+                      className="h-10 rounded-lg px-5"
                       onClick={() => void loadMoreBooks()}
                     >
                       加载更多图书
@@ -785,15 +762,15 @@ export default function ShelfPage() {
                 </div>
               )}
               {isDraggingBookFile && (
-                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-background/82 text-center backdrop-blur-[2px]">
-                  <div className="paper-panel rounded-3xl px-10 py-8">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Upload className="h-7 w-7" />
+                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary/35 bg-background/85 text-center backdrop-blur-[2px]">
+                  <div className="paper-panel rounded-2xl px-8 py-6">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Upload className="h-6 w-6" strokeWidth={1.5} />
                     </div>
-                    <p className="font-heading text-2xl font-semibold tracking-[-0.02em]">
+                    <p className="font-heading text-xl font-medium">
                       松开即可导入
                     </p>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       支持 EPUB、PDF、MOBI、AZW3
                     </p>
                   </div>
@@ -808,15 +785,15 @@ export default function ShelfPage() {
                 <div
                   role="region"
                   aria-label="书籍批量操作"
-                  className="pointer-events-auto flex flex-col gap-2 rounded-2xl border border-primary/20 bg-card/94 p-3 shadow-[var(--paper-shadow-floating)] backdrop-blur-xl sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+                  className="pointer-events-auto flex flex-col gap-2 rounded-xl border border-border bg-card/96 p-3 shadow-[var(--paper-shadow-floating)] backdrop-blur-md sm:flex-row sm:items-center sm:gap-4 sm:px-4"
                 >
                   <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto">
                     <div className="flex items-center gap-2 whitespace-nowrap text-sm">
-                      <CheckSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <CheckSquare className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} />
                       <span className="text-muted-foreground">
                         已选中
                       </span>
-                      <span className="font-semibold tabular-nums text-foreground" aria-live="polite">
+                      <span className="font-mono font-medium tabular-nums text-foreground" aria-live="polite">
                         {selectedCount} 本
                       </span>
                     </div>
@@ -824,7 +801,7 @@ export default function ShelfPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-11 w-11 rounded-xl text-muted-foreground sm:hidden"
+                      className="h-11 w-11 rounded-lg text-muted-foreground sm:hidden"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
                     >
@@ -836,7 +813,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="min-h-11 min-w-0 rounded-xl border-border/50 px-1 text-xs font-medium hover:bg-muted/50 sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:min-h-10 sm:px-3 sm:text-sm"
                       onClick={toggleVisibleSelection}
                     >
                       {allVisibleSelected ? '取消全选' : '选择已加载'}
@@ -846,11 +823,11 @@ export default function ShelfPage() {
                       type="button"
                       variant="outline"
                       aria-label="批量分类"
-                      className="min-h-11 min-w-0 gap-1 rounded-xl border-primary/18 bg-primary/5 px-1 text-xs font-medium text-primary hover:bg-primary/10 sm:gap-2 sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 gap-1 rounded-lg border-primary/20 bg-primary/5 px-2 text-xs font-medium text-primary hover:bg-primary/10 sm:min-h-10 sm:gap-1.5 sm:px-3 sm:text-sm"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
-                      <Tag className="h-4 w-4 shrink-0" />
+                      <Tag className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                       <span className="hidden sm:inline">批量分类</span>
                       <span className="sm:hidden">分类</span>
                     </Button>
@@ -859,11 +836,11 @@ export default function ShelfPage() {
                       type="button"
                       variant="destructive"
                       aria-label="批量删除"
-                      className="min-h-11 min-w-0 gap-1 rounded-xl px-1 text-xs font-medium shadow-sm sm:gap-2 sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 gap-1 rounded-lg px-2 text-xs font-medium sm:min-h-10 sm:gap-1.5 sm:px-3 sm:text-sm"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
-                      <Trash2 className="h-4 w-4 shrink-0" />
+                      <Trash2 className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                       <span className="hidden sm:inline">批量删除</span>
                       <span className="sm:hidden">删除</span>
                     </Button>
@@ -872,7 +849,7 @@ export default function ShelfPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="hidden sm:flex min-h-[44px] w-9 ml-2 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+                      className="ml-1 hidden h-10 w-10 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:flex"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
                     >

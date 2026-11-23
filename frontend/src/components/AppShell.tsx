@@ -7,30 +7,15 @@ interface AppScreenProps {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
-  ambient?: 'none' | 'login' | 'shelf';
-}
-
-function AmbientLayer({ variant }: { variant: AppScreenProps['ambient'] }) {
-  if (variant === 'none') return null;
-
-  return (
-    <div
-      aria-hidden="true"
-      className="app-ambient pointer-events-none absolute inset-0"
-      data-variant={variant}
-    />
-  );
 }
 
 export function AppScreen({
   children,
   className,
   contentClassName,
-  ambient = 'none',
 }: AppScreenProps) {
   return (
     <div className={cn('relative min-h-dvh overflow-hidden bg-background text-foreground', className)}>
-      <AmbientLayer variant={ambient} />
       <div
         id="main-content"
         tabIndex={-1}
@@ -101,10 +86,10 @@ export function BrandLogo({
     <div className={cn('inline-flex items-center gap-2.5 text-foreground', className)}>
       <BrandGlyph className={compact ? 'h-8 w-8' : 'h-9 w-9'} />
       <div className="flex items-baseline gap-1.5">
-        <span className={cn('font-heading text-[1.45rem] font-semibold leading-none tracking-[-0.045em]', compact && 'text-[1.25rem]')}>
+        <span className={cn('font-heading text-xl font-semibold leading-none', compact && 'text-lg')}>
           Z
         </span>
-        <span className={cn('text-[1.05rem] font-bold leading-none tracking-[-0.035em]', compact && 'text-[0.98rem]')}>
+        <span className={cn('text-base font-medium leading-none text-foreground', compact && 'text-[15px]')}>
           Reader
         </span>
       </div>
@@ -126,7 +111,7 @@ export function BrandMark({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-border/40 bg-card/50 p-6 backdrop-blur-md',
+        'rounded-2xl border border-border bg-card p-6',
         className
       )}
     >
@@ -167,9 +152,9 @@ export function LoadingState({
       {showLogo && <BrandMark size="md" priority className="mb-4" />}
       <LoadingSpinner />
       <div className="mt-4 text-center">
-        <p className="text-[15px] font-bold text-foreground">{title}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
         {description && (
-          <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         )}
       </div>
     </>
@@ -180,8 +165,7 @@ export function LoadingState({
       <div
         className={cn(
           'flex flex-col items-center',
-          card &&
-            'paper-panel paper-texture rounded-[2rem] p-10 sm:p-12'
+          card && 'paper-panel rounded-2xl p-8 sm:p-10'
         )}
       >
         {content}

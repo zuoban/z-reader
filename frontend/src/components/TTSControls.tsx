@@ -1290,7 +1290,7 @@ export function TTSControls({
                   size="icon"
                   onPointerDown={preserveReaderSelection}
                   onClick={closePanel}
-                  className="h-8 w-8 rounded-full border-0 transition-all hover:scale-[1.04]"
+                  className="h-8 w-8 rounded-lg border-0 transition-colors"
                   style={{
                     color: surface.muted,
                     background: surface.surfaceSoft,
@@ -1308,24 +1308,24 @@ export function TTSControls({
               >
                 {resumePromptVisible && (
                   <section
-                    className="rounded-2xl border px-3.5 py-3"
+                    className="rounded-xl border px-3.5 py-3"
                     style={{
-                      background: `linear-gradient(180deg, ${withOpacity(uiScheme.link, 0.08)} 0%, transparent 100%), ${uiScheme.cardBg}`,
-                      borderColor: withOpacity(uiScheme.link, 0.18),
+                      background: withOpacity(uiScheme.link, 0.06),
+                      borderColor: withOpacity(uiScheme.link, 0.22),
                     }}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                         style={{
-                          background: withOpacity(uiScheme.buttonBg, 0.42),
+                          background: withOpacity(uiScheme.buttonBg, 0.6),
                           color: uiScheme.link,
                         }}
                       >
-                        <AlertCircle className="h-4 w-4" />
+                        <AlertCircle className="h-4 w-4" strokeWidth={1.5} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-bold" style={{ color: uiScheme.fg }}>
+                        <p className="text-[13px] font-medium" style={{ color: uiScheme.fg }}>
                           继续朗读
                         </p>
                       </div>
@@ -1333,11 +1333,11 @@ export function TTSControls({
                         type="button"
                         variant="ghost"
                         onClick={() => void onResume?.()}
-                        className="h-8 shrink-0 rounded-lg px-3 text-[11px] font-bold transition-all active:scale-95"
+                        className="h-8 shrink-0 rounded-lg px-3 text-xs font-medium transition-colors active:scale-95"
                         style={{
                           color: uiScheme.link,
-                          background: withOpacity(uiScheme.buttonBg, 0.42),
-                          border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
+                          background: withOpacity(uiScheme.buttonBg, 0.6),
+                          border: `1px solid ${withOpacity(uiScheme.link, 0.2)}`,
                         }}
                       >
                         继续
@@ -1351,7 +1351,7 @@ export function TTSControls({
                 <div className="flex flex-col gap-4 px-1 py-1">
                   <div className="flex items-center justify-between gap-3 px-1">
                     <h3
-                      className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                      className="text-xs font-medium"
                       style={{ color: uiScheme.mutedText }}
                     >
                       快捷控制
@@ -1362,11 +1362,11 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="h-9 rounded-xl px-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
+                        className="h-8 rounded-lg px-2.5 text-xs font-medium transition-colors active:scale-[0.98]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: withOpacity(uiScheme.buttonBg, 0.34),
-                          border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
+                          background: withOpacity(uiScheme.buttonBg, 0.45),
+                          border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.45)}`,
                         }}
                       >
                         {detailsExpanded ? '收起设置' : '更多设置'}
@@ -1380,14 +1380,10 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="flex items-center justify-center gap-2 rounded-2xl border p-2.5"
+                    className="flex items-center justify-center gap-2 rounded-xl border p-2.5"
                     style={{
-                      background: `
-                        linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.03)} 0%, transparent 70%),
-                        ${withOpacity(uiScheme.buttonBg, 0.36)}
-                      `,
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.18),
-                      boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.12)}`,
+                      background: withOpacity(uiScheme.buttonBg, 0.45),
+                      borderColor: withOpacity(uiScheme.cardBorder, 0.5),
                     }}
                   >
                     <ControlButton
@@ -1460,7 +1456,7 @@ export function TTSControls({
                     <div className="paper-reveal-soft space-y-3 px-1 pt-2">
                       <div className="flex items-center justify-between gap-3 px-1">
                         <h3
-                          className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                          className="text-xs font-medium"
                           style={{ color: uiScheme.mutedText }}
                         >
                           高亮方式
@@ -1478,7 +1474,7 @@ export function TTSControls({
                               type="button"
                               aria-pressed={active}
                               onClick={() => handleHighlightModeChange(mode)}
-                              className="touch-control min-h-11 rounded-xl py-2 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.97] sm:min-h-9"
+                              className="touch-control min-h-10 rounded-lg py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.98] sm:min-h-9"
                               style={segmentStyle(active, uiScheme)}
                             >
                               {label}
@@ -1493,7 +1489,7 @@ export function TTSControls({
                     <div className="paper-reveal-soft space-y-3 px-1">
                       <div className="flex items-center justify-between gap-3 px-1">
                         <h3
-                          className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                          className="text-xs font-medium"
                           style={{ color: uiScheme.mutedText }}
                         >
                           睡眠定时

@@ -61,15 +61,15 @@ export function ConfirmDialog({
       <div
         aria-modal="true"
         role="alertdialog"
-        className="app-dialog-shell paper-motion-panel paper-texture relative z-10 grid w-full max-w-[21rem] overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none"
+        className="app-dialog-shell paper-motion-panel relative z-10 grid w-full max-w-[21rem] overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-destructive/18 bg-destructive/10 text-destructive">
-            <AlertTriangle className="h-5 w-5" strokeWidth={1.8} />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+            <AlertTriangle className="h-5 w-5" strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
-            <h2 className="font-heading text-[15px] font-semibold leading-tight tracking-[-0.015em] text-foreground">
+            <h2 className="font-heading text-base font-medium leading-tight text-foreground">
               {title}
             </h2>
             <p className="text-[13px] leading-5 text-muted-foreground">
@@ -80,7 +80,7 @@ export function ConfirmDialog({
         <div className="mt-5 grid grid-cols-2 gap-2.5">
           <Button
             variant="outline"
-            className="h-10 rounded-xl text-foreground/85"
+            className="h-10 rounded-lg text-foreground/85"
             onClick={() => onOpenChange(false)}
           >
             {cancelLabel}
@@ -88,7 +88,7 @@ export function ConfirmDialog({
           <Button
             variant={confirmVariant}
             className={cn(
-              'h-10 rounded-xl font-semibold',
+              'h-10 rounded-lg font-medium',
               confirmVariant === 'destructive' && 'text-destructive-foreground'
             )}
             onClick={onConfirm}

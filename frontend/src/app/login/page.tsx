@@ -49,7 +49,7 @@ export default function LoginPage() {
 
   if (isLoading || isAuthenticated) {
     return (
-      <AppScreen ambient="login">
+      <AppScreen>
         <LoadingState title="加载中..." />
       </AppScreen>
     );
@@ -57,45 +57,42 @@ export default function LoginPage() {
 
   return (
     <AppScreen
-      ambient="login"
       className="bg-background text-foreground"
       contentClassName="flex min-h-dvh flex-col items-center justify-center px-5 py-8 sm:px-8 sm:py-10"
     >
-      <div className="mb-7 flex w-full max-w-5xl items-center justify-between">
+      <div className="mb-6 flex w-full max-w-5xl items-center justify-between">
         <Link href="/" aria-label="Z Reader 首页" className="rounded-sm">
           <BrandLogo />
         </Link>
-        <Link href="/" className="py-2 text-xs text-muted-foreground hover:text-primary">
+        <Link href="/" className="py-2 text-xs text-muted-foreground transition-colors hover:text-foreground">
           返回首页 ↗
         </Link>
       </div>
       <main className="auth-layout">
         <aside className="auth-editorial">
           <div>
-            <p className="app-eyebrow">Your reading corner</p>
-            <h2 className="mt-4 font-heading text-3xl font-semibold leading-relaxed">
-              书在这里，<br />故事继续。
+            <h2 className="font-heading text-2xl font-medium leading-snug text-foreground">
+              私人书库，随时续读
             </h2>
-            <p className="mb-8 mt-3 text-sm leading-7 text-muted-foreground">
-              把世界的喧嚣留在外面，<br />在自己的书房，读自己喜欢的书。
+            <p className="mb-8 mt-3 text-sm leading-6 text-muted-foreground">
+              你的电子书、书签与阅读进度保存在同一处，打开就能接着看。
             </p>
           </div>
           <LibraryPreview compact />
         </aside>
         <div className="auth-form-panel flex flex-col justify-center">
-          <div className="mb-8">
-            <p className="app-eyebrow mb-3">Welcome back</p>
-            <h1 className="font-heading text-3xl font-semibold tracking-[-0.03em] text-foreground">
+          <div className="mb-7">
+            <h1 className="font-heading text-2xl font-medium tracking-[-0.02em] text-foreground sm:text-3xl">
               欢迎回来
             </h1>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              输入访问密码，继续阅读。
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              输入访问密码进入你的私人书库
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="w-full space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold text-foreground">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">
                 访问密码
               </Label>
               <div className="relative">
@@ -112,15 +109,15 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   aria-invalid={Boolean(passwordError)}
                   aria-describedby={passwordError ? 'password-error' : undefined}
-                  className="app-field w-full pl-4 pr-12"
+                  className="app-field w-full pl-3.5 pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground sm:right-2 sm:h-9 sm:w-9"
+                  className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:right-1.5 sm:h-9 sm:w-9"
                   aria-label={showPassword ? '隐藏密码' : '显示密码'}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
                 </button>
               </div>
               {passwordError && (
@@ -133,7 +130,7 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive"
               >
                 <CircleAlert size={16} className="shrink-0" />
                 {error}
@@ -159,8 +156,8 @@ export default function LoginPage() {
 
         </div>
       </main>
-      <p className="mt-6 text-center text-xs tracking-wide text-muted-foreground">
-        Z Reader · 一间属于你的数字书房
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        Z Reader · 私人书库
       </p>
     </AppScreen>
   );

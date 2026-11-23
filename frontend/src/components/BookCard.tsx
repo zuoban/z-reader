@@ -146,10 +146,10 @@ function BookCoverFace({
           loading={priority ? 'eager' : 'lazy'}
           decoding={priority ? 'sync' : 'async'}
           sizes={SHELF_COVER_SIZES}
-          className="object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.035]"
+          className="object-cover"
         />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.05)_0%,transparent_32%,rgba(0,0,0,0.22)_100%)]" />
-        <span className="absolute left-2.5 top-2.5 rounded-full border border-black/5 bg-background/92 px-2.5 py-1 text-[11px] font-semibold leading-none text-foreground shadow-[0_6px_14px_-10px_rgba(0,0,0,0.35)] backdrop-blur-sm dark:border-white/10">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.03)_0%,transparent_40%,rgba(0,0,0,0.16)_100%)]" />
+        <span className="absolute left-2.5 top-2.5 rounded-md border border-black/8 bg-background/92 px-2 py-0.5 text-[11px] font-medium leading-4 text-foreground backdrop-blur-sm dark:border-white/12">
           {categoryLabel}
         </span>
       </div>
@@ -160,19 +160,19 @@ function BookCoverFace({
 
   return (
     <div
-      className="book-cover-fallback book-cover-spine relative flex h-full w-full flex-col overflow-hidden px-6 py-6 text-center"
+      className="book-cover-fallback book-cover-spine relative flex h-full w-full flex-col justify-between overflow-hidden px-5 py-5 text-center"
       style={{ '--cover-color': coverColor } as CSSProperties}
     >
-      <span className="relative z-10 shrink-0 text-[8px] font-medium tracking-[0.18em] opacity-80">
-        Z / COLLECTION
+      <span className="relative z-10 shrink-0 text-[10px] font-medium opacity-70">
+        Z Reader
       </span>
-      <div aria-hidden="true" className="relative z-10 my-3 flex min-h-0 flex-1 items-center justify-center overflow-hidden border-y border-current/25 py-2">
-        <p className="line-clamp-3 max-h-full w-full break-words font-heading text-lg font-semibold leading-relaxed tracking-[0.04em] sm:text-xl">
+      <div aria-hidden="true" className="relative z-10 my-2.5 flex min-h-0 flex-1 items-center justify-center overflow-hidden border-y border-current/20 py-2">
+        <p className="line-clamp-3 max-h-full w-full break-words font-heading text-lg font-medium leading-snug sm:text-xl">
           {titleLabel}
         </p>
       </div>
       {categoryLabel && (
-        <span className="relative z-10 shrink-0 truncate text-[10px] tracking-[0.12em] opacity-85">
+        <span className="relative z-10 shrink-0 truncate text-[11px] opacity-85">
           {categoryLabel}
         </span>
       )}
@@ -216,6 +216,9 @@ export const BookCard = memo(function BookCard({
     ? '<1'
     : Math.round(progressValue).toString();
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
+  const progressMetaLabel = progressValue > 0
+    ? (book.last_read_at ? `${progressDisplay}% · ${lastReadLabel}` : `已读 ${progressDisplay}%`)
+    : lastReadLabel;
   const uploadedAtLabel = formatDateTime(book.created_at);
   const categoryLabel = book.category?.trim() ?? '';
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
@@ -278,52 +281,44 @@ export const BookCard = memo(function BookCard({
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-2.5 p-3 pb-2 sm:px-3.5">
+          <div className="flex flex-1 flex-col gap-2.5 p-3 pb-2.5 sm:px-3.5">
             <div className="flex-1">
               <h2
-                className="line-clamp-2 font-heading text-[0.98rem] font-semibold leading-[1.3] tracking-[-0.015em] text-foreground"
+                className="line-clamp-2 font-heading text-[15px] font-medium leading-snug text-foreground"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h2>
 
-              <p className="mt-1 line-clamp-1 text-[0.84rem] font-medium text-muted-foreground">
+              <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
 
-            <div className="mt-auto space-y-2 sm:space-y-3">
-              <div className="space-y-1 sm:space-y-1.5">
-                <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary/70 dark:bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-primary/90 transition-[width] duration-700 ease-out"
-                    style={{ width: `${Math.max(progressValue, progressValue > 0 ? 2 : 0)}%` }}
-                  />
-                </div>
-                {progressValue > 0 ? (
-                  <p className="text-meta tabular-nums">
-                    {progressDisplay}% · {lastReadLabel}
-                  </p>
-                ) : (
-                  <p className="text-meta">{lastReadLabel}</p>
-                )}
+            <div className="mt-auto space-y-1.5">
+              <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${Math.max(progressValue, progressValue > 0 ? 2 : 0)}%` }}
+                />
               </div>
+              <p className="text-meta tabular-nums">{progressMetaLabel}</p>
             </div>
           </div>
         </button>
 
-        <div className="flex min-h-11 items-center justify-between gap-1 border-t border-border/40 px-2 py-1 sm:px-2.5 dark:border-white/8">
+        <div className="flex min-h-11 items-center justify-between gap-1 border-t border-border/60 px-2 py-1 sm:min-h-10 sm:px-2.5">
           {selectionMode ? (
             <button
               type="button"
               onClick={onSelectionToggle}
               aria-pressed={selected}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1 text-meta transition-colors hover:bg-secondary/60 hover:text-foreground"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground sm:min-h-9"
             >
               <Check
                 className={cn(
                   'h-3.5 w-3.5 shrink-0',
-                  selected ? 'text-foreground' : 'opacity-55'
+                  selected ? 'text-primary' : 'opacity-50'
                 )}
               />
               <span className="truncate">{selected ? '已选择' : '选择图书'}</span>
@@ -333,9 +328,9 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onRead}
               aria-label={`${readActionLabel}：${titleLabel}`}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1 text-meta transition-colors hover:bg-secondary/60 hover:text-foreground"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground sm:min-h-9"
             >
-              <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.5} />
               <span className="truncate">{readActionLabel}</span>
             </button>
           )}
@@ -349,7 +344,7 @@ export const BookCard = memo(function BookCard({
               isDeleting={isDeleting}
               onCategoryClick={() => setCategoryDialogOpen(true)}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
-              triggerClassName="h-11 w-11 shrink-0 rounded-lg bg-transparent text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground dark:hover:bg-white/[0.08]"
+              triggerClassName="h-11 w-11 shrink-0 rounded-lg bg-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:h-9 sm:w-9"
             />
           )}
         </div>

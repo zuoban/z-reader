@@ -6,33 +6,33 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center rounded-xl border border-transparent text-[14px] font-semibold whitespace-nowrap outline-none transition-all duration-200 select-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 active:scale-[0.97]",
+  "inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent text-sm font-medium whitespace-nowrap outline-none transition-[background-color,border-color,color,opacity,transform] duration-150 select-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 active:scale-[0.98]",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90",
+          "bg-primary text-primary-foreground hover:bg-primary/92",
         outline:
           "border-border bg-card hover:bg-secondary hover:border-primary/30",
         secondary:
-          "bg-secondary text-secondary-foreground hover:opacity-85",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost:
           "hover:bg-secondary/80 hover:text-foreground",
         destructive:
           // Explicit CSS var so text stays light even if theme token generation misses a class.
-          "bg-destructive text-[color:var(--destructive-foreground)] shadow-[0_10px_24px_-18px_color-mix(in_srgb,var(--destructive)_45%,transparent)] hover:opacity-92",
+          "bg-destructive text-[color:var(--destructive-foreground)] hover:opacity-92",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default:
-          "h-11 px-5 gap-2.5",
+          "h-11 px-4 gap-2 sm:h-10",
         xs: "h-8 px-3 text-xs gap-1.5",
-        sm: "h-9 px-4 text-[13px] gap-2",
-        lg: "h-13 px-8 text-base gap-3",
-        icon: "size-11",
+        sm: "h-9 px-3.5 text-[13px] gap-1.5",
+        lg: "h-12 px-6 text-base gap-2.5",
+        icon: "size-11 sm:size-10",
         "icon-xs": "size-8",
         "icon-sm": "size-9",
-        "icon-lg": "size-13",
+        "icon-lg": "size-12",
       },
     },
     defaultVariants: {

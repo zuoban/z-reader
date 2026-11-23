@@ -138,22 +138,22 @@ export function OfflineBooksDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="app-dialog-shell paper-motion-panel paper-texture relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none"
+        className="app-dialog-shell paper-motion-panel relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
-              <HardDrive className="h-5 w-5" strokeWidth={1.8} />
+              <HardDrive className="h-5 w-5" strokeWidth={1.5} />
             </div>
             <div>
               <h2
                 id={titleId}
-                className="font-heading text-base font-semibold leading-tight tracking-[-0.015em] text-foreground"
+                className="font-heading text-base font-medium leading-tight text-foreground"
               >
                 离线图书管理
               </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
                 {isLoading
                   ? '正在读取离线缓存…'
                   : `已缓存 ${books.length} 本 · 共 ${formatStorageSize(totalBytes)}`}
@@ -179,9 +179,9 @@ export function OfflineBooksDialog({
               <span className="text-xs">读取设备缓存中…</span>
             </div>
           ) : books.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/80 bg-muted/25 px-5 py-9 text-center">
-              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                <BookOpen className="h-5 w-5" />
+            <div className="rounded-xl border border-dashed border-border bg-secondary/40 px-5 py-9 text-center">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
+                <BookOpen className="h-5 w-5" strokeWidth={1.5} />
               </div>
               <p className="mt-3 text-sm font-medium text-foreground">
                 暂无已保存的离线图书
@@ -191,11 +191,11 @@ export function OfflineBooksDialog({
               </p>
             </div>
           ) : (
-            <ul className="space-y-2.5">
+            <ul className="space-y-2">
               {books.map((book) => (
                 <li
                   key={book.bookId}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/70 px-3.5 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3.5 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
@@ -227,7 +227,7 @@ export function OfflineBooksDialog({
                       aria-label={`移除《${book.title || book.filename}》`}
                       className="h-9 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                       <span className="ml-1">移除</span>
                     </Button>
                   </div>
@@ -245,9 +245,9 @@ export function OfflineBooksDialog({
               size="sm"
               disabled={isClearing || Boolean(removingId)}
               onClick={() => void handleClearAll()}
-              className="h-10 rounded-xl border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="h-10 rounded-lg border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
               {isClearing ? '清空中…' : '清空全部离线缓存'}
             </Button>
           ) : (
@@ -257,7 +257,7 @@ export function OfflineBooksDialog({
             type="button"
             variant="outline"
             size="sm"
-            className="h-10 rounded-xl px-5"
+            className="h-10 rounded-lg px-5"
             onClick={() => onOpenChange(false)}
           >
             关闭

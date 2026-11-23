@@ -73,13 +73,13 @@ export function ReaderTOCSheet({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[560px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
+        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-2xl p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[560px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(74svh,34rem)] sm:-translate-x-1/2"
         style={{
           background: surface.bg,
           borderColor: surface.border,
           color: surface.fg,
           boxShadow: surface.shadow,
-          backdropFilter: "blur(18px)",
+          backdropFilter: "blur(14px)",
         }}
       >
         <div className="flex justify-center pb-1 pt-2.5">
@@ -97,25 +97,25 @@ export function ReaderTOCSheet({
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="mb-1.5 flex items-center gap-2.5">
+              <div className="mb-1 flex items-center gap-2.5">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                   style={{
                     background: surface.surfaceSoft,
                     color: surface.fg,
                   }}
                 >
-                  <List className="h-4 w-4" />
+                  <List className="h-4 w-4" strokeWidth={1.5} />
                 </div>
                 <SheetTitle
-                  className="text-lg font-semibold tracking-tight"
+                  className="font-heading text-lg font-medium"
                   style={{ color: surface.fg }}
                 >
                   目录
                 </SheetTitle>
                 {toc.length > 0 ? (
                   <span
-                    className="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
+                    className="inline-flex min-w-5 items-center justify-center rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums leading-none"
                     style={{
                       background: surface.surfaceSoft,
                       color: surface.muted,
@@ -127,7 +127,7 @@ export function ReaderTOCSheet({
               </div>
               <div className="space-y-0.5 pl-10 pr-2">
                 <SheetDescription
-                  className="truncate text-xs font-medium leading-5"
+                  className="truncate text-xs leading-5"
                   style={{ color: surface.muted }}
                   title={bookTitle || "当前书籍"}
                 >
@@ -135,7 +135,7 @@ export function ReaderTOCSheet({
                 </SheetDescription>
                 {bookAuthor ? (
                   <p
-                    className="truncate text-[11px] font-medium"
+                    className="truncate text-[11px]"
                     style={{ color: surface.muted }}
                     title={bookAuthor}
                   >
@@ -145,7 +145,7 @@ export function ReaderTOCSheet({
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <Button
                 variant="ghost"
                 size="icon"
@@ -156,20 +156,20 @@ export function ReaderTOCSheet({
                     ? `定位到当前章节：${currentChapter}`
                     : "暂未识别当前章节"
                 }
-                className="h-9 w-9 rounded-full border-0 transition-colors hover:brightness-[0.985] active:scale-95 disabled:opacity-35"
+                className="h-9 w-9 rounded-lg border-0 transition-colors hover:brightness-[0.985] active:scale-95 disabled:opacity-35"
                 style={{
                   background: currentChapter ? surface.surfaceStrong : surface.surfaceSoft,
                   color: surface.fg,
                 }}
               >
-                <LocateFixed className="h-4 w-4" />
+                <LocateFixed className="h-4 w-4" strokeWidth={1.5} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onOpenChange(false)}
                 title="关闭目录"
-                className="h-9 w-9 rounded-full border-0 transition-colors hover:brightness-[0.985] active:scale-95"
+                className="h-9 w-9 rounded-lg border-0 transition-colors hover:brightness-[0.985] active:scale-95"
                 style={{
                   background: surface.surfaceSoft,
                   color: surface.muted,

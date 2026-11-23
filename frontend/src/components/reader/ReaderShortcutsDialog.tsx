@@ -75,7 +75,7 @@ export function ReaderShortcutsDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="paper-motion-panel paper-texture relative z-10 w-full max-w-md overflow-hidden rounded-2xl border p-5 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.45)] outline-none"
+        className="paper-motion-panel relative z-10 w-full max-w-md overflow-hidden rounded-2xl border p-5 shadow-[0_20px_48px_-20px_rgba(0,0,0,0.38)] outline-none"
         style={{
           background: uiScheme.cardBg,
           borderColor: withOpacity(uiScheme.cardBorder, 0.8),
@@ -89,19 +89,19 @@ export function ReaderShortcutsDialog({
         >
           <div className="flex items-center gap-2.5">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-xl border"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border"
               style={{
                 background: withOpacity(uiScheme.buttonBg, 0.7),
                 borderColor: withOpacity(uiScheme.cardBorder, 0.6),
                 color: uiScheme.fg,
               }}
             >
-              <Keyboard className="h-4 w-4" aria-hidden="true" />
+              <Keyboard className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
             </div>
             <div>
               <h2
                 id={titleId}
-                className="font-heading text-[15px] font-semibold leading-tight tracking-[-0.015em]"
+                className="font-heading text-base font-medium leading-tight"
               >
                 键盘快捷键
               </h2>

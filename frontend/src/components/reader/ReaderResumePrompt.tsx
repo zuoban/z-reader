@@ -18,17 +18,10 @@ export function ReaderResumePrompt({
   onResume,
 }: ReaderResumePromptProps) {
   const cardStyle = {
-    background: `
-      linear-gradient(145deg, ${withOpacity(uiScheme.link, 0.08)} 0%, transparent 42%),
-      ${withOpacity(uiScheme.cardBg, 0.92)}
-    `,
-    border: `1px solid ${withOpacity(uiScheme.link, 0.22)}`,
-    boxShadow: `
-      0 18px 40px -24px ${withOpacity(uiScheme.link, 0.38)},
-      0 8px 18px -14px ${withOpacity(uiScheme.fg, 0.12)},
-      inset 0 1px 0 rgba(255,255,255,0.26)
-    `,
-    backdropFilter: "blur(16px) saturate(1.15)",
+    background: withOpacity(uiScheme.cardBg, 0.96),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.8)}`,
+    boxShadow: `0 12px 32px -16px ${withOpacity(uiScheme.fg, 0.28)}`,
+    backdropFilter: "blur(12px)",
   };
 
   return (
@@ -40,20 +33,20 @@ export function ReaderResumePrompt({
       }}
     >
       <div
-        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl px-3.5 py-3 sm:px-4"
+        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-xl px-3.5 py-3 sm:px-4"
         style={cardStyle}
       >
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
           style={{
             background: withOpacity(uiScheme.link, 0.12),
             color: uiScheme.link,
           }}
         >
-          <AlertCircle className="h-4.5 w-4.5" />
+          <AlertCircle className="h-4.5 w-4.5" strokeWidth={1.5} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold tracking-tight" style={{ color: uiScheme.fg }}>
+          <p className="text-sm font-medium" style={{ color: uiScheme.fg }}>
             朗读已暂停
           </p>
           <p
@@ -68,11 +61,11 @@ export function ReaderResumePrompt({
           variant="outline"
           size="sm"
           onClick={() => void onResume()}
-          className="h-10 shrink-0 rounded-xl px-3.5 text-sm font-semibold"
+          className="h-9 shrink-0 rounded-lg px-3.5 text-sm font-medium"
           style={{
             color: uiScheme.link,
-            border: `1px solid ${withOpacity(uiScheme.link, 0.2)}`,
-            background: withOpacity(uiScheme.buttonBg, 0.35),
+            border: `1px solid ${withOpacity(uiScheme.link, 0.28)}`,
+            background: withOpacity(uiScheme.buttonBg, 0.5),
           }}
         >
           继续

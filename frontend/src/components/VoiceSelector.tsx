@@ -71,12 +71,8 @@ export function VoiceSelector({
     (v.ShortName || v.Name) === settings.voiceName || v.Name === settings.voiceName);
   const availableStyles = selectedVoice?.StyleList || [];
   const compactGlassStyle = {
-    background: `
-      linear-gradient(145deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 40%),
-      ${withOpacity(uiScheme.buttonBg, 0.3)}
-    `,
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.16)}`,
-    boxShadow: `inset 0 1px 0 ${withOpacity("#ffffff", 0.14)}`,
+    background: withOpacity(uiScheme.buttonBg, 0.48),
+    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.55)}`,
   };
 
   const handleVoiceChange = useCallback((value: string) => {
@@ -260,12 +256,11 @@ export function VoiceSelector({
 
       {(voicesLoading || voicesError) && (
         <div
-          className="paper-motion-surface paper-field rounded-2xl border px-3 py-1.5 text-xs"
+          className="rounded-xl border px-3 py-1.5 text-xs"
           style={{
             color: voicesError ? uiScheme.link : uiScheme.mutedText,
-            borderColor: `${uiScheme.cardBorder}24`,
-            background:
-              `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 34%), ${withOpacity(uiScheme.buttonBg, 0.22)}`,
+            borderColor: withOpacity(uiScheme.cardBorder, 0.55),
+            background: withOpacity(uiScheme.buttonBg, 0.38),
           }}
         >
           {voicesLoading ? '正在加载声音列表...' : voicesError}
@@ -281,11 +276,11 @@ export function VoiceSelector({
             <SelectTrigger
               aria-label="语音"
               data-reader-interactive="true"
-              className="min-h-11 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none transition-all hover:scale-[1.01] sm:min-h-9"
+              className="min-h-10 w-full rounded-lg px-3 text-[13px] font-medium shadow-none transition-colors sm:min-h-9"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="shrink-0 text-xs font-bold" style={{ color: uiScheme.mutedText }}>语音</span>
+                <span className="shrink-0 text-xs font-medium" style={{ color: uiScheme.mutedText }}>语音</span>
                 <SelectValue placeholder="选择语音" className="truncate" />
               </div>
             </SelectTrigger>
@@ -293,17 +288,17 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[300px] rounded-2xl border-border/40 shadow-2xl "
+              className="max-w-[300px] rounded-xl border shadow-lg"
               style={{
-                background:
-                  `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,
+                background: uiScheme.cardBg,
+                borderColor: withOpacity(uiScheme.cardBorder, 0.75),
               }}
             >
               {zhVoices.map((voice) => (
                 <SelectItem
                   key={voice.ShortName || voice.Name}
                   value={voice.ShortName || voice.Name}
-                  className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
+                  className="my-0.5 truncate rounded-lg px-3 py-2 text-sm"
                   style={{ color: uiScheme.fg }}
                 >
                   {voice.LocalName} ({GENDER_LABELS[voice.Gender] || ''})
@@ -323,11 +318,11 @@ export function VoiceSelector({
             <SelectTrigger
               aria-label="风格"
               data-reader-interactive="true"
-              className="min-h-11 w-full rounded-xl px-3.5 text-[13px] font-medium shadow-none transition-all hover:scale-[1.01] sm:min-h-9"
+              className="min-h-10 w-full rounded-lg px-3 text-[13px] font-medium shadow-none transition-colors sm:min-h-9"
               style={{ ...compactGlassStyle, color: uiScheme.fg }}
             >
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="shrink-0 text-xs font-bold" style={{ color: uiScheme.mutedText }}>风格</span>
+                <span className="shrink-0 text-xs font-medium" style={{ color: uiScheme.mutedText }}>风格</span>
                 <SelectValue placeholder="选择风格" className="truncate" />
               </div>
             </SelectTrigger>
@@ -335,15 +330,15 @@ export function VoiceSelector({
               container={overlayContainer}
               data-reader-interactive="true"
               data-reader-tts-owned="true"
-              className="max-w-[260px] rounded-xl border-border/40 shadow-2xl "
+              className="max-w-[260px] rounded-xl border shadow-lg"
               style={{
-                background:
-                  `linear-gradient(135deg, ${withOpacity(uiScheme.fg, 0.055)} 0%, transparent 34%), ${withOpacity(uiScheme.cardBg, 0.92)}`,
+                background: uiScheme.cardBg,
+                borderColor: withOpacity(uiScheme.cardBorder, 0.75),
               }}
             >
               <SelectItem
                 value="__clear__"
-                className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
+                className="my-0.5 truncate rounded-lg px-3 py-2 text-sm"
                 style={{ color: uiScheme.mutedText }}
               >
                 不指定
@@ -352,7 +347,7 @@ export function VoiceSelector({
                 <SelectItem
                   key={style}
                   value={style}
-                  className="my-0.5 truncate rounded-xl px-3 py-2.5 text-sm"
+                  className="my-0.5 truncate rounded-lg px-3 py-2 text-sm"
                   style={{ color: uiScheme.fg }}
                 >
                   {style}

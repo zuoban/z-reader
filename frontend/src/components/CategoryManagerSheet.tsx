@@ -70,16 +70,16 @@ export function CategoryManagerSheet({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="app-dialog-shell paper-texture max-w-[420px] rounded-2xl border p-0"
+        className="app-dialog-shell max-w-[420px] rounded-2xl border p-0"
         showCloseButton={false}
       >
-        <div className="flex items-start justify-between border-b border-border/45 px-6 pb-4 pt-6">
+        <div className="flex items-start justify-between border-b border-border/60 px-6 pb-4 pt-5">
           <div>
-            <DialogTitle className="font-heading text-[1.2rem] font-semibold tracking-[-0.02em] text-foreground">
+            <DialogTitle className="font-heading text-lg font-medium text-foreground">
               管理分类
             </DialogTitle>
-            <DialogDescription className="mt-1 text-[14px] leading-5 text-muted-foreground">
-              重命名或删除您的图书分类
+            <DialogDescription className="mt-1 text-sm leading-5 text-muted-foreground">
+              重命名或删除图书分类
             </DialogDescription>
           </div>
           <button
@@ -94,10 +94,10 @@ export function CategoryManagerSheet({
 
         <div className="max-h-[20rem] overflow-y-auto px-6 py-5">
           {normalizedCategories.length === 0 ? (
-            <div className="flex min-h-[8rem] flex-col items-center justify-center rounded-xl border border-dashed border-border/55 bg-surface-subtle/80 px-6 text-center">
+            <div className="flex min-h-[8rem] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 px-6 text-center">
               <p className="text-sm font-medium text-muted-foreground">暂无分类</p>
-              <p className="mt-1 text-xs text-muted-foreground/70">
-                在图书上设置分类，分类将会在这里显示。
+              <p className="mt-1 text-xs text-muted-foreground/80">
+                在图书上设置分类后，将在这里显示
               </p>
             </div>
           ) : (
@@ -110,15 +110,15 @@ export function CategoryManagerSheet({
                   <div
                     key={category}
                     className={cn(
-                      'app-surface-panel flex items-center gap-3 rounded-xl px-3.5 py-2.5 transition-all',
-                      isEditing && 'border-primary/30 ring-2 ring-primary/12'
+                      'app-surface-panel flex items-center gap-3 rounded-xl px-3.5 py-2.5 transition-colors',
+                      isEditing && 'border-primary/40 ring-2 ring-primary/12'
                     )}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                      <span className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[13px] font-semibold text-foreground">
+                      <span className="shrink-0 rounded-md bg-secondary px-2.5 py-1 text-[13px] font-medium text-foreground">
                         {category}
                       </span>
-                      <span className="shrink-0 text-[12px] font-medium tabular-nums text-muted-foreground/75">
+                      <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                         {count} 本
                       </span>
                     </div>
@@ -135,12 +135,12 @@ export function CategoryManagerSheet({
                             }}
                             maxLength={50}
                             autoFocus
-                            className="category-input h-10 w-28 rounded-lg px-2 text-[13px] shadow-none"
+                            className="category-input h-9 w-28 rounded-lg px-2 text-[13px] shadow-none"
                           />
                           <button
                             type="button"
                             onClick={cancelEdit}
-                            className="dialog-close-btn h-10 w-10"
+                            className="dialog-close-btn h-9 w-9"
                             aria-label="取消"
                           >
                             <X className="h-4 w-4" />
@@ -154,7 +154,7 @@ export function CategoryManagerSheet({
                               editValue.trim() === category ||
                               editValue.trim().length > 50
                             }
-                            className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:opacity-92 disabled:opacity-30"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/92 disabled:opacity-30"
                             aria-label="保存"
                           >
                             <Check className="h-4 w-4" />
@@ -166,19 +166,19 @@ export function CategoryManagerSheet({
                             type="button"
                             onClick={() => startEdit(category)}
                             disabled={loading}
-                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/55 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground disabled:opacity-40"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40"
                             aria-label={`重命名 ${category}`}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" strokeWidth={1.5} />
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeleteConfirmCategory(category)}
                             disabled={loading}
-                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-destructive/20 text-destructive/75 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-destructive/20 text-destructive/80 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
                             aria-label={`删除 ${category}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                           </button>
                         </>
                       )}

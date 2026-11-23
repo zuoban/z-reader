@@ -68,17 +68,17 @@ export function ReaderErrorState({
       style={{ background: uiScheme.bg }}
     >
       <div
-        className="flex h-16 w-14 items-center justify-center rounded-2xl border"
+        className="flex h-12 w-12 items-center justify-center rounded-xl border"
         style={{
-          borderColor: withOpacity("#c43b2e", 0.28),
+          borderColor: withOpacity("#c43b2e", 0.25),
           background: withOpacity("#c43b2e", 0.08),
           color: "#c43b2e",
         }}
       >
-        <span className="text-2xl font-semibold">!</span>
+        <span className="font-heading text-xl font-medium">!</span>
       </div>
       <div className="max-w-sm text-center">
-        <p className="text-base font-semibold tracking-tight text-destructive">
+        <p className="font-heading text-lg font-medium text-destructive">
           无法打开本书
         </p>
         <p
@@ -93,14 +93,14 @@ export function ReaderErrorState({
           <Button
             onClick={onRetry}
             disabled={isRetrying}
-            className="h-11 rounded-xl px-6"
+            className="h-10 rounded-lg px-5"
           >
             {isRetrying ? "正在重新连接..." : retryLabel}
           </Button>
           <Button
             onClick={onBack}
             variant="outline"
-            className="h-11 rounded-xl px-6"
+            className="h-10 rounded-lg px-5"
           >
             返回书库
           </Button>
@@ -109,7 +109,7 @@ export function ReaderErrorState({
         <Button
           onClick={onBack}
           variant="outline"
-          className="mt-1 h-11 rounded-xl px-6"
+          className="mt-1 h-10 rounded-lg px-5"
         >
           返回书库
         </Button>
@@ -145,14 +145,12 @@ export function ReaderLoadingOverlay({
         right: 0,
         bottom: statusBarReservedSpace,
         left: 0,
-        background: `
-          linear-gradient(180deg, ${withOpacity(uiScheme.bg, 0.88)} 0%, ${withOpacity(uiScheme.cardBg, 0.94)} 100%)
-        `,
+        background: withOpacity(uiScheme.bg, 0.94),
       }}
     >
       {/* Page skeleton for perceived readiness */}
       <div
-        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl opacity-40 sm:inset-x-16"
+        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl opacity-35 sm:inset-x-16"
         aria-hidden="true"
       >
         <div
@@ -172,28 +170,22 @@ export function ReaderLoadingOverlay({
       </div>
 
       <div
-        className="paper-reveal-soft paper-panel paper-stack relative z-10 flex min-w-[min(100%,280px)] max-w-sm flex-col items-center gap-4 rounded-[1.75rem] border px-8 py-8"
+        className="paper-reveal-soft relative z-10 flex min-w-[min(100%,260px)] max-w-sm flex-col items-center gap-4 rounded-2xl border px-7 py-7"
         style={{
-          background: `
-            linear-gradient(145deg, ${withOpacity(uiScheme.fg, 0.05)} 0%, transparent 40%),
-            ${withOpacity(uiScheme.cardBg, 0.92)}
-          `,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.72),
-          boxShadow: `
-            0 24px 56px -28px ${withOpacity(uiScheme.fg, 0.22)},
-            inset 0 1px 0 rgba(255,255,255,0.38)
-          `,
+          background: uiScheme.cardBg,
+          borderColor: withOpacity(uiScheme.cardBorder, 0.8),
+          boxShadow: `0 16px 40px -20px ${withOpacity(uiScheme.fg, 0.2)}`,
         }}
       >
         <div
-          className="flex h-[4.5rem] w-14 items-center justify-center rounded-[1.15rem] border"
+          className="flex h-12 w-12 items-center justify-center rounded-xl border"
           style={{
-            background: withOpacity(uiScheme.buttonBg, 0.55),
-            borderColor: withOpacity(uiScheme.cardBorder, 0.65),
+            background: withOpacity(uiScheme.buttonBg, 0.65),
+            borderColor: withOpacity(uiScheme.cardBorder, 0.7),
           }}
         >
           <div
-            className="h-9 w-9 animate-spin rounded-full border-2"
+            className="h-6 w-6 animate-spin rounded-full border-2"
             style={{
               borderColor: withOpacity(uiScheme.link, 0.18),
               borderTopColor: uiScheme.link,
@@ -202,12 +194,12 @@ export function ReaderLoadingOverlay({
         </div>
         <div className="text-center">
           <p
-            className="text-sm font-semibold tracking-tight"
+            className="text-sm font-medium"
             style={{ color: uiScheme.fg }}
           >
             {loadingMsg}
           </p>
-          <p className="mt-1.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
+          <p className="mt-1 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
             {loadingDetail}
           </p>
         </div>

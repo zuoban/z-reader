@@ -33,15 +33,16 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <ArrowDownWideNarrow className="h-5 w-5 sm:hidden" aria-hidden="true" />
+        <ArrowDownWideNarrow className="h-4.5 w-4.5 sm:hidden" strokeWidth={1.5} aria-hidden="true" />
         <span className="hidden min-w-0 truncate text-foreground sm:block">
           {currentOption?.label}
         </span>
         <ChevronDown
           className={cn(
-            'hidden h-4 w-4 shrink-0 text-foreground/50 transition-transform duration-200 sm:block',
+            'hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 sm:block',
             open && 'rotate-180'
           )}
+          strokeWidth={1.5}
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -58,13 +59,13 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
             className={cn(
               'min-h-10 cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors focus:bg-secondary',
               value === option.value
-                ? 'bg-secondary font-semibold text-foreground'
+                ? 'bg-secondary font-medium text-foreground'
                 : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
             )}
           >
             <span className="min-w-0 flex-1 truncate">{option.label}</span>
             {value === option.value && (
-              <Check className="ml-auto h-3.5 w-3.5 text-foreground/80" />
+              <Check className="ml-auto h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
             )}
           </DropdownMenuItem>
         ))}

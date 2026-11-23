@@ -2,9 +2,12 @@
 
 @layer utilities {
   .reader-chrome-btn {
-    @apply flex min-h-10 items-center gap-2 px-2 text-xs font-medium transition-all sm:px-3 sm:text-sm;
+    @apply flex min-h-11 items-center gap-2 px-2.5 text-xs font-medium sm:min-h-9 sm:text-sm;
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-chrome-btn:hover {
@@ -13,13 +16,16 @@
   }
 
   .reader-chrome-btn:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
 
   .reader-chrome-icon {
-    @apply flex h-10 w-10 shrink-0 items-center justify-center transition-all;
+    @apply flex h-11 w-11 shrink-0 items-center justify-center sm:h-9 sm:w-9;
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-chrome-icon:hover {
@@ -33,7 +39,7 @@
   }
 
   .reader-mobile-menu-item:hover {
-    background: color-mix(in srgb, var(--muted) 55%, transparent);
+    background: color-mix(in srgb, var(--muted) 65%, transparent);
   }
 
   .reader-mobile-menu-item:disabled {
@@ -45,7 +51,7 @@
   }
 
   .reader-image-hint {
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
   }
 
   .reader-sidebar-sheet-body {
@@ -69,28 +75,28 @@
   .reading-status-panel {
     background: color-mix(in srgb, var(--card) 96%, var(--background));
     border: 1px solid var(--border);
-    box-shadow: 0 4px 20px -4px var(--paper-shadow-soft);
+    box-shadow: var(--paper-shadow-floating);
   }
 }
 
 :root[data-reader-preset="light"] {
-  --reader-bg: #f6f1e8;
-  --reader-text: #1c1915;
+  --reader-bg: #f7f8f4;
+  --reader-text: #202d27;
 }
 
 :root[data-reader-preset="sepia"] {
   --reader-bg: #f3ead7;
-  --reader-text: #4f3d2e;
+  --reader-text: #3f3124;
 }
 
 :root[data-reader-preset="green"] {
   --reader-bg: #e6ede1;
-  --reader-text: #24352b;
+  --reader-text: #1f2e25;
 }
 
 :root[data-reader-preset="dark"] {
-  --reader-bg: #141210;
-  --reader-text: #eee6d8;
+  --reader-bg: #151d19;
+  --reader-text: #e5ebe1;
 }
 
 foliate-view {

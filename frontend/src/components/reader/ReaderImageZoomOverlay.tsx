@@ -41,11 +41,8 @@ export function ReaderImageZoomOverlay({
       data-reader-interactive="true"
       role="dialog"
       style={{
-        background: `
-          radial-gradient(ellipse at center, rgba(40,32,24,0.42) 0%, transparent 62%),
-          rgba(20,18,16,0.88)
-        `,
-        backdropFilter: 'blur(8px) saturate(1.05)',
+        background: 'rgba(18, 17, 15, 0.9)',
+        backdropFilter: 'blur(8px)',
       }}
       onClick={onClose}
       onKeyDown={(event) => {
@@ -58,7 +55,7 @@ export function ReaderImageZoomOverlay({
       <button
         aria-label="关闭图片预览"
         autoFocus
-        className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/18 bg-black/35 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_28px_-18px_rgba(0,0,0,0.75)] transition-all hover:scale-[1.04] hover:bg-black/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:right-5 sm:top-5"
+        className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-lg border border-white/15 bg-black/45 text-white transition-colors hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:right-5 sm:top-5"
         type="button"
         onClick={(event) => {
           event.stopPropagation();

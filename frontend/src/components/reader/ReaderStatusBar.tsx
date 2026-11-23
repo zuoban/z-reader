@@ -41,17 +41,11 @@ export function ReaderStatusBar({
         }}
       >
         <div
-          className="pointer-events-auto flex min-h-11 items-center gap-1 rounded-full border px-1.5 backdrop-blur-xl"
+          className="pointer-events-auto flex min-h-10 items-center gap-1 rounded-full border px-1.5 backdrop-blur-md"
           style={{
-            background: `
-              linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.04)} 0%, transparent 100%),
-              ${withOpacity(uiScheme.bg, 0.82)}
-            `,
-            borderColor: withOpacity(uiScheme.cardBorder, 0.2),
-            boxShadow: `
-              0 12px 32px -20px ${withOpacity(uiScheme.fg, 0.4)},
-              inset 0 1px 0 ${withOpacity("#ffffff", 0.18)}
-            `,
+            background: withOpacity(uiScheme.cardBg, 0.92),
+            borderColor: withOpacity(uiScheme.cardBorder, 0.65),
+            boxShadow: `0 6px 20px -12px ${withOpacity(uiScheme.fg, 0.28)}`,
           }}
         >
           <button
@@ -60,10 +54,9 @@ export function ReaderStatusBar({
             onClick={onToggleToolbar}
             title="展开操作栏"
             aria-label="展开操作栏"
-            className="touch-target paper-motion-interactive flex min-h-10 min-w-[52px] items-center justify-center rounded-full px-3 text-xs font-semibold tabular-nums tracking-wide transition-all active:scale-[0.96] hover:bg-black/5 dark:hover:bg-white/5"
+            className="touch-target flex min-h-9 min-w-[52px] items-center justify-center rounded-full px-3 font-mono text-xs font-medium tabular-nums transition-colors active:scale-[0.98] hover:bg-black/5 dark:hover:bg-white/5"
             style={{
-              color: withOpacity(uiScheme.fg, 0.74),
-              fontFamily: metaFont,
+              color: withOpacity(uiScheme.fg, 0.78),
               background: "transparent",
               border: "none",
               lineHeight: 1,
@@ -72,7 +65,7 @@ export function ReaderStatusBar({
             {percentage.toFixed(1)}%
           </button>
           <div
-            className="h-3 w-px shrink-0 opacity-25"
+            className="h-3 w-px shrink-0 opacity-20"
             style={{ backgroundColor: uiScheme.fg }}
           />
           {compactTrailingAction}
@@ -89,7 +82,7 @@ export function ReaderStatusBar({
       title="收起顶部操作栏"
       aria-label="收起顶部操作栏"
       aria-pressed={isToolbarVisible}
-      className="fixed inset-x-0 bottom-0 z-40 flex min-h-11 cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05]"
+      className="fixed inset-x-0 bottom-0 z-40 flex min-h-11 cursor-pointer appearance-none justify-center border-0 p-0 text-left font-inherit outline-none transition-[background-color,opacity] duration-150 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-inset active:bg-black/[0.05] dark:active:bg-white/[0.07]"
       style={{
         paddingBottom: safeAreaPaddingBottom,
         color: "inherit",
@@ -99,10 +92,9 @@ export function ReaderStatusBar({
       <div className="relative flex min-h-11 w-full max-w-5xl items-center px-4 text-xs font-medium sm:px-6">
         <div className="flex w-24 shrink-0 items-center">
           <span
-            className="font-semibold tabular-nums tracking-normal"
+            className="font-mono font-medium tabular-nums"
             style={{
               color: withOpacity(uiScheme.fg, 0.72),
-              fontFamily: metaFont,
             }}
           >
             {percentage.toFixed(1)}%
@@ -111,9 +103,9 @@ export function ReaderStatusBar({
 
         <div className="flex min-w-0 flex-1 items-center justify-center truncate px-4 text-center">
           <span
-            className="truncate font-medium tracking-normal"
+            className="truncate font-medium"
             style={{
-              color: withOpacity(uiScheme.fg, 0.58),
+              color: withOpacity(uiScheme.fg, 0.7),
               fontFamily: metaFont,
             }}
           >
@@ -123,10 +115,9 @@ export function ReaderStatusBar({
 
         <div className="flex w-24 shrink-0 items-center justify-end">
           <span
-            className="font-semibold tabular-nums tracking-normal"
+            className="font-mono font-medium tabular-nums"
             style={{
               color: withOpacity(uiScheme.fg, 0.72),
-              fontFamily: metaFont,
             }}
           >
             {currentPageLabel || "—"}

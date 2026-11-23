@@ -20,25 +20,21 @@ export function withOpacity(color: string | undefined, opacity: number) {
 
 export function getModernReaderSurface(uiScheme: ThemeColors) {
   return {
-    bg: withOpacity(uiScheme.cardBg, 0.97),
-    surface: withOpacity(uiScheme.buttonBg, 0.54),
-    surfaceStrong: withOpacity(uiScheme.buttonBg, 0.76),
-    surfaceSoft: withOpacity(uiScheme.buttonBg, 0.4),
+    bg: withOpacity(uiScheme.cardBg, 0.98),
+    surface: withOpacity(uiScheme.buttonBg, 0.56),
+    surfaceStrong: withOpacity(uiScheme.buttonBg, 0.8),
+    surfaceSoft: withOpacity(uiScheme.buttonBg, 0.42),
     fg: uiScheme.fg,
     // Keep secondary labels near WCAG AA on paper/card surfaces (avoid over-fading).
     muted: withOpacity(uiScheme.mutedText, 0.96),
-    border: withOpacity(uiScheme.cardBorder, 0.12),
-    hairline: withOpacity(uiScheme.cardBorder, 0.1),
-    shadow: `
-      0 28px 70px -36px ${withOpacity(uiScheme.fg, 0.28)},
-      0 12px 28px -22px ${withOpacity(uiScheme.fg, 0.14)},
-      inset 0 1px 0 ${withOpacity("#ffffff", 0.1)}
-    `,
+    border: withOpacity(uiScheme.cardBorder, 0.72),
+    hairline: withOpacity(uiScheme.cardBorder, 0.52),
+    shadow: `0 16px 40px -20px ${withOpacity(uiScheme.fg, 0.22)}, 0 4px 12px -8px ${withOpacity(uiScheme.fg, 0.1)}`,
   };
 }
 
 export const floatingSheetActionButtonClass =
-  "paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-full  transition-[transform,box-shadow,background-color,border-color,color] hover:scale-[1.03] hover:shadow-md disabled:opacity-100 sm:top-4";
+  "paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-lg transition-[transform,background-color,border-color,color] hover:bg-secondary disabled:opacity-100 sm:top-4";
 
 export function getFloatingSheetActionButtonStyle({
   uiScheme,

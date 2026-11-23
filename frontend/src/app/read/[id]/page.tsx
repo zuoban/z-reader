@@ -466,15 +466,6 @@ export default function ReadPage() {
         background: uiScheme.bg,
       }}
     >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(90deg, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.08)} 0, transparent 18%, transparent 82%, ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.12 : 0.08)} 100%)
-          `,
-        }}
-      />
-
       <div className="relative flex h-full min-h-0 flex-col">
         <ReaderToolbar
           visible={isHeaderVisible}
@@ -516,11 +507,11 @@ export default function ReadPage() {
               <DeferredTTSControls
                 {...sharedTTSControlsProps}
                 variant="toolbar"
-                triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+                triggerClassName="reader-chrome-btn border-0 bg-transparent shadow-none"
                 triggerStyle={{}}
                 triggerContent={
                   <div className="flex items-center gap-2">
-                    <Volume2 className="h-4 w-4" />
+                    <Volume2 className="h-4 w-4" strokeWidth={1.5} />
                     <span className="hidden sm:inline">朗读</span>
                   </div>
                 }

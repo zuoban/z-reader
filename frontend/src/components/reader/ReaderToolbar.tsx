@@ -168,7 +168,7 @@ export function ReaderToolbar({
     <>
       <header
         data-reader-interactive="true"
-        className={`reader-chrome pointer-events-none absolute inset-x-0 top-0 z-50 transition-all duration-300 ease-out ${
+        className={`reader-chrome pointer-events-none absolute inset-x-0 top-0 z-50 transition-[transform,opacity] duration-200 ease-out ${
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
@@ -188,13 +188,13 @@ export function ReaderToolbar({
               onClick={onBack}
               title="返回书库"
               aria-label="返回书库"
-              className="reader-chrome-icon h-10 w-10 shrink-0 border-0 bg-transparent shadow-none"
+              className="reader-chrome-icon shrink-0 border-0 bg-transparent shadow-none"
             >
-              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              <ArrowLeft className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
             </Button>
             <div className="min-w-0 overflow-hidden">
               <h1
-                className="truncate font-heading text-[0.98rem] font-semibold tracking-[-0.02em] sm:text-lg"
+                className="truncate font-heading text-base font-medium sm:text-lg"
                 style={{ color: uiScheme.fg }}
               >
                 {bookTitle || "阅读中"}
@@ -202,7 +202,7 @@ export function ReaderToolbar({
             </div>
           </div>
 
-          <div className="relative flex items-center gap-0.5 sm:gap-1.5">
+          <div className="relative flex items-center gap-0.5 sm:gap-1">
             <div className="lg:hidden">
               <Button
                 ref={mobileActionsButtonRef}
@@ -210,7 +210,7 @@ export function ReaderToolbar({
                 aria-haspopup="dialog"
                 aria-label="更多阅读操作"
                 aria-controls={mobileActionsOpen ? mobileActionsMenuId : undefined}
-                className="reader-chrome-icon h-10 w-10 border-0 bg-transparent p-0 shadow-none"
+                className="reader-chrome-icon border-0 bg-transparent p-0 shadow-none"
                 onClick={() => setMobileActionsOpen((open) => !open)}
                 title="更多阅读操作"
                 type="button"
@@ -224,7 +224,7 @@ export function ReaderToolbar({
                 aria-hidden={!mobileActionsOpen}
                 aria-labelledby={mobileActionsTitleId}
                 className={cn(
-                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-2xl border p-1.5 text-sm shadow-[0_22px_48px_-28px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl transition-[opacity,transform] duration-150 ease-out scrollbar-none",
+                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-xl border p-1.5 text-sm shadow-[0_16px_36px_-18px_rgba(0,0,0,0.38)] backdrop-blur-md transition-[opacity,transform] duration-150 ease-out scrollbar-none",
                   mobileActionsOpen
                     ? "visible translate-y-0 opacity-100"
                     : "pointer-events-none invisible -translate-y-1 opacity-0"
@@ -234,14 +234,14 @@ export function ReaderToolbar({
                 role="dialog"
                 style={{
                   background: withOpacity(uiScheme.cardBg, isDark ? 0.96 : 0.98),
-                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.24 : 0.14),
+                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.4 : 0.65),
                   color: uiScheme.fg,
                 }}
               >
                 <div
                   id={mobileActionsTitleId}
-                  className="px-2.5 pb-1.5 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                  style={{ color: withOpacity(uiScheme.fg, 0.48) }}
+                  className="px-2.5 pb-1.5 pt-1 text-xs font-medium"
+                  style={{ color: uiScheme.mutedText }}
                 >
                   阅读操作
                 </div>

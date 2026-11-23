@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ActionIcon, Button, Modal } from '@mantine/core';
 import { BookOpen, HardDrive, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/AppShell';
-import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap';
 import { PERSONAL_LIBRARY } from '@/lib/api';
 import {
   clearOfflineBooks,
@@ -34,14 +31,10 @@ export function OfflineBooksDialog({
   open,
   onOpenChange,
 }: OfflineBooksDialogProps) {
-  const titleId = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
   const [books, setBooks] = useState<OfflineBookSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
-
-  useDialogFocusTrap(open, dialogRef);
 
   useEffect(() => {
     if (!open) return;
@@ -71,20 +64,6 @@ export function OfflineBooksDialog({
       cancelled = true;
     };
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onOpenChange(false);
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onOpenChange, open]);
 
   const totalBytes = useMemo(
     () => books.reduce((sum, item) => sum + item.size, 0),
@@ -119,40 +98,27 @@ export function OfflineBooksDialog({
     }
   }
 
-  const portalRoot = typeof document === 'undefined' ? null : document.body;
-
-  if (!portalRoot || !open) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[var(--z-modal)] flex min-h-svh items-center justify-center p-4"
-      role="presentation"
-      onClick={() => onOpenChange(false)}
+  return (
+    <Modal.Root
+      opened={open}
+      onClose={() => onOpenChange(false)}
+      centered
+      size="lg"
+      radius="lg"
+      padding={0}
+      zIndex={80}
     >
-      <div className="paper-motion-veil absolute inset-0 bg-black/42 backdrop-blur-[3px]" />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className="app-dialog-shell paper-motion-panel relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <Modal.Overlay backgroundOpacity={0.42} blur={3} />
+      <Modal.Content className="app-dialog-shell flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none">
         <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
               <HardDrive className="h-5 w-5" strokeWidth={1.5} />
             </div>
             <div>
-              <h2
-                id={titleId}
-                className="font-heading text-base font-medium leading-tight text-foreground"
-              >
+              <Modal.Title className="font-heading text-base font-medium leading-tight text-foreground">
                 离线图书管理
-              </h2>
+              </Modal.Title>
               <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
                 {isLoading
                   ? '正在读取离线缓存…'
@@ -160,16 +126,17 @@ export function OfflineBooksDialog({
               </p>
             </div>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground hover:text-foreground"
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size={36}
+            radius="md"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
             onClick={() => onOpenChange(false)}
             aria-label="关闭离线图书管理"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </ActionIcon>
         </div>
 
         <div className="mt-4 max-h-[52vh] overflow-y-auto pr-0.5">
@@ -208,27 +175,28 @@ export function OfflineBooksDialog({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <Link
+                    <Button
+                      component={Link}
                       href={`/read/${encodeURIComponent(book.bookId)}`}
                       onClick={() => onOpenChange(false)}
-                      className={cn(
-                        buttonVariants({ variant: 'outline', size: 'sm' }),
-                        'h-9 rounded-lg px-3 text-xs font-medium'
-                      )}
+                      variant="default"
+                      size="xs"
+                      className="h-11 rounded-lg px-3 text-xs font-medium sm:h-9"
                     >
                       阅读
-                    </Link>
+                    </Button>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="sm"
+                      variant="subtle"
+                      color="red"
+                      size="xs"
                       disabled={removingId === book.bookId || isClearing}
                       onClick={() => void handleRemove(book)}
                       aria-label={`移除《${book.title || book.filename}》`}
-                      className="h-9 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                      className="h-11 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-9"
                     >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                      <span className="ml-1">移除</span>
+                      移除
                     </Button>
                   </div>
                 </li>
@@ -241,13 +209,13 @@ export function OfflineBooksDialog({
           {books.length > 0 ? (
             <Button
               type="button"
-              variant="outline"
+              variant="default"
               size="sm"
               disabled={isClearing || Boolean(removingId)}
               onClick={() => void handleClearAll()}
+              leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
               className="h-10 rounded-lg border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
               {isClearing ? '清空中…' : '清空全部离线缓存'}
             </Button>
           ) : (
@@ -255,7 +223,7 @@ export function OfflineBooksDialog({
           )}
           <Button
             type="button"
-            variant="outline"
+            variant="default"
             size="sm"
             className="h-10 rounded-lg px-5"
             onClick={() => onOpenChange(false)}
@@ -263,8 +231,7 @@ export function OfflineBooksDialog({
             关闭
           </Button>
         </div>
-      </div>
-    </div>,
-    portalRoot
+      </Modal.Content>
+    </Modal.Root>
   );
 }

@@ -17,7 +17,8 @@ describe('reader keyboard controls', () => {
     vi.unstubAllGlobals();
   });
 
-  function renderControls(shortcutsOpen = false) {
+  function renderControls(options: { shortcutsOpen?: boolean; overlayOpen?: boolean } | boolean = false) {
+    const resolved = typeof options === 'boolean' ? { shortcutsOpen: options } : options;
     const onPrev = vi.fn();
     const onNext = vi.fn();
     const onBack = vi.fn();
@@ -28,7 +29,8 @@ describe('reader keyboard controls', () => {
       onPrev,
       onNext,
       onBack,
-      shortcutsOpen,
+      overlayOpen: resolved.overlayOpen ?? false,
+      shortcutsOpen: resolved.shortcutsOpen ?? false,
       onToggleShortcuts,
       onCloseShortcuts,
     }));
@@ -135,5 +137,58 @@ describe('reader keyboard controls', () => {
     expect(onNext).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
     expect(onCloseShortcuts).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not exit reader or fullscreen on Escape when a reader overlay is open', () => {
+    const { onBack, onNext } = renderControls({ overlayOpen: true });
+    const exitFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      value: page,
+    });
+    Object.defineProperty(document, 'exitFullscreen', {
+      configurable: true,
+      value: exitFullscreen,
+    });
+
+    try {
+      fireEvent.keyDown(page, { key: 'ArrowRight' });
+      fireEvent.keyDown(page, { key: 'Escape' });
+      expect(onNext).not.toHaveBeenCalled();
+      expect(onBack).not.toHaveBeenCalled();
+      expect(exitFullscreen).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: null,
+      });
+    }
+  });
+
+  it('ignores Escape when a visible dialog or listbox is mounted, but not aria-hidden ones', () => {
+    const { onBack } = renderControls();
+
+    const hiddenDialog = document.createElement('div');
+    hiddenDialog.setAttribute('role', 'dialog');
+    hiddenDialog.setAttribute('aria-hidden', 'true');
+    page.append(hiddenDialog);
+
+    fireEvent.keyDown(page, { key: 'Escape' });
+    expect(onBack).toHaveBeenCalledTimes(1);
+
+    const visibleDialog = document.createElement('div');
+    visibleDialog.setAttribute('role', 'dialog');
+    page.append(visibleDialog);
+
+    fireEvent.keyDown(page, { key: 'Escape' });
+    expect(onBack).toHaveBeenCalledTimes(1);
+
+    visibleDialog.remove();
+    const visibleListbox = document.createElement('div');
+    visibleListbox.setAttribute('role', 'listbox');
+    page.append(visibleListbox);
+
+    fireEvent.keyDown(page, { key: 'Escape' });
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 });

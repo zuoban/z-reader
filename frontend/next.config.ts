@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
     agentUpgrade: "security",
+    optimizePackageImports: ["@mantine/core", "@mantine/hooks"],
   },
   allowedDevOrigins: Array.from(
     new Set(["127.0.0.1", "localhost", ...allowedDevOrigins])

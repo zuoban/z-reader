@@ -18,12 +18,34 @@ const PAGING_CONTROL_SELECTOR = [
   '[data-reader-interactive="true"]',
 ].join(', ');
 
+const ACTIVE_OVERLAY_SELECTOR = [
+  '[role="dialog"]:not([aria-hidden="true"]):not([hidden])',
+  '[role="alertdialog"]:not([aria-hidden="true"]):not([hidden])',
+  '[role="listbox"]:not([aria-hidden="true"]):not([hidden])',
+].join(', ');
+
+function hasActiveOverlay(doc: Document | null | undefined): boolean {
+  if (!doc) return false;
+  const overlays = doc.querySelectorAll<HTMLElement>(ACTIVE_OVERLAY_SELECTOR);
+  for (const overlay of overlays) {
+    if (overlay.getAttribute('aria-hidden') === 'true' || overlay.hidden) {
+      continue;
+    }
+    if (overlay.closest('[aria-hidden="true"], [hidden], [data-hidden="true"]')) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 interface UseReaderControlsOptions {
   pageRef: RefObject<HTMLDivElement | null>;
   onPrev: () => void;
   onNext: () => void;
   onBack: () => void;
   onStopTTS?: () => void;
+  overlayOpen?: boolean;
   shortcutsOpen?: boolean;
   onToggleShortcuts?: () => void;
   onCloseShortcuts?: () => void;
@@ -35,6 +57,7 @@ export function useReaderControls({
   onNext,
   onBack,
   onStopTTS,
+  overlayOpen = false,
   shortcutsOpen = false,
   onToggleShortcuts,
   onCloseShortcuts,
@@ -59,6 +82,7 @@ export function useReaderControls({
   const nextRef = useRef(onNext);
   const backRef = useRef(onBack);
   const stopTTSRef = useRef(onStopTTS);
+  const overlayOpenRef = useRef(overlayOpen);
   const shortcutsOpenRef = useRef(shortcutsOpen);
   const toggleShortcutsRef = useRef(onToggleShortcuts);
   const closeShortcutsRef = useRef(onCloseShortcuts);
@@ -78,6 +102,10 @@ export function useReaderControls({
   useEffect(() => {
     stopTTSRef.current = onStopTTS;
   }, [onStopTTS]);
+
+  useEffect(() => {
+    overlayOpenRef.current = overlayOpen;
+  }, [overlayOpen]);
 
   useEffect(() => {
     shortcutsOpenRef.current = shortcutsOpen;
@@ -155,6 +183,13 @@ export function useReaderControls({
         e.preventDefault();
         closeShortcutsRef.current?.();
       }
+      return;
+    }
+
+    const parentDoc =
+      pageRef.current?.ownerDocument ??
+      (typeof document !== 'undefined' ? document : null);
+    if (overlayOpenRef.current || hasActiveOverlay(parentDoc)) {
       return;
     }
 

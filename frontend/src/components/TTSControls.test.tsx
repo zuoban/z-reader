@@ -1,9 +1,9 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@/test/render';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TTSControls } from '@/components/TTSControls';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
-import type { TTSSettings } from '@/lib/tts';
+import { FALLBACK_ZH_VOICES, type TTSSettings } from '@/lib/tts';
 import type { TTSControlsProps } from '@/components/TTSControls';
 
 const uiScheme: ThemeColors = {
@@ -133,4 +133,42 @@ describe('TTSControls', () => {
       }
     },
   );
+
+  it('closes only the VoiceSelector dropdown on Escape without closing the toolbar drawer', async () => {
+    renderControls({
+      variant: 'toolbar',
+      voices: FALLBACK_ZH_VOICES,
+      settings: { ...settings, voiceName: FALLBACK_ZH_VOICES[0].ShortName },
+    });
+
+    expect(screen.getByRole('dialog')).toBeVisible();
+    const voiceCombobox = screen.getByRole('combobox', { name: '语音' });
+    fireEvent.click(voiceCombobox);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('listbox')).toBeVisible();
+
+    const onWindowKeyDown = vi.fn();
+    window.addEventListener('keydown', onWindowKeyDown);
+    try {
+      const escapeEvent = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      });
+      voiceCombobox.dispatchEvent(escapeEvent);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(escapeEvent.defaultPrevented).toBe(true);
+      expect(onWindowKeyDown).not.toHaveBeenCalled();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeVisible();
+    } finally {
+      window.removeEventListener('keydown', onWindowKeyDown);
+    }
+  });
 });

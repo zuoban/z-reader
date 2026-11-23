@@ -1,8 +1,8 @@
 "use client";
 
+import { Button } from "@mantine/core";
 import { AlertCircle } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import { withOpacity } from "@/lib/reader-ui";
 
@@ -58,7 +58,7 @@ export function ReaderResumePrompt({
         </div>
         <Button
           data-reader-interactive="true"
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={() => void onResume()}
           className="h-9 shrink-0 rounded-lg px-3.5 text-sm font-medium"

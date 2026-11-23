@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Button, PasswordInput } from '@mantine/core';
 import { ArrowUpRight, CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { LibraryPreview } from '@/components/LibraryPreview';
 
 export default function LoginPage() {
@@ -93,41 +92,45 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="w-full space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                  访问密码
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    ref={passwordRef}
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (passwordError) setPasswordError('');
-                    }}
-                    placeholder="请输入访问密码"
-                    autoComplete="current-password"
-                    aria-invalid={Boolean(passwordError)}
-                    aria-describedby={passwordError ? 'password-error' : undefined}
-                    className="app-field h-11 w-full pl-3.5 pr-11 sm:h-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    className="absolute inset-y-0 right-0.5 my-auto flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-offset-[-3px] sm:h-9 sm:w-9"
-                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
-                  >
-                    {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
-                  </button>
-                </div>
-                {passwordError && (
-                  <p id="password-error" className="text-xs font-medium text-destructive" role="alert">
-                    {passwordError}
-                  </p>
-                )}
-              </div>
+              <PasswordInput
+                id="password"
+                ref={passwordRef}
+                label="访问密码"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.currentTarget.value);
+                  if (passwordError) setPasswordError('');
+                }}
+                visible={showPassword}
+                onVisibilityChange={setShowPassword}
+                placeholder="请输入访问密码"
+                autoComplete="current-password"
+                aria-invalid={Boolean(passwordError)}
+                aria-describedby={passwordError ? 'password-error' : undefined}
+                error={passwordError || undefined}
+                errorProps={{ id: 'password-error', role: 'alert' }}
+                visibilityToggleIcon={({ reveal }) =>
+                  reveal ? (
+                    <EyeOff size={16} strokeWidth={1.5} />
+                  ) : (
+                    <Eye size={16} strokeWidth={1.5} />
+                  )
+                }
+                visibilityToggleButtonProps={{
+                  'aria-label': showPassword ? '隐藏密码' : '显示密码',
+                  className:
+                    'h-10 w-10 rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-offset-[-3px] sm:h-9 sm:w-9',
+                }}
+                classNames={{
+                  label: 'mb-2 text-sm font-medium text-foreground',
+                  input:
+                    'app-field h-11 w-full rounded-lg border border-border bg-card shadow-none focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/12 sm:h-10',
+                  innerInput:
+                    'h-full pl-3.5 pr-11 text-base text-foreground placeholder:text-muted-foreground sm:text-sm',
+                  section: 'w-11 sm:w-10',
+                  error: 'mt-2 text-xs font-medium text-destructive',
+                }}
+              />
 
               {error && (
                 <div
@@ -139,11 +142,16 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
+                variant="filled"
+                fullWidth
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="app-primary-link min-h-11 w-full sm:min-h-10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="app-primary-link min-h-11 w-full rounded-lg sm:min-h-10 disabled:cursor-not-allowed disabled:opacity-50"
+                classNames={{
+                  label: 'inline-flex items-center justify-center gap-2',
+                }}
               >
                 {isSubmitting ? (
                   <>
@@ -153,7 +161,7 @@ export default function LoginPage() {
                 ) : (
                   '进入书架'
                 )}
-              </button>
+              </Button>
             </form>
           </div>
         </main>

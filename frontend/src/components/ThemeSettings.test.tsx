@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@/test/render';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ThemeSettings } from '@/components/ThemeSettings';
 import {
@@ -10,20 +10,6 @@ import {
 import type { ReaderTheme } from '@/hooks/useReaderTheme';
 
 describe('ThemeSettings preview', () => {
-  beforeAll(() => {
-    vi.stubGlobal('ResizeObserver', class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    });
-    Object.defineProperty(window, 'matchMedia', {
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: false, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
-      })),
-      writable: true,
-    });
-  });
-
   function renderSettings(overrides: Partial<ReaderTheme> = {}) {
     const theme = { ...DEFAULT_READER_THEME, ...overrides };
     const setTheme = vi.fn();

@@ -1,6 +1,6 @@
 /* Shelf cards, category controls, and the account menu. */
 
-@layer utilities {
+@layer components {
   .category-chip-pill {
     @apply inline-flex min-h-9 max-w-full items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-[13px] font-medium;
     border-color: var(--border);
@@ -207,7 +207,7 @@
     }
   }
 
-  .shelf-account-menu[data-slot="dropdown-menu-content"] {
+  .shelf-account-menu {
     background: var(--popover);
     border-color: var(--border);
     box-shadow: var(--paper-shadow-floating);
@@ -226,7 +226,7 @@
       color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .shelf-account-menu .shelf-account-menu-item[data-slot="dropdown-menu-item"] svg {
+  .shelf-account-menu .shelf-account-menu-item svg {
     width: 1rem;
     height: 1rem;
     color: var(--muted-foreground);
@@ -242,7 +242,7 @@
     color: var(--destructive);
   }
 
-  .shelf-account-menu .shelf-account-menu-danger[data-slot="dropdown-menu-item"] svg {
+  .shelf-account-menu .shelf-account-menu-danger svg {
     color: var(--destructive);
   }
 

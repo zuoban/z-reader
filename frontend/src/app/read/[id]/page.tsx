@@ -295,6 +295,7 @@ export default function ReadPage() {
     onNext: handleNext,
     onBack: handleBack,
     onStopTTS: stopTTS,
+    overlayOpen: tocOpen || bookmarksOpen || themeSettingsOpen || shortcutsOpen,
     shortcutsOpen,
     onToggleShortcuts: handleToggleShortcuts,
     onCloseShortcuts: handleCloseShortcuts,

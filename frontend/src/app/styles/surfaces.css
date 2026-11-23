@@ -1,6 +1,6 @@
 /* Shared paper surfaces and reusable controls. */
 
-@layer utilities {
+@layer components {
   .book-cover-spine::before {
     content: "";
     position: absolute;

@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { ActionIcon, Button } from "@mantine/core";
 import {
   ArrowLeft,
   Bookmark as BookmarkIcon,
@@ -23,7 +24,6 @@ import {
   Settings,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
@@ -183,16 +183,17 @@ export function ReaderToolbar({
       >
         <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-6xl items-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
           <div className="flex flex-1 items-center gap-1.5 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
+            <ActionIcon
+              variant="subtle"
+              size={36}
+              radius="md"
               onClick={onBack}
               title="返回书库"
               aria-label="返回书库"
-              className="reader-chrome-icon shrink-0 border-0 bg-transparent shadow-none"
+              className="reader-chrome-icon min-h-0 min-w-0 shrink-0 border-0 bg-transparent shadow-none"
             >
               <ArrowLeft className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
-            </Button>
+            </ActionIcon>
             <div className="min-w-0 overflow-hidden">
               <h1
                 className="truncate font-heading text-base font-medium sm:text-lg"
@@ -205,20 +206,22 @@ export function ReaderToolbar({
 
           <div className="relative flex items-center gap-0.5 sm:gap-1">
             <div className="lg:hidden">
-              <Button
+              <ActionIcon
                 ref={mobileActionsButtonRef}
                 aria-expanded={mobileActionsOpen}
                 aria-haspopup="dialog"
                 aria-label="更多阅读操作"
                 aria-controls={mobileActionsOpen ? mobileActionsMenuId : undefined}
-                className="reader-chrome-icon border-0 bg-transparent p-0 shadow-none"
+                className="reader-chrome-icon min-h-0 min-w-0 border-0 bg-transparent p-0 shadow-none"
                 onClick={() => setMobileActionsOpen((open) => !open)}
                 title="更多阅读操作"
                 type="button"
-                variant="ghost"
+                variant="subtle"
+                size={44}
+                radius="md"
               >
                 <MoreHorizontal className="h-5 w-5" />
-              </Button>
+              </ActionIcon>
               <div
                 ref={mobileActionsMenuRef}
                 id={mobileActionsMenuId}
@@ -395,12 +398,14 @@ export function ReaderToolbar({
                   />
 
                   <Button
-                    variant="ghost"
+                    type="button"
+                    variant="subtle"
                     size="sm"
                     disabled={!canCreateBookmark || isSavingBookmark}
                     onClick={onCreateBookmark}
                     title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
                     className={chromeBtnClass}
+                    classNames={{ label: "flex items-center gap-1.5" }}
                   >
                     <BookmarkPlus className="h-4 w-4" />
                     <span className="hidden sm:inline">
@@ -412,12 +417,14 @@ export function ReaderToolbar({
 
               {onSaveOffline && (
                 <Button
-                  variant="ghost"
+                  type="button"
+                  variant="subtle"
                   size="sm"
                   disabled={isSavingOffline}
                   onClick={onSaveOffline}
                   title="保存到此设备，退出登录后会自动清除"
                   className={chromeBtnClass}
+                  classNames={{ label: "flex items-center gap-1.5" }}
                 >
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">
@@ -429,11 +436,13 @@ export function ReaderToolbar({
               {ttsControls}
 
               <Button
-                variant="ghost"
+                type="button"
+                variant="subtle"
                 size="sm"
                 onClick={onToggleFullscreen}
                 title={isFullscreen ? "退出全屏" : "全屏阅读"}
                 className={chromeBtnClass}
+                classNames={{ label: "flex items-center gap-1.5" }}
               >
                 {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                 <span className="hidden sm:inline">{isFullscreen ? "退出" : "全屏"}</span>
@@ -459,10 +468,12 @@ export function ReaderToolbar({
                 }
               /> : (
                 <Button
-                  variant="ghost"
+                  type="button"
+                  variant="subtle"
                   size="sm"
                   title="阅读设置"
                   className={chromeBtnClass}
+                  classNames={{ label: "flex items-center gap-1.5" }}
                   onClick={() => {
                     setSettingsRequested(true);
                     onThemeSettingsOpenChange(true);
@@ -474,16 +485,18 @@ export function ReaderToolbar({
               )}
 
               {onOpenShortcuts && (
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <ActionIcon
+                  type="button"
+                  variant="subtle"
+                  size={36}
+                  radius="md"
                   onClick={onOpenShortcuts}
                   title="快捷键 (?)"
                   aria-label="快捷键"
-                  className={cn(chromeBtnClass, "h-9 w-9")}
+                  className={cn(chromeBtnClass, "h-9 w-9 min-h-0 min-w-0 p-0")}
                 >
                   <KeyboardIcon className="h-4 w-4" />
-                </Button>
+                </ActionIcon>
               )}
             </div>
           </div>

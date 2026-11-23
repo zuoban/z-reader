@@ -124,12 +124,6 @@
 }
 
 @media (max-width: 640px) {
-  [data-slot="button"],
-  [data-slot="dropdown-menu-trigger"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   .touch-control {
     min-height: var(--control-touch-size);
     touch-action: manipulation;

@@ -2,17 +2,10 @@
 
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
+import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
 import { Check, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface CategorySelectorProps {
@@ -79,28 +72,37 @@ export function CategorySelector({
     .filter((cat) => (bookCounts[cat] || 0) > 0);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="app-dialog-shell max-w-[420px] rounded-2xl border p-0"
-        showCloseButton={false}
-      >
+    <Modal.Root
+      opened={open}
+      onClose={() => onOpenChange(false)}
+      centered
+      size={420}
+      radius="lg"
+      padding={0}
+      zIndex={80}
+    >
+      <Modal.Overlay backgroundOpacity={0.42} blur={3} />
+      <Modal.Content className="app-dialog-shell overflow-hidden rounded-2xl border p-0">
         <div className="flex items-start justify-between border-b border-border/60 px-6 pb-4 pt-5">
           <div>
-            <DialogTitle className="font-heading text-lg font-medium text-foreground">
+            <Modal.Title className="font-heading text-lg font-medium text-foreground">
               设置分类
-            </DialogTitle>
-            <DialogDescription className="mt-1 text-sm leading-5 text-muted-foreground">
+            </Modal.Title>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
               将此书归入分类，便于管理
-            </DialogDescription>
+            </p>
           </div>
-          <button
-            type="button"
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size={40}
+            radius="md"
             onClick={() => onOpenChange(false)}
             className="dialog-close-btn"
             aria-label="关闭"
           >
             <X className="h-4 w-4" />
-          </button>
+          </ActionIcon>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -114,26 +116,32 @@ export function CategorySelector({
                   {categoryName.length}/50
                 </span>
               </div>
-              <div className="relative">
-                <Input
-                  value={categoryName}
-                  onChange={(event) => setCategoryName(event.target.value)}
-                  maxLength={50}
-                  placeholder="输入分类名称"
-                  disabled={loading}
-                  className="category-input h-10 rounded-lg px-3 pr-9 text-sm shadow-none"
-                />
-                {categoryName && (
-                  <button
-                    type="button"
-                    onClick={() => setCategoryName('')}
-                    className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                    aria-label="清空输入"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+              <TextInput
+                value={categoryName}
+                onChange={(event) => setCategoryName(event.currentTarget.value)}
+                maxLength={50}
+                placeholder="输入分类名称"
+                aria-label="分类名称"
+                disabled={loading}
+                rightSection={
+                  categoryName ? (
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      size={32}
+                      radius="sm"
+                      onClick={() => setCategoryName('')}
+                      aria-label="清空输入"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </ActionIcon>
+                  ) : null
+                }
+                rightSectionWidth={40}
+                classNames={{
+                  input: 'category-input h-10 rounded-lg px-3 text-sm shadow-none',
+                }}
+              />
               {isNewCategory && (
                 <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                   <Plus className="h-3.5 w-3.5" />
@@ -196,7 +204,8 @@ export function CategorySelector({
           <div className="app-dialog-footer flex items-center justify-end gap-2 px-6 py-4">
             <Button
               type="button"
-              variant="ghost"
+              variant="subtle"
+              color="gray"
               onClick={() => onOpenChange(false)}
               className="h-10 rounded-lg px-4 text-sm font-medium text-muted-foreground"
             >
@@ -211,7 +220,7 @@ export function CategorySelector({
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Modal.Content>
+    </Modal.Root>
   );
 }

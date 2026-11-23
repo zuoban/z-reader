@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
 import { OfflineBooksDialog } from '@/components/OfflineBooksDialog';
@@ -118,7 +118,7 @@ describe('OfflineBooksDialog', () => {
       expect(toast.error).toHaveBeenCalledWith('清空离线缓存失败，请重试');
     });
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

@@ -4,6 +4,7 @@ import type { DragEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { ActionIcon, Button, Menu, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
 import {
   AlertCircle,
@@ -24,12 +25,6 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
@@ -40,8 +35,6 @@ import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { SortSelector } from '@/components/SortSelector';
 import { VirtualBookGrid } from '@/components/VirtualBookGrid';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const SUPPORTED_FORMATS_ACCEPT = [
@@ -338,8 +331,8 @@ export default function ShelfPage() {
                 disabled={isUploading}
                 title="上传书籍"
                 multiple
-                buttonSize="icon-sm"
-                buttonClassName="size-11 gap-1.5 px-0 sm:h-9 sm:w-auto sm:px-3.5"
+                buttonSize="sm"
+                buttonClassName="h-11 w-11 min-h-0 min-w-0 px-0 sm:h-9 sm:w-auto sm:px-3.5"
               >
                 {isUploading ? (
                   <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
@@ -350,64 +343,67 @@ export default function ShelfPage() {
               </FileUploadAction>
             )}
             {!isOffline && passwordRequired ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="size-11 sm:size-9"
+              <Menu position="bottom-end" offset={8} width={192} radius="md" shadow="md">
+                <Menu.Target>
+                  <ActionIcon
+                    variant="default"
+                    size="md"
+                    className="size-11 min-h-0 min-w-0 rounded-lg border-border bg-card text-foreground shadow-[var(--paper-shadow-control)] hover:border-input hover:bg-secondary sm:size-9"
                     aria-label="书架设置"
                     title="书架设置"
                   >
                     <UserRound className="h-4 w-4" strokeWidth={1.5} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  sideOffset={8}
-                  className="shelf-account-menu w-48 rounded-lg border-border p-1"
-                >
-                  <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
-                    {isDark ? (
-                      <Sun className="h-4 w-4" strokeWidth={1.5} />
-                    ) : (
-                      <Moon className="h-4 w-4" strokeWidth={1.5} />
-                    )}
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown className="shelf-account-menu paper-menu w-48 rounded-lg border-border p-1">
+                  <Menu.Item
+                    leftSection={
+                      isDark ? (
+                        <Sun className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                      ) : (
+                        <Moon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                      )
+                    }
+                    className="shelf-account-menu-item min-h-11 rounded-md px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                    onClick={toggleTheme}
+                  >
                     {isDark ? '亮色模式' : '暗色模式'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="shelf-account-menu-item"
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<HardDrive className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />}
+                    className="shelf-account-menu-item min-h-11 rounded-md px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
                     onClick={() => setOfflineBooksOpen(true)}
                   >
-                    <HardDrive className="h-4 w-4" strokeWidth={1.5} />
                     离线图书管理
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </Menu.Item>
+                  <Menu.Item
+                    color="red"
+                    leftSection={<LogOut className="h-4 w-4 text-destructive" strokeWidth={1.5} />}
                     onClick={() => { void logout().catch(() => toast.error('退出失败，请重试')); }}
-                    className="shelf-account-menu-item shelf-account-menu-danger"
+                    className="shelf-account-menu-item shelf-account-menu-danger min-h-11 rounded-md px-3 py-2 text-sm font-medium text-destructive data-[hovered]:bg-destructive/10"
                   >
-                    <LogOut className="h-4 w-4" strokeWidth={1.5} /> 退出登录
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    退出登录
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
             ) : (
               <>
-                <Button
+                <ActionIcon
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  className="size-11 sm:size-9"
+                  variant="default"
+                  size="md"
+                  className="size-11 min-h-0 min-w-0 rounded-lg border-border bg-card text-foreground shadow-[var(--paper-shadow-control)] hover:border-input hover:bg-secondary sm:size-9"
                   onClick={() => setOfflineBooksOpen(true)}
                   aria-label="离线图书管理"
                   title="离线图书管理"
                 >
                   <HardDrive className="h-4 w-4" strokeWidth={1.5} />
-                </Button>
-                <Button
+                </ActionIcon>
+                <ActionIcon
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  className="size-11 sm:size-9"
+                  variant="default"
+                  size="md"
+                  className="size-11 min-h-0 min-w-0 rounded-lg border-border bg-card text-foreground shadow-[var(--paper-shadow-control)] hover:border-input hover:bg-secondary sm:size-9"
                   onClick={toggleTheme}
                   aria-label={isDark ? '亮色模式' : '暗色模式'}
                   title={isDark ? '亮色模式' : '暗色模式'}
@@ -417,7 +413,7 @@ export default function ShelfPage() {
                   ) : (
                     <Moon className="h-4 w-4" strokeWidth={1.5} />
                   )}
-                </Button>
+                </ActionIcon>
               </>
             )}
           </div>
@@ -447,26 +443,37 @@ export default function ShelfPage() {
 
           {!isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty && (
             <div className="flex items-center gap-2">
-              <div className="relative min-w-0 flex-1 sm:w-64 lg:w-72">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
-                <Input
+              <div className="min-w-0 flex-1 sm:w-64 lg:w-72">
+                <TextInput
                   type="search"
                   value={searchQuery}
-                  onChange={(event) => changeSearchQuery(event.target.value)}
+                  onChange={(event) => changeSearchQuery(event.currentTarget.value)}
                   placeholder="搜索书名或作者"
                   aria-label="搜索书库"
-                  className="shelf-search app-field pl-9 pr-9 sm:text-[13px]"
+                  leftSection={<Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />}
+                  leftSectionPointerEvents="none"
+                  leftSectionWidth={36}
+                  rightSection={
+                    searchQuery ? (
+                      <ActionIcon
+                        type="button"
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                        onClick={() => changeSearchQuery('')}
+                        aria-label="清除搜索"
+                        className="size-9 min-h-0 min-w-0 rounded-lg text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </ActionIcon>
+                    ) : null
+                  }
+                  rightSectionPointerEvents="all"
+                  rightSectionWidth={36}
+                  classNames={{
+                    input: 'shelf-search app-field pl-9 pr-9 sm:text-[13px]',
+                  }}
                 />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => changeSearchQuery('')}
-                    aria-label="清除搜索"
-                    className="absolute inset-y-0 right-0 flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-9"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
               </div>
 
               <div className="w-11 shrink-0 sm:w-36">
@@ -488,7 +495,8 @@ export default function ShelfPage() {
                 <>
                   <Button
                     type="button"
-                    className="min-h-11"
+                    variant="filled"
+                    className="min-h-11 rounded-lg"
                     disabled={isRetryingAuth}
                     onClick={() => void handleRetryConnection()}
                   >
@@ -496,11 +504,11 @@ export default function ShelfPage() {
                   </Button>
                   <Button
                     type="button"
-                    variant="outline"
-                    className="min-h-11"
+                    variant="default"
+                    leftSection={<HardDrive className="h-4 w-4" strokeWidth={1.5} />}
+                    className="min-h-11 rounded-lg"
                     onClick={() => setOfflineBooksOpen(true)}
                   >
-                    <HardDrive className="h-4 w-4" strokeWidth={1.5} />
                     打开离线图书
                   </Button>
                 </>
@@ -516,7 +524,7 @@ export default function ShelfPage() {
               description="请确认服务器可用后重新加载。"
               detail={`错误信息：${loadError}`}
               action={(
-                <Button type="button" className="min-h-11" onClick={() => void loadBooks()}>
+                <Button type="button" variant="filled" className="min-h-11 rounded-lg" onClick={() => void loadBooks()}>
                   重新加载
                 </Button>
               )}
@@ -541,12 +549,12 @@ export default function ShelfPage() {
                 >
                   {isUploading ? (
                     <>
-                      <LoadingSpinner className="mr-2 h-4 w-4 border-primary-foreground/30 border-t-primary-foreground" />
+                      <LoadingSpinner className="h-4 w-4 border-primary-foreground/30 border-t-primary-foreground" />
                       {uploadStatusLabel ?? '添加中...'}
                     </>
                   ) : (
                     <>
-                      <Plus className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
+                      <Plus className="h-4 w-4" strokeWidth={1.75} />
                       添加第一本书
                     </>
                   )}
@@ -615,50 +623,64 @@ export default function ShelfPage() {
                 <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="subtle"
+                    color="gray"
+                    size="xs"
+                    leftSection={<Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
                     className="min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
                     onClick={() => setCategoryManagerOpen(true)}
                   >
-                    <Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                     管理
                   </Button>
                   <Button
                     type="button"
-                    variant={selectionMode ? 'secondary' : 'ghost'}
+                    variant={selectionMode ? 'filled' : 'subtle'}
+                    color={selectionMode ? undefined : 'gray'}
+                    size="xs"
+                    leftSection={<CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />}
                     className={cn(
-                      "min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]",
+                      'min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]',
                       selectionMode
-                        ? "bg-primary text-primary-foreground hover:bg-primary/92"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/92'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     )}
                     onClick={toggleSelectionMode}
                   >
-                    <CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    <span>{selectionMode ? "取消选择" : "批量操作"}</span>
+                    {selectionMode ? '取消选择' : '批量操作'}
                   </Button>
                 </div>
                 <div className="shrink-0 self-start sm:hidden">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      aria-label="更多书库操作"
-                      className={cn(
-                        'flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-card text-foreground',
-                        selectionMode && 'border-primary bg-primary text-primary-foreground'
-                      )}
-                    >
-                      <MoreHorizontal className="h-5 w-5" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem className="min-h-11" onClick={() => setCategoryManagerOpen(true)}>
-                        <Settings2 className="h-4 w-4" />
+                  <Menu position="bottom-end" offset={6} width={176} radius="md" shadow="md">
+                    <Menu.Target>
+                      <ActionIcon
+                        variant={selectionMode ? 'filled' : 'default'}
+                        size="md"
+                        aria-label="更多书库操作"
+                        className={cn(
+                          'flex h-11 w-11 min-h-0 min-w-0 items-center justify-center rounded-lg border border-border bg-card text-foreground',
+                          selectionMode && 'border-primary bg-primary text-primary-foreground'
+                        )}
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown className="paper-menu w-44 rounded-xl p-1">
+                      <Menu.Item
+                        leftSection={<Settings2 className="h-4 w-4 text-muted-foreground" />}
+                        className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                        onClick={() => setCategoryManagerOpen(true)}
+                      >
                         管理分类
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="min-h-11" onClick={toggleSelectionMode}>
-                        <CheckSquare className="h-4 w-4" />
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<CheckSquare className="h-4 w-4 text-muted-foreground" />}
+                        className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                        onClick={toggleSelectionMode}
+                      >
                         {selectionMode ? '取消选择' : '批量操作'}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
                 </div>
               </div>
             )}
@@ -696,13 +718,13 @@ export default function ShelfPage() {
                   detail={`错误信息：${searchError}`}
                   action={(
                     <>
-                      <Button type="button" className="min-h-11" onClick={retrySearch}>
+                      <Button type="button" variant="filled" className="min-h-11 rounded-lg" onClick={retrySearch}>
                         重试搜索
                       </Button>
                       <Button
                         type="button"
-                        variant="outline"
-                        className="min-h-11"
+                        variant="default"
+                        className="min-h-11 rounded-lg"
                         onClick={clearShelfFilters}
                       >
                         重置所有筛选
@@ -718,8 +740,8 @@ export default function ShelfPage() {
                   action={(
                     <Button
                       type="button"
-                      variant="outline"
-                      className="min-h-11"
+                      variant="default"
+                      className="min-h-11 rounded-lg"
                       onClick={clearShelfFilters}
                     >
                       重置所有筛选
@@ -770,8 +792,8 @@ export default function ShelfPage() {
                   ) : (
                     <Button
                       type="button"
-                      variant="outline"
-                      className="min-h-11 px-5"
+                      variant="default"
+                      className="min-h-11 rounded-lg px-5"
                       onClick={() => void loadMoreBooks()}
                     >
                       加载更多图书
@@ -821,22 +843,24 @@ export default function ShelfPage() {
                         {selectedCount} 本
                       </span>
                     </div>
-                    <Button
+                    <ActionIcon
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-11 w-11 rounded-lg text-muted-foreground sm:hidden"
+                      variant="subtle"
+                      color="gray"
+                      size="md"
+                      className="h-11 w-11 min-h-0 min-w-0 rounded-lg text-muted-foreground sm:hidden"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
                     >
                       <X className="h-4 w-4" />
-                    </Button>
+                    </ActionIcon>
                   </div>
 
                   <div className="grid w-full min-w-0 grid-cols-3 gap-2 border-t border-border pt-2 sm:flex sm:border-t-0 sm:pt-0 sm:w-auto sm:flex-1 sm:items-center sm:justify-end">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="default"
+                      size="xs"
                       className="min-h-11 min-w-0 rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:min-h-9 sm:px-3 sm:text-[13px]"
                       onClick={toggleVisibleSelection}
                     >
@@ -845,40 +869,43 @@ export default function ShelfPage() {
 
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="default"
+                      size="xs"
                       aria-label="批量分类"
-                      className="min-h-11 min-w-0 gap-1 rounded-lg border-primary/20 bg-primary/5 px-2 text-xs font-medium text-primary hover:bg-primary/10 sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-[13px]"
+                      leftSection={<Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />}
+                      className="min-h-11 min-w-0 rounded-lg border-primary/20 bg-primary/5 px-2 text-xs font-medium text-primary hover:bg-primary/10 sm:min-h-9 sm:px-3 sm:text-[13px]"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
-                      <Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                       <span className="hidden sm:inline">批量分类</span>
                       <span className="sm:hidden">分类</span>
                     </Button>
 
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="default"
+                      size="xs"
                       aria-label="批量删除"
-                      className="min-h-11 min-w-0 gap-1 rounded-lg px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-[13px]"
+                      leftSection={<Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />}
+                      className="min-h-11 min-w-0 rounded-lg px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:min-h-9 sm:px-3 sm:text-[13px]"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
-                      <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                       <span className="hidden sm:inline">批量删除</span>
                       <span className="sm:hidden">删除</span>
                     </Button>
 
-                    <Button
+                    <ActionIcon
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="ml-1 hidden rounded-lg text-muted-foreground sm:flex sm:size-9"
+                      variant="subtle"
+                      color="gray"
+                      size="md"
+                      className="ml-1 hidden min-h-0 min-w-0 rounded-lg text-muted-foreground sm:flex sm:size-9"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
                     >
                       <X className="h-4 w-4" />
-                    </Button>
+                    </ActionIcon>
                   </div>
                 </div>
               </div>

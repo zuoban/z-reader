@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@/test/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VirtualBookGrid } from '@/components/VirtualBookGrid';
@@ -9,6 +9,7 @@ type IoCallback = IntersectionObserverCallback;
 let ioCallback: IoCallback | null = null;
 let observedTargets: Element[] = [];
 let roCallback: ResizeObserverCallback | null = null;
+let originalResizeObserver: typeof ResizeObserver | undefined;
 
 function fireIntersection(isIntersecting = true) {
   if (!ioCallback || observedTargets.length === 0) return;
@@ -127,20 +128,20 @@ describe('VirtualBookGrid', () => {
       }
     );
 
-    vi.stubGlobal(
-      'ResizeObserver',
-      class {
-        constructor(cb: ResizeObserverCallback) {
-          roCallback = cb;
-        }
-        observe() {
-          // no-op; tests drive measure via layout mocks
-          void roCallback;
-        }
-        unobserve() {}
-        disconnect() {}
+    originalResizeObserver = globalThis.ResizeObserver;
+    class ResizeObserverTestMock {
+      constructor(cb: ResizeObserverCallback) {
+        roCallback = cb;
       }
-    );
+      observe() {
+        // no-op; tests drive measure via layout mocks
+        void roCallback;
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    window.ResizeObserver = ResizeObserverTestMock as unknown as typeof ResizeObserver;
+    globalThis.ResizeObserver = ResizeObserverTestMock as unknown as typeof ResizeObserver;
 
     vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 0, writable: true });
@@ -154,6 +155,10 @@ describe('VirtualBookGrid', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    if (originalResizeObserver) {
+      window.ResizeObserver = originalResizeObserver;
+      globalThis.ResizeObserver = originalResizeObserver;
+    }
   });
 
   it('renders item content and exposes grid metadata', async () => {

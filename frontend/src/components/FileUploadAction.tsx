@@ -1,8 +1,8 @@
 'use client';
 
 import { useId, useRef } from 'react';
-import type { ChangeEvent, ComponentProps, KeyboardEvent, ReactNode } from 'react';
-import { Button, buttonVariants } from '@/components/ui/button';
+import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
+import { Button, type ButtonProps } from '@mantine/core';
 import { cn } from '@/lib/utils';
 
 interface FileUploadActionProps {
@@ -14,8 +14,8 @@ interface FileUploadActionProps {
   statusLabel?: string;
   wrapperClassName?: string;
   buttonClassName?: string;
-  buttonVariant?: ComponentProps<typeof Button>['variant'];
-  buttonSize?: ComponentProps<typeof Button>['size'];
+  buttonVariant?: ButtonProps['variant'];
+  buttonSize?: ButtonProps['size'];
   multiple?: boolean;
 }
 
@@ -28,8 +28,8 @@ export function FileUploadAction({
   statusLabel,
   wrapperClassName,
   buttonClassName,
-  buttonVariant = 'default',
-  buttonSize = 'default',
+  buttonVariant = 'filled',
+  buttonSize = 'sm',
   multiple = false,
 }: FileUploadActionProps) {
   const inputId = useId();
@@ -55,23 +55,30 @@ export function FileUploadAction({
         className="sr-only"
         tabIndex={-1}
       />
-      <label
+      <Button
+        component="label"
         htmlFor={disabled ? undefined : inputId}
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-label={title}
         aria-disabled={disabled}
         aria-busy={Boolean(statusLabel)}
+        data-disabled={disabled || undefined}
         onKeyDown={handleKeyDown}
+        variant={buttonVariant}
+        size={buttonSize}
+        radius="md"
         className={cn(
-          buttonVariants({ variant: buttonVariant, size: buttonSize }),
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'cursor-pointer select-none shadow-[var(--paper-shadow-control)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           disabled && 'pointer-events-none opacity-50',
           buttonClassName
         )}
+        classNames={{
+          label: 'inline-flex items-center justify-center gap-1.5',
+        }}
       >
         {children}
-      </label>
+      </Button>
       {statusLabel && (
         <span className="paper-chip pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-primary shadow-sm">
           {statusLabel}

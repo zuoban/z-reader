@@ -1,6 +1,6 @@
 /* Reader palettes, Foliate host, chrome, and responsive sheets. */
 
-@layer utilities {
+@layer components {
   .reader-chrome-btn {
     @apply flex min-h-11 items-center gap-1.5 px-2.5 text-xs font-medium sm:min-h-8 sm:text-[13px];
     border-radius: var(--paper-radius-control);
@@ -20,7 +20,7 @@
   }
 
   .reader-chrome-icon {
-    @apply flex h-11 w-11 shrink-0 items-center justify-center lg:h-8 lg:w-8;
+    @apply flex h-11 w-11 min-h-0 min-w-0 shrink-0 items-center justify-center lg:h-8 lg:w-8;
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -54,19 +54,6 @@
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
   }
 
-  .reader-bottom-sheet-centered {
-    translate: 0 0;
-  }
-
-  @media (min-width: 640px) {
-    /* Outrank the sheet's side utilities while keeping mobile positioning intact. */
-    .reader-bottom-sheet-centered[data-slot="sheet-content"][data-side="bottom"] {
-      left: 50%;
-      right: auto;
-      translate: -50% 0;
-    }
-  }
-
   .reader-chrome-surface {
     background: color-mix(in srgb, var(--reader-chrome-bg) 96%, transparent);
     backdrop-filter: blur(8px);
@@ -90,29 +77,6 @@
   .reader-chrome [data-reader-tts-active="true"] {
     background: var(--reader-chrome-hover);
     color: var(--reader-chrome-accent);
-  }
-
-  .reader-panel[data-slot="sheet-content"][data-side="bottom"] {
-    --reader-panel-top-gap: max(0.75rem, env(safe-area-inset-top, 0px));
-    --reader-panel-bottom-gap: max(0.75rem, env(safe-area-inset-bottom, 0px));
-    left: max(0.75rem, env(safe-area-inset-left, 0px));
-    right: max(0.75rem, env(safe-area-inset-right, 0px));
-    bottom: var(--reader-panel-bottom-gap);
-    max-height: min(42rem, calc(100svh - var(--reader-panel-top-gap) - var(--reader-panel-bottom-gap)));
-    border-width: 1px;
-    border-radius: 1rem;
-    box-shadow: var(--paper-shadow-floating);
-  }
-
-  @media (min-width: 640px) {
-    .reader-panel[data-slot="sheet-content"][data-side="bottom"] {
-      --reader-panel-inline-gap: max(1rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
-      --reader-panel-bottom-gap: max(1.5rem, env(safe-area-inset-bottom, 0px));
-      left: 50%;
-      right: auto;
-      max-width: calc(100vw - 2 * var(--reader-panel-inline-gap));
-      max-height: min(78svh, 42rem, calc(100svh - var(--reader-panel-top-gap) - var(--reader-panel-bottom-gap)));
-    }
   }
 
   .reader-panel-body {

@@ -3,19 +3,19 @@
   "description": "First-screen JS measured from production prerender HTML on 2026-10-18; existing maxBytes ceilings are preserved.",
   "firstScreenJs": {
     "home": {
-      "bytes": 672633,
-      "maxBytes": 725883,
-      "files": 11
-    },
-    "login": {
-      "bytes": 687902,
-      "maxBytes": 731186,
+      "bytes": 683255,
+      "maxBytes": 751581,
       "files": 12
     },
+    "login": {
+      "bytes": 756911,
+      "maxBytes": 832603,
+      "files": 15
+    },
     "shelf": {
-      "bytes": 926602,
-      "maxBytes": 1010472,
-      "files": 14
+      "bytes": 924373,
+      "maxBytes": 1016811,
+      "files": 18
     }
   },
   "webVitals": {

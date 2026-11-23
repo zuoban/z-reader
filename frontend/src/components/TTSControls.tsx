@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+import { ActionIcon, Button, Drawer, UnstyledButton } from '@mantine/core';
 import {
   AlertCircle,
   ChevronDown,
@@ -26,6 +18,7 @@ import {
 } from 'lucide-react';
 import { VoiceSelector } from '@/components/VoiceSelector';
 import { getModernReaderSurface, withOpacity } from '@/lib/reader-ui';
+import { cn } from '@/lib/utils';
 import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 
@@ -220,12 +213,15 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
+    <ActionIcon
+      type="button"
+      variant="subtle"
+      size={44}
+      radius="md"
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={title}
       className="size-11 rounded-lg transition-colors hover:bg-secondary active:scale-95"
       style={{
         color: getButtonColor(),
@@ -234,7 +230,7 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       }}
     >
       {children}
-    </Button>
+    </ActionIcon>
   );
 };
 
@@ -321,6 +317,7 @@ export function TTSControls({
 }: TTSControlsProps) {
   const [expanded, setExpanded] = useState(initialExpanded);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const operationRef = useRef(0);
   const pendingRef = useRef(false);
@@ -347,6 +344,7 @@ export function TTSControls({
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
   const isToolbar = variant === 'toolbar';
+  const isVoiceDropdownOpen = expanded && voiceDropdownOpen;
   // 检测用户是否偏好减少动画
   const prefersReducedMotion = useRef(false);
   useEffect(() => {
@@ -629,17 +627,24 @@ export function TTSControls({
   }, [clampPosition, commitPosition, isDragging, stopDragging]);
 
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded || isToolbar) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setExpanded(false);
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        event.isComposing ||
+        isVoiceDropdownOpen
+      ) {
+        return;
       }
+      event.preventDefault();
+      setExpanded(false);
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded]);
+  }, [expanded, isToolbar, isVoiceDropdownOpen]);
 
   const floatingPopupWidth = Math.min(364, Math.max(viewport.width - 28, 280));
   const floatingPopupMaxHeight = Math.min(viewport.height * 0.72, 720);
@@ -719,292 +724,341 @@ export function TTSControls({
   ) : null;
 
   if (isToolbar) {
-    return (
-      <Sheet open={expanded} onOpenChange={setExpanded}>
-        <SheetTrigger
-          render={
-            <Button
-              variant="ghost"
-              size={triggerContent ? 'sm' : 'icon'}
-              data-reader-interactive="true"
-              data-reader-tts-trigger="true"
-              data-reader-tts-active={isActive ? 'true' : undefined}
-              type="button"
-              title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-              aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
-              aria-expanded={expanded}
-              aria-haspopup="dialog"
-              className={
-                triggerClassName ??
-                'relative z-40 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-0 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
-              }
-              style={{
-                ...(
-                  triggerStyle ?? {
-                    color: isActive ? uiScheme.link : uiScheme.buttonText,
-                    ...getTriggerSurface(uiScheme, isActive),
-                  }
-                ),
-                opacity: isBusy ? 0.72 : 1,
-              }}
-            >
-              {triggerContent ?? <Volume2 className="relative z-10 h-4 w-4" />}
-            </Button>
-          }
-        >
-        </SheetTrigger>
+    const triggerLabel = isActive ? '朗读控制（正在播放）' : '朗读控制';
+    const resolvedTriggerStyle = {
+      ...(
+        triggerStyle ?? {
+          color: isActive ? uiScheme.link : uiScheme.buttonText,
+          ...getTriggerSurface(uiScheme, isActive),
+        }
+      ),
+      opacity: isBusy ? 0.72 : 1,
+    };
 
-        <SheetContent
-          side="bottom"
-          showCloseButton={false}
-          finalFocus={false}
-          container={overlayContainer}
-          data-reader-interactive="true"
-          data-reader-tts-popup="true"
-          className="reader-panel border p-0 sm:w-[480px] sm:max-w-[calc(100vw-2rem)]"
-          style={{
-            background: uiScheme.cardBg,
-            borderColor: surface.border,
-            color: surface.fg,
+    return (
+      <>
+        {triggerContent ? (
+          <UnstyledButton
+            type="button"
+            data-reader-interactive="true"
+            data-reader-tts-trigger="true"
+            data-reader-tts-active={isActive ? 'true' : undefined}
+            title={triggerLabel}
+            aria-label={triggerLabel}
+            aria-expanded={expanded}
+            aria-haspopup="dialog"
+            onClick={() => setExpanded((value) => !value)}
+            className={
+              triggerClassName ??
+              'relative z-40 inline-flex shrink-0 items-center justify-center rounded-lg border px-2.5 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
+            }
+            style={resolvedTriggerStyle}
+          >
+            {triggerContent}
+          </UnstyledButton>
+        ) : (
+          <ActionIcon
+            type="button"
+            variant="subtle"
+            size={44}
+            radius="md"
+            data-reader-interactive="true"
+            data-reader-tts-trigger="true"
+            data-reader-tts-active={isActive ? 'true' : undefined}
+            title={triggerLabel}
+            aria-label={triggerLabel}
+            aria-expanded={expanded}
+            aria-haspopup="dialog"
+            onClick={() => setExpanded((value) => !value)}
+            className={cn(
+              'min-h-0 min-w-0',
+              triggerClassName ??
+                'relative z-40 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-0 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
+            )}
+            style={resolvedTriggerStyle}
+          >
+            <Volume2 className="relative z-10 h-4 w-4" />
+          </ActionIcon>
+        )}
+
+        <Drawer.Root
+          opened={expanded}
+          onClose={() => setExpanded(false)}
+          closeOnEscape={!isVoiceDropdownOpen}
+          position="bottom"
+          size="auto"
+          padding={0}
+          zIndex={90}
+          returnFocus={false}
+          portalProps={{ target: overlayContainer ?? undefined }}
+          classNames={{
+            inner:
+              'items-end justify-center px-[max(0.75rem,env(safe-area-inset-left,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]',
+            content:
+              'reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:w-[480px] sm:max-w-[calc(100vw-2rem)]',
+          }}
+          styles={{
+            content: {
+              flex: '0 1 auto',
+              height: 'auto',
+              background: uiScheme.cardBg,
+              borderColor: surface.border,
+              color: surface.fg,
+              boxShadow: 'var(--paper-shadow-floating)',
+            },
           }}
         >
-          <SheetHeader
-            className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
-            style={{ borderColor: surface.hairline }}
+          <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
+          <Drawer.Content
+            data-reader-interactive="true"
+            data-reader-tts-popup="true"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <SheetTitle className="text-xl font-medium" style={{ color: surface.fg }}>
-                  朗读控制
-                </SheetTitle>
-                <SheetDescription className="sr-only">
-                  播放、调整倍速与设置睡眠定时
-                </SheetDescription>
-              </div>
-              <button
-                type="button"
-                onClick={() => setExpanded(false)}
-                className="flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 lg:size-9"
-                style={{
-                  color: surface.muted,
-                }}
-                aria-label="关闭朗读控制"
-                title="关闭"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </SheetHeader>
-
-          <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-4 sm:px-6">
-            {resumePromptVisible && (
-              <section
-                className="rounded-lg border p-3"
-                style={{
-                  background: withOpacity(uiScheme.link, 0.06),
-                  borderColor: withOpacity(uiScheme.link, 0.18),
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex size-5 shrink-0 items-center justify-center"
-                    style={{
-                      color: uiScheme.link,
-                    }}
-                  >
-                    <AlertCircle className="h-4.5 w-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
-                      继续朗读
-                    </p>
-                    <p className="mt-0.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
-                      {resumePromptMessage}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => void onResume?.()}
-                    className="h-11 shrink-0 rounded-lg px-3 text-xs font-semibold"
-                    style={{
-                      color: uiScheme.link,
-                      background: withOpacity(uiScheme.buttonBg, 0.42),
-                      border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
-                    }}
-                  >
-                    继续
-                  </Button>
+            <div
+              className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
+              style={{ borderColor: surface.hairline }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Drawer.Title className="text-xl font-medium" style={{ color: surface.fg }}>
+                    朗读控制
+                  </Drawer.Title>
+                  <p className="sr-only">
+                    播放、调整倍速与设置睡眠定时
+                  </p>
                 </div>
-              </section>
-            )}
-
-            {ttsStatus ? renderStatusContent() : null}
-
-            <TTSSection
-              title="播放控制"
-              description="从当前位置开始、暂停或切换到相邻句子。"
-              uiScheme={uiScheme}
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2.5">
-                  <ControlButton
-                    onClick={onPrev}
-                    disabled={!isActive || isBusy}
-                    title="上一句"
-                    active={isActive}
-                    uiScheme={uiScheme}
-                  >
-                    <SkipBack className="h-5 w-5" />
-                  </ControlButton>
-
-                  <div className="relative flex items-center justify-center">
-                    <Button
-                      variant="default"
-                      size="icon"
-                      onClick={handleStartClick}
-                      disabled={isBusy}
-                      title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                      className="size-12 rounded-lg transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
-                      style={{
-                        color: uiScheme.cardBg,
-                        background: isPlaying
-                          ? withOpacity(uiScheme.link, 0.92)
-                          : uiScheme.fg,
-                      }}
-                    >
-                      {isBusy ? (
-                        <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
-                      ) : isPaused ? (
-                        <Play className="ml-0.5 h-4 w-4 fill-current" />
-                      ) : isPlaying ? (
-                        <Pause className="h-4 w-4 fill-current" />
-                      ) : (
-                        <Play className="ml-0.5 h-4 w-4 fill-current" />
-                      )}
-                    </Button>
-                  </div>
-
-                  <ControlButton
-                    onClick={onNext}
-                    disabled={!isActive || isBusy}
-                    title="下一句"
-                    active={isActive}
-                    uiScheme={uiScheme}
-                  >
-                    <SkipForward className="h-5 w-5" />
-                  </ControlButton>
-
-                  <ControlButton
-                    onClick={handleStopClick}
-                    disabled={!isActive && !isBusy}
-                    title="停止"
-                    active={isActive}
-                    variant="danger"
-                    uiScheme={uiScheme}
-                  >
-                    <Square className="h-5 w-5" />
-                  </ControlButton>
-                </div>
-
-                <RateButtons
-                  value={settings.rate}
-                  onChange={handleRateChange}
-                  uiScheme={uiScheme}
-                />
-              </div>
-            </TTSSection>
-
-            <TTSSection
-              title="高亮方式"
-              description="选择朗读时跟随词语或整句。"
-              uiScheme={uiScheme}
-            >
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  ['word', '词语'],
-                  ['sentence', '句子'],
-                ] as const).map(([mode, label]) => {
-                  const active = settings.highlightMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => handleHighlightModeChange(mode)}
-                      aria-pressed={active}
-                      className="min-h-11 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
-                      style={segmentStyle(active, uiScheme)}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </TTSSection>
-
-            <TTSSection
-              title="睡眠定时"
-              description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
-              uiScheme={uiScheme}
-            >
-              <div className="grid grid-cols-4 gap-2">
-                {[15, 30, 60].map((minutes) => {
-                  const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
-                  return (
-                    <Button
-                      key={minutes}
-                      type="button"
-                      variant="ghost"
-                      onClick={() => onSleepTimerMinutes?.(minutes)}
-                      aria-pressed={active}
-                      className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97]"
-                      style={segmentStyle(active, uiScheme)}
-                    >
-                      {minutes}分
-                    </Button>
-                  );
-                })}
-                <Button
+                <ActionIcon
                   type="button"
-                  variant="ghost"
-                  onClick={() => onClearSleepTimer?.()}
-                  disabled={!sleepTimerActive}
-                  className="h-11 rounded-lg text-xs font-semibold"
+                  variant="subtle"
+                  size={44}
+                  radius="md"
+                  onClick={() => setExpanded(false)}
+                  className="size-11 min-h-0 min-w-0 shrink-0 rounded-lg transition-colors hover:bg-secondary lg:size-9"
                   style={{
-                    ...segmentStyle(false, uiScheme),
-                    color: sleepTimerActive
-                      ? uiScheme.mutedText
-                      : withOpacity(uiScheme.mutedText, 0.35),
-                    opacity: sleepTimerActive ? 1 : 0.7,
+                    color: surface.muted,
+                  }}
+                  aria-label="关闭朗读控制"
+                  title="关闭"
+                >
+                  <X className="h-4 w-4" />
+                </ActionIcon>
+              </div>
+            </div>
+
+            <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-4 sm:px-6">
+              {resumePromptVisible && (
+                <section
+                  className="rounded-lg border p-3"
+                  style={{
+                    background: withOpacity(uiScheme.link, 0.06),
+                    borderColor: withOpacity(uiScheme.link, 0.18),
                   }}
                 >
-                  取消
-                </Button>
-              </div>
-            </TTSSection>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex size-5 shrink-0 items-center justify-center"
+                      style={{
+                        color: uiScheme.link,
+                      }}
+                    >
+                      <AlertCircle className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
+                        继续朗读
+                      </p>
+                      <p className="mt-0.5 text-xs leading-5" style={{ color: uiScheme.mutedText }}>
+                        {resumePromptMessage}
+                      </p>
+                    </div>
+                    <UnstyledButton
+                      type="button"
+                      onClick={() => void onResume?.()}
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-semibold"
+                      style={{
+                        color: uiScheme.link,
+                        background: withOpacity(uiScheme.buttonBg, 0.42),
+                        border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
+                      }}
+                    >
+                      继续
+                    </UnstyledButton>
+                  </div>
+                </section>
+              )}
 
-            {showSettingsPanel && (
+              {ttsStatus ? renderStatusContent() : null}
+
               <TTSSection
-                title="语音偏好"
-                description="选择发音人、情绪风格与输出声音。"
+                title="播放控制"
+                description="从当前位置开始、暂停或切换到相邻句子。"
                 uiScheme={uiScheme}
               >
-                <VoiceSelector
-                  settings={settings}
-                  voices={voices}
-                  voicesLoading={voicesLoading}
-                  voicesError={voicesError}
-                  onReloadVoices={onReloadVoices}
-                  onUpdateSettings={onUpdateSettings}
-                  onPreviewStart={onPreviewStart}
-                  uiScheme={uiScheme}
-                  overlayContainer={overlayContainer}
-                />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-2.5">
+                    <ControlButton
+                      onClick={onPrev}
+                      disabled={!isActive || isBusy}
+                      title="上一句"
+                      active={isActive}
+                      uiScheme={uiScheme}
+                    >
+                      <SkipBack className="h-5 w-5" />
+                    </ControlButton>
+
+                    <div className="relative flex items-center justify-center">
+                      <ActionIcon
+                        type="button"
+                        variant="filled"
+                        size={48}
+                        radius="md"
+                        onClick={handleStartClick}
+                        disabled={isBusy}
+                        title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                        aria-label={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                        className="size-12 rounded-lg transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
+                        style={{
+                          color: uiScheme.cardBg,
+                          background: isPlaying
+                            ? withOpacity(uiScheme.link, 0.92)
+                            : uiScheme.fg,
+                        }}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                        ) : isPaused ? (
+                          <Play className="ml-0.5 h-4 w-4 fill-current" />
+                        ) : isPlaying ? (
+                          <Pause className="h-4 w-4 fill-current" />
+                        ) : (
+                          <Play className="ml-0.5 h-4 w-4 fill-current" />
+                        )}
+                      </ActionIcon>
+                    </div>
+
+                    <ControlButton
+                      onClick={onNext}
+                      disabled={!isActive || isBusy}
+                      title="下一句"
+                      active={isActive}
+                      uiScheme={uiScheme}
+                    >
+                      <SkipForward className="h-5 w-5" />
+                    </ControlButton>
+
+                    <ControlButton
+                      onClick={handleStopClick}
+                      disabled={!isActive && !isBusy}
+                      title="停止"
+                      active={isActive}
+                      variant="danger"
+                      uiScheme={uiScheme}
+                    >
+                      <Square className="h-5 w-5" />
+                    </ControlButton>
+                  </div>
+
+                  <RateButtons
+                    value={settings.rate}
+                    onChange={handleRateChange}
+                    uiScheme={uiScheme}
+                  />
+                </div>
               </TTSSection>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+
+              <TTSSection
+                title="高亮方式"
+                description="选择朗读时跟随词语或整句。"
+                uiScheme={uiScheme}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ['word', '词语'],
+                    ['sentence', '句子'],
+                  ] as const).map(([mode, label]) => {
+                    const active = settings.highlightMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => handleHighlightModeChange(mode)}
+                        aria-pressed={active}
+                        className="min-h-11 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
+                        style={segmentStyle(active, uiScheme)}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </TTSSection>
+
+              <TTSSection
+                title="睡眠定时"
+                description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
+                uiScheme={uiScheme}
+              >
+                <div className="grid grid-cols-4 gap-2">
+                  {[15, 30, 60].map((minutes) => {
+                    const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
+                    return (
+                      <Button
+                        key={minutes}
+                        type="button"
+                        variant="subtle"
+                        size="xs"
+                        onClick={() => onSleepTimerMinutes?.(minutes)}
+                        aria-pressed={active}
+                        className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97]"
+                        style={segmentStyle(active, uiScheme)}
+                      >
+                        {minutes}分
+                      </Button>
+                    );
+                  })}
+                  <Button
+                    type="button"
+                    variant="subtle"
+                    size="xs"
+                    onClick={() => onClearSleepTimer?.()}
+                    disabled={!sleepTimerActive}
+                    className="h-11 rounded-lg text-xs font-semibold"
+                    style={{
+                      ...segmentStyle(false, uiScheme),
+                      color: sleepTimerActive
+                        ? uiScheme.mutedText
+                        : withOpacity(uiScheme.mutedText, 0.35),
+                      opacity: sleepTimerActive ? 1 : 0.7,
+                    }}
+                  >
+                    取消
+                  </Button>
+                </div>
+              </TTSSection>
+
+              {showSettingsPanel && (
+                <TTSSection
+                  title="语音偏好"
+                  description="选择发音人、情绪风格与输出声音。"
+                  uiScheme={uiScheme}
+                >
+                  <VoiceSelector
+                    settings={settings}
+                    voices={voices}
+                    voicesLoading={voicesLoading}
+                    voicesError={voicesError}
+                    onReloadVoices={onReloadVoices}
+                    onUpdateSettings={onUpdateSettings}
+                    onPreviewStart={onPreviewStart}
+                    onDropdownOpenChange={setVoiceDropdownOpen}
+                    uiScheme={uiScheme}
+                    overlayContainer={overlayContainer}
+                  />
+                </TTSSection>
+              )}
+            </div>
+          </Drawer.Content>
+        </Drawer.Root>
+      </>
     );
   }
 
@@ -1029,9 +1083,10 @@ export function TTSControls({
           {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
         </div>
         {isToolbar ? (
-          <Button
-            variant="ghost"
-            size="icon"
+          <ActionIcon
+            variant="subtle"
+            size={44}
+            radius="md"
             data-reader-interactive="true"
             data-reader-tts-trigger="true"
             onClick={handleClick}
@@ -1040,10 +1095,11 @@ export function TTSControls({
             aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
             aria-expanded={expanded}
             aria-haspopup="dialog"
-            className={
+            className={cn(
+              'min-h-0 min-w-0',
               triggerClassName ??
-              'relative z-40 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-0 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
-            }
+                'relative z-40 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-0 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
+            )}
             style={{
               ...(
                 triggerStyle ?? {
@@ -1055,7 +1111,7 @@ export function TTSControls({
             }}
           >
             <Volume2 className="relative z-10 h-4 w-4" />
-          </Button>
+          </ActionIcon>
         ) : (
           !expanded && (
             <FloatingButton
@@ -1113,19 +1169,20 @@ export function TTSControls({
                 <p className="font-heading text-lg font-medium" style={{ color: uiScheme.fg }}>
                   朗读控制
                 </p>
-                <Button
+                <ActionIcon
                   type="button"
-                  variant="ghost"
-                  size="icon"
+                  variant="subtle"
+                  size={44}
+                  radius="md"
                   onPointerDown={preserveReaderSelection}
                   onClick={closePanel}
-                  className="size-11 rounded-lg border-0 transition-colors lg:size-9"
+                  className="size-11 min-h-0 min-w-0 rounded-lg border-0 transition-colors lg:size-9"
                   style={{ color: surface.muted }}
                   aria-label="关闭朗读控制面板"
                   title="关闭"
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </ActionIcon>
               </div>
 
               <div
@@ -1155,11 +1212,10 @@ export function TTSControls({
                           继续朗读
                         </p>
                       </div>
-                      <Button
+                      <UnstyledButton
                         type="button"
-                        variant="ghost"
                         onClick={() => void onResume?.()}
-                        className="h-11 shrink-0 rounded-lg px-3 text-xs font-medium transition-colors active:scale-95"
+                        className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-medium transition-colors active:scale-95"
                         style={{
                           color: uiScheme.link,
                           background: withOpacity(uiScheme.buttonBg, 0.6),
@@ -1167,7 +1223,7 @@ export function TTSControls({
                         }}
                       >
                         继续
-                      </Button>
+                      </UnstyledButton>
                     </div>
                   </section>
                 )}
@@ -1185,9 +1241,16 @@ export function TTSControls({
                     {showSettingsPanel && (
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="sm"
+                        variant="subtle"
+                        size="xs"
                         onClick={() => setDetailsExpanded((value) => !value)}
+                        rightSection={
+                          detailsExpanded ? (
+                            <ChevronUp className="h-3 w-3" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" />
+                          )
+                        }
                         className="h-11 rounded-lg px-2.5 lg:h-9 text-xs font-medium transition-colors active:scale-[0.98]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
@@ -1196,11 +1259,6 @@ export function TTSControls({
                         }}
                       >
                         {detailsExpanded ? '收起设置' : '更多设置'}
-                        {detailsExpanded ? (
-                          <ChevronUp className="ml-1 h-3 w-3" />
-                        ) : (
-                          <ChevronDown className="ml-1 h-3 w-3" />
-                        )}
                       </Button>
                     )}
                   </div>
@@ -1219,12 +1277,15 @@ export function TTSControls({
                     </ControlButton>
 
                     <div className="relative flex items-center justify-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                      <ActionIcon
+                        type="button"
+                        variant="filled"
+                        size={44}
+                        radius="md"
                         onClick={handleStartClick}
                         disabled={isBusy}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
+                        aria-label={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                         className="size-11 rounded-lg transition-opacity hover:opacity-90 active:scale-95"
                         style={{
                           background: isPlaying ? uiScheme.link : uiScheme.fg,
@@ -1241,7 +1302,7 @@ export function TTSControls({
                         ) : (
                           <Play className="ml-0.5 h-5 w-5 fill-current" />
                         )}
-                      </Button>
+                      </ActionIcon>
                     </div>
 
                     <ControlButton
@@ -1333,7 +1394,8 @@ export function TTSControls({
                             <Button
                               key={minutes}
                               type="button"
-                              variant="ghost"
+                              variant="subtle"
+                              size="xs"
                               aria-pressed={active}
                               onClick={() => onSleepTimerMinutes?.(minutes)}
                               className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97] lg:h-9"
@@ -1345,7 +1407,8 @@ export function TTSControls({
                         })}
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="subtle"
+                          size="xs"
                           onClick={() => onClearSleepTimer?.()}
                           disabled={!sleepTimerActive}
                           className="h-11 rounded-lg text-xs font-semibold lg:h-9"
@@ -1371,6 +1434,7 @@ export function TTSControls({
                         onReloadVoices={onReloadVoices}
                         onUpdateSettings={onUpdateSettings}
                         onPreviewStart={onPreviewStart}
+                        onDropdownOpenChange={setVoiceDropdownOpen}
                         uiScheme={uiScheme}
                         overlayContainer={overlayContainer}
                       />

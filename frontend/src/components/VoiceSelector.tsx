@@ -1,14 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
+import { Button, Combobox, InputBase, useCombobox } from '@mantine/core';
+import { Check } from 'lucide-react';
 import { buildAzureSSML } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { handleAuthResponse } from '@/lib/api';
@@ -23,6 +17,172 @@ const GENDER_LABELS: Record<string, string> = {
   Male: '男',
 };
 
+interface ReaderSelectOption {
+  value: string;
+  label: string;
+  muted?: boolean;
+}
+
+interface ReaderSelectProps {
+  ariaLabel: string;
+  prefixLabel: string;
+  placeholder: string;
+  value: string;
+  options: ReaderSelectOption[];
+  onValueChange: (value: string) => void;
+  onDropdownOpenChange?: (open: boolean) => void;
+  uiScheme: ThemeColors;
+  controlStyle: CSSProperties;
+  overlayContainer?: HTMLElement | null;
+  dropdownMaxWidth?: string;
+}
+
+function ReaderSelect({
+  ariaLabel,
+  prefixLabel,
+  placeholder,
+  value,
+  options,
+  onValueChange,
+  onDropdownOpenChange,
+  uiScheme,
+  controlStyle,
+  overlayContainer,
+  dropdownMaxWidth = 'max-w-[300px]',
+}: ReaderSelectProps) {
+  const onDropdownOpenChangeRef = useRef(onDropdownOpenChange);
+  useEffect(() => {
+    onDropdownOpenChangeRef.current = onDropdownOpenChange;
+  }, [onDropdownOpenChange]);
+
+  const combobox = useCombobox({
+    onOpenedChange: (opened) => {
+      onDropdownOpenChangeRef.current?.(opened);
+    },
+  });
+  const { dropdownOpened, closeDropdown } = combobox;
+  const selectedOption = options.find((option) => option.value === value);
+
+  useEffect(() => {
+    return () => {
+      onDropdownOpenChangeRef.current?.(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dropdownOpened) return;
+
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.isComposing) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeDropdown('keyboard');
+    };
+
+    document.addEventListener('keydown', handleDocumentKeyDown);
+    return () => document.removeEventListener('keydown', handleDocumentKeyDown);
+  }, [dropdownOpened, closeDropdown]);
+
+  return (
+    <Combobox
+      store={combobox}
+      withinPortal
+      keepMounted={false}
+      zIndex={100}
+      portalProps={{ target: overlayContainer ?? undefined }}
+      onOptionSubmit={(nextValue) => {
+        onValueChange(nextValue);
+        combobox.closeDropdown();
+      }}
+    >
+      <Combobox.Target targetType="button" withExpandedAttribute>
+        <InputBase
+          component="button"
+          type="button"
+          pointer
+          aria-label={ariaLabel}
+          data-reader-interactive="true"
+          rightSection={<Combobox.Chevron size="sm" style={{ color: uiScheme.mutedText }} />}
+          rightSectionPointerEvents="none"
+          onClick={() => combobox.toggleDropdown()}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && combobox.dropdownOpened) {
+              event.preventDefault();
+              event.stopPropagation();
+              event.nativeEvent.stopPropagation();
+              combobox.closeDropdown('keyboard');
+            }
+          }}
+          classNames={{
+            input:
+              'flex min-h-11 w-full items-center rounded-lg bg-transparent px-3 text-[13px] font-medium shadow-none transition-colors lg:min-h-9',
+          }}
+          styles={{
+            input: {
+              ...controlStyle,
+              color: uiScheme.fg,
+              backgroundColor: 'transparent',
+              height: 'auto',
+            },
+          }}
+        >
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="shrink-0 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+              {prefixLabel}
+            </span>
+            <span className="truncate">{selectedOption?.label ?? placeholder}</span>
+          </div>
+        </InputBase>
+      </Combobox.Target>
+
+      <Combobox.Dropdown
+        data-reader-interactive="true"
+        data-reader-tts-owned="true"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && combobox.dropdownOpened) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.nativeEvent.stopPropagation();
+            combobox.closeDropdown('keyboard');
+          }
+        }}
+        className={`${dropdownMaxWidth} rounded-lg border shadow-[var(--paper-shadow-floating)]`}
+        style={{
+          background: uiScheme.cardBg,
+          borderColor: withOpacity(uiScheme.cardBorder, 0.75),
+        }}
+      >
+        <Combobox.Options className="max-h-60 overflow-y-auto">
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <Combobox.Option
+                key={option.value}
+                value={option.value}
+                active={isSelected}
+                className="my-0.5 flex min-h-11 items-center justify-between gap-2 truncate rounded-lg px-3 py-2 text-sm lg:min-h-9"
+                style={{
+                  color: option.muted ? uiScheme.mutedText : uiScheme.fg,
+                  backgroundColor: isSelected ? withOpacity(uiScheme.link, 0.1) : undefined,
+                }}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected && (
+                  <Check
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 shrink-0"
+                    style={{ color: uiScheme.link }}
+                  />
+                )}
+              </Combobox.Option>
+            );
+          })}
+        </Combobox.Options>
+      </Combobox.Dropdown>
+    </Combobox>
+  );
+}
+
 interface VoiceSelectorProps {
   settings: TTSSettings;
   voices: Voice[];
@@ -32,6 +192,7 @@ interface VoiceSelectorProps {
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   onPreviewStart?: () => void;
   onPreviewEnd?: () => void;
+  onDropdownOpenChange?: (open: boolean) => void;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
 }
@@ -55,6 +216,7 @@ export function VoiceSelector({
   onUpdateSettings,
   onPreviewStart,
   onPreviewEnd,
+  onDropdownOpenChange,
   uiScheme,
   overlayContainer,
 }: VoiceSelectorProps) {
@@ -62,6 +224,28 @@ export function VoiceSelector({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const previewRef = useRef<PreviewSession | null>(null);
   const mountedRef = useRef(true);
+  const openDropdownsRef = useRef({ voice: false, style: false });
+
+  const handleSelectDropdownOpenChange = useCallback(
+    (field: 'voice' | 'style', open: boolean) => {
+      if (openDropdownsRef.current[field] === open) return;
+      openDropdownsRef.current[field] = open;
+      onDropdownOpenChange?.(
+        openDropdownsRef.current.voice || openDropdownsRef.current.style
+      );
+    },
+    [onDropdownOpenChange]
+  );
+
+  const handleVoiceDropdownOpenChange = useCallback(
+    (open: boolean) => handleSelectDropdownOpenChange('voice', open),
+    [handleSelectDropdownOpenChange]
+  );
+
+  const handleStyleDropdownOpenChange = useCallback(
+    (open: boolean) => handleSelectDropdownOpenChange('style', open),
+    [handleSelectDropdownOpenChange]
+  );
 
   // 仅保留中文语音
   const zhVoices = voices.filter(v => v.Locale.startsWith('zh'));
@@ -204,6 +388,16 @@ export function VoiceSelector({
     }
   }, [buildSSML, finishPreview, onPreviewStart, onPreviewEnd, stopPreview]);
 
+  const voiceOptions: ReaderSelectOption[] = zhVoices.map((voice) => ({
+    value: voice.ShortName || voice.Name,
+    label: `${voice.LocalName} (${GENDER_LABELS[voice.Gender] || ''})`,
+  }));
+
+  const styleOptions: ReaderSelectOption[] = [
+    { value: '__clear__', label: '不指定', muted: true },
+    ...availableStyles.map((style) => ({ value: style, label: style })),
+  ];
+
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3">
@@ -216,8 +410,9 @@ export function VoiceSelector({
         <div className="flex items-center gap-1.5">
           {onReloadVoices && (
             <Button
-              variant="ghost"
-              size="sm"
+              type="button"
+              variant="subtle"
+              size="xs"
               onClick={() => void onReloadVoices()}
               disabled={voicesLoading}
               aria-label="重新加载语音"
@@ -229,8 +424,9 @@ export function VoiceSelector({
           )}
 
           <Button
-            variant="ghost"
-            size="sm"
+            type="button"
+            variant="subtle"
+            size="xs"
             onClick={handlePreview}
             aria-label={isPreviewing ? '停止语音试听' : '试听当前语音'}
             className="h-11 rounded-lg px-2.5 text-xs font-medium transition-colors lg:h-9"
@@ -268,92 +464,37 @@ export function VoiceSelector({
 
       {zhVoices.length > 0 && (
         <div className="space-y-1.5">
-          <Select
+          <ReaderSelect
+            ariaLabel="语音"
+            prefixLabel="语音"
+            placeholder="选择语音"
             value={selectedVoice?.ShortName || selectedVoice?.Name || settings.voiceName}
+            options={voiceOptions}
             onValueChange={handleVoiceChange}
-          >
-            <SelectTrigger
-              aria-label="语音"
-              data-reader-interactive="true"
-              className="min-h-11 w-full rounded-lg px-3 text-[13px] font-medium shadow-none transition-colors lg:min-h-9"
-              style={{ ...voiceControlStyle, color: uiScheme.fg }}
-            >
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="shrink-0 text-xs font-medium" style={{ color: uiScheme.mutedText }}>语音</span>
-                <SelectValue placeholder="选择语音" className="truncate" />
-              </div>
-            </SelectTrigger>
-            <SelectContent
-              container={overlayContainer}
-              data-reader-interactive="true"
-              data-reader-tts-owned="true"
-              className="max-w-[300px] rounded-lg border shadow-[var(--paper-shadow-floating)]"
-              style={{
-                background: uiScheme.cardBg,
-                borderColor: withOpacity(uiScheme.cardBorder, 0.75),
-              }}
-            >
-              {zhVoices.map((voice) => (
-                <SelectItem
-                  key={voice.ShortName || voice.Name}
-                  value={voice.ShortName || voice.Name}
-                  className="my-0.5 min-h-11 truncate rounded-lg px-3 py-2 text-sm lg:min-h-9"
-                  style={{ color: uiScheme.fg }}
-                >
-                  {voice.LocalName} ({GENDER_LABELS[voice.Gender] || ''})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onDropdownOpenChange={handleVoiceDropdownOpenChange}
+            uiScheme={uiScheme}
+            controlStyle={voiceControlStyle}
+            overlayContainer={overlayContainer}
+            dropdownMaxWidth="max-w-[300px]"
+          />
         </div>
       )}
 
       {availableStyles.length > 0 && (
         <div className="space-y-1.5">
-          <Select
+          <ReaderSelect
+            ariaLabel="风格"
+            prefixLabel="风格"
+            placeholder="选择风格"
             value={settings.style ?? '__clear__'}
+            options={styleOptions}
             onValueChange={handleStyleChange}
-          >
-            <SelectTrigger
-              aria-label="风格"
-              data-reader-interactive="true"
-              className="min-h-11 w-full rounded-lg px-3 text-[13px] font-medium shadow-none transition-colors lg:min-h-9"
-              style={{ ...voiceControlStyle, color: uiScheme.fg }}
-            >
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="shrink-0 text-xs font-medium" style={{ color: uiScheme.mutedText }}>风格</span>
-                <SelectValue placeholder="选择风格" className="truncate" />
-              </div>
-            </SelectTrigger>
-            <SelectContent
-              container={overlayContainer}
-              data-reader-interactive="true"
-              data-reader-tts-owned="true"
-              className="max-w-[260px] rounded-lg border shadow-[var(--paper-shadow-floating)]"
-              style={{
-                background: uiScheme.cardBg,
-                borderColor: withOpacity(uiScheme.cardBorder, 0.75),
-              }}
-            >
-              <SelectItem
-                value="__clear__"
-                className="my-0.5 min-h-11 truncate rounded-lg px-3 py-2 text-sm lg:min-h-9"
-                style={{ color: uiScheme.mutedText }}
-              >
-                不指定
-              </SelectItem>
-              {availableStyles.map((style) => (
-                <SelectItem
-                  key={style}
-                  value={style}
-                  className="my-0.5 min-h-11 truncate rounded-lg px-3 py-2 text-sm lg:min-h-9"
-                  style={{ color: uiScheme.fg }}
-                >
-                  {style}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onDropdownOpenChange={handleStyleDropdownOpenChange}
+            uiScheme={uiScheme}
+            controlStyle={voiceControlStyle}
+            overlayContainer={overlayContainer}
+            dropdownMaxWidth="max-w-[260px]"
+          />
         </div>
       )}
     </div>

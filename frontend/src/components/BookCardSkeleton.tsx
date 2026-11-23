@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@mantine/core';
 import { SHELF_GRID_GAP_PX, SHELF_GRID_MIN_COL_PX } from '@/lib/shelf-grid';
 
 const skeletonGridStyle = {
@@ -17,20 +17,20 @@ export function BookCardSkeleton() {
       <div className="shelf-book-cover skeleton-shimmer" />
       <div className="shelf-book-details">
         <div className="space-y-1.5">
-          <Skeleton className="h-4 w-4/5 rounded-sm" />
-          <Skeleton className="h-3 w-1/2 rounded-sm" />
+          <Skeleton height={16} width="80%" radius="xs" aria-hidden="true" />
+          <Skeleton height={12} width="50%" radius="xs" aria-hidden="true" />
         </div>
         <div className="space-y-1.5">
-          <Skeleton className="h-[3px] w-full rounded-full" />
+          <Skeleton height={3} width="100%" radius="xl" aria-hidden="true" />
           <div className="flex items-center justify-between gap-2">
-            <Skeleton className="h-4 w-10 rounded-[4px]" />
-            <Skeleton className="h-3 w-14 rounded-sm" />
+            <Skeleton height={16} width={40} radius={4} aria-hidden="true" />
+            <Skeleton height={12} width={56} radius="xs" aria-hidden="true" />
           </div>
         </div>
       </div>
       <div className="shelf-book-actions">
-        <Skeleton className="h-3.5 w-16 rounded-sm" />
-        <Skeleton className="size-3.5 rounded-sm" />
+        <Skeleton height={14} width={64} radius="xs" aria-hidden="true" />
+        <Skeleton height={14} width={14} radius="xs" aria-hidden="true" />
       </div>
     </div>
   );

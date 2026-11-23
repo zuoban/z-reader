@@ -2,8 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
+import { ActionIcon, UnstyledButton } from '@mantine/core';
 import { Volume2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { TTSControlsProps } from '@/components/TTSControls';
 
 const TTSControls = dynamic(() => import('@/components/TTSControls')
@@ -17,25 +18,47 @@ export function DeferredTTSControls({
   if (requested) return <TTSControls {...props} initialExpanded />;
 
   const label = props.state === 'stopped' ? '朗读控制' : '朗读控制（正在播放）';
+  const handleClick = () => {
+    onRequest();
+    setRequested(true);
+  };
+
+  if (props.triggerContent) {
+    return (
+      <UnstyledButton
+        type="button"
+        data-reader-interactive="true"
+        data-reader-tts-trigger="true"
+        title={label}
+        aria-label={label}
+        aria-expanded={false}
+        aria-haspopup="dialog"
+        className={props.triggerClassName}
+        style={props.triggerStyle}
+        onClick={handleClick}
+      >
+        {props.triggerContent}
+      </UnstyledButton>
+    );
+  }
+
   return (
-    <Button
+    <ActionIcon
       type="button"
-      variant="ghost"
-      size={props.triggerContent ? 'sm' : 'icon'}
+      variant="subtle"
+      size={36}
+      radius="md"
       data-reader-interactive="true"
       data-reader-tts-trigger="true"
       title={label}
       aria-label={label}
       aria-expanded={false}
       aria-haspopup="dialog"
-      className={props.triggerClassName}
+      className={cn('min-h-0 min-w-0', props.triggerClassName)}
       style={props.triggerStyle}
-      onClick={() => {
-        onRequest();
-        setRequested(true);
-      }}
+      onClick={handleClick}
     >
-      {props.triggerContent ?? <Volume2 className="relative z-10 h-4 w-4" />}
-    </Button>
+      <Volume2 className="relative z-10 h-4 w-4" />
+    </ActionIcon>
   );
 }

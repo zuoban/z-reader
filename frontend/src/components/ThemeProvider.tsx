@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
+import { MantineProvider } from '@mantine/core';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
+import {
+  mantineCssVariablesResolver,
+  mantineTheme,
+} from '@/lib/mantine-theme';
 import {
   applyThemeColor,
   themeColorForAppMode,
@@ -23,5 +28,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isDark, preset]);
 
-  return <>{children}</>;
+  return (
+    <MantineProvider
+      theme={mantineTheme}
+      cssVariablesResolver={mantineCssVariablesResolver}
+      forceColorScheme={isDark ? 'dark' : 'light'}
+    >
+      {children}
+    </MantineProvider>
+  );
 }

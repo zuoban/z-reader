@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@mantine/core";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import { withOpacity } from "@/lib/reader-ui";
 
@@ -99,7 +99,7 @@ export function ReaderErrorState({
           </Button>
           <Button
             onClick={onBack}
-            variant="outline"
+            variant="default"
             className="h-10 rounded-lg px-5"
           >
             返回书库
@@ -108,7 +108,7 @@ export function ReaderErrorState({
       ) : (
         <Button
           onClick={onBack}
-          variant="outline"
+          variant="default"
           className="mt-1 h-10 rounded-lg px-5"
         >
           返回书库

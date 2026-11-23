@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { mantineHtmlProps } from '@mantine/core';
 import '@fontsource/crimson-text/latin-400.css';
 import '@fontsource/crimson-text/latin-600.css';
 import '@fontsource/crimson-text/latin-700.css';
@@ -14,7 +15,6 @@ import '@fontsource/lxgw-wenkai-tc/400.css';
 import '@fontsource/lxgw-wenkai-tc/700.css';
 import './fonts/noto-serif-sc-compat.css';
 import { Toaster } from 'sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorSuppressor } from '@/components/ErrorSuppressor';
@@ -70,6 +70,8 @@ export const metadata: Metadata = {
   },
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem('z-reader-theme');var parsed=raw?JSON.parse(raw):null;var p=parsed&&parsed.preset;var preset=(p==='dark'||p==='sepia'||p==='green'||p==='light')?p:'light';var isDark=preset==='dark';var r=document.documentElement;r.classList.toggle('dark',isDark);r.dataset.readerPreset=preset;r.setAttribute('data-mantine-color-scheme',isDark?'dark':'light');r.style.colorScheme=isDark?'dark':'light';}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -77,40 +79,42 @@ export default function RootLayout({
 }>) {
   return (
     <html
+      {...mantineHtmlProps}
       lang="zh-CN"
       className="h-full antialiased"
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background font-sans">
         <ThemeProvider>
-          <TooltipProvider>
-            <a
-              href="#main-content"
-              className="fixed left-4 top-4 z-[var(--z-skip-link)] -translate-y-16 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_-16px_var(--paper-shadow)] transition-transform focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              跳到主内容
-            </a>
-            <ServiceWorkerRegistration />
-            <ErrorSuppressor />
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-            <Toaster
-              position="top-center"
-              closeButton
-              toastOptions={{
-                closeButtonAriaLabel: '关闭通知',
-                style: {
-                  background: 'var(--card)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-xl)',
-                  paddingRight: '3.25rem',
-                  boxShadow: 'var(--paper-shadow-floating)',
-                },
-              }}
-            />
-          </TooltipProvider>
+          <a
+            href="#main-content"
+            className="fixed left-4 top-4 z-[var(--z-skip-link)] -translate-y-16 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_-16px_var(--paper-shadow)] transition-transform focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            跳到主内容
+          </a>
+          <ServiceWorkerRegistration />
+          <ErrorSuppressor />
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+          <Toaster
+            position="top-center"
+            closeButton
+            toastOptions={{
+              closeButtonAriaLabel: '关闭通知',
+              style: {
+                background: 'var(--card)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                paddingRight: '3.25rem',
+                boxShadow: 'var(--paper-shadow-floating)',
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@/test/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VoiceSelector } from '@/components/VoiceSelector';
@@ -144,7 +144,10 @@ describe('VoiceSelector preview lifecycle', () => {
 
   it('clears a style unsupported by a newly selected voice', async () => {
     const { props } = renderSelector({ style: 'newscast' });
-    fireEvent.keyDown(screen.getByRole('combobox', { name: '语音' }), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('combobox', { name: '语音' }), {
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    });
     await flush();
     fireEvent.click(screen.getByRole('option', { name: '晓伊 (女)' }));
     expect(props.onUpdateSettings).toHaveBeenCalledWith({
@@ -160,12 +163,50 @@ describe('VoiceSelector preview lifecycle', () => {
     }));
     rerender(<VoiceSelector {...props} voices={voices} />);
     expect(screen.getByRole('combobox', { name: '风格' })).toBeVisible();
-    fireEvent.keyDown(screen.getByRole('combobox', { name: '语音' }), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('combobox', { name: '语音' }), {
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    });
     await flush();
     fireEvent.click(screen.getByRole('option', { name: '晓伊 (女)' }));
     expect(props.onUpdateSettings).toHaveBeenCalledWith({
       voiceName: FALLBACK_ZH_VOICES[1].ShortName,
     });
+  });
+
+  it('supports native keyboard navigation and prevents Escape from bubbling to window', async () => {
+    const { props } = renderSelector();
+    const trigger = screen.getByRole('combobox', { name: '语音' });
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown', code: 'ArrowDown' });
+    await flush();
+    expect(screen.getByRole('listbox')).toBeVisible();
+
+    const onWindowKeyDown = vi.fn();
+    window.addEventListener('keydown', onWindowKeyDown);
+    try {
+      const escapeEvent = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      });
+      trigger.dispatchEvent(escapeEvent);
+      await flush();
+
+      expect(escapeEvent.defaultPrevented).toBe(true);
+      expect(onWindowKeyDown).not.toHaveBeenCalled();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    } finally {
+      window.removeEventListener('keydown', onWindowKeyDown);
+    }
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown', code: 'ArrowDown' });
+    await flush();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown', code: 'ArrowDown' });
+    fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+    await flush();
+    expect(props.onUpdateSettings).toHaveBeenCalled();
   });
 
   it('stops an active preview when narration claims focus without preview callbacks', async () => {

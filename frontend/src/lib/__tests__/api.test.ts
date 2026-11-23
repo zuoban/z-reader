@@ -573,6 +573,21 @@ describe('api.saveProgress', () => {
       }),
     );
   });
+
+  it('sends the conditional creation flag for regular and unload saves', async () => {
+    globalThis.fetch = mockFetch({ body: {}, ok: true });
+
+    await api.saveProgress('1', 'epubcfi(/6/4)', 75, { createOnly: true });
+    api.saveProgressOnUnload('1', 'epubcfi(/6/4)', 75, { createOnly: true });
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    for (const [, request] of vi.mocked(globalThis.fetch).mock.calls) {
+      expect(request?.method).toBe('POST');
+      expect(JSON.parse(String(request?.body))).toEqual({
+        cfi: 'epubcfi(/6/4)', percentage: 75, create_only: true,
+      });
+    }
+  });
 });
 
 describe('api error handling', () => {

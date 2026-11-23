@@ -179,6 +179,15 @@ export default function ReadPage() {
   }, [authLoading, isAuthenticated, isOffline, router]);
 
   useEffect(() => {
+    if (!isOffline || isRetryingAuth) return;
+    const handleOnline = () => {
+      void checkAuth();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [checkAuth, isOffline, isRetryingAuth]);
+
+  useEffect(() => {
     if (authLoading || !isOffline || !bookId) return;
     let cancelled = false;
     void hasOfflineBook(PERSONAL_LIBRARY, bookId).then((available) => {

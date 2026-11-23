@@ -81,6 +81,15 @@ func (db *DB) SaveProgress(progress *models.Progress, userID string) error {
 // SaveProgressIfCurrent validates and writes in one transaction so ownership,
 // optimistic concurrency, the book timestamp and progress indexes stay atomic.
 func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, expectedUpdatedAt *time.Time) error {
+	return db.saveProgress(progress, userID, expectedUpdatedAt, false)
+}
+
+// CreateProgress saves the first progress record, or returns ErrProgressConflict.
+func (db *DB) CreateProgress(progress *models.Progress, userID string) error {
+	return db.saveProgress(progress, userID, nil, true)
+}
+
+func (db *DB) saveProgress(progress *models.Progress, userID string, expectedUpdatedAt *time.Time, createOnly bool) error {
 	progress.UserID = userID
 	key := progressKey(userID, progress.BookID)
 	data, err := json.Marshal(progress)
@@ -108,6 +117,9 @@ func (db *DB) SaveProgressIfCurrent(progress *models.Progress, userID string, ex
 				return err
 			}
 			previous = &value
+		}
+		if createOnly && previous != nil {
+			return ErrProgressConflict
 		}
 		if expectedUpdatedAt != nil && (previous == nil || !previous.UpdatedAt.Equal(*expectedUpdatedAt)) {
 			return ErrProgressConflict

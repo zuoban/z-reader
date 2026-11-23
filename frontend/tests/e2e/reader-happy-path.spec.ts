@@ -70,6 +70,78 @@ test.describe('reader happy path', () => {
       .toHaveAttribute('content', shelfBackground);
   });
 
+  test('reconnects after opening the reader without a server connection', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+    const authRoute = '**/api/auth/verify**';
+    await page.route(authRoute, (route) => route.abort('internetdisconnected'));
+
+    await gotoStable(page, '/read/book-1');
+    await expect(page.getByText('当前处于离线状态，本书尚未保存到离线缓存')).toBeVisible();
+
+    await page.unroute(authRoute);
+    await page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await waitForReaderReady(page);
+  });
+
+  test('keeps the other device’s progress when an offline edit is replayed', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+    let serverProgress = {
+      book_id: 'book-1',
+      cfi: 'epubcfi(/6/2!/4/2/2)',
+      percentage: 1,
+      device_id: 'device-a',
+      updated_at: '2026-01-20T08:00:00Z',
+    };
+    const rejectedVersions: Array<string | undefined> = [];
+    await page.route('**/api/progress/book-1', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ json: serverProgress });
+        return;
+      }
+      const body = route.request().postDataJSON() as {
+        cfi: string;
+        percentage: number;
+        expected_updated_at?: string;
+      };
+      if (body.expected_updated_at && body.expected_updated_at !== serverProgress.updated_at) {
+        rejectedVersions.push(body.expected_updated_at);
+        await route.fulfill({ status: 409, json: { progress: serverProgress } });
+        return;
+      }
+      serverProgress = { ...serverProgress, cfi: body.cfi, percentage: body.percentage };
+      await route.fulfill({ json: serverProgress });
+    });
+
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+    await ensureToolbarVisible(page);
+
+    const baseline = serverProgress;
+    await page.context().setOffline(true);
+    await page.getByRole('button', { name: /目录/ }).first().click();
+    await page.getByRole('dialog', { name: '目录', exact: true })
+      .getByRole('button', { name: /^第二章 续篇/ }).click();
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    const offlineKey = 'z-reader-offline-progress:book-1';
+    await expect.poll(() => page.evaluate(key => Boolean(localStorage.getItem(key)), offlineKey))
+      .toBe(true);
+
+    const otherDeviceProgress = {
+      ...baseline,
+      percentage: 2,
+      device_id: 'device-b',
+      updated_at: '2026-01-20T09:00:00Z',
+    };
+    serverProgress = otherDeviceProgress;
+    await page.context().setOffline(false);
+
+    await expect.poll(() => rejectedVersions).toContain(baseline.updated_at);
+    await expect.poll(() => page.evaluate(key => localStorage.getItem(key), offlineKey)).toBeNull();
+    expect(serverProgress).toEqual(otherDeviceProgress);
+  });
+
   test('turns pages with keyboard and can open the next chapter via TOC', async ({
     page,
   }) => {

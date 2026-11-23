@@ -462,16 +462,20 @@ export const api = {
     bookId: string,
     cfi: string,
     percentage: number,
-    options: { expectedUpdatedAt?: string; deviceId?: string } = {},
+    options: { expectedUpdatedAt?: string; createOnly?: boolean; deviceId?: string } = {},
   ): Promise<Progress> => {
     const body: {
       cfi: string;
       percentage: number;
       expected_updated_at?: string;
+      create_only?: boolean;
       device_id?: string;
     } = { cfi, percentage };
     if (options.expectedUpdatedAt) {
       body.expected_updated_at = options.expectedUpdatedAt;
+    }
+    if (options.createOnly) {
+      body.create_only = true;
     }
     if (options.deviceId) {
       body.device_id = options.deviceId;
@@ -487,16 +491,20 @@ export const api = {
     bookId: string,
     cfi: string,
     percentage: number,
-    options: { expectedUpdatedAt?: string; deviceId?: string } = {},
+    options: { expectedUpdatedAt?: string; createOnly?: boolean; deviceId?: string } = {},
   ): void => {
     const body: {
       cfi: string;
       percentage: number;
       expected_updated_at?: string;
+      create_only?: boolean;
       device_id?: string;
     } = { cfi, percentage };
     if (options.expectedUpdatedAt) {
       body.expected_updated_at = options.expectedUpdatedAt;
+    }
+    if (options.createOnly) {
+      body.create_only = true;
     }
     if (options.deviceId) {
       body.device_id = options.deviceId;

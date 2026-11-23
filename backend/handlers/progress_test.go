@@ -67,6 +67,58 @@ func TestProgressSaveCreatesNewRecord(t *testing.T) {
 	}
 }
 
+func TestProgressSaveCreateOnlyAllowsOneConcurrentFirstWrite(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db, userID := setupProgressTestDB(t)
+	router := gin.New()
+	router.POST("/api/progress/:id", NewProgressHandler(db).Save)
+
+	type result struct {
+		recorder *httptest.ResponseRecorder
+		cfi      string
+	}
+	firstWrites := make(chan result, 2)
+	start := make(chan struct{})
+	for _, cfi := range []string{"epubcfi(/6/4)", "epubcfi(/6/8)"} {
+		go func() {
+			<-start
+			body := strings.NewReader(`{"cfi":"` + cfi + `","percentage":25,"create_only":true}`)
+			req := httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
+			req.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, req)
+			firstWrites <- result{recorder: recorder, cfi: cfi}
+		}()
+	}
+	close(start)
+
+	var written models.Progress
+	var conflict struct{ Progress models.Progress }
+	for range 2 {
+		result := <-firstWrites
+		switch result.recorder.Code {
+		case http.StatusOK:
+			if err := json.Unmarshal(result.recorder.Body.Bytes(), &written); err != nil || written.CFI != result.cfi {
+				t.Errorf("invalid successful write: %+v, error: %v", written, err)
+			}
+		case http.StatusConflict:
+			if err := json.Unmarshal(result.recorder.Body.Bytes(), &conflict); err != nil {
+				t.Errorf("invalid conflict response: %v", err)
+			}
+		default:
+			t.Errorf("unexpected status: %d, body: %s", result.recorder.Code, result.recorder.Body.String())
+		}
+	}
+	if written.CFI == "" || conflict.Progress.CFI != written.CFI || !conflict.Progress.UpdatedAt.Equal(written.UpdatedAt) {
+		t.Fatalf("expected one write and one conflict reporting it, got %+v and %+v", written, conflict)
+	}
+	stored, err := db.GetProgress("book-progress", userID)
+	if err != nil || stored == nil || stored.CFI != written.CFI || !stored.UpdatedAt.Equal(written.UpdatedAt) {
+		t.Fatalf("stored progress changed after conflict: %+v, error: %v", stored, err)
+	}
+}
+
 func TestProgressSaveRecordsOperationMetric(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

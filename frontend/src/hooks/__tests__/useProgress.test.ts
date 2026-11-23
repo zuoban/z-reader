@@ -16,10 +16,12 @@ const MOCK_PROGRESS = (overrides: Partial<Progress> = {}): Progress => ({
 vi.mock('@/lib/api', () => ({
   ApiError: class ApiError extends Error {
     status: number;
+    details?: unknown;
 
-    constructor(message: string, status: number) {
+    constructor(message: string, status: number, details?: unknown) {
       super(message);
       this.status = status;
+      this.details = details;
     }
   },
   api: {
@@ -28,6 +30,16 @@ vi.mock('@/lib/api', () => ({
     saveProgressOnUnload: vi.fn(),
   },
 }));
+
+function deferredProgress() {
+  let resolve!: (progress: Progress) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<Progress>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
 
 function setDocumentVisibility(state: 'visible' | 'hidden') {
   Object.defineProperty(document, 'visibilityState', {
@@ -38,7 +50,8 @@ function setDocumentVisibility(state: 'visible' | 'hidden') {
 
 describe('useProgress', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     localStorage.clear();
     setDocumentVisibility('visible');
@@ -266,7 +279,7 @@ describe('useProgress', () => {
     });
 
     expect(api.saveProgress).toHaveBeenCalledWith('book-1', 'epubcfi(/6/4)', 50, {
-      expectedUpdatedAt: undefined,
+      createOnly: true,
       deviceId: expect.any(String),
     });
   });
@@ -378,8 +391,172 @@ describe('useProgress', () => {
     });
 
     expect(api.saveProgress).toHaveBeenCalledTimes(2);
+    expect(api.saveProgress).toHaveBeenLastCalledWith('book-1', 'epubcfi(/6/6)', 55, {
+      createOnly: true,
+      deviceId: expect.any(String),
+    });
     expect(localStorage.getItem('z-reader-offline-progress:book-1')).toBeNull();
     expect(JSON.parse(localStorage.getItem('z-reader-offline-pending-sync-books')!)).toEqual([]);
+  });
+
+  it('keeps B’s server progress when A reconnects with a stale offline position', async () => {
+    const initial = MOCK_PROGRESS({
+      cfi: 'epubcfi(/6/2)', percentage: 10, updated_at: '2026-05-01T00:00:00.123456789Z',
+    });
+    let server = initial;
+    vi.mocked(api.getProgress).mockImplementation(async () => server);
+    vi.mocked(api.saveProgress).mockImplementation(async (_id, cfi, percentage, options) => {
+      if (options?.expectedUpdatedAt !== server.updated_at) {
+        throw new ApiError('Conflict', 409, { progress: server });
+      }
+      server = MOCK_PROGRESS({ cfi, percentage });
+      return server;
+    });
+    const openReader = () => renderHook(() =>
+      useProgress({ bookId: 'book-1', autoSaveInterval: 999999 }),
+    );
+    const first = openReader();
+    await act(async () => {});
+    first.unmount();
+
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const { result } = openReader();
+    await act(async () => {});
+    act(() => {
+      result.current.updateProgress('epubcfi(/6/4)', 20);
+      result.current.saveNow();
+      result.current.updateProgress('epubcfi(/6/6)', 30);
+      result.current.saveNow();
+    });
+    expect(api.saveProgress).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem('z-reader-offline-progress:book-1')!))
+      .toMatchObject({ expected_updated_at: initial.updated_at });
+
+    const fromB = MOCK_PROGRESS({
+      cfi: 'epubcfi(/6/20)', percentage: 80, updated_at: '2026-05-02T00:00:00Z',
+    });
+    server = fromB;
+    online.mockReturnValue(true);
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(api.saveProgress).toHaveBeenCalledExactlyOnceWith('book-1', 'epubcfi(/6/6)', 30, {
+      expectedUpdatedAt: initial.updated_at,
+      deviceId: expect.any(String),
+    });
+    expect(server).toEqual(fromB);
+    expect(localStorage.getItem('z-reader-offline-progress:book-1')).toBeNull();
+    expect(result.current.progress).toMatchObject({ cfi: 'epubcfi(/6/6)', remote: false });
+
+    await act(async () => {
+      result.current.updateProgress('epubcfi(/6/8)', 40);
+      result.current.saveNow();
+    });
+    expect(api.saveProgress).toHaveBeenLastCalledWith('book-1', 'epubcfi(/6/8)', 40, {
+      expectedUpdatedAt: fromB.updated_at,
+      deviceId: expect.any(String),
+    });
+  });
+
+  it('preserves unconfirmed data across a 503 and advances the base after a successful replay', async () => {
+    const initial = '2026-05-01T00:00:00Z';
+    const afterFirstReplay = '2026-05-02T00:00:00Z';
+    vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({
+      cfi: 'epubcfi(/6/2)', percentage: 10, updated_at: initial,
+    }));
+    const firstReplay = deferredProgress();
+    vi.mocked(api.saveProgress)
+      .mockRejectedValueOnce(new ApiError('Unavailable', 503))
+      .mockRejectedValueOnce(new ApiError('Unavailable', 503))
+      .mockReturnValueOnce(firstReplay.promise)
+      .mockResolvedValueOnce(MOCK_PROGRESS({ cfi: 'epubcfi(/6/8)', percentage: 40 }));
+    const { result } = renderHook(() => useProgress({ bookId: 'book-1', autoSaveInterval: 999999 }));
+    await act(async () => {});
+    await act(async () => {
+      result.current.updateProgress('epubcfi(/6/4)', 20);
+      result.current.saveNow();
+    });
+    const queued = localStorage.getItem('z-reader-offline-progress:book-1');
+    expect(queued).not.toBeNull();
+    await act(async () => { window.dispatchEvent(new Event('online')); });
+    expect(localStorage.getItem('z-reader-offline-progress:book-1')).toBe(queued);
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(api.saveProgress).toHaveBeenNthCalledWith(3, 'book-1', 'epubcfi(/6/4)', 20, {
+      expectedUpdatedAt: initial, deviceId: expect.any(String),
+    });
+    act(() => {
+      result.current.updateProgress('epubcfi(/6/8)', 40);
+      result.current.saveNow();
+    });
+    await act(async () => {
+      firstReplay.resolve(MOCK_PROGRESS({
+        cfi: 'epubcfi(/6/4)', percentage: 20, updated_at: afterFirstReplay,
+      }));
+    });
+    expect(api.saveProgress).toHaveBeenNthCalledWith(4, 'book-1', 'epubcfi(/6/8)', 40, {
+      expectedUpdatedAt: afterFirstReplay, deviceId: expect.any(String),
+    });
+    expect(localStorage.getItem('z-reader-offline-progress:book-1')).toBeNull();
+    expect(result.current.progress?.cfi).toBe('epubcfi(/6/8)');
+  });
+
+  it('uses conditional creation for a legacy queue and retains a newer edit when replay conflicts', async () => {
+    const snapshotKey = 'z-reader-offline-progress:book-1';
+    localStorage.setItem('z-reader-offline-pending-sync-books', JSON.stringify(['book-1']));
+    localStorage.setItem(snapshotKey, JSON.stringify({
+      cfi: 'epubcfi(/6/4)', percentage: 20, updated_at: '2099-05-02T00:00:00Z',
+    }));
+    const fromB = MOCK_PROGRESS({
+      cfi: 'epubcfi(/6/20)', percentage: 80, updated_at: '2026-05-02T00:00:00Z',
+    });
+    vi.mocked(api.getProgress).mockResolvedValue(fromB);
+    const replay = deferredProgress();
+    vi.mocked(api.saveProgress).mockReturnValueOnce(replay.promise);
+    const { result } = renderHook(() => useProgress({ bookId: 'book-1', autoSaveInterval: 999999 }));
+    await act(async () => {});
+    expect(api.saveProgress).toHaveBeenCalledExactlyOnceWith('book-1', 'epubcfi(/6/4)', 20, {
+      createOnly: true, deviceId: expect.any(String),
+    });
+    act(() => {
+      result.current.updateProgress('epubcfi(/6/6)', 30);
+      result.current.saveNow();
+    });
+    const newer = localStorage.getItem(snapshotKey);
+    await act(async () => { replay.reject(new ApiError('Conflict', 409, { progress: fromB })); });
+    expect(api.saveProgress).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(snapshotKey)).toBe(newer);
+    expect(JSON.parse(newer!)).toMatchObject({ cfi: 'epubcfi(/6/6)', expected_updated_at: null });
+  });
+
+  it('keeps an unsaved offline edit on its original base after a replay conflict', async () => {
+    const initial = MOCK_PROGRESS({
+      cfi: 'epubcfi(/6/2)', percentage: 10, updated_at: '2026-05-01T00:00:00Z',
+    });
+    const fromB = MOCK_PROGRESS({
+      cfi: 'epubcfi(/6/20)', percentage: 80, updated_at: '2026-05-02T00:00:00Z',
+    });
+    vi.mocked(api.getProgress).mockResolvedValue(initial);
+    const conflict = new ApiError('Conflict', 409, { progress: fromB });
+    vi.mocked(api.saveProgress).mockRejectedValue(conflict);
+    const online = vi.spyOn(navigator, 'onLine', 'get');
+    const { result } = renderHook(() => useProgress({ bookId: 'book-1', autoSaveInterval: 999999 }));
+    await act(async () => {});
+    online.mockReturnValue(false);
+    act(() => {
+      result.current.updateProgress('epubcfi(/6/4)', 20);
+      result.current.saveNow();
+      result.current.updateProgress('epubcfi(/6/8)', 40);
+    });
+    online.mockReturnValue(true);
+    await act(async () => { window.dispatchEvent(new Event('online')); });
+    await act(async () => { result.current.saveNow(); });
+
+    expect(api.saveProgress).toHaveBeenCalledTimes(2);
+    expect(api.saveProgress).toHaveBeenLastCalledWith('book-1', 'epubcfi(/6/8)', 40, {
+      expectedUpdatedAt: initial.updated_at, deviceId: expect.any(String),
+    });
+    expect(result.current.progress?.cfi).toBe('epubcfi(/6/8)');
   });
 
   it('reloads latest remote progress on 409 conflict and ignores offline queue on non-409 ApiError', async () => {
@@ -613,7 +790,7 @@ describe('useProgress', () => {
       'book-offline',
       'epubcfi(/6/9)',
       45,
-      expect.objectContaining({ deviceId: expect.any(String) }),
+      { createOnly: true, deviceId: expect.any(String) },
     );
   });
 });

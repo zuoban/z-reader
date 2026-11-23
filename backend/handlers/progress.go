@@ -32,6 +32,7 @@ type ProgressRequest struct {
 	Percentage        float64    `json:"percentage" form:"percentage"`
 	DeviceID          string     `json:"device_id" form:"device_id"`
 	ExpectedUpdatedAt *time.Time `json:"expected_updated_at" form:"expected_updated_at"`
+	CreateOnly        bool       `json:"create_only" form:"create_only"`
 }
 
 func (h *ProgressHandler) List(c *gin.Context) {
@@ -141,6 +142,11 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		return
 	}
 
+	if req.CreateOnly && req.ExpectedUpdatedAt != nil {
+		response.BadRequest(c, "不能同时指定仅创建和预期版本")
+		return
+	}
+
 	progress := &models.Progress{
 		BookID:     id,
 		UserID:     storage.PersonalLibrary,
@@ -151,7 +157,13 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 	}
 
 	writeStartedAt := time.Now()
-	if err := h.db.SaveProgressIfCurrent(progress, storage.PersonalLibrary, req.ExpectedUpdatedAt); err != nil {
+	var err error
+	if req.CreateOnly {
+		err = h.db.CreateProgress(progress, storage.PersonalLibrary)
+	} else {
+		err = h.db.SaveProgressIfCurrent(progress, storage.PersonalLibrary, req.ExpectedUpdatedAt)
+	}
+	if err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
 			return

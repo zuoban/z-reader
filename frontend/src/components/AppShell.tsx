@@ -40,41 +40,6 @@ const brandSizes = {
   lg: 'scale-[1.12]',
 };
 
-export function BrandGlyph({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 64 64"
-      className={cn('h-9 w-9 shrink-0', className)}
-      fill="none"
-    >
-      <rect
-        x="8"
-        y="8"
-        width="48"
-        height="48"
-        rx="12"
-        className="fill-primary"
-      />
-      <path
-        d="M18 20.2C22.7 17.8 27.6 18 32 21.1V45.8C27.6 42.9 22.7 42.7 18 45.2V20.2Z"
-        className="fill-primary-foreground opacity-80"
-      />
-      <path
-        d="M32 21.1C36.4 18 41.3 17.8 46 20.2V45.2C41.3 42.7 36.4 42.9 32 45.8V21.1Z"
-        className="fill-primary-foreground"
-      />
-      <path
-        d="M24.1 26.1H39.8L28.2 38.1H40.2"
-        className="stroke-primary"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="4.2"
-      />
-    </svg>
-  );
-}
-
 export function BrandLogo({
   className,
   compact = false,
@@ -84,7 +49,11 @@ export function BrandLogo({
 }) {
   return (
     <div className={cn('inline-flex items-center gap-2 text-foreground', className)}>
-      <BrandGlyph className={compact ? 'h-7 w-7' : 'h-8 w-8'} />
+      <span
+        aria-hidden="true"
+        className={cn('shrink-0 rounded-[25%] bg-cover', compact ? 'size-7' : 'size-8')}
+        style={{ backgroundImage: 'url(/icons/icon.svg)' }}
+      />
       <span
         className={cn(
           'font-heading font-medium leading-none tracking-[-0.015em] text-foreground',

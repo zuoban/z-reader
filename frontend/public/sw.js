@@ -1,8 +1,9 @@
-const CACHE_NAME = 'z-reader-v0.1.6';
+const CACHE_NAME = 'z-reader-v0.1.7';
 const STATIC_ASSETS = [
   '/',
   '/login',
   '/manifest.json',
+  '/icons/icon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
@@ -64,7 +65,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name !== CACHE_NAME && /^z-reader-v\d+(?:\.\d+)*$/.test(name))
           .map((name) => caches.delete(name))
       );
     })

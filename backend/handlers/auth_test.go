@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -69,5 +70,142 @@ func TestPersonalLibraryAccess(t *testing.T) {
 			t.Fatal(err)
 		}
 		request(protected, "GET", "/verify", "", cookie, 401)
+	}
+}
+
+func TestAccessCookieSecureFlagRespectsTrustedProxiesAndTLS(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openHandlerTestDB(t)
+
+	cases := []struct {
+		name           string
+		trustedProxies []string
+		remoteAddr     string
+		forwardedProto string
+		directTLS      bool
+		wantSecure     bool
+	}{
+		{
+			name:           "direct HTTP with spoofed X-Forwarded-Proto from untrusted IP",
+			trustedProxies: []string{"127.0.0.1", "::1"},
+			remoteAddr:     "203.0.113.10:44321",
+			forwardedProto: "https",
+			wantSecure:     false,
+		},
+		{
+			name:           "direct HTTP with spoofed X-Forwarded-Proto and empty trusted proxies",
+			trustedProxies: nil,
+			remoteAddr:     "127.0.0.1:44321",
+			forwardedProto: "https",
+			wantSecure:     false,
+		},
+		{
+			name:           "trusted proxy IPv4 with X-Forwarded-Proto https",
+			trustedProxies: []string{"127.0.0.1", "::1"},
+			remoteAddr:     "127.0.0.1:54321",
+			forwardedProto: "https",
+			wantSecure:     true,
+		},
+		{
+			name:           "trusted proxy IPv6 with X-Forwarded-Proto https",
+			trustedProxies: []string{"127.0.0.1", "::1"},
+			remoteAddr:     "[::1]:54321",
+			forwardedProto: "https",
+			wantSecure:     true,
+		},
+		{
+			name:           "trusted proxy CIDR with X-Forwarded-Proto https",
+			trustedProxies: []string{"10.0.0.0/8"},
+			remoteAddr:     "10.24.0.5:8080",
+			forwardedProto: "https",
+			wantSecure:     true,
+		},
+		{
+			name:           "untrusted IP outside CIDR",
+			trustedProxies: []string{"10.0.0.0/8"},
+			remoteAddr:     "192.168.1.5:8080",
+			forwardedProto: "https",
+			wantSecure:     false,
+		},
+		{
+			name:           "trusted wildcard proxy with X-Forwarded-Proto https",
+			trustedProxies: []string{"*"},
+			remoteAddr:     "198.51.100.7:1234",
+			forwardedProto: "https",
+			wantSecure:     true,
+		},
+		{
+			name:           "trusted proxy with X-Forwarded-Proto http",
+			trustedProxies: []string{"127.0.0.1"},
+			remoteAddr:     "127.0.0.1:1234",
+			forwardedProto: "http",
+			wantSecure:     false,
+		},
+		{
+			name:           "direct TLS always sets Secure regardless of trusted proxies",
+			trustedProxies: nil,
+			remoteAddr:     "203.0.113.55:443",
+			forwardedProto: "",
+			directTLS:      true,
+			wantSecure:     true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			handler := NewAuthHandler(&config.Config{
+				AccessPassword: "secret",
+				TrustedProxies: tc.trustedProxies,
+			}, db)
+			router.POST("/login", handler.Login)
+			router.POST("/logout", handler.Logout)
+
+			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"password":"secret"}`))
+			req.Header.Set("Content-Type", "application/json")
+			req.RemoteAddr = tc.remoteAddr
+			if tc.forwardedProto != "" {
+				req.Header.Set("X-Forwarded-Proto", tc.forwardedProto)
+			}
+			if tc.directTLS {
+				req.TLS = &tls.ConnectionState{}
+			}
+
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("login returned %d: %s", rec.Code, rec.Body.String())
+			}
+			cookies := rec.Result().Cookies()
+			if len(cookies) != 1 {
+				t.Fatalf("expected 1 cookie, got %d", len(cookies))
+			}
+			if cookies[0].Secure != tc.wantSecure {
+				t.Fatalf("cookie Secure = %v, want %v", cookies[0].Secure, tc.wantSecure)
+			}
+			if !cookies[0].HttpOnly {
+				t.Fatal("expected HttpOnly cookie")
+			}
+
+			// Logout cookie must mirror the same Secure policy.
+			logoutReq := httptest.NewRequest(http.MethodPost, "/logout", nil)
+			logoutReq.RemoteAddr = tc.remoteAddr
+			if tc.forwardedProto != "" {
+				logoutReq.Header.Set("X-Forwarded-Proto", tc.forwardedProto)
+			}
+			if tc.directTLS {
+				logoutReq.TLS = &tls.ConnectionState{}
+			}
+			logoutReq.AddCookie(cookies[0])
+			logoutRec := httptest.NewRecorder()
+			router.ServeHTTP(logoutRec, logoutReq)
+			if logoutRec.Code != http.StatusOK {
+				t.Fatalf("logout returned %d: %s", logoutRec.Code, logoutRec.Body.String())
+			}
+			logoutCookies := logoutRec.Result().Cookies()
+			if len(logoutCookies) != 1 || logoutCookies[0].Secure != tc.wantSecure {
+				t.Fatalf("logout cookie mismatch: %+v, want Secure=%v", logoutCookies, tc.wantSecure)
+			}
+		})
 	}
 }

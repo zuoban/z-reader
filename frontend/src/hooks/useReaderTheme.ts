@@ -64,21 +64,21 @@ export interface ThemeColors {
 }
 
 export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
-  /* 净白 — calm paper white with botanical ink accent (aligned with app shell) */
+  /* 净白 — warm neutral paper with pine-ink accent (aligned with app shell) */
   light: {
-    bg: "#f7f8f4",
-    fg: "#202d27",
-    link: "#285448",
-    headerBg: "#f7f8f4",
-    headerBorder: "#dce2d8",
-    cardBg: "#fffefa",
-    cardBorder: "#dce2d8",
-    buttonBg: "#e9eee7",
-    buttonHoverBg: "#e1e8de",
-    buttonText: "#202d27",
-    muted: "#edf0e9",
-    mutedText: "#626e64",
-    accentText: "#285448",
+    bg: "#f8f7f4",
+    fg: "#1c1b19",
+    link: "#234d3e",
+    headerBg: "#f8f7f4",
+    headerBorder: "#e6e4de",
+    cardBg: "#ffffff",
+    cardBorder: "#e6e4de",
+    buttonBg: "#f1efe9",
+    buttonHoverBg: "#e8e5dd",
+    buttonText: "#1c1b19",
+    muted: "#f3f2ed",
+    mutedText: "#6b6860",
+    accentText: "#234d3e",
   },
   /* 旧书 — classic parchment */
   sepia: {
@@ -112,21 +112,21 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     mutedText: "#3d4f42",
     accentText: "#3d6349",
   },
-  /* 夜读 — deep botanical ink night (aligned with app shell dark mode) */
+  /* 夜读 — calm warm graphite night (aligned with app shell dark mode) */
   dark: {
-    bg: "#151d19",
-    fg: "#e5ebe1",
-    link: "#b2cdb6",
-    headerBg: "#151d19",
-    headerBorder: "#354538",
-    cardBg: "#1d2821",
-    cardBorder: "#354538",
-    buttonBg: "#253229",
-    buttonHoverBg: "#2e3d32",
-    buttonText: "#e5ebe1",
-    muted: "#26332a",
-    mutedText: "#a7b5a6",
-    accentText: "#b2cdb6",
+    bg: "#141413",
+    fg: "#ededeb",
+    link: "#88bfa0",
+    headerBg: "#141413",
+    headerBorder: "#2a2a27",
+    cardBg: "#1b1b19",
+    cardBorder: "#2a2a27",
+    buttonBg: "#242422",
+    buttonHoverBg: "#2e2e2b",
+    buttonText: "#ededeb",
+    muted: "#20201e",
+    mutedText: "#9a9891",
+    accentText: "#88bfa0",
   },
 };
 

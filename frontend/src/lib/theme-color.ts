@@ -3,8 +3,8 @@ import { PRESET_STYLES } from '@/hooks/useReaderTheme';
 
 /** Browser chrome / PWA status bar colors aligned with paper themes */
 export const APP_THEME_COLORS = {
-  light: '#f7f8f4',
-  dark: '#151d19',
+  light: '#f8f7f4',
+  dark: '#141413',
 } as const;
 
 const META_NAME = 'theme-color';

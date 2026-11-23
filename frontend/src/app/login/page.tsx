@@ -58,13 +58,13 @@ export default function LoginPage() {
   return (
     <AppScreen contentClassName="entry-screen flex flex-col">
       <div className="app-container flex flex-1 flex-col items-center lg:justify-center lg:py-8">
-        <header className="flex w-full max-w-6xl items-center justify-between gap-4 border-b border-border py-3 lg:mb-5 lg:border-0 lg:py-0">
-          <Link href="/" aria-label="Z Reader 首页" className="inline-flex min-h-11 items-center rounded-lg">
-            <BrandLogo />
+        <header className="flex w-full max-w-5xl items-center justify-between gap-4 border-b border-border py-3 lg:mb-5 lg:border-0 lg:py-0">
+          <Link href="/" aria-label="Z Reader 首页" className="inline-flex min-h-10 items-center rounded-lg">
+            <BrandLogo compact />
           </Link>
           <Link
             href="/"
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg text-sm whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-lg text-sm whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
           >
             返回首页
             <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden="true" />
@@ -73,22 +73,22 @@ export default function LoginPage() {
         <main className="auth-layout mt-12 sm:mt-16 lg:mt-0">
           <aside className="auth-editorial">
             <div>
-              <h2 className="max-w-[10em] text-balance font-heading text-[clamp(2rem,3.5vw,3rem)] font-semibold leading-[1.3]">
+              <h2 className="max-w-[10em] text-balance font-heading text-[clamp(1.875rem,3vw,2.625rem)] font-medium leading-[1.3]">
                 私人书库，随时续读
               </h2>
               <p className="auth-editorial-copy mt-4 max-w-[23em] text-pretty text-[15px] leading-7">
-                你的电子书、书签与阅读进度保存在同一处，打开就能接着看。
+                你的电子书、书签与阅读进度保存在同一处，打开就能接着看
               </p>
             </div>
             <LibraryPreview compact />
           </aside>
           <div className="auth-form-panel">
             <div className="mb-8">
-              <h1 className="font-heading text-4xl font-semibold leading-tight lg:text-[2.625rem]">
+              <h1 className="font-heading text-3xl font-medium leading-tight lg:text-[2.125rem]">
                 欢迎回来
               </h1>
-              <p className="mt-3 text-[15px] leading-6 text-muted-foreground">
-                输入访问密码进入你的私人书库
+              <p className="mt-2.5 text-sm leading-6 text-muted-foreground">
+                输入访问密码继续阅读
               </p>
             </div>
 
@@ -111,15 +111,15 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     aria-invalid={Boolean(passwordError)}
                     aria-describedby={passwordError ? 'password-error' : undefined}
-                    className="app-field h-12 w-full pl-3.5 pr-12"
+                    className="app-field h-11 w-full pl-3.5 pr-11 sm:h-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
-                    className="absolute inset-y-0 right-0.5 my-auto flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-offset-[-3px]"
+                    className="absolute inset-y-0 right-0.5 my-auto flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-offset-[-3px] sm:h-9 sm:w-9"
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                   >
-                    {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+                    {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
                   </button>
                 </div>
                 {passwordError && (
@@ -143,7 +143,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="app-primary-link min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-50"
+                className="app-primary-link min-h-11 w-full sm:min-h-10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>

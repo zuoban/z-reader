@@ -2,7 +2,7 @@
 
 @layer utilities {
   .reader-chrome-btn {
-    @apply flex min-h-11 items-center gap-2 px-2.5 text-xs font-medium sm:min-h-9 sm:text-sm;
+    @apply flex min-h-11 items-center gap-1.5 px-2.5 text-xs font-medium sm:min-h-8 sm:text-[13px];
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -20,7 +20,7 @@
   }
 
   .reader-chrome-icon {
-    @apply flex h-11 w-11 shrink-0 items-center justify-center lg:h-9 lg:w-9;
+    @apply flex h-11 w-11 shrink-0 items-center justify-center lg:h-8 lg:w-8;
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -68,9 +68,12 @@
   }
 
   .reader-chrome-surface {
-    background: var(--reader-chrome-bg);
+    background: color-mix(in srgb, var(--reader-chrome-bg) 96%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-color: var(--reader-chrome-rule);
     color: var(--reader-chrome-ink);
+    box-shadow: 0 8px 24px -16px var(--paper-shadow);
   }
 
   .reader-chrome .reader-chrome-btn,
@@ -145,8 +148,8 @@
 }
 
 :root[data-reader-preset="light"] {
-  --reader-bg: #f7f8f4;
-  --reader-text: #202d27;
+  --reader-bg: #f8f7f4;
+  --reader-text: #1c1b19;
 }
 
 :root[data-reader-preset="sepia"] {
@@ -160,8 +163,8 @@
 }
 
 :root[data-reader-preset="dark"] {
-  --reader-bg: #151d19;
-  --reader-text: #e5ebe1;
+  --reader-bg: #141413;
+  --reader-text: #ededeb;
 }
 
 foliate-view {

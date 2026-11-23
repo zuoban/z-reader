@@ -327,7 +327,7 @@ export default function ShelfPage() {
       contentClassName="flex min-h-dvh w-full flex-col"
     >
       <header className="shelf-header sticky top-0 z-50 w-full border-b border-border">
-        <div className="app-container flex h-14 items-center justify-between sm:h-16">
+        <div className="app-container flex h-14 items-center justify-between">
           <BrandLogo compact />
 
           <div className="flex items-center gap-2">
@@ -339,7 +339,7 @@ export default function ShelfPage() {
                 title="上传书籍"
                 multiple
                 buttonSize="icon-sm"
-                buttonClassName="size-11 gap-1.5 px-0 sm:h-11 sm:w-auto sm:px-4"
+                buttonClassName="size-11 gap-1.5 px-0 sm:h-9 sm:w-auto sm:px-3.5"
               >
                 {isUploading ? (
                   <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
@@ -355,7 +355,7 @@ export default function ShelfPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-11 shadow-none sm:size-11"
+                    className="size-11 sm:size-9"
                     aria-label="书架设置"
                     title="书架设置"
                   >
@@ -396,7 +396,7 @@ export default function ShelfPage() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="size-11 shadow-none sm:size-11"
+                  className="size-11 sm:size-9"
                   onClick={() => setOfflineBooksOpen(true)}
                   aria-label="离线图书管理"
                   title="离线图书管理"
@@ -407,7 +407,7 @@ export default function ShelfPage() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="size-11 shadow-none sm:size-11"
+                  className="size-11 sm:size-9"
                   onClick={toggleTheme}
                   aria-label={isDark ? '亮色模式' : '暗色模式'}
                   title={isDark ? '亮色模式' : '暗色模式'}
@@ -427,20 +427,55 @@ export default function ShelfPage() {
       <main
         id="shelf-main"
         aria-label="书库"
-        className="app-container relative z-10 flex-1 py-4 sm:py-6"
+        className="app-container relative z-10 flex-1 py-5 sm:py-6"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
-        <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 sm:mb-5">
-          <h1 className="font-heading text-2xl font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-3xl">
-            我的书库
-          </h1>
-          {!isOffline && !isLoadingBooks && !loadError && (
-            <p className="shrink-0 text-sm tabular-nums text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
-              藏书 <span className="font-medium text-foreground">{bookCounts.all}</span> 本
-            </p>
+        <div className="mb-4 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="font-heading text-2xl font-medium leading-tight tracking-[-0.02em] text-foreground">
+              我的书库
+            </h1>
+            {!isOffline && !isLoadingBooks && !loadError && (
+              <p className="shrink-0 text-sm tabular-nums text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
+                {bookCounts.all} 本
+              </p>
+            )}
+          </div>
+
+          {!isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty && (
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1 sm:w-64 lg:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
+                <Input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => changeSearchQuery(event.target.value)}
+                  placeholder="搜索书名或作者"
+                  aria-label="搜索书库"
+                  className="shelf-search app-field pl-9 pr-9 sm:text-[13px]"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => changeSearchQuery('')}
+                    aria-label="清除搜索"
+                    className="absolute inset-y-0 right-0 flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-9"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="w-11 shrink-0 sm:w-36">
+                <SortSelector
+                  value={sortBy}
+                  onChange={setSortBy}
+                />
+              </div>
+            </div>
           )}
         </div>
         {isOffline ? (
@@ -535,148 +570,111 @@ export default function ShelfPage() {
             )}
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 flex-col gap-3">
             {!isLoadingBooks && !isLibraryEmpty && (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="relative min-w-0 flex-1 sm:max-w-[32rem]">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      value={searchQuery}
-                      onChange={(event) => changeSearchQuery(event.target.value)}
-                      placeholder="搜索书名或作者"
-                      aria-label="搜索书库"
-                      className="shelf-search app-field pr-12 pl-11 sm:text-sm"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => changeSearchQuery('')}
-                        aria-label="清除搜索"
-                        className="absolute inset-y-0 right-0 flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="w-11 shrink-0 sm:w-40">
-                    <SortSelector
-                      value={sortBy}
-                      onChange={setSortBy}
-                    />
-                  </div>
-                </div>
-
-                <div className="relative flex min-w-0 items-center gap-2">
-                  <div
-                    role="group"
-                    aria-label="书籍分类筛选"
-                    className="scrollbar-none flex min-w-0 flex-1 snap-x items-center gap-1 overflow-x-auto sm:flex-wrap sm:overflow-visible"
+              <div className="relative flex min-w-0 items-center justify-between gap-3">
+                <div
+                  role="group"
+                  aria-label="书籍分类筛选"
+                  className="scrollbar-none flex min-w-0 flex-1 snap-x items-center gap-1 overflow-x-auto sm:flex-wrap sm:overflow-visible"
+                >
+                  <button
+                    type="button"
+                    onClick={() => changeSelectedCategory(null)}
+                    aria-pressed={selectedCategoryId === null}
+                    data-active={selectedCategoryId === null}
+                    className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   >
-                    <span className="mr-1 hidden text-[13px] font-medium text-muted-foreground sm:block"
-                      aria-hidden="true">
-                      分类：
-                    </span>
+                    全部
+                  </button>
+                  {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
                     <button
                       type="button"
-                      onClick={() => changeSelectedCategory(null)}
-                      aria-pressed={selectedCategoryId === null}
-                      data-active={selectedCategoryId === null}
+                      onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
+                      aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                      data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
                       className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
-                      全部
+                      未分类
                     </button>
-                    {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
-                        aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                        data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                        className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                      >
-                        未分类
-                      </button>
+                  )}
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => changeSelectedCategory(category)}
+                      aria-pressed={selectedCategoryId === category}
+                      data-active={selectedCategoryId === category}
+                      className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:max-w-[10rem]"
+                      title={category}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    onClick={() => setCategoryManagerOpen(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    管理
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectionMode ? 'secondary' : 'ghost'}
+                    className={cn(
+                      "min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]",
+                      selectionMode
+                        ? "bg-primary text-primary-foreground hover:bg-primary/92"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
-                    {categories.map((category) => (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => changeSelectedCategory(category)}
-                        aria-pressed={selectedCategoryId === category}
-                        data-active={selectedCategoryId === category}
-                        className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:max-w-[10rem]"
-                        title={category}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="min-h-11 shrink-0 rounded-lg px-3 text-[13px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      onClick={() => setCategoryManagerOpen(true)}
-                    >
-                      <Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                      管理
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={selectionMode ? 'secondary' : 'ghost'}
+                    onClick={toggleSelectionMode}
+                  >
+                    <CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    <span>{selectionMode ? "取消选择" : "批量操作"}</span>
+                  </Button>
+                </div>
+                <div className="shrink-0 self-start sm:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label="更多书库操作"
                       className={cn(
-                        "min-h-11 shrink-0 rounded-lg px-3 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]",
-                        selectionMode
-                          ? "bg-primary text-primary-foreground hover:bg-primary/92"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        'flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-card text-foreground',
+                        selectionMode && 'border-primary bg-primary text-primary-foreground'
                       )}
-                      onClick={toggleSelectionMode}
                     >
-                      <CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
-                      <span>{selectionMode ? "取消选择" : "批量操作"}</span>
-                    </Button>
-                  </div>
-                  <div className="shrink-0 self-start sm:hidden">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        aria-label="更多书库操作"
-                        className={cn(
-                          'flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-card text-foreground',
-                          selectionMode && 'border-primary bg-primary text-primary-foreground'
-                        )}
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem className="min-h-11" onClick={() => setCategoryManagerOpen(true)}>
-                          <Settings2 className="h-4 w-4" />
-                          管理分类
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="min-h-11" onClick={toggleSelectionMode}>
-                          <CheckSquare className="h-4 w-4" />
-                          {selectionMode ? '取消选择' : '批量操作'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                      <MoreHorizontal className="h-5 w-5" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem className="min-h-11" onClick={() => setCategoryManagerOpen(true)}>
+                        <Settings2 className="h-4 w-4" />
+                        管理分类
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="min-h-11" onClick={toggleSelectionMode}>
+                        <CheckSquare className="h-4 w-4" />
+                        {selectionMode ? '取消选择' : '批量操作'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             )}
 
             <section
               className={cn(
-                'relative border-t border-border',
+                'relative border-t border-border pt-4 sm:pt-5',
                 selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
               )}
             >
-              {!isLoadingBooks && (
-                <div className="mb-2 flex min-h-9 items-baseline justify-between gap-3 pt-2 text-sm">
+              {!isLoadingBooks && isFiltered && (
+                <div className="mb-3 flex items-baseline justify-between gap-3 text-sm">
                   <p className="min-w-0 truncate font-medium text-foreground" title={resultsLabel}>
                     {resultsLabel}
                   </p>
-                  {isFiltered && !searchError && (
+                  {!searchError && (
                     <p className="shrink-0 text-xs tabular-nums text-muted-foreground" role="status">
                       {isSearching
                         ? '正在搜索…'
@@ -686,7 +684,7 @@ export default function ShelfPage() {
                 </div>
               )}
               {isLoadingBooks || isSearching ? (
-                <div className={cn(isLoadingBooks && 'pt-3')}>
+                <div>
                   <BookCardSkeletonGrid count={6} />
                 </div>
               ) : searchError ? (
@@ -839,7 +837,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="min-h-11 min-w-0 rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:min-h-9 sm:px-3 sm:text-[13px]"
                       onClick={toggleVisibleSelection}
                     >
                       {allVisibleSelected ? '取消全选' : '选择已加载'}
@@ -849,11 +847,11 @@ export default function ShelfPage() {
                       type="button"
                       variant="outline"
                       aria-label="批量分类"
-                      className="min-h-11 min-w-0 gap-1 rounded-lg border-primary/20 bg-primary/5 px-2 text-xs font-medium text-primary hover:bg-primary/10 sm:gap-1.5 sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 gap-1 rounded-lg border-primary/20 bg-primary/5 px-2 text-xs font-medium text-primary hover:bg-primary/10 sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-[13px]"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
-                      <Tag className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                      <Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                       <span className="hidden sm:inline">批量分类</span>
                       <span className="sm:hidden">分类</span>
                     </Button>
@@ -862,11 +860,11 @@ export default function ShelfPage() {
                       type="button"
                       variant="outline"
                       aria-label="批量删除"
-                      className="min-h-11 min-w-0 gap-1 rounded-lg px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:gap-1.5 sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 gap-1 rounded-lg px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-[13px]"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
-                      <Trash2 className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                      <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                       <span className="hidden sm:inline">批量删除</span>
                       <span className="sm:hidden">删除</span>
                     </Button>
@@ -875,7 +873,7 @@ export default function ShelfPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="ml-1 hidden rounded-lg text-muted-foreground sm:flex sm:size-11"
+                      className="ml-1 hidden rounded-lg text-muted-foreground sm:flex sm:size-9"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
                     >

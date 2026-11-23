@@ -83,16 +83,16 @@ export function BrandLogo({
   compact?: boolean;
 }) {
   return (
-    <div className={cn('inline-flex items-center gap-2.5 text-foreground', className)}>
-      <BrandGlyph className={compact ? 'h-8 w-8' : 'h-9 w-9'} />
-      <div className="flex items-baseline gap-1.5">
-        <span className={cn('font-heading text-xl font-semibold leading-none', compact && 'text-lg')}>
-          Z
-        </span>
-        <span className={cn('text-base font-medium leading-none text-foreground', compact && 'text-[15px]')}>
-          Reader
-        </span>
-      </div>
+    <div className={cn('inline-flex items-center gap-2 text-foreground', className)}>
+      <BrandGlyph className={compact ? 'h-7 w-7' : 'h-8 w-8'} />
+      <span
+        className={cn(
+          'font-heading font-medium leading-none tracking-[-0.015em] text-foreground',
+          compact ? 'text-[17px]' : 'text-lg'
+        )}
+      >
+        Z Reader
+      </span>
     </div>
   );
 }

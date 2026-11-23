@@ -174,7 +174,7 @@ test.describe('responsive reading and shelf controls', () => {
       expect(geometry[0].footerTop).toBeCloseTo(geometry[1].footerTop, 1);
       expect(geometry[0].progressTop).toBeCloseTo(geometry[1].progressTop, 1);
       for (const card of geometry) {
-        expect(card.coverHeight).toBeCloseTo(card.coverWidth * 6 / 5, 1);
+        expect(card.coverHeight).toBeCloseTo(card.coverWidth * 7 / 5, 1);
       }
     });
   }

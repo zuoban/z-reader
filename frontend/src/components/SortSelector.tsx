@@ -28,7 +28,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
         aria-label="书籍排序方式"
         title={`排序：${currentOption?.label}`}
         className={cn(
-          'app-field group flex w-full items-center justify-center text-sm font-medium hover:bg-secondary sm:justify-between sm:pl-4 sm:pr-3',
+          'app-field group flex w-full items-center justify-center text-sm font-medium hover:bg-secondary sm:justify-between sm:pl-3 sm:pr-2.5 sm:text-[13px]',
           className
         )}
         onClick={(e) => e.stopPropagation()}

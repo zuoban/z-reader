@@ -10,10 +10,10 @@ export function LibraryPreview({ compact = false }: { compact?: boolean }) {
   return (
     <figure className={compact ? 'library-preview library-preview-compact' : 'library-preview'}>
       <figcaption className="preview-caption">
-        我的书架
-        <span>示例 · {books.length} 本</span>
+        最近在读
+        <span>{books.length} 本</span>
       </figcaption>
-      <ul role="list" className="mt-4 grid grid-cols-3 gap-2.5 sm:gap-4">
+      <ul role="list" className="mt-4 grid grid-cols-3 gap-3 sm:gap-4">
         {books.map((book) => (
           <li
             key={book.title}
@@ -26,17 +26,17 @@ export function LibraryPreview({ compact = false }: { compact?: boolean }) {
         ))}
       </ul>
       {!compact && (
-        <div className="mt-5 border-t border-border pt-4 sm:mt-6">
+        <div className="mt-5 border-t border-border pt-4">
           <div className="flex items-baseline justify-between gap-3">
             <div>
               <p className="text-xs text-muted-foreground">上次读到</p>
-              <p className="mt-1 font-heading text-base font-semibold sm:text-lg">
+              <p className="mt-1 font-heading text-base font-medium sm:text-[17px]">
                 西游记 · 第十四回
               </p>
             </div>
             <span className="text-sm font-medium text-primary tabular-nums">54%</span>
           </div>
-          <div aria-hidden="true" className="mt-3 h-1 overflow-hidden rounded-full bg-primary/15">
+          <div aria-hidden="true" className="mt-3 h-[2px] overflow-hidden rounded-full bg-border">
             <div className="h-full w-[54%] rounded-full bg-primary" />
           </div>
         </div>

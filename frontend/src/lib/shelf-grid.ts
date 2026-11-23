@@ -18,7 +18,7 @@ export const SHELF_GRID_MIN_COL_PX = {
 export const SHELF_CARD_BODY_HEIGHT_PX = 156;
 
 /** Fallback when width is unknown. */
-export const SHELF_CARD_ESTIMATE_HEIGHT_PX = 448;
+export const SHELF_CARD_ESTIMATE_HEIGHT_PX = 420;
 
 /**
  * Column count aligned with shelf CSS:
@@ -57,7 +57,7 @@ export function getShelfColumnWidth(
 
 /**
  * Estimate card height from column width.
- * Cover uses aspect-ratio 5/6 → height = width * 6/5.
+ * Cover uses aspect-ratio 5/7 → height = width * 7/5.
  */
 export function estimateShelfCardHeight(
   containerWidth: number,
@@ -65,7 +65,7 @@ export function estimateShelfCardHeight(
 ): number {
   const gap = getShelfGapPx(containerWidth);
   const colWidth = getShelfColumnWidth(containerWidth, columnCount, gap);
-  const coverHeight = colWidth * (6 / 5);
+  const coverHeight = colWidth * (7 / 5);
   return Math.round(coverHeight + SHELF_CARD_BODY_HEIGHT_PX);
 }
 

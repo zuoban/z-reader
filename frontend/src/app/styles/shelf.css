@@ -25,8 +25,11 @@
   }
 
   .shelf-filter-chip {
-    @apply min-h-11 shrink-0 truncate rounded-lg border border-transparent px-3 text-[13px] font-medium;
+    @apply inline-flex min-h-10 shrink-0 items-center truncate rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-8 sm:px-2.5;
     color: var(--muted-foreground);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .shelf-filter-chip:hover {
@@ -35,9 +38,9 @@
   }
 
   .shelf-filter-chip[data-active="true"] {
-    border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
-    background: color-mix(in srgb, var(--primary) 10%, var(--background));
-    color: var(--primary);
+    border-color: transparent;
+    background: var(--accent);
+    color: var(--accent-foreground);
   }
 
   .shelf-search::-webkit-search-cancel-button {
@@ -55,22 +58,25 @@
   }
 
   .shelf-header {
-    background: var(--shelf-app-bg);
+    background: color-mix(in srgb, var(--shelf-app-bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .shelf-book-cover {
-    @apply relative aspect-[5/6] w-full overflow-hidden rounded-lg;
+    @apply relative aspect-[5/7] w-full overflow-hidden rounded-lg;
     background: var(--shelf-card-media);
+    box-shadow: 0 2px 8px -2px var(--paper-shadow), inset 0 0 0 1px color-mix(in srgb, var(--foreground) 7%, transparent);
+    transition: box-shadow var(--paper-duration-base) var(--paper-ease-soft),
+      transform var(--paper-duration-base) var(--paper-ease-soft);
   }
 
-  .shelf-book-card .shelf-book-cover {
-    box-shadow: 0 2px 6px -1px var(--paper-shadow);
+  .shelf-book-open:hover .shelf-book-cover {
+    box-shadow: 0 8px 20px -6px var(--paper-shadow), inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
   }
 
   .shelf-book-open:hover h2 {
     color: var(--primary);
-    text-decoration: underline;
-    text-underline-offset: 0.15em;
   }
 
   .shelf-book-selection {
@@ -90,20 +96,20 @@
     color: var(--primary-foreground);
   }
 
-  /* Details and actions total 156px, matching the virtual grid's body estimate. */
+  /* Details (116px) + actions (36px desktop / 44px mobile) total ~152-160px, matching the virtual grid estimate. */
   .shelf-book-details {
-    @apply flex h-28 w-full flex-col justify-between gap-2 px-1 pb-2 pt-2.5;
+    @apply flex h-[7.25rem] w-full flex-col justify-between gap-2 px-0.5 pb-2 pt-2.5;
   }
 
   .shelf-book-actions {
-    @apply relative flex h-11 items-center justify-between gap-1;
+    @apply relative flex h-11 items-center justify-between gap-1 sm:h-9;
   }
 
   .shelf-book-actions::before {
     content: "";
     position: absolute;
     inset: 0 0 auto;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
     pointer-events: none;
   }
 

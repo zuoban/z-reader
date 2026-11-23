@@ -7,13 +7,13 @@
   }
 
   .landing-hero {
-    @apply grid items-center gap-10 py-12 sm:gap-12 sm:py-16 lg:grid-cols-2 lg:gap-16 lg:py-20 xl:gap-24;
+    @apply grid items-center gap-10 py-14 sm:gap-12 sm:py-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-24 xl:gap-20;
   }
 
   .landing-title {
-    font-size: clamp(3.75rem, 7.5vw, 6rem);
-    line-height: 1;
-    letter-spacing: -0.04em;
+    font-size: clamp(2.125rem, 4vw, 3.25rem);
+    line-height: 1.22;
+    letter-spacing: -0.025em;
   }
 
   .entry-feature {
@@ -24,8 +24,8 @@
     --preview-ink: var(--foreground);
     --preview-muted: var(--muted-foreground);
     --preview-line: var(--border);
-    @apply border border-border bg-card p-4 sm:p-6;
-    border-radius: var(--paper-radius-control);
+    @apply rounded-2xl border border-border bg-card p-5 sm:p-6;
+    box-shadow: var(--paper-shadow-panel);
     container-type: inline-size;
   }
 
@@ -33,7 +33,7 @@
     --preview-ink: var(--entry-green-ink);
     --preview-muted: var(--entry-green-muted);
     --preview-line: var(--entry-green-line);
-    @apply border-0 bg-transparent p-0;
+    @apply rounded-none border-0 bg-transparent p-0 shadow-none;
   }
 
   .preview-caption {
@@ -48,53 +48,52 @@
   }
 
   .preview-cover {
-    --cover-paper: #fcf3df;
-    @apply relative grid aspect-[5/7] grid-rows-[1fr_auto] items-center justify-items-center gap-1 overflow-hidden rounded-r-sm py-3 pl-2 pr-1 text-center;
+    --cover-paper: #faf4e6;
+    @apply relative grid aspect-[5/7] grid-rows-[1fr_auto] items-center justify-items-center gap-1 overflow-hidden rounded-[4px] py-3 pl-2 pr-1 text-center;
     color: var(--cover-paper);
     background: var(--cover-color);
-    box-shadow: 1px 2px 5px rgb(15 25 19 / 16%);
+    box-shadow: 0 2px 8px -2px rgb(15 20 17 / 22%), inset 0 0 0 1px rgb(255 255 255 / 10%);
   }
 
   .preview-cover::after {
     content: "";
     position: absolute;
     inset: 6px 6px 6px 9px;
-    border: 1px solid color-mix(in srgb, var(--cover-paper) 40%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cover-paper) 34%, transparent);
     pointer-events: none;
   }
 
   .preview-cover-title {
-    @apply font-heading font-semibold;
-    font-size: clamp(1rem, 5.5cqw, 2rem);
+    @apply font-heading font-medium;
+    font-size: clamp(1rem, 5.2cqw, 1.875rem);
     line-height: 1;
     white-space: nowrap;
     writing-mode: vertical-rl;
   }
 
   .preview-cover-author {
-    font-size: clamp(0.625rem, 2.8cqi, 0.8125rem);
+    font-size: clamp(0.625rem, 2.7cqi, 0.75rem);
     line-height: 1.25;
+    opacity: 0.88;
   }
 
   .auth-layout {
-    @apply grid w-full max-w-md lg:max-w-6xl lg:grid-cols-[1.06fr_1fr] lg:border lg:border-border lg:bg-card;
-    border-radius: var(--paper-radius-control);
+    @apply grid w-full max-w-md overflow-hidden lg:max-w-5xl lg:grid-cols-[1.04fr_1fr] lg:rounded-2xl lg:border lg:border-border lg:bg-card;
+    box-shadow: var(--paper-shadow-panel);
   }
 
   .auth-editorial {
-    --entry-green: #29483c;
-    --entry-green-ink: #faf7ec;
-    --entry-green-muted: #d8e4d8;
-    --entry-green-line: #6a8577;
+    --entry-green: #214236;
+    --entry-green-ink: #faf8f2;
+    --entry-green-muted: #c9d9cf;
+    --entry-green-line: rgb(250 248 242 / 18%);
     @apply hidden min-w-0 flex-col justify-between gap-8 p-10 lg:flex xl:p-12;
-    border-start-start-radius: inherit;
-    border-end-start-radius: inherit;
     background: var(--entry-green);
     color: var(--entry-green-ink);
   }
 
   .dark .auth-editorial {
-    --entry-green: #294438;
+    --entry-green: #1b2f27;
   }
 
   .auth-editorial-copy {
@@ -102,6 +101,6 @@
   }
 
   .auth-form-panel {
-    @apply mx-auto flex w-full max-w-[24rem] min-w-0 flex-col justify-center py-2 lg:max-w-none lg:px-14 lg:py-14 xl:px-20;
+    @apply mx-auto flex w-full max-w-[23rem] min-w-0 flex-col justify-center py-2 lg:max-w-none lg:px-12 lg:py-14 xl:px-16;
   }
 }

@@ -11,19 +11,26 @@
   }
 
   .app-container {
-    @apply mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-12;
+    @apply mx-auto w-full max-w-[1440px] px-5 sm:px-6 lg:px-8;
   }
 
   .app-primary-link,
   .app-secondary-link {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium sm:min-h-10;
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .app-primary-link:active,
+  .app-secondary-link:active {
+    transform: scale(0.98);
   }
 
   .app-primary-link {
     @apply bg-primary text-primary-foreground;
+    box-shadow: var(--paper-shadow-control);
   }
 
   .app-primary-link:enabled:hover,
@@ -32,14 +39,19 @@
   }
 
   .app-secondary-link {
-    @apply border border-input bg-card text-foreground hover:bg-secondary;
+    @apply border border-border bg-card text-foreground hover:border-input hover:bg-secondary;
+    box-shadow: var(--paper-shadow-control);
   }
 
   .app-field {
-    @apply h-11 rounded-lg border border-input bg-card text-base shadow-none sm:text-sm;
+    @apply h-11 rounded-lg border border-border bg-card text-base shadow-none sm:h-9 sm:text-sm;
     transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .app-field:hover {
+    border-color: var(--input);
   }
 
   .app-field::placeholder {

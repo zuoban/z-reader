@@ -147,7 +147,7 @@ function BookCoverFace({
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         sizes={SHELF_COVER_SIZES}
-        className="object-contain"
+        className="object-cover"
       />
     );
   }
@@ -238,7 +238,7 @@ export const BookCard = memo(function BookCard({
           aria-pressed={selectionMode ? selected : undefined}
           className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <div className="shelf-book-cover">
+          <div className="shelf-book-cover book-cover-spine">
             <BookCoverFace
               coverUrl={coverUrl}
               titleLabel={titleLabel}
@@ -253,7 +253,7 @@ export const BookCard = memo(function BookCard({
               </div>
             )}
             {book.processing_state === 'pending' && (
-              <span className="absolute bottom-2 left-2 rounded-md bg-card px-2 py-1 text-xs font-medium text-foreground">
+              <span className="absolute bottom-2 left-2 rounded-md bg-card/95 px-2 py-1 text-xs font-medium text-foreground">
                 正在生成封面
               </span>
             )}
@@ -262,12 +262,12 @@ export const BookCard = memo(function BookCard({
           <div className="shelf-book-details">
             <div className="min-w-0">
               <h2
-                className="line-clamp-2 [overflow-wrap:anywhere] font-heading text-base font-semibold leading-5 text-foreground"
+                className="line-clamp-2 [overflow-wrap:anywhere] font-heading text-[15px] font-medium leading-[1.35] text-foreground transition-colors"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h2>
-              <p className="mt-1 truncate text-[13px] leading-4 text-muted-foreground">
+              <p className="mt-1 truncate text-xs leading-4 text-muted-foreground">
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
@@ -278,8 +278,8 @@ export const BookCard = memo(function BookCard({
                 aria-hidden="true"
               >
                 <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
-                  style={{ width: `${Math.max(progressValue, 2)}%` }}
+                  className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
+                  style={{ transform: `scaleX(${Math.max(progressValue, 2) / 100})` }}
                 />
               </div>
               <div className="flex min-w-0 items-baseline justify-between gap-2 text-xs leading-4 text-muted-foreground">
@@ -300,7 +300,7 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onSelectionToggle}
               aria-pressed={selected}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-8"
             >
               <Check
                 className={cn(
@@ -315,7 +315,7 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onRead}
               aria-label={`${readActionLabel}：${titleLabel}`}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-8"
             >
               <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.5} />
               <span className="truncate">{readActionLabel}</span>
@@ -331,7 +331,7 @@ export const BookCard = memo(function BookCard({
               isDeleting={isDeleting}
               onCategoryClick={() => setCategoryDialogOpen(true)}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
-              triggerClassName="size-11 sm:size-11"
+              triggerClassName="size-11 sm:size-8"
             />
           )}
         </div>

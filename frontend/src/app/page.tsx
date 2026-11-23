@@ -16,16 +16,16 @@ export default function LandingPage() {
   return (
     <AppScreen contentClassName="entry-screen flex flex-col">
       <header className="border-b border-border">
-        <div className="app-container flex min-h-16 items-center justify-between gap-4">
-          <BrandLogo />
-          <nav className="flex items-center gap-6" aria-label="主导航">
+        <div className="app-container flex h-14 items-center justify-between gap-4 sm:h-16">
+          <BrandLogo compact />
+          <nav className="flex items-center gap-5" aria-label="主导航">
             <a
               href="#features"
-              className="hidden min-h-11 items-center text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              className="hidden min-h-9 items-center text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
             >
               功能一览
             </a>
-            <Link href="/shelf" className="app-secondary-link whitespace-nowrap px-4">
+            <Link href="/shelf" className="app-secondary-link whitespace-nowrap px-3.5 sm:min-h-9">
               进入书架
             </Link>
           </nav>
@@ -35,48 +35,45 @@ export default function LandingPage() {
       <main className="flex-1">
         <section className="app-container landing-hero">
           <div className="min-w-0">
-            <h1 className="landing-title font-heading font-semibold">Z Reader</h1>
-            <p className="mt-5 font-heading text-[clamp(1.375rem,2.65vw,2.125rem)] font-semibold leading-[1.45] sm:mt-6">
+            <h1 className="landing-title font-heading font-medium text-foreground">
+              <span className="sr-only">Z Reader — </span>
               把喜欢的书收进自己的书房<br />翻开就是上次那页
-            </p>
-            <p className="mt-4 max-w-[30rem] text-pretty text-[15px] leading-7 text-muted-foreground sm:text-base">
+            </h1>
+            <p className="mt-5 max-w-[30rem] text-pretty text-[15px] leading-7 text-muted-foreground sm:text-base">
               自托管多格式私人电子书库。导入 EPUB、MOBI、AZW3 与 PDF，在手机、平板和电脑间保持同一页阅读进度。
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 sm:mt-8">
+            <div className="mt-7 flex flex-wrap items-center gap-3 sm:mt-8">
               <Link href="/shelf" className="app-primary-link">
                 进入我的书架
-                <ArrowRight size={16} strokeWidth={1.75} aria-hidden="true" />
+                <ArrowRight size={15} strokeWidth={1.75} aria-hidden="true" />
               </Link>
-              <a
-                href="#features"
-                className="inline-flex min-h-11 items-center rounded-sm text-sm font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-current"
-              >
+              <a href="#features" className="app-secondary-link">
                 了解特性
               </a>
             </div>
           </div>
 
-          <div className="w-full max-w-[38rem]">
+          <div className="w-full max-w-[34rem] lg:justify-self-end">
             <LibraryPreview />
           </div>
         </section>
 
-        <section id="features" className="scroll-mt-8 border-y border-border bg-surface-subtle py-12 sm:py-16 lg:py-20">
-          <div className="app-container grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-16 xl:gap-24">
+        <section id="features" className="scroll-mt-8 border-y border-border bg-surface-subtle py-14 sm:py-16 lg:py-20">
+          <div className="app-container grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-16 xl:gap-20">
             <div>
-              <h2 className="max-w-[12em] text-balance font-heading text-2xl font-semibold leading-snug sm:text-3xl">
+              <h2 className="max-w-[12em] text-balance font-heading text-2xl font-medium leading-snug sm:text-[1.75rem]">
                 少一点打扰，专注阅读本身
               </h2>
               <p className="mt-3 max-w-sm text-pretty text-sm leading-6 text-muted-foreground">
-                从导入整理到翻页朗读，把常用的功能做到顺手、安静。
+                从导入整理到翻页朗读，把常用的功能做到顺手、安静
               </p>
             </div>
             <ul role="list" className="grid gap-x-8 sm:grid-cols-2">
               {features.map(({ icon: Icon, title, description }) => (
                 <li key={title} className="entry-feature">
-                  <Icon size={18} className="mt-1 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                  <Icon size={16} className="mt-1 text-primary" strokeWidth={1.5} aria-hidden="true" />
                   <div>
-                    <h3 className="text-[15px] font-semibold">{title}</h3>
+                    <h3 className="text-[15px] font-medium text-foreground">{title}</h3>
                     <p className="mt-1.5 text-pretty text-sm leading-6 text-muted-foreground">
                       {description}
                     </p>
@@ -90,7 +87,7 @@ export default function LandingPage() {
 
       <footer>
         <div className="app-container flex flex-col gap-2 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-heading text-sm text-foreground">Z Reader</span>
+          <span className="font-heading text-sm font-medium text-foreground">Z Reader</span>
           <span>开源自托管私人书库</span>
         </div>
       </footer>

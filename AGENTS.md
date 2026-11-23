@@ -5,7 +5,7 @@ This document provides essential information for AI coding agents working on the
 ## Project Overview
 
 Z Reader is an online EPUB reader application with:
-- **Backend**: Go 1.25+ with Gin framework and bbolt embedded database
+- **Backend**: Go 1.26+ with Gin framework and bbolt embedded database
 - **Frontend**: Next.js 16 with React 19, Tailwind CSS 4, and Shadcn/ui
 
 ## Build Commands
@@ -210,7 +210,7 @@ export function MyComponent() {
 ### Next.js 16 Breaking Changes
 
 This project uses Next.js 16 which has breaking changes. Check `node_modules/next/dist/docs/` for current API documentation. Key points:
-- Use Turbopack (default in dev)
+- Dev uses Turbopack by default (`next dev`); production build uses webpack (`next build --webpack`)
 - Check deprecation notices before using familiar patterns
 
 ### Avoid Common Issues

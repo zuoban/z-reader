@@ -15,8 +15,11 @@ import (
 const SessionCookieName = "z_reader_session"
 
 func SessionToken(c *gin.Context) string {
-	if token := strings.TrimSpace(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")); token != "" {
-		return token
+	authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+	if len(authHeader) >= 7 && strings.EqualFold(authHeader[:7], "Bearer ") {
+		if token := strings.TrimSpace(authHeader[7:]); token != "" {
+			return token
+		}
 	}
 	token, _ := c.Cookie(SessionCookieName)
 	return token

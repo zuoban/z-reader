@@ -27,16 +27,17 @@ var rateLimitRejections struct {
 	custom   atomic.Uint64
 }
 
-// RateLimiter 简单的基于 IP 的滑动窗口速率限制器
+// RateLimiter 基于固定时间窗口的速率限制器
 type RateLimiter struct {
-	visitors        map[string]*visitor
-	mu              sync.Mutex
-	maxReqs         int           // 窗口内最大请求数
-	window          time.Duration // 窗口大小
-	cleanupInterval time.Duration
-	lastCleanup     time.Time
-	now             func() time.Time
-	maxVisitors     int
+	visitors          map[string]*visitor
+	mu                sync.Mutex
+	maxReqs           int           // 窗口内最大请求数
+	window            time.Duration // 窗口大小
+	cleanupInterval   time.Duration
+	lastCleanup       time.Time
+	oldestWindowStart time.Time
+	now               func() time.Time
+	maxVisitors       int
 }
 
 type visitor struct {
@@ -56,6 +57,21 @@ func NewRateLimiter(maxReqs int, window time.Duration) *RateLimiter {
 	}
 }
 
+func (rl *RateLimiter) evictExpired(now time.Time) {
+	var oldest time.Time
+	for ip, v := range rl.visitors {
+		if now.Sub(v.windowStart) > rl.window {
+			delete(rl.visitors, ip)
+			continue
+		}
+		if oldest.IsZero() || v.windowStart.Before(oldest) {
+			oldest = v.windowStart
+		}
+	}
+	rl.oldestWindowStart = oldest
+	rl.lastCleanup = now
+}
+
 func (rl *RateLimiter) cleanupExpired(now time.Time) {
 	if rl.lastCleanup.IsZero() {
 		rl.lastCleanup = now
@@ -64,13 +80,7 @@ func (rl *RateLimiter) cleanupExpired(now time.Time) {
 	if now.Sub(rl.lastCleanup) < rl.cleanupInterval {
 		return
 	}
-
-	for ip, v := range rl.visitors {
-		if now.Sub(v.windowStart) > rl.window {
-			delete(rl.visitors, ip)
-		}
-	}
-	rl.lastCleanup = now
+	rl.evictExpired(now)
 }
 
 func (rl *RateLimiter) Allow(ip string) bool {
@@ -83,13 +93,24 @@ func (rl *RateLimiter) Allow(ip string) bool {
 	v, exists := rl.visitors[ip]
 	if !exists {
 		if rl.maxVisitors > 0 && len(rl.visitors) >= rl.maxVisitors {
-			return false
+			if rl.oldestWindowStart.IsZero() || now.Sub(rl.oldestWindowStart) > rl.window {
+				rl.evictExpired(now)
+			}
+			if len(rl.visitors) >= rl.maxVisitors {
+				return false
+			}
 		}
 		rl.visitors[ip] = &visitor{count: 1, windowStart: now}
+		if rl.oldestWindowStart.IsZero() || now.Before(rl.oldestWindowStart) {
+			rl.oldestWindowStart = now
+		}
 		return true
 	}
 	if now.Sub(v.windowStart) > rl.window {
 		rl.visitors[ip] = &visitor{count: 1, windowStart: now}
+		if rl.oldestWindowStart.IsZero() || now.Before(rl.oldestWindowStart) {
+			rl.oldestWindowStart = now
+		}
 		return true
 	}
 

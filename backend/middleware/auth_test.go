@@ -27,14 +27,17 @@ func TestAccessMiddleware(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, test := range []struct {
-		name, password, cookie, bearer string
-		want                           int
+		name, password, cookie, authHeader string
+		want                               int
 	}{
 		{"open", "", "", "", 200},
 		{"no session", password, "", "", 401},
 		{"invalid session", password, "invalid", "", 401},
 		{"cookie", password, token, "", 200},
-		{"bearer", password, "", token, 200},
+		{"bearer", password, "", "Bearer " + token, 200},
+		{"bearer lowercase", password, "", "bearer " + token, 200},
+		{"non-bearer falls back to cookie", password, token, "Basic dXNlcjpwYXNz", 200},
+		{"non-bearer without cookie", password, "", "Basic dXNlcjpwYXNz", 401},
 		{"wrong password namespace", "changed", token, "", 401},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -46,8 +49,8 @@ func TestAccessMiddleware(t *testing.T) {
 			if test.cookie != "" {
 				req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: test.cookie})
 			}
-			if test.bearer != "" {
-				req.Header.Set("Authorization", "Bearer "+test.bearer)
+			if test.authHeader != "" {
+				req.Header.Set("Authorization", test.authHeader)
 			}
 			result := httptest.NewRecorder()
 			router.ServeHTTP(result, req)

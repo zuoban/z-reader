@@ -75,6 +75,49 @@ func TestRateLimiterBoundsTrackedVisitors(t *testing.T) {
 	}
 }
 
+func TestRateLimiterEvictsExpiredVisitorsWhenAtCap(t *testing.T) {
+	now := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
+	rl := NewRateLimiter(1, time.Minute)
+	rl.maxVisitors = 2
+	rl.cleanupInterval = time.Hour
+	rl.now = func() time.Time { return now }
+
+	if !rl.Allow("ip-1") {
+		t.Fatal("expected first visitor to be accepted")
+	}
+	now = now.Add(10 * time.Second)
+	if !rl.Allow("ip-2") {
+		t.Fatal("expected second visitor to be accepted")
+	}
+
+	// While at cap and before the oldest visitor expires, rejecting unknown IPs
+	// must not trigger a full-map eviction sweep on every request.
+	initialCleanup := rl.lastCleanup
+	now = now.Add(20 * time.Second)
+	if rl.Allow("ip-3") {
+		t.Fatal("expected unknown IP to be rejected while active visitors fill the cap")
+	}
+	if !rl.lastCleanup.Equal(initialCleanup) {
+		t.Fatalf("lastCleanup advanced from %v to %v despite no expired visitors", initialCleanup, rl.lastCleanup)
+	}
+
+	// Once ip-1 expires (still within cleanupInterval and while ip-2 is active),
+	// cap eviction runs and admits ip-3.
+	now = now.Add(35 * time.Second)
+	if !rl.Allow("ip-3") {
+		t.Fatal("expected expired visitors to be evicted when visitor cap is reached")
+	}
+	// ip-2 is still active (windowStart=t+10s, now=t+65s), so a fourth IP is rejected without sweeping.
+	cleanupAfterAdmit := rl.lastCleanup
+	now = now.Add(2 * time.Second)
+	if rl.Allow("ip-4") {
+		t.Fatal("expected fourth IP to be rejected while ip-2 and ip-3 are active")
+	}
+	if !rl.lastCleanup.Equal(cleanupAfterAdmit) {
+		t.Fatalf("lastCleanup advanced from %v to %v despite oldest remaining visitor not expired", cleanupAfterAdmit, rl.lastCleanup)
+	}
+}
+
 func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	previous := rateLimitRejections.clientIP.Load()
 	rateLimitRejections.clientIP.Store(0)

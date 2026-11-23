@@ -27,6 +27,7 @@ export class TestAudio {
   set src(value: string) {
     this.pause();
     this.source = value;
+    this.error = null;
     this.sources.push(value);
     this.currentTime = 0;
     this.ended = false;

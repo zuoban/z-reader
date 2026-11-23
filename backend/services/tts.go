@@ -178,6 +178,11 @@ func GenerateAudioFromSsmlContext(ctx context.Context, ssml, outputFormat string
 	return callTTSAPIWithCacheContext(ctx, ssml, outputFormat)
 }
 
+// RefreshAudioFromSsmlContext synthesizes audio after a client decoder failure.
+func RefreshAudioFromSsmlContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	return synthesizeTTSAudio(ctx, ssml, outputFormat, true)
+}
+
 func clearEndpointCache() {
 	endpointCache.mutex.Lock()
 	endpointCache.data = nil

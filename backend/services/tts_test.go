@@ -85,6 +85,34 @@ func TestTTSSynthesisBudgetIncludesQueueWait(t *testing.T) {
 	}
 }
 
+func TestTTSRecoverySynthesizesDespiteMemoryAndDiskHits(t *testing.T) {
+	var calls atomic.Int32
+	runtime := installTTSTestRuntime(t, func(*http.Request) (*http.Response, error) {
+		calls.Add(1)
+		return ttsResponse(http.StatusOK, "fresh audio"), nil
+	})
+	runtime.config.Dir = t.TempDir()
+	const ssml, format = "<speak>same passage</speak>", "mp3"
+	key := ttsCacheKey(ActiveTTSProvider().Name(), ssml, format)
+	runtime.cache.set(key, []byte("memory audio"))
+	if err := writeDiskTTSCache(runtime.config, key, []byte("disk audio")); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	data, err := RefreshAudioFromSsmlContext(ctx, ssml, format)
+	if err != nil || string(data) != "fresh audio" || calls.Load() != 1 {
+		t.Fatalf("refresh: got %q, %v after %d provider calls", data, err, calls.Load())
+	}
+	data, err = GenerateAudioFromSsmlContext(ctx, ssml, format)
+	if err != nil || string(data) != "memory audio" || calls.Load() != 1 {
+		t.Fatalf("normal request: got %q, %v after %d provider calls", data, err, calls.Load())
+	}
+	if data, ok := readDiskTTSCache(runtime.config, key); !ok || string(data) != "disk audio" {
+		t.Fatalf("disk cache after refresh: got %q, found %v", data, ok)
+	}
+}
+
 func TestTTSCancelledInflightIsNotReusedByImmediateRetry(t *testing.T) {
 	var calls atomic.Int32
 	firstStarted := make(chan struct{})

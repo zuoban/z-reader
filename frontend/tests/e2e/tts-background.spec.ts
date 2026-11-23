@@ -128,6 +128,60 @@ test.describe('background TTS', () => {
     expect(result).toEqual({ audioCount: 1, playing: true, unchangedSection: true });
   });
 
+  test('retries the same passage after a browser audio decode failure', async ({ page }) => {
+    await installBrowserStubs(page, { authenticated: true });
+    await mockReaderHappyPath(page);
+    await observeSpeech(page);
+    const requests: Array<{ ssml: string; refresh_audio?: boolean }> = [];
+    await page.route('**/api/ssml', route => {
+      const request = route.request().postDataJSON() as (typeof requests)[number];
+      requests.push(request);
+      return route.fulfill({
+        contentType: 'audio/wav',
+        body: requests.length <= 2 ? Buffer.from('invalid WAV') : testWave(12),
+      });
+    });
+
+    await openSpeech(page);
+    await page.getByTitle('开始', { exact: true }).click();
+    await page.waitForFunction(() => {
+      const audio = (window as typeof window & { ttsAudios: HTMLAudioElement[] }).ttsAudios[0];
+      return Boolean(audio?.error);
+    });
+    const retry = page.getByRole('button', { name: '继续', exact: true })
+      .and(page.getByText('继续', { exact: true }));
+    if (!(await retry.isVisible())) {
+      const expand = page.getByRole('button', { name: '展开操作栏' });
+      if (await expand.isVisible()) await expand.click();
+      await page.getByRole('button', { name: /^朗读控制(?:（正在播放）)?$/ }).first().click();
+    }
+    await expect(retry).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].refresh_audio).toBeUndefined();
+    const failedPassage = requests[0].ssml;
+    await expect(page.getByText(/点击继续可重新获取当前片段/).first()).toBeVisible();
+    await retry.click();
+
+    await expect(page.getByText(/重新获取的音频仍无法播放/).first()).toBeVisible();
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toMatchObject({ ssml: failedPassage, refresh_audio: true });
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('focus'));
+      window.dispatchEvent(new Event('pageshow'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      document.dispatchEvent(new Event('pointerup'));
+    });
+    expect(requests).toHaveLength(2);
+    await retry.click();
+
+    await page.waitForFunction(() => {
+      const audio = (window as typeof window & { ttsAudios: HTMLAudioElement[] }).ttsAudios[0];
+      return audio && !audio.paused && audio.currentTime > 0;
+    });
+    expect(requests[2]).toMatchObject({ ssml: failedPassage, refresh_audio: true });
+    expect(requests.filter(request => request.ssml === failedPassage)).toHaveLength(3);
+  });
+
   test('switches highlight mode without replacing audio or restarting its position', async ({ page }) => {
     await installBrowserStubs(page, { authenticated: true });
     await mockReaderHappyPath(page);

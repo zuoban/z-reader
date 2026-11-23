@@ -89,6 +89,87 @@ describe('continuous TTS session', () => {
     expect(audio.paused).toBe(false);
   });
 
+  it('refetches the current chunk on explicit resume and waits after repeated decode failure', async () => {
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    const requests = () => vi.mocked(fetch).mock.calls.map(([, options]) =>
+      JSON.parse(String(options?.body)) as { ssml: string; refresh_audio?: boolean });
+    await act(() => result.current.start());
+    const [{ ssml }] = requests();
+    const currentRequests = () => requests().filter(request => request.ssml === ssml);
+    const audio = TestAudio.instances.at(-1)!;
+    const fail = () => {
+      audio.error = { code: 3 } as MediaError;
+      audio.finish();
+      audio.onerror?.();
+    };
+    const lifecycleEvents = async () => {
+      window.dispatchEvent(new Event('focus'));
+      window.dispatchEvent(new Event('pageshow'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      document.dispatchEvent(new Event('pointerup'));
+      await flushMediaEvents();
+    };
+
+    await act(async () => { fail(); await lifecycleEvents(); });
+    expect(result.current.state).toBe('paused');
+    expect(result.current.resumePromptMessage).toContain('重新获取当前片段');
+    expect(currentRequests()).toEqual([{ ssml, output_format: expect.any(String) }]);
+
+    // Some browsers reject play() before delivering the corresponding error event.
+    audio.playError = new DOMException('Cannot decode', 'NotSupportedError');
+    try {
+      await act(() => result.current.resume());
+    } finally {
+      audio.playError = null;
+    }
+    await act(lifecycleEvents);
+    expect(result.current.state).toBe('paused');
+    expect(result.current.resumePromptVisible).toBe(true);
+    expect(result.current.ttsStatus.detail).toContain('重新获取的音频仍无法播放');
+    expect(requests().filter(request => request.refresh_audio)).toEqual([
+      { ssml, output_format: expect.any(String), refresh_audio: true },
+    ]);
+    expect(currentRequests()).toHaveLength(2);
+
+    await act(() => result.current.resume());
+    expect(result.current.state).toBe('playing');
+    expect(result.current.resumePromptVisible).toBe(false);
+    expect(result.current.currentMark?.cfi).toBe('cfi-0');
+    expect(currentRequests()).toHaveLength(3);
+    expect(currentRequests().at(-1)?.refresh_audio).toBe(true);
+  });
+
+  it('refreshes the SSML that actually failed after the invalid-SSML fallback', async () => {
+    const view = createView();
+    vi.mocked(view.getTTSSentences!).mockImplementation(async function* () {
+      yield { text: '测试朗读。', ssml: '<speak><break time="1s"/>测试朗读。</speak>',
+        cfi: 'cfi-0', sectionIndex: 0, words: [] };
+    });
+    const viewRef = { current: view };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ code: 'invalid_ssml' }), {
+      status: 422,
+    }));
+    await act(() => result.current.start());
+    const requests = () => vi.mocked(fetch).mock.calls.map(([, options]) =>
+      JSON.parse(String(options?.body)) as { ssml: string; refresh_audio?: boolean });
+    const [original, fallback] = requests();
+    expect(fallback.ssml).not.toBe(original.ssml);
+    const audio = TestAudio.instances.at(-1)!;
+    act(() => {
+      audio.error = { code: 3 } as MediaError;
+      audio.onerror?.();
+    });
+    expect(backendTTS.hasAudio(fallback.ssml)).toBe(false);
+
+    await act(() => result.current.resume());
+    expect(requests().filter(request => request.refresh_audio)).toEqual([
+      { ssml: fallback.ssml, output_format: expect.any(String), refresh_audio: true },
+    ]);
+    expect(result.current.state).toBe('playing');
+  });
+
   it('recovers an external pause without replaying the current chunk', async () => {
     const view = createView();
     const viewRef = { current: view };

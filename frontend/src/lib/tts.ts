@@ -320,6 +320,14 @@ interface CachedAudio {
   marks: TTSMark[];
 }
 
+interface PlaybackSource {
+  url: string;
+  ssml: string;
+  entry: CachedAudio;
+  speechId: number;
+  decodeFailed: boolean;
+}
+
 interface PreloadTask {
   ssml: string;
   marks?: TTSMark[];
@@ -373,10 +381,11 @@ class LRUCache<T> {
     return this.cache.has(key);
   }
   
-  delete(key: string): boolean {
+  delete(key: string, expected: T): void {
     const entry = this.cache.get(key);
-    entry?.release?.();
-    return this.cache.delete(key);
+    if (!entry || entry.data !== expected) return;
+    entry.release?.();
+    this.cache.delete(key);
   }
   
   clear(): void {
@@ -393,7 +402,7 @@ class LRUCache<T> {
 
 export class BackendTTS {
   private audio: HTMLAudioElement | null = null;
-  private audioUrl: string | null = null;
+  private audioSource: PlaybackSource | null = null;
   private settings: TTSSettings;
   private state: TTSState = 'stopped';
   private currentMarkIndex: number = 0;
@@ -401,11 +410,9 @@ export class BackendTTS {
   private onStateChange: ((state: TTSState) => void) | null = null;
   private onMarkChange: ((mark: TTSMark, index: number) => void) | null = null;
   private onEnd: (() => void) | null = null;
+  private onDecodeError: ((ssml: string) => void) | null = null;
   private onTimeUpdate: ((currentTime: number, duration: number) => void) | null = null;
-  private currentSSML: string = '';
-  private audioSSML: string = '';
   private speechId = 0;
-  private audioSpeechId = -1;
   private abortController: AbortController | null = null;
   
   private preloadedQueue: PreloadedAudio[] = [];
@@ -514,15 +521,29 @@ export class BackendTTS {
     this.onEnd = cb;
   }
 
+  onDecodeErrorCallback(cb: ((ssml: string) => void) | null): void {
+    this.onDecodeError = cb;
+  }
+
   onTimeUpdateCallback(cb: (currentTime: number, duration: number) => void): void {
     this.onTimeUpdate = cb;
   }
 
-  private releaseAudioUrl(): void {
-    if (this.audioUrl) {
-      URL.revokeObjectURL(this.audioUrl);
-      this.audioUrl = null;
-    }
+  private isCurrentSource(source: PlaybackSource): boolean {
+    return this.audioSource === source && this.speechId === source.speechId &&
+      this.audio?.src === source.url;
+  }
+
+  private handleDecodeError(source: PlaybackSource): void {
+    if (!this.isCurrentSource(source) || source.decodeFailed) return;
+    source.decodeFailed = true;
+    this.audioCache.delete(source.ssml, source.entry);
+    this.preloadedQueue = this.preloadedQueue.filter(item =>
+      item.ssml !== source.ssml || item.blob !== source.entry.blob);
+    this.replacingSource = false;
+    this.audio?.pause();
+    this.setState('paused');
+    this.onDecodeError?.(source.ssml);
   }
 
   private trimPreloadQueue(): void {
@@ -586,7 +607,9 @@ export class BackendTTS {
     return { progressThreshold, remainingSeconds, reason };
   }
 
-  async speak(ssml: string, marks?: TTSMark[], isContinuous?: boolean): Promise<void> {
+  async speak(
+    ssml: string, marks?: TTSMark[], isContinuous?: boolean, refreshAudio = false,
+  ): Promise<void> {
     if (isSSMLTooLarge(ssml)) throw new Error('当前段落过长，无法直接朗读');
     this.releaseAudioFocus = claimTTSAudioFocus(this, () => this.pause());
 
@@ -598,17 +621,16 @@ export class BackendTTS {
     ++this.speechId;
     this.wantsPlayback = true;
     this.abortController?.abort();
-    this.currentSSML = ssml;
     this.preloadTriggered = false;
     this.replacingSource = true;
     this.audio?.pause();
     const speechMarks = marks?.length ? marks : [{ name: '0', text: stripSSML(ssml) }];
 
     try {
-      const cached = this.audioCache.get(ssml);
+      const cached = refreshAudio ? undefined : this.audioCache.get(ssml);
       // Share only this chunk's in-flight prefetch. Other future requests must
       // never block playback, navigation, pause, or stop.
-      if (!cached && this.preloadPromises.has(ssml)) {
+      if (!refreshAudio && !cached && this.preloadPromises.has(ssml)) {
         const prefetch = this.preloadPromises.get(ssml)!;
         await new Promise<void>((resolve, reject) => {
           const abort = () => reject(Object.assign(new Error('朗读操作已取消'), {
@@ -627,7 +649,8 @@ export class BackendTTS {
           throw new DOMException('Playback was cancelled', 'AbortError');
         }
       }
-      const preloadedIndex = this.preloadedQueue.findIndex(item => item.ssml === ssml);
+      const preloadedIndex = refreshAudio ? -1 :
+        this.preloadedQueue.findIndex(item => item.ssml === ssml);
       const preloaded = preloadedIndex >= 0
         ? this.preloadedQueue.splice(preloadedIndex, 1)[0]
         : undefined;
@@ -636,7 +659,7 @@ export class BackendTTS {
         this.consecutivePreloadMisses += isContinuous ? 1 : 0;
         if (this.lastEndedAt !== null) this.logMetric('buffer-miss');
         const start = performance.now();
-        blob = await this.fetchAudioBlob(ssml);
+        blob = await this.fetchAudioBlob(ssml, refreshAudio);
         this.recordSynthesisLatency(performance.now() - start);
       } else {
         this.consecutivePreloadMisses = 0;
@@ -652,12 +675,13 @@ export class BackendTTS {
         cumulative += Math.max(0.001, mark.weight ?? mark.text.length);
         return cumulative / totalWeight;
       });
-      this.audioCache.set(ssml, { blob, marks: speechMarks });
+      const entry = cached ?? { blob, marks: speechMarks };
+      if (!cached) this.audioCache.set(ssml, entry);
       this.logMetric('speak.ready', {
         requestId, continuous: Boolean(isContinuous),
         source: cached ? 'cache' : preloaded ? 'preload' : 'network', bytes: blob.size,
       });
-      await this.playAudio(blob, requestId);
+      await this.playAudio(ssml, entry, requestId);
     } catch (error) {
       if (requestId === this.playbackRequestId) {
         this.replacingSource = false;
@@ -667,11 +691,11 @@ export class BackendTTS {
     }
   }
 
-  private async fetchAudioBlob(ssml: string): Promise<Blob> {
+  private async fetchAudioBlob(ssml: string, refreshAudio: boolean): Promise<Blob> {
     const { controller, timeoutId } = createAbortController(65000);
     this.abortController = controller;
     try {
-      return await this.fetchAudioBlobWithController(ssml, controller);
+      return await this.fetchAudioBlobWithController(ssml, controller, refreshAudio);
     } finally {
       clearTimeout(timeoutId);
       if (this.abortController === controller) this.abortController = null;
@@ -696,32 +720,40 @@ export class BackendTTS {
     }
   }
 
-  private async playAudio(blob: Blob, requestId: number): Promise<void> {
+  private async playAudio(ssml: string, entry: CachedAudio, requestId: number): Promise<void> {
     const audio = this.getOrCreateAudio();
-    const previousUrl = this.audioUrl;
-    const audioUrl = URL.createObjectURL(blob);
-    this.audioUrl = audioUrl;
-    this.audioSSML = this.currentSSML;
-    this.audioSpeechId = this.speechId;
+    const previousUrl = this.audioSource?.url;
+    const source: PlaybackSource = {
+      url: URL.createObjectURL(entry.blob), ssml, entry, speechId: this.speechId, decodeFailed: false,
+    };
+    this.audioSource = source;
     this.currentMarkIndex = -1;
 
     audio.onplay = () => {
-      if (this.audioUrl !== audioUrl) return;
+      if (!this.isCurrentSource(source) || source.decodeFailed || audio.error) return;
       if (!this.wantsPlayback) { audio.pause(); return; }
+      if (audio.paused) return;
       this.replacingSource = false;
       this.setState('playing');
       this.updateCurrentMark(audio);
     };
     audio.onended = () => {
-      if (this.audioUrl !== audioUrl || !audio.ended) return;
+      if (!this.isCurrentSource(source) || source.decodeFailed || audio.error || !audio.ended) return;
       this.logMetric('audio.ended', { requestId });
       this.lastEndedAt = performance.now();
       this.preloadTriggered = false;
       if (this.state === 'playing') this.onEnd?.();
     };
     audio.onerror = () => {
-      if (this.audioUrl !== audioUrl) return;
-      this.logMetric('audio.error', { requestId, code: audio.error?.code });
+      // The same element may deliver an old error event after its src changes.
+      // Changing src resets MediaError, so only act on an error still present.
+      const code = audio.error?.code;
+      if (!this.isCurrentSource(source) || !code) return;
+      this.logMetric('audio.error', { requestId, code });
+      if (code === 3 || code === 4) {
+        this.handleDecodeError(source);
+        return;
+      }
       this.replacingSource = false;
       this.setState('paused');
     };
@@ -731,12 +763,12 @@ export class BackendTTS {
       });
       // A queued pause from the old source can arrive after play() has already
       // made the same element active again. Natural completion also emits pause.
-      if (this.audioUrl !== audioUrl || this.replacingSource ||
+      if (!this.isCurrentSource(source) || this.replacingSource ||
           !audio.paused || audio.ended) return;
       if (this.state === 'playing') this.setState('paused');
     };
     audio.ontimeupdate = () => {
-      if (this.audioUrl !== audioUrl) return;
+      if (!this.isCurrentSource(source) || source.decodeFailed || audio.error) return;
       this.updateCurrentMark(audio);
       const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
       this.onTimeUpdate?.(audio.currentTime, duration);
@@ -750,15 +782,13 @@ export class BackendTTS {
     };
     // Assign the new source directly. Emptying src/load() between sentences
     // tears down Android's active media session and is unnecessary here.
-    audio.src = audioUrl;
+    audio.src = source.url;
     if (previousUrl) URL.revokeObjectURL(previousUrl);
     try {
-      await audio.play();
+      await this.startAudio(audio, source, requestId);
       if (requestId !== this.playbackRequestId) {
         throw new DOMException('Playback was cancelled', 'AbortError');
       }
-      this.replacingSource = false;
-      this.setState('playing');
       const now = performance.now();
       if (!this.sessionPlayed && this.sessionStartedAt !== null) {
         this.logMetric('first-audio', { latencyMs: Math.round(now - this.sessionStartedAt) });
@@ -777,18 +807,42 @@ export class BackendTTS {
     }
   }
 
+  private async startAudio(
+    audio: HTMLAudioElement, source: PlaybackSource, requestId: number,
+  ): Promise<void> {
+    try {
+      if (audio.paused) await audio.play();
+    } catch (error) {
+      const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+      if (requestId === this.playbackRequestId &&
+          (audio.error?.code === 3 || audio.error?.code === 4 || name === 'NotSupportedError')) {
+        this.handleDecodeError(source);
+      }
+      throw error;
+    }
+    if (requestId !== this.playbackRequestId || !this.wantsPlayback) {
+      throw new DOMException('Playback was cancelled', 'AbortError');
+    }
+    if (audio.error?.code === 3 || audio.error?.code === 4) this.handleDecodeError(source);
+    if (source.decodeFailed) throw new Error('音频解码失败');
+    this.replacingSource = false;
+    this.setState('playing');
+  }
+
   hasAudio(ssml: string): boolean {
     return this.audioCache.has(ssml) || this.preloadedQueue.some(item => item.ssml === ssml);
   }
 
   hasCurrentAudio(): boolean {
-    return Boolean(this.audioUrl && this.audioSpeechId === this.speechId &&
-      this.audioSSML === this.currentSSML &&
-      this.audio?.src && !this.audio.ended && !this.audio.error);
+    const source = this.audioSource;
+    return Boolean(source && this.isCurrentSource(source) && !source.decodeFailed &&
+      !this.audio?.ended && !this.audio?.error);
   }
 
   hasEnded(): boolean {
-    return this.audioSpeechId === this.speechId && Boolean(this.audio?.ended);
+    const source = this.audioSource;
+    return Boolean(source && this.isCurrentSource(source) && !source.decodeFailed &&
+      !this.audio?.error && this.audio?.ended);
   }
 
   needsResume(): boolean {
@@ -897,7 +951,9 @@ export class BackendTTS {
     }
   }
 
-  private async fetchAudioBlobWithController(ssml: string, controller: AbortController): Promise<Blob> {
+  private async fetchAudioBlobWithController(
+    ssml: string, controller: AbortController, refreshAudio = false,
+  ): Promise<Blob> {
     if (this.providerRetryError && Date.now() < this.providerRetryNotBefore) {
       throw new TTSRequestError(this.providerRetryError.status, this.providerRetryError.code,
         this.providerRetryNotBefore - Date.now());
@@ -912,6 +968,7 @@ export class BackendTTS {
         body: JSON.stringify({
           ssml: ssml,
           output_format: 'audio-24khz-48kbitrate-mono-mp3',
+          refresh_audio: refreshAudio || undefined,
         }),
         signal: controller.signal,
       });
@@ -1055,17 +1112,15 @@ export class BackendTTS {
   }
 
   async resume(): Promise<void> {
-    if (!this.hasCurrentAudio()) throw new Error('当前音频需要重新准备');
+    const source = this.audioSource;
+    const audio = this.audio;
+    if (!audio || !source || !this.hasCurrentAudio()) throw new Error('当前音频需要重新准备');
     this.releaseAudioFocus = claimTTSAudioFocus(this, () => this.pause());
     // Actual element state is authoritative, including when a browser has
     // paused playback before the page received the corresponding event.
     this.wantsPlayback = true;
     const requestId = ++this.playbackRequestId;
-    if (this.audio?.paused) await this.audio.play();
-    if (requestId !== this.playbackRequestId || !this.wantsPlayback) {
-      throw Object.assign(new Error('朗读操作已取消'), { name: 'AbortError' });
-    }
-    this.setState('playing');
+    await this.startAudio(audio, source, requestId);
   }
 
   stop(): void {
@@ -1078,6 +1133,8 @@ export class BackendTTS {
     this.abortController?.abort();
     this.abortController = null;
     this.replacingSource = false;
+    const source = this.audioSource;
+    this.audioSource = null;
     this.setState('stopped');
     if (this.audio) {
       this.audio.onplay = null;
@@ -1089,14 +1146,11 @@ export class BackendTTS {
       this.audio.removeAttribute('src');
       this.audio.load();
     }
-    this.releaseAudioUrl();
+    if (source) URL.revokeObjectURL(source.url);
     this.preloadTriggered = false;
     this.currentMarkIndex = -1;
     this.marks = [];
     this.markBoundaries = [];
-    this.currentSSML = '';
-    this.audioSSML = '';
-    this.audioSpeechId = -1;
     this.sessionStartedAt = null;
     this.sessionPlayed = false;
     this.lastEndedAt = null;

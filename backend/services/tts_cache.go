@@ -388,7 +388,11 @@ func callTTSAPIWithCache(ssml, outputFormat string) ([]byte, error) {
 	return callTTSAPIWithCacheContext(context.Background(), ssml, outputFormat)
 }
 
-func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) (data []byte, err error) {
+func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	return synthesizeTTSAudio(ctx, ssml, outputFormat, false)
+}
+
+func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh bool) (data []byte, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -396,21 +400,26 @@ func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) 
 	defer func() { runtime.metrics.recordResult(err) }()
 	provider := ActiveTTSProvider()
 	key := ttsCacheKey(provider.Name(), ssml, outputFormat)
-	if data, ok := runtime.cache.get(key); ok {
-		runtime.metrics.recordCache(0, true)
-		logger.Info("TTS cache hit", "source", "memory", "key", key, "bytes", len(data))
-		return data, nil
-	}
+	if refresh {
+		// Share concurrent refreshes without joining a regular request that may
+		// still be publishing the audio the client just failed to decode.
+		key = "refresh:" + key
+	} else {
+		if data, ok := runtime.cache.get(key); ok {
+			runtime.metrics.recordCache(0, true)
+			logger.Info("TTS cache hit", "source", "memory", "key", key, "bytes", len(data))
+			return data, nil
+		}
 
-	runtime.metrics.recordCache(0, false)
-	if data, ok := readDiskTTSCache(runtime.config, key); ok {
-		runtime.metrics.recordCache(1, true)
-		runtime.cache.set(key, data)
-		logger.Info("TTS cache hit", "source", "disk", "key", key, "bytes", len(data))
-		return data, nil
+		runtime.metrics.recordCache(0, false)
+		if data, ok := readDiskTTSCache(runtime.config, key); ok {
+			runtime.metrics.recordCache(1, true)
+			runtime.cache.set(key, data)
+			logger.Info("TTS cache hit", "source", "disk", "key", key, "bytes", len(data))
+			return data, nil
+		}
+		runtime.metrics.recordCache(1, false)
 	}
-
-	runtime.metrics.recordCache(1, false)
 	ttsInflight.mutex.Lock()
 	if ttsInflight.calls == nil {
 		ttsInflight.calls = make(map[string]*ttsInflightCall)
@@ -440,7 +449,9 @@ func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) 
 
 		logger.Info("TTS cache miss", "key", key, "provider", provider.Name(), "ssml_bytes", len(ssml), "output_format", outputFormat)
 		call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
-		if call.err == nil {
+		// A browser decode failure can be local to that client. Recovery leaves
+		// the shared cache alone and runs under the same synthesis limits.
+		if call.err == nil && !refresh {
 			runtime.cache.set(key, call.data)
 			if err := writeDiskTTSCache(runtime.config, key, call.data); err != nil {
 				logger.Warn("Failed to write TTS disk cache", "key", key, "error", err)

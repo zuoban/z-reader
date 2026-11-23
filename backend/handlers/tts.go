@@ -74,6 +74,7 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 type SSMLRequest struct {
 	Ssml         string `json:"ssml" binding:"required"`
 	OutputFormat string `json:"output_format"`
+	RefreshAudio bool   `json:"refresh_audio"`
 	Download     bool   `json:"download"`
 }
 
@@ -108,7 +109,11 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		outputFormat = "audio-24khz-48kbitrate-mono-mp3"
 	}
 
-	audioData, err := services.GenerateAudioFromSsmlContext(c.Request.Context(), sanitizedSsml, outputFormat)
+	generateAudio := services.GenerateAudioFromSsmlContext
+	if req.RefreshAudio {
+		generateAudio = services.RefreshAudioFromSsmlContext
+	}
+	audioData, err := generateAudio(c.Request.Context(), sanitizedSsml, outputFormat)
 	if err != nil {
 		if c.Request.Context().Err() != nil {
 			return

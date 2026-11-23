@@ -221,7 +221,13 @@ describe('TTS media playback', () => {
   it('pauses on a decoder error and requires fresh audio for recovery', async () => {
     const ended = vi.fn();
     player.onEndCallback(ended);
-    await player.speak('<speak>broken audio</speak>');
+    const broken = '<speak>broken audio</speak>';
+    const buffered = '<speak>buffered audio</speak>';
+    const decodeError = vi.fn();
+    player.onDecodeErrorCallback(decodeError);
+    await player.preload(broken);
+    await player.preload(buffered);
+    await player.speak(broken);
     const audio = TestAudio.instances[0];
     audio.error = { code: 3 } as MediaError;
     audio.onerror?.();
@@ -229,5 +235,43 @@ describe('TTS media playback', () => {
     expect(player.hasCurrentAudio()).toBe(false);
     expect(ended).not.toHaveBeenCalled();
     await expect(player.resume()).rejects.toThrow('当前音频需要重新准备');
+    expect(decodeError).toHaveBeenCalledExactlyOnceWith(broken);
+    expect(player.hasAudio(broken)).toBe(false);
+    expect(player.hasAudio(buffered)).toBe(true);
+    await player.speak(broken);
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('ignores stale errors, pauses and endings across source changes and stop', async () => {
+    const ssml = '<speak>same passage</speak>';
+    const decodeError = vi.fn();
+    const ended = vi.fn();
+    player.onDecodeErrorCallback(decodeError);
+    player.onEndCallback(ended);
+    await player.speak(ssml);
+    const audio = TestAudio.instances[0];
+    const stale = [audio.onerror, audio.onpause, audio.onended];
+    let deliver!: (response: Response) => void;
+    vi.mocked(fetch).mockReturnValueOnce(new Promise(resolve => { deliver = resolve; }));
+    const refresh = player.speak(ssml, undefined, true, true);
+    audio.error = { code: 3 } as MediaError;
+    stale.forEach(handler => handler?.());
+    expect(player.hasAudio(ssml)).toBe(true);
+    deliver(audioResponse());
+    await refresh;
+    stale.forEach(handler => handler?.());
+    audio.onerror?.(); // An event dispatched to the new handler has no MediaError.
+    audio.onpause?.();
+    expect(player.getState()).toBe('playing');
+    expect(player.hasAudio(ssml)).toBe(true);
+
+    const lateError = audio.onerror;
+    player.stop();
+    audio.error = { code: 3 } as MediaError;
+    lateError?.();
+    expect(player.getState()).toBe('stopped');
+    expect(decodeError).not.toHaveBeenCalled();
+    expect(ended).not.toHaveBeenCalled();
+    expect(player.hasAudio(ssml)).toBe(true);
   });
 });

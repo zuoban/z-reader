@@ -37,13 +37,21 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
   const currentMarkRef = useRef<TTSMark | null>(null);
   const [markIndex, setMarkIndex] = useState(0);
   const [preparing, setPreparing] = useState(false);
-  const [resumePromptVisible, setResumePromptVisible] = useState(false);
-  const [resumePromptMessage, setResumePromptMessage] = useState('朗读被系统中断，点击继续朗读。');
+  const [resumePrompt, setResumePrompt] = useState<{
+    message?: string;
+    requiresExplicitResume?: boolean;
+  } | null>(null);
+  const resumePromptVisible = resumePrompt !== null;
+  const resumePromptMessage = resumePrompt?.message ?? '朗读被系统中断，点击继续朗读。';
   const [ttsStatus, setTTSStatus] = useState<TTSVisibleStatus>({
     headline: '准备朗读', detail: '选择开始后从当前位置朗读', tone: 'idle',
   });
   const sourceRef = useRef<TTSSpeechBuffer | null>(null);
   const currentChunkRef = useRef<TTSAudioChunk | null>(null);
+  const decodeRecoveryRef = useRef<{
+    ssml: string;
+    pending: boolean;
+  } | null>(null);
   const pendingRef = useRef<TTSAudioChunk[]>([]);
   const generationRef = useRef(0);
   const operationRef = useRef(0);
@@ -73,7 +81,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
   );
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const dismissResumePrompt = useCallback(() => {
-    setResumePromptVisible(false);
+    setResumePrompt(null);
     toast.dismiss('tts-resume-hint');
   }, []);
   const getSettings = useCallback(() => backendTTS.getSettings(), []);
@@ -145,6 +153,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
     sourceRef.current?.dispose();
     sourceRef.current = null;
     currentChunkRef.current = null;
+    decodeRecoveryRef.current = null;
     pendingRef.current = [];
     fillingRef.current = null;
     measuredChunkRef.current = null;
@@ -225,20 +234,22 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
 
   const playChunk = useCallback(async (chunk: TTSAudioChunk, operation: number) => {
     const active = () => operation === operationRef.current && shouldResumeOnForegroundRef.current;
+    if (currentChunkRef.current !== chunk) decodeRecoveryRef.current = null;
     currentChunkRef.current = chunk;
+    const recovery = decodeRecoveryRef.current;
     retryControllerRef.current?.abort();
     const controller = new AbortController();
     retryControllerRef.current = controller;
     setPreparing(true);
     try {
-      let ssml = chunk.ssml;
-      let fallback = false;
+      let ssml = recovery?.pending ? recovery.ssml : chunk.ssml;
+      let fallback = ssml !== chunk.ssml;
       let retried = false;
       for (;;) {
         if (!active() || sleepExpired()) return false;
         setTTSStatus({ headline: '正在准备朗读', detail: '音频准备好后会自动播放', tone: 'active' });
         try {
-          await retryTTSRequest(() => backendTTS.speak(ssml, chunk.marks, true), {
+          await retryTTSRequest(() => backendTTS.speak(ssml, chunk.marks, true, recovery?.pending), {
             signal: controller.signal,
             onRetry: (attempt, delayMs, kind) => {
               retried = true;
@@ -256,21 +267,26 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
           }
           throw error;
         }
-        if (!active()) return false;
+        if (!active() || decodeRecoveryRef.current !== recovery) return false;
+        if (recovery) recovery.pending = false;
         if (resumePromptVisible || retried) logTTS('recovery-success');
         dismissResumePrompt();
         void preloadRef.current();
         return true;
       }
     } catch (error) {
-      if (!active() || classifyTTSError(error) === 'cancelled') return false;
+      if (!active() || decodeRecoveryRef.current !== recovery ||
+          classifyTTSError(error) === 'cancelled') return false;
       logTTS('play-failed', { kind: classifyTTSError(error) });
       backendTTS.pause();
       flushTTSSession();
-      setResumePromptMessage(classifyTTSError(error) === 'timeout'
+      const message = classifyTTSError(error) === 'timeout'
         ? '语音请求超时，点击继续可从当前片段恢复。'
-        : '朗读暂时中断，点击继续可从当前片段恢复。');
-      setResumePromptVisible(true);
+        : '朗读暂时中断，点击继续可从当前片段恢复。';
+      if (recovery?.pending) {
+        setTTSStatus({ headline: '无法重新获取音频', detail: message, tone: 'warning' });
+      }
+      setResumePrompt({ message, requiresExplicitResume: recovery?.pending });
       return false;
     } finally {
       if (retryControllerRef.current === controller) retryControllerRef.current = null;
@@ -280,7 +296,8 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
   useEffect(() => { playChunkRef.current = playChunk; }, [playChunk]);
 
   const advance = useCallback(async () => {
-    if (advancingRef.current !== null || !shouldResumeOnForegroundRef.current || sleepExpired()) return;
+    if (advancingRef.current !== null || decodeRecoveryRef.current?.pending ||
+        !shouldResumeOnForegroundRef.current || sleepExpired()) return;
     const operation = operationRef.current;
     advancingRef.current = operation;
     try {
@@ -298,7 +315,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       if (operation !== operationRef.current) return;
       logTTS('continuation-error', { message: error instanceof Error ? error.message : 'unknown' });
       backendTTS.pause();
-      setResumePromptVisible(true);
+      setResumePrompt({});
     } finally {
       if (advancingRef.current === operation) advancingRef.current = null;
     }
@@ -329,7 +346,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       if (operation !== operationRef.current) return;
       logTTS('start-error', { message: error instanceof Error ? error.message : 'unknown' });
       backendTTS.pause();
-      setResumePromptVisible(true);
+      setResumePrompt({});
     } finally {
       if (operation === operationRef.current) setPreparing(false);
     }
@@ -342,13 +359,15 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
     if (stateRef.current === 'playing' && !backendTTS.needsResume() && !backendTTS.hasEnded()) return;
     const operation = ++operationRef.current;
     resumingRef.current = operation;
+    const recovery = decodeRecoveryRef.current;
     try {
-      if (backendTTS.hasCurrentAudio()) {
+      const chunk = currentChunkRef.current;
+      if (!recovery?.pending && backendTTS.hasCurrentAudio()) {
         await backendTTS.resume();
-      } else if (backendTTS.hasEnded()) {
+      } else if (!recovery?.pending && backendTTS.hasEnded()) {
         await advanceRef.current();
-      } else if (currentChunkRef.current) {
-        if (!await playChunkRef.current(currentChunkRef.current, operation)) return;
+      } else if (chunk) {
+        if (!await playChunkRef.current(chunk, operation)) return;
       } else {
         await begin();
         return;
@@ -358,10 +377,10 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       await requestWakeLock();
       void highlightRef.current();
     } catch (error) {
-      if (operation !== operationRef.current) return;
+      if (operation !== operationRef.current || decodeRecoveryRef.current !== recovery) return;
       logTTS('resume-error', { message: error instanceof Error ? error.message : 'unknown' });
       backendTTS.pause();
-      setResumePromptVisible(true);
+      setResumePrompt({});
     } finally {
       if (resumingRef.current === operation) resumingRef.current = null;
     }
@@ -415,7 +434,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       if (chunk) await playChunkRef.current(chunk, operation);
       else stopRef.current();
     } catch {
-      if (operation === operationRef.current) setResumePromptVisible(true);
+      if (operation === operationRef.current) setResumePrompt({});
     }
   }, [begin, calibratedTarget, flushTTSSession, viewRef]);
   const next = useCallback(() => jump(1), [jump]);
@@ -469,6 +488,18 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       }
     });
     backendTTS.onEndCallback(() => { void advanceRef.current(); });
+    backendTTS.onDecodeErrorCallback(ssml => {
+      if (!currentChunkRef.current) return;
+      const repeated = decodeRecoveryRef.current !== null;
+      decodeRecoveryRef.current = { ssml, pending: true };
+      const message = repeated
+        ? '重新获取的音频仍无法播放。可点击继续重试当前片段，或跳过这一句。'
+        : '当前音频解码失败。点击继续可重新获取当前片段。';
+      logTTS('decode-failed', { repeated });
+      flushTTSSession();
+      setTTSStatus({ headline: '音频解码失败', detail: message, tone: 'warning' });
+      setResumePrompt({ message, requiresExplicitResume: true });
+    });
     backendTTS.onPreloadTriggerCallback(() => { void preloadRef.current(); });
     backendTTS.onTimeUpdateCallback((time, duration) => {
       const chunk = currentChunkRef.current;
@@ -488,6 +519,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
         ? previous : { headline: '正在朗读', detail, tone: 'active' });
     });
     return () => {
+      backendTTS.onDecodeErrorCallback(null);
       shouldResumeOnForegroundRef.current = false;
       flushTTSSession();
       resetBuffer();
@@ -500,10 +532,12 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
 
   const foregroundResume = useCallback(() => {
     if (document.visibilityState !== 'visible' || !shouldResumeOnForegroundRef.current) return;
-    if (retryControllerRef.current) return;
-    if (sleepExpired()) return;
+    if (retryControllerRef.current || sleepExpired()) return;
     saveTTSSession();
     void highlightRef.current();
+    // Lifecycle events still restore the session and highlight, but a failed
+    // decode waits for the user to request fresh synthesis.
+    if (decodeRecoveryRef.current?.pending) return;
     if (backendTTS.needsResume() || stateRef.current === 'paused' || backendTTS.hasEnded()) {
       void resume();
     } else if (stateRef.current === 'playing') void requestWakeLock();
@@ -514,6 +548,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
   });
   useTTSResumePrompt({
     resumePromptVisible, resumePromptMessage, isLikelyIOS,
+    requiresExplicitResume: resumePrompt?.requiresExplicitResume ?? false,
     shouldResumeOnForegroundRef, onResumeAttempt: foregroundResume,
   });
   useTTSMediaSession({

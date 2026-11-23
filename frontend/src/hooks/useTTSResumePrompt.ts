@@ -10,6 +10,7 @@ interface UseTTSResumePromptOptions {
   resumePromptVisible: boolean;
   resumePromptMessage: string;
   isLikelyIOS: boolean;
+  requiresExplicitResume: boolean;
   shouldResumeOnForegroundRef: MutableRefObject<boolean>;
   onResumeAttempt: () => void;
 }
@@ -18,14 +19,16 @@ export function useTTSResumePrompt({
   resumePromptVisible,
   resumePromptMessage,
   isLikelyIOS,
+  requiresExplicitResume,
   shouldResumeOnForegroundRef,
   onResumeAttempt,
 }: UseTTSResumePromptOptions) {
-  const hasShownResumeToastRef = useRef(false);
+  const lastToastMessageRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!resumePromptVisible || requiresExplicitResume) return;
     const handleGestureResume = () => {
-      if (!resumePromptVisible || !shouldResumeOnForegroundRef.current) return;
+      if (!shouldResumeOnForegroundRef.current) return;
       onResumeAttempt();
     };
 
@@ -36,23 +39,25 @@ export function useTTSResumePrompt({
       document.removeEventListener('touchend', handleGestureResume);
       document.removeEventListener('pointerup', handleGestureResume);
     };
-  }, [onResumeAttempt, resumePromptVisible, shouldResumeOnForegroundRef]);
+  }, [onResumeAttempt, requiresExplicitResume, resumePromptVisible, shouldResumeOnForegroundRef]);
 
   useEffect(() => {
     if (!resumePromptVisible) {
       toast.dismiss(TTS_RESUME_TOAST_ID);
-      hasShownResumeToastRef.current = false;
+      lastToastMessageRef.current = null;
       return;
     }
 
-    if (hasShownResumeToastRef.current) return;
+    if (lastToastMessageRef.current === resumePromptMessage) return;
 
-    toast.message(isLikelyIOS ? '轻触页面后可继续朗读' : '朗读已暂停，可一键恢复', {
+    const title = isLikelyIOS && !requiresExplicitResume
+      ? '轻触页面后可继续朗读' : '朗读已暂停，可一键恢复';
+    toast.message(title, {
       id: TTS_RESUME_TOAST_ID,
       description: resumePromptMessage,
       duration: 3200,
     });
-    hasShownResumeToastRef.current = true;
-  }, [isLikelyIOS, resumePromptMessage, resumePromptVisible]);
+    lastToastMessageRef.current = resumePromptMessage;
+  }, [isLikelyIOS, requiresExplicitResume, resumePromptMessage, resumePromptVisible]);
 
 }

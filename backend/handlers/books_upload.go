@@ -1,0 +1,272 @@
+package handlers
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"z-reader/backend/models"
+	"z-reader/backend/response"
+	"z-reader/backend/storage"
+	"z-reader/backend/telemetry"
+)
+
+func (h *BooksHandler) Upload(c *gin.Context) {
+	limitUploadBody(c, h.cfg.MaxUploadBytes)
+	file, err := c.FormFile("file")
+	if err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+			return
+		}
+		response.BadRequest(c, "请选择文件")
+		return
+	}
+
+	if file.Size <= 0 {
+		response.BadRequest(c, "文件为空")
+		return
+	}
+	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+		return
+	}
+
+	maxExpandedBytes := maxEPUBExpansionLimit(h.cfg.MaxUploadBytes)
+	format, ext, ok := inferUploadedBookFormat(file, maxExpandedBytes)
+	if !ok {
+		response.BadRequest(c, "支持的格式：EPUB、MOBI、AZW3、PDF")
+		return
+	}
+	if err := validateUploadedBook(file, format, maxExpandedBytes); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	bookID := uuid.New().String()
+	filename := bookID + ext
+	bookPath := filepath.Join(h.cfg.UploadDir, filename)
+
+	writeStartedAt := time.Now()
+	contentHash, err := saveUploadedBookFile(file, format, bookPath, maxExpandedBytes)
+	telemetry.Observe("book_upload_write", time.Since(writeStartedAt), 1)
+	if err != nil {
+		removeFileIfExists(bookPath)
+		response.InternalError(c, "保存文件失败")
+		return
+	}
+
+	existing, err := h.findDuplicateBook(storage.PersonalLibrary, contentHash)
+	if err != nil {
+		removeFileIfExists(bookPath)
+		response.InternalError(c, "检查重复图书失败")
+		return
+	}
+	if existing != nil {
+		removeFileIfExists(bookPath)
+		respondDuplicateBook(c, existing)
+		return
+	}
+
+	book := &models.Book{
+		ID:          bookID,
+		UserID:      storage.PersonalLibrary,
+		Filename:    filename,
+		Format:      format,
+		Size:        file.Size,
+		ContentHash: contentHash,
+		CreatedAt:   time.Now(),
+	}
+	book.Title = strings.TrimSuffix(file.Filename, ext)
+	if format == "epub" {
+		book.ProcessingState = models.BookProcessingPending
+	} else {
+		book.ProcessingState = models.BookProcessingReady
+	}
+
+	if err := h.db.CreateBook(book); err != nil {
+		removeFileIfExists(bookPath)
+		if err == storage.ErrDuplicateBookContent {
+			existing, findErr := h.findDuplicateBook(storage.PersonalLibrary, contentHash)
+			if findErr == nil && existing != nil {
+				respondDuplicateBook(c, existing)
+				return
+			}
+			response.Conflict(c, "这本书已在书架中，请勿重复上传")
+			return
+		}
+		response.InternalError(c, "保存书籍失败")
+		return
+	}
+
+	c.JSON(http.StatusOK, book)
+	if format == "epub" {
+		h.enqueueBookProcessing(book)
+	}
+}
+
+func inferUploadedBookFormat(file *multipart.FileHeader, maxExpandedBytes int64) (string, string, bool) {
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if format, ok := supportedBookFormats[ext]; ok {
+		return format, ext, true
+	}
+
+	if format, ext, ok := inferBookFormatFromContentType(file.Header.Get("Content-Type")); ok {
+		return format, ext, true
+	}
+
+	header, err := readUploadedFileHeader(file, 512)
+	if err != nil {
+		return "", "", false
+	}
+	if bytes.HasPrefix(header, []byte("%PDF-")) {
+		return "pdf", ".pdf", true
+	}
+	if hasMobiSignature(header) {
+		return "mobi", ".mobi", true
+	}
+	if isValidEPUBFile(file, maxExpandedBytes) {
+		return "epub", ".epub", true
+	}
+
+	return "", "", false
+}
+
+func inferBookFormatFromContentType(contentType string) (string, string, bool) {
+	switch strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0])) {
+	case "application/epub+zip":
+		return "epub", ".epub", true
+	case "application/pdf":
+		return "pdf", ".pdf", true
+	case "application/x-mobipocket-ebook":
+		return "mobi", ".mobi", true
+	default:
+		return "", "", false
+	}
+}
+
+func validateUploadedBook(file *multipart.FileHeader, format string, maxExpandedBytes int64) error {
+	header, err := readUploadedFileHeader(file, 512)
+	if err != nil {
+		return fmt.Errorf("读取上传文件失败")
+	}
+
+	switch format {
+	case "pdf":
+		if !bytes.HasPrefix(header, []byte("%PDF-")) {
+			return fmt.Errorf("上传文件与 PDF 格式不匹配")
+		}
+	case "epub":
+		if err := validateEPUBFile(file, maxExpandedBytes); err != nil {
+			return err
+		}
+	case "mobi", "azw3":
+		if !hasMobiSignature(header) {
+			return fmt.Errorf("上传文件与 %s 格式不匹配", strings.ToUpper(format))
+		}
+	}
+
+	return nil
+}
+
+func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+
+	buf := make([]byte, maxBytes)
+	n, err := src.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	return buf[:n], nil
+}
+
+func hashFile(path string) (string, error) {
+	src, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, src); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func saveUploadedBookFile(file *multipart.FileHeader, format string, path string, maxExpandedBytes int64) (string, error) {
+	if format == "epub" {
+		if ok, contentHash, err := saveNormalizedEPUBFile(file, path, maxExpandedBytes); ok || err != nil {
+			return contentHash, err
+		}
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(dst, hash), src); err != nil {
+		_ = dst.Close()
+		return "", err
+	}
+	if err := dst.Close(); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*models.Book, error) {
+	existing, err := h.db.FindBookByContentHash(userID, contentHash)
+	if err != nil || existing != nil {
+		return existing, err
+	}
+	// A legacy backlog must be checked before accepting new content. File I/O
+	// belongs to the bounded worker; indexed libraries require no legacy scan.
+	if err := h.legacyHashes.catchUp(userID); err != nil {
+		return nil, err
+	}
+	return h.db.FindBookByContentHash(userID, contentHash)
+}
+
+func duplicateBookMessage(book *models.Book) string {
+	if strings.TrimSpace(book.Title) == "" {
+		return "这本书已在书架中，请勿重复上传"
+	}
+	return fmt.Sprintf("《%s》已在书架中，请勿重复上传", book.Title)
+}
+
+func respondDuplicateBook(c *gin.Context, book *models.Book) {
+	c.JSON(http.StatusConflict, gin.H{
+		"code":    "conflict",
+		"message": duplicateBookMessage(book),
+		"book":    book,
+	})
+}
+
+func hasMobiSignature(header []byte) bool {
+	return len(header) >= 68 && string(header[60:68]) == "BOOKMOBI"
+}

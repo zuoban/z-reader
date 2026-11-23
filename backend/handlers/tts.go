@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -13,7 +14,11 @@ import (
 	"z-reader/backend/utils"
 )
 
-type TTSHandler struct{}
+type TTSHandler struct {
+	listVoices        func(context.Context) ([]services.Voice, error)
+	generateTextAudio func(context.Context, string, string, string, string, string, string) ([]byte, error)
+	generateSSMLAudio func(context.Context, string, string, bool) ([]byte, error)
+}
 
 const (
 	maxTTSTextRunes    = 2000
@@ -43,7 +48,11 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 	outputFormat := c.DefaultQuery("o", "audio-24khz-48kbitrate-mono-mp3")
 	download := c.DefaultQuery("d", "false")
 
-	audioData, err := services.GenerateAudioFromTextContext(
+	generateText := h.generateTextAudio
+	if generateText == nil {
+		generateText = services.GenerateAudioFromTextContext
+	}
+	audioData, err := generateText(
 		c.Request.Context(), text, voiceName, rate, pitch, style, outputFormat,
 	)
 	if err != nil {
@@ -54,17 +63,12 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 		return
 	}
 
-	contentType := "audio/mpeg"
-	if strings.Contains(outputFormat, "opus") {
-		contentType = "audio/opus"
-	} else if strings.Contains(outputFormat, "wav") || strings.Contains(outputFormat, "pcm") {
-		contentType = "audio/wav"
-	}
+	contentType, ext := ttsAudioFormatInfo(outputFormat)
 
 	c.Header("Content-Type", contentType)
 
 	if download == "true" {
-		filename := uuid.New().String() + ".mp3"
+		filename := uuid.New().String() + ext
 		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
 	}
 
@@ -109,11 +113,17 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		outputFormat = "audio-24khz-48kbitrate-mono-mp3"
 	}
 
-	generateAudio := services.GenerateAudioFromSsmlContext
-	if req.RefreshAudio {
-		generateAudio = services.RefreshAudioFromSsmlContext
+	var (
+		audioData []byte
+		err       error
+	)
+	if h.generateSSMLAudio != nil {
+		audioData, err = h.generateSSMLAudio(c.Request.Context(), sanitizedSsml, outputFormat, req.RefreshAudio)
+	} else if req.RefreshAudio {
+		audioData, err = services.RefreshAudioFromSsmlContext(c.Request.Context(), sanitizedSsml, outputFormat)
+	} else {
+		audioData, err = services.GenerateAudioFromSsmlContext(c.Request.Context(), sanitizedSsml, outputFormat)
 	}
-	audioData, err := generateAudio(c.Request.Context(), sanitizedSsml, outputFormat)
 	if err != nil {
 		if c.Request.Context().Err() != nil {
 			return
@@ -122,21 +132,34 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		return
 	}
 
-	contentType := "audio/mpeg"
-	if strings.Contains(outputFormat, "opus") {
-		contentType = "audio/opus"
-	} else if strings.Contains(outputFormat, "wav") || strings.Contains(outputFormat, "pcm") {
-		contentType = "audio/wav"
-	}
+	contentType, ext := ttsAudioFormatInfo(outputFormat)
 
 	c.Header("Content-Type", contentType)
 
 	if req.Download {
-		filename := uuid.New().String() + ".mp3"
+		filename := uuid.New().String() + ext
 		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
 	}
 
 	c.Data(http.StatusOK, contentType, audioData)
+}
+
+func ttsAudioFormatInfo(outputFormat string) (contentType, ext string) {
+	lower := strings.ToLower(outputFormat)
+	switch {
+	case strings.Contains(lower, "webm"):
+		return "audio/webm", ".webm"
+	case strings.Contains(lower, "ogg"):
+		return "audio/ogg", ".ogg"
+	case strings.Contains(lower, "opus"):
+		return "audio/opus", ".opus"
+	case strings.Contains(lower, "raw") && strings.Contains(lower, "pcm"):
+		return "audio/pcm", ".pcm"
+	case strings.Contains(lower, "wav") || strings.Contains(lower, "riff") || strings.Contains(lower, "pcm"):
+		return "audio/wav", ".wav"
+	default:
+		return "audio/mpeg", ".mp3"
+	}
 }
 
 func respondTTSBusy(c *gin.Context) {
@@ -154,12 +177,16 @@ func respondTTSError(c *gin.Context, err error) {
 func (h *TTSHandler) VoiceList(c *gin.Context) {
 	filter := strings.ToLower(c.Query("l"))
 
-	voices, err := services.GetVoiceListContext(c.Request.Context())
+	listVoices := h.listVoices
+	if listVoices == nil {
+		listVoices = services.GetVoiceListContext
+	}
+	voices, err := listVoices(c.Request.Context())
 	if err != nil {
 		if c.Request.Context().Err() != nil {
 			return
 		}
-		response.InternalError(c, err.Error())
+		respondTTSError(c, err)
 		return
 	}
 

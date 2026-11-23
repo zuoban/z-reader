@@ -152,12 +152,21 @@ func parseJWTExp(token string) (int64, error) {
 	}
 
 	payload := parts[1]
-	decoded, err := base64.StdEncoding.DecodeString(payload)
-	if err != nil {
-		decoded, err = base64.RawStdEncoding.DecodeString(payload)
-		if err != nil {
-			return 0, fmt.Errorf("解析语音服务令牌失败：%v", err)
+	var decoded []byte
+	var err error
+	for _, enc := range []*base64.Encoding{
+		base64.RawURLEncoding,
+		base64.URLEncoding,
+		base64.RawStdEncoding,
+		base64.StdEncoding,
+	} {
+		decoded, err = enc.DecodeString(payload)
+		if err == nil {
+			break
 		}
+	}
+	if err != nil {
+		return 0, fmt.Errorf("解析语音服务令牌失败：%v", err)
 	}
 
 	var jwtData struct {

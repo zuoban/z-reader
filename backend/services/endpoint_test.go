@@ -123,6 +123,11 @@ func TestEndpointFailureIsNotClassifiedAsInvalidSSML(t *testing.T) {
 func TestParseJWTExp(t *testing.T) {
 	paddedPayload := base64.StdEncoding.EncodeToString([]byte(`{"exp":1893456000}`))
 	rawPayload := base64.RawStdEncoding.EncodeToString([]byte(`{"exp":1893456001}`))
+	// Include characters whose Base64URL encoding contains '-' and '_'.
+	urlRawPayload := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"~~~???","exp":1893456002}`))
+	if !strings.ContainsAny(urlRawPayload, "-_") {
+		t.Fatalf("expected Base64URL test payload to contain '-' or '_', got %q", urlRawPayload)
+	}
 
 	exp, err := parseJWTExp("header." + paddedPayload + ".sig")
 	if err != nil || exp != 1893456000 {
@@ -131,6 +136,10 @@ func TestParseJWTExp(t *testing.T) {
 	exp, err = parseJWTExp("header." + rawPayload + ".sig")
 	if err != nil || exp != 1893456001 {
 		t.Fatalf("raw JWT parse = (%d, %v), want (1893456001, nil)", exp, err)
+	}
+	exp, err = parseJWTExp("header." + urlRawPayload + ".sig")
+	if err != nil || exp != 1893456002 {
+		t.Fatalf("Base64URL JWT parse = (%d, %v), want (1893456002, nil)", exp, err)
 	}
 
 	for _, bad := range []string{

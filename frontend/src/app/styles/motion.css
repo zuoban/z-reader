@@ -46,16 +46,6 @@
   .paper-reveal-soft {
     animation: paperShelfRevealSoft var(--paper-duration-base) var(--paper-ease-soft) both;
   }
-
-  @keyframes paperShimmer {
-    0% {
-      background-position: 180% 0;
-    }
-
-    100% {
-      background-position: -180% 0;
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

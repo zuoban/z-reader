@@ -384,10 +384,6 @@ var ttsInflight struct {
 	calls map[string]*ttsInflightCall
 }
 
-func callTTSAPIWithCache(ssml, outputFormat string) ([]byte, error) {
-	return callTTSAPIWithCacheContext(context.Background(), ssml, outputFormat)
-}
-
 func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
 	return synthesizeTTSAudio(ctx, ssml, outputFormat, false)
 }

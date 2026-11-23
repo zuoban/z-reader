@@ -9,7 +9,6 @@ const coreFiles = [
   'src/lib/reader-page.ts',
   'src/lib/shelf-grid.ts',
   'src/lib/tts-helpers.ts',
-  'src/lib/tts-queue.ts',
   'src/hooks/useTTS.ts',
   'src/hooks/useTTSMediaSession.ts',
   'src/lib/tts.ts',

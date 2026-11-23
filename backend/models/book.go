@@ -147,10 +147,6 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-const (
-	UserRoleUser = "user"
-)
-
 type User struct {
 	ID           string    `json:"id"`
 	Username     string    `json:"username"`

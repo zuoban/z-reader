@@ -105,7 +105,7 @@ const FloatingButton = ({
       title="朗读控制"
     >
       <div
-        className="paper-motion-interactive relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
         style={buttonStyles}
       >
         <ActiveIconGlyph

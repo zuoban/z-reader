@@ -23,10 +23,6 @@ var (
 	ErrInternal     = &ErrorResponse{Code: "internal_error", Message: "服务器内部错误"}
 )
 
-func Error(c *gin.Context, status int, err *ErrorResponse) {
-	c.JSON(status, err)
-}
-
 func BadRequest(c *gin.Context, message string) {
 	err := &ErrorResponse{Code: "bad_request", Message: message}
 	if message == "" {

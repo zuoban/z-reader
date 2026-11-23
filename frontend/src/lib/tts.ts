@@ -1156,10 +1156,6 @@ export class BackendTTS {
     this.lastEndedAt = null;
   }
 
-  isSpeaking(): boolean {
-    return this.state === 'playing';
-  }
-
   isPaused(): boolean {
     return this.state === 'paused';
   }

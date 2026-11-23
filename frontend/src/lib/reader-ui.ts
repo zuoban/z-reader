@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 
 export function withOpacity(color: string | undefined, opacity: number) {
@@ -20,60 +18,10 @@ export function withOpacity(color: string | undefined, opacity: number) {
 
 export function getModernReaderSurface(uiScheme: ThemeColors) {
   return {
-    bg: withOpacity(uiScheme.cardBg, 0.98),
-    surface: withOpacity(uiScheme.buttonBg, 0.56),
-    surfaceStrong: withOpacity(uiScheme.buttonBg, 0.8),
-    surfaceSoft: withOpacity(uiScheme.buttonBg, 0.42),
     fg: uiScheme.fg,
     // Keep secondary labels near WCAG AA on paper/card surfaces (avoid over-fading).
     muted: withOpacity(uiScheme.mutedText, 0.96),
     border: withOpacity(uiScheme.cardBorder, 0.72),
     hairline: withOpacity(uiScheme.cardBorder, 0.52),
-    shadow: `0 16px 40px -20px ${withOpacity(uiScheme.fg, 0.22)}, 0 4px 12px -8px ${withOpacity(uiScheme.fg, 0.1)}`,
   };
-}
-
-export const floatingSheetActionButtonClass =
-  "paper-motion-interactive paper-control absolute top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 h-9 w-9 rounded-lg transition-[transform,background-color,border-color,color] hover:bg-secondary disabled:opacity-100 sm:top-4";
-
-export function getFloatingSheetActionButtonStyle({
-  uiScheme,
-  enabled,
-  side,
-  offsetSlots = 1,
-  tone = "accent",
-}: {
-  uiScheme: ThemeColors;
-  enabled: boolean;
-  side: "left" | "right";
-  offsetSlots?: number;
-  tone?: "accent" | "neutral";
-}): CSSProperties {
-  const insetProp = side === "left" ? "left" : "right";
-  const activeColor =
-    tone === "accent"
-      ? withOpacity(uiScheme.link, 0.92)
-      : withOpacity(uiScheme.mutedText, 0.86);
-  const inactiveColor = withOpacity(uiScheme.mutedText, 0.72);
-
-  const style: CSSProperties = {
-    [insetProp]: `calc(max(0.75rem, env(safe-area-inset-${side}, 0px)) + ${offsetSlots * 2.75}rem)`,
-    color: enabled ? activeColor : inactiveColor,
-  };
-
-  if (tone === "accent") {
-    style.background = enabled
-      ? withOpacity(uiScheme.link, 0.08)
-      : withOpacity(uiScheme.cardBorder, 0.08);
-    style.border = `1px solid ${
-      enabled
-        ? withOpacity(uiScheme.link, 0.18)
-        : withOpacity(uiScheme.cardBorder, 0.14)
-    }`;
-    style.boxShadow = enabled
-      ? `0 10px 18px -16px ${withOpacity(uiScheme.link, 0.45)}`
-      : "none";
-  }
-
-  return style;
 }

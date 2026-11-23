@@ -36,6 +36,8 @@ describe('shelf-grid', () => {
   it('derives column width from container and gaps', () => {
     // 3 cols, gap 16: (400 - 32) / 3
     expect(getShelfColumnWidth(400, 3, 16)).toBeCloseTo((400 - 32) / 3);
+    expect(getShelfColumnWidth(0, 2, 12)).toBe(160);
+    expect(getShelfColumnWidth(400, 0, 16)).toBe(160);
   });
 
   it('estimates taller cards when each column is wider', () => {

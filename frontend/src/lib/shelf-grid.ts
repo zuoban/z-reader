@@ -17,9 +17,6 @@ export const SHELF_GRID_MIN_COL_PX = {
  */
 export const SHELF_CARD_BODY_HEIGHT_PX = 152;
 
-/** Fallback when width is unknown. */
-export const SHELF_CARD_ESTIMATE_HEIGHT_PX = 420;
-
 /**
  * Column count aligned with shelf CSS:
  * - <640px: 2 columns

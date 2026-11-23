@@ -380,15 +380,6 @@ export const api = {
     });
   },
 
-  getBookUrl: (id: string): string => {
-    return `${API_BASE}/api/books/${id}/file`;
-  },
-
-  getCoverUrl: (id: string, size?: 'thumb'): string => {
-    const query = size ? `?size=${size}` : '';
-    return `${API_BASE}/api/books/${id}/cover${query}`;
-  },
-
   fetchBook: async (id: string, options: FetchBookOptions = {}): Promise<Blob> => {
     const { fetchBook } = await import('@/lib/book-download');
     return fetchBook(id, options, bookDownloadContext);

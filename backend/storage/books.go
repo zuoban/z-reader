@@ -652,13 +652,6 @@ func (db *DB) ListBooks(userID string) ([]models.Book, error) {
 	return db.ListBooksPaginated(userID, 0, 0)
 }
 
-type BookListResult struct {
-	Books      []models.Book `json:"books"`
-	TotalCount int           `json:"total_count"`
-	Page       int           `json:"page"`
-	PageSize   int           `json:"page_size"`
-}
-
 // BookLibrarySummary contains the small amount of aggregate data needed to
 // render filters without transferring every book in a large library.
 type BookLibrarySummary struct {

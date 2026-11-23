@@ -103,12 +103,6 @@ func GetEndpointContext(ctx context.Context) (*EndpointCache, error) {
 	}
 }
 
-func refreshEndpointCache() (*EndpointCache, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return refreshEndpointCacheContext(ctx)
-}
-
 func refreshEndpointCacheContext(ctx context.Context) (*EndpointCache, error) {
 	endpointCache.mutex.RLock()
 	previous := endpointCache.data
@@ -177,12 +171,6 @@ func parseJWTExp(token string) (int64, error) {
 	}
 
 	return jwtData.Exp, nil
-}
-
-func callEndpointAPI() (*EndpointResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return callEndpointAPIContext(ctx)
 }
 
 func callEndpointAPIContext(ctx context.Context) (*EndpointResponse, error) {

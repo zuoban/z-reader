@@ -129,12 +129,6 @@
     touch-action: manipulation;
   }
 
-  .touch-target {
-    min-height: var(--control-touch-size);
-    min-width: var(--control-touch-size);
-    touch-action: manipulation;
-  }
-
   body {
     -webkit-overflow-scrolling: touch;
     -webkit-font-smoothing: antialiased;

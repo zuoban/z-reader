@@ -118,8 +118,6 @@ export const makeBook = async file => {
     return book
 }
 
-globalThis.foliateMakeBook = makeBook
-
 class CursorAutohider {
     #timeout
     #el

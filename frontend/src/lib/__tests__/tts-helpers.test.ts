@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createTTSQueueSegmentId,
   formatRemainingTime,
   getTTSSessionKey,
   normalizeMetadataText,
@@ -10,14 +9,6 @@ describe('tts-helpers', () => {
   it('builds session storage keys per book', () => {
     expect(getTTSSessionKey()).toBeNull();
     expect(getTTSSessionKey('book-1')).toBe('z-reader-tts-session:book-1');
-  });
-
-  it('creates stable segment ids for the same ssml index', () => {
-    const a = createTTSQueueSegmentId('<speak>hello</speak>', 0);
-    const b = createTTSQueueSegmentId('<speak>hello</speak>', 0);
-    const c = createTTSQueueSegmentId('<speak>other</speak>', 0);
-    expect(a).toBe(b);
-    expect(a).not.toBe(c);
   });
 
   it('formats remaining time labels', () => {

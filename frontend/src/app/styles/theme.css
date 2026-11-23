@@ -49,11 +49,6 @@
   --font-noto-serif-sc: "Noto Serif SC";
   --status-bar-reserved: calc(env(safe-area-inset-bottom, 0px) + 2.75rem);
   --reader-toolbar-height: 3.5rem;
-  --z-content: 10;
-  --z-card-overlay: 30;
-  --z-reader-chrome: 50;
-  --z-popover: 60;
-  --z-modal: 80;
   --z-reader-overlay: 90;
   --z-skip-link: 100;
   /* Calm paper surfaces with pine-ink accent. */
@@ -98,7 +93,6 @@
   --shelf-surface-selected: #e5eee8;
   --shelf-app-bg: var(--background);
   --shelf-card-media: #eeece6;
-  --shelf-detail-surface: #f4f2ec;
 }
 
 .dark {
@@ -134,7 +128,6 @@
   --shelf-surface-hover: #262624;
   --shelf-surface-selected: #1f2e26;
   --shelf-card-media: #1d1d1b;
-  --shelf-detail-surface: #181816;
 }
 
 @media (prefers-contrast: more) {

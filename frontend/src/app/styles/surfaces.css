@@ -156,22 +156,6 @@
     border-top: 1px solid var(--border);
   }
 
-  .paper-field {
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: none;
-    transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
-      opacity var(--paper-duration-fast) var(--paper-ease-soft);
-  }
-
-  .paper-field:focus-within,
-  .paper-field:focus-visible {
-    box-shadow: none;
-    border-color: var(--primary);
-  }
-
   .paper-menu {
     background: var(--popover);
     border: 1px solid var(--border);

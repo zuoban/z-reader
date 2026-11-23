@@ -111,26 +111,6 @@
   }
 }
 
-:root[data-reader-preset="light"] {
-  --reader-bg: #f8f7f4;
-  --reader-text: #1c1b19;
-}
-
-:root[data-reader-preset="sepia"] {
-  --reader-bg: #f3ead7;
-  --reader-text: #3f3124;
-}
-
-:root[data-reader-preset="green"] {
-  --reader-bg: #e6ede1;
-  --reader-text: #1f2e25;
-}
-
-:root[data-reader-preset="dark"] {
-  --reader-bg: #141413;
-  --reader-text: #ededeb;
-}
-
 foliate-view {
   display: block;
   height: 100%;

@@ -162,10 +162,6 @@ func ttsAudioFormatInfo(outputFormat string) (contentType, ext string) {
 	}
 }
 
-func respondTTSBusy(c *gin.Context) {
-	respondTTSError(c, services.ErrTTSBusy)
-}
-
 func respondTTSError(c *gin.Context, err error) {
 	failure := services.TTSHTTPError(err)
 	if failure.RetryAfter != "" {

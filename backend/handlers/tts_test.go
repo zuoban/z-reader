@@ -70,7 +70,7 @@ func TestTTSBusyIncludesFiniteFailureCode(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	respondTTSBusy(ctx)
+	respondTTSError(ctx, services.ErrTTSBusy)
 	var body map[string]string
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)

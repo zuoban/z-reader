@@ -32,13 +32,6 @@ export function applyThemeColor(color: string) {
   meta.setAttribute('content', color);
 }
 
-export function clearDynamicThemeColor() {
-  if (typeof document === 'undefined') return;
-  document
-    .querySelectorAll(`meta[name="${META_NAME}"][${DYNAMIC_ATTR}]`)
-    .forEach((node) => node.remove());
-}
-
 export function themeColorForPreset(preset: ReaderTheme['preset']): string {
   return PRESET_STYLES[preset]?.bg ?? APP_THEME_COLORS.light;
 }

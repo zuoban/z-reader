@@ -149,8 +149,11 @@ func respondTTSError(c *gin.Context, err error) {
 func (h *TTSHandler) VoiceList(c *gin.Context) {
 	filter := strings.ToLower(c.Query("l"))
 
-	voices, err := services.GetVoiceList()
+	voices, err := services.GetVoiceListContext(c.Request.Context())
 	if err != nil {
+		if c.Request.Context().Err() != nil {
+			return
+		}
 		response.InternalError(c, err.Error())
 		return
 	}

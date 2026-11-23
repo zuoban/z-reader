@@ -111,3 +111,40 @@ func TestTTSErrorResponsePreservesStatusAndHidesProviderData(t *testing.T) {
 		})
 	}
 }
+
+func TestVoiceListRespectsRequestContextAndFiltersLocale(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("TTS_CUSTOM_ENDPOINT", "https://custom.local/tts")
+	t.Setenv("TTS_CUSTOM_VOICES_ENDPOINT", "")
+
+	handler := NewTTSHandler()
+
+	// Normal request with locale filter
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/voices?l=zh-CN", nil)
+	handler.VoiceList(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var voices []services.Voice
+	if err := json.Unmarshal(recorder.Body.Bytes(), &voices); err != nil {
+		t.Fatalf("failed to decode voices: %v", err)
+	}
+	if len(voices) == 0 {
+		t.Fatal("expected filtered fallback voices")
+	}
+
+	// Cancelled request context returns silently without writing 500
+	cancelledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	recorder = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/voices", nil).WithContext(cancelledCtx)
+	handler.VoiceList(ctx)
+
+	if recorder.Body.Len() != 0 {
+		t.Fatalf("expected empty response body on cancelled context, got %s", recorder.Body.String())
+	}
+}

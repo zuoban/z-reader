@@ -147,7 +147,7 @@ func TestTTSOneCancelledWaiterDoesNotCancelOthers(t *testing.T) {
 		_, err := GenerateAudioFromSsmlContext(context.Background(), "shared", "mp3")
 		secondDone <- err
 	}()
-	key := ttsCacheKey("shared", "mp3")
+	key := ttsCacheKey(ActiveTTSProvider().Name(), "shared", "mp3")
 	timeout := time.After(time.Second)
 	for {
 		ttsInflight.mutex.Lock()
@@ -192,7 +192,7 @@ func TestTTSEndpointWaitRespectsCallerDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	_, err := callTTSAPI(ctx, "endpoint deadline", "mp3", false)
+	_, err := callTTSAPI(ctx, "endpoint deadline", "mp3")
 	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
 		t.Errorf("caller waited %v for an endpoint after its deadline", elapsed)
 	}
@@ -398,4 +398,254 @@ func TestTTSNetworkTimeoutIsClassifiedAsDeadline(t *testing.T) {
 	if failure.StatusCode != http.StatusGatewayTimeout || failure.Kind != "deadline" {
 		t.Fatalf("network timeout is not actionable deadline: %#v", failure)
 	}
+}
+
+func TestActiveTTSProviderSelection(t *testing.T) {
+	t.Run("default microsoft translator", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "")
+		t.Setenv("AZURE_TTS_REGION", "")
+		p := ActiveTTSProvider()
+		if p.Name() != "microsoft_translator" {
+			t.Fatalf("expected default provider, got %q", p.Name())
+		}
+	})
+
+	t.Run("partial azure env falls back to default", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "only-key")
+		t.Setenv("AZURE_TTS_REGION", "")
+		if p := ActiveTTSProvider(); p.Name() != "microsoft_translator" {
+			t.Fatalf("expected default provider when region missing, got %q", p.Name())
+		}
+	})
+
+	t.Run("azure provider when key and region set", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "az-key")
+		t.Setenv("AZURE_TTS_REGION", "eastus")
+		if p := ActiveTTSProvider(); p.Name() != "azure:eastus" {
+			t.Fatalf("expected azure provider, got %q", p.Name())
+		}
+	})
+
+	t.Run("custom provider overrides azure", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "https://tts.local/v1")
+		t.Setenv("AZURE_TTS_KEY", "az-key")
+		t.Setenv("AZURE_TTS_REGION", "eastus")
+		if p := ActiveTTSProvider(); p.Name() != "custom:https://tts.local/v1" {
+			t.Fatalf("expected custom provider, got %q", p.Name())
+		}
+	})
+}
+
+func TestDefaultProviderRetriesOnceOnAuthErrors(t *testing.T) {
+	t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+	t.Setenv("AZURE_TTS_KEY", "")
+	t.Setenv("AZURE_TTS_REGION", "")
+
+	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			var synthCalls, endpointCalls atomic.Int32
+			installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+				if strings.Contains(r.URL.Host, "dev.microsofttranslator.com") {
+					endpointCalls.Add(1)
+					return ttsResponse(http.StatusOK, `{"r":"refreshed","t":"x.eyJleHAiOjQxMDI0NDQ4MDB9.x"}`), nil
+				}
+				if synthCalls.Add(1) == 1 {
+					return ttsResponse(status, "expired token"), nil
+				}
+				if r.Header.Get("Authorization") != "x.eyJleHAiOjQxMDI0NDQ4MDB9.x" {
+					t.Errorf("retry did not use refreshed token: %q", r.Header.Get("Authorization"))
+				}
+				return ttsResponse(http.StatusOK, "refreshed-audio"), nil
+			})
+
+			audio, err := GenerateAudioFromSsml("<speak>retry-"+http.StatusText(status)+"</speak>", "mp3")
+			if err != nil {
+				t.Fatalf("expected retry to succeed, got %v", err)
+			}
+			if string(audio) != "refreshed-audio" {
+				t.Fatalf("unexpected audio %q", string(audio))
+			}
+			if synthCalls.Load() != 2 || endpointCalls.Load() != 1 {
+				t.Fatalf("expected 2 synthesis calls and 1 endpoint refresh, got synth=%d endpoint=%d",
+					synthCalls.Load(), endpointCalls.Load())
+			}
+		})
+	}
+
+	t.Run("stops after single retry on persistent 401", func(t *testing.T) {
+		var synthCalls atomic.Int32
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			if strings.Contains(r.URL.Host, "dev.microsofttranslator.com") {
+				return ttsResponse(http.StatusOK, `{"r":"refreshed","t":"x.eyJleHAiOjQxMDI0NDQ4MDB9.x"}`), nil
+			}
+			synthCalls.Add(1)
+			return ttsResponse(http.StatusUnauthorized, "still unauthorized"), nil
+		})
+		_, err := GenerateAudioFromSsmlContext(context.Background(), "<speak>always-401</speak>", "mp3")
+		failure := TTSHTTPError(err)
+		if failure.Kind != "authentication" || failure.StatusCode != http.StatusServiceUnavailable {
+			t.Fatalf("unexpected error mapping: %#v", failure)
+		}
+		if synthCalls.Load() != 2 {
+			t.Fatalf("expected exactly 2 attempts (initial + 1 retry), got %d", synthCalls.Load())
+		}
+	})
+}
+
+func TestAzureAndCustomProviderSynthesis(t *testing.T) {
+	t.Run("azure synthesis", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "my-azure-key")
+		t.Setenv("AZURE_TTS_REGION", "westus2")
+
+		var gotURL, gotKey, gotFormat, gotBody string
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			gotURL = r.URL.String()
+			gotKey = r.Header.Get("Ocp-Apim-Subscription-Key")
+			gotFormat = r.Header.Get("X-Microsoft-OutputFormat")
+			b, _ := io.ReadAll(r.Body)
+			gotBody = string(b)
+			return ttsResponse(http.StatusOK, "azure-mp3-bytes"), nil
+		})
+
+		audio, err := GenerateAudioFromText("你好世界", "zh-CN-XiaoxiaoNeural", "0", "0", "general", "audio-24khz-48kbitrate-mono-mp3")
+		if err != nil {
+			t.Fatalf("azure GenerateAudioFromText error: %v", err)
+		}
+		if string(audio) != "azure-mp3-bytes" {
+			t.Fatalf("unexpected audio: %q", string(audio))
+		}
+		if gotURL != "https://westus2.tts.speech.microsoft.com/cognitiveservices/v1" {
+			t.Fatalf("unexpected azure URL: %q", gotURL)
+		}
+		if gotKey != "my-azure-key" || gotFormat != "audio-24khz-48kbitrate-mono-mp3" || !strings.Contains(gotBody, "你好世界") {
+			t.Fatalf("unexpected azure request: key=%q format=%q body=%q", gotKey, gotFormat, gotBody)
+		}
+	})
+
+	t.Run("custom synthesis with bearer auth", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "https://tts.custom.internal/synthesize")
+		t.Setenv("TTS_CUSTOM_API_KEY", "secret-api-key")
+
+		var gotURL, gotAuth, gotFormat string
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			gotURL = r.URL.String()
+			gotAuth = r.Header.Get("Authorization")
+			gotFormat = r.Header.Get("X-Microsoft-OutputFormat")
+			return ttsResponse(http.StatusOK, "custom-audio"), nil
+		})
+
+		audio, err := GenerateAudioFromSsmlContext(context.Background(), "<speak>hello custom</speak>", "audio-16khz-32kbitrate-mono-mp3")
+		if err != nil {
+			t.Fatalf("custom synthesis error: %v", err)
+		}
+		if string(audio) != "custom-audio" {
+			t.Fatalf("unexpected audio: %q", string(audio))
+		}
+		if gotURL != "https://tts.custom.internal/synthesize" || gotAuth != "Bearer secret-api-key" || gotFormat != "audio-16khz-32kbitrate-mono-mp3" {
+			t.Fatalf("unexpected custom request: url=%q auth=%q format=%q", gotURL, gotAuth, gotFormat)
+		}
+	})
+
+	t.Run("custom synthesis without api key maps errors", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "https://tts.custom.internal/synthesize")
+		t.Setenv("TTS_CUSTOM_API_KEY", "")
+
+		var gotAuth string
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			gotAuth = r.Header.Get("Authorization")
+			return ttsResponse(http.StatusTooManyRequests, "slow down"), nil
+		})
+
+		_, err := GenerateAudioFromSsmlContext(context.Background(), "<speak>rate-limited</speak>", "mp3")
+		failure := TTSHTTPError(err)
+		if gotAuth != "" {
+			t.Fatalf("expected empty Authorization header, got %q", gotAuth)
+		}
+		if failure.Kind != "rate_limited" || failure.StatusCode != http.StatusTooManyRequests || failure.RetryAfter != "30" {
+			t.Fatalf("unexpected error mapping: %#v", failure)
+		}
+	})
+}
+
+func TestTTSErrorMessagesUnwrapAndRetryAfterDates(t *testing.T) {
+	rootCause := errors.New("root cause")
+	for _, kind := range []string{"invalid_ssml", "authentication", "rate_limited", "busy", "deadline", "cancelled", "unavailable"} {
+		err := &TTSError{Kind: kind, cause: rootCause}
+		if err.Error() == "" {
+			t.Fatalf("empty Error() message for kind %q", kind)
+		}
+		if !errors.Is(err, rootCause) {
+			t.Fatalf("Unwrap failed for kind %q", kind)
+		}
+	}
+
+	if got := TTSHTTPError(context.Canceled); got.Kind != "cancelled" || got.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("unexpected canceled mapping: %#v", got)
+	}
+	if got := TTSHTTPError(context.DeadlineExceeded); got.Kind != "deadline" || got.StatusCode != http.StatusGatewayTimeout {
+		t.Fatalf("unexpected deadline mapping: %#v", got)
+	}
+
+	futureDate := time.Now().UTC().Add(15 * time.Second).Format(http.TimeFormat)
+	if got := sanitizeTTSRetryAfter(futureDate); got == "" {
+		t.Fatalf("expected positive delta seconds for future HTTP-date %q", futureDate)
+	}
+	pastDate := time.Now().UTC().Add(-15 * time.Second).Format(http.TimeFormat)
+	if got := sanitizeTTSRetryAfter(pastDate); got != "" {
+		t.Fatalf("expected empty string for past HTTP-date, got %q", got)
+	}
+	if got := sanitizeTTSRetryAfter("-5"); got != "" {
+		t.Fatalf("expected empty string for negative delta, got %q", got)
+	}
+}
+
+func TestTTSCacheSeparatesProvidersAndBoundsResponseSize(t *testing.T) {
+	t.Run("switching provider does not reuse audio cached by previous provider", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "")
+		t.Setenv("AZURE_TTS_REGION", "")
+
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			if r.Header.Get("Ocp-Apim-Subscription-Key") == "azure-key" {
+				return ttsResponse(http.StatusOK, "azure-audio"), nil
+			}
+			return ttsResponse(http.StatusOK, "default-audio"), nil
+		})
+
+		first, err := GenerateAudioFromSsmlContext(context.Background(), "<speak>same text</speak>", "mp3")
+		if err != nil || string(first) != "default-audio" {
+			t.Fatalf("unexpected default provider audio: %q err=%v", string(first), err)
+		}
+
+		t.Setenv("AZURE_TTS_KEY", "azure-key")
+		t.Setenv("AZURE_TTS_REGION", "eastus")
+		second, err := GenerateAudioFromSsmlContext(context.Background(), "<speak>same text</speak>", "mp3")
+		if err != nil || string(second) != "azure-audio" {
+			t.Fatalf("expected azure provider audio after switch, got %q err=%v", string(second), err)
+		}
+	})
+
+	t.Run("partial azure config falls back to default provider", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "only-key")
+		t.Setenv("AZURE_TTS_REGION", "")
+
+		if got := ActiveTTSProvider().Name(); got != "microsoft_translator" {
+			t.Fatalf("expected fallback provider, got %q", got)
+		}
+	})
+
+	t.Run("readBoundedBody rejects oversized upstream payload", func(t *testing.T) {
+		if _, err := readBoundedBody(strings.NewReader("123456"), 5); err == nil {
+			t.Fatal("expected error for oversized body")
+		}
+		data, err := readBoundedBody(strings.NewReader("12345"), 5)
+		if err != nil || string(data) != "12345" {
+			t.Fatalf("unexpected bounded read result: %q err=%v", string(data), err)
+		}
+	})
 }

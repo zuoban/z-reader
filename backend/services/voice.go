@@ -1,14 +1,21 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
+
+	"z-reader/backend/logger"
 )
 
-const VoiceCacheDuration = 4 * 60 * 60
+const (
+	VoiceCacheDuration = 4 * 60 * 60
+	voiceFetchTimeout  = 30 * time.Second
+)
 
 type Voice struct {
 	Name        string   `json:"Name"`
@@ -23,7 +30,23 @@ type Voice struct {
 var voiceCache struct {
 	data      []Voice
 	cacheTime int64
+	provider  string
 	mutex     sync.RWMutex
+}
+
+type voiceInflightCall struct {
+	done     chan struct{}
+	ctx      context.Context
+	cancel   context.CancelFunc
+	provider string
+	waiters  int
+	data     []Voice
+	err      error
+}
+
+var voiceRefresh struct {
+	mutex sync.Mutex
+	call  *voiceInflightCall
 }
 
 var fallbackVoices = []Voice{
@@ -56,46 +79,150 @@ var fallbackVoices = []Voice{
 	},
 }
 
+func cloneVoices(voices []Voice) []Voice {
+	if voices == nil {
+		return nil
+	}
+	cloned := make([]Voice, len(voices))
+	for i, v := range voices {
+		if v.StyleList != nil {
+			v.StyleList = append([]string(nil), v.StyleList...)
+		}
+		cloned[i] = v
+	}
+	return cloned
+}
+
+func clearVoiceCache() {
+	voiceCache.mutex.Lock()
+	voiceCache.data = nil
+	voiceCache.cacheTime = 0
+	voiceCache.provider = ""
+	voiceCache.mutex.Unlock()
+}
+
 func GetVoiceList() ([]Voice, error) {
+	return GetVoiceListContext(context.Background())
+}
+
+func GetVoiceListContext(ctx context.Context) ([]Voice, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	provider := ActiveTTSProvider()
+	providerName := provider.Name()
+
 	voiceCache.mutex.RLock()
-	if voiceCache.data != nil && voiceCache.cacheTime > 0 {
+	if voiceCache.data != nil && voiceCache.cacheTime > 0 && voiceCache.provider == providerName {
 		data := voiceCache.data
 		cacheTime := voiceCache.cacheTime
 		voiceCache.mutex.RUnlock()
 
-		now := time.Now().Unix()
-		if now-cacheTime < VoiceCacheDuration {
-			return data, nil
+		if time.Now().Unix()-cacheTime < VoiceCacheDuration {
+			return cloneVoices(data), nil
 		}
 	} else {
 		voiceCache.mutex.RUnlock()
 	}
 
-	return refreshVoiceCache()
+	voiceRefresh.mutex.Lock()
+	call := voiceRefresh.call
+	if call == nil || call.ctx.Err() != nil || call.provider != providerName {
+		workCtx, cancel := context.WithTimeout(context.Background(), voiceFetchTimeout)
+		call = &voiceInflightCall{
+			done:     make(chan struct{}),
+			ctx:      workCtx,
+			cancel:   cancel,
+			provider: providerName,
+		}
+		voiceRefresh.call = call
+		go func() {
+			defer cancel()
+			call.data, call.err = refreshVoiceCacheContext(workCtx, provider)
+			voiceRefresh.mutex.Lock()
+			if voiceRefresh.call == call {
+				voiceRefresh.call = nil
+			}
+			close(call.done)
+			voiceRefresh.mutex.Unlock()
+		}()
+	}
+	call.waiters++
+	voiceRefresh.mutex.Unlock()
+
+	select {
+	case <-call.done:
+		if call.err != nil {
+			return nil, call.err
+		}
+		return cloneVoices(call.data), nil
+	case <-ctx.Done():
+		voiceRefresh.mutex.Lock()
+		call.waiters--
+		if call.waiters == 0 {
+			call.cancel()
+			if voiceRefresh.call == call {
+				voiceRefresh.call = nil
+			}
+		}
+		voiceRefresh.mutex.Unlock()
+		return nil, ctx.Err()
+	}
 }
 
-func refreshVoiceCache() ([]Voice, error) {
-	voiceCache.mutex.Lock()
-	defer voiceCache.mutex.Unlock()
+func refreshVoiceCacheContext(ctx context.Context, provider TTSProvider) ([]Voice, error) {
+	providerName := provider.Name()
 
-	voices, err := callVoiceListAPI()
+	voiceCache.mutex.RLock()
+	var previous []Voice
+	var previousTime int64
+	if voiceCache.provider == providerName && len(voiceCache.data) > 0 {
+		previous = voiceCache.data
+		previousTime = voiceCache.cacheTime
+	}
+	voiceCache.mutex.RUnlock()
+
+	if len(previous) > 0 && previousTime > 0 && time.Now().Unix()-previousTime < VoiceCacheDuration {
+		return previous, nil
+	}
+
+	voices, err := provider.ListVoices(ctx)
 	if err != nil {
-		if len(voiceCache.data) > 0 {
-			return voiceCache.data, nil
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return nil, ctx.Err()
+		}
+		if len(previous) > 0 {
+			return previous, nil
 		}
 		return fallbackVoices, nil
 	}
 
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return nil, ctx.Err()
+	}
+
+	if len(voices) == 0 {
+		logger.Warn("Voice list provider returned empty list; skipping cache write", "provider", providerName)
+		if len(previous) > 0 {
+			return previous, nil
+		}
+		return fallbackVoices, nil
+	}
+
+	voiceCache.mutex.Lock()
 	voiceCache.data = voices
 	voiceCache.cacheTime = time.Now().Unix()
+	voiceCache.provider = providerName
+	voiceCache.mutex.Unlock()
 
 	return voices, nil
 }
 
-func callVoiceListAPI() ([]Voice, error) {
+func callMicrosoftVoiceListAPI(ctx context.Context) ([]Voice, error) {
 	url := "https://eastus.api.speech.microsoft.com/cognitiveservices/voices/list"
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +233,11 @@ func callVoiceListAPI() ([]Voice, error) {
 	req.Header.Set("Origin", "https://azure.microsoft.com")
 	req.Header.Set("Referer", "https://azure.microsoft.com")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	return doVoiceListRequest(req)
+}
+
+func doVoiceListRequest(req *http.Request) ([]Voice, error) {
+	resp, err := sharedHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +247,13 @@ func callVoiceListAPI() ([]Voice, error) {
 		return nil, fmt.Errorf("声音列表服务返回状态码 %d", resp.StatusCode)
 	}
 
+	body, err := readBoundedBody(resp.Body, maxTTSVoiceListResponseBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	var voices []Voice
-	if err := json.NewDecoder(resp.Body).Decode(&voices); err != nil {
+	if err := json.Unmarshal(body, &voices); err != nil {
 		return nil, err
 	}
 

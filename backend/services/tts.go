@@ -7,12 +7,70 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"z-reader/backend/logger"
 	"z-reader/backend/utils"
 )
+
+const (
+	maxTTSAudioResponseBytes     int64 = 32 * 1024 * 1024
+	maxTTSVoiceListResponseBytes int64 = 8 * 1024 * 1024
+)
+
+var (
+	azureConfigWarnMu    sync.Mutex
+	azureConfigWarnState string
+)
+
+// TTSProvider abstracts speech synthesis and voice discovery backends.
+type TTSProvider interface {
+	Name() string
+	Synthesize(ctx context.Context, ssml, outputFormat string) ([]byte, error)
+	ListVoices(ctx context.Context) ([]Voice, error)
+}
+
+// ActiveTTSProvider resolves the configured TTS provider from environment variables:
+//  1. TTS_CUSTOM_ENDPOINT (+ optional TTS_CUSTOM_API_KEY / TTS_CUSTOM_VOICES_ENDPOINT)
+//  2. AZURE_TTS_KEY + AZURE_TTS_REGION
+//  3. Default Microsoft Translator/Speech endpoint (backwards-compatible default)
+func ActiveTTSProvider() TTSProvider {
+	if customEndpoint := strings.TrimSpace(os.Getenv("TTS_CUSTOM_ENDPOINT")); customEndpoint != "" {
+		return &customTTSProvider{
+			endpoint:       customEndpoint,
+			apiKey:         strings.TrimSpace(os.Getenv("TTS_CUSTOM_API_KEY")),
+			voicesEndpoint: strings.TrimSpace(os.Getenv("TTS_CUSTOM_VOICES_ENDPOINT")),
+		}
+	}
+	azureKey := strings.TrimSpace(os.Getenv("AZURE_TTS_KEY"))
+	azureRegion := strings.TrimSpace(os.Getenv("AZURE_TTS_REGION"))
+	if azureKey != "" && azureRegion != "" {
+		return &azureTTSProvider{
+			key:    azureKey,
+			region: azureRegion,
+		}
+	}
+	if (azureKey != "") != (azureRegion != "") {
+		missing := "AZURE_TTS_REGION"
+		if azureKey == "" {
+			missing = "AZURE_TTS_KEY"
+		}
+		azureConfigWarnMu.Lock()
+		if azureConfigWarnState != missing {
+			azureConfigWarnState = missing
+			logger.Warn(
+				"Incomplete Azure TTS configuration; falling back to default provider",
+				"missing_env", missing,
+			)
+		}
+		azureConfigWarnMu.Unlock()
+	}
+	return microsoftTranslatorProvider{}
+}
 
 // TTSError carries a finite, public failure code without retaining provider bodies or credentials.
 type TTSError struct {
@@ -126,14 +184,43 @@ func clearEndpointCache() {
 	endpointCache.mutex.Unlock()
 }
 
-func callTTSAPI(ctx context.Context, ssml, outputFormat string, isRetry bool) ([]byte, error) {
+func callTTSAPI(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	return ActiveTTSProvider().Synthesize(ctx, ssml, outputFormat)
+}
+
+func readBoundedBody(r io.Reader, limit int64) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("upstream response exceeded %d bytes", limit)
+	}
+	return data, nil
+}
+
+type microsoftTranslatorProvider struct{}
+
+func (microsoftTranslatorProvider) Name() string {
+	return "microsoft_translator"
+}
+
+func (microsoftTranslatorProvider) Synthesize(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	return callMicrosoftTranslatorTTS(ctx, ssml, outputFormat, false)
+}
+
+func (microsoftTranslatorProvider) ListVoices(ctx context.Context) ([]Voice, error) {
+	return callMicrosoftVoiceListAPI(ctx)
+}
+
+func callMicrosoftTranslatorTTS(ctx context.Context, ssml, outputFormat string, isRetry bool) ([]byte, error) {
 	cache, err := GetEndpointContext(ctx)
 	if err != nil {
 		return nil, TTSHTTPError(err)
 	}
 
-	url := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", cache.Endpoint)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(ssml))
+	endpointURL := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", cache.Endpoint)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpointURL, bytes.NewBufferString(ssml))
 	if err != nil {
 		return nil, TTSHTTPError(err)
 	}
@@ -148,7 +235,7 @@ func callTTSAPI(ctx context.Context, ssml, outputFormat string, isRetry bool) ([
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
-		data, err := io.ReadAll(resp.Body)
+		data, err := readBoundedBody(resp.Body, maxTTSAudioResponseBytes)
 		if err != nil {
 			return nil, TTSHTTPError(err)
 		}
@@ -162,7 +249,101 @@ func callTTSAPI(ctx context.Context, ssml, outputFormat string, isRetry bool) ([
 		}
 		endpointCache.mutex.Unlock()
 		resp.Body.Close()
-		return callTTSAPI(ctx, ssml, outputFormat, true)
+		return callMicrosoftTranslatorTTS(ctx, ssml, outputFormat, true)
+	}
+	return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), true)
+}
+
+type azureTTSProvider struct {
+	key    string
+	region string
+}
+
+func (p *azureTTSProvider) Name() string {
+	return "azure:" + p.region
+}
+
+func (p *azureTTSProvider) Synthesize(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	endpointURL := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", p.region)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpointURL, bytes.NewBufferString(ssml))
+	if err != nil {
+		return nil, TTSHTTPError(err)
+	}
+	req.Header.Set("Ocp-Apim-Subscription-Key", p.key)
+	req.Header.Set("Content-Type", "application/ssml+xml")
+	req.Header.Set("X-Microsoft-OutputFormat", outputFormat)
+	req.Header.Set("User-Agent", "z-reader")
+
+	return doSynthesisRequest(req)
+}
+
+func (p *azureTTSProvider) ListVoices(ctx context.Context) ([]Voice, error) {
+	endpointURL := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/voices/list", p.region)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpointURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Ocp-Apim-Subscription-Key", p.key)
+	req.Header.Set("Accept", "application/json")
+
+	return doVoiceListRequest(req)
+}
+
+type customTTSProvider struct {
+	endpoint       string
+	apiKey         string
+	voicesEndpoint string
+}
+
+func (p *customTTSProvider) Name() string {
+	return "custom:" + p.endpoint
+}
+
+func (p *customTTSProvider) Synthesize(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.endpoint, bytes.NewBufferString(ssml))
+	if err != nil {
+		return nil, TTSHTTPError(err)
+	}
+	req.Header.Set("Content-Type", "application/ssml+xml")
+	req.Header.Set("X-Microsoft-OutputFormat", outputFormat)
+	if p.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+p.apiKey)
+	}
+
+	return doSynthesisRequest(req)
+}
+
+func (p *customTTSProvider) ListVoices(ctx context.Context) ([]Voice, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if p.voicesEndpoint == "" {
+		return cloneVoices(fallbackVoices), nil
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.voicesEndpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	if p.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+p.apiKey)
+	}
+	return doVoiceListRequest(req)
+}
+
+func doSynthesisRequest(req *http.Request) ([]byte, error) {
+	resp, err := sharedHTTPClient.Do(req)
+	if err != nil {
+		return nil, TTSHTTPError(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		data, err := readBoundedBody(resp.Body, maxTTSAudioResponseBytes)
+		if err != nil {
+			return nil, TTSHTTPError(err)
+		}
+		return data, nil
 	}
 	return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), true)
 }

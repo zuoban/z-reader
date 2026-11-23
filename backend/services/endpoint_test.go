@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -115,5 +117,118 @@ func TestEndpointFailureIsNotClassifiedAsInvalidSSML(t *testing.T) {
 	failure := TTSHTTPError(err)
 	if failure.StatusCode != http.StatusBadGateway || failure.Kind != "unavailable" {
 		t.Fatalf("endpoint failure classified as SSML input: %#v", failure)
+	}
+}
+
+func TestParseJWTExp(t *testing.T) {
+	paddedPayload := base64.StdEncoding.EncodeToString([]byte(`{"exp":1893456000}`))
+	rawPayload := base64.RawStdEncoding.EncodeToString([]byte(`{"exp":1893456001}`))
+
+	exp, err := parseJWTExp("header." + paddedPayload + ".sig")
+	if err != nil || exp != 1893456000 {
+		t.Fatalf("padded JWT parse = (%d, %v), want (1893456000, nil)", exp, err)
+	}
+	exp, err = parseJWTExp("header." + rawPayload + ".sig")
+	if err != nil || exp != 1893456001 {
+		t.Fatalf("raw JWT parse = (%d, %v), want (1893456001, nil)", exp, err)
+	}
+
+	for _, bad := range []string{
+		"not-a-jwt",
+		"a.!!!invalid-base64!!!.c",
+		"a." + base64.StdEncoding.EncodeToString([]byte(`{bad json`)) + ".c",
+	} {
+		if _, err := parseJWTExp(bad); err == nil {
+			t.Fatalf("expected error for malformed JWT %q", bad)
+		}
+	}
+}
+
+func TestBuildSignatureAndEnvOverride(t *testing.T) {
+	t.Setenv("MICROSOFT_TTS_SIGNATURE_KEY", base64.StdEncoding.EncodeToString([]byte("test-signing-key-32bytes-1234567")))
+	sig, err := buildSignature("https://dev.microsofttranslator.com/apps/endpoint?api-version=1.0")
+	if err != nil {
+		t.Fatalf("buildSignature error: %v", err)
+	}
+	parts := strings.Split(sig, "::")
+	if len(parts) != 4 || parts[0] != "MSTranslatorAndroidApp" || parts[1] == "" {
+		t.Fatalf("unexpected signature format: %q", sig)
+	}
+
+	t.Setenv("MICROSOFT_TTS_SIGNATURE_KEY", "not-valid-base64!!!")
+	if _, err := buildSignature("https://dev.microsofttranslator.com/apps/endpoint?api-version=1.0"); err == nil {
+		t.Fatal("expected error for invalid base64 signature key")
+	}
+}
+
+func TestGetEndpointCachedHitAndStaleFallback(t *testing.T) {
+	var requests atomic.Int32
+	installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+		requests.Add(1)
+		return ttsResponse(http.StatusInternalServerError, "upstream down"), nil
+	})
+
+	// Fresh cached endpoint should not hit upstream.
+	cached, err := GetEndpoint()
+	if err != nil || cached == nil || cached.Endpoint != "test" {
+		t.Fatalf("expected cached endpoint, got (%+v, %v)", cached, err)
+	}
+	if requests.Load() != 0 {
+		t.Fatalf("expected 0 upstream calls for fresh cache, got %d", requests.Load())
+	}
+
+	// Expiring soon -> refresh attempted, upstream fails -> falls back to previous cache.
+	stale := &EndpointCache{Endpoint: "stale-region", Token: "old-tok", ExpiredAt: time.Now().Unix() + 10}
+	endpointCache.mutex.Lock()
+	endpointCache.data = stale
+	endpointCache.mutex.Unlock()
+
+	fallback, err := GetEndpointContext(context.Background())
+	if err != nil || fallback != stale {
+		t.Fatalf("expected stale fallback, got (%+v, %v)", fallback, err)
+	}
+	if requests.Load() != 1 {
+		t.Fatalf("expected 1 refresh attempt, got %d", requests.Load())
+	}
+}
+
+func TestGetEndpointInvalidJWTFallbackAndPreCancelledContext(t *testing.T) {
+	installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+		return ttsResponse(http.StatusOK, `{"r":"eastus","t":"invalid-jwt"}`), nil
+	})
+	clearEndpointCache()
+
+	_, err := GetEndpointContext(context.Background())
+	if err == nil {
+		t.Fatal("expected error for invalid JWT with empty cache")
+	}
+
+	// Pre-cancelled context must fail immediately.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := GetEndpointContext(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
+
+func TestEndpointAPIStatusErrorMapping(t *testing.T) {
+	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusTooManyRequests} {
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			resp := ttsResponse(status, "err")
+			resp.Header.Set("Retry-After", "12")
+			return resp, nil
+		})
+		clearEndpointCache()
+		_, err := GetEndpointContext(context.Background())
+		failure := TTSHTTPError(err)
+		if status == http.StatusTooManyRequests {
+			if failure.Kind != "rate_limited" || failure.RetryAfter != "12" {
+				t.Fatalf("status %d mapped to %#v", status, failure)
+			}
+		} else {
+			if failure.Kind != "authentication" || failure.StatusCode != http.StatusServiceUnavailable {
+				t.Fatalf("status %d mapped to %#v", status, failure)
+			}
+		}
 	}
 }

@@ -306,8 +306,8 @@ func getEnvDurationSeconds(key string, fallback time.Duration) time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
-func ttsCacheKey(ssml, outputFormat string) string {
-	sum := sha256.Sum256([]byte(outputFormat + "\x00" + ssml))
+func ttsCacheKey(providerName, ssml, outputFormat string) string {
+	sum := sha256.Sum256([]byte(providerName + "\x00" + outputFormat + "\x00" + ssml))
 	return hex.EncodeToString(sum[:])
 }
 
@@ -394,7 +394,8 @@ func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) 
 	}
 	runtime := getTTSRuntime()
 	defer func() { runtime.metrics.recordResult(err) }()
-	key := ttsCacheKey(ssml, outputFormat)
+	provider := ActiveTTSProvider()
+	key := ttsCacheKey(provider.Name(), ssml, outputFormat)
 	if data, ok := runtime.cache.get(key); ok {
 		runtime.metrics.recordCache(0, true)
 		logger.Info("TTS cache hit", "source", "memory", "key", key, "bytes", len(data))
@@ -437,8 +438,8 @@ func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) 
 			close(call.done)
 		}()
 
-		logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml), "output_format", outputFormat)
-		call.data, call.err = callTTSAPIThrottled(workCtx, ssml, outputFormat)
+		logger.Info("TTS cache miss", "key", key, "provider", provider.Name(), "ssml_bytes", len(ssml), "output_format", outputFormat)
+		call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
 		if call.err == nil {
 			runtime.cache.set(key, call.data)
 			if err := writeDiskTTSCache(runtime.config, key, call.data); err != nil {
@@ -478,7 +479,7 @@ func waitForTTSCall(ctx context.Context, call *ttsInflightCall) ([]byte, error) 
 	}
 }
 
-func callTTSAPIThrottled(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+func callTTSAPIThrottled(ctx context.Context, provider TTSProvider, ssml, outputFormat string) ([]byte, error) {
 	runtime := getTTSRuntime()
 	queueStart := time.Now()
 	release, err := acquireTTSSlotContext(ctx, runtime)
@@ -490,9 +491,10 @@ func callTTSAPIThrottled(ctx context.Context, ssml, outputFormat string) ([]byte
 
 	start := time.Now()
 	defer func() { runtime.metrics.observeSynthesis(time.Since(start)) }()
-	data, err := callTTSAPI(ctx, ssml, outputFormat, false)
+	data, err := provider.Synthesize(ctx, ssml, outputFormat)
 	logger.Info(
 		"TTS API call",
+		"provider", provider.Name(),
 		"latency_ms", time.Since(start).Milliseconds(),
 		"bytes", len(data),
 		"ssml_bytes", len(ssml),

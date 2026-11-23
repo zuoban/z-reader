@@ -17,11 +17,22 @@ Z Reader is an online e-book reader application for personal library management,
 
 ## Essential Commands
 
+### Full Stack (Development)
+
+```bash
+# Start both backend and frontend together (from project root)
+make dev
+
+# Or run individually
+make dev-backend
+make dev-frontend
+```
+
 ### Backend (Go)
 
 ```bash
 # Development (from project root)
-make dev
+make dev-backend
 # or: cd backend && go run main.go
 
 # Build

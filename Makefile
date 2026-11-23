@@ -1,3 +1,5 @@
+.PHONY: run build deps clean dev dev-backend dev-frontend
+
 run:
 	./z-reader
 
@@ -12,4 +14,10 @@ clean:
 	rm -rf uploads/*
 
 dev:
+	node scripts/dev.mjs
+
+dev-backend:
 	cd backend && go run main.go
+
+dev-frontend:
+	cd frontend && npm run dev

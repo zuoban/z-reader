@@ -10,11 +10,22 @@ Z Reader is an online EPUB reader application with:
 
 ## Build Commands
 
+### Full Stack (Development)
+
+```bash
+# Run frontend and backend together in development mode
+make dev
+
+# Or run individually
+make dev-backend
+make dev-frontend
+```
+
 ### Backend (Go)
 
 ```bash
-# Run in development mode
-make dev
+# Run backend only in development mode
+make dev-backend
 # or: cd backend && go run main.go
 
 # Build binary

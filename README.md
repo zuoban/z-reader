@@ -71,15 +71,13 @@ docker compose up -d
 
 ```bash
 cp .env.example .env
+cd frontend && npm install && cd ..
 
-# 终端 1：后端
+# 同时启动前端和后端
 make dev
-
-# 终端 2：前端
-cd frontend
-npm install
-npm run dev
 ```
+
+如需分别单独启动，可运行 `make dev-backend` 或 `make dev-frontend`。
 
 前端默认运行在 [http://localhost:3000](http://localhost:3000)，后端默认运行在
 [http://localhost:8080](http://localhost:8080)。

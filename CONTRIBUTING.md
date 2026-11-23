@@ -31,14 +31,14 @@
 
 ```bash
 cp .env.example .env
+cd frontend && npm install && cd ..
 
-# backend
+# start both backend and frontend
 make dev
 
-# frontend
-cd frontend
-npm install
-npm run dev
+# or run separately
+make dev-backend
+make dev-frontend
 ```
 
 ## 提交前检查

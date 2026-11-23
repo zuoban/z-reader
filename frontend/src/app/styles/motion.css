@@ -34,20 +34,17 @@
   @keyframes paperShelfRevealSoft {
     from {
       opacity: 0;
-      transform: translate3d(0, 8px, 0);
+      transform: translateY(4px);
     }
 
     to {
       opacity: 1;
-      transform: translate3d(0, 0, 0);
+      transform: translateY(0);
     }
   }
 
   .paper-reveal-soft {
-    opacity: 0;
-    animation: paperShelfRevealSoft 360ms var(--paper-ease-soft) forwards;
-    animation-delay: var(--paper-delay, 0ms);
-    will-change: transform, opacity;
+    animation: paperShelfRevealSoft var(--paper-duration-base) var(--paper-ease-soft) both;
   }
 
   @keyframes paperShimmer {

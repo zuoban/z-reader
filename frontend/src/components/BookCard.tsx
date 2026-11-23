@@ -116,66 +116,62 @@ export const SHELF_COVER_PRIORITY_COUNT = 6;
 interface BookCoverFaceProps {
   coverUrl: string | null;
   titleLabel: string;
+  bookId: string;
+  formatLabel: string;
   categoryLabel: string;
-  index: number;
   priority?: boolean;
 }
 
-/* Clothbound colors keep missing artwork intentional and readable. */
+// Pair each cloth color with the same warm paper lettering in both themes.
 const fallbackCoverColors = [
-  '#37584b', '#627582', '#9b724b', '#7e5653',
-  '#5d6650', '#526b6d', '#7e674c', '#605e75',
+  '#2e5249', '#3e5368', '#775035', '#713e49',
+  '#505837', '#365c61', '#66513f', '#524665',
 ];
 
 function BookCoverFace({
   coverUrl,
   titleLabel,
+  bookId,
+  formatLabel,
   categoryLabel,
-  index,
   priority = false,
 }: BookCoverFaceProps) {
   if (coverUrl) {
     return (
-      <div className="relative h-full w-full">
-        <Image
-          src={coverUrl}
-          alt={titleLabel}
-          fill
-          unoptimized
-          priority={priority}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding={priority ? 'sync' : 'async'}
-          sizes={SHELF_COVER_SIZES}
-          className="object-cover"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.03)_0%,transparent_40%,rgba(0,0,0,0.16)_100%)]" />
-        <span className="absolute left-2.5 top-2.5 rounded-md border border-black/8 bg-background/92 px-2 py-0.5 text-[11px] font-medium leading-4 text-foreground backdrop-blur-sm dark:border-white/12">
-          {categoryLabel}
-        </span>
-      </div>
+      <Image
+        src={coverUrl}
+        alt={titleLabel}
+        fill
+        unoptimized
+        priority={priority}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        sizes={SHELF_COVER_SIZES}
+        className="object-contain"
+      />
     );
   }
 
-  const coverColor = fallbackCoverColors[index % fallbackCoverColors.length];
+  // Keep the same binding when a book moves between sorts or filters.
+  let hash = 0;
+  for (let i = 0; i < bookId.length; i += 1) {
+    hash = Math.imul(31, hash) + bookId.charCodeAt(i);
+  }
+  const coverColor = fallbackCoverColors[(hash >>> 0) % fallbackCoverColors.length];
 
   return (
     <div
-      className="book-cover-fallback book-cover-spine relative flex h-full w-full flex-col justify-between overflow-hidden px-5 py-5 text-center"
+      aria-hidden="true"
+      className="book-cover-fallback relative grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] items-center gap-1 px-[14%] py-4 text-center"
       style={{ '--cover-color': coverColor } as CSSProperties}
     >
-      <span className="relative z-10 shrink-0 text-[10px] font-medium opacity-70">
-        Z Reader
+      <span className="truncate text-[11px] leading-4">{formatLabel}</span>
+      <p className="line-clamp-5 min-h-0 max-h-full [overflow-wrap:anywhere] font-heading text-lg font-medium leading-tight sm:text-xl">
+        {titleLabel}
+      </p>
+      <span className="truncate border-t border-current/25 pt-1 text-[11px] leading-4">
+        {categoryLabel || '未分类'}
       </span>
-      <div aria-hidden="true" className="relative z-10 my-2.5 flex min-h-0 flex-1 items-center justify-center overflow-hidden border-y border-current/20 py-2">
-        <p className="line-clamp-3 max-h-full w-full break-words font-heading text-lg font-medium leading-snug sm:text-xl">
-          {titleLabel}
-        </p>
-      </div>
-      {categoryLabel && (
-        <span className="relative z-10 shrink-0 truncate text-[11px] opacity-85">
-          {categoryLabel}
-        </span>
-      )}
     </div>
   );
 }
@@ -234,86 +230,77 @@ export const BookCard = memo(function BookCard({
 
   return (
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
-      <article
-        className={cn(
-          'group/card shelf-book-card paper-reveal-soft relative flex w-full flex-col overflow-hidden rounded-xl p-0',
-          selected && 'border-primary ring-2 ring-primary/80 dark:border-primary dark:ring-primary/55'
-        )}
-        style={{
-          // Virtual grid only mounts near-viewport rows; skip content-visibility
-          // so measureElement gets accurate heights.
-          '--paper-delay': `${Math.min(index, 8) * 24}ms`,
-        } as CSSProperties}
-      >
+      <article className="shelf-book-card flex min-w-0 flex-1 flex-col" data-selected={selected}>
         <button
           type="button"
           onClick={activateCard}
           aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
           aria-pressed={selectionMode ? selected : undefined}
-          className="relative flex min-w-0 flex-1 cursor-pointer flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          {selectionMode && (
-            <div
-              className={cn(
-                'pointer-events-none absolute right-3 top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border transition-colors',
-                selected
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border/40 bg-white/80 backdrop-blur-sm dark:border-white/12 dark:bg-black/35'
-              )}
-              aria-hidden="true"
-            >
-              <Check className={cn('h-3 w-3', selected ? 'opacity-100' : 'opacity-30')} />
-            </div>
-          )}
-
-          <div className="relative aspect-[5/6] overflow-hidden bg-[var(--shelf-card-media)]">
+          <div className="shelf-book-cover">
             <BookCoverFace
               coverUrl={coverUrl}
               titleLabel={titleLabel}
-              categoryLabel={categoryLabel || formatLabel}
-              index={index}
+              bookId={book.id}
+              formatLabel={formatLabel}
+              categoryLabel={categoryLabel}
               priority={index < SHELF_COVER_PRIORITY_COUNT}
             />
+            {selectionMode && (
+              <div className="shelf-book-selection" aria-hidden="true">
+                {selected && <Check className="h-4 w-4" strokeWidth={2} />}
+              </div>
+            )}
             {book.processing_state === 'pending' && (
-              <span className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <span className="absolute bottom-2 left-2 rounded-md bg-card px-2 py-1 text-xs font-medium text-foreground">
                 正在生成封面
               </span>
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-2.5 p-3 pb-2.5 sm:px-3.5">
-            <div className="flex-1">
+          <div className="shelf-book-details">
+            <div className="min-w-0">
               <h2
-                className="line-clamp-2 font-heading text-[15px] font-medium leading-snug text-foreground"
+                className="line-clamp-2 [overflow-wrap:anywhere] font-heading text-base font-semibold leading-5 text-foreground"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h2>
-
-              <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
+              <p className="mt-1 truncate text-[13px] leading-4 text-muted-foreground">
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
 
-            <div className="mt-auto space-y-1.5">
-              <div className="relative h-1 w-full overflow-hidden rounded-full bg-secondary">
+            <div className="min-w-0 space-y-1.5">
+              <div
+                className={cn('h-1 overflow-hidden rounded-full bg-border', progressValue <= 0 && 'invisible')}
+                aria-hidden="true"
+              >
                 <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-300"
-                  style={{ width: `${Math.max(progressValue, progressValue > 0 ? 2 : 0)}%` }}
+                  className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                  style={{ width: `${Math.max(progressValue, 2)}%` }}
                 />
               </div>
-              <p className="text-meta tabular-nums">{progressMetaLabel}</p>
+              <div className="flex min-w-0 items-baseline justify-between gap-2 text-xs leading-4 text-muted-foreground">
+                <p className="truncate" title={categoryLabel || formatLabel}>
+                  {categoryLabel || formatLabel}
+                </p>
+                <p className="min-w-0 max-w-[65%] shrink-0 truncate tabular-nums" title={progressMetaLabel}>
+                  {progressMetaLabel}
+                </p>
+              </div>
             </div>
           </div>
         </button>
 
-        <div className="flex min-h-11 items-center justify-between gap-1 border-t border-border/60 px-2 py-1 sm:min-h-10 sm:px-2.5">
+        <div className="shelf-book-actions">
           {selectionMode ? (
             <button
               type="button"
               onClick={onSelectionToggle}
               aria-pressed={selected}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground sm:min-h-9"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
               <Check
                 className={cn(
@@ -328,7 +315,7 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onRead}
               aria-label={`${readActionLabel}：${titleLabel}`}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground sm:min-h-9"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
               <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.5} />
               <span className="truncate">{readActionLabel}</span>
@@ -344,7 +331,7 @@ export const BookCard = memo(function BookCard({
               isDeleting={isDeleting}
               onCategoryClick={() => setCategoryDialogOpen(true)}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
-              triggerClassName="h-11 w-11 shrink-0 rounded-lg bg-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:h-9 sm:w-9"
+              triggerClassName="size-11 sm:size-11"
             />
           )}
         </div>

@@ -19,20 +19,24 @@
     @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium;
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
-      transform var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .app-primary-link {
-    @apply bg-primary text-primary-foreground hover:bg-primary/92 active:scale-[0.98];
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .app-primary-link:enabled:hover,
+  a.app-primary-link:hover {
+    background: var(--primary-hover);
   }
 
   .app-secondary-link {
-    @apply border border-border bg-card text-foreground hover:bg-secondary active:scale-[0.98];
+    @apply border border-input bg-card text-foreground hover:bg-secondary;
   }
 
   .app-field {
-    @apply h-11 rounded-lg border border-border bg-card text-base shadow-none sm:text-sm;
+    @apply h-11 rounded-lg border border-input bg-card text-base shadow-none sm:text-sm;
     transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
@@ -86,8 +90,7 @@
 
   .paper-control:hover {
     background: var(--secondary);
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px -4px var(--paper-shadow-soft);
+    border-color: var(--input);
   }
 
   .app-sheet-shell,
@@ -107,14 +110,13 @@
   }
 
   .app-sheet-header {
-    background: color-mix(in srgb, var(--card) 72%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background: var(--popover);
+    border-bottom: 1px solid var(--border);
   }
 
   .app-sheet-icon {
-    background: color-mix(in srgb, var(--primary) 10%, var(--card));
-    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
-    color: var(--primary);
+    background: var(--accent);
+    color: var(--accent-foreground);
   }
 
   .app-sheet-body {
@@ -124,15 +126,14 @@
   }
 
   .app-surface-panel {
-    background: color-mix(in srgb, var(--card) 86%, var(--background));
-    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-    box-shadow: var(--paper-shadow-control);
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
   }
 
   .app-sheet-footer,
   .app-dialog-footer {
-    background: color-mix(in srgb, var(--card) 72%, transparent);
-    border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    background: var(--popover);
+    border-top: 1px solid var(--border);
   }
 
   .paper-field {

@@ -87,8 +87,11 @@ test.describe('reader happy path', () => {
 
     await ensureToolbarVisible(page);
     await page.getByRole('button', { name: /目录/ }).first().click();
-    await expect(page.getByText('第二章 续篇').first()).toBeVisible({ timeout: 10_000 });
-    await page.getByText('第二章 续篇').first().click();
+    const toc = page.getByRole('dialog', { name: '目录', exact: true });
+    const chapter = toc.getByRole('button', { name: /^第二章 续篇/ });
+    await expect(chapter).toBeVisible({ timeout: 10_000 });
+    await chapter.click();
+    await expect(toc).toBeHidden();
 
     // After TOC jump, chrome still works and title remains.
     await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();

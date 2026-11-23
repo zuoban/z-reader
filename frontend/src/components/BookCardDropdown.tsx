@@ -121,7 +121,7 @@ export function BookCardDropdown({
               e.stopPropagation();
               onCategoryClick();
             }}
-            className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors focus:bg-secondary focus:text-foreground"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors focus:bg-secondary focus:text-foreground"
           >
             <Tag className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
             <span>设置分类</span>
@@ -135,7 +135,7 @@ export function BookCardDropdown({
             }}
             disabled={isDeleting}
             variant="destructive"
-            className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
           >
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />
             <span>{isDeleting ? '删除中...' : '删除图书'}</span>

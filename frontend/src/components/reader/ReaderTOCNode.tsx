@@ -27,7 +27,7 @@ function ReaderTOCNode({
   const isCurrentChapter = currentChapterHref
     ? currentChapterHref === item.href
     : currentChapter === item.label;
-  const indent = depth > 0 ? `${Math.min(depth, 4) * 16}px` : "0px";
+  const indent = Math.min(depth, 4) * 12;
 
   return (
     <div className="relative">
@@ -37,45 +37,29 @@ function ReaderTOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "touch-control group relative flex min-h-10 w-full items-center overflow-hidden rounded-lg px-3 py-2 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.99]",
+          "touch-control relative flex min-h-11 w-full items-center overflow-hidden rounded-lg px-3 py-2 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.99]",
           isCurrentChapter ? "z-10" : "hover:bg-black/[0.035] dark:hover:bg-white/[0.04]",
         )}
         style={{
-          marginLeft: indent,
-          width: depth > 0 ? `calc(100% - ${indent})` : "100%",
+          paddingInlineStart: `${12 + indent}px`,
           background: isCurrentChapter
-            ? withOpacity(uiScheme.buttonBg, 0.78)
-            : "transparent",
+            ? withOpacity(uiScheme.link, 0.09)
+            : undefined,
           color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText,
         }}
       >
-        {isCurrentChapter && (
-          <span
-            aria-hidden="true"
-            className="absolute inset-y-2 left-0 w-[3px] rounded-full"
-            style={{ background: uiScheme.link }}
-          />
-        )}
         <span
           className={cn(
-            "min-w-0 flex-1 truncate text-[13.5px] leading-6 transition-opacity duration-150",
-            isCurrentChapter
-              ? "font-medium"
-              : "opacity-80 group-hover:opacity-100",
+            "min-w-0 flex-1 truncate text-sm leading-6",
+            isCurrentChapter && "font-semibold",
           )}
-          style={{
-            color: isCurrentChapter
-              ? uiScheme.fg
-              : withOpacity(uiScheme.buttonText, 0.9),
-          }}
         >
           {item.label}
         </span>
         {isCurrentChapter && (
           <span
-            className="ml-2 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+            className="ml-2 shrink-0 text-xs font-medium"
             style={{
-              background: withOpacity(uiScheme.link, 0.12),
               color: uiScheme.link,
             }}
           >
@@ -85,7 +69,7 @@ function ReaderTOCNode({
       </button>
 
       {item.subitems && item.subitems.length > 0 && (
-        <div className="mt-0.5 space-y-0.5 border-l border-transparent pl-0">
+        <div className="mt-0.5 space-y-0.5">
           {item.subitems.map((sub, idx) => (
             <MemoizedReaderTOCNode
               key={idx}

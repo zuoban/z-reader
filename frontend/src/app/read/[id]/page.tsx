@@ -413,14 +413,6 @@ export default function ReadPage() {
     );
   }
 
-  const isDarkPreset = theme.preset === "dark";
-  const statusBarContainerStyle = {
-    background: withOpacity(uiScheme.bg, isDarkPreset ? 0.82 : 0.88),
-    borderTop: `1px solid ${withOpacity(uiScheme.cardBorder, isDarkPreset ? 0.18 : 0.1)}`,
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    boxShadow: `0 -4px 20px -8px rgba(0, 0, 0, ${isDarkPreset ? 0.4 : 0.05})`,
-  } as const;
   const headerSafeAreaPaddingTop = "env(safe-area-inset-top, 0px)";
   const readerContentInsetTop =
     "calc(env(safe-area-inset-top, 0px) + var(--reader-toolbar-height))";
@@ -610,7 +602,6 @@ export default function ReadPage() {
             percentage={percentage}
             currentChapter={currentChapter}
             currentPageLabel={currentPageLabel}
-            containerStyle={statusBarContainerStyle}
             safeAreaPaddingBottom={statusBarSafeAreaPaddingBottom}
             uiScheme={uiScheme}
             isToolbarVisible={isHeaderVisible}
@@ -620,18 +611,12 @@ export default function ReadPage() {
                 <DeferredTTSControls
                   {...sharedTTSControlsProps}
                   variant="toolbar"
-                  triggerClassName="paper-motion-interactive inline-flex size-4! shrink-0 items-center justify-center rounded-[5px] p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-[9px]! hover:bg-black/5 dark:hover:bg-white/5"
+                  triggerClassName="reader-chrome-icon size-11 rounded-lg border-0 p-0 shadow-none [&_svg]:size-4"
                   triggerStyle={{
                     color:
                       ttsState !== "stopped"
                         ? uiScheme.link
                         : withOpacity(uiScheme.fg, 0.72),
-                    background: "transparent",
-                    border: "none",
-                    height: "20px",
-                    minHeight: "20px",
-                    width: "20px",
-                    minWidth: "20px",
                   }}
                 />
               ) : undefined

@@ -29,7 +29,6 @@ import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
-import { withOpacity } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
 
 const ThemeSettings = dynamic(() => import("@/components/ThemeSettings")
@@ -112,7 +111,6 @@ export function ReaderToolbar({
   onToggleFullscreen,
   onOpenShortcuts,
 }: ReaderToolbarProps) {
-  const isDark = theme.preset === "dark";
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [settingsRequested, setSettingsRequested] = useState(false);
   const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
@@ -168,20 +166,23 @@ export function ReaderToolbar({
     <>
       <header
         data-reader-interactive="true"
-        className={`reader-chrome pointer-events-none absolute inset-x-0 top-0 z-50 transition-[transform,opacity] duration-200 ease-out ${
+        className={`reader-chrome reader-chrome-surface pointer-events-none border-b absolute inset-x-0 top-0 z-50 transition-[transform,opacity] duration-200 ease-out ${
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
         }`}
         style={{
-          background: withOpacity(uiScheme.bg, 0.96),
-          borderBottom: `1px solid ${withOpacity(uiScheme.cardBorder, 0.7)}`,
-          backdropFilter: "blur(12px)",
+          "--reader-chrome-bg": uiScheme.cardBg,
+          "--reader-chrome-rule": uiScheme.cardBorder,
+          "--reader-chrome-ink": uiScheme.fg,
+          "--reader-chrome-muted": uiScheme.mutedText,
+          "--reader-chrome-hover": uiScheme.buttonBg,
+          "--reader-chrome-accent": uiScheme.link,
           paddingTop: headerSafeAreaPaddingTop,
-        }}
+        } as React.CSSProperties}
       >
-        <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-full items-center px-3 sm:px-6">
-          <div className="flex flex-1 items-center gap-1.5 overflow-hidden sm:gap-2">
+        <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-6xl items-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
+          <div className="flex flex-1 items-center gap-1.5 sm:gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -224,7 +225,7 @@ export function ReaderToolbar({
                 aria-hidden={!mobileActionsOpen}
                 aria-labelledby={mobileActionsTitleId}
                 className={cn(
-                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-xl border p-1.5 text-sm shadow-[0_16px_36px_-18px_rgba(0,0,0,0.38)] backdrop-blur-md transition-[opacity,transform] duration-150 ease-out scrollbar-none",
+                  "absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain rounded-xl border p-1.5 text-sm shadow-[var(--paper-shadow-floating)] transition-[opacity,transform] duration-150 ease-out scrollbar-none",
                   mobileActionsOpen
                     ? "visible translate-y-0 opacity-100"
                     : "pointer-events-none invisible -translate-y-1 opacity-0"
@@ -233,8 +234,8 @@ export function ReaderToolbar({
                 onKeyDown={handleMobileActionsKeyDown}
                 role="dialog"
                 style={{
-                  background: withOpacity(uiScheme.cardBg, isDark ? 0.96 : 0.98),
-                  borderColor: withOpacity(uiScheme.cardBorder, isDark ? 0.4 : 0.65),
+                  background: uiScheme.cardBg,
+                  borderColor: uiScheme.cardBorder,
                   color: uiScheme.fg,
                 }}
               >

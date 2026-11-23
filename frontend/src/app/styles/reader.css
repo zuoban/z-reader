@@ -20,7 +20,7 @@
   }
 
   .reader-chrome-icon {
-    @apply flex h-11 w-11 shrink-0 items-center justify-center sm:h-9 sm:w-9;
+    @apply flex h-11 w-11 shrink-0 items-center justify-center lg:h-9 lg:w-9;
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -54,11 +54,6 @@
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
   }
 
-  .reader-sidebar-sheet-body {
-    max-height: none;
-    overflow: hidden;
-  }
-
   .reader-bottom-sheet-centered {
     translate: 0 0;
   }
@@ -70,6 +65,76 @@
       right: auto;
       translate: -50% 0;
     }
+  }
+
+  .reader-chrome-surface {
+    background: var(--reader-chrome-bg);
+    border-color: var(--reader-chrome-rule);
+    color: var(--reader-chrome-ink);
+  }
+
+  .reader-chrome .reader-chrome-btn,
+  .reader-chrome .reader-chrome-icon {
+    color: var(--reader-chrome-muted);
+  }
+
+  .reader-chrome .reader-chrome-btn:hover,
+  .reader-chrome .reader-chrome-icon:hover {
+    background: var(--reader-chrome-hover);
+    color: var(--reader-chrome-ink);
+  }
+
+  .reader-chrome [data-reader-tts-active="true"] {
+    background: var(--reader-chrome-hover);
+    color: var(--reader-chrome-accent);
+  }
+
+  .reader-panel[data-slot="sheet-content"][data-side="bottom"] {
+    --reader-panel-top-gap: max(0.75rem, env(safe-area-inset-top, 0px));
+    --reader-panel-bottom-gap: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    left: max(0.75rem, env(safe-area-inset-left, 0px));
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
+    bottom: var(--reader-panel-bottom-gap);
+    max-height: min(42rem, calc(100svh - var(--reader-panel-top-gap) - var(--reader-panel-bottom-gap)));
+    border-width: 1px;
+    border-radius: 1rem;
+    box-shadow: var(--paper-shadow-floating);
+  }
+
+  @media (min-width: 640px) {
+    .reader-panel[data-slot="sheet-content"][data-side="bottom"] {
+      --reader-panel-inline-gap: max(1rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+      --reader-panel-bottom-gap: max(1.5rem, env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      right: auto;
+      max-width: calc(100vw - 2 * var(--reader-panel-inline-gap));
+      max-height: min(78svh, 42rem, calc(100svh - var(--reader-panel-top-gap) - var(--reader-panel-bottom-gap)));
+    }
+  }
+
+  .reader-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+  }
+
+  .reader-settings-option {
+    border-radius: var(--paper-radius-control);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-settings-option:hover {
+    background: color-mix(in srgb, currentColor 6%, transparent);
+  }
+
+  .reader-settings-option[aria-pressed="true"] {
+    background: var(--reader-option-selected);
+  }
+
+  .reader-settings-option:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
   }
 
   .reading-status-panel {

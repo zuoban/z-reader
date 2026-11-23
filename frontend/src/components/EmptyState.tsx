@@ -8,55 +8,42 @@ interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
   description: string;
-  tags?: string[];
+  detail?: ReactNode;
+  tone?: 'default' | 'error';
   action?: ReactNode;
-  className?: string;
 }
 
 export function EmptyState({
   icon: Icon,
   title,
   description,
-  tags,
+  detail,
+  tone = 'default',
   action,
-  className,
 }: EmptyStateProps) {
   return (
-    <div className="flex min-h-[52vh] items-center justify-center">
-      <section
-        className={cn(
-          'paper-panel w-full max-w-xl rounded-2xl px-6 py-12 text-center sm:px-12 sm:py-14',
-          className
-        )}
-      >
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-secondary text-primary">
-          <Icon className="h-6 w-6" strokeWidth={1.5} />
-        </div>
-
-        <div className="space-y-2.5">
-          <h2 className="font-heading text-2xl font-medium leading-tight text-foreground sm:text-3xl">
-            {title}
-          </h2>
-          <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground sm:text-[15px]">
-            {description}
-          </p>
-        </div>
-
-        {tags && tags.length > 0 && (
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="paper-chip rounded-md px-2.5 py-1 font-mono text-xs text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
+    <section className="mx-auto w-full max-w-xl px-1 py-8 sm:px-8 sm:py-12">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <Icon
+          aria-hidden="true"
+          className={cn('mt-0.5 size-6 shrink-0', tone === 'error' ? 'text-destructive' : 'text-primary')}
+          strokeWidth={1.5}
+        />
+        <div className="min-w-0 flex-1">
+          <div role={tone === 'error' ? 'alert' : undefined}>
+            <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">
+              {title}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+            {detail && (
+              <p className="mt-2 [overflow-wrap:anywhere] text-xs leading-5 text-muted-foreground">
+                {detail}
+              </p>
+            )}
           </div>
-        )}
-
-        {action && <div className="mt-8 flex justify-center">{action}</div>}
-      </section>
-    </div>
+          {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
+        </div>
+      </div>
+    </section>
   );
 }

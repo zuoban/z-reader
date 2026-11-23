@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bookmark, Cloud, Palette, Server, Smartphone, Upload } from 'lucide-react';
+import { ArrowRight, Bookmark, Cloud, Palette, Server, Smartphone, Upload } from 'lucide-react';
 import { AppScreen, BrandLogo } from '@/components/AppShell';
 import { LibraryPreview } from '@/components/LibraryPreview';
 
@@ -14,15 +14,18 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <AppScreen contentClassName="flex min-h-dvh flex-col">
+    <AppScreen contentClassName="entry-screen flex flex-col">
       <header className="border-b border-border">
-        <div className="app-container flex h-16 items-center justify-between">
+        <div className="app-container flex min-h-16 items-center justify-between gap-4">
           <BrandLogo />
           <nav className="flex items-center gap-6" aria-label="主导航">
-            <a href="#features" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">
+            <a
+              href="#features"
+              className="hidden min-h-11 items-center text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+            >
               功能一览
             </a>
-            <Link href="/shelf" className="app-secondary-link min-h-9 px-4 text-sm">
+            <Link href="/shelf" className="app-secondary-link whitespace-nowrap px-4">
               进入书架
             </Link>
           </nav>
@@ -31,64 +34,61 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="app-container landing-hero">
-          <div className="max-w-xl">
-            <h1 className="font-heading text-5xl font-medium tracking-[-0.03em] text-foreground sm:text-6xl">
-              Z Reader
-            </h1>
-            <p className="mt-5 font-heading text-2xl font-medium leading-snug text-foreground sm:text-3xl">
+          <div className="min-w-0">
+            <h1 className="landing-title font-heading font-semibold">Z Reader</h1>
+            <p className="mt-5 font-heading text-[clamp(1.375rem,2.65vw,2.125rem)] font-semibold leading-[1.45] sm:mt-6">
               把喜欢的书收进自己的书房<br />翻开就是上次那页
             </p>
-            <p className="mt-4 max-w-md text-sm leading-7 text-muted-foreground sm:text-[15px]">
+            <p className="mt-4 max-w-[30rem] text-pretty text-[15px] leading-7 text-muted-foreground sm:text-base">
               自托管多格式私人电子书库。导入 EPUB、MOBI、AZW3 与 PDF，在手机、平板和电脑间保持同一页阅读进度。
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 sm:mt-8">
               <Link href="/shelf" className="app-primary-link">
                 进入我的书架
+                <ArrowRight size={16} strokeWidth={1.75} aria-hidden="true" />
               </Link>
-              <a href="#features" className="app-secondary-link">
+              <a
+                href="#features"
+                className="inline-flex min-h-11 items-center rounded-sm text-sm font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-current"
+              >
                 了解特性
               </a>
             </div>
-            <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-              <span>开源自托管</span>
-              <span aria-hidden="true" className="text-muted-foreground/45">/</span>
-              <span>EPUB · MOBI · AZW3 · PDF</span>
-              <span aria-hidden="true" className="text-muted-foreground/45">/</span>
-              <span>跨端续读与离线缓存</span>
-            </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-xl lg:pl-4">
+          <div className="w-full max-w-[38rem]">
             <LibraryPreview />
           </div>
         </section>
 
-        <section id="features" className="scroll-mt-8 border-t border-border bg-card/60 py-14 sm:py-20">
-          <div className="app-container">
-            <div className="max-w-xl">
-              <h2 className="font-heading text-2xl font-medium leading-snug text-foreground sm:text-3xl">
+        <section id="features" className="scroll-mt-8 border-y border-border bg-surface-subtle py-12 sm:py-16 lg:py-20">
+          <div className="app-container grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-16 xl:gap-24">
+            <div>
+              <h2 className="max-w-[12em] text-balance font-heading text-2xl font-semibold leading-snug sm:text-3xl">
                 少一点打扰，专注阅读本身
               </h2>
-              <p className="mt-2.5 text-sm leading-6 text-muted-foreground">
+              <p className="mt-3 max-w-sm text-pretty text-sm leading-6 text-muted-foreground">
                 从导入整理到翻页朗读，把常用的功能做到顺手、安静。
               </p>
             </div>
-            <div className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-12">
+            <ul role="list" className="grid gap-x-8 sm:grid-cols-2">
               {features.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="entry-feature">
-                  <div className="mb-4 text-primary">
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden="true" />
+                <li key={title} className="entry-feature">
+                  <Icon size={18} className="mt-1 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                  <div>
+                    <h3 className="text-[15px] font-semibold">{title}</h3>
+                    <p className="mt-1.5 text-pretty text-sm leading-6 text-muted-foreground">
+                      {description}
+                    </p>
                   </div>
-                  <h3 className="text-[15px] font-medium text-foreground">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-border">
+      <footer>
         <div className="app-container flex flex-col gap-2 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span className="font-heading text-sm text-foreground">Z Reader</span>
           <span>开源自托管私人书库</span>

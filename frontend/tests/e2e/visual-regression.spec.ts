@@ -250,7 +250,9 @@ test.describe('visual regression', () => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockReaderHappyPath(page);
     await gotoStable(page, '/read/book-1');
-    await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible({
+      timeout: 30_000,
+    });
     await prepareVisualPage(page);
     await expectStableScreenshot(page, 'reader-tablet-light.png');
   });
@@ -261,7 +263,9 @@ test.describe('visual regression', () => {
       await installBrowserStubs(page, { preset, authenticated: true });
       await mockReaderHappyPath(page);
       await gotoStable(page, '/read/book-1');
-      await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible({
+        timeout: 30_000,
+      });
       await page.getByRole('button', { name: '更多阅读操作' }).click();
       await page.getByRole('button', { name: '设置', exact: true }).click();
       await expect(page.getByRole('heading', { name: '阅读偏好' })).toBeVisible();

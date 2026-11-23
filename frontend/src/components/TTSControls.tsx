@@ -29,20 +29,10 @@ import { getModernReaderSurface, withOpacity } from '@/lib/reader-ui';
 import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 
-const getGlassSurface = (
-  uiScheme: ThemeColors,
-  options?: {
-    elevated?: boolean;
-    accentBorder?: string;
-    accentGlow?: string;
-  }
-) => ({
-  background: withOpacity(uiScheme.cardBg, 0.8),
-  border: `1px solid ${options?.accentBorder ?? withOpacity(uiScheme.cardBorder, 0.2)}`,
-  boxShadow: options?.elevated
-    ? `0 12px 24px -8px ${options?.accentGlow ?? withOpacity(uiScheme.fg, 0.12)}`
-    : `0 8px 16px -10px ${withOpacity(uiScheme.fg, 0.1)}`,
-  backdropFilter: 'blur(20px) saturate(1.2)',
+const getTriggerSurface = (uiScheme: ThemeColors, active: boolean) => ({
+  background: uiScheme.cardBg,
+  border: `1px solid ${active ? uiScheme.link : uiScheme.cardBorder}`,
+  boxShadow: 'var(--paper-shadow-control)',
 });
 
 const FAB_SIZE = 52;
@@ -82,20 +72,7 @@ const FloatingButton = ({
     ? withOpacity(uiScheme.link, 0.95)
     : withOpacity(uiScheme.buttonText, 0.9);
   const buttonStyles = {
-    ...getGlassSurface(uiScheme, {
-      elevated: expanded || isDragging || isActive,
-      accentBorder: isActive
-        ? withOpacity(uiScheme.link, 0.28)
-        : withOpacity(uiScheme.cardBorder, 0.18),
-      accentGlow: isActive
-        ? withOpacity(uiScheme.link, 0.3)
-        : withOpacity(uiScheme.fg, 0.16),
-    }),
-    boxShadow: isDragging
-      ? `0 16px 30px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.3)`
-      : isActive
-        ? `0 14px 28px -14px ${withOpacity(uiScheme.link, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.28)`
-        : `0 12px 22px -14px ${withOpacity(uiScheme.fg, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.24)`,
+    ...getTriggerSurface(uiScheme, isActive),
     transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.03)' : 'scale(1)',
   };
 
@@ -138,18 +115,6 @@ const FloatingButton = ({
         className="paper-motion-interactive relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
         style={buttonStyles}
       >
-        {isPlaying && (
-          <span
-            className="pointer-events-none absolute inset-0 animate-ping rounded-full opacity-20"
-            style={{ background: withOpacity(uiScheme.link, 0.45) }}
-          />
-        )}
-        <div
-          className="pointer-events-none absolute inset-[1px] rounded-full"
-          style={{
-            border: `1px solid ${withOpacity('#ffffff', 0.1)}`,
-          }}
-        />
         <ActiveIconGlyph
           className={isPaused ? 'relative ml-0.5 h-4.5 w-4.5' : 'relative h-4.5 w-4.5'}
           style={{ color: iconColor }}
@@ -158,28 +123,6 @@ const FloatingButton = ({
     </div>
   );
 };
-
-// 提取通用样式配置，保持与阅读器纸面主题一致
-const useThemeStyles = (uiScheme: ThemeColors) => ({
-  panel: {
-    background: withOpacity(uiScheme.cardBg, 0.85),
-    borderColor: withOpacity(uiScheme.cardBorder, 0.25),
-    boxShadow: `0 20px 40px -20px ${withOpacity(uiScheme.cardBorder, 0.5)}, 0 8px 16px -12px ${withOpacity(uiScheme.cardBorder, 0.3)}`,
-  },
-  section: {
-    background: withOpacity(uiScheme.buttonBg, 0.1),
-    borderColor: withOpacity(uiScheme.cardBorder, 0.15),
-  },
-  selectTrigger: {
-    background: withOpacity(uiScheme.buttonBg, 0.2),
-    borderColor: withOpacity(uiScheme.cardBorder, 0.2),
-    color: uiScheme.fg,
-  },
-  selectContent: {
-    background: withOpacity(uiScheme.cardBg, 0.95),
-    borderColor: withOpacity(uiScheme.cardBorder, 0.3),
-  },
-});
 
 const RATE_OPTIONS = [
   { label: '1倍', value: 0 },
@@ -199,11 +142,7 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
   <div
     role="group"
     aria-label="朗读倍速"
-    className="grid grid-cols-5 gap-1 rounded-2xl p-1"
-    style={{
-      background: withOpacity(uiScheme.buttonBg, 0.36),
-      boxShadow: `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.12)}, inset 0 1px 0 rgba(255,255,255,0.08)`,
-    }}
+    className="grid grid-cols-5 gap-1"
   >
     {RATE_OPTIONS.map((option) => {
       const active = value === option.value;
@@ -214,17 +153,8 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
           type="button"
           aria-pressed={active}
           onClick={() => onChange(option.value)}
-          className="touch-control min-h-11 rounded-xl px-1 text-[11px] font-semibold tabular-nums transition-[background-color,box-shadow,color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.96] sm:min-h-9 sm:text-xs"
-          style={{
-            color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.62),
-            background: active
-              ? withOpacity(uiScheme.cardBg, 0.92)
-              : 'transparent',
-            border: '1px solid transparent',
-            boxShadow: active
-              ? `0 8px 18px -14px ${withOpacity(uiScheme.fg, 0.36)}, inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.18)}`
-              : 'none',
-          }}
+          className="min-h-11 rounded-lg px-0.5 text-xs font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2"
+          style={segmentStyle(active, uiScheme)}
         >
           {option.label}
         </button>
@@ -233,7 +163,7 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
   </div>
 );
 
-const TTSSectionCard = ({
+const TTSSection = ({
   title,
   description,
   uiScheme,
@@ -245,15 +175,8 @@ const TTSSectionCard = ({
   children: React.ReactNode;
 }) => (
   <section
-    className="space-y-3.5 rounded-2xl border p-4 sm:p-5"
-    style={{
-      background: `
-        linear-gradient(180deg, ${withOpacity(uiScheme.buttonBg, 0.28)} 0%, transparent 72%),
-        ${withOpacity(uiScheme.cardBg, 0.72)}
-      `,
-      borderColor: withOpacity(uiScheme.cardBorder, 0.22),
-      boxShadow: `inset 0 1px 0 ${withOpacity('#ffffff', 0.1)}`,
-    }}
+    className="space-y-3 border-t pt-4"
+    style={{ borderColor: uiScheme.cardBorder }}
   >
     <div className="flex items-center justify-between gap-3">
       <div className="space-y-0.5">
@@ -273,7 +196,7 @@ const TTSSectionCard = ({
         ) : null}
       </div>
     </div>
-    <div>{children}</div>
+    {children}
   </section>
 );
 
@@ -303,18 +226,11 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="h-11 w-11 rounded-full transition-[background-color,box-shadow,color,opacity,transform] duration-200 hover:scale-[1.03] active:scale-95"
+      className="size-11 rounded-lg transition-colors hover:bg-secondary active:scale-95"
       style={{
         color: getButtonColor(),
         cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.34 : 1,
-        background: active
-          ? withOpacity(uiScheme.cardBg, 0.72)
-          : withOpacity(uiScheme.buttonBg, 0.22),
-        border: `1px solid ${withOpacity(uiScheme.cardBorder, active ? 0.2 : 0.1)}`,
-        boxShadow: active
-          ? `0 10px 20px -16px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.14)`
-          : 'inset 0 1px 0 rgba(255,255,255,0.1)',
+        opacity: disabled ? 0.45 : 1,
       }}
     >
       {children}
@@ -325,18 +241,9 @@ const ControlButton = ({ onClick, disabled, title, children, active, variant, ui
 /** Shared segmented control styles for highlight / sleep options */
 function segmentStyle(active: boolean, uiScheme: ThemeColors) {
   return {
-    color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.52),
-    background: active
-      ? withOpacity(uiScheme.cardBg, 0.9)
-      : withOpacity(uiScheme.buttonBg, 0.22),
-    border: `1px solid ${
-      active
-        ? withOpacity(uiScheme.cardBorder, 0.36)
-        : withOpacity(uiScheme.cardBorder, 0.12)
-    }`,
-    boxShadow: active
-      ? `0 8px 16px -14px ${withOpacity(uiScheme.fg, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.12)`
-      : 'none',
+    color: active ? uiScheme.link : uiScheme.mutedText,
+    background: active ? withOpacity(uiScheme.link, 0.09) : 'transparent',
+    border: `1px solid ${active ? uiScheme.link : uiScheme.cardBorder}`,
   } as const;
 }
 
@@ -435,7 +342,6 @@ export function TTSControls({
   const rootRef = useRef<HTMLDivElement>(null);
   const autoDockTimerRef = useRef<number | null>(null);
 
-  const styles = useThemeStyles(uiScheme);
   const surface = getModernReaderSurface(uiScheme);
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
@@ -777,26 +683,19 @@ export function TTSControls({
       style={{ color: uiScheme.fg }}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <div className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center">
-          <span
-            className="absolute h-full w-full animate-ping rounded-full"
-            style={{ background: statusColor, opacity: 0.3 }}
-          />
-          <span
-            className="relative h-1.5 w-1.5 rounded-full"
-            style={{ background: statusColor }}
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-bold leading-tight">
-            {ttsStatus.headline}
-            {ttsStatus.detail && (
-              <span className="ml-1.5 font-medium opacity-50" style={{ color: uiScheme.mutedText }}>
-                {ttsStatus.detail}
-              </span>
-            )}
-          </p>
-        </div>
+        <span
+          aria-hidden="true"
+          className="size-2 shrink-0 rounded-full"
+          style={{ background: statusColor }}
+        />
+        <p className="min-w-0 flex-1 text-xs font-medium leading-5 [overflow-wrap:anywhere]">
+          {ttsStatus.headline}
+          {ttsStatus.detail && (
+            <span className="ml-2 font-normal" style={{ color: uiScheme.mutedText }}>
+              {ttsStatus.detail}
+            </span>
+          )}
+        </p>
       </div>
       {withDragHandle && (
         <button
@@ -829,6 +728,7 @@ export function TTSControls({
               size={triggerContent ? 'sm' : 'icon'}
               data-reader-interactive="true"
               data-reader-tts-trigger="true"
+              data-reader-tts-active={isActive ? 'true' : undefined}
               type="button"
               title={isActive ? '朗读控制（正在播放）' : '朗读控制'}
               aria-label={isActive ? '朗读控制（正在播放）' : '朗读控制'}
@@ -836,21 +736,13 @@ export function TTSControls({
               aria-haspopup="dialog"
               className={
                 triggerClassName ??
-                'paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.95rem] border p-0 align-middle hover:scale-[1.03] active:scale-95 focus-visible:border-transparent! focus-visible:ring-0! sm:h-11 sm:w-11 sm:rounded-[1.05rem]'
+                'relative z-40 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-0 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
               }
               style={{
                 ...(
                   triggerStyle ?? {
                     color: isActive ? uiScheme.link : uiScheme.buttonText,
-                    ...getGlassSurface(uiScheme, {
-                      elevated: isActive,
-                      accentBorder: isActive
-                        ? withOpacity(uiScheme.link, 0.30)
-                        : 'transparent',
-                      accentGlow: isActive
-                        ? withOpacity(uiScheme.link, 0.28)
-                        : withOpacity(uiScheme.fg, 0.14),
-                    }),
+                    ...getTriggerSurface(uiScheme, isActive),
                   }
                 ),
                 opacity: isBusy ? 0.72 : 1,
@@ -869,62 +761,32 @@ export function TTSControls({
           container={overlayContainer}
           data-reader-interactive="true"
           data-reader-tts-popup="true"
-          className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,42rem)] flex-col overflow-hidden rounded-[1.5rem] p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(78svh,38rem)] sm:-translate-x-1/2 sm:rounded-[1.65rem]"
+          className="reader-panel border p-0 sm:w-[480px] sm:max-w-[calc(100vw-2rem)]"
           style={{
-            background: surface.bg,
+            background: uiScheme.cardBg,
             borderColor: surface.border,
             color: surface.fg,
-            boxShadow: surface.shadow,
-            backdropFilter: 'blur(18px)',
           }}
         >
-          <div className="flex justify-center pb-1 pt-2.5">
-            <div
-              className="h-1 w-9 rounded-full"
-              style={{ background: surface.hairline }}
-            />
-          </div>
-          <div aria-live="polite" aria-atomic="true" className="sr-only">
-            {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
-          </div>
-
           <SheetHeader
-            className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
-            style={{
-              background: 'transparent',
-              borderBottom: `1px solid ${surface.hairline}`,
-            }}
+            className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
+            style={{ borderColor: surface.hairline }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                  style={{
-                    background: surface.surfaceSoft,
-                    color: surface.fg,
-                  }}
-                >
-                  <Volume2 className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-lg font-semibold tracking-tight" style={{ color: surface.fg }}>
-                    朗读控制
-                  </SheetTitle>
-                  <SheetDescription
-                    className="mt-1 text-xs font-medium"
-                    style={{ color: surface.muted }}
-                  >
-                    调整最贴近当前阅读节奏的声音
-                  </SheetDescription>
-                </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <SheetTitle className="text-xl font-medium" style={{ color: surface.fg }}>
+                  朗读控制
+                </SheetTitle>
+                <SheetDescription className="sr-only">
+                  播放、调整倍速与设置睡眠定时
+                </SheetDescription>
               </div>
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 transition-colors hover:brightness-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 active:scale-95"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 lg:size-9"
                 style={{
                   color: surface.muted,
-                  background: surface.surfaceSoft,
                 }}
                 aria-label="关闭朗读控制"
                 title="关闭"
@@ -934,21 +796,19 @@ export function TTSControls({
             </div>
           </SheetHeader>
 
-          <div className="app-sheet-body space-y-5 px-5 py-5 sm:px-6">
+          <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-4 sm:px-6">
             {resumePromptVisible && (
               <section
-                className="app-surface-panel rounded-2xl p-5"
+                className="rounded-lg border p-3"
                 style={{
-                  background:
-                    `linear-gradient(180deg, ${withOpacity(uiScheme.link, 0.08)} 0%, transparent 100%), ${uiScheme.cardBg}`,
+                  background: withOpacity(uiScheme.link, 0.06),
                   borderColor: withOpacity(uiScheme.link, 0.18),
                 }}
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                    className="flex size-5 shrink-0 items-center justify-center"
                     style={{
-                      background: withOpacity(uiScheme.buttonBg, 0.42),
                       color: uiScheme.link,
                     }}
                   >
@@ -966,7 +826,7 @@ export function TTSControls({
                     type="button"
                     variant="ghost"
                     onClick={() => void onResume?.()}
-                    className="h-10 shrink-0 rounded-[1.1rem] px-3.5 text-xs font-bold active:scale-[0.96]"
+                    className="h-11 shrink-0 rounded-lg px-3 text-xs font-semibold"
                     style={{
                       color: uiScheme.link,
                       background: withOpacity(uiScheme.buttonBg, 0.42),
@@ -981,19 +841,12 @@ export function TTSControls({
 
             {ttsStatus ? renderStatusContent() : null}
 
-            <TTSSectionCard
+            <TTSSection
               title="播放控制"
               description="从当前位置开始、暂停或切换到相邻句子。"
               uiScheme={uiScheme}
             >
-              <div
-                className="space-y-4 rounded-[1.45rem] p-3.5"
-                style={{
-                  background:
-                    `linear-gradient(180deg, ${withOpacity(uiScheme.fg, 0.035)} 0%, transparent 72%), ${withOpacity(uiScheme.buttonBg, 0.24)}`,
-                  boxShadow: `inset 0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.1)}`,
-                }}
-              >
+              <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2.5">
                   <ControlButton
                     onClick={onPrev}
@@ -1012,19 +865,16 @@ export function TTSControls({
                       onClick={handleStartClick}
                       disabled={isBusy}
                       title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                      className="relative h-12 w-12 rounded-full transition-[box-shadow,transform,opacity] hover:scale-[1.01] active:scale-95 disabled:opacity-60"
+                      className="size-12 rounded-lg transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
                       style={{
                         color: uiScheme.cardBg,
                         background: isPlaying
                           ? withOpacity(uiScheme.link, 0.92)
                           : uiScheme.fg,
-                        boxShadow:
-                          `0 10px 20px -18px ${withOpacity(isPlaying ? uiScheme.link : uiScheme.fg, 0.36)}, ` +
-                          `0 0 0 1px ${withOpacity(uiScheme.cardBorder, 0.08)}`,
                       }}
                     >
                       {isBusy ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
                       ) : isPaused ? (
                         <Play className="ml-0.5 h-4 w-4 fill-current" />
                       ) : isPlaying ? (
@@ -1063,9 +913,9 @@ export function TTSControls({
                   uiScheme={uiScheme}
                 />
               </div>
-            </TTSSectionCard>
+            </TTSSection>
 
-            <TTSSectionCard
+            <TTSSection
               title="高亮方式"
               description="选择朗读时跟随词语或整句。"
               uiScheme={uiScheme}
@@ -1081,7 +931,8 @@ export function TTSControls({
                       key={mode}
                       type="button"
                       onClick={() => handleHighlightModeChange(mode)}
-                      className="min-h-11 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
+                      aria-pressed={active}
+                      className="min-h-11 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
                       style={segmentStyle(active, uiScheme)}
                     >
                       {label}
@@ -1089,9 +940,9 @@ export function TTSControls({
                   );
                 })}
               </div>
-            </TTSSectionCard>
+            </TTSSection>
 
-            <TTSSectionCard
+            <TTSSection
               title="睡眠定时"
               description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
               uiScheme={uiScheme}
@@ -1105,7 +956,8 @@ export function TTSControls({
                       type="button"
                       variant="ghost"
                       onClick={() => onSleepTimerMinutes?.(minutes)}
-                      className="h-10 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
+                      aria-pressed={active}
+                      className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97]"
                       style={segmentStyle(active, uiScheme)}
                     >
                       {minutes}分
@@ -1117,7 +969,7 @@ export function TTSControls({
                   variant="ghost"
                   onClick={() => onClearSleepTimer?.()}
                   disabled={!sleepTimerActive}
-                  className="h-10 rounded-xl text-xs font-semibold"
+                  className="h-11 rounded-lg text-xs font-semibold"
                   style={{
                     ...segmentStyle(false, uiScheme),
                     color: sleepTimerActive
@@ -1129,10 +981,10 @@ export function TTSControls({
                   取消
                 </Button>
               </div>
-            </TTSSectionCard>
+            </TTSSection>
 
             {showSettingsPanel && (
-              <TTSSectionCard
+              <TTSSection
                 title="语音偏好"
                 description="选择发音人、情绪风格与输出声音。"
                 uiScheme={uiScheme}
@@ -1148,7 +1000,7 @@ export function TTSControls({
                   uiScheme={uiScheme}
                   overlayContainer={overlayContainer}
                 />
-              </TTSSectionCard>
+              </TTSSection>
             )}
           </div>
         </SheetContent>
@@ -1190,21 +1042,13 @@ export function TTSControls({
             aria-haspopup="dialog"
             className={
               triggerClassName ??
-              'paper-motion-interactive relative z-40 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.95rem] border p-0 align-middle hover:scale-[1.03] active:scale-95 focus-visible:border-transparent! focus-visible:ring-0! sm:h-11 sm:w-11 sm:rounded-[1.05rem]'
+              'relative z-40 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-0 align-middle transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2'
             }
             style={{
               ...(
                 triggerStyle ?? {
                   color: isActive ? uiScheme.link : uiScheme.buttonText,
-                  ...getGlassSurface(uiScheme, {
-                    elevated: isActive,
-                    accentBorder: isActive
-                      ? withOpacity(uiScheme.link, 0.30)
-                      : 'transparent',
-                    accentGlow: isActive
-                      ? withOpacity(uiScheme.link, 0.28)
-                      : withOpacity(uiScheme.fg, 0.14),
-                  }),
+                  ...getTriggerSurface(uiScheme, isActive),
                 }
               ),
               opacity: isBusy ? 0.72 : 1,
@@ -1244,13 +1088,11 @@ export function TTSControls({
             onClick={stopInteractivePropagation}
           >
             <div
-              className="app-dialog-shell paper-motion-surface paper-stack relative overflow-hidden rounded-[1.5rem] border p-0 motion-reduce:transition-none"
+              className="paper-motion-surface paper-stack relative overflow-hidden rounded-xl border p-0 motion-reduce:transition-none"
               style={{
-                ...styles.panel,
-                background: surface.bg,
+                background: uiScheme.cardBg,
                 borderColor: surface.border,
-                boxShadow: surface.shadow,
-                backdropFilter: 'blur(18px)',
+                boxShadow: 'var(--paper-shadow-floating)',
               }}
             >
               {!isToolbar && (
@@ -1268,33 +1110,17 @@ export function TTSControls({
                 className="flex items-center justify-between gap-3 px-4 py-3.5"
                 style={{ borderBottom: `1px solid ${surface.hairline}` }}
               >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full"
-                    style={{
-                      background: surface.surfaceSoft,
-                      color: surface.fg,
-                    }}
-                  >
-                    <Volume2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold leading-tight" style={{ color: uiScheme.fg }}>
-                      朗读控制
-                    </p>
-                  </div>
-                </div>
+                <p className="font-heading text-lg font-medium" style={{ color: uiScheme.fg }}>
+                  朗读控制
+                </p>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   onPointerDown={preserveReaderSelection}
                   onClick={closePanel}
-                  className="h-8 w-8 rounded-lg border-0 transition-colors"
-                  style={{
-                    color: surface.muted,
-                    background: surface.surfaceSoft,
-                  }}
+                  className="size-11 rounded-lg border-0 transition-colors lg:size-9"
+                  style={{ color: surface.muted }}
                   aria-label="关闭朗读控制面板"
                   title="关闭"
                 >
@@ -1302,8 +1128,8 @@ export function TTSControls({
                 </Button>
               </div>
 
-              <div 
-                className="space-y-4 overflow-y-auto px-4 pb-4 pt-3"
+              <div
+                className="custom-scrollbar space-y-4 overflow-y-auto overscroll-contain px-4 pb-4 pt-3"
                 style={{ maxHeight: panelBodyMaxHeight }}
               >
                 {resumePromptVisible && (
@@ -1333,7 +1159,7 @@ export function TTSControls({
                         type="button"
                         variant="ghost"
                         onClick={() => void onResume?.()}
-                        className="h-8 shrink-0 rounded-lg px-3 text-xs font-medium transition-colors active:scale-95"
+                        className="h-11 shrink-0 rounded-lg px-3 text-xs font-medium transition-colors active:scale-95"
                         style={{
                           color: uiScheme.link,
                           background: withOpacity(uiScheme.buttonBg, 0.6),
@@ -1362,7 +1188,7 @@ export function TTSControls({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        className="h-8 rounded-lg px-2.5 text-xs font-medium transition-colors active:scale-[0.98]"
+                        className="h-11 rounded-lg px-2.5 lg:h-9 text-xs font-medium transition-colors active:scale-[0.98]"
                         style={{
                           color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
                           background: withOpacity(uiScheme.buttonBg, 0.45),
@@ -1380,11 +1206,7 @@ export function TTSControls({
                   </div>
 
                   <div
-                    className="flex items-center justify-center gap-2 rounded-xl border p-2.5"
-                    style={{
-                      background: withOpacity(uiScheme.buttonBg, 0.45),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.5),
-                    }}
+                    className="flex items-center justify-center gap-2"
                   >
                     <ControlButton
                       onClick={onPrev}
@@ -1403,16 +1225,15 @@ export function TTSControls({
                         onClick={handleStartClick}
                         disabled={isBusy}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        className="h-11 w-11 rounded-full transition-all active:scale-95"
+                        className="size-11 rounded-lg transition-opacity hover:opacity-90 active:scale-95"
                         style={{
-                          background: uiScheme.fg,
+                          background: isPlaying ? uiScheme.link : uiScheme.fg,
                           color: uiScheme.cardBg,
                           cursor: isBusy ? 'not-allowed' : 'pointer',
-                          boxShadow: `0 12px 24px -16px ${withOpacity(uiScheme.fg, 0.45)}`,
                         }}
                       >
                         {isBusy ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
+                          <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" />
                         ) : isPaused ? (
                           <Play className="ml-0.5 h-5 w-5 fill-current" />
                         ) : isPlaying ? (
@@ -1444,7 +1265,7 @@ export function TTSControls({
                     </ControlButton>
                   </div>
 
-                  <div className="px-3 pb-1">
+                  <div className="pb-1">
                     <RateButtons
                       value={settings.rate}
                       onChange={handleRateChange}
@@ -1474,7 +1295,7 @@ export function TTSControls({
                               type="button"
                               aria-pressed={active}
                               onClick={() => handleHighlightModeChange(mode)}
-                              className="touch-control min-h-10 rounded-lg py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.98] sm:min-h-9"
+                              className="touch-control min-h-11 rounded-lg py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.98] lg:min-h-9"
                               style={segmentStyle(active, uiScheme)}
                             >
                               {label}
@@ -1515,7 +1336,7 @@ export function TTSControls({
                               variant="ghost"
                               aria-pressed={active}
                               onClick={() => onSleepTimerMinutes?.(minutes)}
-                              className="h-10 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] sm:h-9"
+                              className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97] lg:h-9"
                               style={segmentStyle(active, uiScheme)}
                             >
                               {minutes}分
@@ -1527,7 +1348,7 @@ export function TTSControls({
                           variant="ghost"
                           onClick={() => onClearSleepTimer?.()}
                           disabled={!sleepTimerActive}
-                          className="h-10 rounded-xl text-xs font-semibold sm:h-9"
+                          className="h-11 rounded-lg text-xs font-semibold lg:h-9"
                           style={{
                             ...segmentStyle(false, uiScheme),
                             color: sleepTimerActive

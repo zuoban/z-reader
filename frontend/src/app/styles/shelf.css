@@ -25,47 +25,23 @@
   }
 
   .shelf-filter-chip {
-    display: inline-flex;
-    min-height: 2.75rem;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-lg);
-    padding-inline: 0.875rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    transition:
-      background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
-      transform var(--paper-duration-fast) var(--paper-ease-soft);
+    @apply min-h-11 shrink-0 truncate rounded-lg border border-transparent px-3 text-[13px] font-medium;
+    color: var(--muted-foreground);
   }
 
-  @media (min-width: 640px) {
-    .shelf-filter-chip {
-      min-height: 2.25rem;
-      padding-inline: 0.875rem;
-    }
-  }
-
-  .shelf-filter-chip:active {
-    transform: scale(0.98);
-  }
-
-  .shelf-filter-chip[data-active="true"] {
-    border: 1px solid var(--primary);
-    background: var(--primary);
-    color: var(--primary-foreground);
-  }
-
-  .shelf-filter-chip:not([data-active="true"]) {
-    border: 1px solid var(--border);
-    background: var(--card);
+  .shelf-filter-chip:hover {
+    background: var(--secondary);
     color: var(--foreground);
   }
 
-  .shelf-filter-chip:not([data-active="true"]):hover {
-    background: var(--secondary);
+  .shelf-filter-chip[data-active="true"] {
+    border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+    background: color-mix(in srgb, var(--primary) 10%, var(--background));
+    color: var(--primary);
+  }
+
+  .shelf-search::-webkit-search-cancel-button {
+    appearance: none;
   }
 
   .category-input {
@@ -78,27 +54,57 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
   }
 
-  .shelf-container {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-  }
-
   .shelf-header {
-    background: color-mix(in srgb, var(--background) 94%, transparent);
+    background: var(--shelf-app-bg);
   }
 
-  .shelf-book-card {
+  .shelf-book-cover {
+    @apply relative aspect-[5/6] w-full overflow-hidden rounded-lg;
+    background: var(--shelf-card-media);
+  }
+
+  .shelf-book-card .shelf-book-cover {
+    box-shadow: 0 2px 6px -1px var(--paper-shadow);
+  }
+
+  .shelf-book-open:hover h2 {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .shelf-book-selection {
+    @apply pointer-events-none absolute right-2 top-2 grid size-7 place-items-center rounded-md border;
     background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: var(--paper-shadow-control);
-    transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+    border-color: var(--border);
   }
 
-  .shelf-book-card:hover {
-    border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
-    box-shadow: 0 8px 20px -12px var(--paper-shadow);
+  .shelf-book-card[data-selected="true"] .shelf-book-cover {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .shelf-book-card[data-selected="true"] .shelf-book-selection {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* Details and actions total 156px, matching the virtual grid's body estimate. */
+  .shelf-book-details {
+    @apply flex h-28 w-full flex-col justify-between gap-2 px-1 pb-2 pt-2.5;
+  }
+
+  .shelf-book-actions {
+    @apply relative flex h-11 items-center justify-between gap-1;
+  }
+
+  .shelf-book-actions::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    border-top: 1px solid var(--border);
+    pointer-events: none;
   }
 
   .book-cover-fallback {
@@ -106,12 +112,45 @@
     color: #fff9e8;
   }
 
+  .book-cover-fallback::before,
   .book-cover-fallback::after {
     content: "";
     position: absolute;
-    inset: 10px 10px 10px 14px;
-    border: 1px solid rgb(255 249 232 / 24%);
     pointer-events: none;
+  }
+
+  .book-cover-fallback::before {
+    inset: 0 auto 0 0;
+    width: 6px;
+    background: rgb(0 0 0 / 14%);
+    border-inline-end: 1px solid rgb(255 249 232 / 18%);
+  }
+
+  .book-cover-fallback::after {
+    inset: 10px 10px 10px 15px;
+    border: 1px solid rgb(255 249 232 / 28%);
+  }
+
+  .shelf-skeleton-container {
+    container-type: inline-size;
+  }
+
+  .shelf-skeleton-grid {
+    @apply grid grid-cols-2;
+    gap: var(--shelf-grid-mobile-gap);
+  }
+
+  @container (min-width: 640px) {
+    .shelf-skeleton-grid {
+      grid-template-columns: repeat(auto-fill, minmax(var(--shelf-grid-sm-column), 1fr));
+      gap: var(--shelf-grid-desktop-gap);
+    }
+  }
+
+  @container (min-width: 1024px) {
+    .shelf-skeleton-grid {
+      grid-template-columns: repeat(auto-fill, minmax(var(--shelf-grid-lg-column), 1fr));
+    }
   }
 
   .shelf-account-menu[data-slot="dropdown-menu-content"] {
@@ -121,7 +160,7 @@
   }
 
   .shelf-account-menu .shelf-account-menu-item {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     gap: 0.625rem;
     border-radius: var(--radius-md);
     padding: 0.5rem 0.75rem;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ import {
   type ReaderTheme,
   type ThemeColors,
 } from "@/hooks/useReaderTheme";
-import { ChevronDown, ChevronUp, RotateCcw, Settings, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, RotateCcw, Settings, X } from "lucide-react";
 
 const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "editorial",
@@ -86,13 +86,6 @@ interface ThemeSettingsProps {
   trigger?: React.ReactNode;
 }
 
-interface SectionProps {
-  title: string;
-  description?: string;
-  uiScheme: ThemeColors;
-  children: ReactNode;
-}
-
 interface SliderFieldProps {
   label: string;
   valueLabel: string;
@@ -106,63 +99,22 @@ interface SliderFieldProps {
   uiScheme: ThemeColors;
 }
 
-function SectionCard({
-  title,
-  description,
-  uiScheme,
-  children,
-}: SectionProps) {
-  return (
-    <section
-      className="space-y-4 rounded-xl border p-4"
-      style={{
-        background: withOpacity(uiScheme.buttonBg, 0.42),
-        borderColor: withOpacity(uiScheme.cardBorder, 0.55),
-      }}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="space-y-0.5">
-          <h3
-            className="text-sm font-medium"
-            style={{ color: uiScheme.fg }}
-          >
-            {title}
-          </h3>
-          {description ? (
-            <p
-              className="text-xs leading-5"
-              style={{ color: uiScheme.mutedText }}
-            >
-              {description}
-            </p>
-          ) : null}
-        </div>
-      </div>
-      <div className="pt-0.5">{children}</div>
-    </section>
-  );
-}
-
-function ValuePill({ label, active, onClick, uiScheme }: { label: string; active: boolean; onClick: () => void; uiScheme: ThemeColors }) {
+function SettingChoice({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={cn(
-        "touch-control flex-1 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
-      )}
-      style={{
-        color: active ? uiScheme.fg : withOpacity(uiScheme.fg, 0.65),
-        background: active
-          ? uiScheme.cardBg
-          : withOpacity(uiScheme.buttonBg, 0.35),
-        border: `1px solid ${
-          active
-            ? withOpacity(uiScheme.link, 0.45)
-            : withOpacity(uiScheme.cardBorder, 0.4)
-        }`,
-      }}
+      className="reader-settings-option flex min-h-11 flex-1 items-center justify-center border px-2 text-sm"
+      style={{ borderColor: active ? "var(--reader-option-accent)" : "var(--reader-option-rule)" }}
     >
       {label}
     </button>
@@ -184,23 +136,23 @@ function SliderField({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-0.5">
-        <Label className="text-xs font-medium text-muted-foreground">
+        <Label className="text-sm font-medium" style={{ color: uiScheme.fg }}>
           {label}
         </Label>
-        <span className="rounded-md border border-primary/15 bg-primary/10 px-2 py-0.5 font-mono text-xs font-medium tabular-nums text-primary">
+        <span className="text-xs font-medium tabular-nums text-[var(--reader-option-accent)]">
           {valueLabel}
         </span>
       </div>
       <div className="flex items-center gap-3">
         <span
-          className="w-6 shrink-0 text-center font-mono text-xs tabular-nums"
+          className="w-8 shrink-0 text-center text-xs tabular-nums"
           style={{ color: uiScheme.mutedText }}
         >
           {minLabel}
         </span>
         <Slider value={value} onValueChange={onValueChange} min={min} max={max} step={step} className="flex-1" />
         <span
-          className="w-6 shrink-0 text-center font-mono text-xs tabular-nums"
+          className="w-8 shrink-0 text-center text-xs tabular-nums"
           style={{ color: uiScheme.mutedText }}
         >
           {maxLabel}
@@ -222,7 +174,7 @@ function ReaderPreview({
 
   return (
     <section
-      className="mb-3 overflow-hidden rounded-xl border px-3.5 py-2"
+      className="mb-5 rounded-lg border px-4"
       aria-label="阅读效果预览"
       style={{
         background: preset.bg,
@@ -230,7 +182,7 @@ function ReaderPreview({
         borderColor: withOpacity(preset.fg, 0.12),
       }}
     >
-      <div className="flex min-h-9 items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-x-2">
         <span
           className="text-xs font-medium"
           style={{ color: withOpacity(preset.fg, 0.72) }}
@@ -238,10 +190,9 @@ function ReaderPreview({
           阅读预览
         </span>
         <span
-          className="mr-auto rounded-md px-2 py-0.5 font-mono text-[11px] tabular-nums"
+          className="mr-auto text-xs tabular-nums"
           style={{
-            background: withOpacity(preset.fg, 0.08),
-            color: withOpacity(preset.fg, 0.62),
+            color: withOpacity(preset.fg, 0.78),
           }}
         >
           {theme.fontSize}px · {theme.lineHeight.toFixed(2)}
@@ -261,7 +212,7 @@ function ReaderPreview({
       <p
         id={passageId}
         hidden={!expanded}
-        className="pb-2 pt-1"
+        className="pb-3 [overflow-wrap:anywhere]"
         style={{
           fontFamily: fontStack,
           fontSize: `${theme.fontSize}px`,
@@ -337,51 +288,23 @@ export function ThemeSettings({
         showCloseButton={false}
         finalFocus={false}
         container={overlayContainer}
-        className="app-sheet-shell reader-bottom-sheet-centered mx-auto bottom-[max(env(safe-area-inset-bottom,0px),0.75rem)] left-3 right-3 flex max-h-[min(88svh,40rem)] flex-col overflow-hidden rounded-2xl p-0 sm:bottom-10 sm:left-1/2 sm:right-auto sm:w-[460px] sm:max-w-[calc(100vw-2rem)] data-[side=bottom]:sm:max-h-[min(78svh,38rem)] sm:-translate-x-1/2"
+        className="reader-panel border p-0 sm:w-[480px] sm:max-w-[calc(100vw-2rem)]"
         style={{
-          background: surface.bg,
+          background: uiScheme.cardBg,
           borderColor: surface.border,
           color: surface.fg,
-          boxShadow: surface.shadow,
-          backdropFilter: "blur(14px)",
         }}
       >
-        <div className="flex justify-center pb-1 pt-2.5">
-          <div
-            className="h-1 w-9 rounded-full"
-            style={{ background: surface.hairline }}
-          />
-        </div>
         <SheetHeader
-          className="app-sheet-header shrink-0 px-5 pb-3 pt-2 sm:px-6"
-          style={{
-            background: "transparent",
-            borderBottom: `1px solid ${surface.hairline}`,
-          }}
+          className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
+          style={{ borderColor: surface.hairline }}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                  style={{
-                    background: surface.surfaceSoft,
-                    color: surface.fg,
-                  }}
-                >
-                  <Settings className="h-4 w-4" strokeWidth={1.5} />
-                </div>
-                <SheetTitle
-                  className="font-heading text-lg font-medium"
-                  style={{ color: surface.fg }}
-                >
-                  阅读偏好
-                </SheetTitle>
-              </div>
-              <SheetDescription
-                className="mt-0.5 pl-10 text-xs leading-5"
-                style={{ color: surface.muted }}
-              >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <SheetTitle className="text-xl font-medium" style={{ color: surface.fg }}>
+                阅读偏好
+              </SheetTitle>
+              <SheetDescription className="mt-1 text-xs" style={{ color: surface.muted }}>
                 调整纸色、字号与版式细节
               </SheetDescription>
             </div>
@@ -395,14 +318,13 @@ export function ThemeSettings({
                 title="重置阅读偏好"
                 aria-label="重置阅读偏好"
                 className={cn(
-                  "h-9 w-9 rounded-lg border-0 transition-colors hover:brightness-[0.985] disabled:opacity-45",
+                  "size-11 rounded-lg border-0 transition-colors hover:bg-secondary disabled:opacity-45 lg:size-9",
                   isResetFeedbackVisible && "scale-[1.04]",
                 )}
                 style={{
                   color: isDefaultTheme
                     ? surface.muted
                     : withOpacity(uiScheme.fg, 0.72),
-                  background: surface.surfaceSoft,
                 }}
               >
                 <RotateCcw
@@ -415,10 +337,9 @@ export function ThemeSettings({
               <button
                 type="button"
                 onClick={() => onOpenChange?.(false)}
-                className="touch-target flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                className="flex size-11 items-center justify-center rounded-lg lg:size-9 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
                 style={{
                   color: surface.muted,
-                  background: surface.surfaceSoft,
                 }}
                 aria-label="关闭阅读偏好"
                 title="关闭"
@@ -429,47 +350,47 @@ export function ThemeSettings({
           </div>
         </SheetHeader>
 
-        <div className="app-sheet-body min-h-0 px-3 pb-3 pt-2.5 sm:px-4">
-          <div
-            className="mb-4 grid grid-cols-3 gap-1 rounded-xl p-1"
-            role="tablist"
-            aria-label="阅读设置分类"
-            style={{
-              background: surface.surfaceSoft,
-            }}
-          >
-            {SETTINGS_SECTIONS.map((section) => {
-              const active = activeSection === section.id;
+        <div
+          className="grid shrink-0 grid-cols-3 px-4 sm:px-6"
+          role="tablist"
+          aria-label="阅读设置分类"
+        >
+          {SETTINGS_SECTIONS.map((section) => {
+            const active = activeSection === section.id;
+            return (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveSection(section.id)}
+                className="min-h-11 border-b text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2"
+                style={{
+                  borderColor: active ? uiScheme.link : surface.hairline,
+                  color: active ? uiScheme.link : surface.muted,
+                }}
+              >
+                {section.label}
+              </button>
+            );
+          })}
+        </div>
 
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setActiveSection(section.id)}
-                  className="touch-control h-10 rounded-lg text-[13px] font-medium transition-colors active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-9 sm:text-xs"
-                  style={{
-                    background: active ? surface.bg : "transparent",
-                    color: active ? surface.fg : withOpacity(surface.fg, 0.7),
-                  }}
-                >
-                  {section.label}
-                </button>
-              );
-            })}
-          </div>
-
+        <div
+          className="reader-panel-body custom-scrollbar px-4 pb-5 pt-4 sm:px-6"
+          style={{
+            "--reader-option-selected": withOpacity(uiScheme.link, 0.09),
+            "--reader-option-accent": uiScheme.link,
+            "--reader-option-rule": surface.hairline,
+          } as CSSProperties}
+        >
           <ReaderPreview theme={theme} />
 
           {activeSection === "appearance" && (
-            <div className="space-y-4" role="tabpanel" aria-label="外观设置">
-              <SectionCard
-                title="视觉基调"
-                description="选择适合当前光线的纸面色调"
-                uiScheme={uiScheme}
-              >
-                <div className="grid grid-cols-2 gap-2.5">
+            <div className="space-y-5" role="tabpanel" aria-label="外观设置">
+              <section className="space-y-2.5">
+                <h3 className="text-sm font-medium">纸面色调</h3>
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                   {PRESETS.map((preset) => {
                     const isActive = theme.preset === preset.key;
 
@@ -479,240 +400,175 @@ export function ThemeSettings({
                         type="button"
                         onClick={() => setTheme({ preset: preset.key })}
                         aria-pressed={isActive}
-                        className="touch-control group relative overflow-hidden rounded-xl border p-2.5 text-left transition-colors duration-150 cursor-pointer active:scale-[0.98]"
-                        style={{
-                          background: isActive
-                            ? withOpacity(uiScheme.link, 0.08)
-                            : withOpacity(uiScheme.cardBg, 0.35),
-                          borderColor: isActive
-                            ? uiScheme.link
-                            : withOpacity(uiScheme.cardBorder, 0.55),
-                        }}
+                        className="reader-settings-option grid min-h-11 min-w-0 justify-items-center gap-1 border p-1 text-xs sm:p-1.5"
+                        style={{ borderColor: isActive ? uiScheme.link : surface.hairline }}
                       >
-                        <div
-                          className="relative h-12 overflow-hidden rounded-lg px-2.5 py-2"
+                        <span
+                          aria-hidden="true"
+                          className="relative grid h-9 w-full place-items-center rounded-sm border font-heading text-lg"
                           style={{
                             background: preset.bg,
-                            border: `1px solid ${
-                              preset.key === "dark"
-                                ? "rgba(255,255,255,0.1)"
-                                : "rgba(0,0,0,0.06)"
-                            }`,
+                            color: preset.fg,
+                            borderColor: withOpacity(preset.fg, 0.16),
                           }}
                         >
-                          <div className="space-y-1.5">
-                            <div
-                              className="h-1 rounded-full"
-                              style={{ background: preset.fg, width: "70%", opacity: 0.6 }}
-                            />
-                            <div
-                              className="h-1 rounded-full"
-                              style={{ background: preset.fg, width: "85%", opacity: 0.3 }}
-                            />
-                            <div
-                              className="h-1 rounded-full"
-                              style={{ background: preset.fg, width: "50%", opacity: 0.16 }}
-                            />
-                          </div>
-
-                          {isActive && (
-                            <div
-                              className="absolute right-2 top-2 h-2 w-2 rounded-full"
-                              style={{ background: uiScheme.link }}
-                            />
-                          )}
-                        </div>
-                        <div className="mt-2 flex items-center justify-between px-0.5">
-                          <span
-                            className="text-xs font-medium"
-                            style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.72) }}
-                          >
-                            {preset.label}
-                          </span>
-                        </div>
+                          文
+                          {isActive && <Check className="absolute right-0.5 top-0.5 size-3" />}
+                        </span>
+                        <span className={isActive ? "font-semibold" : undefined}>{preset.label}</span>
                       </button>
                     );
                   })}
                 </div>
-              </SectionCard>
+              </section>
 
-              <SectionCard
-                title="阅读引擎"
-                description="翻页模拟纸质，滚动契合现代习惯。"
-                uiScheme={uiScheme}
-              >
+              <section className="space-y-2.5 border-t pt-4" style={{ borderColor: surface.hairline }}>
+                <h3 className="text-sm font-medium">阅读方式</h3>
                 <div className="flex gap-2">
                   {(["paginated", "scrolled"] as const).map((flow) => (
-                    <ValuePill
+                    <SettingChoice
                       key={flow}
                       label={flow === "paginated" ? "翻页模式" : "滚动模式"}
                       active={theme.flow === flow}
                       onClick={() => setTheme({ flow })}
-                      uiScheme={uiScheme}
                     />
                   ))}
                 </div>
-              </SectionCard>
+              </section>
             </div>
           )}
 
           {activeSection === "layout" && (
-            <SectionCard
-              title="版式美学"
-              description="精调每一处间隙，让文字自然呼吸。"
-              uiScheme={uiScheme}
-            >
-              <div className="space-y-8" role="tabpanel" aria-label="排版设置">
-                <div className="space-y-2.5">
-                  <Label className="pl-0.5 text-xs font-medium text-muted-foreground">
-                    字型选择
-                  </Label>
-                  <div className="grid gap-2">
-                    {FONT_ORDER.map((key) => {
-                      const option = FONT_FAMILY_OPTIONS[key];
-                      const isActive = theme.fontFamily === key;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setTheme({ fontFamily: key })}
-                          aria-pressed={isActive}
-                          className="touch-control flex items-center justify-between rounded-xl border p-3 text-left transition-colors active:scale-[0.99]"
-                          style={{
-                            background: isActive ? uiScheme.cardBg : withOpacity(uiScheme.buttonBg, 0.25),
-                            borderColor: isActive ? uiScheme.link : withOpacity(uiScheme.cardBorder, 0.4),
-                          }}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium" style={{ color: isActive ? uiScheme.fg : withOpacity(uiScheme.fg, 0.85) }}>
-                              {option.label}
-                            </p>
-                            <p className="mt-0.5 text-xs" style={{ color: uiScheme.mutedText }}>
-                              {option.description}
-                            </p>
-                          </div>
-                          {isActive && (
-                            <div
-                              className="h-2 w-2 rounded-full"
-                              style={{ background: uiScheme.link }}
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div className="space-y-5" role="tabpanel" aria-label="排版设置">
+              <section className="space-y-2">
+                <h3 className="text-sm font-medium">字型选择</h3>
+                <div className="divide-y divide-[var(--reader-option-rule)] border-y border-[var(--reader-option-rule)]">
+                  {FONT_ORDER.map((key) => {
+                    const option = FONT_FAMILY_OPTIONS[key];
+                    const isActive = theme.fontFamily === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTheme({ fontFamily: key })}
+                        aria-pressed={isActive}
+                        className="reader-settings-option flex min-h-11 w-full items-center gap-3 px-2.5 py-2 text-left"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-base" style={{ fontFamily: option.stack }}>
+                            {option.label}
+                          </span>
+                          <span className="block text-xs" style={{ color: surface.muted }}>
+                            {option.description}
+                          </span>
+                        </span>
+                        {isActive && <Check aria-hidden="true" className="size-4 shrink-0" style={{ color: uiScheme.link }} />}
+                      </button>
+                    );
+                  })}
                 </div>
+              </section>
 
-                <SliderField
-                  label="字号大小"
-                  valueLabel={`${theme.fontSize}px`}
-                  minLabel="12"
-                  maxLabel="32"
-                  value={[theme.fontSize]}
-                  onValueChange={([value]) => setTheme({ fontSize: value })}
-                  min={12}
-                  max={32}
-                  step={1}
-                  uiScheme={uiScheme}
-                />
+              <SliderField
+                label="字号大小"
+                valueLabel={`${theme.fontSize}px`}
+                minLabel="12"
+                maxLabel="32"
+                value={[theme.fontSize]}
+                onValueChange={([value]) => setTheme({ fontSize: value })}
+                min={12}
+                max={32}
+                step={1}
+                uiScheme={uiScheme}
+              />
 
-                <SliderField
-                  label="行间距"
-                  valueLabel={theme.lineHeight.toFixed(2)}
-                  minLabel="1.2"
-                  maxLabel="2.2"
-                  value={[theme.lineHeight]}
-                  onValueChange={([value]) => setTheme({ lineHeight: value })}
-                  min={1.2}
-                  max={2.2}
-                  step={0.05}
-                  uiScheme={uiScheme}
-                />
-              </div>
-            </SectionCard>
+              <SliderField
+                label="行间距"
+                valueLabel={theme.lineHeight.toFixed(2)}
+                minLabel="1.2"
+                maxLabel="2.2"
+                value={[theme.lineHeight]}
+                onValueChange={([value]) => setTheme({ lineHeight: value })}
+                min={1.2}
+                max={2.2}
+                step={0.05}
+                uiScheme={uiScheme}
+              />
+            </div>
           )}
 
           {activeSection === "advanced" && (
-            <SectionCard
-              title="高级排版"
-              description="微调版心与留白，适合长时间阅读时慢慢打磨。"
-              uiScheme={uiScheme}
-            >
-              <div className="space-y-8" role="tabpanel" aria-label="高级排版设置">
-                <SliderField
-                  label="左右页边距"
-                  valueLabel={`${theme.pagePaddingX}px`}
-                  minLabel="8"
-                  maxLabel="56"
-                  value={[theme.pagePaddingX]}
-                  onValueChange={([value]) => setTheme({ pagePaddingX: value })}
-                  min={8}
-                  max={56}
-                  step={2}
-                  uiScheme={uiScheme}
-                />
+            <div className="space-y-5" role="tabpanel" aria-label="高级排版设置">
+              <SliderField
+                label="左右页边距"
+                valueLabel={`${theme.pagePaddingX}px`}
+                minLabel="8"
+                maxLabel="56"
+                value={[theme.pagePaddingX]}
+                onValueChange={([value]) => setTheme({ pagePaddingX: value })}
+                min={8}
+                max={56}
+                step={2}
+                uiScheme={uiScheme}
+              />
 
-                <SliderField
-                  label="上下页边距"
-                  valueLabel={`${theme.pagePaddingY}px`}
-                  minLabel="8"
-                  maxLabel="48"
-                  value={[theme.pagePaddingY]}
-                  onValueChange={([value]) => setTheme({ pagePaddingY: value })}
-                  min={8}
-                  max={48}
-                  step={2}
-                  uiScheme={uiScheme}
-                />
+              <SliderField
+                label="上下页边距"
+                valueLabel={`${theme.pagePaddingY}px`}
+                minLabel="8"
+                maxLabel="48"
+                value={[theme.pagePaddingY]}
+                onValueChange={([value]) => setTheme({ pagePaddingY: value })}
+                min={8}
+                max={48}
+                step={2}
+                uiScheme={uiScheme}
+              />
 
-                <SliderField
-                  label="段落间距"
-                  valueLabel={`${theme.paragraphSpacing.toFixed(2)}em`}
-                  minLabel="0.6"
-                  maxLabel="2.2"
-                  value={[theme.paragraphSpacing]}
-                  onValueChange={([value]) => setTheme({ paragraphSpacing: value })}
-                  min={0.6}
-                  max={2.2}
-                  step={0.05}
-                  uiScheme={uiScheme}
-                />
+              <SliderField
+                label="段落间距"
+                valueLabel={`${theme.paragraphSpacing.toFixed(2)}em`}
+                minLabel="0.6"
+                maxLabel="2.2"
+                value={[theme.paragraphSpacing]}
+                onValueChange={([value]) => setTheme({ paragraphSpacing: value })}
+                min={0.6}
+                max={2.2}
+                step={0.05}
+                uiScheme={uiScheme}
+              />
 
-                <SliderField
-                  label="最大行宽"
-                  valueLabel={`${theme.maxInlineSize}px`}
-                  minLabel="520"
-                  maxLabel="1400"
-                  value={[theme.maxInlineSize]}
-                  onValueChange={([value]) => setTheme({ maxInlineSize: value })}
-                  min={520}
-                  max={1400}
-                  step={20}
-                  uiScheme={uiScheme}
-                />
+              <SliderField
+                label="最大行宽"
+                valueLabel={`${theme.maxInlineSize}px`}
+                minLabel="520"
+                maxLabel="1400"
+                value={[theme.maxInlineSize]}
+                onValueChange={([value]) => setTheme({ maxInlineSize: value })}
+                min={520}
+                max={1400}
+                step={20}
+                uiScheme={uiScheme}
+              />
 
-                {/* 中文精致排版 */}
-                <div className="space-y-3 border-t border-border/30 pt-4">
-                  <Label className="pl-0.5 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
-                    中文排版
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <ValuePill
-                      label="首行缩进"
-                      active={theme.chineseIndent}
-                      onClick={() => setTheme({ chineseIndent: !theme.chineseIndent })}
-                      uiScheme={uiScheme}
-                    />
-                    <ValuePill
-                      label="标点挤压"
-                      active={theme.punctuationSqueeze}
-                      onClick={() => setTheme({ punctuationSqueeze: !theme.punctuationSqueeze })}
-                      uiScheme={uiScheme}
-                    />
-                  </div>
+              <div className="space-y-3 border-t border-border/30 pt-4">
+                <Label className="pl-0.5 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                  中文排版
+                </Label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <SettingChoice
+                    label="首行缩进"
+                    active={theme.chineseIndent}
+                    onClick={() => setTheme({ chineseIndent: !theme.chineseIndent })}
+                  />
+                  <SettingChoice
+                    label="标点挤压"
+                    active={theme.punctuationSqueeze}
+                    onClick={() => setTheme({ punctuationSqueeze: !theme.punctuationSqueeze })}
+                  />
                 </div>
               </div>
-            </SectionCard>
+            </div>
           )}
         </div>
       </SheetContent>

@@ -69,38 +69,38 @@
   --z-modal: 80;
   --z-reader-overlay: 90;
   --z-skip-link: 100;
-  /* Modern study: paper white, botanical ink, and quiet neutral surfaces. */
+  /* Modern Study surfaces and interaction states. */
   --background: #f7f8f4;
   --foreground: #202d27;
-  --card: #fffefa;
+  --card: #fdfcf7;
   --card-foreground: var(--foreground);
-  --popover: #fffefa;
+  --popover: var(--card);
   --popover-foreground: var(--foreground);
-  --primary: #285448;
+  --primary: #234d3e;
+  --primary-hover: #193d31;
   --primary-foreground: #ffffff;
-  --secondary: #e9eee7;
+  --secondary: #e8ede5;
   --secondary-foreground: #294338;
   --muted: #edf0e9;
   --muted-foreground: #626e64;
-  --subtle-foreground: #57655b;
+  --subtle-foreground: #536157;
   --accent: #e1ebdf;
   --accent-foreground: #244c3d;
   --destructive: #b73730;
   --destructive-foreground: #ffffff;
-  --border: #dce2d8;
-  --input: #dce2d8;
-  --ring: #285448;
-  --radius: 0.625rem;
+  --border: #d8ded4;
+  --input: #bfc9bd;
+  --ring: var(--primary);
+  --radius: 0.5rem;
   --control-touch-size: 2.75rem;
-  --paper-duration-base: 220ms;
+  --paper-duration-base: 200ms;
   --paper-duration-fast: 150ms;
   --paper-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
-  --paper-edge: #e5e9df;
   --paper-shadow: rgb(29 51 37 / 10%);
   --paper-shadow-soft: rgb(29 51 37 / 6%);
-  --paper-shadow-panel: 0 2px 10px -4px var(--paper-shadow-soft);
+  --paper-shadow-panel: 0 1px 3px var(--paper-shadow-soft);
   --paper-shadow-control: 0 1px 2px var(--paper-shadow-soft);
-  --paper-shadow-floating: 0 12px 32px -12px var(--paper-shadow);
+  --paper-shadow-floating: 0 14px 36px -10px var(--paper-shadow);
   --paper-radius-control: var(--radius-lg);
   --shelf-surface: #e9eee7;
   --shelf-surface-raised: var(--card);
@@ -110,9 +110,6 @@
   --shelf-surface-hover: #e4eade;
   --shelf-surface-selected: #dbe7d8;
   --shelf-app-bg: var(--background);
-  --shelf-header-bg: var(--background);
-  --shelf-card-start: var(--card);
-  --shelf-card-end: var(--card);
   --shelf-card-media: #e4eade;
   --shelf-detail-surface: #f0f3ec;
 }
@@ -124,7 +121,8 @@
   --card-foreground: var(--foreground);
   --popover: #202d25;
   --popover-foreground: var(--foreground);
-  --primary: #b2cdb6;
+  --primary: #b7d3ba;
+  --primary-hover: #c7e0ca;
   --primary-foreground: #172c20;
   --secondary: #2b382e;
   --secondary-foreground: #e5ebe1;
@@ -136,9 +134,8 @@
   --destructive: #ff9c91;
   --destructive-foreground: #37120f;
   --border: #354538;
-  --input: #354538;
-  --ring: #b2cdb6;
-  --paper-edge: #2e3d31;
+  --input: #506454;
+  --ring: var(--primary);
   --paper-shadow: rgb(0 0 0 / 32%);
   --paper-shadow-soft: rgb(0 0 0 / 16%);
   --shelf-surface: #253229;
@@ -155,6 +152,7 @@
 @media (prefers-contrast: more) {
   :root {
     --border: #8a9c88;
+    --input: var(--border);
     --muted-foreground: #384a3b;
     --subtle-foreground: #263c2e;
     --ring: #000000;
@@ -162,6 +160,7 @@
 
   .dark {
     --border: #81967e;
+    --input: var(--border);
     --muted-foreground: #d4e0cc;
     --subtle-foreground: #e7f0df;
     --ring: #c6e2bd;

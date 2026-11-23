@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"z-reader/backend/response"
+	"z-reader/backend/storage"
 )
 
 func requestedBookCategory(c *gin.Context) *string {
@@ -23,16 +24,12 @@ func requestedBookCategory(c *gin.Context) *string {
 
 // Status batches processing refreshes without one HTTP request per pending book.
 func (h *BooksHandler) Status(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 	ids := normalizeBookIDs(strings.Split(c.Query("book_ids"), ","))
 	if len(ids) == 0 || len(ids) > maxBatchBookIDs {
 		response.BadRequest(c, "book_ids 必须包含 1 到 500 个图书 ID")
 		return
 	}
-	books, err := h.db.ListBooksForIDs(userID, ids)
+	books, err := h.db.ListBooksForIDs(storage.PersonalLibrary, ids)
 	if err != nil {
 		response.InternalError(c, "获取书籍状态失败")
 		return
@@ -45,10 +42,6 @@ func (h *BooksHandler) Status(c *gin.Context) {
 
 // RenameCategory renames or removes a complete category, including unloaded pages.
 func (h *BooksHandler) RenameCategory(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 	var req struct {
 		From string         `json:"from"`
 		To   optionalString `json:"to"`
@@ -75,7 +68,7 @@ func (h *BooksHandler) RenameCategory(c *gin.Context) {
 		response.BadRequest(c, "分类不能超过 50 个字符")
 		return
 	}
-	ids, err := h.db.RenameBookCategory(userID, req.From, category)
+	ids, err := h.db.RenameBookCategory(storage.PersonalLibrary, req.From, category)
 	if err != nil {
 		response.InternalError(c, "更新分类失败")
 		return

@@ -33,10 +33,6 @@ func NewClientErrorHandler() *ClientErrorHandler {
 }
 
 func (h *ClientErrorHandler) Report(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxClientErrorBodyBytes)
 	var report clientErrorReport
@@ -53,7 +49,6 @@ func (h *ClientErrorHandler) Report(c *gin.Context) {
 	logger.Warn(
 		"Client error report",
 		"request_id", logger.RequestID(c.Request.Context()),
-		"user_id", userID,
 		"message", report.Message,
 		"stack", trimRunes(strings.TrimSpace(report.Stack), maxClientErrorStack),
 		"component", trimRunes(strings.TrimSpace(report.Component), maxClientErrorComponent),

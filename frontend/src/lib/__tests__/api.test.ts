@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { api, auth, ApiError, getAuthHeaders } from '@/lib/api';
+import { api, ApiError, PERSONAL_LIBRARY, handleAuthResponse } from '@/lib/api';
+import * as config from '@/lib/config';
 import {
   appendPartialBookDownload,
   createPartialBookDownloadWriter,
@@ -33,23 +34,6 @@ function mockFetch(response: MockResponse) {
   } as Response);
 }
 
-describe('getAuthHeaders', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('returns empty object when no token', () => {
-    const headers = getAuthHeaders();
-    expect(headers).toEqual({});
-  });
-
-  it('includes Authorization header when token exists', () => {
-    localStorage.setItem('token', 'test-token');
-    const headers = getAuthHeaders();
-    expect(headers).toEqual({ Authorization: 'test-token' });
-  });
-});
-
 describe('ApiError', () => {
   it('creates error with status', () => {
     const error = new ApiError('Not found', 404);
@@ -59,132 +43,60 @@ describe('ApiError', () => {
   });
 });
 
-describe('auth helpers', () => {
-  beforeEach(() => {
-    localStorage.clear();
+describe('library access', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('submits only the password and uses a cookie', async () => {
+    globalThis.fetch = mockFetch({ body: { valid: true, password_required: true } });
+    await api.login('test access');
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/login'),
+      expect.objectContaining({ credentials: 'include', body: JSON.stringify({ password: 'test access' }) }));
   });
 
-  it('isLoggedIn returns false when no token', () => {
-    expect(auth.isLoggedIn()).toBe(false);
-  });
-
-  it('isLoggedIn returns true when token exists', () => {
-    auth.setToken('some-token');
-    expect(auth.isLoggedIn()).toBe(true);
-  });
-
-  it('getToken returns null when no token', () => {
-    expect(auth.getToken()).toBeNull();
-  });
-
-  it('setToken and getToken round-trip', () => {
-    auth.setToken('my-token');
-    expect(auth.getToken()).toBe('my-token');
-  });
-
-  it('removeToken clears token and user', () => {
-    auth.setToken('token');
-    auth.setCurrentUser({ id: '1', username: 'test', created_at: '', updated_at: '' });
-    auth.removeToken();
-    expect(auth.getToken()).toBeNull();
-    expect(auth.getCurrentUser()).toBeNull();
-  });
-
-  it('getCurrentUser parses stored user', () => {
-    const user = { id: '1', username: 'test', created_at: '', updated_at: '' };
-    auth.setCurrentUser(user);
-    expect(auth.getCurrentUser()).toEqual(user);
-  });
-
-  it('getCurrentUser returns null for invalid JSON', () => {
-    localStorage.setItem('user', 'not-json');
-    expect(auth.getCurrentUser()).toBeNull();
-  });
-});
-
-describe('api.login', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('caches user and clears legacy token on success', async () => {
-    const user = { id: '1', username: 'test', created_at: '', updated_at: '' };
-    localStorage.setItem('token', 'legacy-token');
-    globalThis.fetch = mockFetch({
-      body: { user },
-      ok: true,
-    });
-
-    const result = await api.login('test', 'password');
-
-    expect(result.user).toEqual(user);
-    expect(auth.getToken()).toBeNull();
-    expect(auth.getCurrentUser()).toEqual(user);
-  });
-});
-
-describe('api.register', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('caches user and clears legacy token on success', async () => {
-    const user = { id: '1', username: 'new-reader', created_at: '', updated_at: '' };
-    localStorage.setItem('token', 'legacy-token');
-    globalThis.fetch = mockFetch({
-      body: { user },
-      ok: true,
-    });
-
-    const result = await api.register('new-reader', 'password123');
-
-    expect(result.user).toEqual(user);
-    expect(auth.getToken()).toBeNull();
-    expect(auth.getCurrentUser()).toEqual(user);
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/register'),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ username: 'new-reader', password: 'password123' }),
-      }),
-    );
-  });
-});
-
-describe('api.logout', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('removes token even if API call fails', async () => {
-    auth.setToken('token');
+  it('reports a failed logout so the library is not shown as locked', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
-
-    await api.logout();
-
-    expect(auth.getToken()).toBeNull();
+    await expect(api.logout()).rejects.toThrow('Network error');
   });
 
-  it('calls logout API when available', async () => {
-    auth.setToken('token');
-    globalThis.fetch = mockFetch({ body: {}, ok: true });
-
+  it('removes legacy credentials on logout', async () => {
+    localStorage.setItem('token', 'old');
+    globalThis.fetch = mockFetch({});
     await api.logout();
+    expect(localStorage.getItem('token')).toBeNull();
+  });
 
-    expect(auth.getToken()).toBeNull();
-    expect(globalThis.fetch).toHaveBeenCalled();
+  it.each([502, 503, 504])('verifies access through the fallback after HTTP %i', async (status) => {
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['', 'http://reader:8080']);
+    const access = { valid: true, password_required: false };
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status }))
+      .mockResolvedValueOnce(Response.json(access));
+    await expect(api.verify()).resolves.toEqual(access);
+    expect(fetch).toHaveBeenLastCalledWith('http://reader:8080/api/auth/verify',
+      expect.objectContaining({ credentials: 'include' }));
+  });
+
+  it('keeps a password rejection on the responding server', async () => {
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['', 'http://reader:8080']);
+    globalThis.fetch = vi.fn().mockResolvedValue(Response.json({ message: '密码错误' }, { status: 401 }));
+    await expect(api.login('invalid')).rejects.toMatchObject({ message: '密码错误', status: 401 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the session cookie when the cover request falls back after a network failure', async () => {
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['', 'http://reader:8080']);
+    globalThis.fetch = vi.fn()
+      .mockRejectedValueOnce(new TypeError('network unavailable'))
+      .mockResolvedValueOnce(new Response('cover'));
+    const cover = await api.fetchCover('book', 'thumb');
+    expect(await cover?.text()).toBe('cover');
+    expect(fetch).toHaveBeenLastCalledWith('http://reader:8080/api/books/book/cover?size=thumb',
+      expect.objectContaining({ credentials: 'include' }));
+  });
+
+  it('handles a protected cover returning an empty unauthorized response', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
+    await expect(api.fetchCover('book')).resolves.toBeNull();
   });
 });
 
@@ -244,7 +156,6 @@ describe('api.listBooksPage', () => {
 describe('api.fetchBook', () => {
   beforeEach(() => {
     localStorage.clear();
-    auth.setToken('token');
   });
 
   afterEach(() => {
@@ -277,14 +188,28 @@ describe('api.fetchBook', () => {
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/books/book-1/file'),
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'token' }),
+        credentials: 'include',
       }),
     );
   });
 
+  it('discards a download that finishes after logout', async () => {
+    let finish!: () => void;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        finish = () => { controller.enqueue(new Uint8Array([1])); controller.close(); };
+      },
+    });
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(body));
+    const download = api.fetchBook('locked');
+    await vi.waitFor(() => expect(body.locked).toBe(true));
+    handleAuthResponse(new Response(null, { status: 401 }));
+    finish();
+    await expect(download).rejects.toMatchObject({ status: 401 });
+  });
+
   it('reads ahead of slow cache writes with a bounded queue', async () => {
     const { cache } = installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
     let releaseWrite!: () => void;
     const blockedWrite = new Promise<void>((resolve) => { releaseWrite = resolve; });
     const originalPut = cache.put.getMockImplementation()!;
@@ -316,7 +241,6 @@ describe('api.fetchBook', () => {
 
   it('flushes bytes below the batch size when a stream is interrupted', async () => {
     installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
     const read = vi.fn()
       .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('first ') })
       .mockRejectedValueOnce(new Error('connection lost'));
@@ -326,15 +250,14 @@ describe('api.fetchBook', () => {
     });
 
     await expect(api.fetchBook('interrupted')).rejects.toThrow('connection lost');
-    const partial = await getPartialBookDownload('reader', 'interrupted');
+    const partial = await getPartialBookDownload(PERSONAL_LIBRARY, 'interrupted');
     expect(partial?.downloadedBytes).toBe(6);
     expect(await partial?.chunks[0].text()).toBe('first ');
   });
 
   it('resumes a partial download using its committed Range offset', async () => {
     installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
-    await appendPartialBookDownload('reader', 'resumed', new Blob(['first ']), 13, 'text/plain');
+    await appendPartialBookDownload(PERSONAL_LIBRARY, 'resumed', new Blob(['first ']), 13, 'text/plain');
     globalThis.fetch = vi.fn().mockResolvedValue(new Response('chapter', {
       status: 206,
       headers: { 'Content-Range': 'bytes 6-12/13', 'Content-Length': '7' },
@@ -344,14 +267,13 @@ describe('api.fetchBook', () => {
     expect(globalThis.fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
       headers: expect.objectContaining({ Range: 'bytes=6-' }),
     }));
-    expect(await getPartialBookDownload('reader', 'resumed')).toBeNull();
+    expect(await getPartialBookDownload(PERSONAL_LIBRARY, 'resumed')).toBeNull();
   });
 
   it('validates the resumed prefix with If-Range when the server supplied an ETag', async () => {
     installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
     const writer = await createPartialBookDownloadWriter(
-      'reader', 'changed-partial', 13, 'text/plain', null, '"original"'
+      PERSONAL_LIBRARY, 'changed-partial', 13, 'text/plain', null, '"original"'
     );
     await writer.append(new Blob(['first ']));
     globalThis.fetch = vi.fn().mockResolvedValue(new Response('changed book', {
@@ -366,8 +288,7 @@ describe('api.fetchBook', () => {
 
   it('uses the fresh response length after retrying a mismatched range', async () => {
     installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
-    await appendPartialBookDownload('reader', 'bad-range', new Blob(['prefix']), 100, 'text/plain');
+    await appendPartialBookDownload(PERSONAL_LIBRARY, 'bad-range', new Blob(['prefix']), 100, 'text/plain');
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(new Response('invalid', {
         status: 206, headers: { 'Content-Range': 'bytes 2-8/100' },
@@ -380,8 +301,7 @@ describe('api.fetchBook', () => {
 
   it('preserves the existing resumable prefix if cache writes and the network both fail', async () => {
     const { cache } = installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
-    await appendPartialBookDownload('reader', 'quota', new Blob(['prefix']), null, 'text/plain');
+    await appendPartialBookDownload(PERSONAL_LIBRARY, 'quota', new Blob(['prefix']), null, 'text/plain');
     cache.put.mockRejectedValue(new Error('quota exceeded'));
     const read = vi.fn()
       .mockResolvedValueOnce({ done: false, value: new Uint8Array(1024 * 1024) })
@@ -393,7 +313,7 @@ describe('api.fetchBook', () => {
     });
 
     await expect(api.fetchBook('quota')).rejects.toThrow('connection lost');
-    expect((await getPartialBookDownload('reader', 'quota'))?.downloadedBytes).toBe(6);
+    expect((await getPartialBookDownload(PERSONAL_LIBRARY, 'quota'))?.downloadedBytes).toBe(6);
   });
 
   it('shares an in-flight transfer while allowing one caller to cancel independently', async () => {
@@ -418,7 +338,6 @@ describe('api.fetchBook', () => {
 
   it('cancels the network when the final caller leaves and saves received bytes', async () => {
     installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
     const cancel = vi.fn();
     const body = new ReadableStream<Uint8Array>({
       start(controller) { controller.enqueue(new TextEncoder().encode('prefix')); },
@@ -436,13 +355,12 @@ describe('api.fetchBook', () => {
     await rejection;
     await vi.waitFor(() => expect(cancel).toHaveBeenCalled());
     await vi.waitFor(async () => {
-      expect((await getPartialBookDownload('reader', 'cancelled'))?.downloadedBytes).toBe(6);
+      expect((await getPartialBookDownload(PERSONAL_LIBRARY, 'cancelled'))?.downloadedBytes).toBe(6);
     });
   });
 
   it('waits for cancelled partial writes before restarting the same book', async () => {
     const { cache } = installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
     let releaseWrite!: () => void;
     const blocked = new Promise<void>((resolve) => { releaseWrite = resolve; });
     const originalPut = cache.put.getMockImplementation()!;
@@ -476,7 +394,6 @@ describe('api.fetchBook', () => {
 
   it('immediately cancels a caller waiting for a previous partial write to finish', async () => {
     const { cache } = installBookCache();
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
     let releaseWrite!: () => void;
     const blocked = new Promise<void>((resolve) => { releaseWrite = resolve; });
     const originalPut = cache.put.getMockImplementation()!;
@@ -510,7 +427,7 @@ describe('api.fetchBook', () => {
       releaseWrite();
       await waiting;
       await vi.waitFor(async () => {
-        expect((await getPartialBookDownload('reader', 'cancel-waiter'))?.downloadedBytes)
+        expect((await getPartialBookDownload(PERSONAL_LIBRARY, 'cancel-waiter'))?.downloadedBytes)
           .toBe(1024 * 1024);
       });
     }
@@ -520,16 +437,14 @@ describe('api.fetchBook', () => {
 
 describe('api.createBookFile offline cache reuse', () => {
   const book = {
-    id: 'cached', user_id: 'reader', filename: 'cached.epub', content_hash: 'original',
+    id: 'cached', user_id: PERSONAL_LIBRARY, filename: 'cached.epub', content_hash: 'original',
     created_at: '2024-01-01',
   } as Book;
 
   beforeEach(async () => {
     localStorage.clear();
     installBookCache();
-    auth.setToken('token');
-    auth.setCurrentUser({ id: 'reader', username: 'reader', created_at: '', updated_at: '' });
-    await saveOfflineBook('reader', book, new Blob(['offline book']));
+    await saveOfflineBook(PERSONAL_LIBRARY, book, new Blob(['offline book']));
   });
 
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -541,7 +456,7 @@ describe('api.createBookFile offline cache reuse', () => {
     expect(await file.text()).toBe('offline book');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/books\/cached$/),
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'token' }) }));
+      expect.objectContaining({ credentials: 'include' }));
   });
 
   it('downloads the current content when the stored hash is stale', async () => {
@@ -584,7 +499,7 @@ describe('api.createBookFile offline cache reuse', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it('does not expose a prior account cache after the active user changes', async () => {
+  it('does not return a cached file after access expires', async () => {
     let resolveMetadata!: (response: Response) => void;
     globalThis.fetch = vi.fn().mockImplementation(() => new Promise<Response>((resolve) => {
       resolveMetadata = resolve;
@@ -592,7 +507,7 @@ describe('api.createBookFile offline cache reuse', () => {
     const file = api.createBookFile('cached');
     const rejection = expect(file).rejects.toMatchObject({ status: 401 });
     await vi.waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    auth.setCurrentUser({ id: 'other', username: 'other', created_at: '', updated_at: '' });
+    handleAuthResponse(new Response(null, { status: 401 }));
     resolveMetadata(new Response(JSON.stringify(book)));
     await rejection;
   });
@@ -681,7 +596,6 @@ describe('api error handling', () => {
   });
 
   it('throws ApiError on 401 response and clears token', async () => {
-    auth.setToken('token');
     globalThis.fetch = mockFetch({
       body: { error: 'Unauthorized' },
       ok: false,
@@ -689,7 +603,7 @@ describe('api error handling', () => {
     });
 
     await expect(api.listBooks()).rejects.toThrow('Unauthorized');
-    expect(auth.getToken()).toBeNull();
+    expect(localStorage.getItem('token')).toBeNull();
   });
 
   it('throws on network error', async () => {
@@ -732,14 +646,8 @@ describe('api.verify', () => {
     vi.restoreAllMocks();
   });
 
-  it('updates user cache when response includes user', async () => {
-    const user = { id: '1', username: 'verified', created_at: '', updated_at: '' };
-    globalThis.fetch = mockFetch({ body: { valid: true, user }, ok: true });
-    localStorage.setItem('token', 'token');
-
-    const result = await api.verify();
-
-    expect(result.valid).toBe(true);
-    expect(auth.getCurrentUser()).toEqual(user);
+  it('reports open access without a user record', async () => {
+    globalThis.fetch = mockFetch({ body: { valid: true, password_required: false } });
+    expect(await api.verify()).toEqual({ valid: true, password_required: false });
   });
 });

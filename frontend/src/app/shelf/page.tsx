@@ -4,6 +4,7 @@ import type { DragEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   AlertCircle,
   BookOpen,
@@ -85,7 +86,7 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const { isLoading, isAuthenticated, user, logout } = useAuth();
+  const { isLoading, isAuthenticated, passwordRequired, logout } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -118,7 +119,7 @@ export default function ShelfPage() {
     formatFileSize,
     sortBy,
     setSortBy,
-  } = useShelfData(isAuthenticated || Boolean(user));
+  } = useShelfData(isAuthenticated);
   const isLibraryEmpty =
     books.length === 0 &&
     bookCounts.all === 0 &&
@@ -341,8 +342,8 @@ export default function ShelfPage() {
                   variant="outline"
                   size="icon"
                   className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
-                  aria-label="账户与设置"
-                  title="账户与设置"
+                  aria-label="书架设置"
+                  title="书架设置"
                 >
                   <UserRound className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                 </Button>
@@ -360,12 +361,14 @@ export default function ShelfPage() {
                   )}
                   {isDark ? '亮色模式' : '暗色模式'}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="shelf-account-menu-item shelf-account-menu-danger"
-                >
-                  <LogOut className="h-4 w-4" /> 退出登录
-                </DropdownMenuItem>
+                {passwordRequired && (
+                  <DropdownMenuItem
+                    onClick={() => { void logout().catch(() => toast.error('退出失败，请重试')); }}
+                    className="shelf-account-menu-item shelf-account-menu-danger"
+                  >
+                    <LogOut className="h-4 w-4" /> 退出登录
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -9,52 +12,43 @@ import (
 	"z-reader/backend/storage"
 )
 
-const sessionCookieName = "z_reader_session"
+const SessionCookieName = "z_reader_session"
 
-func AuthRequired(db *storage.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := sessionTokenFromRequest(c)
-		if token == "" {
-			response.Unauthorized(c, "请先登录")
-			c.Abort()
-			return
-		}
-
-		user, err := db.GetUserBySessionToken(token)
-		if err != nil {
-			response.InternalError(c, "验证登录状态失败")
-			c.Abort()
-			return
-		}
-		if user == nil {
-			response.Unauthorized(c, "登录已失效，请重新登录")
-			c.Abort()
-			return
-		}
-
-		c.Set("token", token)
-		c.Set("userID", user.ID)
-		c.Set("username", user.Username)
-		c.Set("user", gin.H{
-			"id":         user.ID,
-			"username":   user.Username,
-			"created_at": user.CreatedAt,
-			"updated_at": user.UpdatedAt,
-		})
-		c.Next()
-	}
-}
-
-func sessionTokenFromRequest(c *gin.Context) string {
-	token := strings.TrimSpace(c.GetHeader("Authorization"))
-	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	if token != "" {
+func SessionToken(c *gin.Context) string {
+	if token := strings.TrimSpace(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")); token != "" {
 		return token
 	}
+	token, _ := c.Cookie(SessionCookieName)
+	return token
+}
 
-	cookieToken, err := c.Cookie(sessionCookieName)
-	if err != nil {
-		return ""
+func SessionKey(password, token string) string {
+	mac := hmac.New(sha256.New, []byte(password))
+	mac.Write([]byte(token))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func AuthRequired(db *storage.DB, password string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if password != "" {
+			token := SessionToken(c)
+			if token == "" {
+				response.Unauthorized(c, "请输入访问密码")
+				c.Abort()
+				return
+			}
+			session, err := db.GetSession(SessionKey(password, token))
+			if err != nil {
+				response.InternalError(c, "验证访问权限失败")
+				c.Abort()
+				return
+			}
+			if session == nil {
+				response.Unauthorized(c, "访问已过期，请重新输入密码")
+				c.Abort()
+				return
+			}
+		}
+		c.Next()
 	}
-	return strings.TrimSpace(cookieToken)
 }

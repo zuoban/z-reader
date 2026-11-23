@@ -1,7 +1,7 @@
 'use client';
 
 import { API_BASE, createAbortController } from '@/lib/config';
-import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
+import { handleAuthResponse } from '@/lib/api';
 import { recordTTSDiagnostic } from '@/lib/tts-diagnostics';
 import { enhanceProsodyBreaks } from '@/lib/tts-text';
 import { classifyTTSError, parseTTSRetryAfter, TTSRequestError } from '@/lib/tts-request';
@@ -904,10 +904,10 @@ export class BackendTTS {
     }
     try {
       const response = await fetch(`${API_BASE}/api/ssml`, {
+        credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           ssml: ssml,

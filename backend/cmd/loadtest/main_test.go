@@ -36,7 +36,6 @@ func TestRunMeasuresAuthenticatedCoreScenarios(t *testing.T) {
 	var output bytes.Buffer
 	err := run([]string{
 		"--base-url", server.URL,
-		"--username", "loadtest",
 		"--password", "password-123",
 		"--book-id", "book-1",
 		"--duration", "15ms",
@@ -69,7 +68,6 @@ func TestRunFailsWhenScenarioReturnsError(t *testing.T) {
 	var output bytes.Buffer
 	err := run([]string{
 		"--base-url", server.URL,
-		"--username", "loadtest",
 		"--password", "password-123",
 		"--scenarios", "shelf",
 		"--duration", "15ms",
@@ -97,7 +95,6 @@ func TestPercentile(t *testing.T) {
 func TestParseConfigRejectsNonHTTPBaseURL(t *testing.T) {
 	_, err := parseConfig([]string{
 		"--base-url", "ftp://reader.example.com",
-		"--username", "loadtest",
 		"--password", "password-123",
 	})
 	if err == nil || !strings.Contains(err.Error(), "absolute HTTP") {
@@ -109,7 +106,6 @@ func TestParseConfigReadsPasswordFromEnvironment(t *testing.T) {
 	t.Setenv("Z_READER_LOADTEST_PASSWORD", "password-from-environment")
 	cfg, err := parseConfig([]string{
 		"--base-url", "http://reader.example.com",
-		"--username", "loadtest",
 	})
 	if err != nil {
 		t.Fatalf("parseConfig() error = %v", err)

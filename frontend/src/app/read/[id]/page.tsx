@@ -23,7 +23,7 @@ import {
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderImageZoomOverlay } from "@/components/reader/ReaderImageZoomOverlay";
 import { DeferredTTSControls } from "@/components/DeferredTTSControls";
-import { api, type BookDownloadProgress } from "@/lib/api";
+import { api, PERSONAL_LIBRARY, type BookDownloadProgress } from "@/lib/api";
 import { saveOfflineBook } from "@/lib/offline-books";
 import { formatOfflineDownloadLabel } from "@/lib/reader-page";
 import { withOpacity } from "@/lib/reader-ui";
@@ -38,7 +38,7 @@ export default function ReadPage() {
   const router = useRouter();
   const params = useParams();
   const bookId = params.id as string;
-  const { isLoading: authLoading, isAuthenticated, user } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const {
     progress,
     isLoading: progressLoading,
@@ -256,7 +256,7 @@ export default function ReadPage() {
   });
 
   const handleSaveOffline = useCallback(async () => {
-    if (!user || isSavingOffline) return;
+    if (!isAuthenticated || isSavingOffline) return;
 
     setIsSavingOffline(true);
     setOfflineDownloadProgress(null);
@@ -265,7 +265,7 @@ export default function ReadPage() {
         api.getBook(bookId),
         api.fetchBook(bookId, { onProgress: setOfflineDownloadProgress }),
       ]);
-      await saveOfflineBook(user.id, book, file);
+      await saveOfflineBook(PERSONAL_LIBRARY, book, file);
       toast.success("图书已保存到此设备，可在断网时继续阅读");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "保存离线图书失败");
@@ -273,7 +273,7 @@ export default function ReadPage() {
       setOfflineDownloadProgress(null);
       setIsSavingOffline(false);
     }
-  }, [bookId, isSavingOffline, user]);
+  }, [bookId, isSavingOffline, isAuthenticated]);
 
   useEffect(() => {
     cleanupReaderRef.current = cleanupReader;

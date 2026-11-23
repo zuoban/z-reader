@@ -1,12 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-const user = {
-  id: 'user-1',
-  username: 'reader',
-  created_at: '2026-04-27T00:00:00Z',
-  updated_at: '2026-04-27T00:00:00Z',
-};
-
 async function mockShelfData(page: import('@playwright/test').Page) {
   await page.route(/\/api\/books(?:\?.*)?$/, async (route) => {
     await route.fulfill({
@@ -72,7 +65,7 @@ test('logs in and shows the empty shelf', async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ valid: true, user }),
+      body: JSON.stringify({ valid: true, password_required: true }),
     });
   });
   await mockShelfData(page);
@@ -85,13 +78,13 @@ test('logs in and shows the empty shelf', async ({ page }) => {
       headers: {
         'Set-Cookie': 'z_reader_session=test-token; Path=/; HttpOnly; SameSite=Lax',
       },
-      body: JSON.stringify({ user }),
+      body: JSON.stringify({ valid: true, password_required: true }),
     });
   });
 
   await page.goto('/login');
-  await page.getByPlaceholder('请输入用户名').fill('reader');
-  await page.getByPlaceholder('请输入您的密码').fill('secret123');
+  await expect(page.getByRole('textbox', { name: '用户名' })).toHaveCount(0);
+  await page.getByPlaceholder('请输入访问密码').fill('secret123');
   await page.getByRole('button', { name: /进入/ }).click();
 
   await expect(page).toHaveURL(/\/shelf$/);
@@ -99,46 +92,13 @@ test('logs in and shows the empty shelf', async ({ page }) => {
   await expect(page.getByText('添加第一本书')).toBeVisible();
 });
 
-test('registers and shows the empty shelf', async ({ page }) => {
-  let authenticated = false;
-
-  await page.route('**/api/auth/verify', async (route) => {
-    if (!authenticated) {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Unauthorized' }),
-      });
-      return;
-    }
-
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ valid: true, user }),
-    });
-  });
+test('opens the shared shelf directly when no password is configured', async ({ page }) => {
+  await page.route('**/api/auth/verify', route => route.fulfill({
+    json: { valid: true, password_required: false },
+  }));
   await mockShelfData(page);
-
-  await page.route('**/api/register', async (route) => {
-    authenticated = true;
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: {
-        'Set-Cookie': 'z_reader_session=test-token; Path=/; HttpOnly; SameSite=Lax',
-      },
-      body: JSON.stringify({ user }),
-    });
-  });
-
-  await page.goto('/login');
-  await page.getByRole('button', { name: '立即创建' }).click();
-  await expect(page.getByRole('heading', { name: '创建账号' })).toBeVisible();
-  await page.getByPlaceholder('请输入用户名').fill('reader');
-  await page.getByPlaceholder('请输入您的密码').fill('secret123');
-  await page.getByRole('button', { name: '创建并进入书架' }).click();
-
-  await expect(page).toHaveURL(/\/shelf$/);
+  await page.goto('/shelf');
   await expect(page.getByText('书架还是空的')).toBeVisible();
+  await page.getByTitle('书架设置').click();
+  await expect(page.getByRole('menuitem', { name: '退出登录' })).toHaveCount(0);
 });

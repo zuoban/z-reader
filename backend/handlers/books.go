@@ -77,10 +77,6 @@ func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
 }
 
 func (h *BooksHandler) List(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 	_, hasCursor := c.GetQuery("cursor")
 	limitValue, hasLimit := c.GetQuery("limit")
 	sortValue, hasSort := c.GetQuery("sort")
@@ -99,7 +95,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 			limit = 100
 		}
 
-		books, nextCursor, err := h.db.ListBooksBySortedCursor(userID, c.Query("cursor"), limit, sortValue, category)
+		books, nextCursor, err := h.db.ListBooksBySortedCursor(storage.PersonalLibrary, c.Query("cursor"), limit, sortValue, category)
 		if err != nil {
 			response.InternalError(c, "获取书籍列表失败")
 			return
@@ -128,7 +124,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 		pageSize = 20
 	}
 
-	books, err := h.db.ListBooksPaginated(userID, page, pageSize)
+	books, err := h.db.ListBooksPaginated(storage.PersonalLibrary, page, pageSize)
 	if err != nil {
 		response.InternalError(c, "获取书籍列表失败")
 		return
@@ -142,12 +138,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 }
 
 func (h *BooksHandler) Summary(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
-	summary, err := h.db.GetBookLibrarySummary(userID)
+	summary, err := h.db.GetBookLibrarySummary(storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书架汇总失败")
 		return
@@ -157,11 +148,6 @@ func (h *BooksHandler) Summary(c *gin.Context) {
 }
 
 func (h *BooksHandler) Search(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
 	query := strings.TrimSpace(c.Query("q"))
 	if query == "" {
 		response.BadRequest(c, "搜索关键词不能为空")
@@ -186,7 +172,7 @@ func (h *BooksHandler) Search(c *gin.Context) {
 	}
 
 	books, nextCursor, err := h.db.SearchBooks(
-		userID,
+		storage.PersonalLibrary,
 		query,
 		c.Query("cursor"),
 		limit,
@@ -205,12 +191,8 @@ func (h *BooksHandler) Search(c *gin.Context) {
 
 func (h *BooksHandler) Get(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -225,11 +207,6 @@ func (h *BooksHandler) Get(c *gin.Context) {
 }
 
 func (h *BooksHandler) Upload(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
 	limitUploadBody(c, h.cfg.MaxUploadBytes)
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -274,7 +251,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	existing, err := h.findDuplicateBook(userID, contentHash)
+	existing, err := h.findDuplicateBook(storage.PersonalLibrary, contentHash)
 	if err != nil {
 		removeFileIfExists(bookPath)
 		response.InternalError(c, "检查重复图书失败")
@@ -288,7 +265,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 	book := &models.Book{
 		ID:          bookID,
-		UserID:      userID,
+		UserID:      storage.PersonalLibrary,
 		Filename:    filename,
 		Format:      format,
 		Size:        file.Size,
@@ -305,7 +282,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	if err := h.db.CreateBook(book); err != nil {
 		removeFileIfExists(bookPath)
 		if err == storage.ErrDuplicateBookContent {
-			existing, findErr := h.findDuplicateBook(userID, contentHash)
+			existing, findErr := h.findDuplicateBook(storage.PersonalLibrary, contentHash)
 			if findErr == nil && existing != nil {
 				respondDuplicateBook(c, existing)
 				return
@@ -325,12 +302,8 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 
 func (h *BooksHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -340,7 +313,7 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteBookData(id, userID); err != nil {
+	if err := h.db.DeleteBookData(id, storage.PersonalLibrary); err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
 			return
@@ -367,11 +340,6 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 }
 
 func (h *BooksHandler) BatchDelete(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
 	var req batchBookIDsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		if isRequestBodyTooLarge(err) {
@@ -391,7 +359,7 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 		return
 	}
 
-	deletedBooks, err := h.db.DeleteBooksData(req.IDs, userID)
+	deletedBooks, err := h.db.DeleteBooksData(req.IDs, storage.PersonalLibrary)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "部分图书不存在")
@@ -427,12 +395,8 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 
 func (h *BooksHandler) GetFile(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -970,12 +934,8 @@ func extractBookPreview(path string, format string) (*epubMetadata, []byte, stri
 
 func (h *BooksHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -1031,11 +991,6 @@ func (h *BooksHandler) Update(c *gin.Context) {
 }
 
 func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
 	var req batchBookCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		if isRequestBodyTooLarge(err) {
@@ -1065,7 +1020,7 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 		return
 	}
 
-	books, err := h.db.UpdateBooksCategory(req.IDs, userID, category)
+	books, err := h.db.UpdateBooksCategory(req.IDs, storage.PersonalLibrary, category)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "部分图书不存在")
@@ -1084,12 +1039,8 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 
 func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -1153,12 +1104,8 @@ func extractEPUBMetadataFromReader(reader *zip.Reader) (*epubMetadata, error) {
 
 func (h *BooksHandler) GetCover(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -1233,12 +1180,8 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 
 func (h *BooksHandler) UploadCover(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { buildAzureSSML } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
-import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
+import { handleAuthResponse } from '@/lib/api';
 import { claimTTSAudioFocus } from '@/lib/tts-audio-focus';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 import { withOpacity } from '@/lib/reader-ui';
@@ -168,10 +168,10 @@ export function VoiceSelector({
       if (!isActive()) return;
       const ssml = buildSSML('你好，这是一个语音试听示例。');
       const response = await fetch(`${API_BASE}/api/ssml`, {
+        credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           ssml,

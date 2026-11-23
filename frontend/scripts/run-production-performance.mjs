@@ -24,6 +24,7 @@ const env = {
   NEXT_SERVER_API_URL: `http://127.0.0.1:${backendPort}`,
   NEXT_PUBLIC_API_URL: '',
   Z_READER_PERF_BASE_URL: baseURL,
+  ACCESS_PASSWORD: 'Production-perf-12345',
   APP_PORT: String(backendPort),
   PORT: String(frontendPort),
   HOSTNAME: '127.0.0.1',

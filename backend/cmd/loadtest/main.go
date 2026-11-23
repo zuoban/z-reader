@@ -26,7 +26,6 @@ const sessionCookieName = "z_reader_session"
 
 type config struct {
 	baseURL        string
-	username       string
 	password       string
 	passwordEnv    string
 	bookID         string
@@ -103,7 +102,6 @@ func parseConfig(args []string) (config, error) {
 	cfg := config{}
 	var scenarioList string
 	flags.StringVar(&cfg.baseURL, "base-url", "", "Running Z Reader base URL")
-	flags.StringVar(&cfg.username, "username", "", "Dedicated load-test username")
 	flags.StringVar(&cfg.password, "password", "", "Load-test password (prefer --password-env)")
 	flags.StringVar(&cfg.passwordEnv, "password-env", "Z_READER_LOADTEST_PASSWORD", "Environment variable containing the load-test password")
 	flags.StringVar(&cfg.bookID, "book-id", "", "Existing test book ID for progress saves")
@@ -117,7 +115,6 @@ func parseConfig(args []string) (config, error) {
 	}
 
 	cfg.baseURL = strings.TrimRight(strings.TrimSpace(cfg.baseURL), "/")
-	cfg.username = strings.TrimSpace(cfg.username)
 	cfg.searchQuery = strings.TrimSpace(cfg.searchQuery)
 	cfg.bookID = strings.TrimSpace(cfg.bookID)
 	if cfg.password == "" && cfg.passwordEnv != "" {
@@ -129,8 +126,8 @@ func parseConfig(args []string) (config, error) {
 		}
 	}
 
-	if cfg.baseURL == "" || cfg.username == "" || cfg.password == "" {
-		return config{}, errors.New("--base-url, --username, and a password are required")
+	if cfg.baseURL == "" {
+		return config{}, errors.New("--base-url is required")
 	}
 	parsedURL, err := url.Parse(cfg.baseURL)
 	if err != nil || parsedURL.Host == "" ||
@@ -154,7 +151,6 @@ func parseConfig(args []string) (config, error) {
 
 func login(client *http.Client, cfg config) (string, time.Duration, error) {
 	payload, err := json.Marshal(map[string]string{
-		"username": cfg.username,
 		"password": cfg.password,
 	})
 	if err != nil {
@@ -183,6 +179,9 @@ func login(client *http.Client, cfg config) (string, time.Duration, error) {
 		if cookie.Name == sessionCookieName && cookie.Value != "" {
 			return sessionCookieName + "=" + cookie.Value, elapsed, nil
 		}
+	}
+	if cfg.password == "" {
+		return "", elapsed, nil
 	}
 	return "", 0, errors.New("login response did not set a session cookie")
 }

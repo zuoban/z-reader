@@ -14,7 +14,7 @@ func TestClientErrorReportAcceptsBoundedPayload(t *testing.T) {
 	handler := NewClientErrorHandler()
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "user-1")
+
 	ctx.Request = httptest.NewRequest(
 		http.MethodPost,
 		"/api/client-errors",

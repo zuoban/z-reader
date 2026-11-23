@@ -200,6 +200,64 @@ func TestDBMigrationsAndHashedSessions(t *testing.T) {
 	db.Close()
 }
 
+func TestMergeLegacyLibraries(t *testing.T) {
+	db := openTestDB(t)
+	owners := []string{"alice", "bob", ""}
+	for index, owner := range owners {
+		id := strconv.Itoa(index)
+		book := models.Book{ID: id, UserID: owner, Title: id, Filename: id + ".epub", ContentHash: "shared"}
+		if err := db.SaveBook(&book); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		for index, owner := range owners[:2] {
+			progress := models.Progress{UserID: owner, BookID: "0", UpdatedAt: time.Unix(int64(2-index), 0)}
+			data, err := json.Marshal(progress)
+			if err != nil {
+				return err
+			}
+			if err := tx.Bucket(ProgressBucket).Put(progressKey(owner, "0"), data); err != nil {
+				return err
+			}
+			bookmark := models.Bookmark{UserID: owner, BookID: "0", ID: "same-id", Note: owner}
+			data, err = json.Marshal(bookmark)
+			if err != nil {
+				return err
+			}
+			if err := tx.Bucket(BookmarksBucket).Put(bookmarkKey(owner, "0", bookmark.ID), data); err != nil {
+				return err
+			}
+		}
+		return tx.Bucket(SystemMetaBucket).Put([]byte("schema_version"), []byte("10"))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := db.runMigrations(); err != nil {
+			t.Fatal(err)
+		}
+		books, err := db.ListBooks(PersonalLibrary)
+		if err != nil || len(books) != len(owners) {
+			t.Fatalf("merged books = %+v, err = %v", books, err)
+		}
+		for _, book := range books {
+			if book.UserID != PersonalLibrary || book.Filename != book.ID+".epub" {
+				t.Fatalf("unexpected migrated book %+v", book)
+			}
+		}
+		progress, err := db.GetProgress("0", PersonalLibrary)
+		if err != nil || progress == nil || progress.UpdatedAt.Unix() != 2 {
+			t.Fatalf("merged progress = %+v, err = %v", progress, err)
+		}
+		bookmarks, err := db.ListBookmarks("0", PersonalLibrary)
+		if err != nil || len(bookmarks) != 2 || bookmarks[0].ID == bookmarks[1].ID ||
+			bookmarks[0].Note == bookmarks[1].Note {
+			t.Fatalf("merged bookmarks = %+v, err = %v", bookmarks, err)
+		}
+	}
+}
+
 func TestOpenMigratesLegacyV4Indexes(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "legacy.db")
 	legacyDB, err := bbolt.Open(dbPath, 0600, nil)
@@ -276,7 +334,9 @@ func TestOpenMigratesLegacyV4Indexes(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 
-	books, err := db.ListBooks(book.UserID)
+	book.UserID = PersonalLibrary
+	progress.UserID = PersonalLibrary
+	books, err := db.ListBooks(PersonalLibrary)
 	if err != nil || len(books) != 1 || books[0].ID != book.ID {
 		t.Fatalf("migrated books = %+v, err = %v", books, err)
 	}

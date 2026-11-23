@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, createAbortController } from '@/lib/config';
-import { getAuthHeaders, handleAuthResponse } from '@/lib/api';
+import { handleAuthResponse } from '@/lib/api';
 import { mergeVoicesWithFallback, Voice } from '@/lib/tts';
 
 export function useTTSVoices(preferredVoiceName: string, enabled = false) {
@@ -28,7 +28,7 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
 
         try {
           const response = await fetch(`${API_BASE}/api/voices`, {
-            headers: getAuthHeaders(),
+            credentials: 'include',
             signal: controller.signal,
           });
 

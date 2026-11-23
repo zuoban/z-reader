@@ -250,6 +250,7 @@ func (db *DB) runMigrations() error {
 			run:     rebuildBookSearchGramIndex,
 		},
 		{version: 10, name: "BuildCategoryHashBacklogAndSearchCounts", run: rebuildLibraryQueryIndexes},
+		{version: 11, name: "MergePersonalLibrary", run: mergePersonalLibrary},
 	}
 
 	return db.Update(func(tx *bbolt.Tx) error {

@@ -17,6 +17,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     environment:
+      - ACCESS_PASSWORD=${ACCESS_PASSWORD:-}
       - APP_PORT=8080
       - UPLOAD_DIR=/app/uploads
       - DB_PATH=/app/data/data.db

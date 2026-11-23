@@ -5,6 +5,7 @@ import {
   gotoStable,
   installBrowserStubs,
   mockAuthVerified,
+  mockAuthUnauthorized,
   mockEmptyShelfApis,
   mockPopulatedShelfApis,
 } from './helpers/fixtures';
@@ -109,6 +110,7 @@ test.describe('frontend performance budgets', () => {
     await installBrowserStubs(page, { authenticated: false });
     await installVitalObservers(page);
 
+    await mockAuthUnauthorized(page);
     await gotoStable(page, '/login');
     await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible({
       timeout: 15_000,

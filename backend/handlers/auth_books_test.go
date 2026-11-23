@@ -50,344 +50,11 @@ func newBooksHandler(t *testing.T, cfg *config.Config, db *storage.DB) *BooksHan
 	return handler
 }
 
-func TestAuthLogoutAcceptsBearerToken(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	session := &models.Session{
-		Token:     "session-token",
-		CreatedAt: time.Now().UTC(),
-		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
-	}
-	if err := db.SaveSession(session); err != nil {
-		t.Fatalf("failed to save session: %v", err)
-	}
-
-	handler := NewAuthHandler(&config.Config{}, db)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	req := httptest.NewRequest(http.MethodPost, "/api/logout", nil)
-	req.Header.Set("Authorization", "Bearer "+session.Token)
-	ctx.Request = req
-
-	handler.Logout(ctx)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-
-	got, err := db.GetSession(session.Token)
-	if err != nil {
-		t.Fatalf("GetSession returned error: %v", err)
-	}
-	if got != nil {
-		t.Fatalf("expected session to be deleted, got %+v", got)
-	}
-}
-
-func TestAuthLoginAcceptsStoredUser(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	passwordHash, err := storage.HashPassword("reader-password")
-	if err != nil {
-		t.Fatalf("failed to hash password: %v", err)
-	}
-	user := &models.User{
-		ID:           "reader-user",
-		Username:     "reader",
-		PasswordHash: passwordHash,
-		Role:         models.UserRoleUser,
-		CreatedAt:    time.Now().UTC(),
-		UpdatedAt:    time.Now().UTC(),
-	}
-	if err := db.SaveUser(user); err != nil {
-		t.Fatalf("failed to save user: %v", err)
-	}
-
-	body := bytes.NewBufferString(`{"username":"reader","password":"reader-password"}`)
-	handler := NewAuthHandler(&config.Config{}, db)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/login", body)
-	ctx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Login(ctx)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-
-	var response LoginResponse
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-	if response.Token != "" {
-		t.Fatal("expected login token to be omitted")
-	}
-	cookies := recorder.Result().Cookies()
-	var sessionToken string
-	for _, cookie := range cookies {
-		if cookie.Name == sessionCookieName {
-			sessionToken = cookie.Value
-			if !cookie.HttpOnly {
-				t.Fatal("expected session cookie to be HttpOnly")
-			}
-			break
-		}
-	}
-	if sessionToken == "" {
-		t.Fatal("expected session cookie")
-	}
-	session, err := db.GetSession(sessionToken)
-	if err != nil {
-		t.Fatalf("GetSession returned error: %v", err)
-	}
-	if session == nil || session.UserID != user.ID || session.Role != models.UserRoleUser {
-		t.Fatalf("unexpected session: %+v", session)
-	}
-}
-
-func TestAuthRegisterCreatesUserSessionAndOmitsRole(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	handler := NewAuthHandler(&config.Config{}, db)
-
-	body := bytes.NewBufferString(`{"username":"reader","password":"reader-password"}`)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/register", body)
-	ctx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Register(ctx)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-	cookies := recorder.Result().Cookies()
-	if len(cookies) == 0 || cookies[0].Name != sessionCookieName {
-		t.Fatalf("expected session cookie, got %+v", cookies)
-	}
-
-	var resp map[string]map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-	userResp := resp["user"]
-	if userResp["username"] != "reader" {
-		t.Fatalf("expected username reader, got %+v", userResp)
-	}
-	if _, ok := userResp["role"]; ok {
-		t.Fatalf("expected public user to omit role, got %+v", userResp)
-	}
-	if _, ok := userResp["password_hash"]; ok {
-		t.Fatalf("expected public user to omit password hash, got %+v", userResp)
-	}
-
-	user, err := db.GetUserByUsername("reader")
-	if err != nil {
-		t.Fatalf("GetUserByUsername returned error: %v", err)
-	}
-	if user == nil || !storage.CheckPassword(user.PasswordHash, "reader-password") {
-		t.Fatalf("expected stored user with hashed password, got %+v", user)
-	}
-
-	session, err := db.GetSession(cookies[0].Value)
-	if err != nil {
-		t.Fatalf("GetSession returned error: %v", err)
-	}
-	if session == nil || session.UserID != user.ID {
-		t.Fatalf("expected saved session for user, got %+v", session)
-	}
-}
-
-func TestAuthRegisterRejectsDuplicateUsername(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	passwordHash, _ := storage.HashPassword("original-password")
-	if err := db.SaveUser(&models.User{
-		ID:           "existing-user",
-		Username:     "reader",
-		PasswordHash: passwordHash,
-		CreatedAt:    time.Now().UTC(),
-		UpdatedAt:    time.Now().UTC(),
-	}); err != nil {
-		t.Fatalf("failed to save user: %v", err)
-	}
-
-	handler := NewAuthHandler(&config.Config{}, db)
-	body := bytes.NewBufferString(`{"username":" reader ","password":"reader-password"}`)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/register", body)
-	ctx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Register(ctx)
-
-	if recorder.Code != http.StatusConflict {
-		t.Fatalf("expected status 409, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-}
-
-func TestAuthRegisterRejectsInvalidInput(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name string
-		body string
-	}{
-		{name: "empty username", body: `{"username":"  ","password":"reader-password"}`},
-		{name: "long username", body: `{"username":"` + strings.Repeat("a", 51) + `","password":"reader-password"}`},
-		{name: "short password", body: `{"username":"reader","password":"short"}`},
-		{name: "seven character password", body: `{"username":"reader","password":"1234567"}`},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			db := openHandlerTestDB(t)
-			handler := NewAuthHandler(&config.Config{}, db)
-
-			recorder := httptest.NewRecorder()
-			ctx, _ := gin.CreateTestContext(recorder)
-			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/register", bytes.NewBufferString(tt.body))
-			ctx.Request.Header.Set("Content-Type", "application/json")
-
-			handler.Register(ctx)
-
-			if recorder.Code != http.StatusBadRequest {
-				t.Fatalf("expected status 400, got %d body=%s", recorder.Code, recorder.Body.String())
-			}
-		})
-	}
-}
-
-func TestAuthRegisterUserCanLogin(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	handler := NewAuthHandler(&config.Config{}, db)
-
-	registerRecorder := httptest.NewRecorder()
-	registerCtx, _ := gin.CreateTestContext(registerRecorder)
-	registerCtx.Request = httptest.NewRequest(
-		http.MethodPost,
-		"/api/register",
-		bytes.NewBufferString(`{"username":"reader","password":"reader-password"}`),
-	)
-	registerCtx.Request.Header.Set("Content-Type", "application/json")
-	handler.Register(registerCtx)
-	if registerRecorder.Code != http.StatusOK {
-		t.Fatalf("expected register status 200, got %d body=%s", registerRecorder.Code, registerRecorder.Body.String())
-	}
-
-	loginRecorder := httptest.NewRecorder()
-	loginCtx, _ := gin.CreateTestContext(loginRecorder)
-	loginCtx.Request = httptest.NewRequest(
-		http.MethodPost,
-		"/api/login",
-		bytes.NewBufferString(`{"username":"reader","password":"reader-password"}`),
-	)
-	loginCtx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Login(loginCtx)
-
-	if loginRecorder.Code != http.StatusOK {
-		t.Fatalf("expected login status 200, got %d body=%s", loginRecorder.Code, loginRecorder.Body.String())
-	}
-}
-
-func TestAuthRegisterFirstUserClaimsLegacyBooks(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	if err := db.SaveBook(&models.Book{
-		ID:        "legacy-book",
-		Title:     "Legacy Book",
-		Filename:  "legacy.epub",
-		Format:    "epub",
-		Size:      100,
-		CreatedAt: time.Now().UTC(),
-	}); err != nil {
-		t.Fatalf("failed to save legacy book: %v", err)
-	}
-
-	handler := NewAuthHandler(&config.Config{}, db)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(
-		http.MethodPost,
-		"/api/register",
-		bytes.NewBufferString(`{"username":"first","password":"reader-password"}`),
-	)
-	ctx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Register(ctx)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-	user, err := db.GetUserByUsername("first")
-	if err != nil {
-		t.Fatalf("GetUserByUsername returned error: %v", err)
-	}
-	gotBook, err := db.GetBook("legacy-book")
-	if err != nil {
-		t.Fatalf("GetBook returned error: %v", err)
-	}
-	if user == nil || gotBook == nil || gotBook.UserID != user.ID {
-		t.Fatalf("expected legacy book to belong to first user=%+v, got book=%+v", user, gotBook)
-	}
-	books, err := db.ListBooks(user.ID)
-	if err != nil {
-		t.Fatalf("ListBooks returned error: %v", err)
-	}
-	if len(books) != 1 || books[0].ID != "legacy-book" {
-		t.Fatalf("expected legacy book in first user's list, got %+v", books)
-	}
-}
-
-func TestAuthLogoutAcceptsSessionCookie(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	session := &models.Session{
-		Token:     "cookie-session-token",
-		CreatedAt: time.Now().UTC(),
-		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
-	}
-	if err := db.SaveSession(session); err != nil {
-		t.Fatalf("failed to save session: %v", err)
-	}
-
-	handler := NewAuthHandler(&config.Config{}, db)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	req := httptest.NewRequest(http.MethodPost, "/api/logout", nil)
-	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: session.Token})
-	ctx.Request = req
-
-	handler.Logout(ctx)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-
-	got, err := db.GetSession(session.Token)
-	if err != nil {
-		t.Fatalf("GetSession returned error: %v", err)
-	}
-	if got != nil {
-		t.Fatalf("expected session to be deleted, got %+v", got)
-	}
-}
-
 func TestBooksListIncludesLastReadAt(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	db := openHandlerTestDB(t)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 	bookA := &models.Book{
 		ID:        "book-a",
 		UserID:    userID,
@@ -426,7 +93,7 @@ func TestBooksListIncludesLastReadAt(t *testing.T) {
 	handler := newBooksHandler(t, &config.Config{}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books", nil)
 
 	handler.List(ctx)
@@ -463,7 +130,7 @@ func TestBooksListReturnsCursorPageWhenRequested(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	db := openHandlerTestDB(t)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 	for _, id := range []string{"book-a", "book-b"} {
 		if err := db.SaveBook(&models.Book{
 			ID:        id,
@@ -481,7 +148,7 @@ func TestBooksListReturnsCursorPageWhenRequested(t *testing.T) {
 	handler := newBooksHandler(t, &config.Config{}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books?limit=1", nil)
 
 	handler.List(ctx)
@@ -503,7 +170,7 @@ func TestBooksDeleteRemovesCoverAndProgress(t *testing.T) {
 
 	uploadDir := t.TempDir()
 	db := openHandlerTestDB(t)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 
 	book := &models.Book{
 		ID:        "book-delete",
@@ -539,7 +206,7 @@ func TestBooksDeleteRemovesCoverAndProgress(t *testing.T) {
 	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	req := httptest.NewRequest(http.MethodDelete, "/api/books/"+book.ID, nil)
 	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
 	ctx.Request = req
@@ -579,7 +246,7 @@ func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
 
 	uploadDir := t.TempDir()
 	db := openHandlerTestDB(t)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 	book := &models.Book{
 		ID:          "book-cache",
 		UserID:      userID,
@@ -600,7 +267,7 @@ func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
 	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
 	ctx.Request.Header.Set("If-None-Match", `"abc123"`)
@@ -623,7 +290,7 @@ func TestBooksGetFileServesRequestedByteRange(t *testing.T) {
 
 	uploadDir := t.TempDir()
 	db := openHandlerTestDB(t)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 	book := &models.Book{
 		ID:        "book-range",
 		UserID:    userID,
@@ -643,7 +310,7 @@ func TestBooksGetFileServesRequestedByteRange(t *testing.T) {
 	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
 	ctx.Request.Header.Set("Range", "bytes=3-")
@@ -799,12 +466,12 @@ func TestBooksUploadRejectsDuplicateContent(t *testing.T) {
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
 	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 	content := validEPUBBytes(t)
 
 	firstRecorder := httptest.NewRecorder()
 	firstCtx, _ := gin.CreateTestContext(firstRecorder)
-	firstCtx.Set("userID", userID)
+
 	firstCtx.Request = newMultipartUploadRequest(t, "duplicate.epub", content)
 
 	handler.Upload(firstCtx)
@@ -815,7 +482,7 @@ func TestBooksUploadRejectsDuplicateContent(t *testing.T) {
 
 	secondRecorder := httptest.NewRecorder()
 	secondCtx, _ := gin.CreateTestContext(secondRecorder)
-	secondCtx.Set("userID", userID)
+
 	secondCtx.Request = newMultipartUploadRequest(t, "renamed.epub", content)
 
 	handler.Upload(secondCtx)
@@ -850,7 +517,7 @@ func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
 	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 	content := validEPUBBytes(t)
 	legacyBook := &models.Book{
 		ID:        "legacy-book",
@@ -870,7 +537,7 @@ func TestBooksUploadRejectsLegacyDuplicateContent(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Request = newMultipartUploadRequest(t, "legacy-copy.epub", content)
 
 	handler.Upload(ctx)
@@ -894,11 +561,11 @@ func TestBooksUploadNormalizesMacOSPackagedEPUB(t *testing.T) {
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
 	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
-	userID := "user-a"
+	userID := storage.PersonalLibrary
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Request = newMultipartUploadRequest(t, "笔记的方法.epub.zip", macOSPackagedEPUBBytes(t))
 
 	handler.Upload(ctx)
@@ -981,7 +648,7 @@ func TestBooksUploadRejectsOversizedRequestBody(t *testing.T) {
 	content := append([]byte{'P', 'K', 3, 4}, bytes.Repeat([]byte("x"), int(multipartOverhead)+16)...)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "user-a")
+
 	ctx.Request = newMultipartUploadRequest(t, "too-large.epub", content)
 
 	handler.Upload(ctx)

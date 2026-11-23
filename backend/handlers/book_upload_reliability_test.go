@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"z-reader/backend/config"
+	"z-reader/backend/storage"
 )
 
 func TestBooksUploadRejectsDamagedEPUBWithoutPersistingData(t *testing.T) {
@@ -21,14 +22,14 @@ func TestBooksUploadRejectsDamagedEPUBWithoutPersistingData(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "upload-user")
+
 	ctx.Request = newMultipartUploadRequest(t, "damaged.epub", []byte("not an EPUB archive"))
 	handler.Upload(ctx)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d: %s", recorder.Code, recorder.Body.String())
 	}
-	books, err := db.ListBooks("upload-user")
+	books, err := db.ListBooks(storage.PersonalLibrary)
 	if err != nil || len(books) != 0 {
 		t.Fatalf("books after damaged upload = %+v, err = %v", books, err)
 	}

@@ -35,11 +35,6 @@ type ProgressRequest struct {
 }
 
 func (h *ProgressHandler) List(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
 	bookIDs, hasBookIDs := c.GetQuery("book_ids")
 	updatedSince, hasUpdatedSince := c.GetQuery("updated_since")
 	if hasBookIDs && hasUpdatedSince {
@@ -62,16 +57,16 @@ func (h *ProgressHandler) List(c *gin.Context) {
 			response.BadRequest(c, "每次最多查询 100 本图书的进度")
 			return
 		}
-		progress, err = h.db.ListProgressForBooks(userID, ids)
+		progress, err = h.db.ListProgressForBooks(storage.PersonalLibrary, ids)
 	case hasUpdatedSince:
 		since, parseErr := time.Parse(time.RFC3339Nano, updatedSince)
 		if parseErr != nil {
 			response.BadRequest(c, "updated_since 必须是 RFC3339 时间")
 			return
 		}
-		progress, err = h.db.ListProgressUpdatedSince(userID, since)
+		progress, err = h.db.ListProgressUpdatedSince(storage.PersonalLibrary, since)
 	default:
-		progress, err = h.db.ListProgress(userID)
+		progress, err = h.db.ListProgress(storage.PersonalLibrary)
 	}
 	if err != nil {
 		response.InternalError(c, "获取阅读进度失败")
@@ -83,12 +78,8 @@ func (h *ProgressHandler) List(c *gin.Context) {
 
 func (h *ProgressHandler) Get(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取书籍失败")
 		return
@@ -98,7 +89,7 @@ func (h *ProgressHandler) Get(c *gin.Context) {
 		return
 	}
 
-	progress, err := h.db.GetProgress(id, userID)
+	progress, err := h.db.GetProgress(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取阅读进度失败")
 		return
@@ -118,10 +109,6 @@ func (h *ProgressHandler) Get(c *gin.Context) {
 
 func (h *ProgressHandler) Save(c *gin.Context) {
 	id := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
 	var req ProgressRequest
 	// 支持 JSON 和 form-urlencoded 格式（sendBeacon 使用 form 格式）
@@ -156,7 +143,7 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 
 	progress := &models.Progress{
 		BookID:     id,
-		UserID:     userID,
+		UserID:     storage.PersonalLibrary,
 		CFI:        req.CFI,
 		Percentage: req.Percentage,
 		DeviceID:   req.DeviceID,
@@ -164,13 +151,13 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 	}
 
 	writeStartedAt := time.Now()
-	if err := h.db.SaveProgressIfCurrent(progress, userID, req.ExpectedUpdatedAt); err != nil {
+	if err := h.db.SaveProgressIfCurrent(progress, storage.PersonalLibrary, req.ExpectedUpdatedAt); err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
 			return
 		}
 		if err == storage.ErrProgressConflict {
-			current, getErr := h.db.GetProgress(id, userID)
+			current, getErr := h.db.GetProgress(id, storage.PersonalLibrary)
 			if getErr != nil {
 				response.InternalError(c, "获取最新阅读进度失败")
 				return

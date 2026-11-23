@@ -73,7 +73,7 @@ Key variables loaded from `.env` file:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `APP_PASSWORD` | Login password (required) | - |
+| `ACCESS_PASSWORD` | Optional library access password | Empty |
 | `APP_PORT` | Backend port | `8080` |
 | `UPLOAD_DIR` | Book storage directory | `./uploads` |
 | `DB_PATH` | Database path | `./data.db` |
@@ -101,7 +101,7 @@ backend/
 **Key patterns:**
 - Handler structs use `NewXxxHandler(cfg, db)` constructor pattern
 - Database layer is `storage.DB` wrapping bbolt, with methods like `EnsureDefaultAdmin`, `CleanExpiredSessions`
-- Auth uses token-based auth with `middleware.AuthRequired()` and `middleware.AdminRequired()`
+- `middleware.AuthRequired` enforces the optional password using a session cookie for one shared library
 - Session cleanup runs hourly via `startSessionCleaner`
 
 **API Routes** (defined in `main.go`):

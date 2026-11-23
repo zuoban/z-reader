@@ -20,7 +20,7 @@ func setupProgressTestDB(t *testing.T) (*storage.DB, string) {
 	t.Helper()
 
 	db := openHandlerTestDB(t)
-	userID := "progress-user"
+	userID := storage.PersonalLibrary
 
 	book := &models.Book{
 		ID:        "book-progress",
@@ -41,13 +41,13 @@ func setupProgressTestDB(t *testing.T) (*storage.DB, string) {
 func TestProgressSaveCreatesNewRecord(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	body := bytes.NewBufferString(`{"cfi":"epubcfi(/6/2!/4/2/6)","percentage":25.5}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -70,12 +70,12 @@ func TestProgressSaveCreatesNewRecord(t *testing.T) {
 func TestProgressSaveRecordsOperationMetric(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(
 		http.MethodPost,
@@ -122,7 +122,7 @@ func TestProgressSaveUpdatesExistingRecord(t *testing.T) {
 	body := bytes.NewBufferString(`{"cfi":"epubcfi(/6/4!/4/2/8)","percentage":50}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -170,7 +170,7 @@ func TestProgressSaveRejectsStaleExpectedUpdatedAt(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", bytes.NewBuffer(payload))
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -193,13 +193,13 @@ func TestProgressSaveRejectsStaleExpectedUpdatedAt(t *testing.T) {
 func TestProgressSaveRejectsMissingCFI(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	body := bytes.NewBufferString(`{"cfi":"","percentage":25}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -214,7 +214,7 @@ func TestProgressSaveRejectsMissingCFI(t *testing.T) {
 func TestProgressSaveRejectsInvalidPercentage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	tests := []struct {
@@ -237,7 +237,7 @@ func TestProgressSaveRejectsInvalidPercentage(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(recorder)
-			ctx.Set("userID", userID)
+
 			ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 			ctx.Request.Header.Set("Content-Type", "application/json")
@@ -254,13 +254,13 @@ func TestProgressSaveRejectsInvalidPercentage(t *testing.T) {
 func TestProgressSaveRejectsMissingBook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	body := bytes.NewBufferString(`{"cfi":"epubcfi(/6/2)","percentage":25}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "nonexistent-book"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/nonexistent-book", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -279,7 +279,7 @@ func TestProgressSaveRejectsMissingBook(t *testing.T) {
 func TestProgressSaveAcceptsBoundaryPercentages(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	tests := []struct {
@@ -298,7 +298,7 @@ func TestProgressSaveAcceptsBoundaryPercentages(t *testing.T) {
 			body := bytes.NewBuffer(payload)
 			recorder := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(recorder)
-			ctx.Set("userID", userID)
+
 			ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 			ctx.Request.Header.Set("Content-Type", "application/json")
@@ -330,7 +330,7 @@ func TestProgressGetReturnsExistingProgress(t *testing.T) {
 	handler := NewProgressHandler(db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/progress/book-progress", nil)
 
@@ -352,12 +352,12 @@ func TestProgressGetReturnsExistingProgress(t *testing.T) {
 func TestProgressGetReturnsEmptyForNoProgress(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/progress/book-progress", nil)
 
@@ -379,12 +379,12 @@ func TestProgressGetReturnsEmptyForNoProgress(t *testing.T) {
 func TestProgressGetReturnsNotFoundForMissingBook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "nonexistent"}}
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/progress/nonexistent", nil)
 
@@ -400,11 +400,10 @@ func TestProgressListReturnsAllForUser(t *testing.T) {
 
 	db := openHandlerTestDB(t)
 
-	// Create books for user-a
 	for i := 0; i < 3; i++ {
 		book := &models.Book{
 			ID:        "list-book",
-			UserID:    "user-a",
+			UserID:    storage.PersonalLibrary,
 			Title:     "Book",
 			Filename:  "book.epub",
 			Format:    "epub",
@@ -420,7 +419,7 @@ func TestProgressListReturnsAllForUser(t *testing.T) {
 			CFI:        "epubcfi(/6/2)",
 			Percentage: float64(i * 25),
 			UpdatedAt:  time.Now().UTC().Truncate(time.Second),
-		}, "user-a"); err != nil {
+		}, storage.PersonalLibrary); err != nil {
 			t.Fatalf("failed to save progress: %v", err)
 		}
 	}
@@ -428,7 +427,7 @@ func TestProgressListReturnsAllForUser(t *testing.T) {
 	handler := NewProgressHandler(db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "user-a")
+
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/progress", nil)
 
 	handler.List(ctx)
@@ -446,38 +445,17 @@ func TestProgressListReturnsAllForUser(t *testing.T) {
 	}
 }
 
-func TestProgressSaveRejectsMissingUserID(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	handler := NewProgressHandler(db)
-
-	body := bytes.NewBufferString(`{"cfi":"epubcfi(/6/2)","percentage":25}`)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	// No userID set
-	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
-	ctx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Save(ctx)
-
-	if recorder.Code != http.StatusUnauthorized {
-		t.Fatalf("expected status 401, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-}
-
 func TestProgressSaveRejectsInvalidRequestBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	// Invalid JSON
 	body := bytes.NewBufferString(`{invalid json}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -489,56 +467,14 @@ func TestProgressSaveRejectsInvalidRequestBody(t *testing.T) {
 	}
 }
 
-func TestProgressSaveOwnBook(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	db := openHandlerTestDB(t)
-	handler := NewProgressHandler(db)
-
-	// Create a book for user-a
-	book := &models.Book{
-		ID:        "my-book",
-		UserID:    "user-a",
-		Title:     "My Book",
-		Filename:  "my.epub",
-		Format:    "epub",
-		Size:      128,
-		CreatedAt: time.Now().UTC(),
-	}
-	if err := db.SaveBook(book); err != nil {
-		t.Fatalf("failed to save book: %v", err)
-	}
-
-	// user-b tries to save progress on user-a's book
-	payload, _ := json.Marshal(map[string]interface{}{
-		"cfi":        "epubcfi(/6/2)",
-		"percentage": 25,
-	})
-	body := bytes.NewBuffer(payload)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "user-b")
-	ctx.Params = gin.Params{{Key: "id", Value: "my-book"}}
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/my-book", body)
-	ctx.Request.Header.Set("Content-Type", "application/json")
-
-	handler.Save(ctx)
-
-	// Should fail because the book doesn't belong to user-b
-	if recorder.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-}
-
 func TestProgressGetOwnBook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	db := openHandlerTestDB(t)
 
-	// Create book for user-a
 	book := &models.Book{
 		ID:        "own-book",
-		UserID:    "user-a",
+		UserID:    storage.PersonalLibrary,
 		Title:     "Own Book",
 		Filename:  "own.epub",
 		Format:    "epub",
@@ -552,7 +488,7 @@ func TestProgressGetOwnBook(t *testing.T) {
 	handler := NewProgressHandler(db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "user-a")
+
 	ctx.Params = gin.Params{{Key: "id", Value: "own-book"}}
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/progress/own-book", nil)
 
@@ -579,7 +515,7 @@ func TestProgressListReturnsEmptyForUserWithNoProgress(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "new-user")
+
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/progress", nil)
 
 	handler.List(ctx)
@@ -597,15 +533,14 @@ func TestProgressListReturnsEmptyForUserWithNoProgress(t *testing.T) {
 	}
 }
 
-func TestProgressSaveUsesCurrentUserID(t *testing.T) {
+func TestProgressSaveUsesPersonalLibrary(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	db := openHandlerTestDB(t)
 
-	// Book for current-user
 	book := &models.Book{
 		ID:        "current-book",
-		UserID:    "current-user",
+		UserID:    storage.PersonalLibrary,
 		Title:     "Current Book",
 		Filename:  "current.epub",
 		Format:    "epub",
@@ -624,7 +559,7 @@ func TestProgressSaveUsesCurrentUserID(t *testing.T) {
 	body := bytes.NewBuffer(payload)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "current-user")
+
 	ctx.Params = gin.Params{{Key: "id", Value: "current-book"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/current-book", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -636,22 +571,22 @@ func TestProgressSaveUsesCurrentUserID(t *testing.T) {
 	}
 
 	// Verify the progress was saved with correct user ID
-	got, err := db.GetProgress("current-book", "current-user")
+	got, err := db.GetProgress("current-book", storage.PersonalLibrary)
 	if err != nil {
 		t.Fatalf("GetProgress returned error: %v", err)
 	}
 	if got == nil {
 		t.Fatal("expected progress to be saved")
 	}
-	if got.UserID != "current-user" {
-		t.Fatalf("expected user ID current-user, got %s", got.UserID)
+	if got.UserID != storage.PersonalLibrary {
+		t.Fatalf("expected personal library, got %s", got.UserID)
 	}
 }
 
 func TestProgressSaveWithZeroPercentage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupProgressTestDB(t)
+	db, _ := setupProgressTestDB(t)
 	handler := NewProgressHandler(db)
 
 	payload, _ := json.Marshal(map[string]interface{}{
@@ -661,7 +596,7 @@ func TestProgressSaveWithZeroPercentage(t *testing.T) {
 	body := bytes.NewBuffer(payload)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")

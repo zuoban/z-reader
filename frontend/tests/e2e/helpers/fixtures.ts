@@ -161,7 +161,7 @@ export async function installBrowserStubs(
 
 export async function mockAuthVerified(page: Page) {
   await page.route('**/api/auth/verify**', async (route) => {
-    await json(route, { valid: true, user: MOCK_USER });
+    await json(route, { valid: true, password_required: true });
   });
 }
 
@@ -572,7 +572,7 @@ export async function mockReaderBookOpenError(page: Page, bookId = 'book-1') {
     const path = url.pathname;
 
     if (path.includes('/auth/verify')) {
-      await json(route, { valid: true, user: MOCK_USER });
+      await json(route, { valid: true, password_required: true });
       return;
     }
 
@@ -682,7 +682,7 @@ export async function mockReaderHappyPath(
     const pathName = url.pathname;
 
     if (pathName.includes('/auth/verify')) {
-      await json(route, { valid: true, user: MOCK_USER });
+      await json(route, { valid: true, password_required: true });
       return;
     }
 

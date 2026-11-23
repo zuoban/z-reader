@@ -18,7 +18,7 @@ func setupBookmarksTestDB(t *testing.T) (*storage.DB, string) {
 	t.Helper()
 
 	db := openHandlerTestDB(t)
-	userID := "bookmark-user"
+	userID := storage.PersonalLibrary
 	book := &models.Book{
 		ID:        "book-bookmark",
 		UserID:    userID,
@@ -38,13 +38,13 @@ func setupBookmarksTestDB(t *testing.T) (*storage.DB, string) {
 func TestBookmarksCreateAndList(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, userID := setupBookmarksTestDB(t)
+	db, _ := setupBookmarksTestDB(t)
 	handler := NewBookmarksHandler(db)
 
 	body := bytes.NewBufferString(`{"cfi":"epubcfi(/6/2!/4/2/6)","percentage":42.5,"chapter":"第一章"}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{{Key: "id", Value: "book-bookmark"}}
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/books/book-bookmark/bookmarks", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -65,7 +65,7 @@ func TestBookmarksCreateAndList(t *testing.T) {
 
 	listRecorder := httptest.NewRecorder()
 	listCtx, _ := gin.CreateTestContext(listRecorder)
-	listCtx.Set("userID", userID)
+
 	listCtx.Params = gin.Params{{Key: "id", Value: "book-bookmark"}}
 	listCtx.Request = httptest.NewRequest(http.MethodGet, "/api/books/book-bookmark/bookmarks", nil)
 
@@ -102,7 +102,7 @@ func TestBookmarksDelete(t *testing.T) {
 	handler := NewBookmarksHandler(db)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", userID)
+
 	ctx.Params = gin.Params{
 		{Key: "id", Value: "book-bookmark"},
 		{Key: "bookmarkID", Value: "bookmark-delete"},
@@ -124,7 +124,7 @@ func TestBookmarksDelete(t *testing.T) {
 	}
 }
 
-func TestBookmarksRejectOtherUsersBook(t *testing.T) {
+func TestBookmarksRejectMissingBook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	db, _ := setupBookmarksTestDB(t)
@@ -133,9 +133,9 @@ func TestBookmarksRejectOtherUsersBook(t *testing.T) {
 	body := bytes.NewBufferString(`{"cfi":"epubcfi(/6/2)","percentage":10}`)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "other-user")
-	ctx.Params = gin.Params{{Key: "id", Value: "book-bookmark"}}
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/books/book-bookmark/bookmarks", body)
+
+	ctx.Params = gin.Params{{Key: "id", Value: "missing"}}
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/books/missing/bookmarks", body)
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
 	handler.Create(ctx)

@@ -9,8 +9,8 @@ import { bookDownloadAborted, shareBookDownload } from '@/lib/shared-book-downlo
 import type { Book, FetchBookOptions } from '@/lib/api';
 
 interface BookDownloadContext {
-  getUserId: () => string;
-  getToken: () => string | null;
+  library: string;
+  generation: () => string | null;
   getBook: (id: string, signal?: AbortSignal) => Promise<Book>;
   fetchBook: (id: string, options: FetchBookOptions) => Promise<Blob>;
   requestFile: (path: string, options: RequestInit) => Promise<Response>;
@@ -93,7 +93,7 @@ async function downloadBookFile(
     if (options.signal?.aborted) throw bookDownloadAborted();
   };
   throwIfAborted();
-  const userId = context.getUserId();
+  const userId = context.library;
   let partialDownload = await getPartialBookDownload(userId, id);
   let downloadedBytes = partialDownload?.downloadedBytes ?? 0;
   throwIfAborted();
@@ -235,17 +235,21 @@ async function downloadBookFile(
 export async function fetchBook(
   id: string, options: FetchBookOptions, context: BookDownloadContext
 ): Promise<Blob> {
-  const key = JSON.stringify([context.getUserId(), context.getToken(), id]);
-  return shareBookDownload(key, options, (downloadOptions) =>
+  const generation = context.generation();
+  const key = JSON.stringify([context.library, generation, id]);
+  const file = await shareBookDownload(key, options, (downloadOptions) =>
     downloadBookFile(id, downloadOptions, context));
+  if (context.generation() !== generation) throw context.authChangedError();
+  return file;
 }
 
 export async function createBookFile(
   id: string, options: FetchBookOptions, context: BookDownloadContext
 ): Promise<File | Blob> {
+  const generation = context.generation();
   let book: Book | undefined;
   let blob: Blob;
-  const userId = context.getUserId();
+  const userId = context.library;
   const metadata = context.getBook(id, options.signal).then(
     (value) => ({ book: value }),
     (error: unknown) => ({ error })
@@ -264,7 +268,7 @@ export async function createBookFile(
     if ('error' in result) throw result.error;
     book = result.book;
     if (options.signal?.aborted) throw bookDownloadAborted();
-    if (context.getUserId() !== userId) {
+    if (context.generation() !== generation) {
       throw context.authChangedError();
     }
     if (cached && book.content_hash && cached.contentHash === book.content_hash) {
@@ -275,7 +279,7 @@ export async function createBookFile(
     cancelDownload();
     if (options.signal?.aborted) throw bookDownloadAborted();
     if (!context.isApiError(error) && !isAbortLikeError(error) &&
-      cached && context.getUserId() === userId &&
+      cached && context.generation() === generation &&
       (!book || (book.content_hash && cached.contentHash === book.content_hash))) {
       return cached.file;
     }

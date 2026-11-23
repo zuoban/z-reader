@@ -146,13 +146,8 @@ test('production mobile login has bounded font transfers and long tasks', async 
 });
 
 test('real backend shelf, large EPUB worker, offline reuse and first audio', async ({ page, context }) => {
-  const username = `perf-${Date.now()}`;
-  const register = await context.request.post('/api/register', {
-    data: { username, password: 'Production-perf-12345' },
-  });
-  expect(register.ok()).toBeTruthy();
   const login = await context.request.post('/api/login', {
-    data: { username, password: 'Production-perf-12345' },
+    data: { password: 'Production-perf-12345' },
   });
   expect(login.ok()).toBeTruthy();
   const upload = await context.request.post('/api/books', {

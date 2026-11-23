@@ -75,21 +75,9 @@ test.describe('visual regression', () => {
     await expectStableScreenshot(page, 'login-dark.png', { fullPage: true });
   });
 
-  test('login register mode — light', async ({ page }) => {
-    await installBrowserStubs(page, { preset: 'light' });
-    await mockAuthUnauthorized(page);
-    await gotoStable(page, '/login?mode=register');
-    await expect(page.getByRole('heading', { name: '创建账号' })).toBeVisible();
-    await expectStableScreenshot(page, 'login-register-light.png', { fullPage: true });
-  });
-
   for (const entry of [
     { path: '/', heading: 'Z Reader', preset: 'light', snapshot: 'landing-mobile-light.png' },
     { path: '/login', heading: '欢迎回来', preset: 'dark', snapshot: 'login-mobile-dark.png' },
-    {
-      path: '/login?mode=register', heading: '创建账号', preset: 'light',
-      snapshot: 'login-register-mobile-light.png',
-    },
   ] as const) {
     test(`mobile entry — ${entry.snapshot}`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });

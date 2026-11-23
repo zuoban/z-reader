@@ -36,12 +36,8 @@ type BookmarkRequest struct {
 
 func (h *BookmarksHandler) List(c *gin.Context) {
 	bookID := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	bookmarks, err := h.db.ListBookmarks(bookID, userID)
+	bookmarks, err := h.db.ListBookmarks(bookID, storage.PersonalLibrary)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
@@ -56,10 +52,6 @@ func (h *BookmarksHandler) List(c *gin.Context) {
 
 func (h *BookmarksHandler) Create(c *gin.Context) {
 	bookID := c.Param("id")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
 	var req BookmarkRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -99,7 +91,7 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 	bookmark := &models.Bookmark{
 		ID:         uuid.New().String(),
 		BookID:     bookID,
-		UserID:     userID,
+		UserID:     storage.PersonalLibrary,
 		CFI:        req.CFI,
 		Percentage: req.Percentage,
 		Chapter:    req.Chapter,
@@ -107,7 +99,7 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 		CreatedAt:  now,
 	}
 
-	if err := h.db.SaveBookmark(bookmark, userID); err != nil {
+	if err := h.db.SaveBookmark(bookmark, storage.PersonalLibrary); err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
 			return
@@ -122,12 +114,8 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 func (h *BookmarksHandler) Delete(c *gin.Context) {
 	bookID := c.Param("id")
 	bookmarkID := c.Param("bookmarkID")
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
 
-	if err := h.db.DeleteBookmark(bookID, bookmarkID, userID); err != nil {
+	if err := h.db.DeleteBookmark(bookID, bookmarkID, storage.PersonalLibrary); err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书签不存在")
 			return

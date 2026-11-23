@@ -30,7 +30,7 @@ func TestBooksUploadReturnsBeforeEPUBPreviewCompletes(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Set("userID", "user-a")
+
 	ctx.Request = newMultipartUploadRequest(t, "queued.epub", content)
 	handler.Upload(ctx)
 

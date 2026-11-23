@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	AccessPassword      string
 	AppPort             string
 	UploadDir           string
 	DBPath              string
@@ -98,6 +99,7 @@ func getAllowedOrigins() []string {
 
 func Load() (*Config, error) {
 	return &Config{
+		AccessPassword:      os.Getenv("ACCESS_PASSWORD"),
 		AppPort:             getEnv("APP_PORT", "8080"),
 		UploadDir:           getEnv("UPLOAD_DIR", "./uploads"),
 		DBPath:              getEnv("DB_PATH", "./data.db"),

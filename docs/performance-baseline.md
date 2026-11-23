@@ -33,7 +33,7 @@
 - 下载时最多两批约 1 MiB 缓存写入排队，一个写入会话复用缓存与元数据，每 8 MiB 检查容量。
   中断保留已提交前缀，续传带 Range/If-Range。共享下载允许消费者独立取消；最后一个取消后，
   下一次真实写入等待旧写入结束，但等待者仍可以立即取消。
-- 显式保存的离线副本按账号隔离；联网复用前校验认证和内容哈希，登录变化、权限错误或哈希
+- 显式保存的离线副本保存在此设备；联网复用前校验认证和内容哈希，登录变化、权限错误或哈希
   不符均不复用。断网仍保留原有离线阅读行为。阅读器仍在整本 Blob 下载完成后打开，未实现
   按章节远程 ZIP 读取。下载实现自身也按需加载，登录页无需执行下载代码。
 - 缺失哈希用持久索引定位，由一个后台线程每批 16 本回填并一次提交。失败文件保留索引，
@@ -71,7 +71,7 @@ rtk proxy npx playwright install chromium
 rtk npm run test:perf:production
 ```
 
-该命令构建 Go 和 Next.js standalone，自动选择端口，使用临时数据库、临时上传目录与测试账号，
+该命令构建 Go 和 Next.js standalone，自动选择端口，使用临时数据库、临时上传目录与测试访问密码，
 退出后清理服务器和测试数据。浏览器报告保存在 `frontend/performance-results/`，CI 独立运行
 `Production Performance` 并上传报告。测量时应避免并行执行其他压测、构建或浏览器测试。
 
@@ -86,7 +86,7 @@ rtk npm run test:perf:production
 | 阅读器最长主线程任务 | < 500 ms |
 | 从打开朗读面板到浏览器首次 playing | < 2500 ms |
 
-书架与阅读器使用真实注册、登录、上传、元数据和文件接口；仅外部 TTS/声音服务以确定性
+书架与阅读器使用真实密码解锁、上传、元数据和文件接口；仅外部 TTS/声音服务以确定性
 PCM 音频代替。因此首次音频值衡量前端加载/解码链路，不能代表外部语音服务延迟。
 Event Timing 的零值表示没有收到超过观察阈值的交互样本，单次脚本交互不等同于用户群体 INP。
 首章就绪检查 renderer 文档正文，而非页面标题。用真实浏览器同时确认 Worker 创建和离线副本
@@ -149,7 +149,7 @@ go test ./storage -run '^$' -bench '^BenchmarkLibrary' -benchmem -benchtime=100x
 分别压测书架首屏、搜索和进度保存，输出请求数、失败数、P50/P95/P99 和吞吐。登录接口有意
 启用限流，因此不会被重复压测。
 
-只在非生产环境或专用测试账号运行；进度场景会更新指定测试书的阅读位置。先准备测试账号、
+在独立测试书库运行，进度场景会更新指定测试书的阅读位置。请准备
 至少一本测试书和可搜索的关键词。密码默认从环境变量读取，避免写入终端历史和进程列表：
 
 ```bash
@@ -158,7 +158,6 @@ export Z_READER_LOADTEST_PASSWORD
 cd backend
 go run ./cmd/loadtest \
   --base-url http://127.0.0.1:8080 \
-  --username <load-test-user> \
   --book-id <test-book-id> \
   --search-query <known-title-token> \
   --concurrency 4 \
@@ -275,7 +274,7 @@ Service Worker（`frontend/public/sw.js`）预缓存静态 shell：
 单元测试会核对预缓存列表与预算中的 shell 路由一致；真实命中率请在生产构建下用
 DevTools → Application → Cache Storage / Network（`from ServiceWorker`）复核。
 
-注意：`/shelf` 与 `/api/*` 故意不进入共享 SW 缓存，避免多账号浏览器配置下的隐私串扰。
+`/shelf` 与 `/api/*` 跳过共享 SW 缓存，以便重新访问时检查当前书库的访问权限。
 
 ## 2026-10-18 验证记录
 

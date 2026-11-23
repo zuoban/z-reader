@@ -101,7 +101,6 @@ func main() {
 	clientErrorHandler := handlers.NewClientErrorHandler()
 
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
-	r.POST("/api/register", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Register)
 	r.POST("/api/logout", authHandler.Logout)
 	r.GET("/healthz", handlers.Health)
 	r.GET("/readyz", handlers.Ready(db, cfg.UploadDir))
@@ -113,9 +112,8 @@ func main() {
 	}
 
 	api := r.Group("/api")
-	api.Use(middleware.AuthRequired(db))
+	api.Use(middleware.AuthRequired(db, cfg.AccessPassword))
 	ttsIPLimiter := middleware.NewRateLimiter(30, time.Minute)
-	ttsUserLimiter := middleware.NewRateLimiter(30, time.Minute)
 	{
 		api.GET("/auth/verify", authHandler.Verify)
 		api.POST("/client-errors", middleware.RateLimit(middleware.NewRateLimiter(30, time.Minute)), clientErrorHandler.Report)
@@ -146,13 +144,11 @@ func main() {
 		api.GET(
 			"/tts",
 			middleware.RateLimit(ttsIPLimiter),
-			middleware.RateLimitByUser(ttsUserLimiter),
 			ttsHandler.TTS,
 		)
 		api.POST(
 			"/ssml",
 			middleware.RateLimit(ttsIPLimiter),
-			middleware.RateLimitByUser(ttsUserLimiter),
 			ttsHandler.SSML,
 		)
 		api.GET("/voices", ttsHandler.VoiceList)

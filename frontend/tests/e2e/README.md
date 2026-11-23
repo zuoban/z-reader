@@ -53,7 +53,6 @@ Covered surfaces:
 | --- | --- |
 | `landing-light` / `landing-dark` | Marketing landing |
 | `login-light` / `login-dark` | Login |
-| `login-register-light` | Register mode |
 | `shelf-empty-light` / `shelf-empty-dark` | Empty library |
 | `shelf-populated-light` / `shelf-populated-dark` | Library with mock books |
 | `shelf-error-light` | Load failure state |

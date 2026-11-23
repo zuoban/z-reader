@@ -81,12 +81,12 @@ export interface Bookmark {
   created_at: string;
 }
 
-export interface User {
-  id: string;
-  username: string;
-  created_at: string;
-  updated_at: string;
+interface AccessStatus {
+  valid: boolean;
+  password_required: boolean;
 }
+
+export const PERSONAL_LIBRARY = 'personal';
 
 export class ApiError extends Error {
   status: number;
@@ -102,54 +102,17 @@ export class ApiError extends Error {
 
 export const AUTH_EXPIRED_EVENT = 'z-reader-auth-expired';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined' || !window.localStorage?.getItem) return null;
-  return localStorage.getItem('token');
-}
-
-function setToken(token: string): void {
-  if (typeof window === 'undefined' || !window.localStorage?.setItem) return;
-  localStorage.setItem('token', token);
-}
-
-function removeToken(): void {
-  if (typeof window === 'undefined' || !window.localStorage?.removeItem) return;
-  const userID = getCurrentUser()?.id;
+function clearAccess() {
+  if (typeof window === 'undefined') return;
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-  void clearOfflineBooks(userID);
-}
-
-function removeLegacyToken(): void {
-  if (typeof window === 'undefined' || !window.localStorage?.removeItem) return;
-  localStorage.removeItem('token');
-}
-
-function getCurrentUser(): User | null {
-  if (typeof window === 'undefined' || !window.localStorage?.getItem) return null;
-  const raw = localStorage.getItem('user');
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    localStorage.removeItem('user');
-    return null;
-  }
-}
-
-function setCurrentUser(user: User): void {
-  if (typeof window === 'undefined' || !window.localStorage?.setItem) return;
-  localStorage.setItem('user', JSON.stringify(user));
-}
-
-export function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return token ? { Authorization: token } : {};
+  localStorage.setItem('z-reader-access-generation', String(Date.now()));
+  void clearOfflineBooks(PERSONAL_LIBRARY);
 }
 
 function handleUnauthorized(res: Response): void {
   if (res.status !== 401) return;
-  removeToken();
+  clearAccess();
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
 }
@@ -174,7 +137,6 @@ function duplicateBookFromError(error: unknown): Book | null {
 async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...getAuthHeaders(),
     ...options.headers,
   };
 
@@ -234,7 +196,6 @@ async function authedFetch(
   timeout: number | null = DEFAULT_TIMEOUT
 ): Promise<Response> {
   const headers: HeadersInit = {
-    ...getAuthHeaders(),
     ...options.headers,
   };
 
@@ -291,42 +252,17 @@ function shouldRetryResponseWithNextApiBase(
 }
 
 export const api = {
-  login: async (username: string, password: string): Promise<{ token?: string; user: User }> => {
-    const res = await fetchApi<{ token?: string; user: User }>('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
-    removeLegacyToken();
-    setCurrentUser(res.user);
-    return res;
+  login: (password: string) => fetchApi<AccessStatus>('/api/login', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  }),
+
+  logout: async () => {
+    await fetchApi('/api/logout', { method: 'POST' });
+    clearAccess();
   },
 
-  register: async (username: string, password: string): Promise<{ token?: string; user: User }> => {
-    const res = await fetchApi<{ token?: string; user: User }>('/api/register', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
-    removeLegacyToken();
-    setCurrentUser(res.user);
-    return res;
-  },
-
-  logout: async (): Promise<void> => {
-    try {
-      await fetchApi('/api/logout', { method: 'POST' });
-    } catch (err) {
-      console.error('Logout API call failed:', err);
-    }
-    removeToken();
-  },
-
-  verify: async (): Promise<{ valid: boolean; user?: User }> => {
-    const res = await fetchApi<{ valid: boolean; user?: User }>('/api/auth/verify');
-    if (res.user) {
-      setCurrentUser(res.user);
-    }
-    return res;
-  },
+  verify: () => fetchApi<AccessStatus>('/api/auth/verify'),
 
   listBooks: async (): Promise<Book[]> => {
     return fetchApi<Book[]>('/api/books');
@@ -420,7 +356,7 @@ export const api = {
 
   deleteBook: async (id: string): Promise<void> => {
     await fetchApi(`/api/books/${id}`, { method: 'DELETE' });
-    void removeOfflineBook(getCurrentUser()?.id ?? '', id);
+    void removeOfflineBook(PERSONAL_LIBRARY, id);
   },
 
   deleteBooks: async (ids: string[]): Promise<{ deleted_ids: string[] }> => {
@@ -428,9 +364,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ ids }),
     });
-    const userID = getCurrentUser()?.id ?? '';
     (result.deleted_ids ?? ids).forEach((id) => {
-      void removeOfflineBook(userID, id);
+      void removeOfflineBook(PERSONAL_LIBRARY, id);
     });
     return result;
   },
@@ -572,7 +507,6 @@ export const api = {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeaders(),
       },
       body: JSON.stringify(body),
       keepalive: true,
@@ -601,20 +535,11 @@ export const api = {
 };
 
 const bookDownloadContext = {
-  getUserId: () => getCurrentUser()?.id ?? '',
-  getToken,
+  library: PERSONAL_LIBRARY,
+  generation: () => localStorage.getItem('z-reader-access-generation'),
   getBook: (id: string, signal?: AbortSignal) => api.getBook(id, signal),
   fetchBook: (id: string, options: FetchBookOptions) => api.fetchBook(id, options),
   requestFile: (path: string, options: RequestInit) => authedFetch(path, options, null),
   isApiError: (error: unknown) => error instanceof ApiError,
   authChangedError: () => new ApiError('登录状态已变更，请重新打开书籍', 401),
-};
-
-export const auth = {
-  getToken,
-  setToken,
-  removeToken,
-  getCurrentUser,
-  setCurrentUser,
-  isLoggedIn: () => !!getToken() || !!getCurrentUser(),
 };

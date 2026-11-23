@@ -230,15 +230,15 @@ func TestMigrationTenRebuildsCategoryCountsAndMissingHashIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	books, _, err := db.ListBooksBySortedCursor("u", "", 10, "title", &category)
+	books, _, err := db.ListBooksBySortedCursor(PersonalLibrary, "", 10, "title", &category)
 	if err != nil || len(books) != 1 {
 		t.Fatalf("migrated category page = %+v, %v", books, err)
 	}
-	books, _, err = db.SearchBooks("u", "Migration", "", 10, "title", &category)
+	books, _, err = db.SearchBooks(PersonalLibrary, "Migration", "", 10, "title", &category)
 	if err != nil || len(books) != 1 {
 		t.Fatalf("migrated search = %+v, %v", books, err)
 	}
-	owner := "u"
+	owner := PersonalLibrary
 	books, _, err = db.ListBooksMissingHash(&owner, "", 10)
 	if err != nil || len(books) != 1 {
 		t.Fatalf("migrated hash backlog = %+v, %v", books, err)

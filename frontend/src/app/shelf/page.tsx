@@ -9,6 +9,7 @@ import {
   AlertCircle,
   BookOpen,
   CheckSquare,
+  HardDrive,
   LogOut,
   MoreHorizontal,
   Moon,
@@ -20,6 +21,7 @@ import {
   Trash2,
   Upload,
   UserRound,
+  WifiOff,
   X,
 } from 'lucide-react';
 import {
@@ -65,6 +67,10 @@ const ConfirmDialog = dynamic(
   () => import('@/components/ConfirmDialog').then((module) => module.ConfirmDialog),
   { ssr: false }
 );
+const OfflineBooksDialog = dynamic(
+  () => import('@/components/OfflineBooksDialog').then((module) => module.OfflineBooksDialog),
+  { ssr: false }
+);
 
 function ShelfBrand() {
   return (
@@ -86,7 +92,16 @@ export default function ShelfPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  const { isLoading, isAuthenticated, passwordRequired, logout } = useAuth();
+  const [offlineBooksOpen, setOfflineBooksOpen] = useState(false);
+  const [isRetryingAuth, setIsRetryingAuth] = useState(false);
+  const {
+    isLoading,
+    isAuthenticated,
+    isOffline,
+    passwordRequired,
+    logout,
+    checkAuth,
+  } = useAuth();
   const { toggleTheme, isDark } = useShelfTheme();
   const {
     books,
@@ -132,10 +147,23 @@ export default function ShelfPage() {
       : undefined;
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && !isOffline) {
       router.push('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, isOffline, router]);
+
+  async function handleRetryConnection() {
+    if (isRetryingAuth) return;
+    setIsRetryingAuth(true);
+    try {
+      const status = await checkAuth();
+      if (status === 'offline') {
+        toast.error('仍无法连接服务器，请检查网络后再试');
+      }
+    } finally {
+      setIsRetryingAuth(false);
+    }
+  }
 
   const selectedExistingIds = useMemo(() => {
     const existingIds = new Set(books.map((book) => book.id));
@@ -274,7 +302,7 @@ export default function ShelfPage() {
     void uploadFiles(event.dataTransfer.files);
   }
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || (!isAuthenticated && !isOffline)) {
     return (
       <AppScreen ambient="shelf">
         <div
@@ -320,57 +348,95 @@ export default function ShelfPage() {
           <ShelfBrand />
 
           <div className="flex items-center gap-1.5">
-            <FileUploadAction
-              accept={SUPPORTED_FORMATS_ACCEPT}
-              onChange={handleUpload}
-              disabled={isUploading}
-              title="上传书籍"
-              multiple
-              buttonSize="icon-sm"
-              buttonClassName="h-11 w-11 rounded-lg bg-primary px-0 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:w-auto sm:px-5"
-            >
-              {isUploading ? (
-                <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
-            </FileUploadAction>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
-                  aria-label="书架设置"
-                  title="书架设置"
-                >
-                  <UserRound className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                sideOffset={10}
-                className="shelf-account-menu w-48 rounded-xl border-border/50 p-1.5 backdrop-blur-md"
+            {!isOffline && (
+              <FileUploadAction
+                accept={SUPPORTED_FORMATS_ACCEPT}
+                onChange={handleUpload}
+                disabled={isUploading}
+                title="上传书籍"
+                multiple
+                buttonSize="icon-sm"
+                buttonClassName="h-11 w-11 rounded-lg bg-primary px-0 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:w-auto sm:px-5"
               >
-                <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
-                  {isDark ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                  {isDark ? '亮色模式' : '暗色模式'}
-                </DropdownMenuItem>
-                {passwordRequired && (
+                {isUploading ? (
+                  <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
+              </FileUploadAction>
+            )}
+            {!isOffline && passwordRequired ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
+                    aria-label="书架设置"
+                    title="书架设置"
+                  >
+                    <UserRound className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={10}
+                  className="shelf-account-menu w-48 rounded-xl border-border/50 p-1.5 backdrop-blur-md"
+                >
+                  <DropdownMenuItem className="shelf-account-menu-item" onClick={toggleTheme}>
+                    {isDark ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    {isDark ? '亮色模式' : '暗色模式'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="shelf-account-menu-item"
+                    onClick={() => setOfflineBooksOpen(true)}
+                  >
+                    <HardDrive className="h-4 w-4" />
+                    离线图书管理
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => { void logout().catch(() => toast.error('退出失败，请重试')); }}
                     className="shelf-account-menu-item shelf-account-menu-danger"
                   >
                     <LogOut className="h-4 w-4" /> 退出登录
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
+                  onClick={() => setOfflineBooksOpen(true)}
+                  aria-label="离线图书管理"
+                  title="离线图书管理"
+                >
+                  <HardDrive className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 rounded-lg border-border bg-card text-foreground shadow-none hover:bg-secondary"
+                  onClick={toggleTheme}
+                  aria-label={isDark ? '亮色模式' : '暗色模式'}
+                  title={isDark ? '亮色模式' : '暗色模式'}
+                >
+                  {isDark ? (
+                    <Sun className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                  ) : (
+                    <Moon className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -390,7 +456,7 @@ export default function ShelfPage() {
             <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">我的书库</h1>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">世界很大，从手边的一本书开始。</p>
           </div>
-          {!isLoadingBooks && !loadError && (
+          {!isOffline && !isLoadingBooks && !loadError && (
             <p className="shrink-0 pb-1 text-xs text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
               <span className="mr-1.5 font-serif text-3xl tabular-nums text-primary sm:text-4xl">
                 {bookCounts.all}
@@ -399,7 +465,40 @@ export default function ShelfPage() {
             </p>
           )}
         </div>
-        {!isLoadingBooks && loadError ? (
+        {isOffline ? (
+          <div className="flex min-h-[28rem] items-center justify-center">
+            <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                <WifiOff className="h-7 w-7" />
+              </div>
+              <h2 className="mt-5 font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                当前处于离线状态
+              </h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                暂时无法连接到服务器，请检查网络后重试，或直接打开已保存到此设备的离线图书继续阅读。
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  type="button"
+                  className="h-11 rounded-xl px-6"
+                  disabled={isRetryingAuth}
+                  onClick={() => void handleRetryConnection()}
+                >
+                  {isRetryingAuth ? '连接中…' : '重试连接'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-xl px-6"
+                  onClick={() => setOfflineBooksOpen(true)}
+                >
+                  <HardDrive className="mr-2 h-4 w-4" />
+                  打开离线图书
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : !isLoadingBooks && loadError ? (
           <div className="flex min-h-[28rem] items-center justify-center">
             <div className="paper-panel paper-texture w-full max-w-lg rounded-2xl px-6 py-12 text-center sm:px-10">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/18 bg-destructive/10 text-destructive">
@@ -815,6 +914,12 @@ export default function ShelfPage() {
             bookCounts={bookCounts}
             loading={isUpdatingManyCategories}
             onRenameCategory={saveManagedCategory}
+          />
+        )}
+        {offlineBooksOpen && (
+          <OfflineBooksDialog
+            open
+            onOpenChange={setOfflineBooksOpen}
           />
         )}
       </main>

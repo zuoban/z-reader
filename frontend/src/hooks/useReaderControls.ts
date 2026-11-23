@@ -9,6 +9,9 @@ interface UseReaderControlsOptions {
   onNext: () => void;
   onBack: () => void;
   onStopTTS?: () => void;
+  shortcutsOpen?: boolean;
+  onToggleShortcuts?: () => void;
+  onCloseShortcuts?: () => void;
 }
 
 export function useReaderControls({
@@ -17,6 +20,9 @@ export function useReaderControls({
   onNext,
   onBack,
   onStopTTS,
+  shortcutsOpen = false,
+  onToggleShortcuts,
+  onCloseShortcuts,
 }: UseReaderControlsOptions) {
   const [isTouchReader] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -38,6 +44,9 @@ export function useReaderControls({
   const nextRef = useRef(onNext);
   const backRef = useRef(onBack);
   const stopTTSRef = useRef(onStopTTS);
+  const shortcutsOpenRef = useRef(shortcutsOpen);
+  const toggleShortcutsRef = useRef(onToggleShortcuts);
+  const closeShortcutsRef = useRef(onCloseShortcuts);
 
   useEffect(() => {
     prevRef.current = onPrev;
@@ -54,6 +63,18 @@ export function useReaderControls({
   useEffect(() => {
     stopTTSRef.current = onStopTTS;
   }, [onStopTTS]);
+
+  useEffect(() => {
+    shortcutsOpenRef.current = shortcutsOpen;
+  }, [shortcutsOpen]);
+
+  useEffect(() => {
+    toggleShortcutsRef.current = onToggleShortcuts;
+  }, [onToggleShortcuts]);
+
+  useEffect(() => {
+    closeShortcutsRef.current = onCloseShortcuts;
+  }, [onCloseShortcuts]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -92,7 +113,32 @@ export function useReaderControls({
       return;
     }
 
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    const target = e.target;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof HTMLElement && target.isContentEditable)
+    ) {
+      return;
+    }
+
+    const isShortcutsToggleKey =
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      (e.key === '?' || (e.key === '/' && e.shiftKey));
+
+    if (isShortcutsToggleKey && toggleShortcutsRef.current) {
+      e.preventDefault();
+      toggleShortcutsRef.current();
+      return;
+    }
+
+    if (shortcutsOpenRef.current) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeShortcutsRef.current?.();
+      }
       return;
     }
 

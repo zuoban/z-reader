@@ -195,6 +195,7 @@ interface UseFoliateViewOptions {
   containerRef: RefObject<HTMLDivElement | null>;
   viewRef: RefObject<FoliateView | null>;
   isAuthenticated: boolean;
+  canLoadOffline?: boolean;
   progressLoading: boolean;
   progress: { cfi: string; percentage: number; updated_at?: string; remote?: boolean } | null;
   theme: ReaderTheme;
@@ -211,6 +212,7 @@ export function useFoliateView({
   containerRef,
   viewRef,
   isAuthenticated,
+  canLoadOffline = false,
   progressLoading,
   progress,
   theme,
@@ -221,6 +223,7 @@ export function useFoliateView({
   cleanupHeaderInteractionDocuments,
   onImageOpen,
 }: UseFoliateViewOptions) {
+  const canLoad = isAuthenticated || canLoadOffline;
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
@@ -236,6 +239,9 @@ export function useFoliateView({
   const [loadingDetail, setLoadingDetail] = useState("正在并行加载引擎与书籍");
 
   const destroyedRef = useRef(false);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  const fallbackTitleRef = useRef("");
+  const fallbackAuthorRef = useRef("");
   const progressRef = useRef(progress);
   const progressLoadingRef = useRef(progressLoading);
   const themeRef = useRef(theme);
@@ -260,32 +266,36 @@ export function useFoliateView({
   }, [progress, currentCFI]);
 
   useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
     progressRef.current = progress;
     progressLoadingRef.current = progressLoading;
     themeRef.current = theme;
     getStylesheetRef.current = getStylesheet;
     updateProgressRef.current = updateProgress;
     onImageOpenRef.current = onImageOpen;
-  }, [getStylesheet, onImageOpen, progress, progressLoading, theme, updateProgress]);
+  }, [getStylesheet, isAuthenticated, onImageOpen, progress, progressLoading, theme, updateProgress]);
 
-  // Prefetch foliate engine + book file as soon as auth is ready (do not wait for progress).
-  useEffect(() => {
-    if (!isAuthenticated || !bookId) {
-      filePrefetchRef.current = null;
-      return;
-    }
+  const loadBookFile = useCallback(
+    async (signal: AbortSignal, isCancelled: () => boolean): Promise<File | Blob> => {
+      if (!isAuthenticatedRef.current) {
+        const { PERSONAL_LIBRARY } = await import("@/lib/api");
+        const { getOfflineBookEntry } = await import("@/lib/offline-books");
+        const entry = await getOfflineBookEntry(PERSONAL_LIBRARY, bookId);
+        if (!entry) {
+          throw new Error("当前处于离线状态，本书尚未保存到离线缓存");
+        }
+        fallbackTitleRef.current = entry.title ?? "";
+        fallbackAuthorRef.current = entry.author ?? "";
+        if (!isCancelled() && !destroyedRef.current) {
+          if (entry.title) setBookTitle((prev) => prev || entry.title || "");
+          if (entry.author) setBookAuthor((prev) => prev || entry.author || "");
+        }
+        return entry.file;
+      }
 
-    let cancelled = false;
-    const controller = new AbortController();
-    downloadControllerRef.current = controller;
-    void ensureFoliateScript().catch(() => {
-      // initReader will surface the error if the engine still fails.
-    });
-
-    const promise = (async () => {
       const { api } = await import("@/lib/api");
       return api.createBookFile(bookId, {
-        signal: controller.signal,
+        signal,
         onProgress: ({
           downloadedBytes,
           totalBytes,
@@ -293,7 +303,7 @@ export function useFoliateView({
           bytesPerSecond,
           resumed,
         }) => {
-          if (cancelled || destroyedRef.current) return;
+          if (isCancelled() || destroyedRef.current) return;
           const percentageLabel =
             percentage === null ? "" : ` ${Math.floor(percentage)}%`;
           const sizeLabel =
@@ -310,7 +320,29 @@ export function useFoliateView({
           setLoadingDetail("书籍文件与阅读器引擎并行加载中");
         },
       });
-    })();
+    },
+    [bookId]
+  );
+
+  // Prefetch foliate engine + book file as soon as auth or offline copy is ready (do not wait for progress).
+  useEffect(() => {
+    if (!canLoad || !bookId) {
+      filePrefetchRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    downloadControllerRef.current = controller;
+    fallbackTitleRef.current = "";
+    fallbackAuthorRef.current = "";
+    void ensureFoliateScript().catch(() => {
+      // initReader will surface the error if the engine still fails.
+    });
+
+    const promise = Promise.resolve().then(() =>
+      loadBookFile(controller.signal, () => cancelled)
+    );
 
     filePrefetchRef.current = promise;
     void promise.catch(() => {
@@ -322,7 +354,7 @@ export function useFoliateView({
       controller.abort();
       if (downloadControllerRef.current === controller) downloadControllerRef.current = null;
     };
-  }, [bookId, isAuthenticated]);
+  }, [bookId, canLoad, loadBookFile]);
 
   const applyRendererPreferences = useCallback((renderer?: FoliateView["renderer"] | null) => {
     if (!renderer) return;
@@ -566,8 +598,8 @@ export function useFoliateView({
         try {
           const book = view.book;
           setToc(book?.toc || []);
-          setBookTitle(normalizeMetadataText(book?.metadata?.title));
-          setBookAuthor(normalizeMetadataText(book?.metadata?.author));
+          setBookTitle(normalizeMetadataText(book?.metadata?.title) || fallbackTitleRef.current);
+          setBookAuthor(normalizeMetadataText(book?.metadata?.author) || fallbackAuthorRef.current);
           firstDocumentLoadedRef.current = true;
           if (!revealScheduledRef.current) {
             revealScheduledRef.current = true;
@@ -631,34 +663,9 @@ export function useFoliateView({
       if (filePrefetchRef.current) {
         file = await filePrefetchRef.current;
       } else {
-        const { api } = await import("@/lib/api");
         const controller = new AbortController();
         downloadControllerRef.current = controller;
-        file = await api.createBookFile(bookId, {
-          signal: controller.signal,
-          onProgress: ({
-            downloadedBytes,
-            totalBytes,
-            percentage,
-            bytesPerSecond,
-            resumed,
-          }) => {
-            if (destroyedRef.current) return;
-            const percentageLabel =
-              percentage === null ? "" : ` ${Math.floor(percentage)}%`;
-            const sizeLabel =
-              totalBytes === null
-                ? formatDownloadBytes(downloadedBytes)
-                : `${formatDownloadBytes(downloadedBytes)} / ${formatDownloadBytes(totalBytes)}`;
-            const speedLabel =
-              bytesPerSecond && bytesPerSecond >= 1024
-                ? ` · ${formatDownloadBytes(bytesPerSecond)}/s`
-                : "";
-            setLoadingMsg(
-              `${resumed ? "继续下载" : "下载书籍"}${percentageLabel} · ${sizeLabel}${speedLabel}`
-            );
-          },
-        });
+        file = await loadBookFile(controller.signal, () => destroyedRef.current);
       }
 
       if (destroyedRef.current) return;
@@ -724,9 +731,9 @@ export function useFoliateView({
     bindHeaderInteractionDocument,
     bindImageZoomDocument,
     bindReaderDocument,
-    bookId,
     cleanInlineStyles,
     containerRef,
+    loadBookFile,
     updatePageLabel,
     viewRef,
   ]);
@@ -756,8 +763,8 @@ export function useFoliateView({
   }, [cleanInlineStyles, readerReady, theme, viewRef]);
 
   useEffect(() => {
-    // Start as soon as auth is ready — do not wait for progress API.
-    if (!isAuthenticated) return;
+    // Start as soon as auth or offline copy is ready — do not wait for progress API.
+    if (!canLoad) return;
 
     destroyedRef.current = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset UI for the external book load.
@@ -774,7 +781,7 @@ export function useFoliateView({
       cancelled = true;
       cleanupReader();
     };
-  }, [cleanupReader, initReader, isAuthenticated, bookId]);
+  }, [cleanupReader, initReader, canLoad, bookId]);
 
   return {
     toc,

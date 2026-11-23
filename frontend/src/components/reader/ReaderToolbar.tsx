@@ -15,6 +15,7 @@ import {
   Bookmark as BookmarkIcon,
   BookmarkPlus,
   Download,
+  Keyboard as KeyboardIcon,
   List,
   Maximize,
   Minimize,
@@ -44,6 +45,7 @@ interface ReaderToolbarProps {
   bookmarksOpen: boolean;
   onBookmarksOpenChange: (open: boolean) => void;
   bookmarks: Bookmark[];
+  showBookmarks?: boolean;
   canCreateBookmark: boolean;
   isSavingBookmark: boolean;
   onCreateBookmark: () => void;
@@ -69,6 +71,7 @@ interface ReaderToolbarProps {
   onThemeSettingsOpenChange: (open: boolean) => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  onOpenShortcuts?: () => void;
 }
 
 export function ReaderToolbar({
@@ -81,6 +84,7 @@ export function ReaderToolbar({
   bookmarksOpen,
   onBookmarksOpenChange,
   bookmarks,
+  showBookmarks = true,
   canCreateBookmark,
   isSavingBookmark,
   onCreateBookmark,
@@ -106,6 +110,7 @@ export function ReaderToolbar({
   onThemeSettingsOpenChange,
   isFullscreen,
   onToggleFullscreen,
+  onOpenShortcuts,
 }: ReaderToolbarProps) {
   const isDark = theme.preset === "dark";
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
@@ -251,29 +256,33 @@ export function ReaderToolbar({
                   <List className="h-4 w-4 opacity-80" />
                   <span>目录</span>
                 </button>
-                <button
-                  className="reader-mobile-menu-item"
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onBookmarksOpenChange(true);
-                  }}
-                  type="button"
-                >
-                  <BookmarkIcon className="h-4 w-4 opacity-80" />
-                  <span>书签</span>
-                </button>
-                <button
-                  className="reader-mobile-menu-item"
-                  disabled={!canCreateBookmark || isSavingBookmark}
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onCreateBookmark();
-                  }}
-                  type="button"
-                >
-                  <BookmarkPlus className="h-4 w-4 opacity-80" />
-                  <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
-                </button>
+                {showBookmarks && (
+                  <>
+                    <button
+                      className="reader-mobile-menu-item"
+                      onClick={() => {
+                        closeMobileActions(false);
+                        onBookmarksOpenChange(true);
+                      }}
+                      type="button"
+                    >
+                      <BookmarkIcon className="h-4 w-4 opacity-80" />
+                      <span>书签</span>
+                    </button>
+                    <button
+                      className="reader-mobile-menu-item"
+                      disabled={!canCreateBookmark || isSavingBookmark}
+                      onClick={() => {
+                        closeMobileActions(false);
+                        onCreateBookmark();
+                      }}
+                      type="button"
+                    >
+                      <BookmarkPlus className="h-4 w-4 opacity-80" />
+                      <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
+                    </button>
+                  </>
+                )}
                 {onSaveOffline && (
                   <button
                     className="reader-mobile-menu-item"
@@ -317,6 +326,19 @@ export function ReaderToolbar({
                   )}
                   <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
                 </button>
+                {onOpenShortcuts && (
+                  <button
+                    className="reader-mobile-menu-item"
+                    onClick={() => {
+                      closeMobileActions(false);
+                      onOpenShortcuts();
+                    }}
+                    type="button"
+                  >
+                    <KeyboardIcon className="h-4 w-4 opacity-80" />
+                    <span>快捷键</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -347,41 +369,45 @@ export function ReaderToolbar({
                 }
               />
 
-              <ReaderBookmarksSheet
-                open={bookmarksOpen}
-                onOpenChange={onBookmarksOpenChange}
-                bookmarks={bookmarks}
-                bookTitle={bookTitle}
-                uiScheme={uiScheme}
-                overlayContainer={overlayContainer}
-                triggerClassName={chromeBtnClass}
-                triggerStyle={{}}
-                canCreate={canCreateBookmark}
-                isSaving={isSavingBookmark}
-                onCreate={onCreateBookmark}
-                onGoTo={onGoToBookmark}
-                onDelete={onDeleteBookmark}
-                trigger={
-                  <div className="flex items-center gap-2">
-                    <BookmarkIcon className="h-4 w-4" />
-                    <span className="hidden sm:inline">书签</span>
-                  </div>
-                }
-              />
+              {showBookmarks && (
+                <>
+                  <ReaderBookmarksSheet
+                    open={bookmarksOpen}
+                    onOpenChange={onBookmarksOpenChange}
+                    bookmarks={bookmarks}
+                    bookTitle={bookTitle}
+                    uiScheme={uiScheme}
+                    overlayContainer={overlayContainer}
+                    triggerClassName={chromeBtnClass}
+                    triggerStyle={{}}
+                    canCreate={canCreateBookmark}
+                    isSaving={isSavingBookmark}
+                    onCreate={onCreateBookmark}
+                    onGoTo={onGoToBookmark}
+                    onDelete={onDeleteBookmark}
+                    trigger={
+                      <div className="flex items-center gap-2">
+                        <BookmarkIcon className="h-4 w-4" />
+                        <span className="hidden sm:inline">书签</span>
+                      </div>
+                    }
+                  />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!canCreateBookmark || isSavingBookmark}
-                onClick={onCreateBookmark}
-                title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
-                className={chromeBtnClass}
-              >
-                <BookmarkPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {isSavingBookmark ? "添加中..." : "添加"}
-                </span>
-              </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!canCreateBookmark || isSavingBookmark}
+                    onClick={onCreateBookmark}
+                    title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
+                    className={chromeBtnClass}
+                  >
+                    <BookmarkPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {isSavingBookmark ? "添加中..." : "添加"}
+                    </span>
+                  </Button>
+                </>
+              )}
 
               {onSaveOffline && (
                 <Button
@@ -443,6 +469,19 @@ export function ReaderToolbar({
                 >
                   <Settings className="h-4 w-4" />
                   <span className="hidden sm:inline">设置</span>
+                </Button>
+              )}
+
+              {onOpenShortcuts && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenShortcuts}
+                  title="快捷键 (?)"
+                  aria-label="快捷键"
+                  className={cn(chromeBtnClass, "h-9 w-9")}
+                >
+                  <KeyboardIcon className="h-4 w-4" />
                 </Button>
               )}
             </div>

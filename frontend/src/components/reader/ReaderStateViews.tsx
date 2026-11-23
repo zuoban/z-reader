@@ -49,12 +49,18 @@ interface ReaderErrorStateProps {
   error: string;
   uiScheme: ThemeColors;
   onBack: () => void;
+  onRetry?: () => void;
+  isRetrying?: boolean;
+  retryLabel?: string;
 }
 
 export function ReaderErrorState({
   error,
   uiScheme,
   onBack,
+  onRetry,
+  isRetrying = false,
+  retryLabel = "重试连接",
 }: ReaderErrorStateProps) {
   return (
     <div
@@ -82,13 +88,32 @@ export function ReaderErrorState({
           {error}
         </p>
       </div>
-      <Button
-        onClick={onBack}
-        variant="outline"
-        className="mt-1 h-11 rounded-xl px-6"
-      >
-        返回书库
-      </Button>
+      {onRetry ? (
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
+          <Button
+            onClick={onRetry}
+            disabled={isRetrying}
+            className="h-11 rounded-xl px-6"
+          >
+            {isRetrying ? "正在重新连接..." : retryLabel}
+          </Button>
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="h-11 rounded-xl px-6"
+          >
+            返回书库
+          </Button>
+        </div>
+      ) : (
+        <Button
+          onClick={onBack}
+          variant="outline"
+          className="mt-1 h-11 rounded-xl px-6"
+        >
+          返回书库
+        </Button>
+      )}
     </div>
   );
 }

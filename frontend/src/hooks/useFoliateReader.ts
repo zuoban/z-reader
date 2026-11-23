@@ -10,6 +10,7 @@ interface UseFoliateReaderOptions {
   containerRef: RefObject<HTMLDivElement | null>;
   viewRef: RefObject<FoliateView | null>;
   isAuthenticated: boolean;
+  canLoadOffline?: boolean;
   progressLoading: boolean;
   progress: { cfi: string; percentage: number; updated_at?: string; remote?: boolean } | null;
   theme: ReaderTheme;

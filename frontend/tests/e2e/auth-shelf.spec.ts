@@ -99,6 +99,8 @@ test('opens the shared shelf directly when no password is configured', async ({ 
   await mockShelfData(page);
   await page.goto('/shelf');
   await expect(page.getByText('书架还是空的')).toBeVisible();
-  await page.getByTitle('书架设置').click();
-  await expect(page.getByRole('menuitem', { name: '退出登录' })).toHaveCount(0);
+  await expect(page.getByTitle('书架设置')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '离线图书管理' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(亮色|暗色)模式$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '退出登录' })).toHaveCount(0);
 });

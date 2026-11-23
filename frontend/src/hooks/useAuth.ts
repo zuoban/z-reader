@@ -2,26 +2,37 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { api, AUTH_EXPIRED_EVENT } from '@/lib/api';
+import { ApiError, api, AUTH_EXPIRED_EVENT } from '@/lib/api';
 import { clearCoverUrlCache } from '@/hooks/useCoverUrl';
+
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'offline';
 
 export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
   const { redirectOnExpire = true } = options;
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
   const [passwordRequired, setPasswordRequired] = useState(true);
 
-  const checkAuth = useCallback(async () => {
+  const isLoading = authStatus === 'loading';
+  const isAuthenticated = authStatus === 'authenticated';
+  const isOffline = authStatus === 'offline';
+
+  const checkAuth = useCallback(async (): Promise<AuthStatus> => {
     try {
       const res = await api.verify();
-      setIsAuthenticated(true);
+      setAuthStatus('authenticated');
       setPasswordRequired(res.password_required);
-    } catch {
-      clearCoverUrlCache();
-      setIsAuthenticated(false);
+      return 'authenticated';
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearCoverUrlCache();
+        setAuthStatus('unauthenticated');
+        return 'unauthenticated';
+      } else {
+        setAuthStatus('offline');
+        return 'offline';
+      }
     }
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -35,7 +46,7 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
   useEffect(() => {
     function handleAuthExpired() {
       clearCoverUrlCache();
-      setIsAuthenticated(false);
+      setAuthStatus('unauthenticated');
       if (redirectOnExpire) {
         router.push('/login');
       }
@@ -53,9 +64,18 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
   async function logout() {
     await api.logout();
     clearCoverUrlCache();
-    setIsAuthenticated(false);
+    setAuthStatus('unauthenticated');
     router.replace('/login');
   }
 
-  return { isLoading, isAuthenticated, passwordRequired, login, logout, checkAuth };
+  return {
+    isLoading,
+    isAuthenticated,
+    isOffline,
+    authStatus,
+    passwordRequired,
+    login,
+    logout,
+    checkAuth,
+  };
 }

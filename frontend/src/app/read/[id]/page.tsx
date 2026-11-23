@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { Volume2 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +25,7 @@ import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderImageZoomOverlay } from "@/components/reader/ReaderImageZoomOverlay";
 import { DeferredTTSControls } from "@/components/DeferredTTSControls";
 import { api, PERSONAL_LIBRARY, type BookDownloadProgress } from "@/lib/api";
-import { saveOfflineBook } from "@/lib/offline-books";
+import { hasOfflineBook, saveOfflineBook } from "@/lib/offline-books";
 import { formatOfflineDownloadLabel } from "@/lib/reader-page";
 import { withOpacity } from "@/lib/reader-ui";
 import {
@@ -34,17 +35,30 @@ import {
 } from "@/lib/theme-color";
 import type { FoliateView } from "@/lib/types";
 
+const ReaderShortcutsDialog = dynamic(
+  () =>
+    import("@/components/reader/ReaderShortcutsDialog").then(
+      (module) => module.ReaderShortcutsDialog
+    ),
+  { ssr: false }
+);
+
 export default function ReadPage() {
   const router = useRouter();
   const params = useParams();
   const bookId = params.id as string;
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const {
+    isLoading: authLoading,
+    isAuthenticated,
+    isOffline,
+    checkAuth,
+  } = useAuth();
   const {
     progress,
     isLoading: progressLoading,
     updateProgress,
     saveNow,
-  } = useProgress({ bookId });
+  } = useProgress({ bookId, remoteSyncEnabled: !isOffline });
   const { theme, setTheme, getStylesheet, getUIScheme } = useReaderTheme();
   const uiScheme = getUIScheme();
 
@@ -77,7 +91,12 @@ export default function ReadPage() {
 
   const [tocOpen, setTocOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
-  const [shortcutsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [isRetryingAuth, setIsRetryingAuth] = useState(false);
+  const [offlineAvailability, setOfflineAvailability] = useState<{
+    bookId: string;
+    available: boolean;
+  } | null>(null);
   const [isSavingOffline, setIsSavingOffline] = useState(false);
   const [offlineDownloadProgress, setOfflineDownloadProgress] =
     useState<BookDownloadProgress | null>(null);
@@ -154,10 +173,70 @@ export default function ReadPage() {
   }, [hideHeader, ttsState]);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated && !isOffline) {
       router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, isOffline, router]);
+
+  useEffect(() => {
+    if (authLoading || !isOffline || !bookId) return;
+    let cancelled = false;
+    void hasOfflineBook(PERSONAL_LIBRARY, bookId).then((available) => {
+      if (!cancelled) {
+        setOfflineAvailability({ bookId, available });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, bookId, isOffline]);
+
+  const offlineCheckedForBook = offlineAvailability?.bookId === bookId;
+  const hasLocalOfflineCopy =
+    isOffline && offlineCheckedForBook && offlineAvailability.available;
+  const offlineMissingCopy =
+    isOffline && offlineCheckedForBook && !offlineAvailability.available;
+
+  const handleToggleShortcuts = useCallback(() => {
+    if (!shortcutsOpen) {
+      setTocOpen(false);
+      setBookmarksOpen(false);
+      setThemeSettingsOpen(false);
+      setShortcutsOpen(true);
+    } else {
+      setShortcutsOpen(false);
+    }
+  }, [
+    shortcutsOpen,
+    setTocOpen,
+    setBookmarksOpen,
+    setThemeSettingsOpen,
+    setShortcutsOpen,
+  ]);
+
+  const handleOpenShortcuts = useCallback(() => {
+    setTocOpen(false);
+    setBookmarksOpen(false);
+    setThemeSettingsOpen(false);
+    setShortcutsOpen(true);
+  }, [setTocOpen, setBookmarksOpen, setThemeSettingsOpen, setShortcutsOpen]);
+
+  const handleRetryConnection = useCallback(async () => {
+    if (isRetryingAuth) return;
+    setIsRetryingAuth(true);
+    try {
+      const status = await checkAuth();
+      if (status === "offline") {
+        toast.error("仍无法连接服务器，请检查网络后再试");
+      }
+    } finally {
+      setIsRetryingAuth(false);
+    }
+  }, [checkAuth, isRetryingAuth, setIsRetryingAuth]);
+
+  const handleCloseShortcuts = useCallback(() => {
+    setShortcutsOpen(false);
+  }, [setShortcutsOpen]);
 
   const goTo = useCallback((href: string) => {
     viewRef.current?.goTo?.(href);
@@ -207,6 +286,9 @@ export default function ReadPage() {
     onNext: handleNext,
     onBack: handleBack,
     onStopTTS: stopTTS,
+    shortcutsOpen,
+    onToggleShortcuts: handleToggleShortcuts,
+    onCloseShortcuts: handleCloseShortcuts,
   });
 
   const {
@@ -228,6 +310,7 @@ export default function ReadPage() {
     containerRef,
     viewRef,
     isAuthenticated,
+    canLoadOffline: hasLocalOfflineCopy,
     progressLoading,
     progress,
     theme,
@@ -300,8 +383,24 @@ export default function ReadPage() {
     tocOpen,
   ]);
 
-  if (authLoading || !isAuthenticated) {
+  if (
+    authLoading ||
+    (!isAuthenticated && !isOffline) ||
+    (isOffline && !offlineCheckedForBook)
+  ) {
     return <ReaderAuthLoading uiScheme={uiScheme} />;
+  }
+
+  if (offlineMissingCopy) {
+    return (
+      <ReaderErrorState
+        error="当前处于离线状态，本书尚未保存到离线缓存"
+        uiScheme={uiScheme}
+        onBack={handleBack}
+        onRetry={() => void handleRetryConnection()}
+        isRetrying={isRetryingAuth}
+      />
+    );
   }
 
   if (error) {
@@ -387,14 +486,15 @@ export default function ReadPage() {
           bookmarksOpen={bookmarksOpen}
           onBookmarksOpenChange={setBookmarksOpen}
           bookmarks={bookmarks}
-          canCreateBookmark={Boolean(currentCFI)}
+          showBookmarks={isAuthenticated}
+          canCreateBookmark={isAuthenticated && Boolean(currentCFI)}
           isSavingBookmark={isSavingBookmark}
           onCreateBookmark={handleCreateBookmark}
           onGoToBookmark={handleGoToBookmark}
           onDeleteBookmark={handleDeleteBookmark}
           isSavingOffline={isSavingOffline}
           offlineDownloadLabel={formatOfflineDownloadLabel(offlineDownloadProgress)}
-          onSaveOffline={handleSaveOffline}
+          onSaveOffline={isAuthenticated ? handleSaveOffline : undefined}
           tocListRef={tocListRef}
           currentChapter={currentChapter}
           currentChapterHref={currentChapterHref}
@@ -410,33 +510,38 @@ export default function ReadPage() {
           onThemeSettingsOpenChange={setThemeSettingsOpen}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
+          onOpenShortcuts={handleOpenShortcuts}
           ttsControls={
-            <DeferredTTSControls
-              {...sharedTTSControlsProps}
-              variant="toolbar"
-              triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
-              triggerStyle={{}}
-              triggerContent={
-                <div className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">朗读</span>
-                </div>
-              }
-            />
+            isAuthenticated ? (
+              <DeferredTTSControls
+                {...sharedTTSControlsProps}
+                variant="toolbar"
+                triggerClassName="flex h-9 items-center gap-2 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+                triggerStyle={{}}
+                triggerContent={
+                  <div className="flex items-center gap-2">
+                    <Volume2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">朗读</span>
+                  </div>
+                }
+              />
+            ) : undefined
           }
           mobileTtsControls={
-            <DeferredTTSControls
-              {...sharedTTSControlsProps}
-              variant="toolbar"
-              triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
-              triggerStyle={{}}
-              triggerContent={
-                <>
-                  <Volume2 className="size-4 opacity-80" />
-                  <span>朗读</span>
-                </>
-              }
-            />
+            isAuthenticated ? (
+              <DeferredTTSControls
+                {...sharedTTSControlsProps}
+                variant="toolbar"
+                triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
+                triggerStyle={{}}
+                triggerContent={
+                  <>
+                    <Volume2 className="size-4 opacity-80" />
+                    <span>朗读</span>
+                  </>
+                }
+              />
+            ) : undefined
           }
         />
 
@@ -499,6 +604,15 @@ export default function ReadPage() {
                 onPointerEnd={handleImagePointerEnd}
               />
             )}
+
+            {shortcutsOpen && (
+              <ReaderShortcutsDialog
+                open
+                onOpenChange={setShortcutsOpen}
+                uiScheme={uiScheme}
+                overlayContainer={overlayContainer}
+              />
+            )}
           </div>
 
           <ReaderStatusBar
@@ -511,23 +625,25 @@ export default function ReadPage() {
             isToolbarVisible={isHeaderVisible}
             onToggleToolbar={isHeaderVisible ? hideHeader : showHeader}
             compactTrailingAction={
-              <DeferredTTSControls
-                {...sharedTTSControlsProps}
-                variant="toolbar"
-                triggerClassName="paper-motion-interactive inline-flex size-4! shrink-0 items-center justify-center rounded-[5px] p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-[9px]! hover:bg-black/5 dark:hover:bg-white/5"
-                triggerStyle={{
-                  color:
-                    ttsState !== "stopped"
-                      ? uiScheme.link
-                      : withOpacity(uiScheme.fg, 0.72),
-                  background: "transparent",
-                  border: "none",
-                  height: "20px",
-                  minHeight: "20px",
-                  width: "20px",
-                  minWidth: "20px",
-                }}
-              />
+              isAuthenticated ? (
+                <DeferredTTSControls
+                  {...sharedTTSControlsProps}
+                  variant="toolbar"
+                  triggerClassName="paper-motion-interactive inline-flex size-4! shrink-0 items-center justify-center rounded-[5px] p-0 transition-all hover:scale-[1.05] active:scale-90 focus-visible:ring-0 [&_svg]:size-[9px]! hover:bg-black/5 dark:hover:bg-white/5"
+                  triggerStyle={{
+                    color:
+                      ttsState !== "stopped"
+                        ? uiScheme.link
+                        : withOpacity(uiScheme.fg, 0.72),
+                    background: "transparent",
+                    border: "none",
+                    height: "20px",
+                    minHeight: "20px",
+                    width: "20px",
+                    minWidth: "20px",
+                  }}
+                />
+              ) : undefined
             }
           />
         </div>

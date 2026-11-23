@@ -56,6 +56,27 @@ async function ensureCapacity(bytes: number) {
   }
 }
 
+function safeDecodeHeader(value: string | null): string {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function parseHeaderSize(value: string | null): number | null {
+  if (value === null || value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function titleFromFilename(filename: string): string {
+  const trimmed = filename.trim();
+  if (!trimmed) return '';
+  return trimmed.replace(/\.[^.]+$/, '') || trimmed;
+}
+
 export async function saveOfflineBook(userId: string, book: Book, file: Blob) {
   if (!supportsOfflineBooks()) {
     throw new Error('当前浏览器不支持离线图书');
@@ -67,6 +88,10 @@ export async function saveOfflineBook(userId: string, book: Book, file: Blob) {
       'Content-Type': file.type || 'application/octet-stream',
       'X-Z-Reader-Filename': encodeURIComponent(book.filename),
       'X-Z-Reader-Content-Hash': book.content_hash ?? '',
+      'X-Z-Reader-Title': encodeURIComponent(book.title ?? ''),
+      'X-Z-Reader-Author': encodeURIComponent(book.author ?? ''),
+      'X-Z-Reader-Size': String(file.size),
+      'X-Z-Reader-Saved-At': new Date().toISOString(),
     },
   }));
 }
@@ -209,6 +234,82 @@ export async function clearPartialBookDownload(userId: string, bookId: string): 
 export interface OfflineBookEntry {
   file: File | Blob;
   contentHash: string;
+  filename?: string;
+  title?: string;
+  author?: string;
+  size?: number;
+  savedAt?: string;
+}
+
+export interface OfflineBookSummary {
+  bookId: string;
+  filename: string;
+  title: string;
+  author: string;
+  size: number;
+  savedAt: string;
+}
+
+export async function hasOfflineBook(userId: string, bookId: string): Promise<boolean> {
+  if (!userId || !bookId || !supportsOfflineBooks()) return false;
+  try {
+    const cache = await caches.open(cacheName(userId));
+    const response = await cache.match(cacheRequest(bookId));
+    return Boolean(response);
+  } catch {
+    return false;
+  }
+}
+
+export async function listOfflineBooks(userId: string): Promise<OfflineBookSummary[]> {
+  if (!userId || !supportsOfflineBooks()) return [];
+  try {
+    const cache = await caches.open(cacheName(userId));
+    const requests = await cache.keys();
+    const entries: OfflineBookSummary[] = [];
+
+    for (const request of requests) {
+      let pathname: string;
+      try {
+        pathname = new URL(request.url).pathname;
+      } catch {
+        continue;
+      }
+      if (!pathname.startsWith(CACHE_KEY_PREFIX) || pathname.startsWith(PARTIAL_DOWNLOAD_KEY_PREFIX)) {
+        continue;
+      }
+
+      const rawId = pathname.slice(CACHE_KEY_PREFIX.length);
+      if (!rawId || rawId.includes('/')) continue;
+      const bookId = safeDecodeHeader(rawId);
+      if (!bookId) continue;
+
+      const response = await cache.match(request);
+      if (!response) continue;
+
+      const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
+      const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
+      const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
+      const headerSize = parseHeaderSize(response.headers.get('X-Z-Reader-Size'));
+      const size = headerSize ?? (await response.blob()).size;
+      const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
+
+      entries.push({ bookId, filename, title, author, size, savedAt });
+    }
+
+    entries.sort((a, b) => {
+      const timeA = a.savedAt ? Date.parse(a.savedAt) : 0;
+      const timeB = b.savedAt ? Date.parse(b.savedAt) : 0;
+      const safeA = Number.isFinite(timeA) ? timeA : 0;
+      const safeB = Number.isFinite(timeB) ? timeB : 0;
+      if (safeB !== safeA) return safeB - safeA;
+      return a.title.localeCompare(b.title);
+    });
+
+    return entries;
+  } catch {
+    return [];
+  }
 }
 
 export async function getOfflineBookEntry(
@@ -226,15 +327,19 @@ export async function getOfflineBookEntry(
   )) return null;
 
   const blob = await response.blob();
-  const encodedFilename = response.headers.get('X-Z-Reader-Filename');
-  const filename = encodedFilename ? decodeURIComponent(encodedFilename) : `${bookId}.epub`;
+  const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
+  const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
+  const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
+  const size = parseHeaderSize(response.headers.get('X-Z-Reader-Size')) ?? blob.size;
+  const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
+  const metadata = { contentHash, filename, title, author, size, savedAt };
   try {
     return {
       file: new File([blob], filename, { type: blob.type || 'application/octet-stream' }),
-      contentHash,
+      ...metadata,
     };
   } catch {
-    return { file: blob, contentHash };
+    return { file: blob, ...metadata };
   }
 }
 

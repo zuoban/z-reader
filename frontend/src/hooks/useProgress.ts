@@ -15,6 +15,11 @@ interface UseProgressOptions {
   bookId: string;
   autoSaveInterval?: number;
   debounceDelay?: number;
+  remoteSyncEnabled?: boolean;
+}
+
+function isBrowserOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
 function readOfflineProgressSnapshot(bookId: string): ProgressSnapshot | null {
@@ -41,7 +46,12 @@ function readOfflineProgressSnapshot(bookId: string): ProgressSnapshot | null {
   }
 }
 
-export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1000 }: UseProgressOptions) {
+export function useProgress({
+  bookId,
+  autoSaveInterval = 5000,
+  debounceDelay = 1000,
+  remoteSyncEnabled = true,
+}: UseProgressOptions) {
   // Hydrate offline progress synchronously so the reader can open without waiting on network.
   const [progress, setProgress] = useState<ProgressSnapshot | null>(() => {
     const offline = readOfflineProgressSnapshot(bookId);
@@ -102,10 +112,48 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
     );
   }, []);
 
+  const persistOfflineProgress = useCallback((data: { cfi: string; percentage: number }) => {
+    const offlineSnapshot: ProgressSnapshot = {
+      cfi: data.cfi,
+      percentage: data.percentage,
+      updated_at: new Date().toISOString(),
+      device_id: getDeviceId() || 'offline-device',
+      remote: false,
+    };
+
+    localStorage.setItem(`z-reader-offline-progress:${bookId}`, JSON.stringify(offlineSnapshot));
+
+    try {
+      const queueRaw = localStorage.getItem('z-reader-offline-pending-sync-books');
+      const queue: string[] = queueRaw ? JSON.parse(queueRaw) : [];
+      if (!queue.includes(bookId)) {
+        queue.push(bookId);
+        localStorage.setItem('z-reader-offline-pending-sync-books', JSON.stringify(queue));
+      }
+    } catch {
+      // ignore
+    }
+
+    lastSavedRef.current = offlineSnapshot;
+    setProgress(offlineSnapshot);
+
+    if (
+      pendingSaveRef.current?.cfi === data.cfi &&
+      pendingSaveRef.current.percentage === data.percentage
+    ) {
+      pendingSaveRef.current = null;
+    }
+  }, [bookId]);
+
   const saveProgress = useCallback(async (data: { cfi: string; percentage: number }, force = false) => {
     // 强制保存时忽略 1% 变化限制
     if (!force && savingRef.current) return;
     if (!force && !hasMeaningfulChange(data)) {
+      return;
+    }
+
+    if (!remoteSyncEnabled || isBrowserOffline()) {
+      persistOfflineProgress(data);
       return;
     }
 
@@ -147,44 +195,12 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
 
       // Handle offline queuing if the error is not a server logic conflict
       if (!(err instanceof ApiError)) {
-        const offlineSnapshot = {
-          cfi: data.cfi,
-          percentage: data.percentage,
-          updated_at: new Date().toISOString(),
-          device_id: getDeviceId() || 'offline-device',
-          remote: false,
-        };
-
-        // Cache locally for this book
-        localStorage.setItem(`z-reader-offline-progress:${bookId}`, JSON.stringify(offlineSnapshot));
-
-        // Add to pending sync queue
-        try {
-          const queueRaw = localStorage.getItem('z-reader-offline-pending-sync-books');
-          const queue: string[] = queueRaw ? JSON.parse(queueRaw) : [];
-          if (!queue.includes(bookId)) {
-            queue.push(bookId);
-            localStorage.setItem('z-reader-offline-pending-sync-books', JSON.stringify(queue));
-          }
-        } catch {
-          // ignore
-        }
-
-        // Apply offline snapshot to state so interface updates instantly
-        lastSavedRef.current = offlineSnapshot;
-        setProgress(offlineSnapshot);
-
-        if (
-          pendingSaveRef.current?.cfi === data.cfi &&
-          pendingSaveRef.current.percentage === data.percentage
-        ) {
-          pendingSaveRef.current = null;
-        }
+        persistOfflineProgress(data);
       }
     } finally {
       savingRef.current = false;
     }
-  }, [applyLoadedProgress, bookId, hasMeaningfulChange]);
+  }, [applyLoadedProgress, bookId, hasMeaningfulChange, persistOfflineProgress, remoteSyncEnabled]);
 
   // 防抖保存 - 避免快速翻页时频繁请求
   const debouncedSave = useCallback((data: { cfi: string; percentage: number }) => {
@@ -197,6 +213,7 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
   }, [saveProgress, debounceDelay]);
 
   const syncOfflineProgressQueue = useCallback(async () => {
+    if (!remoteSyncEnabled || isBrowserOffline()) return;
     try {
       const queueRaw = localStorage.getItem('z-reader-offline-pending-sync-books');
       if (!queueRaw) return;
@@ -241,9 +258,19 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
     } catch (err) {
       console.error('Error in background sync progress queue:', err);
     }
-  }, []);
+  }, [remoteSyncEnabled]);
 
   const loadProgress = useCallback(async () => {
+    if (!remoteSyncEnabled || isBrowserOffline()) {
+      const offline = readOfflineProgressSnapshot(bookId);
+      if (offline) {
+        setProgress(offline);
+        lastSavedRef.current = offline;
+      }
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const data = await api.getProgress(bookId);
       applyLoadedProgress(data);
@@ -277,7 +304,7 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
       }
     }
     setIsLoading(false);
-  }, [applyLoadedProgress, bookId]);
+  }, [applyLoadedProgress, bookId, remoteSyncEnabled]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -300,7 +327,9 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
   }, [syncOfflineProgressQueue]);
 
   useEffect(() => {
+    if (!remoteSyncEnabled) return;
     const refreshRemoteProgress = async () => {
+      if (isBrowserOffline()) return;
       if (!lastSavedRef.current || savingRef.current || pendingSaveRef.current) return;
       try {
         const latest = await api.getProgress(bookId);
@@ -332,7 +361,7 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
       window.removeEventListener('focus', refreshRemoteProgress);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [applyLoadedProgress, bookId]);
+  }, [applyLoadedProgress, bookId, remoteSyncEnabled]);
 
   // 定时保存 - 低频检查
   useEffect(() => {
@@ -369,6 +398,10 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
       if (pendingSaveRef.current) {
         const pending = pendingSaveRef.current;
         if (hasMeaningfulChange(pending)) {
+          if (!remoteSyncEnabled || isBrowserOffline()) {
+            persistOfflineProgress(pending);
+            return;
+          }
           api.saveProgressOnUnload(bookId, pending.cfi, pending.percentage, {
             expectedUpdatedAt: lastSavedRef.current?.updated_at,
             deviceId: getDeviceId(),
@@ -383,7 +416,7 @@ export function useProgress({ bookId, autoSaveInterval = 5000, debounceDelay = 1
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('pagehide', handleBeforeUnload);
     };
-  }, [bookId, hasMeaningfulChange]);
+  }, [bookId, hasMeaningfulChange, persistOfflineProgress, remoteSyncEnabled]);
 
   function updateProgress(cfi: string, percentage: number) {
     setProgress({ cfi, percentage });

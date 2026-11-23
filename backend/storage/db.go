@@ -28,7 +28,8 @@ var (
 // Session 数据存储在独立数据库 SessionDB 中以避免锁竞争。
 type DB struct {
 	*bbolt.DB
-	sessionDB *SessionDB
+	sessionDB       *SessionDB
+	uploadSnapshots uploadSnapshots
 }
 
 // Open 打开主数据库和独立 session 数据库。

@@ -253,7 +253,7 @@ func (h *BooksHandler) commitCover(snapshot *models.Book, cover bookCover, repla
 	if err != nil || book.CoverPath != cover.path {
 		h.removeUploadFiles(cover.path, cover.thumb)
 	} else {
-		h.removeUploadFiles(previous.path, previous.thumb)
+		h.removePublishedUploadFiles(previous.path, previous.thumb)
 	}
 	return book, err
 }

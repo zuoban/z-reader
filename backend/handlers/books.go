@@ -280,7 +280,7 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	h.removeUploadFiles(book.Filename, book.CoverPath, book.CoverThumbPath)
+	h.removePublishedUploadFiles(book.Filename, book.CoverPath, book.CoverThumbPath)
 	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
 }
 
@@ -316,7 +316,7 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 
 	deletedIDs := make([]string, 0, len(deletedBooks))
 	for _, book := range deletedBooks {
-		h.removeUploadFiles(book.Filename, book.CoverPath, book.CoverThumbPath)
+		h.removePublishedUploadFiles(book.Filename, book.CoverPath, book.CoverThumbPath)
 		deletedIDs = append(deletedIDs, book.ID)
 	}
 
@@ -409,6 +409,10 @@ func normalizeBookFormat(format string, filename string) string {
 		return format
 	}
 	return supportedBookFormats[strings.ToLower(filepath.Ext(filename))]
+}
+
+func (h *BooksHandler) removePublishedUploadFiles(names ...string) {
+	h.db.CleanupUnreferencedUploads(func() { h.removeUploadFiles(names...) })
 }
 
 func (h *BooksHandler) removeUploadFiles(names ...string) {

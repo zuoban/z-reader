@@ -41,8 +41,8 @@ curl --fail --show-error http://127.0.0.1/readyz
 ## 备份与恢复演练
 
 服务会在启动时创建已校验的备份，之后按 `BACKUP_INTERVAL_HOURS`（默认 24）执行。Compose
-下备份位于 `./data/backups/`，其中包含数据库、会话、上传文件和 SHA-256 清单。不要把
-“目录存在”当成可恢复；每次升级前和每月至少一次，都应校验最近备份：
+下备份位于 `./data/backups/`，其中包含数据库、会话、书籍记录引用的原书和封面文件，以及 SHA-256 清单。
+每次升级前和每月至少一次，都应校验最近备份。校验会核对文件摘要，并确认数据库快照里的文件引用都有对应副本。
 
 ```bash
 backup_dir="$(find data/backups -mindepth 1 -maxdepth 1 -type d -name 'backup-*' | sort | tail -n 1)"
@@ -83,7 +83,7 @@ Z Reader 实例，访问 `/readyz`，并确认至少一本书和登录会话可�
    ```bash
    curl --fail --show-error http://127.0.0.1:<drill-port>/readyz
    ```
-5. **业务抽查**：登录成功；书架至少可见一本已恢复图书（或上传列表非空）。
+5. **业务抽查**：登录后从书架打开至少一本已恢复图书，确认正文能加载并翻页。
 6. **记录**下方表格：开始/结束、备份 `created_at`、RTO、问题与跟进。
 7. **清理**：确认生产未被动后，删除演练目录与临时容器。
 

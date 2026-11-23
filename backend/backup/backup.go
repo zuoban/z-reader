@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"go.etcd.io/bbolt"
-
 	"z-reader/backend/storage"
 )
 
@@ -43,6 +41,10 @@ type Manifest struct {
 // Create writes an online database snapshot and a copy of uploaded files into
 // an atomically-published backup directory, then verifies its checksums.
 func Create(db *storage.DB, config Config) (string, error) {
+	return create(db, config, copySnapshotUploads)
+}
+
+func create(db *storage.DB, config Config, copyUploads func(snapshot, source, destination string) error) (string, error) {
 	if config.Dir == "" {
 		return "", fmt.Errorf("backup directory is required")
 	}
@@ -61,14 +63,20 @@ func Create(db *storage.DB, config Config) (string, error) {
 	}
 	defer os.RemoveAll(temporaryDir)
 
-	if err := db.BackupTo(filepath.Join(temporaryDir, "data.db")); err != nil {
-		return "", fmt.Errorf("snapshot main database: %w", err)
+	snapshot := filepath.Join(temporaryDir, "data.db")
+	if err := db.WithUploadFilesRetained(func() error {
+		if err := db.BackupTo(snapshot); err != nil {
+			return fmt.Errorf("snapshot main database: %w", err)
+		}
+		if err := copyUploads(snapshot, config.UploadDir, filepath.Join(temporaryDir, "uploads")); err != nil {
+			return fmt.Errorf("copy snapshot uploads: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return "", err
 	}
 	if err := db.SessionBackupTo(filepath.Join(temporaryDir, "data.db.sessions")); err != nil {
 		return "", fmt.Errorf("snapshot session database: %w", err)
-	}
-	if err := copyTree(config.UploadDir, filepath.Join(temporaryDir, "uploads")); err != nil {
-		return "", fmt.Errorf("copy uploads: %w", err)
 	}
 
 	manifest, err := buildManifest(temporaryDir, createdAt)
@@ -96,8 +104,8 @@ func Create(db *storage.DB, config Config) (string, error) {
 	return finalDir, nil
 }
 
-// Verify checks every manifest digest and opens both database snapshots in
-// read-only mode, making it suitable for scheduled restore-readiness checks.
+// Verify checks the manifest digests, opens both database snapshots in
+// read-only mode, and checks that all referenced uploads are in the manifest.
 func Verify(path string) error {
 	data, err := os.ReadFile(filepath.Join(path, manifestName))
 	if err != nil {
@@ -122,16 +130,27 @@ func Verify(path string) error {
 			return fmt.Errorf("checksum mismatch for %s", relativePath)
 		}
 	}
-	for _, name := range []string{"data.db", "data.db.sessions"} {
-		db, err := bbolt.Open(filepath.Join(path, name), 0600, &bbolt.Options{ReadOnly: true, Timeout: time.Second})
-		if err != nil {
-			return fmt.Errorf("open snapshot %s: %w", name, err)
-		}
-		if err := db.Close(); err != nil {
-			return err
-		}
+	uploads, err := os.Lstat(filepath.Join(path, "uploads"))
+	if err != nil {
+		return fmt.Errorf("open snapshot uploads: %w", err)
 	}
-	return nil
+	if !uploads.IsDir() {
+		return fmt.Errorf("snapshot uploads is not a directory")
+	}
+	if err := visitSnapshotUploads(filepath.Join(path, "data.db"), func(name string) error {
+		relativePath := filepath.Join("uploads", name)
+		if _, ok := manifest.Files[filepath.ToSlash(relativePath)]; !ok {
+			return fmt.Errorf("%s is missing from the manifest", relativePath)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	sessions, err := openSnapshot(filepath.Join(path, "data.db.sessions"))
+	if err != nil {
+		return err
+	}
+	return sessions.Close()
 }
 
 // Restore verifies a backup and copies it into an empty application data
@@ -289,6 +308,10 @@ func copyFile(source, destination string) error {
 		return err
 	}
 	defer input.Close()
+	return copyToFile(input, destination)
+}
+
+func copyToFile(input io.Reader, destination string) error {
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return err

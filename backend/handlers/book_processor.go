@@ -306,8 +306,8 @@ func (h *BooksHandler) completeBookPreview(job bookProcessingJob, filename strin
 	if cover.path != "" {
 		if err != nil || book.CoverPath != cover.path {
 			h.removeUploadFiles(cover.path, cover.thumb)
-		} else {
-			h.removeUploadFiles(previousThumb)
+		} else if previousThumb != "" {
+			h.removePublishedUploadFiles(previousThumb)
 		}
 	}
 	if err != nil && err != storage.ErrNotFound {

@@ -1,15 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import {
-  CalendarClock,
-  ChevronRight,
-  Clock,
-  HardDrive,
-  MoreVertical,
-  Tag,
-  Trash2,
-} from 'lucide-react';
+import { MoreVertical, Tag, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +11,8 @@ import {
 import { cn } from '@/lib/utils';
 
 interface BookCardDropdownProps {
+  bookTitle?: string;
+  categoryLabel?: string;
   formatLabel: string;
   sizeLabel: string;
   uploadedAtLabel: string;
@@ -30,31 +23,20 @@ interface BookCardDropdownProps {
   triggerClassName?: string;
 }
 
-function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2.5 text-[12px]">
-      <div className="flex min-w-0 items-center gap-2 text-muted-foreground/75">
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground/60">
-          {icon}
-        </span>
-        <span className="truncate">{label}</span>
-      </div>
-      <span className="truncate text-right font-medium tabular-nums text-foreground/80">
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium tabular-nums text-foreground/85">
         {value}
-      </span>
+      </dd>
     </div>
   );
 }
 
 export function BookCardDropdown({
+  bookTitle,
+  categoryLabel,
   formatLabel,
   sizeLabel,
   uploadedAtLabel,
@@ -64,13 +46,16 @@ export function BookCardDropdown({
   onDeleteClick,
   triggerClassName,
 }: BookCardDropdownProps) {
+  const triggerLabel = bookTitle ? `更多操作：《${bookTitle}》` : '更多操作';
+  const currentCategoryText = categoryLabel || '未分类';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="更多操作"
+        aria-label={triggerLabel}
         title="更多操作"
         className={cn(
-          'flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 sm:h-8 sm:w-8',
+          'flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground data-[popup-open]:bg-secondary data-[popup-open]:text-foreground focus-visible:outline-2 focus-visible:outline-ring active:scale-95 sm:h-8 sm:w-8',
           triggerClassName
         )}
         onClick={(e) => e.stopPropagation()}
@@ -79,54 +64,57 @@ export function BookCardDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="top"
-        align="start"
-        alignOffset={0}
+        align="end"
+        alignOffset={10}
         sideOffset={8}
-        className="app-dialog-shell w-64 overflow-hidden rounded-xl border p-1.5 font-sans"
+        collisionPadding={12}
+        className="w-[14.5rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-0 font-sans shadow-[var(--paper-shadow-floating)]"
       >
-        <div className="px-2.5 pb-2 pt-2">
-          <div className="mb-2.5 flex items-center justify-between gap-3">
-            <span className="text-xs font-medium text-muted-foreground">
-              书籍信息
-            </span>
-            <div className="rounded-md bg-secondary px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-foreground">
+        <div className="border-b border-border/70 bg-surface-subtle/75 px-4 py-3">
+          <div className="flex items-center justify-between gap-2.5">
+            <p
+              className="min-w-0 truncate font-heading text-[13px] font-semibold leading-snug text-foreground"
+              title={bookTitle || '书籍信息'}
+            >
+              {bookTitle || '书籍信息'}
+            </p>
+            <span className="shrink-0 rounded-[4px] border border-border/80 bg-card px-1.5 py-[1px] font-mono text-[10px] font-medium leading-[1.4] tracking-[0.04em] text-subtle-foreground">
               {formatLabel}
-            </div>
+            </span>
           </div>
 
-          <div className="app-surface-panel space-y-2.5 rounded-lg px-3 py-2.5">
-            <DetailRow
-              icon={<HardDrive className="h-3.5 w-3.5" strokeWidth={1.5} />}
-              label="大小"
-              value={sizeLabel || '未知'}
-            />
-            <DetailRow
-              icon={<CalendarClock className="h-3.5 w-3.5" strokeWidth={1.5} />}
-              label="上传日期"
-              value={uploadedAtLabel}
-            />
-            <DetailRow
-              icon={<Clock className="h-3.5 w-3.5" strokeWidth={1.5} />}
-              label="上次阅读"
-              value={lastReadLabel}
-            />
-          </div>
+          <dl
+            aria-label="书籍信息"
+            className="mt-2.5 space-y-1.5 text-[12px] leading-4"
+          >
+            <DetailRow label="大小" value={sizeLabel || '未知'} />
+            <DetailRow label="上传日期" value={uploadedAtLabel} />
+            <DetailRow label="上次阅读" value={lastReadLabel} />
+          </dl>
         </div>
 
-        <DropdownMenuSeparator className="mx-2 my-1 bg-border/60" />
-
-        <div className="p-0.5">
+        <div className="p-1.5">
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
               onCategoryClick();
             }}
-            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors focus:bg-secondary focus:text-foreground"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors focus:bg-secondary focus:text-foreground data-[highlighted]:bg-secondary data-[highlighted]:text-foreground sm:min-h-9 sm:py-1.5"
           >
-            <Tag className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <span>设置分类</span>
-            <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/60" />
+            <Tag
+              className="h-4 w-4 text-muted-foreground transition-colors group-focus/dropdown-menu-item:text-foreground group-data-[highlighted]/dropdown-menu-item:text-foreground"
+              strokeWidth={1.6}
+            />
+            <span className="shrink-0">设置分类</span>
+            <span
+              className="ml-auto max-w-[5.75rem] truncate text-xs font-normal text-muted-foreground"
+              title={currentCategoryText}
+            >
+              {currentCategoryText}
+            </span>
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="mx-1.5 my-1 bg-border/65" />
 
           <DropdownMenuItem
             onClick={(e) => {
@@ -135,11 +123,10 @@ export function BookCardDropdown({
             }}
             disabled={isDeleting}
             variant="destructive"
-            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors data-[highlighted]:bg-destructive/10 dark:data-[highlighted]:bg-destructive/18 sm:min-h-9 sm:py-1.5"
           >
-            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-            <span>{isDeleting ? '删除中...' : '删除图书'}</span>
-            <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />
+            <Trash2 className="h-4 w-4" strokeWidth={1.6} />
+            <span>{isDeleting ? '删除中…' : '删除图书'}</span>
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

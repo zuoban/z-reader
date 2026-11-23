@@ -15,7 +15,7 @@ export const SHELF_GRID_MIN_COL_PX = {
  * Non-cover body of BookCard (title, author, progress, footer).
  * Tuned from actual layout; measureElement refines after paint.
  */
-export const SHELF_CARD_BODY_HEIGHT_PX = 156;
+export const SHELF_CARD_BODY_HEIGHT_PX = 152;
 
 /** Fallback when width is unknown. */
 export const SHELF_CARD_ESTIMATE_HEIGHT_PX = 420;

@@ -56,6 +56,25 @@
       background-position: -180% 0;
     }
   }
+
+  .paper-motion-menu {
+    transition:
+      opacity var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .paper-motion-menu[data-starting-style] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  .paper-motion-menu[data-side="top"][data-starting-style] {
+    transform: translateY(4px) scale(0.97);
+  }
+
+  .paper-motion-menu[data-side="bottom"][data-starting-style] {
+    transform: translateY(-4px) scale(0.97);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -78,7 +97,10 @@
     filter: none;
   }
 
-  .shelf-book-card:hover {
+  .paper-motion-menu[data-starting-style],
+  .shelf-book-card:hover,
+  .shelf-book-card:hover .shelf-book-cover,
+  .shelf-book-open:active .shelf-book-cover {
     transform: none;
   }
 }

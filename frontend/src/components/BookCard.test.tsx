@@ -59,4 +59,13 @@ describe('BookCard', () => {
     expect(onSelectionToggle).toHaveBeenCalledOnce();
     expect(onRead).not.toHaveBeenCalled();
   });
+
+  it('opens the book actions popover with metadata and current category', () => {
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: '更多操作：《红楼梦》' }));
+    expect(screen.getByLabelText('书籍信息')).toBeInTheDocument();
+    expect(screen.getByText('100 B')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /设置分类/ })).toHaveTextContent('未分类');
+    expect(screen.getByRole('menuitem', { name: '删除图书' })).toBeInTheDocument();
+  });
 });

@@ -64,25 +64,69 @@
   }
 
   .shelf-book-cover {
-    @apply relative aspect-[5/7] w-full overflow-hidden rounded-lg;
+    @apply relative aspect-[5/7] w-full overflow-hidden;
+    border-radius: 3px 8px 8px 3px;
     background: var(--shelf-card-media);
-    box-shadow: 0 2px 8px -2px var(--paper-shadow), inset 0 0 0 1px color-mix(in srgb, var(--foreground) 7%, transparent);
+    box-shadow:
+      0 1px 2px rgb(24 23 20 / 8%),
+      0 4px 12px -4px rgb(24 23 20 / 12%);
     transition: box-shadow var(--paper-duration-base) var(--paper-ease-soft),
       transform var(--paper-duration-base) var(--paper-ease-soft);
   }
 
-  .shelf-book-open:hover .shelf-book-cover {
-    box-shadow: 0 8px 20px -6px var(--paper-shadow), inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
+  .dark .shelf-book-cover {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 34%),
+      0 6px 16px -6px rgb(0 0 0 / 48%);
   }
 
-  .shelf-book-open:hover h2 {
+  /* Crisp inner edge painted above cover artwork so pale or dark covers never bleed into the canvas. */
+  .shelf-book-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 0 0 1px rgb(24 23 20 / 11%),
+      inset 0 1px 0 rgb(255 255 255 / 26%),
+      inset -1px 0 0 rgb(255 255 255 / 12%);
+    pointer-events: none;
+  }
+
+  .dark .shelf-book-cover::after {
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 12%),
+      inset 0 1px 0 rgb(255 255 255 / 9%);
+  }
+
+  .shelf-book-card:hover .shelf-book-cover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px rgb(24 23 20 / 8%),
+      0 12px 24px -8px rgb(24 23 20 / 18%);
+  }
+
+  .dark .shelf-book-card:hover .shelf-book-cover {
+    box-shadow:
+      0 2px 6px rgb(0 0 0 / 40%),
+      0 14px 28px -8px rgb(0 0 0 / 60%);
+  }
+
+  .shelf-book-open:active .shelf-book-cover {
+    transform: translateY(0) scale(0.992);
+  }
+
+  .shelf-book-card:hover h2 {
     color: var(--primary);
   }
 
   .shelf-book-selection {
-    @apply pointer-events-none absolute right-2 top-2 grid size-7 place-items-center rounded-md border;
-    background: var(--card);
-    border-color: var(--border);
+    @apply pointer-events-none absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md border shadow-sm;
+    background: color-mix(in srgb, var(--card) 94%, transparent);
+    border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   .shelf-book-card[data-selected="true"] .shelf-book-cover {
@@ -96,9 +140,9 @@
     color: var(--primary-foreground);
   }
 
-  /* Details (116px) + actions (36px desktop / 44px mobile) total ~152-160px, matching the virtual grid estimate. */
+  /* Details (112px) + actions (36px desktop / 44px mobile) total ~148-156px, matching the virtual grid estimate. */
   .shelf-book-details {
-    @apply flex h-[7.25rem] w-full flex-col justify-between gap-2 px-0.5 pb-2 pt-2.5;
+    @apply flex h-[7rem] w-full flex-col justify-between gap-1.5 pb-1.5 pt-2.5;
   }
 
   .shelf-book-actions {
@@ -109,13 +153,13 @@
     content: "";
     position: absolute;
     inset: 0 0 auto;
-    border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
     pointer-events: none;
   }
 
   .book-cover-fallback {
     background: var(--cover-color);
-    color: #fff9e8;
+    color: #fff9ec;
   }
 
   .book-cover-fallback::before,
@@ -126,15 +170,19 @@
   }
 
   .book-cover-fallback::before {
-    inset: 0 auto 0 0;
-    width: 6px;
-    background: rgb(0 0 0 / 14%);
-    border-inline-end: 1px solid rgb(255 249 232 / 18%);
+    inset: 0;
+    background: linear-gradient(
+      155deg,
+      rgb(255 252 244 / 11%) 0%,
+      transparent 44%,
+      rgb(0 0 0 / 16%) 100%
+    );
   }
 
   .book-cover-fallback::after {
-    inset: 10px 10px 10px 15px;
-    border: 1px solid rgb(255 249 232 / 28%);
+    inset: 10px 10px 10px 16px;
+    border-radius: 1px 4px 4px 1px;
+    border: 1px solid rgb(255 249 236 / 22%);
   }
 
   .shelf-skeleton-container {

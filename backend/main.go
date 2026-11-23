@@ -124,12 +124,12 @@ func main() {
 		api.GET("/books/status", booksHandler.Status)
 		api.PATCH("/books/categories", booksHandler.RenameCategory)
 		api.GET("/books/:id", booksHandler.Get)
-		api.POST("/books", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.Upload)
+		api.POST("/books", middleware.RateLimit(middleware.NewRateLimiter(60, 5*time.Minute)), booksHandler.Upload)
 		api.POST("/books/batch/delete", booksHandler.BatchDelete)
 		api.POST("/books/batch/category", booksHandler.BatchUpdateCategory)
 		api.PATCH("/books/:id", booksHandler.Update)
 		api.DELETE("/books/:id/category", booksHandler.RemoveCategory)
-		api.POST("/books/:id/cover", middleware.RateLimit(middleware.NewRateLimiter(10, 5*time.Minute)), booksHandler.UploadCover)
+		api.POST("/books/:id/cover", middleware.RateLimit(middleware.NewRateLimiter(30, 5*time.Minute)), booksHandler.UploadCover)
 		api.DELETE("/books/:id", booksHandler.Delete)
 		api.GET("/books/:id/file", booksHandler.GetFile)
 		api.GET("/books/:id/cover", booksHandler.GetCover)
@@ -223,10 +223,40 @@ func startBackupWorker(ctx context.Context, db *storage.DB, cfg *config.Config) 
 		logger.Info("Verified backup created", "path", path)
 	}
 
-	createBackup()
+	initialDelay := time.Duration(0)
+	if latestAt, ok := backup.LatestVerifiedTimeContext(ctx, cfg.BackupDir); ok {
+		telemetry.RecordExistingBackup(latestAt)
+		age := time.Since(latestAt)
+		if age >= 0 && age < interval {
+			initialDelay = interval - age
+		}
+	}
+	if ctx.Err() != nil {
+		logger.Info("Backup worker stopped")
+		return
+	}
+
+	logger.Info("Backup worker started",
+		"interval_hours", cfg.BackupIntervalHours,
+		"next_in", initialDelay.Round(time.Second).String(),
+	)
+
+	if initialDelay > 0 {
+		timer := time.NewTimer(initialDelay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			logger.Info("Backup worker stopped")
+			return
+		case <-timer.C:
+			createBackup()
+		}
+	} else {
+		createBackup()
+	}
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	logger.Info("Backup worker started", "interval_hours", cfg.BackupIntervalHours)
 	for {
 		select {
 		case <-ctx.Done():

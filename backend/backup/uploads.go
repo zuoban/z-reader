@@ -1,7 +1,10 @@
 package backup
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,6 +66,14 @@ func visitSnapshotUploads(snapshot string, visit func(name string) error) error 
 }
 
 func copySnapshotUploads(snapshot, source, destination string) error {
+	return copySnapshotUploadsWithDedup(snapshot, source, destination, "", Manifest{}, nil)
+}
+
+func copySnapshotUploadsWithDedup(
+	snapshot, source, destination, prevBackupDir string,
+	prevManifest Manifest,
+	digests map[string]string,
+) error {
 	root, err := os.OpenRoot(source)
 	if err != nil {
 		return err
@@ -88,6 +99,60 @@ func copySnapshotUploads(snapshot, source, destination string) error {
 		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
 			return err
 		}
-		return copyToFile(input, target)
+		manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
+		if digest, ok := tryHardLinkFromPreviousBackup(input, info.Size(), name, target, prevBackupDir, prevManifest); ok {
+			if digests != nil {
+				digests[manifestKey] = digest
+			}
+			return nil
+		}
+		if _, err := input.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+		digest, err := copyToBackupFileWithDigest(input, target)
+		if err != nil {
+			return err
+		}
+		if digests != nil {
+			digests[manifestKey] = digest
+		}
+		return nil
 	})
+}
+
+func tryHardLinkFromPreviousBackup(
+	input *os.File,
+	size int64,
+	name, target, prevBackupDir string,
+	prevManifest Manifest,
+) (string, bool) {
+	if prevBackupDir == "" || len(prevManifest.Files) == 0 {
+		return "", false
+	}
+	manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
+	expectedDigest, ok := prevManifest.Files[manifestKey]
+	if !ok || expectedDigest == "" {
+		return "", false
+	}
+	prevPath := filepath.Join(prevBackupDir, "uploads", name)
+	prevInfo, err := os.Lstat(prevPath)
+	if err != nil || !prevInfo.Mode().IsRegular() || prevInfo.Size() != size {
+		return "", false
+	}
+	hash := sha256.New()
+	if _, err := io.Copy(hash, input); err != nil {
+		return "", false
+	}
+	sourceDigest := hex.EncodeToString(hash.Sum(nil))
+	if sourceDigest != expectedDigest {
+		return "", false
+	}
+	prevDigest, err := fileSHA256(prevPath)
+	if err != nil || prevDigest != sourceDigest {
+		return "", false
+	}
+	if err := os.Link(prevPath, target); err != nil {
+		return "", false
+	}
+	return sourceDigest, true
 }

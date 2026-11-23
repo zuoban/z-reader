@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -40,11 +41,101 @@ type Manifest struct {
 
 // Create writes an online database snapshot and a copy of uploaded files into
 // an atomically-published backup directory, then verifies its checksums.
+// Unchanged uploads that already exist in the latest backup are hard-linked
+// from that backup to save disk space while keeping live uploads isolated.
 func Create(db *storage.DB, config Config) (string, error) {
-	return create(db, config, copySnapshotUploads)
+	prevDir, prevManifest, _ := latestManifest(config.Dir)
+	digests := make(map[string]string)
+	return createWithDigests(db, config, digests, func(snapshot, source, destination string) error {
+		return copySnapshotUploadsWithDedup(snapshot, source, destination, prevDir, prevManifest, digests)
+	})
+}
+
+// LatestVerifiedTime returns the creation timestamp of the newest verified
+// backup in dir, or false if none exists.
+func LatestVerifiedTime(dir string) (time.Time, bool) {
+	return LatestVerifiedTimeContext(context.Background(), dir)
+}
+
+// LatestVerifiedTimeContext returns the creation timestamp of the newest
+// verified backup in dir, stopping early if ctx is canceled.
+func LatestVerifiedTimeContext(ctx context.Context, dir string) (time.Time, bool) {
+	if dir == "" || ctx.Err() != nil {
+		return time.Time{}, false
+	}
+	candidates := listBackupDirsDescending(dir)
+	for _, candidate := range candidates {
+		if ctx.Err() != nil {
+			return time.Time{}, false
+		}
+		manifest, ok := readManifest(candidate)
+		if !ok || manifest.CreatedAt.IsZero() {
+			continue
+		}
+		if err := VerifyContext(ctx, candidate); err != nil {
+			continue
+		}
+		return manifest.CreatedAt, true
+	}
+	return time.Time{}, false
+}
+
+func listBackupDirsDescending(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "backup-") {
+			names = append(names, entry.Name())
+		}
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(names)))
+	paths := make([]string, 0, len(names))
+	for _, name := range names {
+		paths = append(paths, filepath.Join(dir, name))
+	}
+	return paths
+}
+
+func readManifest(dir string) (Manifest, bool) {
+	data, err := os.ReadFile(filepath.Join(dir, manifestName))
+	if err != nil {
+		return Manifest{}, false
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return Manifest{}, false
+	}
+	if manifest.CreatedAt.IsZero() || len(manifest.Files) == 0 {
+		return Manifest{}, false
+	}
+	return manifest, true
+}
+
+func latestManifest(dir string) (string, Manifest, bool) {
+	if dir == "" {
+		return "", Manifest{}, false
+	}
+	for _, candidate := range listBackupDirsDescending(dir) {
+		if manifest, ok := readManifest(candidate); ok {
+			return candidate, manifest, true
+		}
+	}
+	return "", Manifest{}, false
 }
 
 func create(db *storage.DB, config Config, copyUploads func(snapshot, source, destination string) error) (string, error) {
+	return createWithDigests(db, config, nil, copyUploads)
+}
+
+func createWithDigests(
+	db *storage.DB,
+	config Config,
+	precomputedDigests map[string]string,
+	copyUploads func(snapshot, source, destination string) error,
+) (string, error) {
 	if config.Dir == "" {
 		return "", fmt.Errorf("backup directory is required")
 	}
@@ -79,7 +170,7 @@ func create(db *storage.DB, config Config, copyUploads func(snapshot, source, de
 		return "", fmt.Errorf("snapshot session database: %w", err)
 	}
 
-	manifest, err := buildManifest(temporaryDir, createdAt)
+	manifest, err := buildManifestWithDigests(temporaryDir, createdAt, precomputedDigests)
 	if err != nil {
 		return "", err
 	}
@@ -107,6 +198,15 @@ func create(db *storage.DB, config Config, copyUploads func(snapshot, source, de
 // Verify checks the manifest digests, opens both database snapshots in
 // read-only mode, and checks that all referenced uploads are in the manifest.
 func Verify(path string) error {
+	return VerifyContext(context.Background(), path)
+}
+
+// VerifyContext checks a backup directory like Verify, aborting early if ctx
+// is canceled.
+func VerifyContext(ctx context.Context, path string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	data, err := os.ReadFile(filepath.Join(path, manifestName))
 	if err != nil {
 		return err
@@ -119,16 +219,22 @@ func Verify(path string) error {
 		return fmt.Errorf("invalid backup manifest")
 	}
 	for relativePath, expected := range manifest.Files {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if !safeRelativePath(relativePath) {
 			return fmt.Errorf("unsafe manifest path %q", relativePath)
 		}
-		actual, err := fileSHA256(filepath.Join(path, relativePath))
+		actual, err := fileSHA256Context(ctx, filepath.Join(path, relativePath))
 		if err != nil {
 			return err
 		}
 		if actual != expected {
 			return fmt.Errorf("checksum mismatch for %s", relativePath)
 		}
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	uploads, err := os.Lstat(filepath.Join(path, "uploads"))
 	if err != nil {
@@ -248,6 +354,10 @@ func requireAbsent(path string) error {
 }
 
 func buildManifest(root string, createdAt time.Time) (Manifest, error) {
+	return buildManifestWithDigests(root, createdAt, nil)
+}
+
+func buildManifestWithDigests(root string, createdAt time.Time, precomputed map[string]string) (Manifest, error) {
 	manifest := Manifest{CreatedAt: createdAt, Files: make(map[string]string)}
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -263,11 +373,16 @@ func buildManifest(root string, createdAt time.Time) (Manifest, error) {
 		if !safeRelativePath(relativePath) {
 			return fmt.Errorf("unsafe backup path %q", relativePath)
 		}
+		key := filepath.ToSlash(relativePath)
+		if digest, ok := precomputed[key]; ok && digest != "" {
+			manifest.Files[key] = digest
+			return nil
+		}
 		digest, err := fileSHA256(path)
 		if err != nil {
 			return err
 		}
-		manifest.Files[filepath.ToSlash(relativePath)] = digest
+		manifest.Files[key] = digest
 		return nil
 	})
 	return manifest, err
@@ -324,15 +439,56 @@ func copyToFile(input io.Reader, destination string) error {
 	return closeErr
 }
 
+// copyToBackupFileWithDigest copies input to destination as a read-only (0400)
+// backup file and returns its SHA-256 hex digest in a single pass.
+func copyToBackupFileWithDigest(input io.Reader, destination string) (string, error) {
+	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	_, copyErr := io.Copy(io.MultiWriter(output, hash), input)
+	closeErr := output.Close()
+	if copyErr != nil {
+		return "", copyErr
+	}
+	if closeErr != nil {
+		return "", closeErr
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 func fileSHA256(path string) (string, error) {
+	return fileSHA256Context(context.Background(), path)
+}
+
+func fileSHA256Context(ctx context.Context, path string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
+	buf := make([]byte, 64*1024)
+	for {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		n, readErr := file.Read(buf)
+		if n > 0 {
+			if _, err := hash.Write(buf[:n]); err != nil {
+				return "", err
+			}
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return "", readErr
+		}
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }

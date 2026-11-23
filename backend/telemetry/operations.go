@@ -47,6 +47,19 @@ func ConfigureBackupSchedule(interval time.Duration) {
 	backupMetrics.mu.Unlock()
 }
 
+// RecordExistingBackup seeds the last-success timestamp from a verified backup
+// already on disk when startup skips an immediate redundant backup.
+func RecordExistingBackup(createdAt time.Time) {
+	if createdAt.IsZero() {
+		return
+	}
+	backupMetrics.mu.Lock()
+	if backupMetrics.metric.lastSuccessUnix == 0 {
+		backupMetrics.metric.lastSuccessUnix = createdAt.Unix()
+	}
+	backupMetrics.mu.Unlock()
+}
+
 // ObserveBackup records one completed verified-backup attempt. It deliberately
 // stores no path, user, or error text in metrics.
 func ObserveBackup(elapsed time.Duration, err error) {

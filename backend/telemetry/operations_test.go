@@ -30,3 +30,26 @@ func TestAppendPrometheusReportsBackupState(t *testing.T) {
 		t.Fatalf("expected successful backup timestamp, got %s", body)
 	}
 }
+
+func TestRecordExistingBackupOnlySeedsWhenUnset(t *testing.T) {
+	backupMetrics.mu.Lock()
+	previous := backupMetrics.metric
+	backupMetrics.metric = backupMetric{}
+	backupMetrics.mu.Unlock()
+	t.Cleanup(func() {
+		backupMetrics.mu.Lock()
+		backupMetrics.metric = previous
+		backupMetrics.mu.Unlock()
+	})
+
+	seeded := time.Unix(1700000000, 0).UTC()
+	RecordExistingBackup(seeded)
+	RecordExistingBackup(time.Unix(1800000000, 0).UTC())
+
+	backupMetrics.mu.Lock()
+	got := backupMetrics.metric.lastSuccessUnix
+	backupMetrics.mu.Unlock()
+	if got != seeded.Unix() {
+		t.Fatalf("lastSuccessUnix = %d, want %d", got, seeded.Unix())
+	}
+}

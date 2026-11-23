@@ -1,4 +1,4 @@
-.PHONY: run build deps clean dev dev-backend dev-frontend
+.PHONY: run build deps clean dev dev-backend dev-frontend check check-backend check-frontend
 
 run:
 	./z-reader
@@ -21,3 +21,11 @@ dev-backend:
 
 dev-frontend:
 	cd frontend && npm run dev
+
+check: check-backend check-frontend
+
+check-backend:
+	cd backend && go test ./... && go vet ./...
+
+check-frontend:
+	cd frontend && npm run lint:strict && npm run test:unit && npm run build

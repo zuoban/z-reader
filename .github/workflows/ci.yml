@@ -16,8 +16,16 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.serena/**'
   workflow_dispatch:
     inputs:
+      run_heavy_checks:
+        description: 'Run heavy release checks (coverage, JS budget, E2E, visual, perf, Docker)'
+        type: boolean
+        default: true
       update_visual_snapshots:
         description: 'Also upload updated visual snapshots artifact (does not commit)'
         type: boolean
@@ -28,22 +36,87 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dependency-review:
-    name: Dependency Review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      heavy: ${{ steps.filter.outputs.heavy }}
+      visual: ${{ steps.filter.outputs.visual }}
 
     steps:
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-  backend-test:
-    name: Backend Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+      - name: Compute affected scopes
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          RUN_HEAVY: ${{ inputs.run_heavy_checks }}
+          UPDATE_VISUAL: ${{ inputs.update_visual_snapshots }}
+        run: |
+          set -euo pipefail
+
+          backend=false
+          frontend=false
+          heavy=false
+          visual=false
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            backend=true
+            frontend=true
+            heavy=true
+            visual=true
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            backend=true
+            frontend=true
+            if [[ "$RUN_HEAVY" == "true" ]]; then
+              heavy=true
+              visual=true
+            fi
+            if [[ "$UPDATE_VISUAL" == "true" ]]; then
+              visual=true
+            fi
+          else
+            files=""
+            if [[ "$EVENT_NAME" == "pull_request" ]]; then
+              files="$(git diff --name-only HEAD^1 HEAD || true)"
+            elif [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]] && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+              files="$(git diff --name-only "$BEFORE_SHA" HEAD || true)"
+            else
+              backend=true
+              frontend=true
+            fi
+
+            if [[ -n "$files" ]]; then
+              if grep -Eq '^(backend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
+                backend=true
+              fi
+              if grep -Eq '^(frontend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
+                frontend=true
+              fi
+            fi
+          fi
+
+          {
+            echo "backend=$backend"
+            echo "frontend=$frontend"
+            echo "heavy=$heavy"
+            echo "visual=$visual"
+          } >> "$GITHUB_OUTPUT"
+
+  backend:
+    name: Backend Check
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -55,48 +128,19 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - name: Run backend tests
+      - name: Run Go tests
         working-directory: backend
         run: go test ./...
 
-      - name: Exercise backup restore readiness
-        working-directory: backend
-        run: go test ./backup -run '^TestCreateVerifyRestoreAndReady$' -count=1
-
-      - name: Verify backend coverage baseline
-        working-directory: backend
-        run: |
-          go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
-          go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
-
-      - name: Upload backend coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend/coverage.out
-          retention-days: 14
-
-      - name: Verify Go formatting
-        working-directory: backend
-        run: |
-          unformatted="$(find . -name '*.go' -type f -exec gofmt -l {} +)"
-          if [ -n "$unformatted" ]; then
-            echo "The following Go files need gofmt:"
-            echo "$unformatted"
-            exit 1
-          fi
-
-      - name: Run Go static checks
+      - name: Run Go vet
         working-directory: backend
         run: go vet ./...
 
-      - name: Scan Go dependencies for known vulnerabilities
-        working-directory: backend
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-
-  frontend-lint:
-    name: Frontend Lint
-    runs-on: ubuntu-latest
+  frontend:
+    name: Frontend Check
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -118,68 +162,61 @@ jobs:
         working-directory: frontend
         run: npm run lint:strict
 
-  foliate-build:
-    name: Foliate Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/public/foliate/package-lock.json
-
-      - name: Install Foliate build dependencies
-        working-directory: frontend/public/foliate
-        run: npm ci --ignore-scripts
-
-      - name: Build Foliate assets
-        working-directory: frontend/public/foliate
-        run: npm run build
-
-  frontend-build:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs:
-      - frontend-lint
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
+      - name: Run frontend unit tests
         working-directory: frontend
-        run: npm ci
+        run: npm run test:unit
 
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
-      - name: Check first-screen JS budget
-        working-directory: frontend
-        run: npm run test:js-budget
+  release-backend-extended:
+    name: Release Backend Extended
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
 
-      - name: Verify native Foliate module build
-        working-directory: frontend
-        run: node --test scripts/build-foliate.test.mjs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-  frontend-unit-test:
-    name: Frontend Unit & Coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Exercise backup restore readiness
+        working-directory: backend
+        run: go test ./backup -run '^TestCreateVerifyRestoreAndReady$' -count=1
+
+      - name: Verify backend coverage baseline
+        working-directory: backend
+        run: |
+          go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
+          go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
+
+      - name: Verify Go formatting
+        working-directory: backend
+        run: |
+          unformatted="$(find . -name '*.go' -type f -exec gofmt -l {} +)"
+          if [ -n "$unformatted" ]; then
+            echo "The following Go files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Scan Go dependencies for known vulnerabilities
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  release-frontend-extended:
+    name: Release Frontend Extended
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -196,23 +233,29 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run frontend unit tests and coverage baseline check
+      - name: Run frontend coverage baseline check
         working-directory: frontend
         run: npm run test:coverage:check
 
-      - name: Upload frontend coverage summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-coverage
-          path: frontend/coverage/coverage-summary.json
-          retention-days: 14
+      - name: Build frontend and check JS budget
+        working-directory: frontend
+        run: |
+          npm run build
+          npm run test:js-budget
+          node --test scripts/build-foliate.test.mjs
 
-  frontend-e2e-test:
-    name: Frontend E2E (functional)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs:
-      - frontend-lint
+      - name: Build vendored Foliate assets
+        working-directory: frontend/public/foliate
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
+  release-e2e-and-perf:
+    name: Release E2E & Performance
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
@@ -224,6 +267,12 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -251,6 +300,12 @@ jobs:
           CI: true
         run: npm run test:e2e:ci
 
+      - name: Run production performance check
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm run test:perf:production
+
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -262,43 +317,21 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  frontend-production-performance:
-    name: Production Performance
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - run: npm ci
-        working-directory: frontend
-      - run: npx playwright install --with-deps chromium
-        working-directory: frontend
-      - run: npm run test:perf:production
-        working-directory: frontend
-        env:
-          CI: true
-      - uses: actions/upload-artifact@v4
+      - name: Upload production performance report
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: production-performance
           path: frontend/performance-results
           retention-days: 14
+          if-no-files-found: ignore
 
-  frontend-visual-test:
-    name: Frontend Visual Regression
-    # Match the Ubuntu release used by the local snapshot generator.
+  release-visual:
+    name: Release Visual Regression
+    needs: changes
+    if: needs.changes.outputs.visual == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    needs:
-      - frontend-lint
 
     steps:
       - name: Checkout repository
@@ -368,18 +401,15 @@ jobs:
           path: frontend/tests/e2e/visual-regression.spec.ts-snapshots/linux
           retention-days: 7
 
-  docker-build:
-    name: Docker Build Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  release-docker:
+    name: Release Docker Smoke Check
     needs:
-      - backend-test
-      - frontend-build
-      - frontend-unit-test
-      - frontend-e2e-test
-      - frontend-production-performance
-      - frontend-visual-test
-      - foliate-build
+      - changes
+      - backend
+      - frontend
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository

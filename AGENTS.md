@@ -61,25 +61,29 @@ npm run lint
 
 ## Test Commands
 
-Automated checks are configured and must be run for the area you change:
+Run the lightweight checks matching PR CI for the area you change (or `make check` for both):
 
 - **Backend**: Place Go tests alongside source files with `_test.go` suffix.
   ```bash
-  cd backend && go test ./...
-  cd backend && go test -v ./handlers  # Run a specific package
+  make check-backend
+  # or: cd backend && go test ./... && go vet ./...
   ```
 
 - **Frontend**: Use Vitest and React Testing Library for unit/component tests.
   ```bash
-  cd frontend && npm run lint:strict
-  cd frontend && npm run test:unit
-  cd frontend && npm run test:coverage:check
-  cd frontend && npm run build
+  make check-frontend
+  # or: cd frontend && npm run lint:strict && npm run test:unit && npm run build
   ```
 
-- **End-to-end / visual changes**: Run the relevant Playwright suite in `frontend`.
-  `npm run test:e2e:ci` protects core flows; `npm run test:visual` protects committed Linux
-  visual baselines.
+- **Release / heavy checks** (`test:coverage:check`, `test:js-budget`, `test:e2e:ci`, `test:visual`,
+  `govulncheck`): Run locally only when relevant to the change; in CI they run on `v*.*.*`
+  release tags or manual `workflow_dispatch`.
+
+## Workflow & Commits
+
+- This is a single-maintainer repository. For routine fixes, features, and dependency updates,
+  edit and commit directly in the current checkout; do not create a separate Git worktree,
+  feature branch, or Draft PR unless the user explicitly requests one.
 
 ## Code Style Guidelines
 

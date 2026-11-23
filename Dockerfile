@@ -1,5 +1,5 @@
 # Stage 1: Build Go backend
-FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine AS backend-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.11-alpine AS backend-builder
 
 WORKDIR /app/backend
 

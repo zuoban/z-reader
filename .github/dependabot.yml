@@ -3,23 +3,39 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      docker:
+        patterns:
+          - "*"
 
   - package-ecosystem: gomod
     directory: /backend
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: /frontend
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      frontend-dependencies:
+        patterns:
+          - "*"

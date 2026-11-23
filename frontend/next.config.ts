@@ -17,6 +17,9 @@ const allowedDevOrigins = parseCSV(process.env.NEXT_DEV_ALLOWED_ORIGINS);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   allowedDevOrigins: Array.from(
     new Set(["127.0.0.1", "localhost", ...allowedDevOrigins])
   ),

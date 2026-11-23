@@ -105,61 +105,6 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	}
 }
 
-func TestRateLimitByUserUsesSeparateUserQuotas(t *testing.T) {
-	previous := rateLimitRejections.user.Load()
-	rateLimitRejections.user.Store(0)
-	t.Cleanup(func() { rateLimitRejections.user.Store(previous) })
-
-	rl := NewRateLimiter(1, time.Minute)
-	handler := RateLimitByUser(rl)
-
-	request := func(userID string) int {
-		gin.SetMode(gin.TestMode)
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/tts", nil)
-		c.Request.RemoteAddr = "10.0.0.99:12345"
-		c.Set("userID", userID)
-		handler(c)
-		return w.Code
-	}
-
-	if status := request("user-a"); status != http.StatusOK {
-		t.Fatalf("expected first user request to pass, got %d", status)
-	}
-	if status := request("user-b"); status != http.StatusOK {
-		t.Fatalf("expected second user request to pass, got %d", status)
-	}
-	if status := request("user-a"); status != http.StatusTooManyRequests {
-		t.Fatalf("expected repeated user request to be limited, got %d", status)
-	}
-	if got := rateLimitRejections.user.Load(); got != 1 {
-		t.Fatalf("user rejections = %d, want 1", got)
-	}
-}
-
-func TestRateLimitByUserFallsBackToClientIP(t *testing.T) {
-	rl := NewRateLimiter(1, time.Minute)
-	handler := RateLimitByUser(rl)
-
-	request := func() int {
-		gin.SetMode(gin.TestMode)
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/tts", nil)
-		c.Request.RemoteAddr = "10.0.0.55:12345"
-		handler(c)
-		return w.Code
-	}
-
-	if status := request(); status != http.StatusOK {
-		t.Fatalf("expected first unauthenticated request to pass, got %d", status)
-	}
-	if status := request(); status != http.StatusTooManyRequests {
-		t.Fatalf("expected second unauthenticated request to share IP quota, got %d", status)
-	}
-}
-
 func TestRateLimitByKeyRecordsCustomScope(t *testing.T) {
 	previous := rateLimitRejections.custom.Load()
 	rateLimitRejections.custom.Store(0)

@@ -107,17 +107,6 @@ func RateLimit(rl *RateLimiter) gin.HandlerFunc {
 	})
 }
 
-// RateLimitByUser applies a shared limit to an authenticated user. Falling
-// back to the client IP keeps the middleware safe if it is reused before auth.
-func RateLimitByUser(rl *RateLimiter) gin.HandlerFunc {
-	return rateLimitByKey(rl, rateLimitScopeUser, func(c *gin.Context) string {
-		if userID := c.GetString("userID"); userID != "" {
-			return "user:" + userID
-		}
-		return "ip:" + c.ClientIP()
-	})
-}
-
 // RateLimitByKey applies a rate limit using a caller-provided stable key.
 func RateLimitByKey(rl *RateLimiter, keyFunc func(*gin.Context) string) gin.HandlerFunc {
 	return rateLimitByKey(rl, rateLimitScopeCustom, keyFunc)

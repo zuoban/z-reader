@@ -48,6 +48,7 @@ Thumbs.db
 npm-debug.log*
 
 # Test
+*.test
 coverage/
 backend/coverage.out
 frontend/test-results/
@@ -67,3 +68,4 @@ frontend/tests/e2e/**/*-snapshots/*-actual.png
 backend/data/tts-cache
 .nezha/
 .antigravitycli/
+.alma-snapshots

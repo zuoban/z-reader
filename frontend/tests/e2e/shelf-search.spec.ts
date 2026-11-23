@@ -53,6 +53,45 @@ test.describe('shelf search', () => {
     await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toHaveCount(0);
   });
 
+  test('retries a failed search with the same filters and sort order', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    await mockPopulatedShelfApis(page);
+    const requests: string[] = [];
+    await page.route('**/api/books/search?*', async (route) => {
+      requests.push(new URL(route.request().url()).search);
+      if (requests.length === 1) {
+        await route.fulfill({ status: 503, json: { error: '搜索服务暂不可用' } });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible();
+    const category = page.getByRole('button', { name: '古典', exact: true });
+    const sort = page.getByRole('button', { name: '书籍排序方式' });
+    await category.click();
+    await sort.click();
+    await page.getByRole('menuitem', { name: '书名', exact: true }).click();
+    const search = page.getByRole('searchbox', { name: '搜索书库' });
+    await search.fill('红楼');
+
+    await expect(page.getByText('搜索书籍失败', { exact: true })).toBeVisible();
+    await expect(page.getByText('未找到相关书籍')).toHaveCount(0);
+    await page.getByRole('button', { name: '重试搜索' }).click();
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible();
+    await expect(page.getByText('搜索书籍失败', { exact: true })).toHaveCount(0);
+    await expect(search).toHaveValue('红楼');
+    await expect(category).toHaveAttribute('aria-pressed', 'true');
+    await expect(sort).toHaveAttribute('title', '排序：书名');
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toBe(requests[0]);
+    expect(Object.fromEntries(new URLSearchParams(requests[1]))).toMatchObject({
+      q: '红楼', category: '古典', sort: 'title',
+    });
+  });
+
   test('clears search and restores the full shelf', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);

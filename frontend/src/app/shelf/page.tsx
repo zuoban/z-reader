@@ -101,6 +101,8 @@ export default function ShelfPage() {
     isLoadingMoreBooks,
     hasMoreBooks,
     loadError,
+    searchError,
+    retrySearch,
     selectedCategoryId,
     setSelectedCategoryId,
     isUploading,
@@ -674,7 +676,7 @@ export default function ShelfPage() {
                   <p className="min-w-0 truncate font-medium text-foreground" title={resultsLabel}>
                     {resultsLabel}
                   </p>
-                  {isFiltered && (
+                  {isFiltered && !searchError && (
                     <p className="shrink-0 text-xs tabular-nums text-muted-foreground" role="status">
                       {isSearching
                         ? '正在搜索…'
@@ -687,6 +689,29 @@ export default function ShelfPage() {
                 <div className={cn(isLoadingBooks && 'pt-3')}>
                   <BookCardSkeletonGrid count={6} />
                 </div>
+              ) : searchError ? (
+                <EmptyState
+                  icon={AlertCircle}
+                  tone="error"
+                  title="搜索书籍失败"
+                  description="请稍后重试，或重置当前筛选。"
+                  detail={`错误信息：${searchError}`}
+                  action={(
+                    <>
+                      <Button type="button" className="min-h-11" onClick={retrySearch}>
+                        重试搜索
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11"
+                        onClick={clearShelfFilters}
+                      >
+                        重置所有筛选
+                      </Button>
+                    </>
+                  )}
+                />
               ) : filteredBooks.length === 0 ? (
                 <EmptyState
                   icon={Search}

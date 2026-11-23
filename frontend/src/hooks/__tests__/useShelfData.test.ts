@@ -198,6 +198,37 @@ describe('useShelfData', () => {
     expect(result.current.filteredBooks.map((book) => book.id)).toEqual(['remote']);
   });
 
+  it('ignores a late failure from a previous search and drops its pagination cursor', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    const late = Promise.withResolvers<Awaited<ReturnType<typeof api.searchBooks>>>();
+    vi.mocked(api.searchBooks)
+      .mockResolvedValueOnce({ books: [mockBook({ title: 'First' })], next_cursor: 'first-cursor' })
+      .mockReturnValueOnce(late.promise)
+      .mockResolvedValueOnce({ books: [mockBook({ title: 'Current' })] });
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    act(() => result.current.setSearchQuery('First'));
+    await waitFor(() => expect(result.current.hasMoreBooks).toBe(true));
+
+    act(() => result.current.setSearchQuery('Old'));
+    expect(result.current.hasMoreBooks).toBe(false);
+    await act(() => result.current.loadMoreBooks());
+    await waitFor(() => expect(api.searchBooks).toHaveBeenCalledTimes(2));
+    const previousRequest = vi.mocked(api.searchBooks).mock.calls[1];
+    expect(previousRequest.slice(0, 2)).toEqual(['Old', undefined]);
+
+    act(() => result.current.setSearchQuery('Current'));
+    await waitFor(() => expect(result.current.isSearching).toBe(false));
+    await act(async () => { late.reject(new Error('old search failed')); });
+
+    expect(previousRequest[4]?.signal?.aborted).toBe(true);
+    expect(result.current.searchError).toBeNull();
+    expect(result.current.filteredBooks.map((book) => book.title)).toEqual(['Current']);
+    expect(api.searchBooks).toHaveBeenCalledTimes(3);
+  });
+
   it('does not load books when not authenticated', async () => {
     const { result } = renderHook(() => useShelfData(false));
 

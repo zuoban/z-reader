@@ -94,6 +94,8 @@ export function useShelfData(isAuthenticated: boolean) {
   const [searchResults, setSearchResults] = useState<Book[] | null>(null);
   const [searchNextCursor, setSearchNextCursor] = useState<string | undefined>();
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRetryRevision, setSearchRetryRevision] = useState(0);
   const [queryRevision, setQueryRevision] = useState(0);
   const loadGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -177,11 +179,15 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, [categoryOptions, sortBy]);
 
+  const retrySearch = useCallback(() => {
+    setSearchRetryRevision((revision) => revision + 1);
+  }, []);
+
   const loadMoreBooks = useCallback(async () => {
     const query = searchQuery.trim();
     const isSearch = query.length > 0;
     const cursor = isSearch ? searchNextCursor : nextCursor;
-    if (!cursor || loadingMoreRef.current) return;
+    if (!cursor || loadingMoreRef.current || (isSearch && isSearching)) return;
 
     const loadGeneration = loadGenerationRef.current;
     const searchGeneration = searchGenerationRef.current;
@@ -234,7 +240,7 @@ export function useShelfData(isAuthenticated: boolean) {
         setIsLoadingMoreBooks(false);
       }
     }
-  }, [categoryOptions, nextCursor, searchNextCursor, searchQuery, sortBy]);
+  }, [categoryOptions, isSearching, nextCursor, searchNextCursor, searchQuery, sortBy]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -272,9 +278,10 @@ export function useShelfData(isAuthenticated: boolean) {
     loadingMoreRef.current = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Invalidate pending pagination.
     setIsLoadingMoreBooks(false);
+    setSearchError(null);
+    setSearchNextCursor(undefined);
     if (!isAuthenticated || !query) {
       setSearchResults(null);
-      setSearchNextCursor(undefined);
       setIsSearching(false);
       return;
     }
@@ -303,11 +310,10 @@ export function useShelfData(isAuthenticated: boolean) {
         .catch((err) => {
           if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
           setSearchResults([]);
-          setSearchNextCursor(undefined);
-          toast.error(err instanceof Error ? err.message : '搜索图书失败');
+          setSearchError(err instanceof Error && err.message ? err.message : '搜索图书失败');
         })
         .finally(() => {
-          if (generation === searchGenerationRef.current) {
+          if (generation === searchGenerationRef.current && !controller.signal.aborted) {
             setIsSearching(false);
           }
         });
@@ -317,7 +323,7 @@ export function useShelfData(isAuthenticated: boolean) {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [categoryOptions, isAuthenticated, queryRevision, searchQuery, sortBy]);
+  }, [categoryOptions, isAuthenticated, queryRevision, searchQuery, searchRetryRevision, sortBy]);
 
   const pendingBookIDs = useMemo(
     () => [...new Map([...books, ...(searchResults ?? [])].map((book) => [book.id, book])).values()]
@@ -620,8 +626,10 @@ export function useShelfData(isAuthenticated: boolean) {
     isLoadingBooks,
     isSearching,
     isLoadingMoreBooks,
-    hasMoreBooks: Boolean(searchQuery.trim() ? searchResults && searchNextCursor : nextCursor),
+    hasMoreBooks: Boolean(searchQuery.trim() ? !isSearching && searchNextCursor : nextCursor),
     loadError,
+    searchError,
+    retrySearch,
     selectedCategoryId,
     setSelectedCategoryId,
     isUploading,

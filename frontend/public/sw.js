@@ -1,4 +1,4 @@
-const CACHE_NAME = 'z-reader-v0.1.5';
+const CACHE_NAME = 'z-reader-v0.1.6';
 const STATIC_ASSETS = [
   '/',
   '/login',
@@ -41,7 +41,7 @@ async function cacheFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
     const response = await fetch(request);
-    if (response && response.status === 200) {
+    if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
       cache.put(request, response.clone());
     }
     return response;
@@ -76,25 +76,28 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Only intercept GET requests
-  if (request.method !== 'GET') {
+  // Only intercept same-origin GET requests
+  if (request.method !== 'GET' || url.origin !== self.location.origin) {
     return;
   }
 
-  // 1. Foliate-JS libraries & Reader static core assets: Cache-First
-  // These files are static and never change in production, caching them speeds up load and enables offline reading.
-  if (url.pathname.includes('/foliate/')) {
+  // 1. Immutable static assets (Foliate-JS & content-hashed Next.js chunks): Cache-First
+  // These files are immutable in production, caching them speeds up repeat loads and offline reading.
+  if (url.pathname.includes('/foliate/') || url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
-  // 2. API responses contain account-specific data. Cache Storage is shared by
-  // every account in a browser profile, so authenticated responses must never
-  // be stored here. Progress already has a user-scoped local recovery path.
-  if (url.pathname.startsWith('/api/')) {
+  // 2. API responses and authenticated shelf views must skip shared Cache Storage
+  // so revisiting always validates current library access.
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname === '/shelf' ||
+    url.pathname.startsWith('/shelf/')
+  ) {
     return;
   }
 
-  // 3. Default Next.js pages, page chunks, CSS, and public images: Network-First
+  // 3. Default Next.js pages, CSS, and public images: Network-First
   event.respondWith(networkFirst(request));
 });

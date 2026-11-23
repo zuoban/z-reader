@@ -26,7 +26,21 @@ describe('service worker privacy policy', () => {
   });
 
   it('does not pre-cache the authenticated shelf route', () => {
-    expect(serviceWorkerSource).not.toMatch(/['"]\/shelf['"]/);
+    const assets = extractStaticAssets(serviceWorkerSource);
+    expect(assets).not.toContain('/shelf');
+  });
+
+  it('skips shared cache storage for /shelf routes', () => {
+    expect(serviceWorkerSource).toContain("url.pathname === '/shelf'");
+    expect(serviceWorkerSource).toContain("url.pathname.startsWith('/shelf/')");
+  });
+
+  it('uses cache-first for immutable Next.js static chunks', () => {
+    expect(serviceWorkerSource).toContain("url.pathname.startsWith('/_next/static/')");
+  });
+
+  it('ignores cross-origin requests in the fetch handler', () => {
+    expect(serviceWorkerSource).toContain('url.origin !== self.location.origin');
   });
 });
 

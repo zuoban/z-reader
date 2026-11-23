@@ -171,9 +171,9 @@ GitHub Actions (`.github/workflows/ci.yml`):
 
 | Job | Specs | When |
 | --- | --- | --- |
-| Frontend Unit Test | Vitest | every push/PR |
-| Frontend E2E (functional) | auth + virtual grid + reader + shelf→reader + search + batch + a11y | every push/PR |
-| Frontend Visual Regression | `visual-regression.spec.ts` vs **`linux/`** + Noto CJK | every push/PR |
+| Frontend Check | ESLint (`lint:strict`), Vitest (`test:unit`), production build | push/PR touching `frontend/` |
+| Release E2E & Performance | auth + virtual grid + reader + shelf→reader + search + batch + a11y + perf | `v*.*.*` release tags or `workflow_dispatch` |
+| Release Visual Regression | `visual-regression.spec.ts` vs **`linux/`** + Noto CJK | `v*.*.*` release tags or `workflow_dispatch` |
 
 Tips:
 

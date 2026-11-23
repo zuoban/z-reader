@@ -10,20 +10,23 @@ Z Reader is an online e-book reader application for personal library management,
 
 | Component | Technology |
 | --- | --- |
-| Backend | Go 1.26.9+, Gin, bbolt (embedded KV database) |
+| Backend | Go 1.26.11+, Gin, bbolt (embedded KV database) |
 | Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui |
 | Reading Engine | foliate-js (vendored in `frontend/public/foliate/`) |
 | Reverse Proxy | Caddy |
 
 ## Essential Commands
 
-### Full Stack (Development)
+### Full Stack (Development & Checks)
 
 ```bash
 # Start both backend and frontend together (from project root)
 make dev
 
-# Or run individually
+# Run PR-aligned checks (or run individually: make check-backend / make check-frontend)
+make check
+
+# Or run dev servers individually
 make dev-backend
 make dev-frontend
 ```

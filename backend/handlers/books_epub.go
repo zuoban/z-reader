@@ -9,13 +9,40 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strings"
 )
 
 type epubMetadata struct {
 	Title  string `xml:"title"`
 	Author string `xml:"creator"`
+}
+
+type epubContainer struct {
+	Rootfiles []struct {
+		FullPath string `xml:"full-path,attr"`
+	} `xml:"rootfiles>rootfile"`
+}
+
+type epubPackage struct {
+	Metadata struct {
+		Title  string `xml:"title"`
+		Author string `xml:"creator"`
+		Metas  []struct {
+			Name    string `xml:"name,attr"`
+			Content string `xml:"content,attr"`
+		} `xml:"meta"`
+	} `xml:"metadata"`
+	Manifest struct {
+		Items []struct {
+			ID         string `xml:"id,attr"`
+			Href       string `xml:"href,attr"`
+			MediaType  string `xml:"media-type,attr"`
+			Properties string `xml:"properties,attr"`
+		} `xml:"item"`
+	} `xml:"manifest"`
 }
 
 func saveNormalizedEPUBFile(file *multipart.FileHeader, path string, maxExpandedBytes int64) (bool, string, error) {
@@ -281,27 +308,136 @@ func extractEPUBPreview(path string) (*epubMetadata, []byte, string, error) {
 	return meta, coverData, contentType, nil
 }
 
-func extractEPUBMetadataFromReader(reader *zip.Reader) (*epubMetadata, error) {
-	var meta epubMetadata
+func findZipFile(reader *zip.Reader, target string) *zip.File {
+	cleanTarget := path.Clean(strings.TrimLeft(strings.ReplaceAll(target, "\\", "/"), "/"))
+	if cleanTarget == "." || cleanTarget == ".." || strings.HasPrefix(cleanTarget, "../") {
+		return nil
+	}
+	var ciMatch *zip.File
 	for _, f := range reader.File {
-		if strings.HasSuffix(f.Name, ".opf") || f.Name == "OEBPS/content.opf" {
-			data, err := readZipFileWithLimit(f, maxEPUBMetadataBytes)
-			if err != nil {
-				return nil, err
-			}
+		if strings.HasSuffix(f.Name, "/") {
+			continue
+		}
+		cleanName := path.Clean(strings.TrimLeft(strings.ReplaceAll(f.Name, "\\", "/"), "/"))
+		if cleanName == cleanTarget {
+			return f
+		}
+		if ciMatch == nil && strings.EqualFold(cleanName, cleanTarget) {
+			ciMatch = f
+		}
+	}
+	return ciMatch
+}
 
-			var pkg struct {
-				Metadata epubMetadata `xml:"metadata"`
+func findEPUBOPFFile(reader *zip.Reader) *zip.File {
+	if containerFile := findZipFile(reader, "META-INF/container.xml"); containerFile != nil {
+		if data, err := readZipFileWithLimit(containerFile, maxEPUBMetadataBytes); err == nil {
+			var container epubContainer
+			if err := xml.Unmarshal(data, &container); err == nil {
+				for _, rf := range container.Rootfiles {
+					fullPath := strings.TrimSpace(rf.FullPath)
+					if fullPath == "" {
+						continue
+					}
+					if f := findZipFile(reader, fullPath); f != nil {
+						return f
+					}
+				}
 			}
-			if err := xml.Unmarshal(data, &pkg); err != nil {
-				return nil, err
-			}
-			meta = pkg.Metadata
-			break
 		}
 	}
 
-	return &meta, nil
+	if f := findZipFile(reader, "OEBPS/content.opf"); f != nil {
+		return f
+	}
+	for _, f := range reader.File {
+		if !strings.HasSuffix(f.Name, "/") && strings.HasSuffix(strings.ToLower(f.Name), ".opf") {
+			return f
+		}
+	}
+	return nil
+}
+
+func parseEPUBPackage(reader *zip.Reader) (*epubPackage, string, error) {
+	opfFile := findEPUBOPFFile(reader)
+	if opfFile == nil {
+		return nil, "", fmt.Errorf("未找到 OPF 文件")
+	}
+	data, err := readZipFileWithLimit(opfFile, maxEPUBMetadataBytes)
+	if err != nil {
+		return nil, "", err
+	}
+	var pkg epubPackage
+	if err := xml.Unmarshal(data, &pkg); err != nil {
+		return nil, "", err
+	}
+	cleanOPF := path.Clean(strings.TrimLeft(strings.ReplaceAll(opfFile.Name, "\\", "/"), "/"))
+	opfDir := path.Dir(cleanOPF)
+	if opfDir == "." {
+		opfDir = ""
+	}
+	return &pkg, opfDir, nil
+}
+
+func resolveEPUBRelativePath(baseDir, href string) (string, bool) {
+	trimmed := strings.TrimSpace(href)
+	if trimmed == "" {
+		return "", false
+	}
+	if idx := strings.IndexAny(trimmed, "#?"); idx >= 0 {
+		trimmed = trimmed[:idx]
+	}
+	if unescaped, err := url.PathUnescape(trimmed); err == nil {
+		trimmed = unescaped
+	}
+	trimmed = strings.ReplaceAll(trimmed, "\\", "/")
+	joined := trimmed
+	if baseDir != "" && !strings.HasPrefix(trimmed, "/") {
+		joined = baseDir + "/" + trimmed
+	}
+	cleaned := path.Clean(strings.TrimLeft(joined, "/"))
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", false
+	}
+	return cleaned, true
+}
+
+func readEPUBImageEntry(f *zip.File) ([]byte, string, bool) {
+	if f == nil || strings.HasSuffix(f.Name, "/") {
+		return nil, "", false
+	}
+	data, err := readZipFileWithLimit(f, maxEPUBCoverBytes)
+	if err != nil || len(data) == 0 {
+		return nil, "", false
+	}
+	contentType := http.DetectContentType(data)
+	if !strings.HasPrefix(contentType, "image/") {
+		return nil, "", false
+	}
+	return data, contentType, true
+}
+
+func hasXMLProperty(properties, target string) bool {
+	for _, field := range strings.Fields(properties) {
+		if field == target {
+			return true
+		}
+	}
+	return false
+}
+
+func extractEPUBMetadataFromReader(reader *zip.Reader) (*epubMetadata, error) {
+	pkg, _, err := parseEPUBPackage(reader)
+	if err != nil {
+		if findEPUBOPFFile(reader) == nil {
+			return &epubMetadata{}, nil
+		}
+		return nil, err
+	}
+	return &epubMetadata{
+		Title:  pkg.Metadata.Title,
+		Author: pkg.Metadata.Author,
+	}, nil
 }
 
 func extractEPUBCover(path string) ([]byte, string, error) {
@@ -314,26 +450,89 @@ func extractEPUBCover(path string) ([]byte, string, error) {
 }
 
 func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
+	if pkg, opfDir, err := parseEPUBPackage(reader); err == nil {
+		var candidateHrefs []string
+		seen := make(map[string]struct{})
+		addHref := func(href string) {
+			resolved, ok := resolveEPUBRelativePath(opfDir, href)
+			if !ok {
+				return
+			}
+			if _, exists := seen[resolved]; exists {
+				return
+			}
+			seen[resolved] = struct{}{}
+			candidateHrefs = append(candidateHrefs, resolved)
+		}
+
+		// 1. EPUB 3: manifest item with properties="cover-image"
+		for _, item := range pkg.Manifest.Items {
+			if hasXMLProperty(item.Properties, "cover-image") {
+				addHref(item.Href)
+			}
+		}
+
+		// 2. EPUB 2: <meta name="cover" content="<manifest-item-id>"/>
+		for _, meta := range pkg.Metadata.Metas {
+			if !strings.EqualFold(strings.TrimSpace(meta.Name), "cover") {
+				continue
+			}
+			coverID := strings.TrimSpace(meta.Content)
+			if coverID == "" {
+				continue
+			}
+			matched := false
+			for _, item := range pkg.Manifest.Items {
+				if item.ID == coverID || strings.EqualFold(item.ID, coverID) {
+					addHref(item.Href)
+					matched = true
+				}
+			}
+			if !matched {
+				// Some malformed EPUBs put an image path directly in meta content.
+				addHref(coverID)
+			}
+		}
+
+		// 3. Manifest image items mentioning "cover" in ID or href.
+		for _, item := range pkg.Manifest.Items {
+			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(item.MediaType)), "image/") {
+				continue
+			}
+			if strings.Contains(strings.ToLower(item.ID), "cover") ||
+				strings.Contains(strings.ToLower(item.Href), "cover") {
+				addHref(item.Href)
+			}
+		}
+
+		for _, target := range candidateHrefs {
+			if data, contentType, ok := readEPUBImageEntry(findZipFile(reader, target)); ok {
+				return data, contentType, nil
+			}
+		}
+	}
+
+	// 4. Fallback: common cover paths first, then any image entry whose name contains "cover".
 	coverNames := []string{
 		"OEBPS/cover.jpg", "OEBPS/cover.jpeg", "OEBPS/cover.png", "OEBPS/cover.webp",
-		"cover.jpg", "cover.jpeg", "cover.png",
-		"OEBPS/Images/cover.jpg", "OEBPS/Images/cover.jpeg",
+		"cover.jpg", "cover.jpeg", "cover.png", "cover.webp",
+		"OEBPS/Images/cover.jpg", "OEBPS/Images/cover.jpeg", "OEBPS/Images/cover.png",
+	}
+	for _, coverName := range coverNames {
+		if data, contentType, ok := readEPUBImageEntry(findZipFile(reader, coverName)); ok {
+			return data, contentType, nil
+		}
 	}
 
 	for _, f := range reader.File {
-		name := strings.ToLower(f.Name)
-		for _, coverName := range coverNames {
-			if strings.ToLower(coverName) == name || strings.Contains(name, "cover") {
-				data, err := readZipFileWithLimit(f, maxEPUBCoverBytes)
-				if err != nil {
-					return nil, "", err
-				}
-				contentType := http.DetectContentType(data)
-				if !strings.HasPrefix(contentType, "image/") {
-					return nil, "", fmt.Errorf("封面格式无效")
-				}
-				return data, contentType, nil
-			}
+		if strings.HasSuffix(f.Name, "/") {
+			continue
+		}
+		if !strings.Contains(strings.ToLower(f.Name), "cover") {
+			continue
+		}
+		if data, contentType, ok := readEPUBImageEntry(f); ok {
+			return data, contentType, nil
 		}
 	}
 

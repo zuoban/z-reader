@@ -1,0 +1,139 @@
+import { fireEvent, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useReaderControls } from '@/hooks/useReaderControls';
+
+describe('reader keyboard controls', () => {
+  let page: HTMLDivElement;
+
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }));
+    page = document.createElement('div');
+    document.body.append(page);
+  });
+
+  afterEach(() => {
+    page.remove();
+    vi.unstubAllGlobals();
+  });
+
+  function renderControls(shortcutsOpen = false) {
+    const onPrev = vi.fn();
+    const onNext = vi.fn();
+    const onBack = vi.fn();
+    const onToggleShortcuts = vi.fn();
+    const onCloseShortcuts = vi.fn();
+    const { result } = renderHook(() => useReaderControls({
+      pageRef: { current: page },
+      onPrev,
+      onNext,
+      onBack,
+      shortcutsOpen,
+      onToggleShortcuts,
+      onCloseShortcuts,
+    }));
+    return { result, onPrev, onNext, onBack, onToggleShortcuts, onCloseShortcuts };
+  }
+
+  it.each([
+    ['toolbar button', '<button>设置</button>'],
+    ['settings slider', '<span role="slider" tabindex="0"></span>'],
+    ['input', '<input>'],
+    ['select', '<select><option>主题</option></select>'],
+    ['settings panel', '<div role="dialog" tabindex="0"></div>'],
+    ['interactive reader element', '<div data-reader-interactive="true"><span tabindex="0"></span></div>'],
+  ])('leaves paging keys to a focused %s', (_label, markup) => {
+    const { onPrev, onNext } = renderControls();
+    page.innerHTML = markup;
+    const control = page.querySelector<HTMLElement>('button, input, select, [tabindex]')!;
+    control.focus();
+    expect(control).toHaveFocus();
+
+    expect(fireEvent.keyDown(control, { key: ' ' })).toBe(true);
+    expect(fireEvent.keyDown(control, { key: ' ', shiftKey: true })).toBe(true);
+    expect(fireEvent.keyDown(control, { key: 'ArrowRight' })).toBe(true);
+    expect(fireEvent.keyDown(control, { key: 'ArrowLeft' })).toBe(true);
+    expect(onPrev).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
+  it('ignores a prevented keydown and still pages from the reading surface', () => {
+    const { onPrev, onNext } = renderControls();
+    page.tabIndex = -1;
+    page.focus();
+    page.addEventListener('keydown', (event) => event.preventDefault(), { once: true });
+
+    fireEvent.keyDown(page, { key: 'ArrowRight' });
+    expect(onNext).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(page, { key: 'ArrowRight' });
+    fireEvent.keyDown(page, { key: ' ', shiftKey: true });
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(onPrev).toHaveBeenCalledTimes(1);
+  });
+
+  it('pages from Foliate iframe content and leaves focused iframe controls alone', () => {
+    const { result, onPrev, onNext } = renderControls();
+    const iframe = document.createElement('iframe');
+    page.append(iframe);
+    const frameDocument = iframe.contentDocument!;
+    frameDocument.body.innerHTML = '<input><button>链接操作</button><p>正文</p>';
+    result.current.bindReaderDocument(frameDocument);
+
+    const input = frameDocument.querySelector('input')!;
+    expect(input).not.toBeInstanceOf(HTMLInputElement);
+    input.focus();
+    expect(input).toHaveFocus();
+    fireEvent.keyDown(input, { key: ' ' });
+
+    const button = frameDocument.querySelector('button')!;
+    button.focus();
+    fireEvent.keyDown(button, { key: 'ArrowLeft' });
+    expect(onPrev).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+
+    button.blur();
+    frameDocument.body.addEventListener('keydown', (event) => event.preventDefault(), { once: true });
+    fireEvent.keyDown(frameDocument.body, { key: 'ArrowLeft' });
+    expect(onPrev).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(frameDocument.body, { key: 'ArrowLeft' });
+    fireEvent.keyDown(frameDocument.body, { key: ' ' });
+    expect(onPrev).toHaveBeenCalledTimes(1);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps help and Escape available when a button has focus', () => {
+    const { onBack, onToggleShortcuts } = renderControls();
+    const button = document.createElement('button');
+    page.append(button);
+    button.focus();
+
+    fireEvent.keyDown(button, { key: '?' });
+    fireEvent.keyDown(button, { key: 'Escape' });
+    expect(onToggleShortcuts).toHaveBeenCalledTimes(1);
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves keyboard input to the open image zoom overlay', () => {
+    const { onNext, onBack, onToggleShortcuts } = renderControls();
+    page.dataset.readerImageZoomOpen = 'true';
+
+    fireEvent.keyDown(page, { key: 'ArrowRight' });
+    fireEvent.keyDown(page, { key: '?' });
+    fireEvent.keyDown(page, { key: 'Escape' });
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onToggleShortcuts).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it('closes the shortcut dialog with Escape and blocks paging while it is open', () => {
+    const { onCloseShortcuts, onBack, onNext } = renderControls(true);
+
+    fireEvent.keyDown(page, { key: 'ArrowRight' });
+    fireEvent.keyDown(page, { key: 'Escape' });
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
+    expect(onCloseShortcuts).toHaveBeenCalledTimes(1);
+  });
+});

@@ -3,6 +3,21 @@
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const PAGING_CONTROL_SELECTOR = [
+  'a[href]',
+  'button',
+  'select',
+  'summary',
+  'audio[controls]',
+  'video[controls]',
+  '[role~="button"], [role~="link"], [role~="slider"], [role~="spinbutton"]',
+  '[role~="checkbox"], [role~="radio"], [role~="switch"], [role~="textbox"]',
+  '[role~="combobox"], [role~="listbox"], [role~="option"], [role~="tab"]',
+  '[role~="menuitem"], [role~="menuitemcheckbox"], [role~="menuitemradio"]',
+  '[role~="dialog"], [role~="alertdialog"], [role~="toolbar"]',
+  '[data-reader-interactive="true"]',
+].join(', ');
+
 interface UseReaderControlsOptions {
   pageRef: RefObject<HTMLDivElement | null>;
   onPrev: () => void;
@@ -109,15 +124,16 @@ export function useReaderControls({
   }, [pageRef]);
 
   const keyboardHandler = useCallback((e: KeyboardEvent) => {
-    if (pageRef.current?.dataset.readerImageZoomOpen === 'true') {
+    if (e.defaultPrevented || pageRef.current?.dataset.readerImageZoomOpen === 'true') {
       return;
     }
 
-    const target = e.target;
+    const target = e.composedPath()[0];
+    const targetWindow = (target as Node | undefined)?.ownerDocument?.defaultView;
+    const element = targetWindow && target instanceof targetWindow.Element ? target : null;
     if (
-      target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement ||
-      (target instanceof HTMLElement && target.isContentEditable)
+      element?.matches('input, textarea') ||
+      (element && 'isContentEditable' in element && element.isContentEditable)
     ) {
       return;
     }
@@ -142,18 +158,21 @@ export function useReaderControls({
       return;
     }
 
+    const isPagingControl = Boolean(element?.closest(PAGING_CONTROL_SELECTOR));
+
     switch (e.key) {
       case 'ArrowLeft':
       case 'PageUp':
       case 'k':
       case 'K':
-        prevRef.current();
+        if (!isPagingControl) prevRef.current();
         break;
       case 'ArrowRight':
       case 'PageDown':
       case 'j':
       case 'J':
       case ' ':
+        if (isPagingControl) break;
         if (e.key === ' ' && e.shiftKey) {
           prevRef.current();
         } else {

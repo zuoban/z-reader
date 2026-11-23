@@ -169,6 +169,53 @@ test.describe('reader happy path', () => {
     await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
   });
 
+  test('keeps page shortcuts out of toolbar buttons and settings sliders', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+    await ensureToolbarVisible(page);
+
+    const reader = page.locator('foliate-view');
+    await reader.evaluate((element) => {
+      const view = element as HTMLElement & { prev(): void; next(): void };
+      view.prev = () => { element.dataset.pageShortcut = 'prev'; };
+      view.next = () => { element.dataset.pageShortcut = 'next'; };
+      element.dataset.pageShortcut = 'none';
+    });
+
+    const toc = page.getByRole('button', { name: '目录', exact: true }).first();
+    await toc.focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('dialog', { name: '目录', exact: true })).toBeVisible();
+    await expect(reader).toHaveAttribute('data-page-shortcut', 'none');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: '目录', exact: true })).toBeHidden();
+
+    await ensureToolbarVisible(page);
+    await page.getByTitle('阅读设置').click();
+    await page.getByRole('tab', { name: '排版', exact: true }).click();
+    const fontSize = page.getByRole('tabpanel', { name: '排版设置' }).getByRole('slider').first();
+    const initialSize = Number(await fontSize.getAttribute('aria-valuenow'));
+    await fontSize.press('ArrowRight');
+    await expect(fontSize).toHaveAttribute('aria-valuenow', String(initialSize + 1));
+    await expect(reader).toHaveAttribute('data-page-shortcut', 'none');
+    await page.keyboard.press('Escape');
+    await expect(fontSize).toBeHidden();
+
+    await reader.evaluate((element) => {
+      const view = element as HTMLElement & {
+        renderer: { getContents(): Array<{ doc: Document }> };
+      };
+      const { doc } = view.renderer.getContents()[0];
+      doc.body.tabIndex = -1;
+      doc.body.focus();
+    });
+    await page.keyboard.press('ArrowRight');
+    await expect(reader).toHaveAttribute('data-page-shortcut', 'next');
+  });
+
   test('records progress saves while reading', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     const mock = await mockReaderHappyPath(page, 'book-1');

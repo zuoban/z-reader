@@ -31,15 +31,24 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 0' INT TERM
 
+run_as_user=()
+if [[ "$(id -u)" -eq 0 ]]; then
+  for dir in /app/data /app/uploads /data /config; do
+    mkdir -p "${dir}"
+    find "${dir}" \( ! -user zreader -o ! -group zreader \) -exec chown zreader:zreader {} +
+  done
+  run_as_user=(su-exec zreader)
+fi
+
 cd /app
-./z-reader &
+"${run_as_user[@]}" ./z-reader &
 backend_pid=$!
 
 cd /app/frontend
-node server.js &
+"${run_as_user[@]}" node server.js &
 frontend_pid=$!
 
-caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &
+"${run_as_user[@]}" caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &
 caddy_pid=$!
 
 wait -n "${backend_pid}" "${frontend_pid}" "${caddy_pid}"

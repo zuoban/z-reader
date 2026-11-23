@@ -33,10 +33,13 @@ LABEL maintainer="zuoban"
 LABEL org.opencontainers.image.source="https://github.com/zuoban/z-reader"
 
 # Install runtime dependencies
-RUN apk add --no-cache bash nodejs ca-certificates tini tzdata
+RUN apk add --no-cache bash nodejs ca-certificates tini tzdata libcap su-exec && \
+    addgroup -g 1000 -S zreader && \
+    adduser -u 1000 -S -G zreader zreader && \
+    setcap cap_net_bind_service=+ep /usr/bin/caddy
 
 # Create directories
-RUN mkdir -p /app/data /app/uploads /app/frontend
+RUN mkdir -p /app/data /app/uploads /app/frontend /data /config
 
 # Copy backend binary
 COPY --from=backend-builder /app/z-reader /app/z-reader
@@ -54,7 +57,8 @@ COPY --from=frontend-builder /app/frontend/public /app/frontend/public
 # Copy Caddyfile
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY docker/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+RUN chmod +x /app/start.sh && \
+    chown -R zreader:zreader /app /data /config /etc/caddy
 
 WORKDIR /app
 
@@ -63,13 +67,17 @@ ENV UPLOAD_DIR=/app/uploads
 ENV DB_PATH=/app/data/data.db
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV XDG_DATA_HOME=/data
+ENV XDG_CONFIG_HOME=/config
 
 EXPOSE 80 443
 
 VOLUME ["/app/uploads", "/app/data"]
 
+# Entrypoint repairs mounted volume ownership from legacy root installs,
+# then drops privileges to zreader (1000:1000) via su-exec before starting services.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz && wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/login || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/app/start.sh"]

@@ -10,7 +10,7 @@ Z Reader is an online e-book reader application for personal library management,
 
 | Component | Technology |
 | --- | --- |
-| Backend | Go 1.23+, Gin, bbolt (embedded KV database) |
+| Backend | Go 1.26.9+, Gin, bbolt (embedded KV database) |
 | Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui |
 | Reading Engine | foliate-js (vendored in `frontend/public/foliate/`) |
 | Reverse Proxy | Caddy |
@@ -88,11 +88,12 @@ Key variables loaded from `.env` file:
 backend/
 ├── main.go           # Entry point: route registration, server lifecycle
 ├── config/           # Environment configuration loading
-├── handlers/         # HTTP request handlers (auth, books, progress, tts, users)
-├── middleware/       # Auth, rate limiting middleware
+├── handlers/         # HTTP request handlers (auth, books, bookmarks, progress, tts, health, client_errors)
+├── middleware/       # Auth, rate limiting, logging, metrics middleware
 ├── models/           # Data structures
-├── storage/          # bbolt database operations (db.go)
-├── services/         # Business logic services
+├── storage/          # bbolt database operations (db, books, sessions, progress, bookmarks, migrations)
+├── services/         # Business logic services (TTS providers, voice list, cache)
+├── backup/           # Verified backup creation & restore
 ├── response/         # Standardized response helpers
 ├── utils/            # Utility functions
 └── logger/           # Logging initialization
@@ -100,17 +101,17 @@ backend/
 
 **Key patterns:**
 - Handler structs use `NewXxxHandler(cfg, db)` constructor pattern
-- Database layer is `storage.DB` wrapping bbolt, with methods like `EnsureDefaultAdmin`, `CleanExpiredSessions`
-- `middleware.AuthRequired` enforces the optional password using a session cookie for one shared library
-- Session cleanup runs hourly via `startSessionCleaner`
+- Database layer is `storage.DB` wrapping bbolt (`storage.PersonalLibrary` single-library model), with background cleanup like `CleanExpiredSessions`
+- `middleware.AuthRequired` enforces the optional `ACCESS_PASSWORD` using a session cookie for one shared library
+- Session cleanup runs hourly via `startSessionCleaner`; verified backups run via `startBackupWorker`
 
 **API Routes** (defined in `main.go`):
-- `POST /api/login`, `POST /api/logout` - public
+- `POST /api/login`, `POST /api/logout`, `GET /healthz`, `GET /readyz` - public
 - `GET /api/auth/verify` - authenticated
-- `GET/POST/PATCH/DELETE /api/books/*` - authenticated (book CRUD, covers, categories)
+- `GET/POST/PATCH/DELETE /api/books/*` - authenticated (book CRUD, covers, categories, bookmarks)
 - `GET/POST /api/progress/*` - authenticated (reading progress)
 - `GET /api/tts`, `POST /api/ssml`, `GET /api/voices` - authenticated (TTS)
-- `GET/POST/PATCH/DELETE /api/users/*` - admin only
+- `POST /api/client-errors` - authenticated (client error telemetry)
 
 ### Frontend Structure (`frontend/src/`)
 

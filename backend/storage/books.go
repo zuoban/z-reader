@@ -414,14 +414,31 @@ func rebuildLibrarySummaryIndex(tx *bbolt.Tx) error {
 	if _, err := tx.CreateBucket(LibrarySummaryIndex); err != nil {
 		return err
 	}
-	booksBucket := tx.Bucket(BooksBucket)
-	return booksBucket.ForEach(func(_, data []byte) error {
+	summaries := make(map[string]*BookLibrarySummary)
+	if err := tx.Bucket(BooksBucket).ForEach(func(_, data []byte) error {
 		var book models.Book
 		if err := book.UnmarshalDB(data); err != nil {
 			return err
 		}
-		return adjustLibrarySummary(tx, &book, 1)
-	})
+		if book.UserID == "" {
+			return nil
+		}
+		summary := summaries[book.UserID]
+		if summary == nil {
+			summary = &BookLibrarySummary{Categories: make(map[string]int)}
+			summaries[book.UserID] = summary
+		}
+		summary.adjustCount(categoryForBook(&book), 1)
+		return nil
+	}); err != nil {
+		return err
+	}
+	for userID, summary := range summaries {
+		if err := saveLibrarySummary(tx, userID, *summary); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (db *DB) SaveBook(book *models.Book) error {

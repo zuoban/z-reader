@@ -705,6 +705,52 @@ func TestGetBookLibrarySummaryReturnsOnlyRequestedUsersCounts(t *testing.T) {
 	}
 }
 
+func TestRebuildLibrarySummaryIndexReplacesStaleCounts(t *testing.T) {
+	db := openTestDB(t)
+	const category = "科幻"
+	paddedCategory := "  " + category + "  "
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		for _, book := range []models.Book{
+			{ID: "a", UserID: "first", Category: &paddedCategory},
+			{ID: "b", UserID: "other"},
+			{ID: "c", UserID: "first"},
+			{ID: "d", Category: &paddedCategory},
+		} {
+			data, err := book.MarshalDB()
+			if err != nil {
+				return err
+			}
+			if err := tx.Bucket(BooksBucket).Put([]byte(book.ID), data); err != nil {
+				return err
+			}
+		}
+		bucket := tx.Bucket(LibrarySummaryIndex)
+		if err := bucket.Put([]byte("stale"), []byte(`{"total":99}`)); err != nil {
+			return err
+		}
+		return rebuildLibrarySummaryIndex(tx)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket(LibrarySummaryIndex)
+		if got := bucket.Stats().KeyN; got != 2 {
+			t.Errorf("summary index has %d entries, want 2", got)
+		}
+		for userID, want := range map[string]string{
+			"first": `{"total":2,"uncategorized":1,"categories":{"科幻":1}}`,
+			"other": `{"total":1,"uncategorized":1,"categories":{}}`,
+		} {
+			if got := string(bucket.Get([]byte(userID))); got != want {
+				t.Errorf("summary for %q = %s, want %s", userID, got, want)
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestBookContentAndLibrarySummaryIndexesStayCurrent(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

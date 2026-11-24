@@ -40,9 +40,14 @@ export default function LandingPage() {
               自托管 EPUB、MOBI、AZW3 和 PDF 书库，在手机、平板和电脑上接着读
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-8">
-              <Link href="/shelf" className="app-primary-link entry-action">
+              <Link href="/shelf" className="app-primary-link entry-action group">
                 进入我的书架
-                <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+                <ArrowRight
+                  size={16}
+                  strokeWidth={1.5}
+                  className="transition-transform duration-150 group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
               </Link>
               <a href="#features" className="app-secondary-link entry-action">
                 了解功能
@@ -68,7 +73,9 @@ export default function LandingPage() {
             <ul role="list" className="grid gap-x-8 sm:grid-cols-2">
               {features.map(({ icon: Icon, title, description }) => (
                 <li key={title} className="entry-feature">
-                  <Icon size={16} className="mt-1 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-primary/85 shadow-[var(--paper-shadow-control)]">
+                    <Icon size={15} strokeWidth={1.6} aria-hidden="true" />
+                  </div>
                   <div>
                     <h3 className="text-[15px] font-medium text-foreground">{title}</h3>
                     <p className="mt-1.5 text-pretty text-sm leading-6 text-muted-foreground">

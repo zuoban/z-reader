@@ -27,6 +27,7 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSubmitting) return;
     setError('');
     setPasswordError('');
     if (!password) {
@@ -41,9 +42,13 @@ export default function LoginPage() {
       await login(password);
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
+      requestAnimationFrame(() => {
+        passwordRef.current?.focus();
+        passwordRef.current?.select();
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   }
 
   if (isLoading || isAuthenticated) {
@@ -94,17 +99,21 @@ export default function LoginPage() {
                 ref={passwordRef}
                 label="访问密码"
                 value={password}
+                disabled={isSubmitting}
                 onChange={(e) => {
                   setPassword(e.currentTarget.value);
                   if (passwordError) setPasswordError('');
+                  if (error) setError('');
                 }}
                 visible={showPassword}
                 onVisibilityChange={setShowPassword}
                 visibilityToggleFocusable
                 placeholder="请输入访问密码"
                 autoComplete="current-password"
-                aria-invalid={Boolean(passwordError)}
-                aria-describedby={passwordError ? 'password-error' : undefined}
+                aria-invalid={Boolean(passwordError || error)}
+                aria-describedby={
+                  passwordError ? 'password-error' : error ? 'login-error' : undefined
+                }
                 error={passwordError || undefined}
                 errorProps={{ id: 'password-error', role: 'alert' }}
                 visibilityToggleIcon={({ reveal }) =>
@@ -116,6 +125,7 @@ export default function LoginPage() {
                 }
                 visibilityToggleButtonProps={{
                   'aria-label': showPassword ? '隐藏密码' : '显示密码',
+                  disabled: isSubmitting,
                   className: 'entry-password-toggle',
                 }}
                 classNames={{
@@ -129,11 +139,12 @@ export default function LoginPage() {
 
               {error && (
                 <div
+                  id="login-error"
                   role="alert"
                   className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
                 >
                   <CircleAlert size={16} className="shrink-0" aria-hidden="true" />
-                  {error}
+                  <span>{error}</span>
                 </div>
               )}
 
@@ -142,8 +153,8 @@ export default function LoginPage() {
                 variant="filled"
                 fullWidth
                 disabled={isSubmitting}
-                aria-busy={isSubmitting}
-                className="app-primary-link entry-action"
+                aria-busy={isSubmitting || undefined}
+                className="app-primary-link entry-action cursor-pointer"
                 classNames={{
                   label: 'inline-flex items-center justify-center gap-2',
                 }}

@@ -18,7 +18,12 @@
   }
 
   .entry-nav-link {
-    @apply whitespace-nowrap hover:underline underline-offset-4;
+    @apply whitespace-nowrap px-1.5 hover:underline underline-offset-4;
+  }
+
+  .entry-nav-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   .entry-action {
@@ -46,8 +51,13 @@
   }
 
   .entry-field:focus-within {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+
+  .entry-field[data-error]:focus-within {
+    border-color: var(--destructive);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 14%, transparent);
   }
 
   .entry-password-input {
@@ -61,7 +71,7 @@
   }
 
   .entry-password-toggle {
-    @apply justify-center hover:bg-secondary;
+    @apply cursor-pointer justify-center hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50;
     outline-offset: -3px;
   }
 
@@ -75,15 +85,17 @@
   }
 
   .entry-feature {
-    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-t border-border py-4;
+    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3.5 border-t border-border py-4;
   }
 
   .library-preview {
     @apply rounded-2xl border border-border bg-card p-4 sm:p-6;
+    box-shadow: var(--paper-shadow-panel);
   }
 
   .library-preview-compact {
     @apply rounded-none border-0 bg-transparent p-0;
+    box-shadow: none;
   }
 
   .preview-caption {
@@ -101,6 +113,15 @@
     background: var(--cover-color);
     container-type: inline-size;
     box-shadow: 0 2px 8px -2px rgb(15 20 17 / 22%), inset 0 0 0 1px rgb(255 255 255 / 10%);
+    transition: transform var(--paper-duration-base) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) {
+    .preview-cover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px -6px rgb(15 20 17 / 28%), inset 0 0 0 1px rgb(255 255 255 / 14%);
+    }
   }
 
   .preview-cover::after {
@@ -126,7 +147,7 @@
   }
 
   .auth-layout {
-    @apply grid w-full max-w-md lg:max-w-5xl lg:grid-cols-2 lg:rounded-2xl lg:border lg:border-border lg:bg-card;
+    @apply grid w-full max-w-md lg:max-w-5xl lg:grid-cols-2 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:shadow-[var(--paper-shadow-panel)];
   }
 
   .auth-editorial {

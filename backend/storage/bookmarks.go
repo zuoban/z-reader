@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"sort"
+	"strings"
 
 	"go.etcd.io/bbolt"
 
@@ -16,6 +17,30 @@ func bookmarkKey(userID string, bookID string, bookmarkID string) []byte {
 
 func bookmarkBookPrefix(userID string, bookID string) []byte {
 	return []byte(userID + ":" + bookID + ":")
+}
+
+func deleteBookBookmarks(tx *bbolt.Tx, userID, bookID string) error {
+	prefix := bookmarkBookPrefix(userID, bookID)
+	ambiguousPrefix := strings.ContainsRune(userID, ':') || strings.ContainsRune(bookID, ':')
+	cursor := tx.Bucket(BookmarksBucket).Cursor()
+	key, value := cursor.Seek(prefix)
+	for bytes.HasPrefix(key, prefix) {
+		// When a key can match more than one book, delete only verified matches.
+		if ambiguousPrefix || bytes.IndexByte(key[len(prefix):], ':') >= 0 {
+			var bookmark models.Bookmark
+			if err := json.Unmarshal(value, &bookmark); err != nil ||
+				bookmark.UserID != userID || bookmark.BookID != bookID {
+				key, value = cursor.Next()
+				continue
+			}
+		}
+		if err := cursor.Delete(); err != nil {
+			return err
+		}
+		// Deleting from a writable node can shift the next key into this slot.
+		key, value = cursor.Seek(key)
+	}
+	return nil
 }
 
 func (db *DB) ListBookmarks(bookID string, userID string) ([]models.Bookmark, error) {

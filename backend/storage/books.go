@@ -814,13 +814,8 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, e
 		return nil, err
 	}
 
-	bookmarksBucket := tx.Bucket(BookmarksBucket)
-	prefix := bookmarkBookPrefix(userID, id)
-	bookmarkCursor := bookmarksBucket.Cursor()
-	for key, _ := bookmarkCursor.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = bookmarkCursor.Next() {
-		if err := bookmarkCursor.Delete(); err != nil {
-			return nil, err
-		}
+	if err := deleteBookBookmarks(tx, userID, id); err != nil {
+		return nil, err
 	}
 	if err := removeBookFromSearchIndex(tx, book); err != nil {
 		return nil, err

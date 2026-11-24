@@ -433,14 +433,17 @@ func TestDeleteBookDataRemovesBookProgressAndBookmarks(t *testing.T) {
 	if err := db.SaveProgress(progress, userID); err != nil {
 		t.Fatalf("failed to save progress: %v", err)
 	}
-	if err := db.SaveBookmark(&models.Bookmark{
-		ID:         "bookmark-a",
-		BookID:     book.ID,
-		CFI:        "epubcfi(/6/4[chapter2]!/4/2/6)",
-		Percentage: 45,
-		CreatedAt:  time.Now().UTC(),
-	}, userID); err != nil {
-		t.Fatalf("failed to save bookmark: %v", err)
+	bookmarkIDs := []string{"bookmark-a", "bookmark-b", "bookmark-c", "bookmark-d"}
+	for _, id := range bookmarkIDs {
+		if err := db.SaveBookmark(&models.Bookmark{
+			ID:         id,
+			BookID:     book.ID,
+			CFI:        "epubcfi(/6/4[chapter2]!/4/2/6)",
+			Percentage: 45,
+			CreatedAt:  time.Now().UTC(),
+		}, userID); err != nil {
+			t.Fatalf("failed to save bookmark: %v", err)
+		}
 	}
 
 	if err := db.DeleteBookData(book.ID, userID); err != nil {
@@ -469,12 +472,62 @@ func TestDeleteBookDataRemovesBookProgressAndBookmarks(t *testing.T) {
 	}
 
 	if err := db.View(func(tx *bbolt.Tx) error {
-		if data := tx.Bucket(BookmarksBucket).Get(bookmarkKey(userID, book.ID, "bookmark-a")); data != nil {
-			t.Fatalf("expected bookmark data to be deleted, got %s", string(data))
+		for _, id := range bookmarkIDs {
+			if data := tx.Bucket(BookmarksBucket).Get(bookmarkKey(userID, book.ID, id)); data != nil {
+				t.Errorf("bookmark %q remained after deleting the book", id)
+			}
 		}
 		return nil
 	}); err != nil {
 		t.Fatalf("failed to inspect bookmark bucket: %v", err)
+	}
+}
+
+func TestDeleteBooksDataRemovesEveryBookmarkInBatch(t *testing.T) {
+	db := openTestDB(t)
+	const userID = "u"
+	const remainingBookID = "second:edition"
+	bookmarkIDs := []string{"a", "b", "c", "z"}
+	for _, bookID := range []string{"first", "second", remainingBookID} {
+		if err := db.CreateBook(&models.Book{ID: bookID, UserID: userID}); err != nil {
+			t.Fatal(err)
+		}
+		for _, bookmarkID := range bookmarkIDs {
+			if err := db.SaveBookmark(&models.Bookmark{ID: bookmarkID, BookID: bookID}, userID); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	ambiguousKey := bookmarkKey(userID, "second:unknown", "broken")
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		return tx.Bucket(BookmarksBucket).Put(ambiguousKey, []byte("invalid JSON"))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.DeleteBooksData([]string{"first", "second"}, userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket(BookmarksBucket)
+		if string(bucket.Get(ambiguousKey)) != "invalid JSON" {
+			t.Error("bookmark with unknown ownership was changed")
+		}
+		for _, bookID := range []string{"first", "second"} {
+			for _, bookmarkID := range bookmarkIDs {
+				key := bookmarkKey(userID, bookID, bookmarkID)
+				if bucket.Get(key) != nil {
+					t.Errorf("bookmark %q remained after batch deletion", key)
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	remaining, err := db.ListBookmarks(remainingBookID, userID)
+	if err != nil || len(remaining) != len(bookmarkIDs) {
+		t.Fatalf("remaining book has %d bookmarks, want %d, err = %v", len(remaining), len(bookmarkIDs), err)
 	}
 }
 

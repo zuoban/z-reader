@@ -18,13 +18,28 @@ var (
 )
 
 func bookCategorySortPrefix(userID, category, sortKey string) []byte {
-	category = base64.RawURLEncoding.EncodeToString([]byte(strings.TrimSpace(category)))
-	return []byte(sortKey + bookSortSeparator + userID + bookSortSeparator + category + bookSortSeparator)
+	return makeBookCategorySortPrefix(userID, strings.TrimSpace(category), sortKey, 0)
+}
+
+func makeBookCategorySortPrefix(userID, category, sortKey string, suffixLen int) []byte {
+	prefixLen := len(sortKey) + len(userID) + base64.RawURLEncoding.EncodedLen(len(category)) + 3*len(bookSortSeparator)
+	key := make([]byte, 0, prefixLen+suffixLen)
+	key = append(key, sortKey...)
+	key = append(key, bookSortSeparator...)
+	key = append(key, userID...)
+	key = append(key, bookSortSeparator...)
+	key = base64.RawURLEncoding.AppendEncode(key, []byte(category))
+	return append(key, bookSortSeparator...)
 }
 
 func bookCategorySortIndexKey(book *models.Book, sortKey string) []byte {
-	prefix := bookCategorySortPrefix(book.UserID, categoryForBook(book), sortKey)
-	return append(prefix, []byte(bookSortValue(book, sortKey)+bookSortSeparator+book.ID)...)
+	category := categoryForBook(book)
+	value := bookSortValue(book, sortKey)
+	suffixLen := len(value) + len(bookSortSeparator) + len(book.ID)
+	key := makeBookCategorySortPrefix(book.UserID, category, sortKey, suffixLen)
+	key = append(key, value...)
+	key = append(key, bookSortSeparator...)
+	return append(key, book.ID...)
 }
 
 // Membership entries share the content bucket with its O(1) canonical lookup.

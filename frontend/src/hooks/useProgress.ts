@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ApiError, api } from '@/lib/api';
-import { accessStorageKey, getAccessGeneration } from '@/lib/library-access';
+import { ApiError, api, AUTH_EXPIRED_EVENT } from '@/lib/api';
+import { ACCESS_GENERATION_KEY, accessStorageKey, getAccessGeneration } from '@/lib/library-access';
 import { offlineProgressKey, offlineProgressQueueKey, readOfflineQueue } from '@/lib/offline-progress-storage';
 import type { Progress } from '@/lib/api';
 
@@ -21,6 +21,13 @@ type PendingProgress = Pick<ProgressSnapshot, 'cfi' | 'percentage'> & {
 };
 
 const replayingBooks = new Set<string>();
+const INITIAL_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 30000;
+
+type QueueSync = {
+  flush: (immediate?: boolean) => void;
+  retry: () => void;
+};
 
 interface UseProgressOptions {
   bookId: string;
@@ -87,6 +94,11 @@ function isPermanentProgressError(error: unknown) {
   return error instanceof ApiError && [400, 404, 410, 413, 422].includes(error.status);
 }
 
+function isTransientProgressError(error: unknown) {
+  return !(error instanceof ApiError) ||
+    error.status === 408 || error.status === 429 || (error.status >= 500 && error.status < 600);
+}
+
 async function loadProgressAfterConflict(bookId: string, error: ApiError) {
   const details = error.details as { progress?: Progress | null } | undefined;
   if (details?.progress === null || (details?.progress?.cfi && details.progress.updated_at)) {
@@ -115,6 +127,7 @@ export function useProgress({
   const lastSavedRef = useRef<ProgressSnapshot | null>(progress);
   const pendingSaveRef = useRef<PendingProgress | null>(null);
   const savingRef = useRef(false);
+  const queueSyncRef = useRef<QueueSync | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const applyLoadedProgress = useCallback((data: {
     cfi: string;
@@ -174,17 +187,21 @@ export function useProgress({
     if (pendingSaveRef.current === data) pendingSaveRef.current = null;
   }, [bookId, generation, offlineQueueKey]);
 
-  const syncOfflineProgressQueue = useCallback(async () => {
-    if (!remoteSyncEnabled || isBrowserOffline()) return;
+  const syncOfflineProgressQueue = useCallback(async (canSync: () => boolean) => {
     const queue = readOfflineQueue(offlineQueueKey);
+    let retry = false;
     for (const id of queue) {
-      if (isBrowserOffline() || getAccessGeneration() !== generation) break;
+      if (!canSync()) break;
       const key = offlineProgressKey(id, generation);
-      if (replayingBooks.has(key)) continue;
-      const raw = localStorage.getItem(key);
-      const cached = parseOfflineProgress(raw);
+      if (replayingBooks.has(key)) {
+        // A previous reader may still be settling a write for this book.
+        retry = true;
+        continue;
+      }
       replayingBooks.add(key);
       try {
+        const raw = localStorage.getItem(key);
+        const cached = parseOfflineProgress(raw);
         if (cached) {
           const version = cached.expected_updated_at ?? null;
           try {
@@ -212,6 +229,7 @@ export function useProgress({
           } catch (error) {
             if (getAccessGeneration() !== generation) return;
             if (error instanceof ApiError && error.status === 409) {
+              if (!canSync()) return;
               const latest = await loadProgressAfterConflict(id, error);
               if (getAccessGeneration() !== generation) return;
               rememberServerVersion(id, latest, generation);
@@ -234,12 +252,13 @@ export function useProgress({
         }
       } catch (error) {
         console.error(`Failed to background sync progress for book ${id}:`, error);
-        break;
+        return isTransientProgressError(error);
       } finally {
         replayingBooks.delete(key);
       }
     }
-  }, [generation, offlineQueueKey, remoteSyncEnabled]);
+    return retry;
+  }, [generation, offlineQueueKey]);
 
   const saveProgress = useCallback(async (data: PendingProgress, force = false) => {
     if (getAccessGeneration() !== generation) return;
@@ -248,7 +267,7 @@ export function useProgress({
     const canSync = remoteSyncEnabled && !isBrowserOffline();
     if (!canSync || data.offlineBase || readOfflineQueue(offlineQueueKey).includes(bookId)) {
       persistOfflineProgress(data);
-      if (canSync) void syncOfflineProgressQueue();
+      if (canSync) queueSyncRef.current?.flush();
       return;
     }
 
@@ -290,6 +309,7 @@ export function useProgress({
         } catch (loadErr) {
           console.error('Failed to load latest progress after conflict:', loadErr);
           persistOfflineProgress(latestPending(), version);
+          if (isTransientProgressError(loadErr)) queueSyncRef.current?.retry();
         }
         return;
       }
@@ -297,12 +317,13 @@ export function useProgress({
       console.error('Failed to save progress remotely:', err);
       if (!isPermanentProgressError(err)) {
         persistOfflineProgress(latestPending(), version);
+        if (isTransientProgressError(err)) queueSyncRef.current?.retry();
       }
     } finally {
       savingRef.current = false;
     }
   }, [applyLoadedProgress, bookId, generation, hasMeaningfulChange, offlineQueueKey,
-    persistOfflineProgress, remoteSyncEnabled, syncOfflineProgressQueue]);
+    persistOfflineProgress, remoteSyncEnabled]);
 
   // 防抖保存 - 避免快速翻页时频繁请求
   const debouncedSave = useCallback((data: PendingProgress) => {
@@ -365,25 +386,86 @@ export function useProgress({
   }, [loadProgress]);
 
   useEffect(() => {
-    // Trigger synchronization of any pending progress on mount
-    void syncOfflineProgressQueue();
-  }, [syncOfflineProgressQueue]);
+    if (!remoteSyncEnabled) return;
 
-  useEffect(() => {
-    // Automatically trigger queue sync when internet connection is restored
-    const handleOnline = () => {
-      void syncOfflineProgressQueue();
+    let active = true;
+    let running = false;
+    let queuedDuringReplay = false;
+    let retryDelay = INITIAL_RETRY_DELAY;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const canSync = () => active && !isBrowserOffline() && getAccessGeneration() === generation;
+
+    function clearRetry() {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    }
+
+    function retry() {
+      if (!canSync() || timer !== null) return;
+      timer = setTimeout(() => {
+        timer = null;
+        flush();
+      }, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
+    }
+
+    async function flush(immediate = false) {
+      if (!canSync()) return;
+      if (running) {
+        if (!immediate) queuedDuringReplay = true;
+        return;
+      }
+      if (timer !== null && !immediate) return;
+      clearRetry();
+      running = true;
+      queuedDuringReplay = false;
+      const shouldRetry = await syncOfflineProgressQueue(canSync);
+      running = false;
+      if (!canSync()) return;
+      if (!readOfflineQueue(offlineQueueKey).length) {
+        clearRetry();
+        retryDelay = INITIAL_RETRY_DELAY;
+      } else if (shouldRetry || queuedDuringReplay) {
+        retry();
+      } else if (timer === null) {
+        retryDelay = INITIAL_RETRY_DELAY;
+      }
+    }
+
+    const handleOnline = () => { void flush(true); };
+    const handleOffline = () => {
+      clearRetry();
+      retryDelay = INITIAL_RETRY_DELAY;
     };
+    const handleAccessChange = () => {
+      if (getAccessGeneration() !== generation) clearRetry();
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === ACCESS_GENERATION_KEY || event.key === null) handleAccessChange();
+    };
+    queueSyncRef.current = { flush, retry };
     window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [syncOfflineProgressQueue]);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAccessChange);
+    window.addEventListener('storage', handleStorage);
+    handleOnline();
+    return () => {
+      active = false;
+      queueSyncRef.current = null;
+      clearRetry();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handleAccessChange);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [generation, offlineQueueKey, remoteSyncEnabled, syncOfflineProgressQueue]);
 
   useEffect(() => {
     if (!remoteSyncEnabled) return;
     const refreshRemoteProgress = async () => {
       if (isBrowserOffline() || getAccessGeneration() !== generation) return;
       if (readOfflineQueue(offlineQueueKey).includes(bookId)) {
-        void syncOfflineProgressQueue();
+        queueSyncRef.current?.flush(true);
         return;
       }
       if (!lastSavedRef.current || savingRef.current || pendingSaveRef.current) return;
@@ -422,7 +504,7 @@ export function useProgress({
       window.removeEventListener('focus', refreshRemoteProgress);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [applyLoadedProgress, bookId, generation, offlineQueueKey, remoteSyncEnabled, syncOfflineProgressQueue]);
+  }, [applyLoadedProgress, bookId, generation, offlineQueueKey, remoteSyncEnabled]);
 
   // 定时保存 - 低频检查
   useEffect(() => {

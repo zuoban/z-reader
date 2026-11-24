@@ -195,6 +195,15 @@ export default function ShelfPage() {
   const selectedCount = selectedExistingIds.length;
   const allVisibleSelected =
     filteredBookIds.length > 0 && filteredBookIds.every((id) => selectedBookIds.has(id));
+  const isBatchBusy = isDeletingMany || isUpdatingManyCategories;
+  const canDropBookFiles =
+    !isOffline &&
+    !isLoadingBooks &&
+    !loadError &&
+    !batchDeleteOpen &&
+    !batchCategoryOpen &&
+    !categoryManagerOpen &&
+    !offlineBooksOpen;
 
   function clearSelectionWhenFiltering() {
     if (selectionMode && selectedBookIds.size > 0) {
@@ -218,6 +227,7 @@ export default function ShelfPage() {
   }
 
   function toggleSelectionMode() {
+    if (isBatchBusy) return;
     setSelectionMode((enabled) => {
       if (enabled) {
         setSelectedBookIds(new Set());
@@ -231,6 +241,7 @@ export default function ShelfPage() {
   useEffect(() => {
     if (
       !selectionMode ||
+      isBatchBusy ||
       batchDeleteOpen ||
       batchCategoryOpen ||
       categoryManagerOpen ||
@@ -258,11 +269,38 @@ export default function ShelfPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     selectionMode,
+    isBatchBusy,
     batchDeleteOpen,
     batchCategoryOpen,
     categoryManagerOpen,
     offlineBooksOpen,
   ]);
+
+  const resetDragState = useCallback(() => {
+    dragDepthRef.current = 0;
+    setIsDraggingBookFile(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isDraggingBookFile) return;
+
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        resetDragState();
+      }
+    };
+
+    window.addEventListener('dragend', resetDragState);
+    window.addEventListener('drop', resetDragState);
+    window.addEventListener('blur', resetDragState);
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => {
+      window.removeEventListener('dragend', resetDragState);
+      window.removeEventListener('drop', resetDragState);
+      window.removeEventListener('blur', resetDragState);
+      window.removeEventListener('keydown', handleWindowKeyDown);
+    };
+  }, [isDraggingBookFile, resetDragState]);
 
   const toggleBookSelection = useCallback((bookId: string) => {
     setSelectedBookIds((current) => {
@@ -325,7 +363,7 @@ export default function ShelfPage() {
   }
 
   function handleShelfDragEnter(event: DragEvent<HTMLElement>) {
-    if (!event.dataTransfer.types.includes('Files')) return;
+    if (!canDropBookFiles || !event.dataTransfer.types.includes('Files')) return;
 
     event.preventDefault();
     dragDepthRef.current += 1;
@@ -333,7 +371,7 @@ export default function ShelfPage() {
   }
 
   function handleShelfDragOver(event: DragEvent<HTMLElement>) {
-    if (!event.dataTransfer.types.includes('Files')) return;
+    if (!canDropBookFiles || !event.dataTransfer.types.includes('Files')) return;
 
     event.preventDefault();
     event.dataTransfer.dropEffect = isUploading ? 'none' : 'copy';
@@ -353,10 +391,9 @@ export default function ShelfPage() {
     if (!event.dataTransfer.types.includes('Files')) return;
 
     event.preventDefault();
-    dragDepthRef.current = 0;
-    setIsDraggingBookFile(false);
+    resetDragState();
 
-    if (isUploading) return;
+    if (!canDropBookFiles || isUploading) return;
     void uploadFiles(event.dataTransfer.files);
   }
 
@@ -617,6 +654,7 @@ export default function ShelfPage() {
                     variant="subtle"
                     color="gray"
                     size="xs"
+                    disabled={isBatchBusy}
                     leftSection={<Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />}
                     className="min-h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-[0.98] motion-reduce:active:scale-100"
                     onClick={() => setCategoryManagerOpen(true)}
@@ -628,6 +666,7 @@ export default function ShelfPage() {
                     variant={selectionMode ? 'filled' : 'subtle'}
                     color={selectionMode ? undefined : 'gray'}
                     size="xs"
+                    disabled={isBatchBusy}
                     leftSection={<CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />}
                     className={cn(
                       'min-h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100',
@@ -670,12 +709,14 @@ export default function ShelfPage() {
                         书库操作
                       </Menu.Label>
                       <Menu.Item
+                        disabled={isBatchBusy}
                         leftSection={<Settings2 strokeWidth={1.5} aria-hidden="true" />}
                         onClick={() => setCategoryManagerOpen(true)}
                       >
                         管理分类
                       </Menu.Item>
                       <Menu.Item
+                        disabled={isBatchBusy}
                         leftSection={<CheckSquare strokeWidth={1.5} aria-hidden="true" />}
                         onClick={toggleSelectionMode}
                       >
@@ -823,7 +864,7 @@ export default function ShelfPage() {
                 <div
                   role="region"
                   aria-label="书籍批量操作"
-                  className="shelf-batch-bar pointer-events-auto flex flex-col gap-2.5 rounded-2xl px-3.5 py-2.5 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
+                  className="shelf-batch-bar paper-reveal-soft pointer-events-auto flex flex-col gap-2.5 rounded-2xl px-3.5 py-2.5 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
                 >
                   <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto">
                     <div className="flex items-center gap-2 whitespace-nowrap text-sm">
@@ -848,10 +889,11 @@ export default function ShelfPage() {
                       variant="subtle"
                       color="gray"
                       size="md"
-                      className="h-11 w-11 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden"
+                      disabled={isBatchBusy}
+                      className="h-11 w-11 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-95 motion-reduce:active:scale-100 sm:hidden"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
-                      title="退出选择 (Esc)"
+                      title="退出选择"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
                     </ActionIcon>
@@ -862,10 +904,11 @@ export default function ShelfPage() {
                       type="button"
                       variant="default"
                       size="xs"
-                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:min-h-9 sm:px-3 sm:text-[13px]"
+                      disabled={isBatchBusy}
+                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 sm:min-h-9 sm:px-3 sm:text-[13px]"
                       onClick={toggleVisibleSelection}
                     >
-                      {allVisibleSelected ? '取消全选' : '选择已加载'}
+                      {allVisibleSelected ? '取消全选' : hasMoreBooks ? '选择已加载' : '全选'}
                     </Button>
 
                     <Button
@@ -874,9 +917,19 @@ export default function ShelfPage() {
                       size="xs"
                       aria-label="批量分类"
                       aria-busy={isUpdatingManyCategories || undefined}
-                      leftSection={<Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />}
-                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-primary/25 bg-primary/8 px-2 text-xs font-medium text-primary hover:bg-primary/14 sm:min-h-9 sm:px-3 sm:text-[13px]"
-                      disabled={selectedCount === 0 || isUpdatingManyCategories}
+                      leftSection={
+                        isUpdatingManyCategories ? (
+                          <Loader2
+                            className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                        )
+                      }
+                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-primary/25 bg-primary/8 px-2 text-xs font-medium text-primary transition-[background-color,border-color,color,transform] duration-150 hover:bg-primary/14 active:scale-[0.98] motion-reduce:active:scale-100 sm:min-h-9 sm:px-3 sm:text-[13px]"
+                      disabled={selectedCount === 0 || isBatchBusy}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
                       <span className="hidden sm:inline">
@@ -893,9 +946,19 @@ export default function ShelfPage() {
                       size="xs"
                       aria-label="批量删除"
                       aria-busy={isDeletingMany || undefined}
-                      leftSection={<Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />}
-                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:min-h-9 sm:px-3 sm:text-[13px]"
-                      disabled={selectedCount === 0 || isDeletingMany}
+                      leftSection={
+                        isDeletingMany ? (
+                          <Loader2
+                            className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                        )
+                      }
+                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium text-destructive transition-[background-color,border-color,color,transform] duration-150 hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] motion-reduce:active:scale-100 sm:min-h-9 sm:px-3 sm:text-[13px]"
+                      disabled={selectedCount === 0 || isBatchBusy}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
                       <span className="hidden sm:inline">
@@ -911,10 +974,11 @@ export default function ShelfPage() {
                       variant="subtle"
                       color="gray"
                       size="md"
-                      className="ml-0.5 hidden min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:flex sm:size-9"
+                      disabled={isBatchBusy}
+                      className="ml-0.5 hidden min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-95 motion-reduce:active:scale-100 sm:flex sm:size-9"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
-                      title="退出选择 (Esc)"
+                      title="退出选择（Esc）"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
                     </ActionIcon>
@@ -924,20 +988,35 @@ export default function ShelfPage() {
             )}
           </div>
         )}
-        {isDraggingBookFile && !isOffline && !isLoadingBooks && !loadError && (
+        {isDraggingBookFile && canDropBookFiles && (
           <div
             aria-live="polite"
-            className="shelf-dropzone-overlay pointer-events-none fixed inset-0 z-40 flex items-center justify-center p-6"
+            className="shelf-dropzone-overlay paper-reveal-soft pointer-events-none fixed inset-0 z-40 flex items-center justify-center p-6"
           >
-            <div className="paper-panel w-full max-w-sm rounded-2xl border-2 border-dashed border-primary/45 px-8 py-8 text-center">
+            <div
+              className={cn(
+                'paper-panel w-full max-w-sm rounded-2xl border-2 border-dashed px-8 py-8 text-center',
+                isUploading ? 'border-border' : 'border-primary/45'
+              )}
+            >
               <div className="app-sheet-icon mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-primary/15">
-                <Upload className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+                {isUploading ? (
+                  <Loader2
+                    className="h-5 w-5 animate-spin motion-reduce:animate-none"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Upload className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+                )}
               </div>
               <p className="mt-4 font-heading text-lg font-medium tracking-[-0.01em] text-foreground">
                 {isUploading ? '正在上传图书，请稍候' : '松开即可批量导入'}
               </p>
               <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                支持 EPUB、MOBI、AZW3、PDF
+                {isUploading
+                  ? '请等待当前上传完成后再拖入新文件'
+                  : '支持 EPUB、MOBI、AZW3、PDF'}
               </p>
             </div>
           </div>

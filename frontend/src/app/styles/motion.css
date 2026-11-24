@@ -67,10 +67,4 @@
     opacity: 1;
     filter: none;
   }
-
-  .shelf-book-card:hover,
-  .shelf-book-card:hover .shelf-book-cover,
-  .shelf-book-open:active .shelf-book-cover {
-    transform: none;
-  }
 }

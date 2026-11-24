@@ -227,13 +227,13 @@ export const BookCard = memo(function BookCard({
 
   return (
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
-      <article className="shelf-book-card group/card flex min-w-0 flex-1 flex-col" data-selected={selected}>
+      <article className="shelf-book-card flex min-w-0 flex-1 flex-col" data-selected={selected}>
         <button
           type="button"
           onClick={activateCard}
           aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
           aria-pressed={selectionMode ? selected : undefined}
-          className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-[3px_8px_8px_3px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-t-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="shelf-book-cover book-cover-spine">
             <BookCoverFace
@@ -258,31 +258,31 @@ export const BookCard = memo(function BookCard({
           <div className="shelf-book-details">
             <div className="min-w-0">
               <h2
-                className="line-clamp-2 [overflow-wrap:anywhere] font-heading text-base font-semibold leading-5 text-foreground transition-colors"
+                className="line-clamp-2 wrap-anywhere font-heading text-base font-semibold leading-5 text-foreground transition-colors sm:text-[17px]"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h2>
-              <p className="mt-1 truncate text-xs leading-4 text-muted-foreground">
+              <p className="mt-0.5 truncate text-xs leading-4 text-subtle-foreground">
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
 
             <div className="min-w-0 space-y-1">
-              <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-xs leading-4 text-subtle-foreground">
                 <span className="min-w-0 flex-1 truncate" title={categoryLabel}>
                   {categoryLabel}
                 </span>
                 <p className="flex min-w-0 max-w-[65%] items-baseline gap-1" title={progressMetaLabel}>
                   {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
                   {progressValue > 0 && (
-                    <span className="shrink-0 font-medium tabular-nums text-foreground">
+                    <span className="shrink-0 font-semibold tabular-nums text-primary">
                       {progressDisplay}
                     </span>
                   )}
                 </p>
               </div>
-              <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08] dark:bg-foreground/[0.12]" aria-hidden="true">
+              <div className="h-1 overflow-hidden rounded-full bg-foreground/10 dark:bg-foreground/15" aria-hidden="true">
                 <div
                   className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
                   style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}
@@ -298,7 +298,7 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onSelectionToggle}
               aria-pressed={selected}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              className="shelf-book-action"
             >
               <Check
                 className={cn(
@@ -313,7 +313,7 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onRead}
               aria-label={`${readActionLabel}：${titleLabel}`}
-              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              className="shelf-book-action"
             >
               <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
               <span className="truncate">{readActionLabel}</span>

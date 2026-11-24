@@ -4,7 +4,7 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Tag, Trash2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -27,92 +27,122 @@ export function CategorySelector({
   open,
   onOpenChange,
 }: CategorySelectorProps) {
-  const [loading, setLoading] = useState(false);
-  const [categoryName, setCategoryName] = useState(currentCategory ?? '');
+  const [pendingAction, setPendingAction] = useState<'save' | 'clear' | null>(null);
+  const normalizedCurrentCategory = currentCategory?.trim() || null;
+  const [categoryName, setCategoryName] = useState(normalizedCurrentCategory ?? '');
+  const loading = pendingAction !== null;
   const trimmedCategoryName = categoryName.trim();
   const selectedCategory = trimmedCategoryName || null;
-  const normalizedCategories = categories
-    .map((category) => category.trim())
-    .filter(Boolean);
+  const normalizedCategories = Array.from(
+    new Set(categories.map((category) => category.trim()).filter(Boolean))
+  );
   const isNewCategory = Boolean(
     trimmedCategoryName && !normalizedCategories.includes(trimmedCategoryName)
   );
+  const isUnchanged = selectedCategory === normalizedCurrentCategory;
 
   useEffect(() => {
     if (!open) return;
     queueMicrotask(() => {
-      setCategoryName(currentCategory ?? '');
+      setCategoryName(normalizedCurrentCategory ?? '');
+      setPendingAction(null);
     });
-  }, [currentCategory, open]);
+  }, [normalizedCurrentCategory, open]);
 
-  async function saveCategory(nextCategory: string | null) {
-    setLoading(true);
+  async function saveCategory(
+    nextCategory: string | null,
+    action: 'save' | 'clear'
+  ) {
+    if (loading) return;
+    if (nextCategory !== null && nextCategory.length > 50) {
+      toast.error('分类名称不能超过 50 个字符');
+      return;
+    }
+
+    setPendingAction(action);
     try {
-      if (nextCategory !== null && nextCategory.length > 50) {
-        toast.error('分类名称不能超过 50 个字符');
-        return;
-      }
-
       await api.updateBook(bookId, { category: nextCategory });
       onUpdate();
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '设置分类失败');
     } finally {
-      setLoading(false);
+      setPendingAction(null);
     }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void saveCategory(selectedCategory);
+    if (isUnchanged) return;
+    void saveCategory(selectedCategory, 'save');
   }
 
-  const filteredCategories = normalizedCategories
-    .filter((cat) => (bookCounts[cat] || 0) > 0);
+  function handleClose() {
+    if (loading) return;
+    onOpenChange(false);
+  }
+
+  const filteredCategories = normalizedCategories.filter(
+    (cat) => (bookCounts[cat] || 0) > 0 || cat === normalizedCurrentCategory
+  );
 
   return (
     <Modal.Root
       opened={open}
-      onClose={() => onOpenChange(false)}
+      onClose={handleClose}
       centered
-      size={420}
+      size={440}
       radius="lg"
       padding={0}
       zIndex={80}
+      closeOnClickOutside={!loading}
+      closeOnEscape={!loading}
+      classNames={{
+        content:
+          'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
+      }}
     >
       <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-      <Modal.Content className="app-dialog-shell overflow-hidden rounded-2xl border p-0">
-        <div className="flex items-start justify-between border-b border-border/60 px-6 pb-4 pt-5">
-          <div>
-            <Modal.Title className="font-heading text-lg font-medium text-foreground">
-              设置分类
-            </Modal.Title>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              将此书归入分类，便于管理
-            </p>
+      <Modal.Content>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
+              <Tag className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
+                设置分类
+              </Modal.Title>
+              <p className="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
+                {normalizedCurrentCategory
+                  ? `当前分类：${normalizedCurrentCategory}`
+                  : '将此书归入分类，便于整理查找'}
+              </p>
+            </div>
           </div>
           <ActionIcon
             variant="subtle"
             color="gray"
-            size={40}
+            size={36}
             radius="md"
-            onClick={() => onOpenChange(false)}
-            className="dialog-close-btn"
+            onClick={handleClose}
+            disabled={loading}
+            className="dialog-close-btn -mr-1 h-9 w-9"
             aria-label="关闭"
+            title="关闭"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="max-h-[18rem] overflow-y-auto px-6 py-5">
+        <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             <div className="app-surface-panel rounded-xl px-4 py-3.5">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
-                  新建分类
+                  分类名称
                 </p>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
                   {categoryName.length}/50
                 </span>
               </div>
@@ -120,7 +150,7 @@ export function CategorySelector({
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.currentTarget.value)}
                 maxLength={50}
-                placeholder="输入分类名称"
+                placeholder="输入或新建分类名称"
                 aria-label="分类名称"
                 disabled={loading}
                 rightSection={
@@ -130,10 +160,12 @@ export function CategorySelector({
                       color="gray"
                       size={32}
                       radius="sm"
+                      disabled={loading}
                       onClick={() => setCategoryName('')}
+                      title="清空输入"
                       aria-label="清空输入"
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3.5 w-3.5" aria-hidden="true" />
                     </ActionIcon>
                   ) : null
                 }
@@ -143,81 +175,110 @@ export function CategorySelector({
                 }}
               />
               {isNewCategory && (
-                <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  <Plus className="h-3.5 w-3.5" />
-                  {trimmedCategoryName}
+                <div className="mt-2.5 inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                  <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">将新建分类「{trimmedCategoryName}」</span>
                 </div>
               )}
             </div>
 
             {filteredCategories.length > 0 && (
               <div className="mt-4">
-                <div className="mb-2.5 flex items-center justify-between px-0.5">
+                <div className="mb-2 flex items-center justify-between px-0.5">
                   <p className="text-xs font-medium text-muted-foreground">
                     已有分类
                   </p>
-                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
-                    {filteredCategories.length}
+                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
+                    {filteredCategories.length} 个
                   </span>
                 </div>
-                <div className="space-y-1.5">
+                <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
                   {filteredCategories.map((cat) => {
                     const isSelected = selectedCategory === cat;
                     return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setCategoryName(cat)}
-                        disabled={loading}
-                        title={cat}
-                        className={cn(
-                          'app-surface-panel flex w-full min-h-11 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-colors disabled:opacity-50',
-                          isSelected && 'border-primary/40 bg-primary/[0.06] ring-1 ring-primary/15'
-                        )}
-                      >
-                        <div
+                      <li key={cat}>
+                        <button
+                          type="button"
+                          onClick={() => setCategoryName(isSelected ? '' : cat)}
+                          disabled={loading}
+                          aria-pressed={isSelected}
+                          title={cat}
                           className={cn(
-                            'flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border transition-colors',
+                            'flex min-h-11 w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50',
                             isSelected
-                              ? 'border-primary bg-primary'
-                              : 'border-border bg-card'
+                              ? 'bg-primary/[0.08] text-foreground'
+                              : 'hover:bg-secondary/65'
                           )}
                         >
-                          {isSelected && (
-                            <Check className="h-3 w-3 text-primary-foreground" />
-                          )}
-                        </div>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                          {cat}
-                        </span>
-                        <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                          {bookCounts[cat] || 0} 本
-                        </span>
-                      </button>
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              'flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border transition-colors',
+                              isSelected
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border bg-card'
+                            )}
+                          >
+                            {isSelected && <Check className="h-3 w-3" strokeWidth={2.2} />}
+                          </span>
+                          <span
+                            className={cn(
+                              'min-w-0 flex-1 truncate text-sm font-medium',
+                              isSelected ? 'text-primary' : 'text-foreground'
+                            )}
+                          >
+                            {cat}
+                          </span>
+                          <span className="shrink-0 rounded-full border border-border/75 bg-card px-2 py-0.5 font-mono text-[11px] font-medium leading-4 tabular-nums text-muted-foreground">
+                            {bookCounts[cat] || 0} 本
+                          </span>
+                        </button>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               </div>
             )}
           </div>
 
-          <div className="app-dialog-footer flex items-center justify-end gap-2 px-6 py-4">
-            <Button
-              type="button"
-              variant="subtle"
-              color="gray"
-              onClick={() => onOpenChange(false)}
-              className="h-10 rounded-lg px-4 text-sm font-medium text-muted-foreground"
-            >
-              取消
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-10 rounded-lg px-5 text-sm font-medium"
-            >
-              {loading ? '保存中...' : '保存'}
-            </Button>
+          <div className="app-dialog-footer flex shrink-0 items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
+            <div>
+              {normalizedCurrentCategory && (
+                <Button
+                  type="button"
+                  variant="subtle"
+                  color="red"
+                  size="xs"
+                  disabled={loading}
+                  aria-busy={pendingAction === 'clear' || undefined}
+                  onClick={() => void saveCategory(null, 'clear')}
+                  leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />}
+                  className="h-9 rounded-lg px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  {pendingAction === 'clear' ? '移除中…' : '移除分类'}
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="subtle"
+                color="gray"
+                disabled={loading}
+                onClick={handleClose}
+                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground"
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || isUnchanged}
+                aria-busy={pendingAction === 'save' || undefined}
+                className="h-9 rounded-lg px-4 text-sm font-medium"
+              >
+                {pendingAction === 'save' ? '保存中…' : '保存'}
+              </Button>
+            </div>
           </div>
         </form>
       </Modal.Content>

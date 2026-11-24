@@ -195,7 +195,11 @@ export function useShelfData(isAuthenticated: boolean) {
 
     const loadGeneration = loadGenerationRef.current;
     const searchGeneration = searchGenerationRef.current;
-    const controller = new AbortController();
+    // Progress for earlier pages can still be loading when the next page starts.
+    const previousController = moreAbortRef.current;
+    const controller = previousController && !previousController.signal.aborted
+      ? previousController
+      : new AbortController();
     moreAbortRef.current = controller;
     loadingMoreRef.current = true;
     setIsLoadingMoreBooks(true);
@@ -226,7 +230,7 @@ export function useShelfData(isAuthenticated: boolean) {
       }
       const ids = (page.books ?? []).map((book) => book.id);
       if (ids.length > 0) {
-        void api.listProgress({ bookIds: ids }).then((progressData) => {
+        void api.listProgress({ bookIds: ids, signal: controller.signal }).then((progressData) => {
           if (!isCurrent()) return;
           setProgressByBookId((current) => ({
             ...current,

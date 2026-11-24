@@ -252,17 +252,53 @@ describe('useShelfData', () => {
     );
   });
 
-  it('does not wait for progress before displaying a subsequent page', async () => {
-    vi.mocked(api.listBooksPage)
+  it('keeps pagination moving and cancels progress for all obsolete pages', async () => {
+    const pages = vi.mocked(api.listBooksPage)
       .mockResolvedValueOnce({ books: [mockBook({ id: 'first' })], next_cursor: 'first' })
-      .mockResolvedValueOnce({ books: [mockBook({ id: 'second' })] });
-    vi.mocked(api.listProgress).mockResolvedValueOnce([])
-      .mockReturnValueOnce(new Promise(() => {}));
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'second' })], next_cursor: 'second' })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'third' })] })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'replacement' })], next_cursor: 'replacement' })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'new-page' })] });
+    const secondProgress = deferred<Awaited<ReturnType<typeof api.listProgress>>>();
+    const thirdProgress = deferred<Awaited<ReturnType<typeof api.listProgress>>>();
+    const progress = { book_id: 'new-page', user_id: 'user-1', cfi: '', percentage: 42, updated_at: '' };
+    const listProgress = vi.mocked(api.listProgress)
+      .mockResolvedValue([])
+      .mockResolvedValueOnce([])
+      .mockReturnValueOnce(secondProgress.promise)
+      .mockReturnValueOnce(thirdProgress.promise)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([progress]);
+
     const { result } = renderHook(() => useShelfData(true));
     await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
-    act(() => { void result.current.loadMoreBooks(); });
-    await waitFor(() => expect(result.current.books).toHaveLength(2));
+    await act(() => result.current.loadMoreBooks());
     expect(result.current.isLoadingMoreBooks).toBe(false);
+    const secondSignal = listProgress.mock.calls[1][0]?.signal;
+    expect(secondSignal).toBe(pages.mock.calls[1][3]?.signal);
+
+    await act(() => result.current.loadMoreBooks());
+    expect(result.current.books.map((book) => book.id)).toEqual(['first', 'second', 'third']);
+    expect(result.current.isLoadingMoreBooks).toBe(false);
+    const thirdSignal = listProgress.mock.calls[2][0]?.signal;
+    expect(thirdSignal).toBe(pages.mock.calls[2][3]?.signal);
+    expect(secondSignal?.aborted).toBe(false);
+    expect(thirdSignal?.aborted).toBe(false);
+
+    act(() => result.current.setSortBy('title'));
+    expect(secondSignal?.aborted).toBe(true);
+    expect(thirdSignal?.aborted).toBe(true);
+    await waitFor(() => expect(result.current.books.map((book) => book.id)).toEqual(['replacement']));
+    await act(() => result.current.loadMoreBooks());
+    const newSignal = listProgress.mock.calls[4][0]?.signal;
+    expect(newSignal).toBe(pages.mock.calls[4][3]?.signal);
+    expect(newSignal?.aborted).toBe(false);
+
+    await act(async () => {
+      secondProgress.resolve([{ ...progress, book_id: 'second' }]);
+      thirdProgress.resolve([{ ...progress, book_id: 'third' }]);
+    });
+    expect(result.current.progressByBookId).toEqual({ 'new-page': 42 });
   });
 
   it('loads subsequent cursor pages only when requested', async () => {
@@ -292,7 +328,9 @@ describe('useShelfData', () => {
     expect(api.listProgress).toHaveBeenNthCalledWith(1, {
       bookIds: ['first'], signal: vi.mocked(api.listBooksPage).mock.calls[0][3]?.signal,
     });
-    expect(api.listProgress).toHaveBeenNthCalledWith(2, { bookIds: ['second'] });
+    expect(api.listProgress).toHaveBeenNthCalledWith(2, {
+      bookIds: ['second'], signal: vi.mocked(api.listBooksPage).mock.calls[1][3]?.signal,
+    });
   });
 
   it('uses server-side search so unloaded library books can be found', async () => {

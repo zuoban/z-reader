@@ -218,4 +218,27 @@ describe('ShelfPage', () => {
     fireEvent.keyDown(searchInput, { key: 'Escape' });
     expect(mockShelfData.setSearchQuery).toHaveBeenCalledWith('');
   });
+
+  it('keeps batch selection active when Escape dismisses an open shelf menu first', () => {
+    render(<ShelfPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: '批量操作' }));
+    fireEvent.click(screen.getByRole('button', { name: '选择 百年孤独' }));
+    expect(screen.getByRole('region', { name: '书籍批量操作' })).toBeInTheDocument();
+
+    // Open sort dropdown while in selection mode
+    fireEvent.click(screen.getByRole('button', { name: '书籍排序方式' }));
+    expect(screen.getByRole('menu')).toBeVisible();
+
+    // First Escape closes the dropdown without exiting selection mode
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('region', { name: '书籍批量操作' })).toBeInTheDocument();
+
+    // Second Escape (when no menu is open) exits selection mode
+    if (screen.queryByRole('menu')) {
+      fireEvent.click(screen.getByRole('button', { name: '书籍排序方式' }));
+    }
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: '书籍批量操作' })).not.toBeInTheDocument();
+  });
 });

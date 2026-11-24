@@ -251,13 +251,20 @@ export default function ShelfPage() {
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable)
+      ) {
+        return;
+      }
+      if (
+        document.querySelector(
+          '[role="menu"]:not([aria-hidden="true"]):not([hidden]), [role="dialog"]:not([aria-hidden="true"]):not([hidden]), [role="alertdialog"]:not([aria-hidden="true"]):not([hidden])'
+        )
       ) {
         return;
       }

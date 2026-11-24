@@ -137,4 +137,32 @@ describe('BatchCategorySheet', () => {
       expect(screen.getByRole('textbox', { name: '分类名称' })).toHaveValue('');
     });
   });
+
+  it('ignores Escape during IME composition and closes on normal Escape', () => {
+    const onOpenChange = vi.fn();
+
+    render(
+      <BatchCategorySheet
+        open
+        onOpenChange={onOpenChange}
+        selectedCount={2}
+        categories={['科幻']}
+        bookCounts={{ 科幻: 2 }}
+        onSave={vi.fn()}
+      />
+    );
+
+    const input = screen.getByRole('textbox', { name: '分类名称' });
+    const composingEscape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEscape, 'isComposing', { value: true });
+    fireEvent(input, composingEscape);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

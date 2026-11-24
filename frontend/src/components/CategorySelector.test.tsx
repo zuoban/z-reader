@@ -146,4 +146,33 @@ describe('CategorySelector', () => {
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it('ignores Escape during IME composition and closes on normal Escape', () => {
+    const onOpenChange = vi.fn();
+
+    render(
+      <CategorySelector
+        bookId="book-1"
+        currentCategory="古典"
+        categories={['古典', '科幻']}
+        bookCounts={{ 古典: 2, 科幻: 3 }}
+        onUpdate={vi.fn()}
+        open
+        onOpenChange={onOpenChange}
+      />
+    );
+
+    const input = screen.getByRole('textbox', { name: '分类名称' });
+    const composingEscape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEscape, 'isComposing', { value: true });
+    fireEvent(input, composingEscape);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

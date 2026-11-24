@@ -53,6 +53,19 @@ export function BatchCategorySheet({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleComposingEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape' && event.isComposing) {
+        event.stopPropagation();
+      }
+    }
+
+    window.addEventListener('keydown', handleComposingEscape, true);
+    return () => window.removeEventListener('keydown', handleComposingEscape, true);
+  }, [open]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isBusy || !trimmedCategoryName) return;
@@ -154,6 +167,11 @@ export function BatchCategorySheet({
                 ref={inputRef}
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing && event.key === 'Enter') {
+                    event.preventDefault();
+                  }
+                }}
                 maxLength={50}
                 placeholder="输入或新建分类名称"
                 aria-label="分类名称"
@@ -170,6 +188,7 @@ export function BatchCategorySheet({
                         setCategoryName('');
                         inputRef.current?.focus();
                       }}
+                      className="cursor-pointer text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
                       title="清空输入"
                       aria-label="清空输入"
                     >

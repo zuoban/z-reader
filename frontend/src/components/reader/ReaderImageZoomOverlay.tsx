@@ -63,8 +63,9 @@ export function ReaderImageZoomOverlay({
       : 'zoom-in';
 
   function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
       event.preventDefault();
+      event.stopPropagation();
       onClose();
       return;
     }

@@ -303,7 +303,8 @@ function Reader({ bookId }: { bookId: string }) {
     onNext: handleNext,
     onBack: handleBack,
     onStopTTS: stopTTS,
-    overlayOpen: tocOpen || bookmarksOpen || themeSettingsOpen || shortcutsOpen,
+    overlayOpen:
+      tocOpen || bookmarksOpen || themeSettingsOpen || shortcutsOpen || ttsOpen,
     shortcutsOpen,
     onToggleShortcuts: handleToggleShortcuts,
     onCloseShortcuts: handleCloseShortcuts,

@@ -682,7 +682,12 @@ export function TTSControls({
 
   const renderStatusContent = (withDragHandle = false) => ttsStatus ? (
     <div className="reader-tts-status flex items-center gap-2.5 px-3 py-2">
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+      <div
+        role={statusTone === 'error' ? 'alert' : 'status'}
+        aria-live={statusTone === 'error' ? 'assertive' : 'polite'}
+        aria-atomic="true"
+        className="flex min-w-0 flex-1 items-center gap-2.5"
+      >
         <span
           aria-hidden="true"
           className="size-2 shrink-0 rounded-full"

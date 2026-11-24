@@ -28,7 +28,7 @@ describe('reader controls', () => {
     const onBack = vi.fn();
     const onToggleShortcuts = vi.fn();
     const onCloseShortcuts = vi.fn();
-    const { result } = renderHook(() => useReaderControls({
+    const { result, unmount } = renderHook(() => useReaderControls({
       pageRef: { current: page },
       onPrev,
       onNext,
@@ -38,7 +38,7 @@ describe('reader controls', () => {
       onToggleShortcuts,
       onCloseShortcuts,
     }));
-    return { result, onPrev, onNext, onBack, onToggleShortcuts, onCloseShortcuts };
+    return { result, unmount, onPrev, onNext, onBack, onToggleShortcuts, onCloseShortcuts };
   }
 
   it.each([
@@ -304,5 +304,17 @@ describe('reader controls', () => {
         delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
       }
     }
+  });
+
+  it('does not open shortcuts while another overlay is active, but still lets ? close open shortcuts', () => {
+    const blocked = renderControls({ overlayOpen: true, shortcutsOpen: false });
+    fireEvent.keyDown(page, { key: '?' });
+    expect(blocked.onToggleShortcuts).not.toHaveBeenCalled();
+    blocked.unmount();
+
+    const active = renderControls({ overlayOpen: true, shortcutsOpen: true });
+    fireEvent.keyDown(page, { key: '?' });
+    expect(active.onToggleShortcuts).toHaveBeenCalledTimes(1);
+    active.unmount();
   });
 });

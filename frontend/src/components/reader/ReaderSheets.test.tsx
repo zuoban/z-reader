@@ -148,6 +148,46 @@ describe('ReaderTOCSheet', () => {
     fireEvent.click(locateButton);
     expect(onLocateCurrent).toHaveBeenCalledTimes(1);
   });
+
+  it('supports ArrowUp/ArrowDown/Home/End navigation across TOC chapters and back to search', () => {
+    render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={vi.fn()}
+        toc={createLongTOC()}
+        bookTitle="长篇小说"
+        bookAuthor=""
+        tocListRef={{ current: null }}
+        currentChapter="第一章 初遇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        onLocateCurrent={vi.fn()}
+        onGoTo={vi.fn()}
+      />,
+    );
+
+    const searchInput = screen.getByRole('searchbox', { name: '筛选目录章节' });
+    const firstChapter = screen.getByRole('button', { name: '第一卷 启程' });
+    const secondChapter = screen.getByRole('button', { name: /^第一章 初遇/ });
+    const lastChapter = screen.getByRole('button', { name: '第11章 旅途 11' });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(firstChapter).toHaveFocus();
+
+    fireEvent.keyDown(firstChapter, { key: 'ArrowDown' });
+    expect(secondChapter).toHaveFocus();
+
+    fireEvent.keyDown(secondChapter, { key: 'End' });
+    expect(lastChapter).toHaveFocus();
+
+    fireEvent.keyDown(lastChapter, { key: 'Home' });
+    expect(firstChapter).toHaveFocus();
+
+    fireEvent.keyDown(firstChapter, { key: 'ArrowUp' });
+    expect(searchInput).toHaveFocus();
+  });
 });
 
 describe('ReaderBookmarksSheet', () => {

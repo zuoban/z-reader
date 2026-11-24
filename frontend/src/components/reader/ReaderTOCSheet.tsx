@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent,
   type RefObject,
 } from "react";
 import { ActionIcon, Button, Drawer } from "@mantine/core";
@@ -136,6 +137,47 @@ export function ReaderTOCSheet({
   function handleClearSearch() {
     setSearchQuery("");
     searchInputRef.current?.focus();
+  }
+
+  function handleTOCListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (
+      visibleTOC.length === 0 ||
+      (event.key !== "ArrowDown" &&
+        event.key !== "ArrowUp" &&
+        event.key !== "Home" &&
+        event.key !== "End")
+    ) {
+      return;
+    }
+
+    const items = Array.from(
+      tocListRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [],
+    );
+    if (items.length === 0) return;
+
+    const activeIndex = items.findIndex((item) => item === document.activeElement);
+    if (activeIndex === -1) return;
+
+    event.preventDefault();
+
+    if (event.key === "Home") {
+      items[0]?.focus();
+      return;
+    }
+
+    if (event.key === "End") {
+      items[items.length - 1]?.focus();
+      return;
+    }
+
+    if (event.key === "ArrowUp" && activeIndex === 0 && showFilter && searchInputRef.current) {
+      searchInputRef.current.focus();
+      return;
+    }
+
+    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex = (activeIndex + delta + items.length) % items.length;
+    items[nextIndex]?.focus();
   }
 
   function handleLocateCurrent() {
@@ -321,7 +363,11 @@ export function ReaderTOCSheet({
           </div>
 
           <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">
-            <div ref={tocListRef} className="space-y-0.5 pb-2">
+            <div
+              ref={tocListRef}
+              onKeyDown={handleTOCListKeyDown}
+              className="space-y-0.5 pb-2"
+            >
               {visibleTOC.length > 0 ? (
                 visibleTOC.map((item, idx) => (
                   <MemoizedReaderTOCNode

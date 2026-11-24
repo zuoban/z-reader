@@ -110,7 +110,7 @@ export function ReaderBookmarksSheet({
         type="button"
         variant="subtle"
         title="书签"
-        aria-label="书签"
+        aria-label={trigger ? undefined : "书签"}
         aria-expanded={open}
         aria-haspopup="dialog"
         className={triggerClassName}

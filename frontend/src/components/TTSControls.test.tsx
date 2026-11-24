@@ -241,4 +241,48 @@ describe('TTSControls', () => {
       expect(resumeButton).toHaveTextContent('继续');
     },
   );
+
+  it('announces TTS status errors as assertive alerts and normal updates as polite statuses', () => {
+    const { rerender } = render(
+      <TTSControls
+        state="stopped"
+        settings={settings}
+        voices={[]}
+        onStart={vi.fn()}
+        onStop={vi.fn()}
+        onNext={vi.fn()}
+        onPrev={vi.fn()}
+        onUpdateSettings={vi.fn()}
+        uiScheme={uiScheme}
+        variant="toolbar"
+        initialExpanded
+        ttsStatus={{ headline: '朗读连接异常', detail: '正在重试', tone: 'error' }}
+      />,
+    );
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('朗读连接异常');
+    expect(alert).toHaveAttribute('aria-live', 'assertive');
+
+    rerender(
+      <TTSControls
+        state="playing"
+        settings={settings}
+        voices={[]}
+        onStart={vi.fn()}
+        onStop={vi.fn()}
+        onNext={vi.fn()}
+        onPrev={vi.fn()}
+        onUpdateSettings={vi.fn()}
+        uiScheme={uiScheme}
+        variant="toolbar"
+        initialExpanded
+        ttsStatus={{ headline: '正在朗读', tone: 'active' }}
+      />,
+    );
+
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('正在朗读');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+  });
 });

@@ -186,14 +186,11 @@ export function useReaderControls({
       !e.altKey &&
       (e.key === '?' || (e.key === '/' && e.shiftKey));
 
-    if (isShortcutsToggleKey && toggleShortcutsRef.current) {
-      e.preventDefault();
-      toggleShortcutsRef.current();
-      return;
-    }
-
     if (shortcutsOpenRef.current) {
-      if (e.key === 'Escape') {
+      if (isShortcutsToggleKey) {
+        e.preventDefault();
+        toggleShortcutsRef.current?.();
+      } else if (e.key === 'Escape') {
         e.preventDefault();
         closeShortcutsRef.current?.();
       }
@@ -204,6 +201,12 @@ export function useReaderControls({
       pageRef.current?.ownerDocument ??
       (typeof document !== 'undefined' ? document : null);
     if (overlayOpenRef.current || hasActiveOverlay(parentDoc)) {
+      return;
+    }
+
+    if (isShortcutsToggleKey && toggleShortcutsRef.current) {
+      e.preventDefault();
+      toggleShortcutsRef.current();
       return;
     }
 

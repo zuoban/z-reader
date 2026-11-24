@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ActionIcon, Button, Modal } from '@mantine/core';
-import { BookOpen, CircleAlert, HardDrive, RotateCw, Trash2, X } from 'lucide-react';
+import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/AppShell';
 import { getOfflineLibrary } from '@/lib/library-access';
@@ -148,6 +148,8 @@ export function OfflineBooksDialog({
       padding={0}
       zIndex={80}
       classNames={{
+        inner:
+          'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
         content:
           'app-dialog-shell flex max-h-[min(82svh,36rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0 text-sm text-popover-foreground outline-none',
       }}
@@ -177,12 +179,13 @@ export function OfflineBooksDialog({
             className="dialog-close-btn -mr-1 h-9 w-9 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
             onClick={handleClose}
             aria-label="关闭离线图书管理"
+            title="关闭 (Esc)"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
               <LoadingSpinner className="h-6 w-6 border-primary/25" />
@@ -208,7 +211,7 @@ export function OfflineBooksDialog({
                 size="xs"
                 leftSection={<RotateCw className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />}
                 onClick={() => setReloadCount((count) => count + 1)}
-                className="mt-4 h-9 cursor-pointer rounded-lg px-3.5 text-xs font-medium sm:h-8"
+                className="mt-4 h-9 cursor-pointer rounded-lg px-3.5 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 sm:h-8"
               >
                 重新加载
               </Button>
@@ -270,7 +273,7 @@ export function OfflineBooksDialog({
                         variant="default"
                         size="xs"
                         className={cn(
-                          'h-9 cursor-pointer rounded-lg px-3 text-xs font-medium transition-transform active:scale-[0.97] sm:h-8',
+                          'h-9 cursor-pointer rounded-lg px-3 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] motion-reduce:active:scale-100 sm:h-8',
                           isBusy && 'pointer-events-none opacity-45'
                         )}
                       >
@@ -288,9 +291,17 @@ export function OfflineBooksDialog({
                           isRemovingThis ? `正在移除《${bookLabel}》` : `移除《${bookLabel}》`
                         }
                         leftSection={
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                          isRemovingThis ? (
+                            <Loader2
+                              className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                              strokeWidth={1.75}
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                          )
                         }
-                        className="h-9 cursor-pointer rounded-lg px-2.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-45 sm:h-8"
+                        className="h-9 cursor-pointer rounded-lg px-2.5 text-xs text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-[0.97] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8"
                       >
                         {isRemovingThis ? '移除中…' : '移除'}
                       </Button>
@@ -305,7 +316,7 @@ export function OfflineBooksDialog({
         <div className="app-dialog-footer flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
           {confirmingClear && books.length > 0 ? (
             <>
-              <p className="text-xs font-medium text-destructive">
+              <p role="status" className="text-xs font-medium text-destructive">
                 确定清空全部 {books.length} 本离线缓存？
               </p>
               <div className="flex shrink-0 items-center gap-2">
@@ -313,9 +324,10 @@ export function OfflineBooksDialog({
                   type="button"
                   variant="default"
                   size="xs"
+                  autoFocus
                   disabled={isClearing}
                   onClick={() => setConfirmingClear(false)}
-                  className="h-8 cursor-pointer rounded-lg px-3 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-9 cursor-pointer rounded-lg px-3 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8"
                 >
                   取消
                 </Button>
@@ -327,7 +339,16 @@ export function OfflineBooksDialog({
                   disabled={isClearing}
                   aria-busy={isClearing || undefined}
                   onClick={() => void handleClearAll()}
-                  className="h-8 cursor-pointer rounded-lg px-3.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                  leftSection={
+                    isClearing ? (
+                      <Loader2
+                        className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                    ) : undefined
+                  }
+                  className="h-9 cursor-pointer rounded-lg px-3.5 text-xs font-medium transition-[background-color,color,transform,opacity] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8"
                 >
                   {isClearing ? '清空中…' : '确认清空'}
                 </Button>
@@ -346,7 +367,7 @@ export function OfflineBooksDialog({
                   leftSection={
                     <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
                   }
-                  className="h-8 cursor-pointer rounded-lg px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-9 cursor-pointer rounded-lg px-2.5 text-xs font-medium text-destructive transition-[background-color,color,transform] duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8"
                 >
                   清空全部离线缓存
                 </Button>
@@ -360,7 +381,7 @@ export function OfflineBooksDialog({
                 variant="default"
                 size="xs"
                 disabled={isBusy}
-                className="h-8 shrink-0 cursor-pointer rounded-lg px-4 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-45"
+                className="h-9 shrink-0 cursor-pointer rounded-lg px-4 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8"
                 onClick={handleClose}
               >
                 关闭

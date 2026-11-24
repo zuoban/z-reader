@@ -111,7 +111,8 @@ describe('OfflineBooksDialog', () => {
     expect(await screen.findByText('三体')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '清空全部离线缓存' }));
-    expect(screen.getByText('确定清空全部 1 本离线缓存？')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('确定清空全部 1 本离线缓存？');
+    expect(screen.getByRole('button', { name: '取消' })).toHaveFocus();
 
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
     expect(screen.queryByText('确定清空全部 1 本离线缓存？')).not.toBeInTheDocument();

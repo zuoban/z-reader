@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
-import { Check, Pencil, Tag, Tags, Trash2, X } from 'lucide-react';
+import { Check, Loader2, Pencil, Tag, Tags, Trash2, X } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +40,35 @@ export function CategoryManagerSheet({
     setEditValue('');
     setDeleteConfirmCategory('');
   }
+
+  useEffect(() => {
+    if (open) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setEditingCategory('');
+      setEditValue('');
+      setDeleteConfirmCategory('');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !editingCategory || deleteConfirmCategory || isBusy) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setEditingCategory('');
+      setEditValue('');
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [deleteConfirmCategory, editingCategory, isBusy, open]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && isBusy) return;
@@ -103,6 +132,8 @@ export function CategoryManagerSheet({
         closeOnClickOutside={!isBusy}
         closeOnEscape={!isBusy && !editingCategory && !deleteConfirmCategory}
         classNames={{
+          inner:
+            'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
           content:
             'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
         }}
@@ -134,12 +165,13 @@ export function CategoryManagerSheet({
               onClick={() => handleOpenChange(false)}
               className="dialog-close-btn -mr-1 h-9 w-9 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="关闭"
+              title="关闭 (Esc)"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </ActionIcon>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             {normalizedCategories.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
@@ -179,11 +211,12 @@ export function CategoryManagerSheet({
                               value={editValue}
                               onChange={(e) => setEditValue(e.currentTarget.value)}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                   e.preventDefault();
                                   void saveRename();
                                 }
                                 if (e.key === 'Escape') {
+                                  e.preventDefault();
                                   e.stopPropagation();
                                   cancelEdit();
                                 }
@@ -211,11 +244,19 @@ export function CategoryManagerSheet({
                                 trimmedEditValue.length > 50
                               }
                               aria-busy={isRenaming || undefined}
-                              className="h-9 w-9 shrink-0 cursor-pointer rounded-lg disabled:cursor-not-allowed"
+                              className="h-9 w-9 shrink-0 cursor-pointer rounded-lg transition-[background-color,color,transform] duration-150 active:scale-[0.96] motion-reduce:active:scale-100 disabled:cursor-not-allowed"
                               aria-label="保存"
-                              title="保存"
+                              title="保存 (Enter)"
                             >
-                              <Check className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                              {isRenaming ? (
+                                <Loader2
+                                  className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                                  strokeWidth={1.8}
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Check className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                              )}
                             </ActionIcon>
                             <ActionIcon
                               variant="subtle"
@@ -224,9 +265,9 @@ export function CategoryManagerSheet({
                               radius="md"
                               onClick={cancelEdit}
                               disabled={isBusy}
-                              className="dialog-close-btn h-9 w-9 shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                              className="dialog-close-btn h-9 w-9 shrink-0 cursor-pointer transition-[background-color,color,transform] duration-150 active:scale-[0.96] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-50"
                               aria-label="取消"
-                              title="取消"
+                              title="取消 (Esc)"
                             >
                               <X className="h-4 w-4" aria-hidden="true" />
                             </ActionIcon>
@@ -241,7 +282,14 @@ export function CategoryManagerSheet({
                                   ? `保存后将与已有分类「${trimmedEditValue}」合并`
                                   : `正在重命名「${category}」· Enter 保存`}
                             </span>
-                            <span className="shrink-0 font-mono tabular-nums text-muted-foreground/75">
+                            <span
+                              className={cn(
+                                'shrink-0 font-mono tabular-nums transition-colors',
+                                editValue.length >= 45
+                                  ? 'font-medium text-primary'
+                                  : 'text-muted-foreground/75'
+                              )}
+                            >
                               {editValue.length}/50
                             </span>
                           </div>
@@ -272,7 +320,7 @@ export function CategoryManagerSheet({
                               radius="md"
                               onClick={() => startEdit(category)}
                               disabled={isBusy}
-                              className="h-9 w-9 cursor-pointer text-muted-foreground hover:bg-card hover:text-foreground disabled:cursor-not-allowed sm:h-8 sm:w-8"
+                              className="h-9 w-9 cursor-pointer text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-card hover:text-foreground active:scale-[0.96] motion-reduce:active:scale-100 disabled:cursor-not-allowed sm:h-8 sm:w-8"
                               aria-label={`重命名 ${category}`}
                               title={`重命名 ${category}`}
                             >
@@ -285,7 +333,7 @@ export function CategoryManagerSheet({
                               radius="md"
                               onClick={() => setDeleteConfirmCategory(category)}
                               disabled={isBusy}
-                              className="h-9 w-9 cursor-pointer text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed sm:h-8 sm:w-8"
+                              className="h-9 w-9 cursor-pointer text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-[0.96] motion-reduce:active:scale-100 disabled:cursor-not-allowed sm:h-8 sm:w-8"
                               aria-label={`删除 ${category}`}
                               title={`删除 ${category}`}
                             >
@@ -312,7 +360,7 @@ export function CategoryManagerSheet({
                 size="xs"
                 disabled={isBusy}
                 onClick={() => handleOpenChange(false)}
-                className="h-8 shrink-0 cursor-pointer rounded-lg px-3.5 text-xs font-medium disabled:cursor-not-allowed"
+                className="h-9 shrink-0 cursor-pointer rounded-lg px-3.5 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed sm:h-8"
               >
                 完成
               </Button>

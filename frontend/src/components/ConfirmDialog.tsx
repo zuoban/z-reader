@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Button, Modal } from '@mantine/core';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type ConfirmVariant = 'destructive' | 'default' | 'outline' | 'secondary' | 'ghost';
@@ -111,7 +111,10 @@ export function ConfirmDialog({
       closeOnEscape={!isBusy}
       transitionProps={{ duration: 160, transition: 'fade' }}
       classNames={{
-        content: 'app-dialog-shell overscroll-contain rounded-2xl border p-5 text-sm text-popover-foreground outline-none',
+        inner:
+          'pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1rem,env(safe-area-inset-bottom,0px))]',
+        content:
+          'app-dialog-shell overscroll-contain rounded-2xl border p-5 text-sm text-popover-foreground outline-none',
       }}
     >
       <Modal.Overlay backgroundOpacity={0.42} blur={3} />
@@ -128,10 +131,13 @@ export function ConfirmDialog({
             <AlertTriangle className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
-            <Modal.Title className="font-heading text-base font-medium leading-tight text-foreground">
+            <Modal.Title className="break-words font-heading text-base font-medium leading-tight text-foreground">
               {title}
             </Modal.Title>
-            <p id={descriptionId} className="text-[13px] leading-5 text-muted-foreground">
+            <p
+              id={descriptionId}
+              className="break-words text-[13px] leading-5 text-muted-foreground"
+            >
               {description}
             </p>
           </div>
@@ -140,7 +146,8 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant="default"
-            className="h-10 cursor-pointer rounded-lg text-foreground/85 hover:bg-secondary disabled:cursor-not-allowed"
+            data-autofocus={isDestructive ? true : undefined}
+            className="h-10 cursor-pointer rounded-lg text-foreground/85 transition-[background-color,border-color,color,transform] hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-55"
             onClick={handleClose}
             disabled={isBusy}
           >
@@ -150,8 +157,16 @@ export function ConfirmDialog({
             type="button"
             variant={mantineVariant}
             color={isDestructive ? 'red' : undefined}
+            leftSection={
+              isBusy ? (
+                <Loader2
+                  className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+              ) : undefined
+            }
             className={cn(
-              'h-10 cursor-pointer rounded-lg font-medium disabled:cursor-not-allowed',
+              'h-10 cursor-pointer rounded-lg font-medium transition-[background-color,border-color,color,transform,opacity] active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-60',
               isDestructive &&
                 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
             )}

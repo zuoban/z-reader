@@ -70,6 +70,35 @@ describe('ConfirmDialog', () => {
     });
   });
 
+  it('sets safe autofocus on cancel button only for destructive confirmations', () => {
+    const { rerender } = render(
+      <ConfirmDialog
+        open
+        onOpenChange={vi.fn()}
+        title="删除图书"
+        description="确定删除这本图书吗？"
+        confirmLabel="确认删除"
+        onConfirm={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: '取消' })).toHaveAttribute('data-autofocus', 'true');
+
+    rerender(
+      <ConfirmDialog
+        open
+        onOpenChange={vi.fn()}
+        title="确认操作"
+        description="确定继续吗？"
+        confirmLabel="确认"
+        confirmVariant="default"
+        onConfirm={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: '取消' })).not.toHaveAttribute('data-autofocus');
+  });
+
   it('disables closing when loading prop is true', () => {
     const onOpenChange = vi.fn();
 

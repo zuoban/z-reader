@@ -6,7 +6,10 @@ import { Bookmark, BookmarkPlus, Trash2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
-import { getModernReaderSurface } from "@/lib/reader-ui";
+import {
+  getModernReaderSurface,
+  getReaderPanelThemeVars,
+} from "@/lib/reader-ui";
 
 interface ReaderBookmarksSheetProps {
   open: boolean;
@@ -88,6 +91,7 @@ export function ReaderBookmarksSheet({
   trigger,
 }: ReaderBookmarksSheetProps) {
   const surface = getModernReaderSurface(uiScheme);
+  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
   const sortedBookmarks = [...bookmarks].sort((left, right) => {
     const leftTime = new Date(left.created_at).getTime();
     const rightTime = new Date(right.created_at).getTime();
@@ -129,6 +133,7 @@ export function ReaderBookmarksSheet({
         }}
         styles={{
           content: {
+            ...panelThemeVars,
             flex: "0 1 auto",
             height: "auto",
             background: uiScheme.cardBg,
@@ -140,15 +145,12 @@ export function ReaderBookmarksSheet({
       >
         <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
         <Drawer.Content data-reader-interactive="true">
-          <div
-            className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
-            style={{ borderColor: surface.hairline }}
-          >
+          <div className="reader-panel-header shrink-0 bg-transparent px-4 py-3.5 sm:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
                   <Drawer.Title
-                    className="text-xl font-medium"
+                    className="font-heading text-lg font-medium leading-tight"
                     style={{ color: surface.fg }}
                   >
                     书签
@@ -164,7 +166,7 @@ export function ReaderBookmarksSheet({
                 </div>
                 <div className="mt-1 space-y-0.5">
                   <p
-                    className="truncate text-xs font-medium leading-5"
+                    className="truncate text-xs leading-5"
                     style={{ color: surface.muted }}
                     title={bookTitle || "当前书籍"}
                   >
@@ -172,42 +174,34 @@ export function ReaderBookmarksSheet({
                   </p>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
                   type="button"
-                  variant="subtle"
-                  size="sm"
                   onClick={onCreate}
                   disabled={!canCreate || isSaving}
                   title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
                   aria-label="添加当前书签"
-                  leftSection={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
-                  className="h-11 rounded-lg px-2.5 text-sm font-medium shadow-none transition-colors hover:bg-secondary lg:h-9"
-                  style={{
-                    color: surface.fg,
-                  }}
+                  className="reader-panel-action"
                 >
-                  {isSaving ? "保存中" : "添加"}
-                </Button>
+                  <BookmarkPlus className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+                  <span>{isSaving ? "保存中" : "添加"}</span>
+                </button>
                 <ActionIcon
                   variant="subtle"
                   size={44}
                   radius="md"
                   onClick={() => onOpenChange(false)}
-                  className="size-11 min-h-0 min-w-0 shrink-0 rounded-lg transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.08] lg:size-9"
-                  style={{
-                    color: surface.muted,
-                  }}
+                  className="reader-panel-icon"
                   aria-label="关闭书签"
                   title="关闭"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" strokeWidth={1.6} />
                 </ActionIcon>
               </div>
             </div>
           </div>
 
-          <div className="reader-panel-body custom-scrollbar px-4 py-2 sm:px-6">
+          <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">
             <div className="divide-y pb-3">
               {sortedBookmarks.length > 0 ? (
                 sortedBookmarks.map((bookmark) => (
@@ -219,7 +213,7 @@ export function ReaderBookmarksSheet({
                     <button
                       type="button"
                       aria-label={`打开书签：${bookmark.chapter || "未识别章节"}，${formatPercent(bookmark.percentage)}`}
-                      className="min-h-11 min-w-0 flex-1 cursor-pointer rounded-lg px-2 py-1 text-left transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
+                      className="reader-panel-item min-w-0 flex-1 flex-col items-stretch px-2.5 py-2"
                       onClick={() => {
                         onGoTo(bookmark);
                         onOpenChange(false);
@@ -244,7 +238,10 @@ export function ReaderBookmarksSheet({
                         className="mt-1 flex flex-wrap items-center gap-2 text-xs leading-5"
                         style={{ color: surface.muted }}
                       >
-                        <span className="font-medium tabular-nums" style={{ color: surface.fg }}>
+                        <span
+                          className="font-medium tabular-nums"
+                          style={{ color: uiScheme.link }}
+                        >
                           {formatPercent(bookmark.percentage)}
                         </span>
                         <span className="h-1 w-1 rounded-full bg-current opacity-30" />
@@ -261,23 +258,23 @@ export function ReaderBookmarksSheet({
                         onDelete(bookmark.id);
                       }}
                       title="删除书签"
-                      aria-label="删除书签"
-                      className="size-11 min-h-0 min-w-0 shrink-0 rounded-lg opacity-75 transition-colors hover:bg-destructive/10 lg:size-9 sm:opacity-60 sm:group-hover:opacity-100"
-                      style={{ color: surface.muted }}
+                      aria-label={`删除书签：${bookmark.chapter || "未识别章节"}`}
+                      className="reader-panel-danger opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                     >
-                      <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                      <Trash2 className="h-4 w-4" strokeWidth={1.6} />
                     </ActionIcon>
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
                   <div
-                    className="mb-4 flex size-8 items-center justify-center"
+                    className="mb-3 flex size-9 items-center justify-center rounded-xl"
                     style={{
+                      background: "color-mix(in srgb, var(--reader-panel-hover) 72%, transparent)",
                       color: surface.fg,
                     }}
                   >
-                    <Bookmark className="h-5 w-5" strokeWidth={1.5} />
+                    <Bookmark className="h-4.5 w-4.5" strokeWidth={1.6} />
                   </div>
                   <p
                     className="text-sm font-medium tracking-tight"
@@ -289,8 +286,17 @@ export function ReaderBookmarksSheet({
                     className="mt-1.5 max-w-[16rem] text-xs leading-5"
                     style={{ color: surface.muted }}
                   >
-                    阅读时点击上方「添加」，即可保存当前位置。
+                    将当前阅读位置存为书签，方便随时回看。
                   </p>
+                  <button
+                    type="button"
+                    onClick={onCreate}
+                    disabled={!canCreate || isSaving}
+                    className="reader-panel-action mt-4 px-3.5 text-xs"
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
+                    <span>{isSaving ? "保存中" : "添加当前位置"}</span>
+                  </button>
                 </div>
               )}
             </div>

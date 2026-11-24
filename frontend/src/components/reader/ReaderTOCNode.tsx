@@ -4,7 +4,6 @@ import React from "react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
-import { withOpacity } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
 
 interface ReaderTOCNodeProps {
@@ -37,14 +36,11 @@ function ReaderTOCNode({
         data-current-chapter={isCurrentChapter ? "true" : undefined}
         onClick={() => onGoTo(item.href)}
         className={cn(
-          "touch-control relative flex min-h-11 w-full items-center overflow-hidden rounded-lg px-3 py-2 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.99]",
-          isCurrentChapter ? "z-10" : "hover:bg-black/[0.035] dark:hover:bg-white/[0.04]",
+          "reader-panel-item touch-control w-full items-center px-3 py-2",
+          isCurrentChapter && "z-10",
         )}
         style={{
-          paddingInlineStart: `${12 + indent}px`,
-          background: isCurrentChapter
-            ? withOpacity(uiScheme.link, 0.09)
-            : undefined,
+          paddingInlineStart: `${14 + indent}px`,
           color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText,
         }}
       >
@@ -72,7 +68,7 @@ function ReaderTOCNode({
         <div className="mt-0.5 space-y-0.5">
           {item.subitems.map((sub, idx) => (
             <MemoizedReaderTOCNode
-              key={idx}
+              key={`${sub.href}-${sub.label}-${idx}`}
               item={sub}
               onGoTo={onGoTo}
               depth={depth + 1}
@@ -91,13 +87,14 @@ export const MemoizedReaderTOCNode = React.memo(
   ReaderTOCNode,
   (prevProps, nextProps) => {
     return (
-      prevProps.item.href === nextProps.item.href &&
-      prevProps.item.label === nextProps.item.label &&
-      prevProps.item.subitems?.length === nextProps.item.subitems?.length &&
+      prevProps.item === nextProps.item &&
       prevProps.depth === nextProps.depth &&
       prevProps.currentChapter === nextProps.currentChapter &&
       prevProps.currentChapterHref === nextProps.currentChapterHref &&
-      prevProps.uiScheme.fg === nextProps.uiScheme.fg
+      prevProps.uiScheme.fg === nextProps.uiScheme.fg &&
+      prevProps.uiScheme.link === nextProps.uiScheme.link &&
+      prevProps.uiScheme.buttonText === nextProps.uiScheme.buttonText &&
+      prevProps.uiScheme.buttonBg === nextProps.uiScheme.buttonBg
     );
   },
 );

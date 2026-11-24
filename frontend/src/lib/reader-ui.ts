@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 
 export function withOpacity(color: string | undefined, opacity: number) {
@@ -16,6 +17,24 @@ export function withOpacity(color: string | undefined, opacity: number) {
   return `${normalized}${hexOpacity}`;
 }
 
+function isDarkHexColor(color: string | undefined): boolean {
+  if (!color || !color.startsWith("#")) return false;
+  const hex =
+    color.length === 4
+      ? `${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+      : color.slice(1, 7);
+  if (hex.length !== 6) return false;
+
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  if (Number.isNaN(red) || Number.isNaN(green) || Number.isNaN(blue)) {
+    return false;
+  }
+
+  return (red * 299 + green * 587 + blue * 114) / 1000 < 128;
+}
+
 export function getModernReaderSurface(uiScheme: ThemeColors) {
   return {
     fg: uiScheme.fg,
@@ -24,4 +43,20 @@ export function getModernReaderSurface(uiScheme: ThemeColors) {
     border: withOpacity(uiScheme.cardBorder, 0.72),
     hairline: withOpacity(uiScheme.cardBorder, 0.52),
   };
+}
+
+export function getReaderPanelThemeVars(uiScheme: ThemeColors): CSSProperties {
+  const surface = getModernReaderSurface(uiScheme);
+  const isDark = isDarkHexColor(uiScheme.cardBg);
+
+  return {
+    "--reader-panel-bg": uiScheme.cardBg,
+    "--reader-panel-fg": surface.fg,
+    "--reader-panel-muted": surface.muted,
+    "--reader-panel-border": surface.border,
+    "--reader-panel-rule": surface.hairline,
+    "--reader-panel-hover": uiScheme.buttonBg,
+    "--reader-panel-accent": uiScheme.link,
+    "--reader-panel-danger": isDark ? "#f08078" : "#c23b33",
+  } as CSSProperties;
 }

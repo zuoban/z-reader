@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"math"
 	"path/filepath"
 	"testing"
 	"time"
@@ -609,6 +610,44 @@ func TestListBooksFiltersByUser(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].ID != "book-a" {
 		t.Fatalf("expected only user-a book, got %+v", got)
+	}
+}
+
+func TestListBooksPaginatedUsesFullOwnerPrefix(t *testing.T) {
+	db := openTestDB(t)
+	const owner = "reader:archive"
+	for _, book := range []models.Book{
+		{ID: "book:a", UserID: owner},
+		{ID: "book:z", UserID: owner},
+		{ID: "foreign", UserID: "other"},
+	} {
+		if err := db.CreateBook(&book); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		index := tx.Bucket(UserBooksIndex)
+		if err := index.Put([]byte(owner+":book:missing"), []byte{}); err != nil {
+			return err
+		}
+		return index.Put([]byte(owner+":foreign"), []byte{})
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	for page, want := range []string{"book:a", "book:z"} {
+		books, err := db.ListBooksPaginated(owner, page+1, 1)
+		if err != nil || len(books) != 1 || books[0].ID != want {
+			t.Fatalf("page %d = %+v, want %q, err %v", page+1, books, want, err)
+		}
+	}
+	for _, page := range []int{3, math.MaxInt} {
+		if books, err := db.ListBooksPaginated(owner, page, 2); err != nil || len(books) != 0 {
+			t.Fatalf("past last page %d = %+v, err %v", page, books, err)
+		}
+	}
+	if books, err := db.ListBooksPaginated(owner, 1, math.MaxInt); err != nil || len(books) != 2 {
+		t.Fatalf("maximum page size = %+v, err %v", books, err)
 	}
 }
 

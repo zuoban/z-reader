@@ -784,15 +784,14 @@ func (db *DB) ListBooksByCursor(userID, cursor string, limit int) ([]models.Book
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
 	books := []models.Book{}
 	err := db.View(func(tx *bbolt.Tx) error {
-		idxB := tx.Bucket(UserBooksIndex)
-		booksB := tx.Bucket(BooksBucket)
-
-		bookIDs, err := getBookIDsForUser(idxB, userID)
-		if err != nil {
-			return err
+		if userID == "" {
+			return nil
 		}
-		for _, id := range bookIDs {
-			data := booksB.Get([]byte(id))
+		prefix := []byte(userID + ":")
+		cursor := tx.Bucket(UserBooksIndex).Cursor()
+		booksB := tx.Bucket(BooksBucket)
+		for key, _ := cursor.Seek(prefix); bytes.HasPrefix(key, prefix); key, _ = cursor.Next() {
+			data := booksB.Get(key[len(prefix):])
 			if data == nil {
 				continue
 			}
@@ -800,20 +799,19 @@ func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]model
 			if err := book.UnmarshalDB(data); err != nil {
 				return err
 			}
-			books = append(books, book)
+			if book.UserID == userID {
+				books = append(books, book)
+			}
 		}
 		return nil
 	})
 
 	if page > 0 && pageSize > 0 {
-		start := (page - 1) * pageSize
-		if start >= len(books) {
+		if len(books) == 0 || page-1 > (len(books)-1)/pageSize {
 			return []models.Book{}, err
 		}
-		end := start + pageSize
-		if end > len(books) {
-			end = len(books)
-		}
+		start := (page - 1) * pageSize
+		end := start + min(pageSize, len(books)-start)
 		return books[start:end], err
 	}
 
@@ -917,24 +915,6 @@ func (db *DB) UpdateBooksCategory(ids []string, userID string, category *string)
 		return err
 	})
 	return books, err
-}
-
-func getBookIDsForUser(idxB *bbolt.Bucket, userID string) ([]string, error) {
-	if userID == "" {
-		return nil, nil
-	}
-	prefix := []byte(userID + ":")
-	var ids []string
-	c := idxB.Cursor()
-	for k, _ := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, _ = c.Next() {
-		keyStr := string(k)
-		parts := strings.Split(keyStr, ":")
-		if len(parts) >= 2 {
-			bookID := strings.Join(parts[1:], ":")
-			ids = append(ids, bookID)
-		}
-	}
-	return ids, nil
 }
 
 func addBookToUserIndex(idxB *bbolt.Bucket, bookID string, userID string) error {

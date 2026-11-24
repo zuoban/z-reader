@@ -49,8 +49,10 @@
       transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .shelf-filter-chip:active {
-    transform: scale(0.98);
+  @media (prefers-reduced-motion: no-preference) {
+    .shelf-filter-chip:active {
+      transform: scale(0.98);
+    }
   }
 
   .shelf-filter-chip:hover {
@@ -271,13 +273,15 @@
 
   .shelf-settings-item {
     min-height: var(--control-touch-size);
+    cursor: pointer;
     gap: 0.625rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--foreground);
-    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .shelf-settings-item svg {
@@ -287,6 +291,7 @@
   }
 
   .shelf-settings-item:hover,
+  .shelf-settings-item[data-hovered],
   .shelf-settings-item:focus-visible {
     background: var(--secondary);
   }
@@ -297,6 +302,7 @@
   }
 
   .shelf-settings-item-danger:hover,
+  .shelf-settings-item-danger[data-hovered],
   .shelf-settings-item-danger:focus-visible {
     background: color-mix(in srgb, var(--destructive) 10%, transparent);
   }

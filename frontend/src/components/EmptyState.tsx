@@ -23,12 +23,18 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <section className="mx-auto w-full max-w-xl px-1 py-8 sm:px-8 sm:py-12">
-      <div className="flex items-start gap-3 sm:gap-4">
-        <Icon
+      <div className="flex items-start gap-3.5 sm:gap-4">
+        <div
           aria-hidden="true"
-          className={cn('mt-0.5 size-6 shrink-0', tone === 'error' ? 'text-destructive' : 'text-primary')}
-          strokeWidth={1.5}
-        />
+          className={cn(
+            'mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border',
+            tone === 'error'
+              ? 'border-destructive/20 bg-destructive/10 text-destructive'
+              : 'border-border/80 bg-accent/80 text-accent-foreground'
+          )}
+        >
+          <Icon className="size-5" strokeWidth={1.6} />
+        </div>
         <div className="min-w-0 flex-1">
           <div role={tone === 'error' ? 'alert' : undefined}>
             <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">

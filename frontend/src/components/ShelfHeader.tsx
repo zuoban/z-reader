@@ -2,7 +2,7 @@
 
 import type { ChangeEvent } from 'react';
 import { ActionIcon, Menu } from '@mantine/core';
-import { HardDrive, LogOut, Moon, MoreHorizontal, Sun } from 'lucide-react';
+import { HardDrive, LogOut, Moon, MoreHorizontal, Sun, WifiOff } from 'lucide-react';
 import { BrandLogo } from '@/components/AppShell';
 import { FileUploadAction } from '@/components/FileUploadAction';
 
@@ -38,8 +38,16 @@ export function ShelfHeader({
       <div className="app-container flex h-16 items-center justify-between gap-2 sm:gap-3">
         <BrandLogo compact className="shrink-0 whitespace-nowrap" />
 
-        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          {!isOffline && (
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          {isOffline ? (
+            <span
+              role="status"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-2.5 text-xs font-medium text-muted-foreground"
+            >
+              <WifiOff aria-hidden="true" className="size-3.5 shrink-0" strokeWidth={1.75} />
+              <span>离线模式</span>
+            </span>
+          ) : (
             <>
               <FileUploadAction
                 accept={uploadAccept}
@@ -59,7 +67,10 @@ export function ShelfHeader({
           <Menu
             position="bottom-end"
             offset={8}
-            width={192}
+            width={200}
+            radius="lg"
+            shadow="md"
+            zIndex={60}
             withinPortal
             classNames={{ item: 'shelf-settings-item' }}
           >
@@ -68,14 +79,17 @@ export function ShelfHeader({
                 type="button"
                 variant="subtle"
                 size="md"
-                className="size-11 shrink-0 rounded-lg text-foreground hover:bg-secondary data-[expanded]:bg-secondary sm:size-9"
+                className="size-11 shrink-0 cursor-pointer rounded-lg text-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary data-[expanded]:bg-secondary focus-visible:outline-2 focus-visible:outline-ring active:scale-95 motion-reduce:active:scale-100 sm:size-9"
                 aria-label="书架设置"
                 title="书架设置"
               >
                 <MoreHorizontal aria-hidden="true" className="size-5" strokeWidth={1.75} />
               </ActionIcon>
             </Menu.Target>
-            <Menu.Dropdown className="paper-menu rounded-lg p-1">
+            <Menu.Dropdown className="paper-menu rounded-xl p-1.5">
+              <Menu.Label className="px-2.5 pb-1.5 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground">
+                书架设置
+              </Menu.Label>
               <Menu.Item
                 leftSection={<HardDrive aria-hidden="true" strokeWidth={1.5} />}
                 onClick={onManageOfflineBooks}
@@ -90,7 +104,7 @@ export function ShelfHeader({
               </Menu.Item>
               {onLogout && (
                 <>
-                  <Menu.Divider role="separator" className="border-border" />
+                  <Menu.Divider role="separator" className="mx-1.5 my-1 border-border/70" />
                   <Menu.Item
                     className="shelf-settings-item-danger"
                     leftSection={<LogOut aria-hidden="true" strokeWidth={1.5} />}

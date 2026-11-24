@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { reportClientError } from '@/lib/error-reporting';
 
 interface ErrorBoundaryProps {
@@ -43,24 +44,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-          <div className="paper-panel w-full max-w-md rounded-2xl px-6 py-10 sm:px-8">
+          <div
+            role="alert"
+            className="paper-panel w-full max-w-md rounded-2xl px-6 py-10 sm:px-8"
+          >
             <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-              </svg>
+              <AlertTriangle className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
             </div>
             <h2 className="font-heading text-xl font-medium text-foreground">
               页面出现了问题
@@ -68,18 +57,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
               页面遇到意外错误，请重试或刷新。如果问题持续，请联系管理员。
             </p>
-            <div className="mt-6 flex justify-center gap-3">
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="h-10 rounded-lg border border-border bg-card px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="app-secondary-link min-w-[6.5rem] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 重试
               </button>
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="app-primary-link min-w-[6.5rem] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 刷新页面
               </button>

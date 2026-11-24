@@ -141,6 +141,24 @@ func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
 	}
 	assertMatches("古典 art", false)
 	assertMatches("当代 design", true)
+	if err := db.View(func(tx *bbolt.Tx) error {
+		text := tx.Bucket(BookSearchIndex).Get([]byte("reader\x00book"))
+		if string(text) != "当代 design" {
+			t.Errorf("stored search text = %q, want 当代 design", text)
+		}
+		postings := tx.Bucket(BookSearchGramIndex)
+		counts := tx.Bucket(BookSearchGramCounts)
+		if postings.Get([]byte("reader\x00古典\x00book")) != nil || counts.Get([]byte("reader\x00古典\x00")) != nil {
+			t.Error("old title posting or count survived the update")
+		}
+		if postings.Get([]byte("reader\x00当代\x00book")) == nil ||
+			string(counts.Get([]byte("reader\x00当代\x00"))) != "\x00\x00\x00\x00\x00\x00\x00\x01" {
+			t.Error("new title posting or count is incorrect")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestBroadSearchStopsBeforeDeserializingLaterPages(t *testing.T) {

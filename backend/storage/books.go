@@ -255,40 +255,42 @@ func (summary *BookLibrarySummary) adjustCount(category string, delta int) {
 	}
 }
 
-func bookSearchValue(book *models.Book) []byte {
+func bookSearchText(book *models.Book) string {
 	category := ""
 	if book.Category != nil {
 		category = *book.Category
 	}
-	return []byte(normalizeBookSearchText(strings.Join([]string{
+	return normalizeBookSearchText(strings.Join([]string{
 		book.Title,
 		book.Author,
 		book.Filename,
 		book.Format,
 		category,
-	}, " ")))
+	}, " "))
 }
 
-func addBookToSearchIndex(tx *bbolt.Tx, book *models.Book) error {
+func addBookToSearchIndex(tx *bbolt.Tx, book *models.Book, text string) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
-	return tx.Bucket(BookSearchIndex).Put(bookSearchIndexKey(book.UserID, book.ID), bookSearchValue(book))
+	return tx.Bucket(BookSearchIndex).Put(bookSearchIndexKey(book.UserID, book.ID), []byte(text))
 }
 
-func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
-	return addBookSearchGramPostings(tx.Bucket(BookSearchGramIndex), book, func(countKey []byte) error {
+func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book, text string) error {
+	return addBookSearchGramPostings(tx.Bucket(BookSearchGramIndex), book, text, func(countKey []byte) error {
 		return adjustBookSearchGramCount(tx, countKey, 1)
 	})
 }
 
-func addBookSearchGramPostings(bucket *bbolt.Bucket, book *models.Book, onInsert func([]byte) error) error {
+func addBookSearchGramPostings(
+	bucket *bbolt.Bucket, book *models.Book, text string, onInsert func([]byte) error,
+) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
 	// bbolt copies keys on Put, so the buffer can be reused for the next gram.
 	var key []byte
-	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
+	for _, gram := range bookSearchGrams(text) {
 		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
 		if bucket.Get(key) != nil {
 			continue
@@ -312,13 +314,13 @@ func removeBookFromSearchIndex(tx *bbolt.Tx, book *models.Book) error {
 	return tx.Bucket(BookSearchIndex).Delete(bookSearchIndexKey(book.UserID, book.ID))
 }
 
-func removeBookFromSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
+func removeBookFromSearchGramIndex(tx *bbolt.Tx, book *models.Book, text string) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
 	bucket := tx.Bucket(BookSearchGramIndex)
 	var key []byte
-	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
+	for _, gram := range bookSearchGrams(text) {
 		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
 		if bucket.Get(key) != nil {
 			if err := bucket.Delete(key); err != nil {
@@ -370,7 +372,7 @@ func rebuildBookSearchIndex(tx *bbolt.Tx) error {
 		if err := book.UnmarshalDB(data); err != nil {
 			return err
 		}
-		return addBookToSearchIndex(tx, &book)
+		return addBookToSearchIndex(tx, &book, bookSearchText(&book))
 	})
 }
 
@@ -406,7 +408,7 @@ func rebuildBookSearchGramIndex(tx *bbolt.Tx) error {
 		if err := book.UnmarshalDB(data); err != nil {
 			return err
 		}
-		return addBookSearchGramPostings(postingBucket, &book, onInsert)
+		return addBookSearchGramPostings(postingBucket, &book, bookSearchText(&book), onInsert)
 	}); err != nil {
 		return err
 	}
@@ -529,20 +531,19 @@ func (db *DB) UpdateBook(id, userID string, merge func(*models.Book) bool) (*mod
 func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 	b := tx.Bucket(BooksBucket)
 	idxB := tx.Bucket(UserBooksIndex)
-	var oldUserID string
+	var oldUserID, oldSearchText string
 	if oldBook != nil {
 		oldUserID = oldBook.UserID
+		oldSearchText = bookSearchText(oldBook)
 	}
 
 	book.Category = normalizeCategoryName(book.Category)
+	searchText := bookSearchText(book)
 	// Cover and processing-state updates can leave both search indexes intact.
 	searchUnchanged := false
-	if oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID {
+	if oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID && oldSearchText == searchText {
 		indexedText := tx.Bucket(BookSearchIndex).Get(bookSearchIndexKey(book.UserID, book.ID))
-		if indexedText != nil {
-			text := bookSearchValue(book)
-			searchUnchanged = bytes.Equal(indexedText, text) && bytes.Equal(bookSearchValue(oldBook), text)
-		}
+		searchUnchanged = indexedText != nil && string(indexedText) == searchText
 	}
 	data, err := book.MarshalDB()
 	if err != nil {
@@ -578,7 +579,7 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
 			return err
 		}
-		if err := removeBookFromSearchGramIndex(tx, oldBook); err != nil {
+		if err := removeBookFromSearchGramIndex(tx, oldBook, oldSearchText); err != nil {
 			return err
 		}
 	}
@@ -586,10 +587,10 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		return err
 	}
 	if !searchUnchanged {
-		if err := addBookToSearchIndex(tx, book); err != nil {
+		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return err
 		}
-		if err := addBookToSearchGramIndex(tx, book); err != nil {
+		if err := addBookToSearchGramIndex(tx, book, searchText); err != nil {
 			return err
 		}
 	}
@@ -626,10 +627,11 @@ func (db *DB) CreateBook(book *models.Book) error {
 		if err := addBookToSortIndex(tx, book); err != nil {
 			return err
 		}
-		if err := addBookToSearchIndex(tx, book); err != nil {
+		searchText := bookSearchText(book)
+		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return err
 		}
-		if err := addBookToSearchGramIndex(tx, book); err != nil {
+		if err := addBookToSearchGramIndex(tx, book, searchText); err != nil {
 			return err
 		}
 		if err := addBookToContentIndex(tx, book); err != nil {
@@ -869,7 +871,7 @@ func deleteBookDataInTx(tx *bbolt.Tx, id string, book *models.Book) error {
 	if err := removeBookFromSearchIndex(tx, book); err != nil {
 		return err
 	}
-	return removeBookFromSearchGramIndex(tx, book)
+	return removeBookFromSearchGramIndex(tx, book, bookSearchText(book))
 }
 
 func (db *DB) DeleteBookData(id string, userID string) error {

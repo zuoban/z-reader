@@ -279,7 +279,7 @@ func updateBooksCategoryInTx(
 		if err := removeBookFromSortIndex(tx, &book); err != nil {
 			return nil, err
 		}
-		if err := removeBookFromSearchGramIndex(tx, &book); err != nil {
+		if err := removeBookFromSearchGramIndex(tx, &book, bookSearchText(&book)); err != nil {
 			return nil, err
 		}
 		book.Category = normalizedCategory
@@ -290,13 +290,14 @@ func updateBooksCategoryInTx(
 		if err := booksBucket.Put([]byte(book.ID), data); err != nil {
 			return nil, err
 		}
-		if err := addBookToSearchIndex(tx, &book); err != nil {
+		searchText := bookSearchText(&book)
+		if err := addBookToSearchIndex(tx, &book, searchText); err != nil {
 			return nil, err
 		}
 		if err := addBookToSortIndex(tx, &book); err != nil {
 			return nil, err
 		}
-		if err := addBookToSearchGramIndex(tx, &book); err != nil {
+		if err := addBookToSearchGramIndex(tx, &book, searchText); err != nil {
 			return nil, err
 		}
 		if summary != nil {

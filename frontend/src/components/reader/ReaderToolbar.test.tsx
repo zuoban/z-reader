@@ -363,4 +363,65 @@ describe('ReaderToolbar', () => {
     fireEvent.keyDown(mobileActions, { key: 'ArrowUp' });
     expect(settingsButton).toHaveFocus();
   });
+
+  it('marks the closed mobile menu inert, closes on document Escape and TTS open, and exposes settings dialog ARIA', () => {
+    const baseProps = {
+      visible: true,
+      bookTitle: '测试书籍',
+      bookAuthor: '',
+      toc: [],
+      tocOpen: false,
+      onTocOpenChange: vi.fn(),
+      bookmarksOpen: false,
+      onBookmarksOpenChange: vi.fn(),
+      bookmarks: [],
+      canCreateBookmark: true,
+      isSavingBookmark: false,
+      onCreateBookmark: vi.fn(),
+      onGoToBookmark: vi.fn(),
+      onDeleteBookmark: vi.fn(),
+      tocListRef: { current: null },
+      currentChapter: '',
+      currentChapterHref: '',
+      onLocateCurrentChapter: vi.fn(),
+      onGoTo: vi.fn(),
+      onBack: vi.fn(),
+      uiScheme,
+      headerSafeAreaPaddingTop: '0px',
+      theme,
+      setTheme: vi.fn(),
+      themeSettingsOpen: false,
+      onThemeSettingsOpenChange: vi.fn(),
+      isFullscreen: false,
+      onToggleFullscreen: vi.fn(),
+      ttsOpen: false,
+    };
+
+    const { container, rerender } = render(<ReaderToolbar {...baseProps} />);
+
+    const desktop = within(
+      container.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
+    );
+    const settingsButton = desktop.getByTitle('阅读设置');
+    expect(settingsButton).toHaveAttribute('aria-expanded', 'false');
+    expect(settingsButton).toHaveAttribute('aria-haspopup', 'dialog');
+
+    const mobileMenu = container.querySelector('.reader-toolbar-menu') as HTMLElement;
+    expect(mobileMenu).toHaveAttribute('inert');
+
+    const moreButton = screen.getByTitle('更多阅读操作');
+    fireEvent.click(moreButton);
+    expect(mobileMenu).not.toHaveAttribute('inert');
+
+    // Escape closes the menu even if focus returned to the trigger button
+    moreButton.focus();
+    fireEvent.keyDown(moreButton, { key: 'Escape' });
+    expect(mobileMenu).toHaveAttribute('inert');
+
+    // Opening TTS closes the mobile overflow menu cleanly
+    fireEvent.click(moreButton);
+    expect(mobileMenu).not.toHaveAttribute('inert');
+    rerender(<ReaderToolbar {...baseProps} ttsOpen />);
+    expect(mobileMenu).toHaveAttribute('inert');
+  });
 });

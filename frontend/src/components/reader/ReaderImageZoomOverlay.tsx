@@ -101,7 +101,7 @@ export function ReaderImageZoomOverlay({
       ref={dialogRef}
       aria-modal="true"
       aria-label="图片预览"
-      className="reader-image-overlay paper-reveal-soft fixed inset-0 z-[var(--z-reader-overlay)] flex min-h-svh items-center justify-center p-3 sm:p-6"
+      className="reader-image-overlay paper-reveal-soft fixed inset-0 z-[var(--z-reader-overlay)] flex min-h-svh items-center justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] sm:pt-[max(1.5rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
       data-reader-interactive="true"
       role="dialog"
       onClick={onClose}
@@ -116,7 +116,7 @@ export function ReaderImageZoomOverlay({
       <button
         aria-label="关闭图片预览"
         autoFocus
-        className="reader-image-close absolute right-[max(0.75rem,env(safe-area-inset-right,0px))] top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 sm:right-5 sm:top-5"
+        className="reader-image-close absolute right-[max(0.75rem,env(safe-area-inset-right,0px))] top-[max(0.75rem,env(safe-area-inset-top,0px))] z-10 sm:right-[max(1.25rem,env(safe-area-inset-right,0px))] sm:top-[max(1.25rem,env(safe-area-inset-top,0px))]"
         title="关闭图片预览（Esc）"
         type="button"
         onClick={(event) => {
@@ -171,7 +171,7 @@ export function ReaderImageZoomOverlay({
       </div>
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-[max(0.875rem,env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none absolute inset-x-0 bottom-[max(0.875rem,env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center gap-2 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]"
         onClick={(event) => event.stopPropagation()}
       >
         {caption ? (

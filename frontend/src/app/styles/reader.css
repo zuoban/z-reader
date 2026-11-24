@@ -35,8 +35,11 @@
   }
 
   .reader-mobile-menu-item {
-    @apply flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left text-sm font-medium transition-colors;
+    @apply flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left text-sm font-medium;
     border-radius: var(--paper-radius-control);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-mobile-menu-item:hover {
@@ -613,6 +616,7 @@
     }
 
     .reader-panel-item:active,
+    .reader-mobile-menu-item:enabled:active,
     .reader-settings-option:enabled:active,
     .reader-settings-row:enabled:active {
       transform: scale(0.985);

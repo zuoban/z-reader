@@ -162,7 +162,11 @@ export function useReaderControls({
   }, [pageRef]);
 
   const keyboardHandler = useCallback((e: KeyboardEvent) => {
-    if (e.defaultPrevented || pageRef.current?.dataset.readerImageZoomOpen === 'true') {
+    if (
+      e.defaultPrevented ||
+      e.isComposing ||
+      pageRef.current?.dataset.readerImageZoomOpen === 'true'
+    ) {
       return;
     }
 
@@ -200,6 +204,11 @@ export function useReaderControls({
       pageRef.current?.ownerDocument ??
       (typeof document !== 'undefined' ? document : null);
     if (overlayOpenRef.current || hasActiveOverlay(parentDoc)) {
+      return;
+    }
+
+    // Leave browser shortcuts (Cmd/Ctrl+F, Cmd/Ctrl+J/K, Alt+ArrowLeft, etc.) untouched.
+    if (e.metaKey || e.ctrlKey || e.altKey) {
       return;
     }
 

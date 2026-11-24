@@ -181,7 +181,7 @@ export function ReaderLoadingOverlay({
 
   return (
     <div
-      className="absolute z-20 flex flex-col items-center justify-center overflow-hidden px-4"
+      className="absolute z-20 flex flex-col items-center justify-center overflow-hidden pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]"
       role="status"
       aria-live="polite"
       aria-busy="true"

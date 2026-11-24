@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
-import { Volume2 } from "lucide-react";
+import { Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
@@ -106,6 +106,7 @@ function Reader({ bookId }: { bookId: string }) {
     useState<BookDownloadProgress | null>(null);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [ttsRequested, setTTSRequested] = useState(false);
+  const [ttsOpen, setTtsOpen] = useState(false);
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(
     null
   );
@@ -161,6 +162,7 @@ function Reader({ bookId }: { bookId: string }) {
 
   const handleTTSExpandedChange = useCallback(
     (expanded: boolean) => {
+      setTtsOpen(expanded);
       if (!expanded) {
         restoreTTSHighlight();
       }
@@ -511,6 +513,7 @@ function Reader({ bookId }: { bookId: string }) {
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
           onOpenShortcuts={handleOpenShortcuts}
+          ttsOpen={ttsOpen}
           ttsControls={
             isAuthenticated ? (
               <DeferredTTSControls
@@ -518,6 +521,16 @@ function Reader({ bookId }: { bookId: string }) {
                 variant="toolbar"
                 triggerClassName="reader-chrome-btn"
                 triggerStyle={{}}
+                loadingContent={
+                  <>
+                    <Loader2
+                      className="size-4 animate-spin motion-reduce:animate-none"
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">正在加载朗读控制</span>
+                  </>
+                }
                 triggerContent={
                   <>
                     <Volume2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
@@ -558,7 +571,7 @@ function Reader({ bookId }: { bookId: string }) {
             )}
 
             <div
-              className="absolute inset-x-0 transition-[top] duration-300 ease-out"
+              className="absolute left-[env(safe-area-inset-left,0px)] right-[env(safe-area-inset-right,0px)] transition-[top] duration-300 ease-out"
               style={{
                 top: readerContentInsetTop,
                 bottom: statusBarReservedSpace,

@@ -264,4 +264,45 @@ describe('reader controls', () => {
       }
     }
   });
+
+  it('ignores browser modifier shortcuts and IME composition keydowns', () => {
+    const { onPrev, onNext, onBack, onToggleShortcuts } = renderControls();
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    const originalFullscreenEnabled = Object.getOwnPropertyDescriptor(document, 'fullscreenEnabled');
+    Object.defineProperty(document, 'fullscreenEnabled', {
+      configurable: true,
+      value: true,
+    });
+    page.requestFullscreen = requestFullscreen;
+
+    try {
+      fireEvent.keyDown(page, { key: 'f', ctrlKey: true });
+      fireEvent.keyDown(page, { key: 'f', metaKey: true });
+      fireEvent.keyDown(page, { key: 'k', metaKey: true });
+      fireEvent.keyDown(page, { key: 'j', ctrlKey: true });
+      fireEvent.keyDown(page, { key: 'ArrowLeft', altKey: true });
+      fireEvent.keyDown(page, { key: 'ArrowRight', metaKey: true });
+      fireEvent.keyDown(page, { key: 'Escape', ctrlKey: true });
+
+      const composingEvent = new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(composingEvent, 'isComposing', { value: true });
+      page.dispatchEvent(composingEvent);
+
+      expect(requestFullscreen).not.toHaveBeenCalled();
+      expect(onPrev).not.toHaveBeenCalled();
+      expect(onNext).not.toHaveBeenCalled();
+      expect(onBack).not.toHaveBeenCalled();
+      expect(onToggleShortcuts).not.toHaveBeenCalled();
+    } finally {
+      if (originalFullscreenEnabled) {
+        Object.defineProperty(document, 'fullscreenEnabled', originalFullscreenEnabled);
+      } else {
+        delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+      }
+    }
+  });
 });

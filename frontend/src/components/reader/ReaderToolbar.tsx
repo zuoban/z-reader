@@ -56,6 +56,7 @@ interface ReaderToolbarProps {
   onSaveOffline?: () => void;
   ttsControls?: ReactNode;
   mobileTtsControls?: ReactNode;
+  ttsOpen?: boolean;
   tocListRef: RefObject<HTMLDivElement | null>;
   currentChapter: string;
   currentChapterHref: string;
@@ -96,6 +97,7 @@ export function ReaderToolbar({
   onSaveOffline,
   ttsControls,
   mobileTtsControls,
+  ttsOpen = false,
   tocListRef,
   currentChapter,
   currentChapterHref,
@@ -116,6 +118,8 @@ export function ReaderToolbar({
 }: ReaderToolbarProps) {
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [prevVisible, setPrevVisible] = useState(visible);
+  const anySheetOpen = tocOpen || bookmarksOpen || themeSettingsOpen || ttsOpen;
+  const [prevAnySheetOpen, setPrevAnySheetOpen] = useState(anySheetOpen);
   const [settingsRequested, setSettingsRequested] = useState(false);
   const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
   const mobileActionsMenuRef = useRef<HTMLDivElement>(null);
@@ -125,6 +129,13 @@ export function ReaderToolbar({
   if (visible !== prevVisible) {
     setPrevVisible(visible);
     if (!visible && mobileActionsOpen) {
+      setMobileActionsOpen(false);
+    }
+  }
+
+  if (anySheetOpen !== prevAnySheetOpen) {
+    setPrevAnySheetOpen(anySheetOpen);
+    if (anySheetOpen && mobileActionsOpen) {
       setMobileActionsOpen(false);
     }
   }
@@ -158,8 +169,19 @@ export function ReaderToolbar({
       }
     }
 
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape" || event.isComposing) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeMobileActions();
+    }
+
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [mobileActionsOpen]);
 
   function handleMobileActionsKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -287,6 +309,7 @@ export function ReaderToolbar({
                 ref={mobileActionsMenuRef}
                 id={mobileActionsMenuId}
                 aria-hidden={!mobileActionsOpen}
+                inert={!mobileActionsOpen || undefined}
                 aria-labelledby={mobileActionsTitleId}
                 className={cn(
                   "reader-toolbar-menu absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[calc(100dvh-5.5rem)] w-52 max-w-[calc(100vw-2rem)] origin-top-right overflow-y-auto overscroll-contain p-1.5 text-sm transition-[opacity,transform] duration-150 ease-out scrollbar-none",
@@ -577,6 +600,8 @@ export function ReaderToolbar({
                   variant="subtle"
                   size="sm"
                   title="阅读设置"
+                  aria-expanded={themeSettingsOpen}
+                  aria-haspopup="dialog"
                   className={chromeBtnClass}
                   classNames={{ label: "flex items-center justify-center" }}
                   onClick={() => {

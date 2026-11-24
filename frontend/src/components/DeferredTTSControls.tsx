@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { ActionIcon, UnstyledButton } from '@mantine/core';
 import { Loader2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,8 +8,9 @@ import type { TTSControlsProps } from '@/components/TTSControls';
 
 export function DeferredTTSControls({
   onRequest,
+  loadingContent,
   ...props
-}: TTSControlsProps & { onRequest: () => void }) {
+}: TTSControlsProps & { onRequest: () => void; loadingContent?: ReactNode }) {
   const [LoadedTTSControls, setLoadedTTSControls] =
     useState<ComponentType<TTSControlsProps> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,13 +68,15 @@ export function DeferredTTSControls({
         onClick={handleClick}
       >
         {isLoading ? (
-          <>
-            <Loader2
-              className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
-              aria-hidden="true"
-            />
-            <span>加载中…</span>
-          </>
+          loadingContent ?? (
+            <>
+              <Loader2
+                className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+              <span>加载中…</span>
+            </>
+          )
         ) : (
           props.triggerContent
         )}

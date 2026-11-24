@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@/test/render';
 import { describe, expect, it, vi } from 'vitest';
 import { DeferredTTSControls } from '@/components/DeferredTTSControls';
@@ -41,6 +42,23 @@ describe('DeferredTTSControls', () => {
       'aria-busy',
       'true'
     );
+    expect(await screen.findByRole('dialog')).toHaveTextContent('打开朗读控制');
+  });
+
+  it('supports custom loadingContent for compact icon-only triggers', async () => {
+    const onRequest = vi.fn();
+    const props = {
+      state: 'stopped',
+      triggerClassName: 'reader-chrome-btn',
+      triggerContent: <span className="sr-only">朗读</span>,
+      loadingContent: <span className="sr-only">紧凑加载中</span>,
+    } as TTSControlsProps & { loadingContent: ReactNode };
+
+    render(<DeferredTTSControls {...props} onRequest={onRequest} />);
+    fireEvent.click(screen.getByRole('button', { name: '朗读控制' }));
+
+    expect(screen.getByText('紧凑加载中')).toHaveClass('sr-only');
+    expect(screen.queryByText('加载中…')).not.toBeInTheDocument();
     expect(await screen.findByRole('dialog')).toHaveTextContent('打开朗读控制');
   });
 });

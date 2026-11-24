@@ -197,11 +197,13 @@ func (db *DB) SearchBooks(
 		if err != nil {
 			return err
 		}
+		// Eligible books share the same persisted sort prefix, including the cursor.
+		startSuffix := string(start[len(sortPrefix):])
 		type candidate struct {
 			book models.Book
-			key  []byte
+			key  string
 		}
-		compareCandidates := func(a, b candidate) int { return bytes.Compare(a.key, b.key) }
+		compareCandidates := func(a, b candidate) int { return strings.Compare(a.key, b.key) }
 		pageSize := limit + 1
 		// The gram count includes substring misses and books outside the page.
 		// Keep one page plus its lookahead, with room to batch incoming matches.
@@ -232,8 +234,8 @@ func (db *DB) SearchBooks(
 			if book.UserID != userID || (category != nil && categoryForBook(&book) != *category) {
 				continue
 			}
-			orderKey := bookQuerySortKey(&book, sortKey, category)
-			if len(start) > len(sortPrefix) && bytes.Compare(orderKey, start) <= 0 {
+			orderKey := bookSortValue(&book, sortKey) + bookSortSeparator + book.ID
+			if startSuffix != "" && orderKey <= startSuffix {
 				continue
 			}
 			candidates = append(candidates, candidate{book, orderKey})

@@ -293,6 +293,47 @@ func TestSelectiveSearchKeepsBestMatchesAcrossCandidateBatches(t *testing.T) {
 	}
 }
 
+func TestSelectiveSearchUsesShelfOrderForEverySort(t *testing.T) {
+	db := openTestDB(t)
+	category, uncategorized := "阅读 / 科幻", ""
+	created := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	lastRead := created.Add(time.Hour)
+	for _, book := range []models.Book{
+		{ID: "a", Title: " Needle 三体 ", Author: "Äda", Category: &category, CreatedAt: created},
+		{ID: "b", Title: "needle 三体", Author: "äda", Category: &category, CreatedAt: created},
+		{ID: "c", Title: "Needle Alpha", Author: "Zoe", Category: &category, LastReadAt: &lastRead},
+		{ID: "d", Title: "Needle Beta", Author: "Ada", LastReadAt: &lastRead},
+		{ID: "e", Title: "Needle Alpha", CreatedAt: created},
+	} {
+		book.UserID = "u"
+		if err := db.CreateBook(&book); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, sortKey := range supportedBookSorts {
+		for _, filter := range []*string{nil, &category, &uncategorized} {
+			cursor := "missing"
+			for range 5 {
+				want, next, err := db.ListBooksBySortedCursor("u", cursor, 2, sortKey, filter)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, gotNext, err := db.SearchBooks("u", "needle", cursor, 2, sortKey, filter)
+				if err != nil || gotNext != next || !slices.EqualFunc(got, want, func(a, b models.Book) bool {
+					return a.ID == b.ID
+				}) {
+					t.Fatalf("sort %q cursor %q: search = %+v, %q, %v; shelf = %+v, %q", sortKey, cursor, got, gotNext, err, want, next)
+				}
+				if next == "" {
+					break
+				}
+				cursor = next
+			}
+		}
+	}
+}
+
 func TestMissingHashIndexTracksOnlyUnhashedBooks(t *testing.T) {
 	db := openTestDB(t)
 	book := &models.Book{ID: "legacy", UserID: "u", Title: "Legacy"}

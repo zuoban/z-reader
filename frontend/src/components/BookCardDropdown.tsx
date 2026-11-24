@@ -47,6 +47,7 @@ export function BookCardDropdown({
     <Menu
       position="top-end"
       offset={8}
+      width="16rem"
       radius="lg"
       shadow="md"
       withinPortal
@@ -70,12 +71,12 @@ export function BookCardDropdown({
       </Menu.Target>
       <Menu.Dropdown
         onClick={(e) => e.stopPropagation()}
-        className="w-[14.5rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-0 font-sans shadow-[var(--paper-shadow-floating)]"
+        className="max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-0 font-sans shadow-[var(--paper-shadow-floating)]"
       >
         <div className="border-b border-border/70 bg-surface-subtle/75 px-4 py-3">
-          <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-start justify-between gap-2.5">
             <p
-              className="min-w-0 truncate font-heading text-[13px] font-semibold leading-snug text-foreground"
+              className="line-clamp-2 min-w-0 wrap-anywhere font-heading text-[13px] font-semibold leading-snug text-foreground"
               title={bookTitle || '书籍信息'}
             >
               {bookTitle || '书籍信息'}

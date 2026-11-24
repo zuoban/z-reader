@@ -179,6 +179,38 @@ test.describe('responsive reading and shelf controls', () => {
     });
   }
 
+  test('book action menus keep the same width with short and long titles', async ({ page }) => {
+    await installBrowserStubs(page, { authenticated: true });
+    await mockAuthVerified(page);
+    const shelf = await mockMutableShelfApis(page);
+    const longTitle = 'Go语言精进之路：从新手到高手的编程思想、方法和技巧'.repeat(2);
+    const shortTitle = '红楼梦';
+    shelf.books = shelf.books.slice(0, 2);
+    shelf.books[0].title = longTitle;
+    shelf.books[1].title = shortTitle;
+    await gotoStable(page, '/shelf');
+
+    for (const width of [1280, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+
+      for (const title of [longTitle, shortTitle]) {
+        await page.getByRole('button', { name: `更多操作：《${title}》`, exact: true }).click();
+        const menu = page.getByRole('menu');
+        await expect(menu).toHaveCSS('width', '256px');
+        await expect(menu).toBeInViewport({ ratio: 1 });
+        await expect(menu.getByText('EPUB', { exact: true })).toBeVisible();
+
+        const titleLines = await menu.getByText(title, { exact: true }).evaluate((element) => {
+          const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
+          return Math.round(element.getBoundingClientRect().height / lineHeight);
+        });
+        expect(titleLines).toBe(title === longTitle ? 2 : 1);
+        await page.keyboard.press('Escape');
+        await expect(menu).toBeHidden();
+      }
+    }
+  });
+
   test('long fallback titles stay between cover labels on narrow phones', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 844 });
     await installBrowserStubs(page, { authenticated: true });

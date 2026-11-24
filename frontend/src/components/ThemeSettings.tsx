@@ -141,10 +141,12 @@ function SliderField({
   step,
   uiScheme,
 }: SliderFieldProps) {
+  const labelId = useId();
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-0.5">
-        <span className="text-sm font-medium" style={{ color: uiScheme.fg }}>
+        <span id={labelId} className="text-sm font-medium" style={{ color: uiScheme.fg }}>
           {label}
         </span>
         <span
@@ -173,8 +175,13 @@ function SliderField({
           step={step}
           label={null}
           thumbLabel={label}
+          aria-labelledby={labelId}
           size="sm"
           className="flex-1"
+          classNames={{
+            track: "cursor-pointer",
+            thumb: "reader-panel-slider-thumb",
+          }}
           styles={{
             track: {
               backgroundColor: withOpacity(uiScheme.cardBorder, 0.7),
@@ -248,7 +255,11 @@ function ReaderPreview({
           className="reader-preview-toggle"
         >
           {expanded ? "收起预览" : "展开预览"}
-          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {expanded ? (
+            <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
         </button>
       </div>
       <p
@@ -335,7 +346,7 @@ export function ThemeSettings({
         style={triggerStyle}
         onClick={() => setIsOpen(!isOpen)}
       >
-        {trigger || <Settings className="h-4 w-4" />}
+        {trigger || <Settings className="h-4 w-4" aria-hidden="true" />}
       </Button>
 
       <Drawer.Root
@@ -408,7 +419,8 @@ export function ThemeSettings({
                   className="reader-panel-icon"
                 >
                   <RotateCcw
-                    className="h-4 w-4 transition-transform duration-300 ease-out"
+                    className="h-4 w-4 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                    aria-hidden="true"
                     style={{
                       transform: `rotate(${resetFeedbackCount * 360}deg)`,
                     }}
@@ -424,7 +436,7 @@ export function ThemeSettings({
                   aria-label="关闭阅读偏好"
                   title="关闭"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </ActionIcon>
               </div>
             </div>

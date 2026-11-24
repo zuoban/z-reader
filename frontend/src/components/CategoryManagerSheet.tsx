@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ActionIcon, Modal, TextInput } from '@mantine/core';
-import { Check, Pencil, Trash2, X } from 'lucide-react';
+import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
+import { Check, Pencil, Tag, Tags, Trash2, X } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,11 @@ export function CategoryManagerSheet({
   const [editValue, setEditValue] = useState('');
   const [deleteConfirmCategory, setDeleteConfirmCategory] = useState('');
   const normalizedCategories = categories.map((category) => category.trim()).filter(Boolean);
+  const totalCategorizedBooks = normalizedCategories.reduce(
+    (sum, category) => sum + (bookCounts[category] || 0),
+    0
+  );
+  const trimmedEditValue = editValue.trim();
 
   function reset() {
     setEditingCategory('');
@@ -50,9 +55,10 @@ export function CategoryManagerSheet({
   }
 
   async function saveRename() {
-    const trimmed = editValue.trim();
-    if (!trimmed || trimmed === editingCategory || trimmed.length > 50) return;
-    await onRenameCategory(editingCategory, trimmed);
+    if (!trimmedEditValue || trimmedEditValue === editingCategory || trimmedEditValue.length > 50) {
+      return;
+    }
+    await onRenameCategory(editingCategory, trimmedEditValue);
     cancelEdit();
   }
 
@@ -67,76 +73,90 @@ export function CategoryManagerSheet({
         opened={open}
         onClose={() => handleOpenChange(false)}
         centered
-        size={420}
+        size={440}
         radius="lg"
         padding={0}
         zIndex={80}
         closeOnEscape={!editingCategory && !deleteConfirmCategory}
-        classNames={{ content: 'app-dialog-shell overscroll-contain rounded-2xl border p-0' }}
+        classNames={{
+          content:
+            'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
+        }}
       >
         <Modal.Overlay backgroundOpacity={0.42} blur={3} />
         <Modal.Content>
-          <div className="flex items-start justify-between border-b border-border/60 px-6 pb-4 pt-5">
-            <div>
-              <Modal.Title className="font-heading text-lg font-medium text-foreground">
-                管理分类
-              </Modal.Title>
-              <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                重命名或删除图书分类
-              </p>
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
+                <Tags className="h-[18px] w-[18px]" strokeWidth={1.6} />
+              </div>
+              <div className="min-w-0">
+                <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
+                  管理分类
+                </Modal.Title>
+                <p className="mt-0.5 truncate text-xs leading-5 tabular-nums text-muted-foreground">
+                  {normalizedCategories.length > 0
+                    ? `共 ${normalizedCategories.length} 个分类 · ${totalCategorizedBooks} 本已归类`
+                    : '重命名或移除已有图书分类'}
+                </p>
+              </div>
             </div>
             <ActionIcon
               variant="subtle"
               color="gray"
-              size={40}
+              size={36}
               radius="md"
               onClick={() => handleOpenChange(false)}
-              className="dialog-close-btn"
+              className="dialog-close-btn -mr-1 h-9 w-9"
               aria-label="关闭"
             >
               <X className="h-4 w-4" />
             </ActionIcon>
           </div>
 
-          <div className="max-h-[20rem] overflow-y-auto px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             {normalizedCategories.length === 0 ? (
-              <div className="flex min-h-[8rem] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 px-6 text-center">
-                <p className="text-sm font-medium text-muted-foreground">暂无分类</p>
-                <p className="mt-1 text-xs text-muted-foreground/80">
-                  在图书上设置分类后，将在这里显示
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
+                  <Tags className="h-5 w-5" strokeWidth={1.5} />
+                </div>
+                <p className="mt-3 text-sm font-medium text-foreground">暂无图书分类</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  在图书菜单或批量操作中设置分类后，将在这里显示
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
                 {normalizedCategories.map((category) => {
                   const count = bookCounts[category] || 0;
                   const isEditing = editingCategory === category;
+                  const willMerge =
+                    isEditing &&
+                    Boolean(trimmedEditValue) &&
+                    trimmedEditValue !== category &&
+                    normalizedCategories.includes(trimmedEditValue);
 
                   return (
-                    <div
+                    <li
                       key={category}
                       className={cn(
-                        'app-surface-panel flex items-center gap-3 rounded-xl px-3.5 py-2.5 transition-colors',
-                        isEditing && 'border-primary/40 ring-2 ring-primary/12'
+                        'group transition-colors',
+                        isEditing
+                          ? 'bg-card px-3.5 py-3'
+                          : 'px-3.5 py-2.5 hover:bg-secondary/60'
                       )}
                     >
-                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                        <span className="shrink-0 rounded-md bg-secondary px-2.5 py-1 text-[13px] font-medium text-foreground">
-                          {category}
-                        </span>
-                        <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                          {count} 本
-                        </span>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-1">
-                        {isEditing ? (
-                          <>
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
                             <TextInput
                               value={editValue}
                               onChange={(e) => setEditValue(e.currentTarget.value)}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') void saveRename();
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  void saveRename();
+                                }
                                 if (e.key === 'Escape') {
                                   e.stopPropagation();
                                   cancelEdit();
@@ -144,23 +164,14 @@ export function CategoryManagerSheet({
                               }}
                               maxLength={50}
                               autoFocus
+                              placeholder="输入新分类名称"
                               aria-label="新分类名称"
+                              className="min-w-0 flex-1"
                               classNames={{
                                 input:
-                                  'category-input h-9 w-28 rounded-lg px-2 text-[13px] shadow-none',
+                                  'category-input h-9 rounded-lg px-3 text-sm font-medium text-foreground shadow-none',
                               }}
                             />
-                            <ActionIcon
-                              variant="subtle"
-                              color="gray"
-                              size={36}
-                              radius="md"
-                              onClick={cancelEdit}
-                              className="dialog-close-btn h-9 w-9"
-                              aria-label="取消"
-                            >
-                              <X className="h-4 w-4" />
-                            </ActionIcon>
                             <ActionIcon
                               variant="filled"
                               size={36}
@@ -168,50 +179,113 @@ export function CategoryManagerSheet({
                               onClick={() => void saveRename()}
                               disabled={
                                 loading ||
-                                !editValue.trim() ||
-                                editValue.trim() === category ||
-                                editValue.trim().length > 50
+                                !trimmedEditValue ||
+                                trimmedEditValue === category ||
+                                trimmedEditValue.length > 50
                               }
-                              className="h-9 w-9 rounded-lg"
+                              className="h-9 w-9 shrink-0 rounded-lg"
                               aria-label="保存"
+                              title="保存"
                             >
-                              <Check className="h-4 w-4" />
+                              <Check className="h-4 w-4" strokeWidth={1.8} />
                             </ActionIcon>
-                          </>
-                        ) : (
-                          <>
                             <ActionIcon
-                              variant="default"
+                              variant="subtle"
+                              color="gray"
                               size={36}
+                              radius="md"
+                              onClick={cancelEdit}
+                              className="dialog-close-btn h-9 w-9 shrink-0"
+                              aria-label="取消"
+                              title="取消"
+                            >
+                              <X className="h-4 w-4" />
+                            </ActionIcon>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 px-0.5 text-[11px] text-muted-foreground">
+                            <span
+                              className={cn('truncate', willMerge && 'font-medium text-primary')}
+                            >
+                              {willMerge
+                                ? `保存后将与已有分类「${trimmedEditValue}」合并`
+                                : `正在重命名「${category}」· Enter 保存`}
+                            </span>
+                            <span className="shrink-0 font-mono tabular-nums text-muted-foreground/75">
+                              {editValue.length}/50
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/75 bg-card text-muted-foreground transition-colors group-hover:border-primary/25 group-hover:text-primary">
+                            <Tag className="h-3.5 w-3.5" strokeWidth={1.6} />
+                          </div>
+
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <span
+                              className="min-w-0 truncate text-sm font-medium text-foreground"
+                              title={category}
+                            >
+                              {category}
+                            </span>
+                            <span className="shrink-0 rounded-full border border-border/75 bg-card px-2 py-0.5 font-mono text-[11px] font-medium leading-4 tabular-nums text-muted-foreground">
+                              {count} 本
+                            </span>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              size={34}
                               radius="md"
                               onClick={() => startEdit(category)}
                               disabled={loading}
-                              className="h-9 w-9 rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className="h-9 w-9 text-muted-foreground hover:bg-card hover:text-foreground sm:h-8 sm:w-8"
                               aria-label={`重命名 ${category}`}
+                              title={`重命名 ${category}`}
                             >
-                              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                              <Pencil className="h-3.5 w-3.5" strokeWidth={1.6} />
                             </ActionIcon>
                             <ActionIcon
                               variant="subtle"
                               color="red"
-                              size={36}
+                              size={34}
                               radius="md"
                               onClick={() => setDeleteConfirmCategory(category)}
                               disabled={loading}
-                              className="h-9 w-9 rounded-lg border border-destructive/20 text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                              className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-8 sm:w-8"
                               aria-label={`删除 ${category}`}
+                              title={`删除 ${category}`}
                             >
-                              <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />
                             </ActionIcon>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                          </div>
+                        </div>
+                      )}
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
           </div>
+
+          {normalizedCategories.length > 0 && (
+            <div className="app-dialog-footer flex shrink-0 items-center justify-between gap-3 px-5 py-3 sm:px-6">
+              <p className="text-xs leading-5 text-muted-foreground">
+                删除分类不会删除图书
+              </p>
+              <Button
+                type="button"
+                variant="default"
+                size="xs"
+                onClick={() => handleOpenChange(false)}
+                className="h-8 shrink-0 rounded-lg px-3.5 text-xs font-medium"
+              >
+                完成
+              </Button>
+            </div>
+          )}
         </Modal.Content>
       </Modal.Root>
 

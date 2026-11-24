@@ -559,6 +559,13 @@
     appearance: none;
   }
 
+  .reader-search-mark {
+    border-radius: 0.3rem;
+    background: color-mix(in srgb, var(--reader-panel-accent) 18%, transparent);
+    padding-inline: 0.125rem;
+    color: inherit;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     .reader-panel-icon:enabled:active,
     .reader-panel-action:enabled:active,

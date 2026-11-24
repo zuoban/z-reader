@@ -89,6 +89,7 @@ export function ReaderTOCSheet({
   const [searchQuery, setSearchQuery] = useState("");
   const [prevOpen, setPrevOpen] = useState(open);
   const pendingLocateFrameRef = useRef<number | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -124,6 +125,11 @@ export function ReaderTOCSheet({
     }
     setSearchQuery("");
     onOpenChange(false);
+  }
+
+  function handleClearSearch() {
+    setSearchQuery("");
+    searchInputRef.current?.focus();
   }
 
   function handleLocateCurrent() {
@@ -211,6 +217,7 @@ export function ReaderTOCSheet({
                     <span
                       className="text-xs font-medium tabular-nums"
                       style={{ color: surface.muted }}
+                      aria-live="polite"
                     >
                       {normalizedQuery
                         ? `${visibleCount} / ${totalCount}`
@@ -257,7 +264,7 @@ export function ReaderTOCSheet({
                   }
                   className="reader-panel-icon"
                 >
-                  <LocateFixed className="h-4 w-4" strokeWidth={1.6} />
+                  <LocateFixed className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
                 </ActionIcon>
                 <ActionIcon
                   variant="subtle"
@@ -268,7 +275,7 @@ export function ReaderTOCSheet({
                   aria-label="关闭目录"
                   className="reader-panel-icon"
                 >
-                  <X className="h-4 w-4" strokeWidth={1.6} />
+                  <X className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
                 </ActionIcon>
               </div>
             </div>
@@ -281,6 +288,7 @@ export function ReaderTOCSheet({
                   aria-hidden="true"
                 />
                 <input
+                  ref={searchInputRef}
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.currentTarget.value)}
@@ -290,12 +298,12 @@ export function ReaderTOCSheet({
                 {searchQuery ? (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery("")}
+                    onClick={handleClearSearch}
                     aria-label="清空章节搜索"
                     title="清空"
                     className="reader-panel-icon !size-7"
                   >
-                    <X className="h-3.5 w-3.5" strokeWidth={1.6} />
+                    <X className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
                   </button>
                 ) : null}
               </div>
@@ -315,17 +323,22 @@ export function ReaderTOCSheet({
                     }}
                     currentChapter={currentChapter}
                     currentChapterHref={currentChapterHref}
+                    searchQuery={normalizedQuery}
                     uiScheme={uiScheme}
                   />
                 ))
               ) : normalizedQuery ? (
                 <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                  <Search
-                    className="mb-3 h-5 w-5"
-                    style={{ color: surface.muted }}
-                    strokeWidth={1.5}
-                    aria-hidden="true"
-                  />
+                  <div
+                    className="mb-3 flex size-10 items-center justify-center rounded-xl border"
+                    style={{
+                      borderColor: surface.hairline,
+                      background: "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
+                      color: surface.muted,
+                    }}
+                  >
+                    <Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />
+                  </div>
                   <p
                     className="text-sm font-medium tracking-tight"
                     style={{ color: surface.fg }}
@@ -340,24 +353,26 @@ export function ReaderTOCSheet({
                   </p>
                   <button
                     type="button"
-                    onClick={() => setSearchQuery("")}
+                    onClick={handleClearSearch}
                     className="reader-panel-action mt-4 px-3.5 text-xs"
                   >
                     清空筛选
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
                   <div
-                    className="mb-4 flex size-8 items-center justify-center"
+                    className="mb-3 flex size-10 items-center justify-center rounded-xl border"
                     style={{
+                      borderColor: surface.hairline,
+                      background: "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
                       color: surface.fg,
                     }}
                   >
-                    <List className="h-5 w-5" strokeWidth={1.75} />
+                    <List className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />
                   </div>
                   <p
-                    className="text-sm font-semibold tracking-tight"
+                    className="text-sm font-medium tracking-tight"
                     style={{ color: surface.fg }}
                   >
                     未检测到目录结构

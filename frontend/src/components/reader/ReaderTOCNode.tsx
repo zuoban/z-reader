@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { type ReactNode } from "react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
@@ -12,7 +12,40 @@ interface ReaderTOCNodeProps {
   depth?: number;
   currentChapter: string;
   currentChapterHref: string;
+  searchQuery?: string;
   uiScheme: ThemeColors;
+}
+
+function renderHighlightedLabel(label: string, query?: string): ReactNode {
+  const normalizedQuery = query?.trim().toLowerCase();
+  if (!normalizedQuery) return label;
+
+  const normalizedLabel = label.toLowerCase();
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = normalizedLabel.indexOf(normalizedQuery);
+
+  while (matchIndex !== -1) {
+    if (matchIndex > cursor) {
+      parts.push(label.slice(cursor, matchIndex));
+    }
+
+    const matchEnd = matchIndex + normalizedQuery.length;
+    parts.push(
+      <mark key={`${matchIndex}-${matchEnd}`} className="reader-search-mark">
+        {label.slice(matchIndex, matchEnd)}
+      </mark>,
+    );
+
+    cursor = matchEnd;
+    matchIndex = normalizedLabel.indexOf(normalizedQuery, cursor);
+  }
+
+  if (cursor < label.length) {
+    parts.push(label.slice(cursor));
+  }
+
+  return parts;
 }
 
 function ReaderTOCNode({
@@ -21,6 +54,7 @@ function ReaderTOCNode({
   depth = 0,
   currentChapter,
   currentChapterHref,
+  searchQuery,
   uiScheme,
 }: ReaderTOCNodeProps) {
   const isCurrentChapter = currentChapterHref
@@ -49,8 +83,9 @@ function ReaderTOCNode({
             "min-w-0 flex-1 truncate text-sm leading-6",
             isCurrentChapter && "font-semibold",
           )}
+          title={item.label}
         >
-          {item.label}
+          {renderHighlightedLabel(item.label, searchQuery)}
         </span>
         {isCurrentChapter && (
           <span
@@ -74,6 +109,7 @@ function ReaderTOCNode({
               depth={depth + 1}
               currentChapter={currentChapter}
               currentChapterHref={currentChapterHref}
+              searchQuery={searchQuery}
               uiScheme={uiScheme}
             />
           ))}
@@ -91,6 +127,7 @@ export const MemoizedReaderTOCNode = React.memo(
       prevProps.depth === nextProps.depth &&
       prevProps.currentChapter === nextProps.currentChapter &&
       prevProps.currentChapterHref === nextProps.currentChapterHref &&
+      prevProps.searchQuery === nextProps.searchQuery &&
       prevProps.uiScheme.fg === nextProps.uiScheme.fg &&
       prevProps.uiScheme.link === nextProps.uiScheme.link &&
       prevProps.uiScheme.buttonText === nextProps.uiScheme.buttonText &&

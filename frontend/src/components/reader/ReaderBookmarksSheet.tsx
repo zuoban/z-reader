@@ -1,8 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { ActionIcon, Button, Drawer } from "@mantine/core";
-import { Bookmark, BookmarkPlus, Trash2, X } from "lucide-react";
+import { Bookmark, BookmarkPlus, Loader2, Trash2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
@@ -92,13 +92,17 @@ export function ReaderBookmarksSheet({
 }: ReaderBookmarksSheetProps) {
   const surface = getModernReaderSurface(uiScheme);
   const panelThemeVars = getReaderPanelThemeVars(uiScheme);
-  const sortedBookmarks = [...bookmarks].sort((left, right) => {
-    const leftTime = new Date(left.created_at).getTime();
-    const rightTime = new Date(right.created_at).getTime();
+  const sortedBookmarks = useMemo(
+    () =>
+      [...bookmarks].sort((left, right) => {
+        const leftTime = new Date(left.created_at).getTime();
+        const rightTime = new Date(right.created_at).getTime();
 
-    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
-    return rightTime - leftTime;
-  });
+        if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
+        return rightTime - leftTime;
+      }),
+    [bookmarks],
+  );
 
   return (
     <>
@@ -179,12 +183,21 @@ export function ReaderBookmarksSheet({
                   type="button"
                   onClick={onCreate}
                   disabled={!canCreate || isSaving}
+                  aria-busy={isSaving || undefined}
                   title={canCreate ? "添加当前位置为书签" : "当前位置尚未就绪"}
                   aria-label="添加当前书签"
                   className="reader-panel-action"
                 >
-                  <BookmarkPlus className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-                  <span>{isSaving ? "保存中" : "添加"}</span>
+                  {isSaving ? (
+                    <Loader2
+                      className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <BookmarkPlus className="h-4 w-4 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                  )}
+                  <span>{isSaving ? "保存中…" : "添加"}</span>
                 </button>
                 <ActionIcon
                   variant="subtle"
@@ -195,7 +208,7 @@ export function ReaderBookmarksSheet({
                   aria-label="关闭书签"
                   title="关闭"
                 >
-                  <X className="h-4 w-4" strokeWidth={1.6} />
+                  <X className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
                 </ActionIcon>
               </div>
             </div>
@@ -222,6 +235,7 @@ export function ReaderBookmarksSheet({
                       <div
                         className="truncate text-sm font-medium leading-6"
                         style={{ color: surface.fg }}
+                        title={bookmark.chapter || "未识别章节"}
                       >
                         {bookmark.chapter || "未识别章节"}
                       </div>
@@ -244,7 +258,10 @@ export function ReaderBookmarksSheet({
                         >
                           {formatPercent(bookmark.percentage)}
                         </span>
-                        <span className="h-1 w-1 rounded-full bg-current opacity-30" />
+                        <span
+                          aria-hidden="true"
+                          className="h-1 w-1 rounded-full bg-current opacity-30"
+                        />
                         <span>{formatDate(bookmark.created_at)}</span>
                       </div>
                     </button>
@@ -261,20 +278,21 @@ export function ReaderBookmarksSheet({
                       aria-label={`删除书签：${bookmark.chapter || "未识别章节"}`}
                       className="reader-panel-danger opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                     >
-                      <Trash2 className="h-4 w-4" strokeWidth={1.6} />
+                      <Trash2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
                     </ActionIcon>
                   </div>
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
                   <div
-                    className="mb-3 flex size-9 items-center justify-center rounded-xl"
+                    className="mb-3 flex size-10 items-center justify-center rounded-xl border"
                     style={{
-                      background: "color-mix(in srgb, var(--reader-panel-hover) 72%, transparent)",
+                      borderColor: surface.hairline,
+                      background: "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
                       color: surface.fg,
                     }}
                   >
-                    <Bookmark className="h-4.5 w-4.5" strokeWidth={1.6} />
+                    <Bookmark className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />
                   </div>
                   <p
                     className="text-sm font-medium tracking-tight"
@@ -292,10 +310,19 @@ export function ReaderBookmarksSheet({
                     type="button"
                     onClick={onCreate}
                     disabled={!canCreate || isSaving}
+                    aria-busy={isSaving || undefined}
                     className="reader-panel-action mt-4 px-3.5 text-xs"
                   >
-                    <BookmarkPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
-                    <span>{isSaving ? "保存中" : "添加当前位置"}</span>
+                    {isSaving ? (
+                      <Loader2
+                        className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                        strokeWidth={1.6}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <BookmarkPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                    )}
+                    <span>{isSaving ? "保存中…" : "添加当前位置"}</span>
                   </button>
                 </div>
               )}

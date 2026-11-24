@@ -348,13 +348,13 @@ export const api = {
     return fetchApi<BookPage>(`/api/books/search?${params.toString()}`, { signal: options.signal });
   },
 
-  getBooksStatus: async (bookIds: string[]): Promise<Book[]> => {
+  getBooksStatus: async (bookIds: string[], signal?: AbortSignal): Promise<Book[]> => {
     const books: Book[] = [];
     for (let offset = 0; offset < bookIds.length; offset += BOOK_STATUS_BATCH_SIZE) {
       const params = new URLSearchParams({
         book_ids: bookIds.slice(offset, offset + BOOK_STATUS_BATCH_SIZE).join(','),
       });
-      const result = await fetchApi<{ books: Book[] }>(`/api/books/status?${params}`);
+      const result = await fetchApi<{ books: Book[] }>(`/api/books/status?${params}`, { signal });
       books.push(...(result.books ?? []));
     }
     return books;

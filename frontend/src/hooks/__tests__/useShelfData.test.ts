@@ -58,6 +58,7 @@ describe('useShelfData', () => {
   });
 
   afterEach(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible' });
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -77,6 +78,81 @@ describe('useShelfData', () => {
     expect(result.current.books).toHaveLength(1);
     expect(result.current.books[0].title).toBe('Test Book');
     expect(api.listBooks).toHaveBeenCalled();
+  });
+
+  it('pauses processing polls in the background and refreshes once on return', async () => {
+    const pendingBook = mockBook({ processing_state: 'pending' });
+    const firstPoll = deferred<Book[]>();
+    vi.mocked(api.listBooks).mockResolvedValue([pendingBook]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    const getStatus = vi.mocked(api.getBooksStatus)
+      .mockReturnValueOnce(firstPoll.promise)
+      .mockResolvedValueOnce([{ ...pendingBook, processing_state: 'ready' }]);
+    const setTimeout = vi.spyOn(window, 'setTimeout');
+    const setVisibility = (state: DocumentVisibilityState) => {
+      Object.defineProperty(document, 'visibilityState', { value: state });
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toEqual([pendingBook]));
+
+    setTimeout.mockClear();
+    act(() => setVisibility('hidden'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_500); });
+    expect(getStatus).not.toHaveBeenCalled();
+    expect(setTimeout).not.toHaveBeenCalledWith(expect.any(Function), 1_500);
+
+    act(() => setVisibility('visible'));
+    expect(getStatus).toHaveBeenCalledExactlyOnceWith([pendingBook.id], expect.any(AbortSignal));
+
+    act(() => {
+      setVisibility('hidden');
+      setVisibility('visible');
+    });
+    expect(getStatus).toHaveBeenCalledTimes(1);
+
+    act(() => setVisibility('hidden'));
+    await act(async () => { firstPoll.resolve([pendingBook]); });
+    expect(setTimeout).not.toHaveBeenCalledWith(expect.any(Function), 1_500);
+
+    await act(async () => setVisibility('visible'));
+    expect(result.current.books[0].processing_state).toBe('ready');
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_500); });
+    expect(getStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels processing polls when pending books change or the shelf unmounts', async () => {
+    const shelvedBook = mockBook({ processing_state: 'pending' });
+    const searchBook = mockBook({ id: 'search-book', processing_state: 'pending' });
+    const firstPoll = deferred<Book[]>();
+    const secondPoll = deferred<Book[]>();
+    vi.mocked(api.listBooks).mockResolvedValue([shelvedBook]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    vi.mocked(api.searchBooks).mockResolvedValue({ books: [searchBook] });
+    const getStatus = vi.mocked(api.getBooksStatus)
+      .mockReturnValueOnce(firstPoll.promise)
+      .mockReturnValueOnce(secondPoll.promise);
+
+    const { result, unmount } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toEqual([shelvedBook]));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenCalledTimes(1);
+    const firstSignal = getStatus.mock.calls[0][1];
+    expect(firstSignal?.aborted).toBe(false);
+
+    act(() => result.current.setSearchQuery('search book'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(firstSignal?.aborted).toBe(true);
+
+    await act(async () => { firstPoll.resolve([{ ...shelvedBook, processing_state: 'ready' }]); });
+    expect(result.current.books).toEqual([shelvedBook]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenLastCalledWith([shelvedBook.id, searchBook.id], expect.any(AbortSignal));
+
+    unmount();
+    expect(getStatus.mock.lastCall?.[1]?.aborted).toBe(true);
+    secondPoll.resolve([]);
   });
 
   it('shows the first page while progress and summary are still pending', async () => {

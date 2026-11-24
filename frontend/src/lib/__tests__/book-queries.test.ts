@@ -23,7 +23,10 @@ it('sends category, uncategorized and cursor filters to the server', async () =>
   });
 });
 
-it('cancels an in-flight shelf query using the caller signal', async () => {
+it.each([
+  ['page', (signal: AbortSignal) => api.listBooksPage(undefined, 50, 'title', { signal })],
+  ['status', (signal: AbortSignal) => api.getBooksStatus(['book-1'], signal)],
+] as const)('cancels an in-flight shelf %s query using the caller signal', async (_name, query) => {
   let requestSignal: AbortSignal | undefined;
   vi.stubGlobal('fetch', vi.fn((_url, options: RequestInit) => {
     requestSignal = options.signal ?? undefined;
@@ -31,7 +34,7 @@ it('cancels an in-flight shelf query using the caller signal', async () => {
       () => reject(new DOMException('Cancelled', 'AbortError')), { once: true }));
   }));
   const controller = new AbortController();
-  const request = api.listBooksPage(undefined, 50, 'title', { signal: controller.signal });
+  const request = query(controller.signal);
   controller.abort();
   await expect(request).rejects.toThrow();
   expect(requestSignal?.aborted).toBe(true);

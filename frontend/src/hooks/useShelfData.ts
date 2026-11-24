@@ -340,30 +340,54 @@ export function useShelfData(isAuthenticated: boolean) {
   useEffect(() => {
     if (!isAuthenticated || !pendingBookIDs) return;
 
-    let stopped = false;
+    const ids = pendingBookIDs.split(',').filter(Boolean);
+    const controller = new AbortController();
+    const { signal } = controller;
+    let refreshing = false;
     let timeoutId: number | undefined;
     const refreshProcessedBooks = async () => {
-      const ids = pendingBookIDs.split(',').filter(Boolean);
+      timeoutId = undefined;
+      if (signal.aborted || refreshing || document.visibilityState === 'hidden') return;
+
+      refreshing = true;
       try {
-        if (document.visibilityState === 'hidden') return;
-        const updatedBooks = await api.getBooksStatus(ids);
-        if (stopped) return;
+        const updatedBooks = await api.getBooksStatus(ids, signal);
+        if (signal.aborted) return;
         const updatedByID = new Map(updatedBooks.map((book) => [book.id, book]));
         setBooks((current) => current.map((book) => updatedByID.get(book.id) ?? book));
         setSearchResults((current) => current?.map((book) => updatedByID.get(book.id) ?? book) ?? null);
       } catch {
         // Keep the current shelf usable and retry while the jobs are pending.
       } finally {
-        if (!stopped) {
-          timeoutId = window.setTimeout(refreshProcessedBooks, BOOK_PROCESSING_POLL_MS);
-        }
+        refreshing = false;
+        schedulePoll();
       }
     };
 
-    timeoutId = window.setTimeout(refreshProcessedBooks, BOOK_PROCESSING_POLL_MS);
+    const schedulePoll = () => {
+      if (!signal.aborted && document.visibilityState !== 'hidden') {
+        timeoutId = window.setTimeout(refreshProcessedBooks, BOOK_PROCESSING_POLL_MS);
+      }
+    };
+    const cancelScheduledPoll = () => {
+      if (timeoutId === undefined) return;
+      window.clearTimeout(timeoutId);
+      timeoutId = undefined;
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        cancelScheduledPoll();
+      } else if (timeoutId === undefined) {
+        void refreshProcessedBooks();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    schedulePoll();
     return () => {
-      stopped = true;
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      cancelScheduledPoll();
+      controller.abort();
     };
   }, [isAuthenticated, pendingBookIDs]);
 

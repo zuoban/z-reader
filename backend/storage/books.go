@@ -178,8 +178,11 @@ func bookSearchGrams(normalized string) []string {
 	if pairs < 1 {
 		return nil
 	}
+	return collectBookSearchGrams(normalized, pairs, make(map[string]struct{}, pairs))
+}
+
+func collectBookSearchGrams(normalized string, pairs int, seen map[string]struct{}) []string {
 	grams := make([]string, 0, pairs)
-	seen := make(map[string]struct{}, pairs)
 	// Normalization produces valid UTF-8, so each gram can share the input bytes.
 	start := 0
 	_, middle := utf8.DecodeRuneInString(normalized)
@@ -362,15 +365,15 @@ func removeBookFromSearchIndex(tx *bbolt.Tx, book *models.Book) error {
 }
 
 func replaceBookSearchGrams(tx *bbolt.Tx, book *models.Book, oldText, newText string) error {
-	grams := bookSearchGrams(newText)
-	if oldText != newText {
-		keep := make(map[string]struct{}, len(grams))
-		for _, gram := range grams {
-			keep[gram] = struct{}{}
-		}
-		if err := removeBookSearchGrams(tx, book, oldText, keep); err != nil {
-			return err
-		}
+	if oldText == newText {
+		return addBookToSearchGramIndex(tx, book, bookSearchGrams(newText))
+	}
+	// Reuse the deduplication set to identify old grams that should remain.
+	pairs := max(0, utf8.RuneCountInString(newText)-1)
+	keep := make(map[string]struct{}, pairs)
+	grams := collectBookSearchGrams(newText, pairs, keep)
+	if err := removeBookSearchGrams(tx, book, oldText, keep); err != nil {
+		return err
 	}
 	// Check all desired grams so a missing posting is still restored.
 	return addBookToSearchGramIndex(tx, book, grams)

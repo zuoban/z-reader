@@ -283,6 +283,14 @@ func indexEPUBEntries(reader *zip.Reader) func(string) *zip.File {
 // Canonicalize the same Unicode case-fold groups as strings.EqualFold.
 func foldEPUBName(name string) string {
 	return strings.Map(func(char rune) rune {
+		// ASCII letters have the uppercase ASCII rune as their group minimum,
+		// including K and S, whose fold groups also contain non-ASCII runes.
+		if char <= unicode.MaxASCII {
+			if 'a' <= char && char <= 'z' {
+				return char - ('a' - 'A')
+			}
+			return char
+		}
 		canonical := char
 		for next := unicode.SimpleFold(char); next != char; next = unicode.SimpleFold(next) {
 			canonical = min(canonical, next)

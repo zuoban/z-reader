@@ -138,6 +138,25 @@ func TestExtractEPUBCoverPrefersEPUB3CoverImageProperty(t *testing.T) {
 	}
 }
 
+func TestIndexEPUBEntriesMatchesMixedCaseAndUnicodeNames(t *testing.T) {
+	reader := buildTestZipReader(t, []struct {
+		name string
+		data []byte
+	}{
+		{name: "OPS/Kelvin-Sigma-Σ.png"},
+		{name: "OPS/kelvin-sigma-σ.png"},
+	})
+	lookup := indexEPUBEntries(reader)
+
+	// Non-exact matches use the same fold group and return the earliest entry.
+	if got := lookup("ops/Kelvin-ſigma-ς.PNG"); got != reader.File[0] {
+		t.Fatalf("folded match = %v, want first entry", got)
+	}
+	if got := lookup("OPS/kelvin-sigma-σ.png"); got != reader.File[1] {
+		t.Fatalf("exact match = %v, want second entry", got)
+	}
+}
+
 func TestExtractEPUBCoverUsesEPUB2MetaCover(t *testing.T) {
 	frontJPEG := encodeTestJPEG(t, color.RGBA{R: 30, G: 180, B: 90, A: 255})
 

@@ -191,7 +191,9 @@ describe('VoiceSelector preview lifecycle', () => {
         bubbles: true,
         cancelable: true,
       });
-      trigger.dispatchEvent(escapeEvent);
+      act(() => {
+        trigger.dispatchEvent(escapeEvent);
+      });
       await flush();
 
       expect(escapeEvent.defaultPrevented).toBe(true);
@@ -298,5 +300,46 @@ describe('VoiceSelector preview lifecycle', () => {
       />
     );
     expect(screen.getByText(/暂无可用中文语音/)).toBeVisible();
+  });
+
+  it('distinguishes preview loading from playing and omits empty gender parentheses', async () => {
+    const request = deferred<Response>();
+    vi.mocked(fetch).mockReturnValueOnce(request.promise);
+    renderSelector();
+
+    const previewButton = screen.getByRole('button', { name: '试听当前语音' });
+    expect(previewButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(previewButton);
+    const loadingButton = screen.getByRole('button', { name: '停止语音试听' });
+    expect(loadingButton).toHaveAttribute('aria-busy', 'true');
+    expect(loadingButton).toHaveAttribute('aria-pressed', 'true');
+    expect(loadingButton).toHaveAttribute('title', '取消语音试听');
+
+    request.resolve(audioResponse());
+    await flush();
+    expect(loadingButton).not.toHaveAttribute('aria-busy');
+    expect(loadingButton).toHaveAttribute('title', '停止语音试听');
+
+    render(
+      <VoiceSelector
+        settings={{ voiceName: 'zh-CN-CustomNeural', rate: 0, highlightMode: 'word' }}
+        voices={[
+          {
+            Name: 'zh-CN-CustomNeural',
+            DisplayName: 'Custom',
+            ShortName: 'zh-CN-CustomNeural',
+            LocalName: '自定义音色',
+            Locale: 'zh-CN',
+            Gender: '',
+          },
+        ]}
+        onUpdateSettings={vi.fn()}
+        uiScheme={PRESET_STYLES.light}
+      />
+    );
+    const customCombos = screen.getAllByRole('combobox', { name: '语音' });
+    expect(customCombos[customCombos.length - 1]).toHaveTextContent('自定义音色');
+    expect(customCombos[customCombos.length - 1]).not.toHaveTextContent('()');
   });
 });

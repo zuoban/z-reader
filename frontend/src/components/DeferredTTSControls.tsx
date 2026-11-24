@@ -1,45 +1,82 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { ActionIcon, UnstyledButton } from '@mantine/core';
-import { Volume2 } from 'lucide-react';
+import { Loader2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TTSControlsProps } from '@/components/TTSControls';
-
-const TTSControls = dynamic(() => import('@/components/TTSControls')
-  .then((module) => module.TTSControls));
 
 export function DeferredTTSControls({
   onRequest,
   ...props
 }: TTSControlsProps & { onRequest: () => void }) {
-  const [requested, setRequested] = useState(false);
-  if (requested) return <TTSControls {...props} initialExpanded />;
+  const [LoadedTTSControls, setLoadedTTSControls] =
+    useState<ComponentType<TTSControlsProps> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  if (LoadedTTSControls) {
+    return <LoadedTTSControls {...props} initialExpanded />;
+  }
 
   const isActive = props.state !== 'stopped';
-  const label = isActive ? '朗读控制（正在播放）' : '朗读控制';
+  const label = isLoading
+    ? '正在加载朗读控制'
+    : isActive
+      ? '朗读控制（正在播放）'
+      : '朗读控制';
+
   const handleClick = () => {
+    if (isLoading) return;
     onRequest();
-    setRequested(true);
+    setIsLoading(true);
+    void import('@/components/TTSControls')
+      .then((module) => {
+        if (!mountedRef.current) return;
+        setLoadedTTSControls(() => module.TTSControls);
+      })
+      .catch(() => {
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
+      });
   };
 
   if (props.triggerContent) {
     return (
       <UnstyledButton
         type="button"
+        disabled={isLoading}
         data-reader-interactive="true"
         data-reader-tts-trigger="true"
         data-reader-tts-active={isActive ? 'true' : undefined}
-        title={label}
+        title={isLoading ? '正在加载朗读控制…' : label}
         aria-label={label}
+        aria-busy={isLoading || undefined}
         aria-expanded={false}
         aria-haspopup="dialog"
         className={props.triggerClassName}
         style={props.triggerStyle}
         onClick={handleClick}
       >
-        {props.triggerContent}
+        {isLoading ? (
+          <>
+            <Loader2
+              className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            <span>加载中…</span>
+          </>
+        ) : (
+          props.triggerContent
+        )}
       </UnstyledButton>
     );
   }
@@ -50,18 +87,27 @@ export function DeferredTTSControls({
       variant="subtle"
       size={44}
       radius="md"
+      disabled={isLoading}
       data-reader-interactive="true"
       data-reader-tts-trigger="true"
       data-reader-tts-active={isActive ? 'true' : undefined}
-      title={label}
+      title={isLoading ? '正在加载朗读控制…' : label}
       aria-label={label}
+      aria-busy={isLoading || undefined}
       aria-expanded={false}
       aria-haspopup="dialog"
       className={cn('min-h-0 min-w-0', props.triggerClassName)}
       style={props.triggerStyle}
       onClick={handleClick}
     >
-      <Volume2 className="relative z-10 h-4 w-4" />
+      {isLoading ? (
+        <Loader2
+          className="relative z-10 h-4 w-4 animate-spin motion-reduce:animate-none"
+          aria-hidden="true"
+        />
+      ) : (
+        <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
+      )}
     </ActionIcon>
   );
 }

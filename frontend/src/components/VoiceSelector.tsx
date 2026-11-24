@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { Combobox, InputBase, useCombobox } from '@mantine/core';
-import { Check, ChevronDown, RotateCw, Square, Volume2 } from 'lucide-react';
+import { Check, ChevronDown, Loader2, RotateCw, Square, Volume2 } from 'lucide-react';
 import { buildAzureSSML } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { handleAuthResponse } from '@/lib/api';
@@ -48,7 +48,7 @@ function ReaderSelect({
   onDropdownOpenChange,
   panelThemeVars,
   overlayContainer,
-  dropdownMaxWidth = 'max-w-[300px]',
+  dropdownMaxWidth = 'max-w-[min(300px,calc(100vw-2rem))]',
 }: ReaderSelectProps) {
   const onDropdownOpenChangeRef = useRef(onDropdownOpenChange);
   useEffect(() => {
@@ -58,6 +58,9 @@ function ReaderSelect({
   const combobox = useCombobox({
     onOpenedChange: (opened) => {
       onDropdownOpenChangeRef.current?.(opened);
+    },
+    onDropdownOpen: () => {
+      combobox.updateSelectedOptionIndex('active');
     },
   });
   const { dropdownOpened, closeDropdown } = combobox;
@@ -235,7 +238,8 @@ export function VoiceSelector({
   uiScheme,
   overlayContainer,
 }: VoiceSelectorProps) {
-  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewPhase, setPreviewPhase] = useState<'idle' | 'loading' | 'playing'>('idle');
+  const isPreviewing = previewPhase !== 'idle';
   const [previewError, setPreviewError] = useState<string | null>(null);
   const previewRef = useRef<PreviewSession | null>(null);
   const mountedRef = useRef(true);
@@ -310,7 +314,7 @@ export function VoiceSelector({
     }
     if (previewRef.current === session) {
       previewRef.current = null;
-      if (mountedRef.current) setIsPreviewing(false);
+      if (mountedRef.current) setPreviewPhase('idle');
     }
     session.onEnd?.();
   }, []);
@@ -342,7 +346,7 @@ export function VoiceSelector({
       controller, timeoutId, audio: null, url: null, disposed: false, onEnd: onPreviewEnd,
     };
     previewRef.current = session;
-    setIsPreviewing(true);
+    setPreviewPhase('loading');
     setPreviewError(null);
     const isActive = () => previewRef.current === session && !session.disposed;
     controller.signal.addEventListener('abort', () => {
@@ -396,7 +400,13 @@ export function VoiceSelector({
 
       await audio.play();
       // A browser may settle play() after this session has already been cancelled.
-      if (!isActive()) audio.pause();
+      if (!isActive()) {
+        audio.pause();
+        return;
+      }
+      if (mountedRef.current) {
+        setPreviewPhase('playing');
+      }
     } catch {
       if (isActive()) {
         setPreviewError('语音试听失败，请重试。');
@@ -405,10 +415,13 @@ export function VoiceSelector({
     }
   }, [buildSSML, finishPreview, onPreviewStart, onPreviewEnd, stopPreview]);
 
-  const voiceOptions: ReaderSelectOption[] = zhVoices.map((voice) => ({
-    value: voice.ShortName || voice.Name,
-    label: `${voice.LocalName} (${GENDER_LABELS[voice.Gender] || ''})`,
-  }));
+  const voiceOptions: ReaderSelectOption[] = zhVoices.map((voice) => {
+    const genderLabel = GENDER_LABELS[voice.Gender];
+    return {
+      value: voice.ShortName || voice.Name,
+      label: genderLabel ? `${voice.LocalName} (${genderLabel})` : voice.LocalName,
+    };
+  });
 
   const styleOptions: ReaderSelectOption[] = [
     { value: '__clear__', label: '不指定', muted: true },
@@ -432,6 +445,7 @@ export function VoiceSelector({
               disabled={voicesLoading}
               aria-busy={voicesLoading || undefined}
               aria-label="重新加载语音"
+              title={voicesLoading ? '正在加载语音列表…' : '重新加载语音列表'}
               className="reader-panel-secondary px-2.5 text-xs"
             >
               <RotateCw
@@ -449,12 +463,26 @@ export function VoiceSelector({
             type="button"
             onClick={handlePreview}
             aria-label={isPreviewing ? '停止语音试听' : '试听当前语音'}
+            aria-pressed={isPreviewing}
+            aria-busy={previewPhase === 'loading' || undefined}
+            title={
+              previewPhase === 'loading'
+                ? '取消语音试听'
+                : isPreviewing
+                  ? '停止语音试听'
+                  : '试听当前语音'
+            }
             className={cn(
               isPreviewing ? 'reader-panel-action' : 'reader-panel-secondary',
               'px-2.5 text-xs',
             )}
           >
-            {isPreviewing ? (
+            {previewPhase === 'loading' ? (
+              <Loader2
+                aria-hidden="true"
+                className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+              />
+            ) : isPreviewing ? (
               <Square aria-hidden="true" className="h-3 w-3 fill-current" />
             ) : (
               <Volume2 aria-hidden="true" className="h-3.5 w-3.5" />
@@ -499,7 +527,7 @@ export function VoiceSelector({
             onDropdownOpenChange={handleVoiceDropdownOpenChange}
             panelThemeVars={panelThemeVars}
             overlayContainer={overlayContainer}
-            dropdownMaxWidth="max-w-[300px]"
+            dropdownMaxWidth="max-w-[min(300px,calc(100vw-2rem))]"
           />
         </div>
       )}
@@ -516,7 +544,7 @@ export function VoiceSelector({
             onDropdownOpenChange={handleStyleDropdownOpenChange}
             panelThemeVars={panelThemeVars}
             overlayContainer={overlayContainer}
-            dropdownMaxWidth="max-w-[260px]"
+            dropdownMaxWidth="max-w-[min(260px,calc(100vw-2rem))]"
           />
         </div>
       )}

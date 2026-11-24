@@ -142,7 +142,7 @@ export function useShelfData(isAuthenticated: boolean) {
     setLoadError(null);
     setProgressByBookId({});
     // Aggregate data enriches the shelf; it must never hold up the first page.
-    void api.getBookLibrarySummary().then((summary) => {
+    void api.getBookLibrarySummary(controller.signal).then((summary) => {
       if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted ||
         summaryGeneration !== summaryGenerationRef.current) return;
       setLibrarySummary({ ...summary, categories: summary.categories ?? {} });
@@ -158,7 +158,7 @@ export function useShelfData(isAuthenticated: boolean) {
       setIsLoadingBooks(false);
       const ids = (firstPage.books ?? []).map((book) => book.id);
       if (ids.length > 0) {
-        void api.listProgress({ bookIds: ids }).then((progressData) => {
+        void api.listProgress({ bookIds: ids, signal: controller.signal }).then((progressData) => {
           if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted) return;
           setProgressByBookId((current) => ({
             ...current,

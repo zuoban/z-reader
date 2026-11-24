@@ -181,6 +181,49 @@ describe('useShelfData', () => {
     expect(result.current.bookCounts.all).toBe(90);
   });
 
+  it('cancels first-page progress and summary when the shelf query changes', async () => {
+    const oldBook = mockBook({ id: 'old' });
+    const newBook = mockBook({ id: 'new' });
+    vi.mocked(api.listBooksPage)
+      .mockResolvedValueOnce({ books: [oldBook] })
+      .mockResolvedValueOnce({ books: [newBook] });
+    const oldProgress = deferred<Awaited<ReturnType<typeof api.listProgress>>>();
+    const oldSummary = deferred<Awaited<ReturnType<typeof api.getBookLibrarySummary>>>();
+    const progress = { book_id: 'new', user_id: 'user-1', cfi: '', percentage: 42, updated_at: '' };
+    const listProgress = vi.mocked(api.listProgress)
+      .mockReturnValueOnce(oldProgress.promise)
+      .mockResolvedValueOnce([progress]);
+    const getSummary = vi.mocked(api.getBookLibrarySummary)
+      .mockReturnValueOnce(oldSummary.promise)
+      .mockResolvedValueOnce({ total: 2, uncategorized: 0, categories: { 科幻: 2 } });
+
+    const { result, unmount } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toEqual([oldBook]));
+    const firstSignal = vi.mocked(api.listBooksPage).mock.calls[0][3]?.signal;
+    expect(firstSignal?.aborted).toBe(false);
+    expect(listProgress.mock.calls[0][0]?.signal).toBe(firstSignal);
+    expect(getSummary.mock.calls[0][0]).toBe(firstSignal);
+
+    act(() => result.current.setSortBy('title'));
+    expect(firstSignal?.aborted).toBe(true);
+    await waitFor(() => expect(result.current.progressByBookId).toEqual({ new: 42 }));
+    const currentSignal = vi.mocked(api.listBooksPage).mock.calls[1][3]?.signal;
+    expect(listProgress.mock.calls[1][0]?.signal).toBe(currentSignal);
+    expect(getSummary.mock.calls[1][0]).toBe(currentSignal);
+    expect(currentSignal?.aborted).toBe(false);
+
+    await act(async () => {
+      oldProgress.resolve([{ ...progress, book_id: 'old', percentage: 99 }]);
+      oldSummary.resolve({ total: 99, uncategorized: 99, categories: {} });
+    });
+    expect(result.current.books).toEqual([newBook]);
+    expect(result.current.progressByBookId).toEqual({ new: 42 });
+    expect(result.current.bookCounts.all).toBe(2);
+
+    unmount();
+    expect(currentSignal?.aborted).toBe(true);
+  });
+
   it('requests an unloaded category from the server with its own cursor', async () => {
     vi.mocked(api.listBooksPage)
       .mockResolvedValueOnce({ books: [mockBook({ id: 'other', category: '其他' })] })
@@ -246,7 +289,9 @@ describe('useShelfData', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(api.listBooksPage).toHaveBeenNthCalledWith(2, 'first', 50, 'recent_read',
       expect.objectContaining({ signal: expect.any(AbortSignal) }));
-    expect(api.listProgress).toHaveBeenNthCalledWith(1, { bookIds: ['first'] });
+    expect(api.listProgress).toHaveBeenNthCalledWith(1, {
+      bookIds: ['first'], signal: vi.mocked(api.listBooksPage).mock.calls[0][3]?.signal,
+    });
     expect(api.listProgress).toHaveBeenNthCalledWith(2, { bookIds: ['second'] });
   });
 
@@ -1008,26 +1053,6 @@ describe('useShelfData', () => {
 
     expect(result.current.books).toHaveLength(0);
     expect(result.current.loadError).toBe('Backend unavailable');
-  });
-
-  it('ignores progress from a previous sort and aborts its page request', async () => {
-    let resolveOld!: (value: Awaited<ReturnType<typeof api.listProgress>>) => void;
-    vi.mocked(api.listBooksPage)
-      .mockResolvedValueOnce({ books: [mockBook({ id: 'old' })] })
-      .mockResolvedValue({ books: [mockBook({ id: 'new' })] });
-    vi.mocked(api.listProgress)
-      .mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }))
-      .mockResolvedValue([]);
-    const { result } = renderHook(() => useShelfData(true));
-    await waitFor(() => expect(result.current.books[0]?.id).toBe('old'));
-    const oldSignal = vi.mocked(api.listBooksPage).mock.calls[0][3]?.signal;
-    act(() => result.current.setSortBy('title'));
-    await waitFor(() => expect(result.current.books[0]?.id).toBe('new'));
-    await act(async () => resolveOld([
-      { book_id: 'old', user_id: 'u', cfi: '', percentage: 90, updated_at: '' },
-    ]));
-    expect(oldSignal?.aborted).toBe(true);
-    expect(result.current.progressByBookId).toEqual({});
   });
 
   it('keeps a selected category when an incomplete page cannot prove its removal', async () => {

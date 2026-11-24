@@ -366,8 +366,8 @@ export const api = {
     method: 'PATCH', body: JSON.stringify({ from, to }),
   }),
 
-  getBookLibrarySummary: async (): Promise<BookLibrarySummary> => {
-    return fetchApi<BookLibrarySummary>('/api/books/summary');
+  getBookLibrarySummary: async (signal?: AbortSignal): Promise<BookLibrarySummary> => {
+    return fetchApi<BookLibrarySummary>('/api/books/summary', { signal });
   },
 
   getBook: async (id: string, signal?: AbortSignal): Promise<Book> => {

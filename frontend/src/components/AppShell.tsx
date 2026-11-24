@@ -48,16 +48,19 @@ export function BrandLogo({
   compact?: boolean;
 }) {
   return (
-    <div className={cn('inline-flex items-center gap-2 text-foreground', className)}>
+    <div className={cn('inline-flex items-center gap-2.5 text-foreground', className)}>
       <span
         aria-hidden="true"
-        className={cn('shrink-0 rounded-[25%] bg-cover', compact ? 'size-7' : 'size-8')}
+        className={cn(
+          'shrink-0 rounded-[23%] bg-cover bg-center shadow-[0_1px_3px_rgb(24_23_20/18%)]',
+          compact ? 'size-7' : 'size-8'
+        )}
         style={{ backgroundImage: 'url(/icons/icon.svg)' }}
       />
       <span
         className={cn(
-          'font-heading font-medium leading-none tracking-[-0.015em] text-foreground',
-          compact ? 'text-[17px]' : 'text-lg'
+          'font-heading font-semibold leading-none tracking-[-0.02em] text-foreground',
+          compact ? 'text-[17px]' : 'text-[19px]'
         )}
       >
         Z Reader

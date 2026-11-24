@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { writeFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,15 +10,20 @@ const rootDir = join(__dirname, '..');
 
 const svgPath = join(rootDir, 'public/icons/icon.svg');
 
-const generateIcon = async (size: number, outputPath: string) => {
-  await sharp(svgPath)
+const toFullBleedSvg = (svg: string) =>
+  svg
+    .replace(/rx="116"/g, 'rx="0"')
+    .replace(/\s*<rect x="4" y="4" width="504" height="504"[^>]*\/>/g, '');
+
+const generateIcon = async (source: Buffer, size: number, outputPath: string) => {
+  await sharp(source)
     .resize(size, size)
     .png()
     .toFile(outputPath);
 };
 
-const createIcoImage = async (size: number) => {
-  const { data } = await sharp(svgPath)
+const createIcoImage = async (source: Buffer, size: number) => {
+  const { data } = await sharp(source)
     .resize(size, size)
     .ensureAlpha()
     .raw()
@@ -52,8 +57,8 @@ const createIcoImage = async (size: number) => {
   return buffer;
 };
 
-const generateIco = async (sizes: number[], outputPath: string) => {
-  const images = await Promise.all(sizes.map(createIcoImage));
+const generateIco = async (source: Buffer, sizes: number[], outputPath: string) => {
+  const images = await Promise.all(sizes.map((size) => createIcoImage(source, size)));
   const directorySize = 6 + images.length * 16;
   const output = Buffer.alloc(directorySize + images.reduce((sum, image) => sum + image.length, 0));
 
@@ -84,10 +89,14 @@ const generateIco = async (sizes: number[], outputPath: string) => {
 
 async function main() {
   try {
-    await generateIcon(192, join(rootDir, 'public/icons/icon-192.png'));
-    await generateIcon(512, join(rootDir, 'public/icons/icon-512.png'));
-    await generateIco([16, 24, 32, 48], join(rootDir, 'public/favicon.ico'));
-    await generateIco([16, 32, 48], join(rootDir, 'src/app/favicon.ico'));
+    const svgText = await readFile(svgPath, 'utf8');
+    const squircleSvg = Buffer.from(svgText, 'utf8');
+    const fullBleedSvg = Buffer.from(toFullBleedSvg(svgText), 'utf8');
+
+    await generateIcon(fullBleedSvg, 192, join(rootDir, 'public/icons/icon-192.png'));
+    await generateIcon(fullBleedSvg, 512, join(rootDir, 'public/icons/icon-512.png'));
+    await generateIco(squircleSvg, [16, 24, 32, 48], join(rootDir, 'public/favicon.ico'));
+    await generateIco(squircleSvg, [16, 32, 48], join(rootDir, 'src/app/favicon.ico'));
     console.log('Icons generated successfully!');
   } catch (error) {
     console.error('Error generating icons:', error);

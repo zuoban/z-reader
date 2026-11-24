@@ -1,10 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
-  <svg x="34" y="36" width="148" height="148" viewBox="0 0 512 512">
-    <rect width="512" height="512" rx="120" fill="#8E4934"/>
-    <path fill="#F4EBDD" fill-rule="evenodd" d="M256 162C221 124 158 106 108 135Q92 144 92 161V366Q92 379 105 374C157 349 217 361 256 393C295 361 355 349 407 374Q420 379 420 366V161Q420 144 404 135C354 106 291 124 256 162ZM148 179H364L240 302H364V336H148L272 213H148Z"/>
+  <defs>
+    <clipPath id="wm-cover-clip">
+      <rect width="512" height="512" rx="116"/>
+    </clipPath>
+    <linearGradient id="wm-cover-bg" x1="56" y1="0" x2="480" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9B513A"/>
+      <stop offset="55%" stop-color="#8B4530"/>
+      <stop offset="100%" stop-color="#6F311F"/>
+    </linearGradient>
+    <linearGradient id="wm-spine-shade" x1="0" y1="0" x2="86" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#532113" stop-opacity="0.34"/>
+      <stop offset="82%" stop-color="#532113" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#451B0F" stop-opacity="0.38"/>
+    </linearGradient>
+    <linearGradient id="wm-bookmark-silk" x1="376" y1="0" x2="376" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E7B594"/>
+      <stop offset="100%" stop-color="#F6D5BC"/>
+    </linearGradient>
+  </defs>
+  <svg x="36" y="36" width="148" height="148" viewBox="0 0 512 512">
+    <g clip-path="url(#wm-cover-clip)">
+      <rect width="512" height="512" fill="url(#wm-cover-bg)"/>
+      <rect x="0" y="0" width="86" height="512" fill="url(#wm-spine-shade)"/>
+      <rect x="86" y="0" width="7" height="512" fill="#FFF6EA" fill-opacity="0.12"/>
+      <path fill="#451B0F" fill-opacity="0.24" d="M350 0 H412 V124 L381 101 L350 124 Z"/>
+      <path fill="url(#wm-bookmark-silk)" d="M346 0 H406 V118 L376 95 L346 118 Z"/>
+      <path fill="#FAF4EA" d="M180 154 H396 V181 L248 352 H334 C364 352 381 339 391 308 H406 L399 390 H170 V363 L318 192 H240 C209 192 192 205 182 234 H167 L180 154 Z"/>
+    </g>
+    <rect x="4" y="4" width="504" height="504" rx="112" fill="none" stroke="#FFF6EA" stroke-opacity="0.15" stroke-width="3"/>
   </svg>
-  <text x="220" y="105" font-family="Georgia, 'Times New Roman', serif" font-size="70" font-weight="600" letter-spacing="-2" fill="#1C1915">Z</text>
-  <text x="275" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="52" font-weight="750" letter-spacing="-2.2" fill="#1C1915">Reader</text>
-  <text x="224" y="146" font-family="PingFang SC, system-ui, sans-serif" font-size="16" font-weight="600" letter-spacing="4" fill="#6B6358">面向个人书架的开源阅读器</text>
-  <path d="M224 170H592" stroke="#DDD4C6" stroke-width="1.5"/>
+  <text x="220" y="108" font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-size="66" font-weight="600" letter-spacing="-1.5" fill="#1C1B19">Z Reader</text>
+  <text x="224" y="148" font-family="'Noto Serif SC', 'PingFang SC', system-ui, sans-serif" font-size="16" font-weight="500" letter-spacing="4" fill="#6B6860">面向个人书架的开源阅读器</text>
+  <path d="M224 170H596" stroke="#E6E4DE" stroke-width="1.5"/>
+  <path d="M224 170H284" stroke="#8E4934" stroke-width="2" stroke-linecap="round"/>
 </svg>

@@ -222,6 +222,42 @@ export default function ShelfPage() {
     });
   }
 
+  useEffect(() => {
+    if (
+      !selectionMode ||
+      batchDeleteOpen ||
+      batchCategoryOpen ||
+      categoryManagerOpen ||
+      offlineBooksOpen
+    ) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      setSelectionMode(false);
+      setSelectedBookIds(new Set());
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    selectionMode,
+    batchDeleteOpen,
+    batchCategoryOpen,
+    categoryManagerOpen,
+    offlineBooksOpen,
+  ]);
+
   const toggleBookSelection = useCallback((bookId: string) => {
     setSelectedBookIds((current) => {
       const next = new Set(current);
@@ -385,6 +421,12 @@ export default function ShelfPage() {
                   type="search"
                   value={searchQuery}
                   onChange={(event) => changeSearchQuery(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape' && searchQuery) {
+                      event.preventDefault();
+                      changeSearchQuery('');
+                    }
+                  }}
                   placeholder="搜索书名或作者"
                   aria-label="搜索书库"
                   leftSection={<Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />}
@@ -399,9 +441,10 @@ export default function ShelfPage() {
                         size="sm"
                         onClick={() => changeSearchQuery('')}
                         aria-label="清除搜索"
-                        className="size-9 min-h-0 min-w-0 rounded-lg text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
+                        title="清除搜索"
+                        className="size-9 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </ActionIcon>
                     ) : null
                   }
@@ -486,21 +529,6 @@ export default function ShelfPage() {
                 />
               }
             />
-            {isDraggingBookFile && (
-              <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center rounded-lg border-2 border-dashed border-primary/50 bg-background/95 text-center sm:flex">
-                <div className="px-8 py-6">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Upload className="h-6 w-6" />
-                  </div>
-                  <p className="mt-3 font-heading text-xl font-semibold tracking-[-0.02em]">
-                    松开以批量导入
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    支持 EPUB、MOBI、AZW3、PDF
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex min-w-0 flex-col gap-3">
@@ -578,31 +606,39 @@ export default function ShelfPage() {
                   </Button>
                 </div>
                 <div className="shrink-0 sm:hidden">
-                  <Menu position="bottom-end" offset={6} width={176} radius="md" shadow="md">
+                  <Menu
+                    position="bottom-end"
+                    offset={6}
+                    width={176}
+                    radius="lg"
+                    shadow="md"
+                    zIndex={60}
+                    withinPortal
+                  >
                     <Menu.Target>
                       <ActionIcon
                         variant={selectionMode ? 'filled' : 'default'}
                         size="md"
                         aria-label="更多书库操作"
                         className={cn(
-                          'flex h-11 w-11 min-h-0 min-w-0 items-center justify-center rounded-lg border border-border bg-card text-foreground',
+                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors',
                           selectionMode && 'border-primary bg-primary text-primary-foreground'
                         )}
                       >
-                        <MoreHorizontal className="h-5 w-5" />
+                        <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
                       </ActionIcon>
                     </Menu.Target>
-                    <Menu.Dropdown className="paper-menu w-44 rounded-xl p-1">
+                    <Menu.Dropdown className="paper-menu w-44 rounded-xl p-1.5">
                       <Menu.Item
-                        leftSection={<Settings2 className="h-4 w-4 text-muted-foreground" />}
-                        className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                        leftSection={<Settings2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+                        className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
                         onClick={() => setCategoryManagerOpen(true)}
                       >
                         管理分类
                       </Menu.Item>
                       <Menu.Item
-                        leftSection={<CheckSquare className="h-4 w-4 text-muted-foreground" />}
-                        className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                        leftSection={<CheckSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+                        className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
                         onClick={toggleSelectionMode}
                       >
                         {selectionMode ? '取消选择' : '批量操作'}
@@ -735,39 +771,32 @@ export default function ShelfPage() {
                   )}
                 </div>
               )}
-              {isDraggingBookFile && (
-                <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-lg border-2 border-dashed border-primary/50 bg-background/95 text-center">
-                  <div className="px-8 py-6">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Upload className="h-6 w-6" strokeWidth={1.5} />
-                    </div>
-                    <p className="font-heading text-xl font-medium">
-                      松开即可导入
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      支持 EPUB、PDF、MOBI、AZW3
-                    </p>
-                  </div>
-                </div>
-              )}
             </section>
 
             {selectionMode && !isLoadingBooks && !isSearching && filteredBooks.length > 0 && (
               <div
-                className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
+                className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[44rem]"
               >
                 <div
                   role="region"
                   aria-label="书籍批量操作"
-                  className="pointer-events-auto flex flex-col gap-2 rounded-lg border border-border bg-card px-3 pt-2 pb-3 shadow-[var(--paper-shadow-floating)] sm:flex-row sm:items-center sm:gap-4 sm:py-2"
+                  className="shelf-batch-bar pointer-events-auto flex flex-col gap-2.5 rounded-2xl px-3.5 py-2.5 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
                 >
                   <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto">
                     <div className="flex items-center gap-2 whitespace-nowrap text-sm">
-                      <CheckSquare className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} />
+                      <CheckSquare className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.6} aria-hidden="true" />
                       <span className="text-muted-foreground">
                         已选中
                       </span>
-                      <span className="font-semibold tabular-nums text-foreground" aria-live="polite">
+                      <span
+                        className={cn(
+                          'inline-flex min-w-[3.25rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors',
+                          selectedCount > 0
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-secondary text-muted-foreground'
+                        )}
+                        aria-live="polite"
+                      >
                         {selectedCount} 本
                       </span>
                     </div>
@@ -776,20 +805,21 @@ export default function ShelfPage() {
                       variant="subtle"
                       color="gray"
                       size="md"
-                      className="h-11 w-11 min-h-0 min-w-0 rounded-lg text-muted-foreground sm:hidden"
+                      className="h-11 w-11 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
+                      title="退出选择 (Esc)"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-4 w-4" aria-hidden="true" />
                     </ActionIcon>
                   </div>
 
-                  <div className="grid w-full min-w-0 grid-cols-3 gap-2 border-t border-border pt-2 sm:flex sm:border-t-0 sm:pt-0 sm:w-auto sm:flex-1 sm:items-center sm:justify-end">
+                  <div className="grid w-full min-w-0 grid-cols-3 gap-2 border-t border-border/70 pt-2.5 sm:flex sm:w-auto sm:flex-1 sm:items-center sm:justify-end sm:border-t-0 sm:pt-0">
                     <Button
                       type="button"
                       variant="default"
                       size="xs"
-                      className="min-h-11 min-w-0 rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:min-h-9 sm:px-3 sm:text-[13px]"
+                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium hover:bg-secondary sm:min-h-9 sm:px-3 sm:text-[13px]"
                       onClick={toggleVisibleSelection}
                     >
                       {allVisibleSelected ? '取消全选' : '选择已加载'}
@@ -800,13 +830,18 @@ export default function ShelfPage() {
                       variant="default"
                       size="xs"
                       aria-label="批量分类"
-                      leftSection={<Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />}
-                      className="min-h-11 min-w-0 rounded-lg border-primary/20 bg-primary/5 px-2 text-xs font-medium text-primary hover:bg-primary/10 sm:min-h-9 sm:px-3 sm:text-[13px]"
+                      aria-busy={isUpdatingManyCategories || undefined}
+                      leftSection={<Tag className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />}
+                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-primary/25 bg-primary/8 px-2 text-xs font-medium text-primary hover:bg-primary/14 sm:min-h-9 sm:px-3 sm:text-[13px]"
                       disabled={selectedCount === 0 || isUpdatingManyCategories}
                       onClick={() => setBatchCategoryOpen(true)}
                     >
-                      <span className="hidden sm:inline">批量分类</span>
-                      <span className="sm:hidden">分类</span>
+                      <span className="hidden sm:inline">
+                        {isUpdatingManyCategories ? '更新中…' : '批量分类'}
+                      </span>
+                      <span className="sm:hidden">
+                        {isUpdatingManyCategories ? '更新中' : '分类'}
+                      </span>
                     </Button>
 
                     <Button
@@ -814,13 +849,18 @@ export default function ShelfPage() {
                       variant="default"
                       size="xs"
                       aria-label="批量删除"
-                      leftSection={<Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />}
-                      className="min-h-11 min-w-0 rounded-lg px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:min-h-9 sm:px-3 sm:text-[13px]"
+                      aria-busy={isDeletingMany || undefined}
+                      leftSection={<Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />}
+                      className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:min-h-9 sm:px-3 sm:text-[13px]"
                       disabled={selectedCount === 0 || isDeletingMany}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
-                      <span className="hidden sm:inline">批量删除</span>
-                      <span className="sm:hidden">删除</span>
+                      <span className="hidden sm:inline">
+                        {isDeletingMany ? '删除中…' : '批量删除'}
+                      </span>
+                      <span className="sm:hidden">
+                        {isDeletingMany ? '删除中' : '删除'}
+                      </span>
                     </Button>
 
                     <ActionIcon
@@ -828,16 +868,35 @@ export default function ShelfPage() {
                       variant="subtle"
                       color="gray"
                       size="md"
-                      className="ml-1 hidden min-h-0 min-w-0 rounded-lg text-muted-foreground sm:flex sm:size-9"
+                      className="ml-0.5 hidden min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:flex sm:size-9"
                       onClick={toggleSelectionMode}
                       aria-label="退出选择"
+                      title="退出选择 (Esc)"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-4 w-4" aria-hidden="true" />
                     </ActionIcon>
                   </div>
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {isDraggingBookFile && !isOffline && !isLoadingBooks && !loadError && (
+          <div
+            aria-live="polite"
+            className="shelf-dropzone-overlay pointer-events-none fixed inset-0 z-40 flex items-center justify-center p-6"
+          >
+            <div className="paper-panel w-full max-w-sm rounded-2xl border-2 border-dashed border-primary/45 px-8 py-8 text-center">
+              <div className="app-sheet-icon mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-primary/15">
+                <Upload className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+              </div>
+              <p className="mt-4 font-heading text-lg font-medium tracking-[-0.01em] text-foreground">
+                {isUploading ? '正在上传图书，请稍候' : '松开即可批量导入'}
+              </p>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                支持 EPUB、MOBI、AZW3、PDF
+              </p>
+            </div>
           </div>
         )}
         {batchDeleteOpen && (

@@ -41,11 +41,16 @@
   }
 
   .shelf-filter-chip {
-    @apply inline-flex min-h-11 shrink-0 items-center rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-9;
+    @apply inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-9;
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .shelf-filter-chip:active {
+    transform: scale(0.98);
   }
 
   .shelf-filter-chip:hover {
@@ -54,9 +59,23 @@
   }
 
   .shelf-filter-chip[data-active="true"] {
-    border-color: transparent;
+    border-color: color-mix(in srgb, var(--primary) 26%, transparent);
     background: var(--accent);
     color: var(--accent-foreground);
+  }
+
+  .shelf-batch-bar {
+    background: color-mix(in srgb, var(--popover) 94%, transparent);
+    border: 1px solid var(--border);
+    box-shadow: var(--paper-shadow-floating);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .shelf-dropzone-overlay {
+    background: color-mix(in srgb, var(--shelf-app-bg) 82%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
   @media (width < 40rem) {

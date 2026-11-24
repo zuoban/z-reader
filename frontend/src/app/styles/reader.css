@@ -134,6 +134,86 @@
     border: 1px solid var(--border);
     box-shadow: var(--paper-shadow-floating);
   }
+
+  .reader-status-pill {
+    @apply relative inline-flex h-7 items-center rounded-full px-1;
+    background: transparent;
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-status-pill:hover,
+  .reader-status-pill:has(:focus-visible) {
+    background: color-mix(in srgb, var(--reader-status-hover) 58%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--reader-status-rule) 48%, transparent);
+  }
+
+  .reader-status-trigger {
+    @apply relative flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-full px-2.5 text-[11px] font-normal tracking-[0.04em] tabular-nums;
+    color: var(--reader-status-muted);
+    transition: color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-status-trigger::before,
+  .reader-status-action::before {
+    content: "";
+    position: absolute;
+    inset-block: -0.5rem;
+    inset-inline: -0.125rem;
+  }
+
+  .reader-status-trigger:hover {
+    color: var(--reader-status-fg);
+  }
+
+  .reader-status-trigger:focus-visible,
+  .reader-status-action:focus-visible,
+  .reader-status-bar:focus-visible {
+    outline: 2px solid var(--reader-status-accent);
+    outline-offset: -2px;
+  }
+
+  .reader-status-action {
+    @apply relative inline-flex shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 shadow-none;
+    --ai-size: 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--reader-status-muted);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-status-action:hover {
+    background: color-mix(in srgb, var(--reader-status-hover) 72%, transparent);
+    color: var(--reader-status-accent);
+  }
+
+  .reader-status-action[data-reader-tts-active="true"] {
+    color: var(--reader-status-accent);
+  }
+
+  .reader-status-bar {
+    background: color-mix(in srgb, var(--reader-status-bg) 90%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: color-mix(in srgb, var(--reader-status-rule) 55%, transparent);
+    color: var(--reader-status-muted);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-status-bar:hover {
+    background: color-mix(in srgb, var(--reader-status-hover) 40%, var(--reader-status-bg));
+  }
+
+  .reader-status-chapter {
+    color: color-mix(in srgb, var(--reader-status-fg) 80%, var(--reader-status-muted));
+  }
+
+  .reader-status-progress-fill {
+    background: color-mix(in srgb, var(--reader-status-accent) 52%, transparent);
+    transition: width var(--paper-duration-base) var(--paper-ease-soft);
+  }
 }
 
 foliate-view {

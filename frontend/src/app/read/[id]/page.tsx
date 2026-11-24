@@ -566,10 +566,9 @@ export default function ReadPage() {
                   className="reader-page-surface h-full w-full overflow-hidden"
                   style={{
                     background: uiScheme.bg,
-                    boxShadow: `
-                      inset 0 1px 0 ${withOpacity(uiScheme.fg, theme.preset === "dark" ? 0.04 : 0.03)},
-                      inset 0 -1px 0 ${withOpacity(uiScheme.fg, theme.preset === "dark" ? 0.05 : 0.025)}
-                    `,
+                    boxShadow: isHeaderVisible
+                      ? `inset 0 1px 0 ${withOpacity(uiScheme.fg, theme.preset === "dark" ? 0.04 : 0.03)}`
+                      : "none",
                   }}
                 />
               </div>
@@ -621,13 +620,10 @@ export default function ReadPage() {
                 <DeferredTTSControls
                   {...sharedTTSControlsProps}
                   variant="toolbar"
-                  triggerClassName="reader-chrome-icon size-11 rounded-lg border-0 p-0 shadow-none [&_svg]:size-4"
-                  triggerStyle={{
-                    color:
-                      ttsState !== "stopped"
-                        ? uiScheme.link
-                        : withOpacity(uiScheme.fg, 0.72),
-                  }}
+                  triggerClassName="reader-status-action [&_svg]:size-3.5"
+                  triggerStyle={
+                    ttsState !== "stopped" ? { color: uiScheme.link } : {}
+                  }
                 />
               ) : undefined
             }

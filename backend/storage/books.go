@@ -323,21 +323,21 @@ func addBookToSearchIndex(tx *bbolt.Tx, book *models.Book, text string) error {
 	return tx.Bucket(BookSearchIndex).Put(bookSearchIndexKey(book.UserID, book.ID), []byte(text))
 }
 
-func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book, text string) error {
-	return addBookSearchGramPostings(tx.Bucket(BookSearchGramIndex), book, text, func(countKey []byte) error {
+func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book, grams []string) error {
+	return addBookSearchGramPostings(tx.Bucket(BookSearchGramIndex), book, grams, func(countKey []byte) error {
 		return adjustBookSearchGramCount(tx, countKey, 1)
 	})
 }
 
 func addBookSearchGramPostings(
-	bucket *bbolt.Bucket, book *models.Book, text string, onInsert func([]byte) error,
+	bucket *bbolt.Bucket, book *models.Book, grams []string, onInsert func([]byte) error,
 ) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
 	// bbolt copies keys on Put, so the buffer can be reused for the next gram.
 	var key []byte
-	for _, gram := range bookSearchGrams(text) {
+	for _, gram := range grams {
 		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
 		if bucket.Get(key) != nil {
 			continue
@@ -361,13 +361,35 @@ func removeBookFromSearchIndex(tx *bbolt.Tx, book *models.Book) error {
 	return tx.Bucket(BookSearchIndex).Delete(bookSearchIndexKey(book.UserID, book.ID))
 }
 
+func replaceBookSearchGrams(tx *bbolt.Tx, book *models.Book, oldText, newText string) error {
+	grams := bookSearchGrams(newText)
+	if oldText != newText {
+		keep := make(map[string]struct{}, len(grams))
+		for _, gram := range grams {
+			keep[gram] = struct{}{}
+		}
+		if err := removeBookSearchGrams(tx, book, oldText, keep); err != nil {
+			return err
+		}
+	}
+	// Check all desired grams so a missing posting is still restored.
+	return addBookToSearchGramIndex(tx, book, grams)
+}
+
 func removeBookFromSearchGramIndex(tx *bbolt.Tx, book *models.Book, text string) error {
+	return removeBookSearchGrams(tx, book, text, nil)
+}
+
+func removeBookSearchGrams(tx *bbolt.Tx, book *models.Book, text string, keep map[string]struct{}) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
 	bucket := tx.Bucket(BookSearchGramIndex)
 	var key []byte
 	for _, gram := range bookSearchGrams(text) {
+		if _, retained := keep[gram]; retained {
+			continue
+		}
 		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
 		if bucket.Get(key) != nil {
 			if err := bucket.Delete(key); err != nil {
@@ -455,7 +477,7 @@ func rebuildBookSearchGramIndex(tx *bbolt.Tx) error {
 		if err := book.UnmarshalDB(data); err != nil {
 			return err
 		}
-		return addBookSearchGramPostings(postingBucket, &book, bookSearchText(&book), onInsert)
+		return addBookSearchGramPostings(postingBucket, &book, bookSearchGrams(bookSearchText(&book)), onInsert)
 	}); err != nil {
 		return err
 	}
@@ -646,7 +668,7 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return err
 		}
-		if err := addBookToSearchGramIndex(tx, book, searchText); err != nil {
+		if err := addBookToSearchGramIndex(tx, book, bookSearchGrams(searchText)); err != nil {
 			return err
 		}
 	}
@@ -687,7 +709,7 @@ func (db *DB) CreateBook(book *models.Book) error {
 		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return err
 		}
-		if err := addBookToSearchGramIndex(tx, book, searchText); err != nil {
+		if err := addBookToSearchGramIndex(tx, book, bookSearchGrams(searchText)); err != nil {
 			return err
 		}
 		if err := addBookToContentIndex(tx, book); err != nil {

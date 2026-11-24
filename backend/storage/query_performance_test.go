@@ -79,7 +79,30 @@ func TestCategoryMutationUpdatesSummaryAndSearch(t *testing.T) {
 	if err := db.SaveBook(book); err != nil {
 		t.Fatal(err)
 	}
+	// Simulate a missing posting with a consistent count for a retained gram.
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		key := appendBookSearchGramIndexKey(nil, book.UserID, "re", book.ID)
+		if err := tx.Bucket(BookSearchGramIndex).Delete(key); err != nil {
+			return err
+		}
+		return adjustBookSearchGramCount(tx, bookSearchGramIndexPrefix(book.UserID, "re"), -1)
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.UpdateBooksCategory([]string{"a"}, "u", &newCategory); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		postings, counts := tx.Bucket(BookSearchGramIndex), tx.Bucket(BookSearchGramCounts)
+		for gram, want := range map[string]int{"re": 1, "ad": 1, "g ": 1, "ol": 0, "ne": 1} {
+			key := appendBookSearchGramIndexKey(nil, book.UserID, gram, book.ID)
+			count := bookSearchGramCount(counts, bookSearchGramIndexPrefix(book.UserID, gram))
+			if exists := postings.Get(key) != nil; exists != (want > 0) || count != want {
+				t.Errorf("gram %q posting = %t, count = %d, want count %d", gram, exists, count, want)
+			}
+		}
+		return nil
+	}); err != nil {
 		t.Fatal(err)
 	}
 	summary, err := db.GetBookLibrarySummary("u")

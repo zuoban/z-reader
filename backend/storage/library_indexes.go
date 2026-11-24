@@ -327,9 +327,7 @@ func updateBooksCategoryInTx(
 		if summary != nil {
 			summary.adjustCount(oldCategory, -1)
 		}
-		if err := removeBookFromSearchGramIndex(tx, &book, bookSearchText(&book)); err != nil {
-			return nil, err
-		}
+		oldSearchText := bookSearchText(&book)
 		book.Category = normalizedCategory
 		data, err := book.MarshalDB()
 		if err != nil {
@@ -346,7 +344,7 @@ func updateBooksCategoryInTx(
 		if err := moveBookCategorySortKeys(tx, &book, oldCategory, newCategory); err != nil {
 			return nil, err
 		}
-		if err := addBookToSearchGramIndex(tx, &book, searchText); err != nil {
+		if err := replaceBookSearchGrams(tx, &book, oldSearchText, searchText); err != nil {
 			return nil, err
 		}
 		if summary != nil {

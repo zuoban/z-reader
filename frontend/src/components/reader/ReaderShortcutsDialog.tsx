@@ -1,22 +1,38 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { ActionIcon, Kbd, Modal } from "@mantine/core";
+import { Modal } from "@mantine/core";
 import { Keyboard, X } from "lucide-react";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import { withOpacity } from "@/lib/reader-ui";
+import { getModernReaderSurface, getReaderPanelThemeVars } from "@/lib/reader-ui";
 
 interface ShortcutItem {
   label: string;
   keys: string[];
 }
 
-const READER_SHORTCUTS: ShortcutItem[] = [
-  { label: "上一页", keys: ["←", "PageUp", "K", "Shift + Space"] },
-  { label: "下一页", keys: ["→", "PageDown", "J", "Space"] },
-  { label: "切换全屏", keys: ["F"] },
-  { label: "快捷键帮助", keys: ["?"] },
-  { label: "退出全屏 / 关闭浮层 / 返回书库", keys: ["Esc"] },
+interface ShortcutGroup {
+  title: string;
+  items: ShortcutItem[];
+}
+
+const READER_SHORTCUT_GROUPS: ShortcutGroup[] = [
+  {
+    title: "翻页导航",
+    items: [
+      { label: "上一页", keys: ["←", "PageUp", "K", "Shift + Space"] },
+      { label: "下一页", keys: ["→", "PageDown", "J", "Space"] },
+    ],
+  },
+  {
+    title: "视图与浮层",
+    items: [
+      { label: "切换全屏", keys: ["F"] },
+      { label: "图片预览缩放", keys: ["+", "-", "0"] },
+      { label: "快捷键帮助", keys: ["?"] },
+      { label: "退出全屏 / 关闭浮层 / 返回书库", keys: ["Esc"] },
+    ],
+  },
 ];
 
 interface ReaderShortcutsDialogProps {
@@ -33,6 +49,8 @@ export function ReaderShortcutsDialog({
   overlayContainer,
 }: ReaderShortcutsDialogProps) {
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const surface = getModernReaderSurface(uiScheme);
+  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -77,15 +95,19 @@ export function ReaderShortcutsDialog({
       closeOnEscape={false}
       closeOnClickOutside
       portalProps={{ target: overlayContainer ?? undefined }}
-      // Modal.Content forwards direct styling props to its viewport wrapper as well.
       classNames={{
-        content: "overscroll-contain rounded-2xl border p-4 shadow-[var(--paper-shadow-floating)] sm:p-5",
+        inner:
+          "px-[max(0.75rem,env(safe-area-inset-left,0px))] py-[max(0.75rem,env(safe-area-inset-top,0px))]",
+        content:
+          "flex max-h-[min(82svh,36rem)] flex-col overflow-hidden rounded-2xl border p-0",
       }}
       styles={{
         content: {
+          ...panelThemeVars,
           background: uiScheme.cardBg,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.8),
-          color: uiScheme.fg,
+          borderColor: surface.border,
+          color: surface.fg,
+          boxShadow: "var(--paper-shadow-floating)",
         },
       }}
       data-reader-interactive="true"
@@ -96,78 +118,89 @@ export function ReaderShortcutsDialog({
         blur={3}
       />
       <Modal.Content data-reader-interactive="true">
-        <div
-          className="flex items-center justify-between border-b pb-3.5"
-          style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.5) }}
-        >
-          <div className="flex items-center gap-2.5">
+        <div className="reader-panel-header flex shrink-0 items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg border"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
               style={{
-                background: withOpacity(uiScheme.buttonBg, 0.7),
-                borderColor: withOpacity(uiScheme.cardBorder, 0.6),
-                color: uiScheme.fg,
+                background: "color-mix(in srgb, var(--reader-panel-hover) 68%, transparent)",
+                borderColor: "var(--reader-panel-rule)",
+                color: "var(--reader-panel-fg)",
               }}
             >
-              <Keyboard className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+              <Keyboard className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
             </div>
-            <div>
-              <Modal.Title className="font-heading text-base font-medium leading-tight">
+            <div className="min-w-0">
+              <Modal.Title
+                className="font-heading text-base font-medium leading-tight"
+                style={{ color: surface.fg }}
+              >
                 键盘快捷键
               </Modal.Title>
               <p
-                className="mt-0.5 text-xs"
-                style={{ color: uiScheme.mutedText }}
+                className="mt-0.5 text-xs leading-5"
+                style={{ color: surface.muted }}
               >
                 阅读器支持的快捷操作
               </p>
             </div>
           </div>
-          <ActionIcon
-            variant="subtle"
-            size={36}
-            radius="md"
+          <button
+            type="button"
             data-autofocus
             onClick={() => onOpenChange(false)}
             aria-label="关闭快捷键帮助"
-            className="border-0 bg-transparent shadow-none hover:bg-black/5 dark:hover:bg-white/10"
-            style={{ color: uiScheme.mutedText }}
+            title="关闭"
+            className="reader-panel-icon"
           >
             <X className="h-4 w-4" aria-hidden="true" />
-          </ActionIcon>
+          </button>
         </div>
 
-        <ul
-          className="mt-3.5 divide-y"
-          style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.35) }}
-        >
-          {READER_SHORTCUTS.map((item) => (
-            <li
-              key={item.label}
-              className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-[13px]"
-              style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.35) }}
-            >
-              <span style={{ color: uiScheme.fg }}>{item.label}</span>
-              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                {item.keys.map((keyLabel) => (
-                  <Kbd
-                    key={keyLabel}
-                    size="xs"
-                    className="inline-flex min-w-[1.6rem] items-center justify-center rounded-md border px-1.5 py-0.5 font-mono text-[11px] font-medium leading-4"
-                    style={{
-                      background: withOpacity(uiScheme.buttonBg, 0.75),
-                      borderColor: withOpacity(uiScheme.cardBorder, 0.75),
-                      borderBottomWidth: 1,
-                      color: uiScheme.fg,
-                    }}
+        <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-3.5 sm:px-5">
+          {READER_SHORTCUT_GROUPS.map((group) => (
+            <section key={group.title} aria-label={group.title}>
+              <h3
+                className="mb-1.5 text-[11px] font-medium tracking-[0.06em]"
+                style={{ color: surface.muted }}
+              >
+                {group.title}
+              </h3>
+              <ul
+                className="divide-y"
+                style={{ borderColor: surface.hairline }}
+              >
+                {group.items.map((item) => (
+                  <li
+                    key={item.label}
+                    className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-[13px]"
+                    style={{ borderColor: surface.hairline }}
                   >
-                    {keyLabel}
-                  </Kbd>
+                    <span style={{ color: surface.fg }}>{item.label}</span>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      {item.keys.map((keyLabel) => (
+                        <kbd key={keyLabel} className="reader-kbd">
+                          {keyLabel}
+                        </kbd>
+                      ))}
+                    </div>
+                  </li>
                 ))}
-              </div>
-            </li>
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
+
+        <div
+          className="flex shrink-0 items-center justify-between gap-2 border-t px-4 py-2.5 text-xs sm:px-5"
+          style={{
+            borderColor: surface.hairline,
+            color: surface.muted,
+          }}
+        >
+          <span>阅读正文时随时可用</span>
+          <span>按 ? 或 Esc 随时关闭</span>
+        </div>
       </Modal.Content>
     </Modal.Root>
   );

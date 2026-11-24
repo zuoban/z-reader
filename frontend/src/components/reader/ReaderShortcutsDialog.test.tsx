@@ -42,13 +42,20 @@ describe('ReaderShortcutsDialog', () => {
     );
 
     expect(screen.getByRole('dialog', { name: '键盘快捷键' })).toBeInTheDocument();
+    expect(screen.getByText('翻页导航')).toBeInTheDocument();
+    expect(screen.getByText('视图与浮层')).toBeInTheDocument();
     expect(screen.getByText('上一页')).toBeInTheDocument();
     expect(screen.getByText('下一页')).toBeInTheDocument();
     expect(screen.getByText('切换全屏')).toBeInTheDocument();
+    expect(screen.getByText('图片预览缩放')).toBeInTheDocument();
     expect(screen.getByText('快捷键帮助')).toBeInTheDocument();
     expect(screen.getByText('退出全屏 / 关闭浮层 / 返回书库')).toBeInTheDocument();
     expect(screen.getByText('Shift + Space')).toBeInTheDocument();
+    expect(screen.getByText('+')).toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('Esc')).toBeInTheDocument();
+    expect(screen.getByRole('dialog').style.getPropertyValue('--reader-panel-bg')).toBe('#ffffff');
   });
 
   it('closes via close button, backdrop click, and Escape key', () => {

@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@mantine/core";
-import { AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Play, Volume2 } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import { withOpacity } from "@/lib/reader-ui";
+import { getModernReaderSurface, getReaderPanelThemeVars } from "@/lib/reader-ui";
 
 interface ReaderResumePromptProps {
   message: string;
@@ -17,59 +17,80 @@ export function ReaderResumePrompt({
   uiScheme,
   onResume,
 }: ReaderResumePromptProps) {
-  const cardStyle = {
-    background: withOpacity(uiScheme.cardBg, 0.96),
-    border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.8)}`,
-    boxShadow: `0 12px 32px -16px ${withOpacity(uiScheme.fg, 0.28)}`,
-    backdropFilter: "blur(12px)",
-  };
+  const [isResuming, setIsResuming] = useState(false);
+  const mountedRef = useRef(true);
+  const surface = getModernReaderSurface(uiScheme);
+  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  async function handleResume() {
+    if (isResuming) return;
+    setIsResuming(true);
+    try {
+      await onResume();
+    } finally {
+      if (mountedRef.current) {
+        setIsResuming(false);
+      }
+    }
+  }
 
   return (
     <div
       data-reader-interactive="true"
-      className="pointer-events-none absolute inset-x-0 z-40 flex justify-center px-4 sm:hidden"
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none absolute inset-x-0 z-40 flex justify-center px-[max(1rem,env(safe-area-inset-left,0px))]"
       style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 3.25rem)",
+        bottom: "calc(var(--status-bar-reserved) + 0.75rem)",
       }}
     >
       <div
-        className="reading-status-panel pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-xl px-3.5 py-3 sm:px-4"
-        style={cardStyle}
+        className="reader-resume-card paper-reveal-soft pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl px-3.5 py-3 sm:px-4"
+        style={panelThemeVars}
       >
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
           style={{
-            background: withOpacity(uiScheme.link, 0.12),
-            color: uiScheme.link,
+            background: "color-mix(in srgb, var(--reader-panel-accent) 11%, transparent)",
+            borderColor: "color-mix(in srgb, var(--reader-panel-accent) 22%, transparent)",
+            color: "var(--reader-panel-accent)",
           }}
         >
-          <AlertCircle className="h-4.5 w-4.5" strokeWidth={1.5} />
+          <Volume2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium" style={{ color: uiScheme.fg }}>
+          <p className="text-sm font-medium leading-5" style={{ color: surface.fg }}>
             朗读已暂停
           </p>
           <p
             className="mt-0.5 line-clamp-2 text-xs leading-5"
-            style={{ color: uiScheme.mutedText }}
+            style={{ color: surface.muted }}
           >
             {message}
           </p>
         </div>
-        <Button
+        <button
+          type="button"
           data-reader-interactive="true"
-          variant="default"
-          size="sm"
-          onClick={() => void onResume()}
-          className="h-9 shrink-0 rounded-lg px-3.5 text-sm font-medium"
-          style={{
-            color: uiScheme.link,
-            border: `1px solid ${withOpacity(uiScheme.link, 0.28)}`,
-            background: withOpacity(uiScheme.buttonBg, 0.5),
-          }}
+          disabled={isResuming}
+          aria-busy={isResuming || undefined}
+          onClick={() => void handleResume()}
+          className="reader-panel-action h-9 px-3.5 text-sm lg:h-9"
         >
-          继续
-        </Button>
+          {isResuming ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          ) : (
+            <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+          )}
+          <span>{isResuming ? "恢复中…" : "继续"}</span>
+        </button>
       </div>
     </div>
   );

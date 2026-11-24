@@ -3,6 +3,7 @@ import type { BookDownloadProgress } from '@/lib/api';
 
 export const READER_MIN_IMAGE_SCALE = 1;
 export const READER_MAX_IMAGE_SCALE = 5;
+export const READER_IMAGE_ZOOM_STEPS = [1, 1.5, 2, 3, 4, 5] as const;
 export const BOOKMARK_EXCERPT_MAX_LENGTH = 72;
 
 export interface ReaderImageZoomState {
@@ -65,6 +66,25 @@ export function getBookmarkExcerpt(view: FoliateView | null) {
   return normalizeBookmarkExcerpt(doc?.body?.textContent ?? '');
 }
 
+export function getNextImageZoomScale(
+  currentScale: number,
+  direction: -1 | 1
+): number {
+  const epsilon = 0.04;
+  if (direction > 0) {
+    const next = READER_IMAGE_ZOOM_STEPS.find((step) => step > currentScale + epsilon);
+    return next ?? READER_MAX_IMAGE_SCALE;
+  }
+
+  for (let index = READER_IMAGE_ZOOM_STEPS.length - 1; index >= 0; index -= 1) {
+    const step = READER_IMAGE_ZOOM_STEPS[index];
+    if (step < currentScale - epsilon) {
+      return step;
+    }
+  }
+  return READER_MIN_IMAGE_SCALE;
+}
+
 export function getZoomedState(
   state: ReaderImageZoomState,
   nextScale: number,
@@ -72,6 +92,10 @@ export function getZoomedState(
   clientY: number
 ): ReaderImageZoomState {
   const scale = clamp(nextScale, READER_MIN_IMAGE_SCALE, READER_MAX_IMAGE_SCALE);
+  if (scale <= READER_MIN_IMAGE_SCALE + 0.001) {
+    return { scale: READER_MIN_IMAGE_SCALE, x: 0, y: 0 };
+  }
+
   const viewportCenterX = window.innerWidth / 2;
   const viewportCenterY = window.innerHeight / 2;
   const focusX = clientX - viewportCenterX;

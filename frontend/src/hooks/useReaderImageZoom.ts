@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from 'react';
 import {
+  getNextImageZoomScale,
   getZoomedState,
   type ReaderImageZoomState,
 } from '@/lib/reader-page';
@@ -26,6 +27,8 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
   const [imageInteracting, setImageInteracting] = useState(false);
 
   const imageZoomSurfaceRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const suppressBackdropCloseRef = useRef(false);
   const imagePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const imageDragRef = useRef<{
     pointerId: number;
@@ -49,6 +52,9 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
   } | null>(null);
 
   const handleImageOpen = useCallback((image: { src: string; alt: string }) => {
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    suppressBackdropCloseRef.current = false;
     setImageZoom({ scale: 1, x: 0, y: 0 });
     setImageInteracting(false);
     setZoomedImage(image);
@@ -58,11 +64,39 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
     setZoomedImage(null);
     setImageZoom({ scale: 1, x: 0, y: 0 });
     setImageInteracting(false);
+    suppressBackdropCloseRef.current = false;
     imagePointersRef.current.clear();
     imageDragRef.current = null;
     imageGestureRef.current = null;
     imageLastTapRef.current = null;
+
+    const previousFocus = previousFocusRef.current;
+    previousFocusRef.current = null;
+    if (previousFocus && previousFocus.isConnected) {
+      previousFocus.focus();
+    }
   }, []);
+
+  const handleImageZoomReset = useCallback(() => {
+    setImageZoom({ scale: 1, x: 0, y: 0 });
+  }, []);
+
+  const stepImageZoom = useCallback((direction: -1 | 1) => {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    setImageZoom((state) => {
+      const nextScale = getNextImageZoomScale(state.scale, direction);
+      return getZoomedState(state, nextScale, centerX, centerY);
+    });
+  }, []);
+
+  const handleImageZoomIn = useCallback(() => {
+    stepImageZoom(1);
+  }, [stepImageZoom]);
+
+  const handleImageZoomOut = useCallback(() => {
+    stepImageZoom(-1);
+  }, [stepImageZoom]);
 
   const toggleImageZoom = useCallback((clientX: number, clientY: number) => {
     setImageZoom((state) => {
@@ -73,10 +107,25 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
     });
   }, []);
 
+  const handleImageSurfaceClick = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      if (suppressBackdropCloseRef.current) {
+        suppressBackdropCloseRef.current = false;
+        return;
+      }
+      if (event.target === event.currentTarget) {
+        handleImageClose();
+      }
+    },
+    [handleImageClose]
+  );
+
   const handleImageDoubleClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
+      suppressBackdropCloseRef.current = false;
       toggleImageZoom(event.clientX, event.clientY);
     },
     [toggleImageZoom]
@@ -85,7 +134,9 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
   const handleImagePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       event.stopPropagation();
-      event.currentTarget.setPointerCapture(event.pointerId);
+      if (typeof event.currentTarget.setPointerCapture === 'function') {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
       setImageInteracting(true);
       imagePointersRef.current.set(event.pointerId, {
         x: event.clientX,
@@ -180,7 +231,10 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
         : false;
       const wasGesture = Boolean(imageGestureRef.current);
 
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      if (
+        typeof event.currentTarget.hasPointerCapture === 'function' &&
+        event.currentTarget.hasPointerCapture(event.pointerId)
+      ) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
 
@@ -188,6 +242,10 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
       setImageInteracting(imagePointersRef.current.size > 0);
       imageGestureRef.current = null;
       imageDragRef.current = null;
+
+      if (moved || wasGesture) {
+        suppressBackdropCloseRef.current = true;
+      }
 
       const remaining = Array.from(imagePointersRef.current.entries());
       if (remaining.length === 1 && imageZoom.scale > 1) {
@@ -201,7 +259,14 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
         };
       }
 
-      if (moved || wasGesture || imagePointersRef.current.size > 0) return;
+      if (
+        event.pointerType === 'mouse' ||
+        moved ||
+        wasGesture ||
+        imagePointersRef.current.size > 0
+      ) {
+        return;
+      }
 
       const now = window.performance.now();
       const lastTap = imageLastTapRef.current;
@@ -212,6 +277,7 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
 
       if (isDoubleTap) {
         imageLastTapRef.current = null;
+        suppressBackdropCloseRef.current = true;
         toggleImageZoom(event.clientX, event.clientY);
         return;
       }
@@ -238,17 +304,45 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
     if (!zoomedImage) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopPropagation();
-      handleImageClose();
+      if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleImageClose();
+        return;
+      }
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleImageZoomIn();
+        return;
+      }
+      if (event.key === '-' || event.key === '_') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleImageZoomOut();
+        return;
+      }
+      if (event.key === '0') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleImageZoomReset();
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [handleImageClose, zoomedImage]);
+  }, [
+    handleImageClose,
+    handleImageZoomIn,
+    handleImageZoomOut,
+    handleImageZoomReset,
+    zoomedImage,
+  ]);
 
   useEffect(() => {
     const surface = imageZoomSurfaceRef.current;
@@ -276,6 +370,10 @@ export function useReaderImageZoom(pageRef: RefObject<HTMLDivElement | null>) {
     imageZoomSurfaceRef,
     handleImageOpen,
     handleImageClose,
+    handleImageZoomIn,
+    handleImageZoomOut,
+    handleImageZoomReset,
+    handleImageSurfaceClick,
     toggleImageZoom,
     handleImageDoubleClick,
     handleImagePointerDown,

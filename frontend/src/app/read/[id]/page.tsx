@@ -268,7 +268,10 @@ function Reader({ bookId }: { bookId: string }) {
     imageZoomSurfaceRef,
     handleImageOpen,
     handleImageClose,
-    toggleImageZoom,
+    handleImageZoomIn,
+    handleImageZoomOut,
+    handleImageZoomReset,
+    handleImageSurfaceClick,
     handleImageDoubleClick,
     handleImagePointerDown,
     handleImagePointerMove,
@@ -588,7 +591,10 @@ function Reader({ bookId }: { bookId: string }) {
                 imageInteracting={imageInteracting}
                 surfaceRef={imageZoomSurfaceRef}
                 onClose={handleImageClose}
-                onToggleZoom={toggleImageZoom}
+                onZoomIn={handleImageZoomIn}
+                onZoomOut={handleImageZoomOut}
+                onResetZoom={handleImageZoomReset}
+                onSurfaceClick={handleImageSurfaceClick}
                 onDoubleClick={handleImageDoubleClick}
                 onPointerDown={handleImagePointerDown}
                 onPointerMove={handleImagePointerMove}

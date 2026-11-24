@@ -4,6 +4,7 @@ import {
   clamp,
   formatDownloadBytes,
   formatOfflineDownloadLabel,
+  getNextImageZoomScale,
   getZoomedState,
   normalizeBookmarkExcerpt,
 } from '@/lib/reader-page';
@@ -51,11 +52,24 @@ describe('reader-page helpers', () => {
     expect(excerpt.length).toBe(BOOKMARK_EXCERPT_MAX_LENGTH + 1);
   });
 
-  it('scales zoom around the focus point', () => {
+  it('scales zoom around the focus point and recenters at 1x', () => {
     // jsdom: window.innerWidth/Height default 1024x768 → center 512,384
     const next = getZoomedState({ scale: 1, x: 0, y: 0 }, 2, 512, 384);
     expect(next.scale).toBe(2);
     expect(next.x).toBe(0);
     expect(next.y).toBe(0);
+
+    const recentered = getZoomedState({ scale: 2, x: 120, y: -80 }, 0.8, 200, 150);
+    expect(recentered).toEqual({ scale: 1, x: 0, y: 0 });
+  });
+
+  it('steps image zoom scales cleanly across bounds', () => {
+    expect(getNextImageZoomScale(1, 1)).toBe(1.5);
+    expect(getNextImageZoomScale(1.5, 1)).toBe(2);
+    expect(getNextImageZoomScale(2.5, 1)).toBe(3);
+    expect(getNextImageZoomScale(5, 1)).toBe(5);
+    expect(getNextImageZoomScale(2.5, -1)).toBe(2);
+    expect(getNextImageZoomScale(1.5, -1)).toBe(1);
+    expect(getNextImageZoomScale(1, -1)).toBe(1);
   });
 });

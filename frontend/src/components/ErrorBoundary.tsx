@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <div className="flex min-h-[60dvh] flex-col items-center justify-center pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(1.5rem,env(safe-area-inset-top,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] text-center">
           <div
             role="alert"
             className="paper-panel w-full max-w-md rounded-2xl px-6 py-10 sm:px-8"

@@ -112,7 +112,9 @@ describe('BookCard', () => {
 
     expect(screen.getByRole('article')).toHaveAttribute('data-deleting', 'true');
     expect(screen.getByRole('button', { name: '阅读《红楼梦》' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '正在删除：红楼梦' })).toBeDisabled();
+    const deletingAction = screen.getByRole('button', { name: '正在删除：红楼梦' });
+    expect(deletingAction).toBeDisabled();
+    expect(deletingAction.querySelector('svg')).toHaveClass('animate-spin');
     expect(screen.getByRole('button', { name: '更多操作：《红楼梦》' })).toBeDisabled();
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
 
@@ -120,5 +122,25 @@ describe('BookCard', () => {
     await waitFor(() => {
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows a pending cover indicator while processing_state is pending', () => {
+    render(
+      <BookCard
+        book={{ ...book, processing_state: 'pending' }}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={vi.fn()}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+      />,
+    );
+
+    const badgeText = screen.getByText('正在生成封面');
+    expect(badgeText).toBeVisible();
+    expect(badgeText.parentElement?.querySelector('svg')).toHaveClass('animate-spin');
   });
 });

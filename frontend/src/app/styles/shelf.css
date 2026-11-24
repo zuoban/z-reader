@@ -166,6 +166,22 @@
     background: var(--shelf-card-media);
   }
 
+  .shelf-book-cover-media {
+    transition: transform var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .shelf-book-open:enabled:hover .shelf-book-cover-media {
+      transform: scale(1.025);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .shelf-book-open:enabled:active .shelf-book-cover-media {
+      transform: scale(0.99);
+    }
+  }
+
   /* Crisp inner edge painted above cover artwork so pale or dark covers never bleed into the canvas. */
   .shelf-book-cover::after {
     content: "";

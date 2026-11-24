@@ -34,7 +34,7 @@ export function ShelfHeader({
   const ThemeIcon = isDark ? Sun : Moon;
 
   return (
-    <header className="shelf-header sticky top-0 z-50 w-full border-b border-border">
+    <header className="shelf-header sticky top-0 z-50 w-full border-b border-border pt-[env(safe-area-inset-top,0px)]">
       <div className="app-container flex h-16 items-center justify-between gap-2 sm:gap-3">
         <BrandLogo compact className="shrink-0 whitespace-nowrap" />
 
@@ -86,7 +86,7 @@ export function ShelfHeader({
                 <MoreHorizontal aria-hidden="true" className="size-5" strokeWidth={1.75} />
               </ActionIcon>
             </Menu.Target>
-            <Menu.Dropdown className="paper-menu rounded-xl p-1.5">
+            <Menu.Dropdown className="paper-menu max-w-[calc(100vw-1.5rem)] rounded-xl p-1.5">
               <Menu.Label className="px-2.5 pb-1.5 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground">
                 书架设置
               </Menu.Label>

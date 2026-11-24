@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { memo, useState, type CSSProperties, type ReactNode } from 'react';
-import { BookOpen, Check } from 'lucide-react';
+import { BookOpen, Check, Loader2 } from 'lucide-react';
 import type { Book } from '@/lib/api';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { cn } from '@/lib/utils';
@@ -145,7 +145,7 @@ function BookCoverFace({
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         sizes={SHELF_COVER_SIZES}
-        className="object-cover"
+        className="shelf-book-cover-media object-cover"
       />
     );
   }
@@ -160,7 +160,7 @@ function BookCoverFace({
   return (
     <div
       aria-hidden="true"
-      className="book-cover-fallback relative grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] items-center gap-1.5 py-4 pl-[calc(11%+6px)] pr-[11%] text-center"
+      className="book-cover-fallback shelf-book-cover-media relative grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] items-center gap-1.5 py-4 pl-[calc(11%+6px)] pr-[11%] text-center"
       style={{ '--cover-color': coverColor } as CSSProperties}
     >
       <span className="mx-auto h-px w-5 bg-current/35" />
@@ -265,8 +265,13 @@ export const BookCard = memo(function BookCard({
               </div>
             )}
             {book.processing_state === 'pending' && (
-              <span className="absolute left-2 top-2 z-10 max-w-[calc(100%-3rem)] truncate rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground">
-                正在生成封面
+              <span className="absolute left-2 top-2 z-10 inline-flex max-w-[calc(100%-3rem)] items-center gap-1 rounded-md border border-border/80 bg-card/92 px-2 py-1 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-xs">
+                <Loader2
+                  className="h-3 w-3 shrink-0 animate-spin text-primary motion-reduce:animate-none"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                <span className="truncate">正在生成封面</span>
               </span>
             )}
           </div>
@@ -338,7 +343,15 @@ export const BookCard = memo(function BookCard({
               aria-label={isDeleting ? `正在删除：${titleLabel}` : `${readActionLabel}：${titleLabel}`}
               className="shelf-book-action"
             >
-              <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+              {isDeleting ? (
+                <Loader2
+                  className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              ) : (
+                <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+              )}
               <span className="truncate">{isDeleting ? '删除中…' : readActionLabel}</span>
             </button>
           )}

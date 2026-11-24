@@ -439,7 +439,7 @@ export default function ShelfPage() {
       <main
         id="shelf-main"
         aria-label="书库"
-        className="app-container relative z-10 flex-1 py-5 sm:py-6"
+        className="app-container relative z-10 flex-1 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
@@ -466,7 +466,7 @@ export default function ShelfPage() {
                   value={searchQuery}
                   onChange={(event) => changeSearchQuery(event.currentTarget.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Escape' && searchQuery) {
+                    if (event.key === 'Escape' && !event.nativeEvent.isComposing && searchQuery) {
                       event.preventDefault();
                       changeSearchQuery('');
                     }
@@ -499,7 +499,7 @@ export default function ShelfPage() {
                         }}
                         aria-label="清除搜索"
                         title="清除搜索"
-                        className="size-9 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
+                        className="size-9 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary/70 hover:text-foreground active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </ActionIcon>
@@ -697,14 +697,14 @@ export default function ShelfPage() {
                         aria-label="更多书库操作"
                         title="更多书库操作"
                         className={cn(
-                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-[background-color,color,border-color,transform] duration-150 active:scale-95 motion-reduce:active:scale-100',
-                          selectionMode && 'border-primary bg-primary text-primary-foreground'
+                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-[background-color,color,border-color,transform] duration-150 hover:bg-secondary data-[expanded]:bg-secondary active:scale-95 motion-reduce:active:scale-100',
+                          selectionMode && 'border-primary bg-primary text-primary-foreground hover:bg-primary/92 data-[expanded]:bg-primary'
                         )}
                       >
                         <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
                       </ActionIcon>
                     </Menu.Target>
-                    <Menu.Dropdown className="paper-menu rounded-xl p-1.5">
+                    <Menu.Dropdown className="paper-menu max-w-[calc(100vw-1.5rem)] rounded-xl p-1.5">
                       <Menu.Label className="px-2.5 pb-1.5 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground">
                         书库操作
                       </Menu.Label>
@@ -859,7 +859,7 @@ export default function ShelfPage() {
 
             {selectionMode && !isLoadingBooks && !isSearching && filteredBooks.length > 0 && (
               <div
-                className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[44rem]"
+                className="pointer-events-none fixed left-[max(1rem,env(safe-area-inset-left,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:left-[max(2rem,env(safe-area-inset-left,0px))] sm:right-[max(2rem,env(safe-area-inset-right,0px))] lg:left-auto lg:right-[max(2.5rem,env(safe-area-inset-right,0px))] lg:max-w-[44rem]"
               >
                 <div
                   role="region"

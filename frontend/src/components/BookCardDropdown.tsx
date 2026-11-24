@@ -1,7 +1,7 @@
 'use client';
 
 import { ActionIcon, Menu } from '@mantine/core';
-import { MoreVertical, Tag, Trash2 } from 'lucide-react';
+import { Loader2, MoreVertical, Tag, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BookCardDropdownProps {
@@ -136,7 +136,17 @@ export function BookCardDropdown({
             }}
             disabled={isDeleting}
             aria-busy={isDeleting || undefined}
-            leftSection={<Trash2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />}
+            leftSection={
+              isDeleting ? (
+                <Loader2
+                  className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Trash2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
+              )
+            }
             className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-destructive transition-colors data-[hovered]:bg-destructive/10 dark:data-[hovered]:bg-destructive/18 sm:min-h-9 sm:py-1.5"
           >
             {isDeleting ? '删除中…' : '删除图书'}

@@ -199,4 +199,23 @@ describe('ShelfPage', () => {
     fireEvent.drop(main, { dataTransfer });
     expect(mockUploadFiles).not.toHaveBeenCalled();
   });
+
+  it('ignores Escape during IME composition in shelf search and clears only when not composing', () => {
+    mockShelfData = { ...mockShelfData, searchQuery: '百年' };
+    render(<ShelfPage />);
+
+    const searchInput = screen.getByRole('searchbox', { name: '搜索书库' });
+
+    const composingEscape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEscape, 'isComposing', { value: true });
+    fireEvent(searchInput, composingEscape);
+    expect(mockShelfData.setSearchQuery).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+    expect(mockShelfData.setSearchQuery).toHaveBeenCalledWith('');
+  });
 });

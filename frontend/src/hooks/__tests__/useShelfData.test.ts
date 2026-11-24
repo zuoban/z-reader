@@ -306,6 +306,32 @@ describe('useShelfData', () => {
     expect(api.searchBooks).toHaveBeenCalledTimes(3);
   });
 
+  it('cancels pending progress when a new search replaces the first page', async () => {
+    vi.mocked(api.listBooks).mockResolvedValue([]);
+    vi.mocked(api.searchBooks)
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'old', title: 'Old book' })] })
+      .mockResolvedValueOnce({ books: [mockBook({ id: 'new', title: 'New book' })] });
+    const oldProgress = deferred<Awaited<ReturnType<typeof api.listProgress>>>();
+    const progress = { book_id: 'new', user_id: 'user-1', cfi: '', percentage: 42, updated_at: '' };
+    const listProgress = vi.mocked(api.listProgress)
+      .mockReturnValueOnce(oldProgress.promise)
+      .mockResolvedValueOnce([progress]);
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+    act(() => result.current.setSearchQuery('Old'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    const oldSignal = listProgress.mock.calls[0]?.[0]?.signal;
+    expect(oldSignal).toBe(vi.mocked(api.searchBooks).mock.calls[0][4]?.signal);
+    expect(oldSignal?.aborted).toBe(false);
+
+    act(() => result.current.setSearchQuery('New'));
+    expect(oldSignal?.aborted).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    await act(async () => { oldProgress.resolve([{ ...progress, book_id: 'old', percentage: 90 }]); });
+    expect(result.current.progressByBookId).toEqual({ new: 42 });
+  });
+
   it('does not load books when not authenticated', async () => {
     const { result } = renderHook(() => useShelfData(false));
 

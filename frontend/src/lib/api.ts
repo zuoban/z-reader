@@ -511,13 +511,13 @@ export const api = {
   },
 
   listProgress: async (
-    options: { bookIds?: string[]; updatedSince?: string } = {}
+    options: { bookIds?: string[]; updatedSince?: string; signal?: AbortSignal } = {}
   ): Promise<Progress[]> => {
     const params = new URLSearchParams();
     if (options.bookIds?.length) params.set('book_ids', options.bookIds.join(','));
     if (options.updatedSince) params.set('updated_since', options.updatedSince);
     const query = params.toString();
-    return fetchApi<Progress[]>(`/api/progress${query ? `?${query}` : ''}`);
+    return fetchApi<Progress[]>(`/api/progress${query ? `?${query}` : ''}`, { signal: options.signal });
   },
 
   saveProgress: async (

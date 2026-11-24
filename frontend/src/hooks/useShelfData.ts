@@ -302,7 +302,7 @@ export function useShelfData(isAuthenticated: boolean) {
           setSearchNextCursor(page.next_cursor);
           const ids = (page.books ?? []).map((book) => book.id);
           if (ids.length > 0) {
-            void api.listProgress({ bookIds: ids }).then((progressData) => {
+            void api.listProgress({ bookIds: ids, signal: controller.signal }).then((progressData) => {
               if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
               setProgressByBookId((current) => ({
                 ...current,

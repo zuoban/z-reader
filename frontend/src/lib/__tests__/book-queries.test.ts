@@ -26,6 +26,7 @@ it('sends category, uncategorized and cursor filters to the server', async () =>
 it.each([
   ['page', (signal: AbortSignal) => api.listBooksPage(undefined, 50, 'title', { signal })],
   ['status', (signal: AbortSignal) => api.getBooksStatus(['book-1'], signal)],
+  ['progress', (signal: AbortSignal) => api.listProgress({ bookIds: ['book-1'], signal })],
 ] as const)('cancels an in-flight shelf %s query using the caller signal', async (_name, query) => {
   let requestSignal: AbortSignal | undefined;
   vi.stubGlobal('fetch', vi.fn((_url, options: RequestInit) => {

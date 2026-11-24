@@ -956,6 +956,45 @@ func TestBookContentAndLibrarySummaryIndexesStayCurrent(t *testing.T) {
 	}
 }
 
+func TestUpdateBookRestoresMissingLibrarySummary(t *testing.T) {
+	category := "科幻"
+	for _, tc := range []struct {
+		name     string
+		category *string
+	}{
+		{name: "uncategorized"},
+		{name: "categorized", category: &category},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := openTestDB(t)
+			book := &models.Book{ID: "book", UserID: "reader", Category: tc.category}
+			if err := db.CreateBook(book); err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Update(func(tx *bbolt.Tx) error {
+				return tx.Bucket(LibrarySummaryIndex).Delete([]byte(book.UserID))
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := db.UpdateBook(book.ID, book.UserID, func(updated *models.Book) bool {
+				updated.CoverPath = "cover.png"
+				return true
+			}); err != nil {
+				t.Fatal(err)
+			}
+			wantUncategorized, wantCategorized := 1, 0
+			if tc.category != nil {
+				wantUncategorized, wantCategorized = 0, 1
+			}
+			summary, err := db.GetBookLibrarySummary(book.UserID)
+			if err != nil || summary.Total != 1 || summary.Uncategorized != wantUncategorized ||
+				len(summary.Categories) != wantCategorized || summary.Categories[category] != wantCategorized {
+				t.Fatalf("restored summary = %+v, err = %v", summary, err)
+			}
+		})
+	}
+}
+
 func TestNormalizeBookCategoriesTrimsNames(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

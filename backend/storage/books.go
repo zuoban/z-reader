@@ -293,6 +293,25 @@ func adjustLibrarySummary(tx *bbolt.Tx, book *models.Book, delta int) error {
 	return saveLibrarySummary(tx, book.UserID, summary)
 }
 
+func updateBookLibrarySummary(tx *bbolt.Tx, book, oldBook *models.Book) error {
+	if oldBook == nil || oldBook.UserID != book.UserID {
+		if err := adjustLibrarySummary(tx, oldBook, -1); err != nil {
+			return err
+		}
+		return adjustLibrarySummary(tx, book, 1)
+	}
+	if book.UserID == "" {
+		return nil
+	}
+	summary, err := loadLibrarySummary(tx, book.UserID)
+	if err != nil {
+		return err
+	}
+	summary.adjustCount(categoryForBook(oldBook), -1)
+	summary.adjustCount(categoryForBook(book), 1)
+	return saveLibrarySummary(tx, book.UserID, summary)
+}
+
 func (summary *BookLibrarySummary) adjustCount(category string, delta int) {
 	summary.Total = max(0, summary.Total+delta)
 	if category == "" {
@@ -647,9 +666,6 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		}
 	}
 	if oldBook != nil {
-		if err := adjustLibrarySummary(tx, oldBook, -1); err != nil {
-			return err
-		}
 		if err := removeBookFromContentIndex(tx, oldBook); err != nil {
 			return err
 		}
@@ -683,7 +699,7 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 	if err := addBookToContentIndex(tx, book); err != nil {
 		return err
 	}
-	return adjustLibrarySummary(tx, book, 1)
+	return updateBookLibrarySummary(tx, book, oldBook)
 }
 
 func (db *DB) CreateBook(book *models.Book) error {

@@ -103,23 +103,27 @@ export function OfflineBooksDialog({
       opened={open}
       onClose={() => onOpenChange(false)}
       centered
-      size="lg"
+      size={512}
       radius="lg"
       padding={0}
       zIndex={80}
+      classNames={{
+        content:
+          'app-dialog-shell flex max-h-[min(82svh,36rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0 text-sm text-popover-foreground outline-none',
+      }}
     >
       <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-      <Modal.Content className="app-dialog-shell flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none">
-        <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
-              <HardDrive className="h-5 w-5" strokeWidth={1.5} />
+      <Modal.Content>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
+              <HardDrive className="h-[18px] w-[18px]" strokeWidth={1.6} />
             </div>
-            <div>
-              <Modal.Title className="font-heading text-base font-medium leading-tight text-foreground">
+            <div className="min-w-0">
+              <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
                 离线图书管理
               </Modal.Title>
-              <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
+              <p className="mt-0.5 truncate font-mono text-xs leading-5 tabular-nums text-muted-foreground">
                 {isLoading
                   ? '正在读取离线缓存…'
                   : `已缓存 ${books.length} 本 · 共 ${formatStorageSize(totalBytes)}`}
@@ -131,7 +135,7 @@ export function OfflineBooksDialog({
             color="gray"
             size={36}
             radius="md"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="dialog-close-btn -mr-1 h-9 w-9"
             onClick={() => onOpenChange(false)}
             aria-label="关闭离线图书管理"
           >
@@ -139,15 +143,15 @@ export function OfflineBooksDialog({
           </ActionIcon>
         </div>
 
-        <div className="mt-4 max-h-[52vh] overflow-y-auto pr-0.5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
               <LoadingSpinner className="h-6 w-6 border-primary/25" />
               <span className="text-xs">读取设备缓存中…</span>
             </div>
           ) : books.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-secondary/40 px-5 py-9 text-center">
-              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
                 <BookOpen className="h-5 w-5" strokeWidth={1.5} />
               </div>
               <p className="mt-3 text-sm font-medium text-foreground">
@@ -158,21 +162,26 @@ export function OfflineBooksDialog({
               </p>
             </div>
           ) : (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
               {books.map((book) => (
                 <li
                   key={book.bookId}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3.5 py-3"
+                  className="flex items-center justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-card/80"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {book.title || book.filename}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {[book.author, formatStorageSize(book.size)]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/75 bg-card text-muted-foreground">
+                      <BookOpen className="h-3.5 w-3.5" strokeWidth={1.6} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {book.title || book.filename}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
+                        {[book.author, formatStorageSize(book.size)]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <Button
@@ -181,7 +190,7 @@ export function OfflineBooksDialog({
                       onClick={() => onOpenChange(false)}
                       variant="default"
                       size="xs"
-                      className="h-11 rounded-lg px-3 text-xs font-medium sm:h-9"
+                      className="h-9 rounded-lg px-3 text-xs font-medium sm:h-8"
                     >
                       阅读
                     </Button>
@@ -194,7 +203,7 @@ export function OfflineBooksDialog({
                       onClick={() => void handleRemove(book)}
                       aria-label={`移除《${book.title || book.filename}》`}
                       leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
-                      className="h-11 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-9"
+                      className="h-9 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-8"
                     >
                       移除
                     </Button>
@@ -205,27 +214,30 @@ export function OfflineBooksDialog({
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between gap-2.5 border-t border-border/60 pt-4">
+        <div className="app-dialog-footer flex shrink-0 items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
           {books.length > 0 ? (
             <Button
               type="button"
-              variant="default"
-              size="sm"
+              variant="subtle"
+              color="red"
+              size="xs"
               disabled={isClearing || Boolean(removingId)}
               onClick={() => void handleClearAll()}
               leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
-              className="h-10 rounded-lg border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="h-8 rounded-lg px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               {isClearing ? '清空中…' : '清空全部离线缓存'}
             </Button>
           ) : (
-            <span />
+            <p className="text-xs leading-5 text-muted-foreground">
+              离线书籍仅保存在当前浏览器
+            </p>
           )}
           <Button
             type="button"
             variant="default"
-            size="sm"
-            className="h-10 rounded-lg px-5"
+            size="xs"
+            className="h-8 shrink-0 rounded-lg px-4 text-xs font-medium"
             onClick={() => onOpenChange(false)}
           >
             关闭

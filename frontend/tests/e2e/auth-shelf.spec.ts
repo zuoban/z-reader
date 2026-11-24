@@ -134,5 +134,16 @@ test('opens the shared shelf and its settings on a narrow phone', async ({ page 
   await trigger.click();
   await expect(settings.getByRole('menuitem', { name: '亮色模式' })).toBeVisible();
   await settings.getByRole('menuitem', { name: '离线图书管理' }).click();
-  await expect(page.getByRole('dialog', { name: '离线图书管理' })).toBeVisible();
+  const offlineDialog = page.getByRole('dialog', { name: '离线图书管理' });
+  await expect(offlineDialog).toBeVisible();
+  await expect(offlineDialog.locator('..')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const viewport = page.viewportSize()!;
+  await expect.poll(async () => {
+    const box = await offlineDialog.boundingBox();
+    if (!box) return Infinity;
+    return Math.max(
+      Math.abs(box.x + box.width / 2 - viewport.width / 2),
+      Math.abs(box.y + box.height / 2 - viewport.height / 2),
+    );
+  }).toBeLessThan(2);
 });

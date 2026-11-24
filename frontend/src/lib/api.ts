@@ -586,8 +586,8 @@ export const api = {
     });
   },
 
-  listBookmarks: async (bookId: string): Promise<Bookmark[]> => {
-    return fetchApi<Bookmark[]>(`/api/books/${encodeURIComponent(bookId)}/bookmarks`);
+  listBookmarks: async (bookId: string, signal?: AbortSignal): Promise<Bookmark[]> => {
+    return fetchApi<Bookmark[]>(`/api/books/${encodeURIComponent(bookId)}/bookmarks`, { signal });
   },
 
   createBookmark: async (

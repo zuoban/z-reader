@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { toast } from 'sonner';
 import { api, type Bookmark } from '@/lib/api';
+import { getAccessGeneration } from '@/lib/library-access';
 import { getBookmarkExcerpt } from '@/lib/reader-page';
 import type { FoliateView } from '@/lib/types';
 
@@ -16,6 +17,16 @@ interface UseReaderBookmarksOptions {
   onBookmarksOpenChange: (open: boolean) => void;
 }
 
+interface BookmarkContext {
+  bookId: string;
+  signal: AbortSignal;
+  generation: string | null;
+}
+
+function isCurrentBookmarkContext(context: BookmarkContext): boolean {
+  return !context.signal.aborted && context.generation === getAccessGeneration();
+}
+
 export function useReaderBookmarks({
   bookId,
   isAuthenticated,
@@ -27,25 +38,38 @@ export function useReaderBookmarks({
 }: UseReaderBookmarksOptions) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
+  const activeBookRef = useRef<BookmarkContext | null>(null);
 
-  const loadBookmarks = useCallback(async () => {
+  const loadBookmarks = useCallback(async (context: BookmarkContext) => {
+    if (!isCurrentBookmarkContext(context)) return;
     try {
-      const items = await api.listBookmarks(bookId);
-      setBookmarks(items);
+      const items = await api.listBookmarks(context.bookId, context.signal);
+      if (isCurrentBookmarkContext(context)) setBookmarks(items);
     } catch (err) {
-      console.error('Failed to load bookmarks:', err);
+      if (isCurrentBookmarkContext(context)) console.error('Failed to load bookmarks:', err);
     }
-  }, [bookId]);
+  }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Reset the visible state before painting a different book or session.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBookmarks((items) => items.length ? [] : items);
+    setIsSavingBookmark(false);
     if (!isAuthenticated) return;
-    queueMicrotask(() => {
-      void loadBookmarks();
-    });
-  }, [isAuthenticated, loadBookmarks]);
+    const controller = new AbortController();
+    const context = { bookId, signal: controller.signal, generation: getAccessGeneration() };
+    activeBookRef.current = context;
+    queueMicrotask(() => { void loadBookmarks(context); });
+    return () => {
+      activeBookRef.current = null;
+      controller.abort();
+    };
+  }, [bookId, isAuthenticated, loadBookmarks]);
 
   const handleCreateBookmark = useCallback(async () => {
-    if (!currentCFI || isSavingBookmark) return;
+    const context = activeBookRef.current;
+    if (!currentCFI || isSavingBookmark || context?.bookId !== bookId ||
+      !isCurrentBookmarkContext(context)) return;
 
     const isDuplicate = bookmarks.some((item) => item.cfi === currentCFI);
     if (isDuplicate) {
@@ -61,13 +85,15 @@ export function useReaderBookmarks({
         chapter: currentChapter,
         note: getBookmarkExcerpt(viewRef.current),
       });
+      if (!isCurrentBookmarkContext(context)) return;
       setBookmarks((items) => [...items, bookmark]);
       toast.success('书签已添加');
     } catch (err) {
+      if (!isCurrentBookmarkContext(context)) return;
       console.error('Failed to create bookmark:', err);
       toast.error('添加书签失败');
     } finally {
-      setIsSavingBookmark(false);
+      if (isCurrentBookmarkContext(context)) setIsSavingBookmark(false);
     }
   }, [
     bookId,
@@ -89,12 +115,15 @@ export function useReaderBookmarks({
 
   const handleDeleteBookmark = useCallback(
     async (bookmarkId: string) => {
+      const context = activeBookRef.current;
+      if (context?.bookId !== bookId || !isCurrentBookmarkContext(context)) return;
       setBookmarks((items) => items.filter((item) => item.id !== bookmarkId));
       try {
         await api.deleteBookmark(bookId, bookmarkId);
       } catch (err) {
+        if (!isCurrentBookmarkContext(context)) return;
         console.error('Failed to delete bookmark:', err);
-        void loadBookmarks();
+        void loadBookmarks(context);
       }
     },
     [bookId, loadBookmarks]

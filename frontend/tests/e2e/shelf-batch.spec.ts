@@ -17,6 +17,49 @@ test.describe('shelf batch operations', () => {
     colorScheme: 'light',
   });
 
+  for (const width of [390, 1280]) {
+    test(`category management leaves the shelf visible at ${width}px`, async ({ page }) => {
+      const height = 720;
+      await page.setViewportSize({ width, height });
+      await installBrowserStubs(page, { preset: 'light', authenticated: true });
+      await mockAuthVerified(page);
+      await mockMutableShelfApis(page);
+      await gotoStable(page, '/shelf');
+      const book = page.getByRole('button', { name: '阅读《红楼梦》' });
+      await expect(book).toBeVisible();
+
+      if (width < 640) {
+        await page.getByRole('button', { name: '更多书库操作' }).click();
+        await page.getByRole('menuitem', { name: '管理分类' }).click();
+      } else {
+        await page.getByRole('button', { name: '管理', exact: true }).click();
+      }
+      const manager = page.getByRole('dialog', { name: '管理分类' });
+      await expect(manager).toBeVisible();
+      await expect(manager.locator('..')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      await expect.poll(async () => {
+        const box = await manager.boundingBox();
+        if (!box) return Infinity;
+        return Math.max(
+          Math.abs(box.x + box.width / 2 - width / 2),
+          Math.abs(box.y + box.height / 2 - height / 2),
+        );
+      }).toBeLessThan(1);
+
+      await manager.getByRole('button', { name: '删除 古典' }).click();
+      const confirmation = page.getByRole('alertdialog', { name: '删除分类' });
+      await expect(confirmation).toBeVisible();
+      await expect(confirmation.locator('..')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      await confirmation.getByRole('button', { name: '取消' }).click();
+      await expect(confirmation).toBeHidden();
+      await expect(manager).toBeVisible();
+
+      await page.mouse.click(4, 4);
+      await expect(manager).toBeHidden();
+      await expect(book).toBeVisible();
+    });
+  }
+
   test('selects books and applies a batch category', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);

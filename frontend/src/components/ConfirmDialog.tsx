@@ -74,12 +74,12 @@ export function ConfirmDialog({
       padding={0}
       zIndex={95}
       transitionProps={{ duration: 160, transition: 'fade' }}
+      classNames={{
+        content: 'app-dialog-shell overscroll-contain rounded-2xl border p-5 text-sm text-popover-foreground outline-none',
+      }}
     >
       <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-      <Modal.Content
-        ref={handleContentRef}
-        className="app-dialog-shell overflow-hidden rounded-2xl border p-5 text-sm text-popover-foreground outline-none"
-      >
+      <Modal.Content ref={handleContentRef}>
         <div className="flex gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
             <AlertTriangle className="h-5 w-5" strokeWidth={1.5} />

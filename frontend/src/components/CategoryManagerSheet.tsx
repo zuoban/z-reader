@@ -72,9 +72,10 @@ export function CategoryManagerSheet({
         padding={0}
         zIndex={80}
         closeOnEscape={!editingCategory && !deleteConfirmCategory}
+        classNames={{ content: 'app-dialog-shell overscroll-contain rounded-2xl border p-0' }}
       >
         <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-        <Modal.Content className="app-dialog-shell overflow-hidden rounded-2xl border p-0">
+        <Modal.Content>
           <div className="flex items-start justify-between border-b border-border/60 px-6 pb-4 pt-5">
             <div>
               <Modal.Title className="font-heading text-lg font-medium text-foreground">

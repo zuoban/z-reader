@@ -232,7 +232,8 @@ func TestProgressTimeIndexKeyPreservesStoredFormat(t *testing.T) {
 func TestListProgressForBooksAndSince(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"
-	for _, id := range []string{"book-a", "book-b"} {
+	longID := "book-a:the-expanded-illustrated-edition"
+	for _, id := range []string{"book-a", "book-b", longID} {
 		if err := db.SaveBook(&models.Book{
 			ID: id, UserID: userID, Title: id, Filename: id + ".epub", Format: "epub", CreatedAt: time.Now().UTC(),
 		}); err != nil {
@@ -248,11 +249,15 @@ func TestListProgressForBooksAndSince(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pageProgress, err := db.ListProgressForBooks(userID, []string{"book-b", "missing"})
+	if err := db.SaveProgress(&models.Progress{BookID: longID, CFI: "long", Percentage: 30, UpdatedAt: secondUpdatedAt}, userID); err != nil {
+		t.Fatal(err)
+	}
+
+	pageProgress, err := db.ListProgressForBooks(userID, []string{longID, "missing", "book-b", longID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pageProgress) != 1 || pageProgress[0].BookID != "book-b" {
+	if len(pageProgress) != 2 || pageProgress[0].BookID != longID || pageProgress[1].BookID != "book-b" {
 		t.Fatalf("unexpected page progress: %+v", pageProgress)
 	}
 
@@ -260,7 +265,7 @@ func TestListProgressForBooksAndSince(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(changed) != 1 || changed[0].BookID != "book-b" {
+	if len(changed) != 2 || changed[0].BookID != longID || changed[1].BookID != "book-b" {
 		t.Fatalf("unexpected incremental progress: %+v", changed)
 	}
 }

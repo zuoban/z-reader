@@ -202,8 +202,11 @@ func (db *DB) ListProgressForBooks(userID string, bookIDs []string) ([]models.Pr
 
 	err := db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(ProgressBucket)
+		lookupKey := progressKey(userID, "")
+		prefixLen := len(lookupKey)
 		for _, bookID := range ids {
-			data := bucket.Get(progressKey(userID, bookID))
+			lookupKey = append(lookupKey[:prefixLen], bookID...)
+			data := bucket.Get(lookupKey)
 			if data == nil {
 				continue
 			}
@@ -235,9 +238,12 @@ func (db *DB) ListProgressUpdatedSince(userID string, since time.Time) ([]models
 	err := db.View(func(tx *bbolt.Tx) error {
 		indexBucket := tx.Bucket(ProgressTimeIndex)
 		progressBucket := tx.Bucket(ProgressBucket)
+		lookupKey := progressKey(userID, "")
+		prefixLen := len(lookupKey)
 		cursor := indexBucket.Cursor()
 		for key, bookID := cursor.Seek(start); key != nil && bytes.HasPrefix(key, prefix); key, bookID = cursor.Next() {
-			data := progressBucket.Get(progressKey(userID, string(bookID)))
+			lookupKey = append(lookupKey[:prefixLen], bookID...)
+			data := progressBucket.Get(lookupKey)
 			if data == nil {
 				continue
 			}

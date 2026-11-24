@@ -66,7 +66,15 @@ func bookSortIndexKey(book *models.Book, sortKey string) []byte {
 }
 
 func bookSortIndexKeyWithValue(book *models.Book, sortKey, value string) []byte {
-	return []byte(strings.Join([]string{sortKey, book.UserID, value, book.ID}, bookSortSeparator))
+	size := len(sortKey) + len(book.UserID) + len(value) + len(book.ID) + 3*len(bookSortSeparator)
+	key := make([]byte, 0, size)
+	key = append(key, sortKey...)
+	key = append(key, bookSortSeparator...)
+	key = append(key, book.UserID...)
+	key = append(key, bookSortSeparator...)
+	key = append(key, value...)
+	key = append(key, bookSortSeparator...)
+	return append(key, book.ID...)
 }
 
 func addBookToSortIndex(tx *bbolt.Tx, book *models.Book) error {

@@ -107,8 +107,8 @@ export default function RootLayout({
             offset={{ top: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
             mobileOffset={{
               top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)',
-              left: '1rem',
-              right: '1rem',
+              left: 'max(1rem, env(safe-area-inset-left, 0px))',
+              right: 'max(1rem, env(safe-area-inset-right, 0px))',
             }}
             toastOptions={{
               closeButtonAriaLabel: '关闭通知',

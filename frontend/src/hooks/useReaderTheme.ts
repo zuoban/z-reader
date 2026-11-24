@@ -329,6 +329,7 @@ export function useReaderTheme() {
     return `
       ${fontFaces}
       html {
+        color-scheme: ${isDark ? "dark" : "light"};
         background: ${preset.bg} !important;
         color: ${preset.fg} !important;
         scrollbar-width: thin;
@@ -433,6 +434,16 @@ export function useReaderTheme() {
       }
       a:hover {
         text-decoration-color: ${preset.link};
+      }
+      a:focus-visible {
+        outline: 2px solid ${preset.link};
+        outline-offset: 2px;
+        border-radius: 0.2rem;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
       }
       img, svg, video {
         max-width: 100% !important;

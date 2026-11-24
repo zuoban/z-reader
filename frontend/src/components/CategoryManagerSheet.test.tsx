@@ -125,4 +125,36 @@ describe('CategoryManagerSheet', () => {
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     });
   });
+
+  it('ignores Escape during IME composition while renaming a category', () => {
+    const onOpenChange = vi.fn();
+
+    render(
+      <CategoryManagerSheet
+        open
+        onOpenChange={onOpenChange}
+        categories={['科幻']}
+        bookCounts={{ 科幻: 2 }}
+        onRenameCategory={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '重命名 科幻' }));
+    const input = screen.getByRole('textbox', { name: '新分类名称' });
+
+    const composingEscape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEscape, 'isComposing', { value: true });
+    fireEvent(input, composingEscape);
+
+    expect(screen.getByRole('textbox', { name: '新分类名称' })).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: '新分类名称' })).not.toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });

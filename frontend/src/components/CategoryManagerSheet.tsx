@@ -59,7 +59,7 @@ export function CategoryManagerSheet({
     if (!open || !editingCategory || deleteConfirmCategory || isBusy) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
+      if (event.key !== 'Escape' || event.isComposing) return;
       event.preventDefault();
       event.stopPropagation();
       setEditingCategory('');
@@ -215,7 +215,7 @@ export function CategoryManagerSheet({
                                   e.preventDefault();
                                   void saveRename();
                                 }
-                                if (e.key === 'Escape') {
+                                if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   cancelEdit();
@@ -229,7 +229,7 @@ export function CategoryManagerSheet({
                               className="min-w-0 flex-1"
                               classNames={{
                                 input:
-                                  'category-input h-9 rounded-lg px-3 text-sm font-medium text-foreground shadow-none',
+                                  'category-input h-10 rounded-lg px-3 text-base font-medium text-foreground shadow-none sm:h-9 sm:text-sm',
                               }}
                             />
                             <ActionIcon

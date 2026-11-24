@@ -179,7 +179,7 @@ export function BatchCategorySheet({
                 }
                 rightSectionWidth={40}
                 classNames={{
-                  input: 'category-input h-10 rounded-lg px-3 text-sm shadow-none',
+                  input: 'category-input h-10 rounded-lg px-3 text-base shadow-none sm:text-sm',
                 }}
               />
               {isNewCategory && (

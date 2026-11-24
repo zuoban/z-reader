@@ -139,4 +139,22 @@ describe('reader font stylesheets', () => {
     expect(editorialFace).toContain('/_next/static/media/noto-cjk.woff2');
     expect(css).toContain('font-family: "LXGW WenKai TC", "Kaiti SC", KaiTi, serif !important');
   });
+
+  it('syncs iframe color-scheme and link focus-visible outline with the active reader preset', () => {
+    localStorage.setItem('z-reader-theme', JSON.stringify({ preset: 'dark' }));
+    const { result, unmount } = renderHook(() => useReaderTheme());
+    const darkCss = result.current.getStylesheet();
+
+    expect(darkCss).toContain('color-scheme: dark;');
+    expect(darkCss).toContain('a:focus-visible');
+    expect(darkCss).toContain('outline: 2px solid #e4a186;');
+    unmount();
+
+    localStorage.setItem('z-reader-theme', JSON.stringify({ preset: 'sepia' }));
+    const sepiaHook = renderHook(() => useReaderTheme());
+    const sepiaCss = sepiaHook.result.current.getStylesheet();
+
+    expect(sepiaCss).toContain('color-scheme: light;');
+    expect(sepiaCss).toContain('outline: 2px solid #7a4e2a;');
+  });
 });

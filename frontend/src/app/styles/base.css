@@ -99,6 +99,7 @@
   --toast-border: var(--border);
   --toast-accent: var(--primary);
   --toast-accent-fg: var(--primary-foreground);
+  --toast-danger: var(--destructive);
   --normal-bg: var(--toast-bg);
   --normal-border: var(--toast-border);
   --normal-text: var(--toast-fg);
@@ -108,6 +109,16 @@
   font-family: var(--font-sans);
 }
 
+html[data-reader-active-preset="light"] [data-sonner-toaster] {
+  --toast-bg: #ffffff;
+  --toast-fg: #1c1b19;
+  --toast-muted: #6b6860;
+  --toast-border: #e6e4de;
+  --toast-accent: #8e4934;
+  --toast-accent-fg: #ffffff;
+  --toast-danger: #c23b33;
+}
+
 html[data-reader-active-preset="sepia"] [data-sonner-toaster] {
   --toast-bg: #f8f1e2;
   --toast-fg: #3f3124;
@@ -115,6 +126,7 @@ html[data-reader-active-preset="sepia"] [data-sonner-toaster] {
   --toast-border: #d8c4a0;
   --toast-accent: #7a4e2a;
   --toast-accent-fg: #f8f1e2;
+  --toast-danger: #c23b33;
 }
 
 html[data-reader-active-preset="green"] [data-sonner-toaster] {
@@ -124,6 +136,17 @@ html[data-reader-active-preset="green"] [data-sonner-toaster] {
   --toast-border: #c8d6c3;
   --toast-accent: #3d6349;
   --toast-accent-fg: #eef3e9;
+  --toast-danger: #c23b33;
+}
+
+html[data-reader-active-preset="dark"] [data-sonner-toaster] {
+  --toast-bg: #1b1b19;
+  --toast-fg: #ededeb;
+  --toast-muted: #9a9891;
+  --toast-border: #2a2a27;
+  --toast-accent: #e4a186;
+  --toast-accent-fg: #28160e;
+  --toast-danger: #f08078;
 }
 
 [data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
@@ -133,11 +156,11 @@ html[data-reader-active-preset="green"] [data-sonner-toaster] {
 }
 
 [data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="error"] {
-  border-color: color-mix(in srgb, var(--destructive) 36%, var(--toast-border)) !important;
+  border-color: color-mix(in srgb, var(--toast-danger) 36%, var(--toast-border)) !important;
 }
 
 [data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="error"] [data-icon] {
-  color: var(--destructive);
+  color: var(--toast-danger);
 }
 
 [data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="success"] [data-icon] {
@@ -228,6 +251,13 @@ html[data-reader-active-preset="green"] [data-sonner-toaster] {
   .touch-control {
     min-height: var(--control-touch-size);
     touch-action: manipulation;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+    min-height: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    width: 2.25rem;
   }
 
   body {

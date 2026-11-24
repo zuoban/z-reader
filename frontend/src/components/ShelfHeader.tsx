@@ -11,6 +11,7 @@ interface ShelfHeaderProps {
   isOffline: boolean;
   isUploading: boolean;
   uploadStatusLabel?: string;
+  isQuietUpload?: boolean;
   isDark: boolean;
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onToggleTheme: () => void;
@@ -23,6 +24,7 @@ export function ShelfHeader({
   isOffline,
   isUploading,
   uploadStatusLabel,
+  isQuietUpload = false,
   isDark,
   onUpload,
   onToggleTheme,
@@ -36,7 +38,7 @@ export function ShelfHeader({
       <div className="app-container flex h-16 items-center justify-between gap-2 sm:gap-3">
         <BrandLogo compact className="shrink-0 whitespace-nowrap" />
 
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           {!isOffline && (
             <>
               <FileUploadAction
@@ -46,8 +48,9 @@ export function ShelfHeader({
                 title="上传书籍"
                 label="上传"
                 statusLabel={uploadStatusLabel}
+                density="header"
+                emphasis={isQuietUpload ? 'secondary' : 'primary'}
                 multiple
-                buttonClassName="text-[13px] sm:h-9 sm:pr-3.5 sm:text-sm"
               />
               <span className="sr-only" role="status" aria-atomic="true">{uploadStatusLabel}</span>
             </>

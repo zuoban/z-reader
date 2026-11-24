@@ -350,6 +350,7 @@ export default function ShelfPage() {
         isOffline={isOffline}
         isUploading={isUploading}
         uploadStatusLabel={uploadStatusLabel}
+        isQuietUpload={!isLoadingBooks && !loadError && isLibraryEmpty}
         isDark={isDark}
         onUpload={handleUpload}
         onToggleTheme={toggleTheme}
@@ -479,9 +480,10 @@ export default function ShelfPage() {
                   title="上传书籍"
                   label="添加第一本书"
                   statusLabel={uploadStatusLabel}
+                  density="prominent"
                   multiple
                   wrapperClassName="w-full sm:w-auto"
-                  buttonClassName="w-full sm:w-auto sm:pr-4"
+                  buttonClassName="w-full sm:w-auto"
                 />
               }
             />

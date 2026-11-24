@@ -182,4 +182,63 @@ describe('TTSControls', () => {
       window.removeEventListener('keydown', onWindowKeyDown);
     }
   });
+
+  it('omits the empty floating status footer when no status is active', () => {
+    const { rerender, props } = renderControls({ variant: 'floating' });
+    expect(screen.queryByTestId('tts-floating-status-footer')).not.toBeInTheDocument();
+
+    rerender(
+      <TTSControls
+        {...props}
+        variant="floating"
+        ttsStatus={{
+          headline: '正在准备语音…',
+          tone: 'active',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('tts-floating-status-footer')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: '更多设置' }));
+    expect(screen.queryByTestId('tts-floating-status-footer')).not.toBeInTheDocument();
+  });
+
+  it.each(['floating', 'toolbar'] as const)(
+    'prevents duplicate resume calls while resuming in %s controls',
+    async (variant) => {
+      let finishResume!: () => void;
+      const resumePromise = new Promise<void>((resolve) => {
+        finishResume = resolve;
+      });
+      const onResume = vi.fn(() => resumePromise);
+
+      renderControls({
+        variant,
+        resumePromptVisible: true,
+        resumePromptMessage: '切回应用后点击继续朗读。',
+        onResume,
+      });
+
+      expect(screen.getByText('切回应用后点击继续朗读。')).toBeVisible();
+
+      const resumeButton = screen.getByRole('button', { name: '继续' });
+      fireEvent.click(resumeButton);
+      expect(onResume).toHaveBeenCalledOnce();
+      expect(resumeButton).toBeDisabled();
+      expect(resumeButton).toHaveAttribute('aria-busy', 'true');
+      expect(resumeButton).toHaveTextContent('恢复中…');
+
+      fireEvent.click(resumeButton);
+      expect(onResume).toHaveBeenCalledOnce();
+
+      await act(async () => {
+        finishResume();
+        await resumePromise;
+      });
+
+      expect(resumeButton).toBeEnabled();
+      expect(resumeButton).not.toHaveAttribute('aria-busy');
+      expect(resumeButton).toHaveTextContent('继续');
+    },
+  );
 });

@@ -224,17 +224,23 @@
     overscroll-behavior: contain;
   }
 
-  .reader-panel-body.custom-scrollbar {
+  .reader-panel-body.custom-scrollbar,
+  .reader-select-dropdown .custom-scrollbar,
+  [data-reader-tts-popup="true"] .custom-scrollbar {
     scrollbar-color: color-mix(in srgb, var(--reader-panel-fg) 22%, transparent) transparent;
   }
 
-  .reader-panel-body.custom-scrollbar::-webkit-scrollbar-thumb {
+  .reader-panel-body.custom-scrollbar::-webkit-scrollbar-thumb,
+  .reader-select-dropdown .custom-scrollbar::-webkit-scrollbar-thumb,
+  [data-reader-tts-popup="true"] .custom-scrollbar::-webkit-scrollbar-thumb {
     background: color-mix(in srgb, var(--reader-panel-fg) 20%, transparent);
     border: 2px solid transparent;
     background-clip: padding-box;
   }
 
-  .reader-panel-body.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  .reader-panel-body.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  .reader-select-dropdown .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  [data-reader-tts-popup="true"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: color-mix(in srgb, var(--reader-panel-fg) 34%, transparent);
     background-clip: padding-box;
   }

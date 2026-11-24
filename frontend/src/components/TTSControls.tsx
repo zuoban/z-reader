@@ -293,8 +293,11 @@ export function TTSControls({
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
   const operationRef = useRef(0);
   const pendingRef = useRef(false);
+  const resumingRef = useRef(false);
+  const mountedRef = useRef(true);
   const isBusy = isPending || preparing;
   const [position, setPosition] = useState({ x: 22, y: 12 });
   const [isDragging, setIsDragging] = useState(false);
@@ -377,7 +380,27 @@ export function TTSControls({
     onStop();
   };
 
-  useEffect(() => () => { operationRef.current += 1; }, []);
+  const handleResumeClick = async () => {
+    if (resumingRef.current || !onResume) return;
+    resumingRef.current = true;
+    setIsResuming(true);
+    try {
+      await onResume();
+    } finally {
+      resumingRef.current = false;
+      if (mountedRef.current) {
+        setIsResuming(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      operationRef.current += 1;
+    };
+  }, []);
 
   const commitPosition = useCallback((nextPosition: { x: number; y: number }) => {
     positionRef.current = nextPosition;
@@ -749,7 +772,7 @@ export function TTSControls({
             )}
             style={resolvedTriggerStyle}
           >
-            <Volume2 className="relative z-10 h-4 w-4" />
+            <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         )}
 
@@ -809,7 +832,7 @@ export function TTSControls({
                   aria-label="关闭朗读控制"
                   title="关闭"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </ActionIcon>
               </div>
             </div>
@@ -817,10 +840,12 @@ export function TTSControls({
             <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-4 sm:px-6">
               {resumePromptVisible && (
                 <section
-                  className="rounded-lg border p-3"
+                  role="status"
+                  aria-live="polite"
+                  className="rounded-xl border p-3"
                   style={{
                     background: withOpacity(uiScheme.link, 0.06),
-                    borderColor: withOpacity(uiScheme.link, 0.18),
+                    borderColor: withOpacity(uiScheme.link, 0.2),
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -830,7 +855,7 @@ export function TTSControls({
                         color: uiScheme.link,
                       }}
                     >
-                      <AlertCircle className="h-4.5 w-4.5" />
+                      <AlertCircle className="h-4.5 w-4.5" aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold" style={{ color: uiScheme.fg }}>
@@ -840,18 +865,23 @@ export function TTSControls({
                         {resumePromptMessage}
                       </p>
                     </div>
-                    <UnstyledButton
+                    <button
                       type="button"
-                      onClick={() => void onResume?.()}
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-semibold"
-                      style={{
-                        color: uiScheme.link,
-                        background: withOpacity(uiScheme.buttonBg, 0.42),
-                        border: `1px solid ${withOpacity(uiScheme.link, 0.14)}`,
-                      }}
+                      disabled={isResuming}
+                      aria-busy={isResuming || undefined}
+                      onClick={() => void handleResumeClick()}
+                      className="reader-panel-action px-3 text-xs"
                     >
-                      继续
-                    </UnstyledButton>
+                      {isResuming ? (
+                        <Loader2
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                        />
+                      ) : (
+                        <Play aria-hidden="true" className="h-3.5 w-3.5 fill-current" />
+                      )}
+                      <span>{isResuming ? '恢复中…' : '继续'}</span>
+                    </button>
                   </div>
                 </section>
               )}
@@ -870,7 +900,7 @@ export function TTSControls({
                       title="上一句"
                       active={isActive}
                     >
-                      <SkipBack className="h-5 w-5" />
+                      <SkipBack className="h-5 w-5" aria-hidden="true" />
                     </ControlButton>
 
                     <div className="relative flex items-center justify-center">
@@ -902,7 +932,7 @@ export function TTSControls({
                       title="下一句"
                       active={isActive}
                     >
-                      <SkipForward className="h-5 w-5" />
+                      <SkipForward className="h-5 w-5" aria-hidden="true" />
                     </ControlButton>
 
                     <ControlButton
@@ -912,7 +942,7 @@ export function TTSControls({
                       active={isActive || isBusy}
                       variant="danger"
                     >
-                      <Square className="h-5 w-5" />
+                      <Square className="h-5 w-5" aria-hidden="true" />
                     </ControlButton>
                   </div>
 
@@ -1064,7 +1094,7 @@ export function TTSControls({
               opacity: isBusy ? 0.72 : 1,
             }}
           >
-            <Volume2 className="relative z-10 h-4 w-4" />
+            <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         ) : (
           !expanded && (
@@ -1137,7 +1167,7 @@ export function TTSControls({
                   aria-label="关闭朗读控制面板"
                   title="关闭"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </ActionIcon>
               </div>
 
@@ -1147,6 +1177,8 @@ export function TTSControls({
               >
                 {resumePromptVisible && (
                   <section
+                    role="status"
+                    aria-live="polite"
                     className="rounded-xl border px-3.5 py-3"
                     style={{
                       background: withOpacity(uiScheme.link, 0.06),
@@ -1161,25 +1193,38 @@ export function TTSControls({
                           color: uiScheme.link,
                         }}
                       >
-                        <AlertCircle className="h-4 w-4" strokeWidth={1.5} />
+                        <AlertCircle className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-medium" style={{ color: uiScheme.fg }}>
                           继续朗读
                         </p>
+                        {resumePromptMessage ? (
+                          <p
+                            className="mt-0.5 line-clamp-2 text-xs leading-5"
+                            style={{ color: uiScheme.mutedText }}
+                          >
+                            {resumePromptMessage}
+                          </p>
+                        ) : null}
                       </div>
-                      <UnstyledButton
+                      <button
                         type="button"
-                        onClick={() => void onResume?.()}
-                        className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-medium transition-colors active:scale-95"
-                        style={{
-                          color: uiScheme.link,
-                          background: withOpacity(uiScheme.buttonBg, 0.6),
-                          border: `1px solid ${withOpacity(uiScheme.link, 0.2)}`,
-                        }}
+                        disabled={isResuming}
+                        aria-busy={isResuming || undefined}
+                        onClick={() => void handleResumeClick()}
+                        className="reader-panel-action px-3 text-xs"
                       >
-                        继续
-                      </UnstyledButton>
+                        {isResuming ? (
+                          <Loader2
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                          />
+                        ) : (
+                          <Play aria-hidden="true" className="h-3.5 w-3.5 fill-current" />
+                        )}
+                        <span>{isResuming ? '恢复中…' : '继续'}</span>
+                      </button>
                     </div>
                   </section>
                 )}
@@ -1223,7 +1268,7 @@ export function TTSControls({
                       title="上一句"
                       active={isActive}
                     >
-                      <SkipBack className="h-5 w-5" />
+                      <SkipBack className="h-5 w-5" aria-hidden="true" />
                     </ControlButton>
 
                     <div className="relative flex items-center justify-center">
@@ -1255,7 +1300,7 @@ export function TTSControls({
                       title="下一句"
                       active={isActive}
                     >
-                      <SkipForward className="h-5 w-5" />
+                      <SkipForward className="h-5 w-5" aria-hidden="true" />
                     </ControlButton>
 
                     <ControlButton
@@ -1265,7 +1310,7 @@ export function TTSControls({
                       active={isActive || isBusy}
                       variant="danger"
                     >
-                      <Square className="h-5 w-5" />
+                      <Square className="h-5 w-5" aria-hidden="true" />
                     </ControlButton>
                   </div>
 
@@ -1385,14 +1430,15 @@ export function TTSControls({
                 </div>
               </div>
 
-              {!isToolbar && (
+              {!isToolbar && ttsStatus && !detailsExpanded && (
                 <div
+                  data-testid="tts-floating-status-footer"
                   className="border-t p-3"
                   style={{
                     borderColor: 'var(--reader-panel-rule)',
                   }}
                 >
-                  {ttsStatus && !detailsExpanded ? renderStatusContent(true) : null}
+                  {renderStatusContent(true)}
                 </div>
               )}
             </div>

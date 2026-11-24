@@ -267,7 +267,7 @@ func updateBookSortKey(tx *bbolt.Tx, oldBook, book *models.Book, sortKey string)
 	return nil
 }
 
-func moveBookCategorySortKeys(tx *bbolt.Tx, book *models.Book, from, to string) error {
+func updateBookCategorySortKeys(tx *bbolt.Tx, book *models.Book, from, to string) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
@@ -283,11 +283,15 @@ func moveBookCategorySortKeys(tx *bbolt.Tx, book *models.Book, from, to string) 
 			}
 		}
 		if byCategory != nil {
-			oldKey := bookCategorySortIndexKeyWithValue(book, sortKey, from, value)
-			if err := byCategory.Delete(oldKey); err != nil {
-				return err
-			}
 			newKey := bookCategorySortIndexKeyWithValue(book, sortKey, to, value)
+			if from != to {
+				oldKey := bookCategorySortIndexKeyWithValue(book, sortKey, from, value)
+				if err := byCategory.Delete(oldKey); err != nil {
+					return err
+				}
+			} else if bytes.Equal(byCategory.Get(newKey), id) {
+				continue
+			}
 			if err := byCategory.Put(newKey, id); err != nil {
 				return err
 			}
@@ -341,7 +345,7 @@ func updateBooksCategoryInTx(
 			return nil, err
 		}
 		newCategory := categoryForBook(&book)
-		if err := moveBookCategorySortKeys(tx, &book, oldCategory, newCategory); err != nil {
+		if err := updateBookCategorySortKeys(tx, &book, oldCategory, newCategory); err != nil {
 			return nil, err
 		}
 		if err := replaceBookSearchGrams(tx, &book, oldSearchText, searchText); err != nil {

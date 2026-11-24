@@ -72,6 +72,40 @@ func TestUpdateBookKeepsPreviousPointerFields(t *testing.T) {
 	}
 }
 
+func TestCoverUpdateRepairsSortIndexes(t *testing.T) {
+	db := openTestDB(t)
+	category := "科幻"
+	book := &models.Book{ID: "a", UserID: "u", Title: "三体", Category: &category}
+	if err := db.CreateBook(book); err != nil {
+		t.Fatal(err)
+	}
+	titleKey := bookSortIndexKey(book, "title")
+	categoryKey := bookCategorySortIndexKey(book, "title")
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		if err := tx.Bucket(BookSortIndex).Delete(titleKey); err != nil {
+			return err
+		}
+		return tx.Bucket(BookCategorySortIndex).Put(categoryKey, []byte("wrong"))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+		book.CoverPath = "cover.png"
+		return true
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		if string(tx.Bucket(BookSortIndex).Get(titleKey)) != book.ID ||
+			string(tx.Bucket(BookCategorySortIndex).Get(categoryKey)) != book.ID {
+			t.Error("cover update did not repair sort indexes")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCategoryMutationUpdatesSummaryAndSearch(t *testing.T) {
 	db := openTestDB(t)
 	oldCategory, newCategory := "Old unique category", "New distinct category"

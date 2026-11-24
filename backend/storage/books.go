@@ -37,12 +37,21 @@ func bookSortValue(book *models.Book, sortKey string) string {
 	case "recent_added":
 		return invertedBookTimestamp(book.CreatedAt)
 	default:
-		lastReadAt := book.CreatedAt
-		if book.LastReadAt != nil {
-			lastReadAt = *book.LastReadAt
-		}
-		return invertedBookTimestamp(lastReadAt)
+		return invertedBookTimestamp(bookRecentReadAt(book))
 	}
+}
+
+func bookRecentReadAt(book *models.Book) time.Time {
+	if book.LastReadAt != nil {
+		return *book.LastReadAt
+	}
+	return book.CreatedAt
+}
+
+func sameBookSortInputs(a, b *models.Book) bool {
+	return a.Title == b.Title && a.Author == b.Author &&
+		a.CreatedAt.UnixNano() == b.CreatedAt.UnixNano() &&
+		bookRecentReadAt(a).UnixNano() == bookRecentReadAt(b).UnixNano()
 }
 
 func invertedBookTimestamp(value time.Time) string {
@@ -639,10 +648,11 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 
 	book.Category = normalizeCategoryName(book.Category)
 	searchText := bookSearchText(book)
-	sameSearchKey := oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID
+	sameBookKey := oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID
+	sameSortInputs := sameBookKey && sameBookSortInputs(oldBook, book)
 	// Cover and processing-state updates can leave both search indexes intact.
 	searchUnchanged := false
-	if sameSearchKey && oldSearchText == searchText {
+	if sameBookKey && oldSearchText == searchText {
 		indexedText := tx.Bucket(BookSearchIndex).Get(bookSearchIndexKey(book.UserID, book.ID))
 		searchUnchanged = indexedText != nil && string(indexedText) == searchText
 	}
@@ -669,11 +679,13 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		if err := removeBookFromContentIndex(tx, oldBook); err != nil {
 			return err
 		}
-		if err := removeBookFromSortIndex(tx, oldBook); err != nil {
-			return err
+		if !sameSortInputs {
+			if err := removeBookFromSortIndex(tx, oldBook); err != nil {
+				return err
+			}
 		}
 	}
-	if oldBook != nil && !sameSearchKey {
+	if oldBook != nil && !sameBookKey {
 		if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
 			return err
 		}
@@ -681,14 +693,18 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 			return err
 		}
 	}
-	if err := addBookToSortIndex(tx, book); err != nil {
+	if sameSortInputs {
+		if err := updateBookCategorySortKeys(tx, book, categoryForBook(oldBook), categoryForBook(book)); err != nil {
+			return err
+		}
+	} else if err := addBookToSortIndex(tx, book); err != nil {
 		return err
 	}
 	if !searchUnchanged {
 		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return err
 		}
-		if sameSearchKey {
+		if sameBookKey {
 			if err := replaceBookSearchGrams(tx, book, oldSearchText, searchText); err != nil {
 				return err
 			}

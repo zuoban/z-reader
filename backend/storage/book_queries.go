@@ -75,6 +75,11 @@ func scanSortedBooks(
 	}
 	booksBucket, searchBucket := tx.Bucket(BooksBucket), tx.Bucket(BookSearchIndex)
 	queryBytes := []byte(query)
+	var searchKey []byte
+	if query != "" {
+		searchKey = bookSearchIndexKey(userID, "")
+	}
+	searchPrefixLen := len(searchKey)
 	c := index.Cursor()
 	for key, id := c.Seek(start); key != nil && bytes.HasPrefix(key, prefix); key, id = c.Next() {
 		if string(id) == cursor {
@@ -83,8 +88,11 @@ func scanSortedBooks(
 		if candidateCount != nil {
 			(*candidateCount)++
 		}
-		if query != "" && !bytes.Contains(searchBucket.Get(bookSearchIndexKey(userID, string(id))), queryBytes) {
-			continue
+		if query != "" {
+			searchKey = append(searchKey[:searchPrefixLen], id...)
+			if !bytes.Contains(searchBucket.Get(searchKey), queryBytes) {
+				continue
+			}
 		}
 		data := booksBucket.Get(id)
 		if data == nil {
@@ -197,16 +205,20 @@ func (db *DB) SearchBooks(
 		candidates := make([]candidate, 0, min(count, 2*pageSize))
 		gramBucket, searchBucket, booksBucket := tx.Bucket(BookSearchGramIndex), tx.Bucket(BookSearchIndex), tx.Bucket(BooksBucket)
 		prefix := bookSearchGramIndexPrefix(userID, gram)
+		queryBytes := []byte(query)
+		searchKey := bookSearchIndexKey(userID, "")
+		searchPrefixLen := len(searchKey)
 		c := gramBucket.Cursor()
 		for key, _ := c.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, _ = c.Next() {
 			candidateCount++
-			id := string(key[len(prefix):])
+			id := key[len(prefix):]
 			// The rarest posting list already bounds this scan. Checking the
 			// compact exact text once is cheaper than probing every other gram.
-			if !bytes.Contains(searchBucket.Get(bookSearchIndexKey(userID, id)), []byte(query)) {
+			searchKey = append(searchKey[:searchPrefixLen], id...)
+			if !bytes.Contains(searchBucket.Get(searchKey), queryBytes) {
 				continue
 			}
-			data := booksBucket.Get([]byte(id))
+			data := booksBucket.Get(id)
 			if data == nil {
 				continue
 			}

@@ -39,6 +39,34 @@ func TestCategoryMutationUpdatesSummaryAndSearch(t *testing.T) {
 	}
 }
 
+func TestBatchCategoryUpdateCountsEachBookOnce(t *testing.T) {
+	db := openTestDB(t)
+	source, destination := "Source", "Destination"
+	for _, book := range []models.Book{
+		{ID: "a", UserID: "u", Category: &source},
+		{ID: "b", UserID: "u"},
+		{ID: "c", UserID: "u", Category: &destination},
+		{ID: "d", UserID: "other", Category: &source},
+	} {
+		if err := db.CreateBook(&book); err != nil {
+			t.Fatal(err)
+		}
+	}
+	books, err := db.UpdateBooksCategory([]string{"b", "a", "b", "", "c"}, "u", &destination)
+	if err != nil || len(books) != 3 || books[0].ID != "b" || books[1].ID != "a" || books[2].ID != "c" {
+		t.Fatalf("updated books = %+v, err = %v", books, err)
+	}
+	summary, err := db.GetBookLibrarySummary("u")
+	if err != nil || summary.Total != 3 || summary.Uncategorized != 0 ||
+		len(summary.Categories) != 1 || summary.Categories[destination] != 3 {
+		t.Fatalf("updated summary = %+v, err = %v", summary, err)
+	}
+	other, err := db.GetBookLibrarySummary("other")
+	if err != nil || other.Total != 1 || other.Categories[source] != 1 {
+		t.Fatalf("other summary = %+v, err = %v", other, err)
+	}
+}
+
 func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
 	db := openTestDB(t)
 	book := &models.Book{ID: "book", UserID: "reader", Title: "古典 Art"}

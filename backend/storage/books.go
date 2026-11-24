@@ -233,23 +233,20 @@ func adjustLibrarySummary(tx *bbolt.Tx, book *models.Book, delta int) error {
 	if err != nil {
 		return err
 	}
-	summary.Total += delta
-	if summary.Total < 0 {
-		summary.Total = 0
-	}
-	category := categoryForBook(book)
+	summary.adjustCount(categoryForBook(book), delta)
+	return saveLibrarySummary(tx, book.UserID, summary)
+}
+
+func (summary *BookLibrarySummary) adjustCount(category string, delta int) {
+	summary.Total = max(0, summary.Total+delta)
 	if category == "" {
-		summary.Uncategorized += delta
-		if summary.Uncategorized < 0 {
-			summary.Uncategorized = 0
-		}
-		return saveLibrarySummary(tx, book.UserID, summary)
+		summary.Uncategorized = max(0, summary.Uncategorized+delta)
+		return
 	}
 	summary.Categories[category] += delta
 	if summary.Categories[category] <= 0 {
 		delete(summary.Categories, category)
 	}
-	return saveLibrarySummary(tx, book.UserID, summary)
 }
 
 func bookSearchValue(book *models.Book) []byte {

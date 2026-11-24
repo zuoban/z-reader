@@ -249,6 +249,7 @@ func updateBooksCategoryInTx(
 
 	booksBucket := tx.Bucket(BooksBucket)
 	normalizedCategory := normalizeCategoryName(category)
+	var summary *BookLibrarySummary
 	for _, id := range uniqueNonEmptyStrings(ids) {
 		bookData := booksBucket.Get([]byte(id))
 		if bookData == nil {
@@ -261,8 +262,15 @@ func updateBooksCategoryInTx(
 		if book.UserID != userID {
 			return nil, ErrNotFound
 		}
-		if err := adjustLibrarySummary(tx, &book, -1); err != nil {
-			return nil, err
+		if summary == nil && userID != "" {
+			current, err := loadLibrarySummary(tx, userID)
+			if err != nil {
+				return nil, err
+			}
+			summary = &current
+		}
+		if summary != nil {
+			summary.adjustCount(categoryForBook(&book), -1)
 		}
 		if err := removeBookFromSortIndex(tx, &book); err != nil {
 			return nil, err
@@ -287,11 +295,16 @@ func updateBooksCategoryInTx(
 		if err := addBookToSearchGramIndex(tx, &book); err != nil {
 			return nil, err
 		}
-		if err := adjustLibrarySummary(tx, &book, 1); err != nil {
-			return nil, err
+		if summary != nil {
+			summary.adjustCount(categoryForBook(&book), 1)
 		}
 		if includeBooks {
 			updatedBooks = append(updatedBooks, book)
+		}
+	}
+	if summary != nil {
+		if err := saveLibrarySummary(tx, userID, *summary); err != nil {
+			return nil, err
 		}
 	}
 	return updatedBooks, nil

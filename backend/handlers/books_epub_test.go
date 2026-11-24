@@ -157,6 +157,42 @@ func TestIndexEPUBEntriesMatchesMixedCaseAndUnicodeNames(t *testing.T) {
 	}
 }
 
+func TestNormalizeEPUBZipEntryNamePreservesNestedPath(t *testing.T) {
+	for _, tt := range []struct{ name, want string }{
+		{"///Édition.EPUB/META-INF/Container.XML", "meta-inf/container.xml"},
+		{"Édition.EPUB//META-INF/Container.XML", "/meta-inf/container.xml"},
+		{"OPS/Édition.EPUB/MIMETYPE", "ops/édition.epub/mimetype"},
+		{"Édition.EPUB", "édition.epub"},
+	} {
+		if got := normalizeEPUBZipEntryName(tt.name); got != tt.want {
+			t.Errorf("normalize %q = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestEPUBPackageRootRequiresOneWrapper(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		paths []string
+		want  string
+	}{
+		{"flat", []string{"mimetype", "META-INF/container.xml", "book.epub/Text/chapter.xhtml"}, ""},
+		{"same wrapper", []string{"Édition.EPUB/Mimetype", "édition.epub/META-INF/Container.XML"}, "édition.epub/"},
+		{"different wrappers", []string{"one.epub/mimetype", "two.epub/META-INF/container.xml", "one.epub/META-INF/container.xml"}, ""},
+		{"unrecognized marker paths", []string{"book.epub//mimetype", "book.epub/wrap/META-INF/container.xml"}, ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := &zip.Reader{}
+			for _, name := range tt.paths {
+				reader.File = append(reader.File, &zip.File{FileHeader: zip.FileHeader{Name: name}})
+			}
+			if got, ok := epubPackageRoot(reader); got != tt.want || ok != (tt.want != "") {
+				t.Fatalf("root = %q, %t, want %q, %t", got, ok, tt.want, tt.want != "")
+			}
+		})
+	}
+}
+
 func TestFindEPUBOPFFileFallsBackToFirstMatchingExtension(t *testing.T) {
 	reader := buildTestZipReader(t, []struct {
 		name string

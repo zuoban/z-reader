@@ -174,34 +174,31 @@ func maxEPUBExpansionLimit(uploadLimit int64) int64 {
 
 func normalizeEPUBZipEntryName(name string) string {
 	normalized := strings.ToLower(strings.TrimLeft(name, "/"))
-	parts := strings.Split(normalized, "/")
-	if len(parts) > 1 && strings.HasSuffix(parts[0], ".epub") {
-		return strings.Join(parts[1:], "/")
+	root, rest, found := strings.Cut(normalized, "/")
+	if found && strings.HasSuffix(root, ".epub") {
+		return rest
 	}
 	return normalized
 }
 
 func epubPackageRoot(reader *zip.Reader) (string, bool) {
-	roots := make(map[string]bool)
+	var root string
 	for _, entry := range reader.File {
 		name := strings.ToLower(strings.TrimLeft(entry.Name, "/"))
-		parts := strings.Split(name, "/")
-		if len(parts) <= 1 || !strings.HasSuffix(parts[0], ".epub") {
+		candidate, rest, found := strings.Cut(name, "/")
+		if !found || !strings.HasSuffix(candidate, ".epub") ||
+			(rest != "mimetype" && rest != "meta-inf/container.xml") {
 			continue
 		}
-		stripped := strings.Join(parts[1:], "/")
-		if stripped == "mimetype" || stripped == "meta-inf/container.xml" {
-			roots[parts[0]+"/"] = true
+		if root != "" && root != candidate {
+			return "", false
 		}
+		root = candidate
 	}
-
-	if len(roots) != 1 {
+	if root == "" {
 		return "", false
 	}
-	for root := range roots {
-		return root, true
-	}
-	return "", false
+	return root + "/", true
 }
 
 func stripEPUBPackageRoot(name string, root string) (string, bool) {

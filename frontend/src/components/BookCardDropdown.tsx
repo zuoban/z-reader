@@ -50,6 +50,7 @@ export function BookCardDropdown({
       width="16rem"
       radius="lg"
       shadow="md"
+      zIndex={60}
       withinPortal
     >
       <Menu.Target>
@@ -58,20 +59,22 @@ export function BookCardDropdown({
           color="gray"
           size="sm"
           radius="md"
+          disabled={isDeleting}
+          aria-busy={isDeleting || undefined}
           aria-label={triggerLabel}
           title="更多操作"
           className={cn(
-            'flex h-10 w-10 min-h-0 min-w-0 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground data-[expanded]:bg-secondary data-[expanded]:text-foreground focus-visible:outline-2 focus-visible:outline-ring active:scale-95 sm:h-8 sm:w-8',
+            'flex h-10 w-10 min-h-0 min-w-0 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground data-[expanded]:bg-secondary data-[expanded]:text-foreground focus-visible:outline-2 focus-visible:outline-ring active:scale-95 motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8 sm:w-8',
             triggerClassName
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <MoreVertical className="h-4 w-4" />
+          <MoreVertical className="h-4 w-4" aria-hidden="true" />
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown
         onClick={(e) => e.stopPropagation()}
-        className="max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-0 font-sans shadow-[var(--paper-shadow-floating)]"
+        className="paper-menu max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl p-0 font-sans"
       >
         <div className="border-b border-border/70 bg-surface-subtle/75 px-4 py-3">
           <div className="flex items-start justify-between gap-2.5">
@@ -102,10 +105,12 @@ export function BookCardDropdown({
               e.stopPropagation();
               onCategoryClick();
             }}
+            disabled={isDeleting}
             leftSection={
               <Tag
                 className="h-4 w-4 text-muted-foreground transition-colors"
                 strokeWidth={1.6}
+                aria-hidden="true"
               />
             }
             rightSection={
@@ -116,7 +121,7 @@ export function BookCardDropdown({
                 {currentCategoryText}
               </span>
             }
-            className="min-h-11 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors data-[hovered]:bg-secondary data-[hovered]:text-foreground sm:min-h-9 sm:py-1.5"
+            className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors data-[hovered]:bg-secondary data-[hovered]:text-foreground sm:min-h-9 sm:py-1.5"
           >
             <span className="shrink-0">设置分类</span>
           </Menu.Item>
@@ -130,8 +135,9 @@ export function BookCardDropdown({
               onDeleteClick();
             }}
             disabled={isDeleting}
-            leftSection={<Trash2 className="h-4 w-4" strokeWidth={1.6} />}
-            className="min-h-11 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-destructive transition-colors data-[hovered]:bg-destructive/10 dark:data-[hovered]:bg-destructive/18 sm:min-h-9 sm:py-1.5"
+            aria-busy={isDeleting || undefined}
+            leftSection={<Trash2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />}
+            className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-destructive transition-colors data-[hovered]:bg-destructive/10 dark:data-[hovered]:bg-destructive/18 sm:min-h-9 sm:py-1.5"
           >
             {isDeleting ? '删除中…' : '删除图书'}
           </Menu.Item>

@@ -20,7 +20,7 @@ interface BookCardProps {
   categories: string[];
   bookCounts: Record<string, number>;
   onRead: () => void;
-  onDelete: () => void;
+  onDelete: () => void | Promise<void>;
   onUpdate: () => void;
   isDeleting: boolean;
   formatSize: (bytes: number) => string;
@@ -217,6 +217,7 @@ export const BookCard = memo(function BookCard({
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
 
   function activateCard() {
+    if (isDeleting) return;
     if (selectionMode) {
       onSelectionToggle?.();
       return;
@@ -225,15 +226,30 @@ export const BookCard = memo(function BookCard({
     onRead();
   }
 
+  async function handleConfirmDelete() {
+    if (isDeleting) return;
+    try {
+      await onDelete();
+    } finally {
+      setDeleteConfirmOpen(false);
+    }
+  }
+
   return (
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
-      <article className="shelf-book-card flex min-w-0 flex-1 flex-col" data-selected={selected}>
+      <article
+        className="shelf-book-card flex min-w-0 flex-1 flex-col"
+        data-selected={selected}
+        data-deleting={isDeleting || undefined}
+        aria-busy={isDeleting || undefined}
+      >
         <button
           type="button"
+          disabled={isDeleting}
           onClick={activateCard}
           aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
           aria-pressed={selectionMode ? selected : undefined}
-          className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-t-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-t-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
         >
           <div className="shelf-book-cover book-cover-spine">
             <BookCoverFace
@@ -263,7 +279,10 @@ export const BookCard = memo(function BookCard({
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h2>
-              <p className="mt-0.5 truncate text-xs leading-4 text-subtle-foreground">
+              <p
+                className="mt-0.5 truncate text-xs leading-4 text-subtle-foreground"
+                title={authorLabel}
+              >
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
@@ -296,11 +315,13 @@ export const BookCard = memo(function BookCard({
           {selectionMode ? (
             <button
               type="button"
+              disabled={isDeleting}
               onClick={onSelectionToggle}
               aria-pressed={selected}
               className="shelf-book-action"
             >
               <Check
+                aria-hidden="true"
                 className={cn(
                   'h-3.5 w-3.5 shrink-0',
                   selected ? 'text-primary' : 'opacity-50'
@@ -311,12 +332,14 @@ export const BookCard = memo(function BookCard({
           ) : (
             <button
               type="button"
+              disabled={isDeleting}
+              aria-busy={isDeleting || undefined}
               onClick={onRead}
-              aria-label={`${readActionLabel}：${titleLabel}`}
+              aria-label={isDeleting ? `正在删除：${titleLabel}` : `${readActionLabel}：${titleLabel}`}
               className="shelf-book-action"
             >
-              <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
-              <span className="truncate">{readActionLabel}</span>
+              <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+              <span className="truncate">{isDeleting ? '删除中…' : readActionLabel}</span>
             </button>
           )}
 
@@ -349,13 +372,12 @@ export const BookCard = memo(function BookCard({
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
         title="删除图书"
-        description="确定删除这本图书吗？删除后将无法恢复。"
+        description={`确定删除《${titleLabel}》吗？删除后将无法恢复。`}
         confirmLabel={isDeleting ? '删除中…' : '确认删除'}
         confirmDisabled={isDeleting}
         loading={isDeleting}
         onConfirm={() => {
-          onDelete();
-          setDeleteConfirmOpen(false);
+          void handleConfirmDelete();
         }}
       />}
     </div>

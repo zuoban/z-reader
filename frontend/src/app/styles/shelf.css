@@ -115,16 +115,21 @@
     background: var(--shelf-surface-raised);
     box-shadow: inset 0 0 0 1px var(--book-card-edge), var(--paper-shadow-panel);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .shelf-book-card[data-deleting="true"] {
+    opacity: 0.6;
   }
 
   @media (hover: hover) {
-    .shelf-book-card:hover {
+    .shelf-book-card:not([data-deleting="true"]):hover {
       --book-card-edge: color-mix(in srgb, var(--primary) 32%, var(--border));
       box-shadow: inset 0 0 0 1px var(--book-card-edge), 0 5px 14px -6px var(--paper-shadow);
     }
 
-    .shelf-book-open:hover h2 {
+    .shelf-book-open:enabled:hover h2 {
       color: var(--primary);
     }
   }
@@ -188,10 +193,12 @@
   .shelf-book-action {
     @apply inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-lg px-1 text-xs font-semibold sm:h-9 sm:gap-1.5 sm:px-2;
     color: var(--primary);
-    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .shelf-book-action:hover,
+  .shelf-book-action:enabled:hover,
   .shelf-book-action:focus-visible {
     background: var(--accent);
     color: var(--accent-foreground);
@@ -200,6 +207,16 @@
   .shelf-book-action:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: -2px;
+  }
+
+  .shelf-book-action:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .shelf-book-action:enabled:active {
+      transform: scale(0.98);
+    }
   }
 
   .book-cover-fallback {

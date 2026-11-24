@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@/test/render';
+import { fireEvent, render, screen, waitFor } from '@/test/render';
 import { describe, expect, it, vi } from 'vitest';
 import { BookCard } from '@/components/BookCard';
 import type { Book } from '@/lib/api';
@@ -18,26 +18,33 @@ const book: Book = {
   created_at: '2026-10-01T00:00:00Z',
 };
 
-function renderCard(selectionMode = false) {
+function renderCard(
+  options: {
+    selectionMode?: boolean;
+    isDeleting?: boolean;
+    onDelete?: () => void | Promise<void>;
+  } = {},
+) {
   const onRead = vi.fn();
+  const onDelete = options.onDelete ?? vi.fn();
   const onSelectionToggle = vi.fn();
-  render(
+  const view = render(
     <BookCard
       book={book}
       index={0}
       categories={[]}
       bookCounts={{}}
       onRead={onRead}
-      onDelete={vi.fn()}
+      onDelete={onDelete}
       onUpdate={vi.fn()}
-      isDeleting={false}
+      isDeleting={options.isDeleting ?? false}
       formatSize={() => '100 B'}
       progressPercentage={42}
-      selectionMode={selectionMode}
+      selectionMode={options.selectionMode ?? false}
       onSelectionToggle={onSelectionToggle}
     />,
   );
-  return { onRead, onSelectionToggle };
+  return { ...view, onRead, onDelete, onSelectionToggle };
 }
 
 describe('BookCard', () => {
@@ -47,14 +54,15 @@ describe('BookCard', () => {
     expect(onRead).toHaveBeenCalledOnce();
   });
 
-  it('shows the fallback author only once', () => {
+  it('shows the fallback author only once with tooltip', () => {
     renderCard();
-    expect(screen.getAllByText('曹雪芹')).toHaveLength(1);
+    const author = screen.getByText('曹雪芹');
+    expect(author).toHaveAttribute('title', '曹雪芹');
     expect(screen.getAllByRole('heading', { name: '红楼梦' })).toHaveLength(1);
   });
 
   it('selects a book from the footer without opening it in selection mode', () => {
-    const { onRead, onSelectionToggle } = renderCard(true);
+    const { onRead, onSelectionToggle } = renderCard({ selectionMode: true });
     fireEvent.click(screen.getByRole('button', { name: '选择图书' }));
     expect(onSelectionToggle).toHaveBeenCalledOnce();
     expect(onRead).not.toHaveBeenCalled();
@@ -67,5 +75,50 @@ describe('BookCard', () => {
     expect(screen.getByText('100 B')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /设置分类/ })).toHaveTextContent('未分类');
     expect(screen.getByRole('menuitem', { name: '删除图书' })).toBeInTheDocument();
+  });
+
+  it('keeps the delete confirmation open while async deletion is in flight and disables card actions', async () => {
+    let resolveDelete!: () => void;
+    const onDelete = vi.fn(
+      () => new Promise<void>((resolve) => {
+        resolveDelete = resolve;
+      }),
+    );
+
+    const { rerender, onRead } = renderCard({ onDelete });
+    fireEvent.click(screen.getByRole('button', { name: '更多操作：《红楼梦》' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除图书' }));
+
+    const confirmButton = await screen.findByRole('button', { name: '确认删除' });
+    expect(screen.getByText('确定删除《红楼梦》吗？删除后将无法恢复。')).toBeInTheDocument();
+
+    fireEvent.click(confirmButton);
+    expect(onDelete).toHaveBeenCalledOnce();
+
+    rerender(
+      <BookCard
+        book={book}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={onRead}
+        onDelete={onDelete}
+        onUpdate={vi.fn()}
+        isDeleting
+        formatSize={() => '100 B'}
+        progressPercentage={42}
+      />,
+    );
+
+    expect(screen.getByRole('article')).toHaveAttribute('data-deleting', 'true');
+    expect(screen.getByRole('button', { name: '阅读《红楼梦》' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '正在删除：红楼梦' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '更多操作：《红楼梦》' })).toBeDisabled();
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+
+    resolveDelete();
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
   });
 });

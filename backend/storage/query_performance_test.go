@@ -106,6 +106,154 @@ func TestCoverUpdateRepairsSortIndexes(t *testing.T) {
 	}
 }
 
+func TestCoverUpdateRepairsContentIndexes(t *testing.T) {
+	t.Run("hashed", func(t *testing.T) {
+		db := openTestDB(t)
+		book := &models.Book{ID: "a", UserID: "u", Title: "三体", ContentHash: "hash-a"}
+		if err := db.CreateBook(book); err != nil {
+			t.Fatal(err)
+		}
+		canonicalKey := bookContentIndexKey(book.UserID, book.ContentHash)
+		membershipKey := bookContentMembershipKey(book)
+		missingKey := bookSearchIndexKey(book.UserID, book.ID)
+		if err := db.Update(func(tx *bbolt.Tx) error {
+			if err := tx.Bucket(BookContentIndex).Delete(canonicalKey); err != nil {
+				return err
+			}
+			if err := tx.Bucket(BookContentIndex).Put(membershipKey, []byte("wrong")); err != nil {
+				return err
+			}
+			return tx.Bucket(BookMissingHashIndex).Put(missingKey, []byte(book.ID))
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+			book.CoverPath = "cover.png"
+			return true
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.View(func(tx *bbolt.Tx) error {
+			if string(tx.Bucket(BookContentIndex).Get(canonicalKey)) != book.ID ||
+				string(tx.Bucket(BookContentIndex).Get(membershipKey)) != book.ID ||
+				tx.Bucket(BookMissingHashIndex).Get(missingKey) != nil {
+				t.Error("cover update did not repair hashed content indexes")
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("unhashed", func(t *testing.T) {
+		db := openTestDB(t)
+		book := &models.Book{ID: "a", UserID: "u", Title: "三体"}
+		if err := db.CreateBook(book); err != nil {
+			t.Fatal(err)
+		}
+		missingKey := bookSearchIndexKey(book.UserID, book.ID)
+		if err := db.Update(func(tx *bbolt.Tx) error {
+			return tx.Bucket(BookMissingHashIndex).Put(missingKey, []byte("wrong"))
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+			book.CoverPath = "cover.png"
+			return true
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.View(func(tx *bbolt.Tx) error {
+			if string(tx.Bucket(BookMissingHashIndex).Get(missingKey)) != book.ID {
+				t.Error("cover update did not repair missing-hash index")
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("duplicate_keeps_canonical", func(t *testing.T) {
+		db := openTestDB(t)
+		snapshots := []models.Book{
+			{ID: "a", UserID: "u", Filename: "a.epub"},
+			{ID: "b", UserID: "u", Filename: "b.epub"},
+		}
+		for i := range snapshots {
+			if err := db.SaveBook(&snapshots[i]); err != nil {
+				t.Fatal(err)
+			}
+			snapshots[i].ContentHash = "same-hash"
+		}
+		if err := db.BackfillBookContentHashes(snapshots); err != nil {
+			t.Fatal(err)
+		}
+		for _, id := range []string{"a", "b"} {
+			if _, err := db.UpdateBook(id, "u", func(book *models.Book) bool {
+				book.CoverPath = "cover-" + id + ".png"
+				return true
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		got, err := db.FindBookByContentHash("u", "same-hash")
+		if err != nil || got == nil || got.ID != "a" {
+			t.Fatalf("canonical duplicate after cover update = %+v, %v", got, err)
+		}
+		if err := db.DeleteBookData("a", "u"); err != nil {
+			t.Fatal(err)
+		}
+		remaining, err := db.FindBookByContentHash("u", "same-hash")
+		if err != nil || remaining == nil || remaining.ID != "b" {
+			t.Fatalf("promoted duplicate after deletion = %+v, %v", remaining, err)
+		}
+	})
+
+	t.Run("hash_change", func(t *testing.T) {
+		db := openTestDB(t)
+		book := &models.Book{ID: "a", UserID: "u", Title: "三体", ContentHash: "old-hash"}
+		if err := db.CreateBook(book); err != nil {
+			t.Fatal(err)
+		}
+		oldMembership := bookContentMembershipKey(book)
+		if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+			book.ContentHash = "new-hash"
+			return true
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := db.FindBookByContentHash("u", "old-hash"); err != nil || got != nil {
+			t.Fatalf("old hash still indexed: %+v, %v", got, err)
+		}
+		if err := db.View(func(tx *bbolt.Tx) error {
+			if tx.Bucket(BookContentIndex).Get(oldMembership) != nil {
+				t.Error("old membership key was not removed")
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := db.FindBookByContentHash("u", "new-hash"); err != nil || got == nil || got.ID != "a" {
+			t.Fatalf("new hash lookup = %+v, %v", got, err)
+		}
+		if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+			book.ContentHash = ""
+			return true
+		}); err != nil {
+			t.Fatal(err)
+		}
+		missingKey := bookSearchIndexKey(book.UserID, book.ID)
+		if err := db.View(func(tx *bbolt.Tx) error {
+			if string(tx.Bucket(BookMissingHashIndex).Get(missingKey)) != book.ID {
+				t.Error("cleared hash was not tracked in missing-hash index")
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
 func TestCategoryMutationUpdatesSummaryAndSearch(t *testing.T) {
 	db := openTestDB(t)
 	oldCategory, newCategory := "Old unique category", "New distinct category"

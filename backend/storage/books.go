@@ -230,6 +230,40 @@ func addBookToContentIndex(tx *bbolt.Tx, book *models.Book) error {
 	return nil
 }
 
+func ensureBookContentIndex(tx *bbolt.Tx, book *models.Book) error {
+	id := []byte(book.ID)
+	if bucket := tx.Bucket(BookMissingHashIndex); bucket != nil && book.ID != "" {
+		missingKey := bookSearchIndexKey(book.UserID, book.ID)
+		if book.ContentHash == "" {
+			if !bytes.Equal(bucket.Get(missingKey), id) {
+				if err := bucket.Put(missingKey, id); err != nil {
+					return err
+				}
+			}
+		} else if bucket.Get(missingKey) != nil {
+			if err := bucket.Delete(missingKey); err != nil {
+				return err
+			}
+		}
+	}
+	if book.UserID == "" || book.ID == "" || book.ContentHash == "" {
+		return nil
+	}
+	bucket := tx.Bucket(BookContentIndex)
+	membershipKey := bookContentMembershipKey(book)
+	if !bytes.Equal(bucket.Get(membershipKey), id) {
+		if err := bucket.Put(membershipKey, id); err != nil {
+			return err
+		}
+	}
+	canonicalLen := len(book.UserID) + len(bookSortSeparator) + len(book.ContentHash)
+	key := membershipKey[:canonicalLen:canonicalLen]
+	if len(bucket.Get(key)) == 0 {
+		return bucket.Put(key, id)
+	}
+	return nil
+}
+
 func removeBookFromContentIndex(tx *bbolt.Tx, book *models.Book) error {
 	if bucket := tx.Bucket(BookMissingHashIndex); bucket != nil {
 		if err := bucket.Delete(bookSearchIndexKey(book.UserID, book.ID)); err != nil {
@@ -650,6 +684,7 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 	searchText := bookSearchText(book)
 	sameBookKey := oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID
 	sameSortInputs := sameBookKey && sameBookSortInputs(oldBook, book)
+	sameContentHash := sameBookKey && oldBook.ContentHash == book.ContentHash
 	// Cover and processing-state updates can leave both search indexes intact.
 	searchUnchanged := false
 	if sameBookKey && oldSearchText == searchText {
@@ -676,8 +711,10 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		}
 	}
 	if oldBook != nil {
-		if err := removeBookFromContentIndex(tx, oldBook); err != nil {
-			return err
+		if !sameContentHash {
+			if err := removeBookFromContentIndex(tx, oldBook); err != nil {
+				return err
+			}
 		}
 		if !sameSortInputs {
 			if err := removeBookFromSortIndex(tx, oldBook); err != nil {
@@ -712,7 +749,11 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 			return err
 		}
 	}
-	if err := addBookToContentIndex(tx, book); err != nil {
+	if sameContentHash {
+		if err := ensureBookContentIndex(tx, book); err != nil {
+			return err
+		}
+	} else if err := addBookToContentIndex(tx, book); err != nil {
 		return err
 	}
 	return updateBookLibrarySummary(tx, book, oldBook)

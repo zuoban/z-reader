@@ -47,8 +47,13 @@ func bookCategorySortIndexKeyWithValue(book *models.Book, sortKey, category, val
 // Membership entries share the content bucket with its O(1) canonical lookup.
 // They let deletion promote a pre-existing duplicate without scanning books.
 func bookContentMembershipKey(book *models.Book) []byte {
-	key := append(bookContentIndexKey(book.UserID, book.ContentHash), 0)
-	return append(key, []byte(book.ID)...)
+	size := len(book.UserID) + len(bookSortSeparator) + len(book.ContentHash) + 1 + len(book.ID)
+	key := make([]byte, 0, size)
+	key = append(key, book.UserID...)
+	key = append(key, bookSortSeparator...)
+	key = append(key, book.ContentHash...)
+	key = append(key, 0)
+	return append(key, book.ID...)
 }
 
 func adjustBookSearchGramCount(tx *bbolt.Tx, key []byte, delta int) error {

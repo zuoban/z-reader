@@ -14,7 +14,9 @@ const skeletonGridStyle = {
 export function BookCardSkeleton() {
   return (
     <div className="shelf-book-card flex min-w-0 flex-col">
-      <div className="shelf-book-cover skeleton-shimmer" />
+      <div className="shelf-book-cover">
+        <div className="skeleton-shimmer h-full w-full" aria-hidden="true" />
+      </div>
       <div className="shelf-book-details">
         <div className="space-y-1.5">
           <Skeleton height={16} width="80%" radius="xs" aria-hidden="true" />

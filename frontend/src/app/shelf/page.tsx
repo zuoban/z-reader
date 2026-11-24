@@ -11,6 +11,7 @@ import {
   BookOpen,
   CheckSquare,
   HardDrive,
+  Loader2,
   MoreHorizontal,
   Search,
   Settings2,
@@ -66,6 +67,7 @@ export default function ShelfPage() {
   const [isDraggingBookFile, setIsDraggingBookFile] = useState(false);
   const dragDepthRef = useRef(0);
   const categoryStripRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(() => new Set());
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
@@ -147,6 +149,10 @@ export default function ShelfPage() {
     if (!showCategoryFilters || !strip) return;
 
     const updateOverflowHint = () => {
+      strip.parentElement?.toggleAttribute(
+        'data-prev-categories',
+        strip.scrollLeft > 1
+      );
       strip.parentElement?.toggleAttribute(
         'data-more-categories',
         strip.scrollWidth - strip.clientWidth - strip.scrollLeft > 1
@@ -418,6 +424,7 @@ export default function ShelfPage() {
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <div className="min-w-0 flex-1 sm:w-56 lg:w-72">
                 <TextInput
+                  ref={searchInputRef}
                   type="search"
                   value={searchQuery}
                   onChange={(event) => changeSearchQuery(event.currentTarget.value)}
@@ -429,7 +436,17 @@ export default function ShelfPage() {
                   }}
                   placeholder="搜索书名或作者"
                   aria-label="搜索书库"
-                  leftSection={<Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />}
+                  leftSection={
+                    isSearching ? (
+                      <Loader2
+                        className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none"
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                    )
+                  }
                   leftSectionPointerEvents="none"
                   leftSectionWidth={36}
                   rightSection={
@@ -439,7 +456,10 @@ export default function ShelfPage() {
                         variant="subtle"
                         color="gray"
                         size="sm"
-                        onClick={() => changeSearchQuery('')}
+                        onClick={() => {
+                          changeSearchQuery('');
+                          searchInputRef.current?.focus();
+                        }}
                         aria-label="清除搜索"
                         title="清除搜索"
                         className="size-9 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
@@ -473,8 +493,18 @@ export default function ShelfPage() {
                   <Button
                     type="button"
                     variant="filled"
-                    className="min-h-11 rounded-lg"
+                    className="min-h-11 cursor-pointer rounded-lg"
                     disabled={isRetryingAuth}
+                    aria-busy={isRetryingAuth || undefined}
+                    leftSection={
+                      isRetryingAuth ? (
+                        <Loader2
+                          className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                          strokeWidth={1.75}
+                          aria-hidden="true"
+                        />
+                      ) : undefined
+                    }
                     onClick={() => void handleRetryConnection()}
                   >
                     {isRetryingAuth ? '连接中…' : '重试连接'}
@@ -482,8 +512,8 @@ export default function ShelfPage() {
                   <Button
                     type="button"
                     variant="default"
-                    leftSection={<HardDrive className="h-4 w-4" strokeWidth={1.5} />}
-                    className="min-h-11 rounded-lg"
+                    leftSection={<HardDrive className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />}
+                    className="min-h-11 cursor-pointer rounded-lg"
                     onClick={() => setOfflineBooksOpen(true)}
                   >
                     打开离线图书
@@ -501,7 +531,12 @@ export default function ShelfPage() {
               description="请确认服务器可用后重新加载。"
               detail={`错误信息：${loadError}`}
               action={(
-                <Button type="button" variant="filled" className="min-h-11 rounded-lg" onClick={refreshBooks}>
+                <Button
+                  type="button"
+                  variant="filled"
+                  className="min-h-11 cursor-pointer rounded-lg"
+                  onClick={refreshBooks}
+                >
                   重新加载
                 </Button>
               )}
@@ -582,8 +617,8 @@ export default function ShelfPage() {
                     variant="subtle"
                     color="gray"
                     size="xs"
-                    leftSection={<Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />}
-                    className="min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    leftSection={<Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />}
+                    className="min-h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-[0.98] motion-reduce:active:scale-100"
                     onClick={() => setCategoryManagerOpen(true)}
                   >
                     管理
@@ -593,9 +628,9 @@ export default function ShelfPage() {
                     variant={selectionMode ? 'filled' : 'subtle'}
                     color={selectionMode ? undefined : 'gray'}
                     size="xs"
-                    leftSection={<CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                    leftSection={<CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />}
                     className={cn(
-                      'min-h-8 shrink-0 rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]',
+                      'min-h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100',
                       selectionMode
                         ? 'bg-primary text-primary-foreground hover:bg-primary/92'
                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
@@ -609,36 +644,39 @@ export default function ShelfPage() {
                   <Menu
                     position="bottom-end"
                     offset={6}
-                    width={176}
+                    width={184}
                     radius="lg"
                     shadow="md"
                     zIndex={60}
                     withinPortal
+                    classNames={{ item: 'shelf-settings-item' }}
                   >
                     <Menu.Target>
                       <ActionIcon
                         variant={selectionMode ? 'filled' : 'default'}
                         size="md"
                         aria-label="更多书库操作"
+                        title="更多书库操作"
                         className={cn(
-                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors',
+                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-[background-color,color,border-color,transform] duration-150 active:scale-95 motion-reduce:active:scale-100',
                           selectionMode && 'border-primary bg-primary text-primary-foreground'
                         )}
                       >
                         <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
                       </ActionIcon>
                     </Menu.Target>
-                    <Menu.Dropdown className="paper-menu w-44 rounded-xl p-1.5">
+                    <Menu.Dropdown className="paper-menu rounded-xl p-1.5">
+                      <Menu.Label className="px-2.5 pb-1.5 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground">
+                        书库操作
+                      </Menu.Label>
                       <Menu.Item
-                        leftSection={<Settings2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
-                        className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                        leftSection={<Settings2 strokeWidth={1.5} aria-hidden="true" />}
                         onClick={() => setCategoryManagerOpen(true)}
                       >
                         管理分类
                       </Menu.Item>
                       <Menu.Item
-                        leftSection={<CheckSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
-                        className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
+                        leftSection={<CheckSquare strokeWidth={1.5} aria-hidden="true" />}
                         onClick={toggleSelectionMode}
                       >
                         {selectionMode ? '取消选择' : '批量操作'}
@@ -682,13 +720,18 @@ export default function ShelfPage() {
                   detail={`错误信息：${searchError}`}
                   action={(
                     <>
-                      <Button type="button" variant="filled" className="min-h-11 rounded-lg" onClick={retrySearch}>
+                      <Button
+                        type="button"
+                        variant="filled"
+                        className="min-h-11 cursor-pointer rounded-lg"
+                        onClick={retrySearch}
+                      >
                         重试搜索
                       </Button>
                       <Button
                         type="button"
                         variant="default"
-                        className="min-h-11 rounded-lg"
+                        className="min-h-11 cursor-pointer rounded-lg"
                         onClick={clearShelfFilters}
                       >
                         重置所有筛选
@@ -705,7 +748,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="default"
-                      className="min-h-11 rounded-lg"
+                      className="min-h-11 cursor-pointer rounded-lg"
                       onClick={clearShelfFilters}
                     >
                       重置所有筛选
@@ -757,7 +800,7 @@ export default function ShelfPage() {
                     <Button
                       type="button"
                       variant="default"
-                      className="min-h-11 rounded-lg px-5"
+                      className="min-h-11 cursor-pointer rounded-lg px-5"
                       onClick={() => void loadMoreBooks()}
                     >
                       加载更多图书

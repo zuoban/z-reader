@@ -24,16 +24,24 @@
 
   .app-primary-link,
   .app-secondary-link {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium sm:min-h-10;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium sm:min-h-10;
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
       color var(--paper-duration-fast) var(--paper-ease-soft),
-      transform var(--paper-duration-fast) var(--paper-ease-soft);
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .app-primary-link:active,
-  .app-secondary-link:active {
-    transform: scale(0.98);
+  .app-primary-link:disabled,
+  .app-secondary-link:disabled {
+    @apply cursor-not-allowed opacity-55;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-primary-link:not(:disabled):active,
+    .app-secondary-link:not(:disabled):active {
+      transform: scale(0.98);
+    }
   }
 
   .app-primary-link {
@@ -121,12 +129,30 @@
   }
 
   .dialog-close-btn {
-    @apply flex h-10 w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors;
+    @apply flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-muted-foreground;
     border-radius: var(--paper-radius-control);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .dialog-close-btn:hover {
+  .dialog-close-btn:enabled:hover {
     @apply bg-secondary text-foreground;
+  }
+
+  .dialog-close-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .dialog-close-btn:disabled {
+    @apply cursor-not-allowed opacity-45;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .dialog-close-btn:enabled:active {
+      transform: scale(0.95);
+    }
   }
 
   .app-sheet-header {

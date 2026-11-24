@@ -459,6 +459,27 @@ describe('api.fetchBook', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('cancels the rejected range body before restarting without a Range header', async () => {
+    installBookCache();
+    await appendPartialBookDownload(PERSONAL_LIBRARY, 'stale-range', new Blob(['prefix']), 13, 'text/plain');
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(new ReadableStream({ cancel }), {
+        status: 416, headers: { 'Content-Range': 'bytes */5' },
+      }))
+      .mockImplementationOnce(async () => {
+        expect(cancel).toHaveBeenCalledOnce();
+        return new Response('fresh', { headers: { 'Content-Length': '5' } });
+      });
+    globalThis.fetch = fetch;
+
+    expect(await (await api.fetchBook('stale-range')).text()).toBe('fresh');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[0][1].headers).toEqual(expect.objectContaining({ Range: 'bytes=6-' }));
+    expect(new Headers(fetch.mock.calls[1][1].headers).has('Range')).toBe(false);
+    expect(await getPartialBookDownload(PERSONAL_LIBRARY, 'stale-range')).toBeNull();
+  });
+
   it('preserves the existing resumable prefix if cache writes and the network both fail', async () => {
     const { cache } = installBookCache();
     await appendPartialBookDownload(PERSONAL_LIBRARY, 'quota', new Blob(['prefix']), null, 'text/plain');

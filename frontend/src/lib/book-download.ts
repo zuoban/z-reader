@@ -118,25 +118,22 @@ async function downloadBookFile(
     context, id, downloadedBytes, options.signal, partialDownload?.etag
   );
 
-  if (response.status === 416 && downloadedBytes > 0) {
-    await clearPartialBookDownload(userId, id);
-    partialDownload = null;
-    downloadedBytes = 0;
-    response = await getBookFileResponse(context, id, 0, options.signal);
-  }
-
   let range = parseContentRange(response.headers.get('Content-Range'));
   const canAppend = downloadedBytes > 0 &&
     response.status === 206 &&
     range?.start === downloadedBytes;
 
   if (downloadedBytes > 0 && !canAppend) {
+    const needsFreshResponse = response.status !== 200;
+    if (needsFreshResponse) {
+      // Start releasing the discarded body without making retry wait on it.
+      void response.body?.cancel().catch(() => {});
+    }
     await clearPartialBookDownload(userId, id);
     partialDownload = null;
     downloadedBytes = 0;
 
-    if (response.status !== 200) {
-      await response.body?.cancel().catch(() => {});
+    if (needsFreshResponse) {
       response = await getBookFileResponse(context, id, 0, options.signal);
       range = parseContentRange(response.headers.get('Content-Range'));
     }

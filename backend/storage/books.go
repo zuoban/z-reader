@@ -776,54 +776,44 @@ func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]model
 	return books, err
 }
 
-func deleteBookDataInTx(tx *bbolt.Tx, id string, userID string) (*models.Book, error) {
-	booksBucket := tx.Bucket(BooksBucket)
-	book, err := getOwnedBookInTx(tx, id, userID)
-	if err != nil {
-		return nil, err
-	}
-	if err := adjustLibrarySummary(tx, book, -1); err != nil {
-		return nil, err
-	}
+func deleteBookDataInTx(tx *bbolt.Tx, id string, book *models.Book) error {
+	userID := book.UserID
 	if err := removeBookFromContentIndex(tx, book); err != nil {
-		return nil, err
+		return err
 	}
 	if err := removeBookFromSortIndex(tx, book); err != nil {
-		return nil, err
+		return err
 	}
-	if err := booksBucket.Delete([]byte(id)); err != nil {
-		return nil, err
+	if err := tx.Bucket(BooksBucket).Delete([]byte(id)); err != nil {
+		return err
 	}
 
 	idxB := tx.Bucket(UserBooksIndex)
 	if err := removeBookFromUserIndex(idxB, id, userID); err != nil {
-		return nil, err
+		return err
 	}
 
 	progressBucket := tx.Bucket(ProgressBucket)
 	if progressData := progressBucket.Get(progressKey(userID, id)); progressData != nil {
 		var progress models.Progress
 		if err := json.Unmarshal(progressData, &progress); err != nil {
-			return nil, err
+			return err
 		}
 		if err := removeProgressFromTimeIndex(tx, &progress); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if err := progressBucket.Delete(progressKey(userID, id)); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := deleteBookBookmarks(tx, userID, id); err != nil {
-		return nil, err
+		return err
 	}
 	if err := removeBookFromSearchIndex(tx, book); err != nil {
-		return nil, err
+		return err
 	}
-	if err := removeBookFromSearchGramIndex(tx, book); err != nil {
-		return nil, err
-	}
-	return book, nil
+	return removeBookFromSearchGramIndex(tx, book)
 }
 
 func (db *DB) DeleteBookData(id string, userID string) error {
@@ -833,27 +823,42 @@ func (db *DB) DeleteBookData(id string, userID string) error {
 
 // DeleteBook returns the committed deletion's row for file cleanup.
 func (db *DB) DeleteBook(id, userID string) (*models.Book, error) {
-	var book *models.Book
-	err := db.Update(func(tx *bbolt.Tx) error {
-		var err error
-		book, err = deleteBookDataInTx(tx, id, userID)
-		return err
-	})
+	books, err := db.deleteBooksData([]string{id}, userID)
 	if err != nil {
 		return nil, err
 	}
-	return book, nil
+	return &books[0], nil
 }
 
 func (db *DB) DeleteBooksData(ids []string, userID string) ([]models.Book, error) {
-	deletedBooks := []models.Book{}
+	return db.deleteBooksData(uniqueNonEmptyStrings(ids), userID)
+}
+
+func (db *DB) deleteBooksData(ids []string, userID string) ([]models.Book, error) {
+	deletedBooks := make([]models.Book, 0, len(ids))
 	err := db.Update(func(tx *bbolt.Tx) error {
-		for _, id := range uniqueNonEmptyStrings(ids) {
-			book, err := deleteBookDataInTx(tx, id, userID)
+		var summary BookLibrarySummary
+		for _, id := range ids {
+			book, err := getOwnedBookInTx(tx, id, userID)
 			if err != nil {
 				return err
 			}
+			if userID != "" {
+				if summary.Categories == nil {
+					summary, err = loadLibrarySummary(tx, userID)
+					if err != nil {
+						return err
+					}
+				}
+				summary.adjustCount(categoryForBook(book), -1)
+			}
+			if err := deleteBookDataInTx(tx, id, book); err != nil {
+				return err
+			}
 			deletedBooks = append(deletedBooks, *book)
+		}
+		if summary.Categories != nil {
+			return saveLibrarySummary(tx, userID, summary)
 		}
 		return nil
 	})

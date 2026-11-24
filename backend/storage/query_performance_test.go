@@ -67,6 +67,48 @@ func TestBatchCategoryUpdateCountsEachBookOnce(t *testing.T) {
 	}
 }
 
+func TestBatchDeleteUpdatesSummaryOnlyOnCommit(t *testing.T) {
+	db := openTestDB(t)
+	source, remaining := "Source", "Remaining"
+	for _, book := range []models.Book{
+		{ID: "a", UserID: "u", Category: &source},
+		{ID: "b", UserID: "u"},
+		{ID: "c", UserID: "u", Category: &remaining},
+		{ID: "d", UserID: "other", Category: &source},
+	} {
+		if err := db.CreateBook(&book); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if _, err := db.DeleteBooksData([]string{"a", "d"}, "u"); err != ErrNotFound {
+		t.Fatalf("cross-owner deletion error = %v, want ErrNotFound", err)
+	}
+	book, err := db.GetBook("a")
+	if err != nil || book == nil {
+		t.Fatalf("book disappeared after rollback: %+v, %v", book, err)
+	}
+	summary, err := db.GetBookLibrarySummary("u")
+	if err != nil || summary.Total != 3 || summary.Uncategorized != 1 ||
+		len(summary.Categories) != 2 || summary.Categories[source] != 1 || summary.Categories[remaining] != 1 {
+		t.Fatalf("summary after rollback = %+v, err = %v", summary, err)
+	}
+
+	books, err := db.DeleteBooksData([]string{"b", "a", "b", ""}, "u")
+	if err != nil || len(books) != 2 || books[0].ID != "b" || books[1].ID != "a" {
+		t.Fatalf("deleted books = %+v, err = %v", books, err)
+	}
+	summary, err = db.GetBookLibrarySummary("u")
+	if err != nil || summary.Total != 1 || summary.Uncategorized != 0 ||
+		len(summary.Categories) != 1 || summary.Categories[remaining] != 1 {
+		t.Fatalf("summary after deletion = %+v, err = %v", summary, err)
+	}
+	other, err := db.GetBookLibrarySummary("other")
+	if err != nil || other.Total != 1 || other.Categories[source] != 1 {
+		t.Fatalf("other summary = %+v, err = %v", other, err)
+	}
+}
+
 func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
 	db := openTestDB(t)
 	book := &models.Book{ID: "book", UserID: "reader", Title: "古典 Art"}

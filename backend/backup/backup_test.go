@@ -158,12 +158,12 @@ func TestBackupHardLinksUnchangedUploadsAndRecoversFromTamperedPrevious(t *testi
 		t.Fatal("expected second backup to hard-link unchanged upload from previous backup")
 	}
 
-	// Tamper with the latest backup's file; next backup must fall back to a fresh copy.
+	// Keep the size unchanged so only the digest can detect the corruption.
 	secondBook := filepath.Join(secondDir, "uploads", "book.epub")
 	if err := os.Chmod(secondBook, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(secondBook, []byte("corrupted"), 0600); err != nil {
+	if err := os.WriteFile(secondBook, []byte("corrupted-book-content"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(2 * time.Millisecond)

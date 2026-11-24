@@ -2,8 +2,6 @@ package backup
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -94,6 +92,10 @@ func copySnapshotUploadsWithDedup(
 		return err
 	}
 	defer snapshotRoot.Close()
+	var digestBuffer []byte
+	if prevBackupDir != "" && len(prevManifest.Files) > 0 {
+		digestBuffer = make([]byte, hashBufferSize)
+	}
 	return visitSnapshotUploads(snapshotRoot, filepath.Base(snapshot), func(name string) error {
 		input, err := openRegularBackupFile(root, name)
 		if err != nil {
@@ -109,7 +111,7 @@ func copySnapshotUploadsWithDedup(
 			return err
 		}
 		manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
-		if digest, ok := tryHardLinkFromPreviousBackup(input, info.Size(), name, target, prevBackupDir, prevManifest); ok {
+		if digest, ok := tryHardLinkFromPreviousBackup(input, info.Size(), name, target, prevBackupDir, prevManifest, digestBuffer); ok {
 			if digests != nil {
 				digests[manifestKey] = digest
 			}
@@ -134,6 +136,7 @@ func tryHardLinkFromPreviousBackup(
 	size int64,
 	name, target, prevBackupDir string,
 	prevManifest Manifest,
+	digestBuffer []byte,
 ) (string, bool) {
 	if prevBackupDir == "" || len(prevManifest.Files) == 0 {
 		return "", false
@@ -157,15 +160,12 @@ func tryHardLinkFromPreviousBackup(
 	if err != nil || !prevInfo.Mode().IsRegular() || prevInfo.Size() != size {
 		return "", false
 	}
-	hash := sha256.New()
-	if _, err := io.Copy(hash, input); err != nil {
+	ctx := context.Background()
+	sourceDigest, err := hashBackupReaderWithBuffer(ctx, input, digestBuffer)
+	if err != nil || sourceDigest != expectedDigest {
 		return "", false
 	}
-	sourceDigest := hex.EncodeToString(hash.Sum(nil))
-	if sourceDigest != expectedDigest {
-		return "", false
-	}
-	prevDigest, err := hashBackupReader(context.Background(), previous)
+	prevDigest, err := hashBackupReaderWithBuffer(ctx, previous, digestBuffer)
 	if err != nil || prevDigest != sourceDigest {
 		return "", false
 	}

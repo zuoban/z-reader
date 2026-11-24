@@ -10,6 +10,7 @@ import {
   removeOfflineBook,
   saveOfflineBook,
 } from '@/lib/offline-books';
+import { deferred } from '@/test/deferred';
 import { installBookCache } from './book-cache-fixture';
 import type { Book } from '@/lib/api';
 
@@ -140,6 +141,34 @@ describe('offline book validation and metadata', () => {
 });
 
 describe('offline book management (list, has, remove, clear)', () => {
+  it('reads cached book metadata in batches of at most four', async () => {
+    const { cache } = installBookCache();
+    const releaseReads = deferred<void>();
+    for (let index = 0; index < 6; index += 1) {
+      await cache.put(
+        new Request(`/__z-reader-offline-books/book-${index}`),
+        new Response('book', { headers: { 'X-Z-Reader-Size': '4' } }),
+      );
+    }
+    const match = cache.match.getMockImplementation()!;
+    cache.match.mockImplementation(async (request) => {
+      await releaseReads.promise;
+      return match(request);
+    });
+
+    const listing = listOfflineBooks('reader');
+    try {
+      await vi.waitFor(() => expect(cache.match).toHaveBeenCalledTimes(4));
+    } finally {
+      releaseReads.resolve();
+      await listing;
+    }
+    expect((await listing).map((book) => book.bookId)).toEqual([
+      'book-0', 'book-1', 'book-2', 'book-3', 'book-4', 'book-5',
+    ]);
+    expect(cache.match).toHaveBeenCalledTimes(6);
+  });
+
   it('lists offline books sorted by savedAt desc, ignores partial downloads, and handles legacy entries', async () => {
     vi.useFakeTimers();
     const { cache } = installBookCache();

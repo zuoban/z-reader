@@ -275,34 +275,43 @@ export async function listOfflineBooks(userId: string): Promise<OfflineBookSumma
     const cache = await caches.open(cacheName(userId));
     const requests = await cache.keys();
     const entries: OfflineBookSummary[] = [];
+    const lookupBatchSize = 4;
 
-    for (const request of requests) {
+    const matchBook = async (request: Request) => {
       let pathname: string;
       try {
         pathname = new URL(request.url).pathname;
       } catch {
-        continue;
+        return null;
       }
       if (!pathname.startsWith(CACHE_KEY_PREFIX) || pathname.startsWith(PARTIAL_DOWNLOAD_KEY_PREFIX)) {
-        continue;
+        return null;
       }
 
       const rawId = pathname.slice(CACHE_KEY_PREFIX.length);
-      if (!rawId || rawId.includes('/')) continue;
+      if (!rawId || rawId.includes('/')) return null;
       const bookId = safeDecodeHeader(rawId);
-      if (!bookId) continue;
+      if (!bookId) return null;
 
       const response = await cache.match(request);
-      if (!response) continue;
+      return response ? { bookId, response } : null;
+    };
 
-      const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
-      const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
-      const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
-      const headerSize = parseHeaderSize(response.headers.get('X-Z-Reader-Size'));
-      const size = headerSize ?? (await response.blob()).size;
-      const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
+    for (let offset = 0; offset < requests.length; offset += lookupBatchSize) {
+      const matches = await Promise.all(requests.slice(offset, offset + lookupBatchSize).map(matchBook));
+      for (const match of matches) {
+        if (!match) continue;
+        const { bookId, response } = match;
+        const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
+        const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
+        const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
+        const headerSize = parseHeaderSize(response.headers.get('X-Z-Reader-Size'));
+        // Read legacy file bodies one at a time when the size header is missing.
+        const size = headerSize ?? (await response.blob()).size;
+        const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
 
-      entries.push({ bookId, filename, title, author, size, savedAt });
+        entries.push({ bookId, filename, title, author, size, savedAt });
+      }
     }
 
     entries.sort((a, b) => {

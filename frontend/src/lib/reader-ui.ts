@@ -58,5 +58,6 @@ export function getReaderPanelThemeVars(uiScheme: ThemeColors): CSSProperties {
     "--reader-panel-hover": uiScheme.buttonBg,
     "--reader-panel-accent": uiScheme.link,
     "--reader-panel-danger": isDark ? "#f08078" : "#c23b33",
+    "--reader-panel-warning": isDark ? "#e5ac50" : "#a86c14",
   } as CSSProperties;
 }

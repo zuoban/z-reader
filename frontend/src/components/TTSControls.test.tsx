@@ -82,10 +82,12 @@ describe('TTSControls', () => {
       const start = new Promise<void>(resolve => { finishStart = resolve; });
       const { props } = renderControls({ variant, onStart: vi.fn(() => start) });
       fireEvent.click(screen.getByTitle('开始'));
+      expect(screen.getByTitle('开始')).toHaveAttribute('aria-busy', 'true');
       expect(screen.getByTitle('停止')).toBeEnabled();
       fireEvent.click(screen.getByTitle('停止'));
       expect(props.onStop).toHaveBeenCalledOnce();
       expect(screen.getByTitle('开始')).toBeEnabled();
+      expect(screen.getByTitle('开始')).not.toHaveAttribute('aria-busy');
 
       await act(async () => { finishStart(); await start; });
       expect(screen.getByRole('dialog')).toBeVisible();
@@ -115,8 +117,17 @@ describe('TTSControls', () => {
   it('allows cancelling a retry wait represented by preparing while stopped', () => {
     renderControls({ ...{ preparing: true } });
     expect(screen.getByTitle('开始')).toBeDisabled();
+    expect(screen.getByTitle('开始')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByTitle('停止')).toBeEnabled();
     fireEvent.click(screen.getByTitle('停止'));
+  });
+
+  it('exposes aria-expanded on the floating more settings toggle', () => {
+    renderControls({ variant: 'floating' });
+    const expandButton = screen.getByRole('button', { name: '更多设置' });
+    expect(expandButton).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(expandButton);
+    expect(screen.getByRole('button', { name: '收起设置' })).toHaveAttribute('aria-expanded', 'true');
   });
 
   it.each(['floating', 'toolbar'] as const)(

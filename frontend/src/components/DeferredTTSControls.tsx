@@ -17,7 +17,8 @@ export function DeferredTTSControls({
   const [requested, setRequested] = useState(false);
   if (requested) return <TTSControls {...props} initialExpanded />;
 
-  const label = props.state === 'stopped' ? '朗读控制' : '朗读控制（正在播放）';
+  const isActive = props.state !== 'stopped';
+  const label = isActive ? '朗读控制（正在播放）' : '朗读控制';
   const handleClick = () => {
     onRequest();
     setRequested(true);
@@ -29,6 +30,7 @@ export function DeferredTTSControls({
         type="button"
         data-reader-interactive="true"
         data-reader-tts-trigger="true"
+        data-reader-tts-active={isActive ? 'true' : undefined}
         title={label}
         aria-label={label}
         aria-expanded={false}
@@ -46,10 +48,11 @@ export function DeferredTTSControls({
     <ActionIcon
       type="button"
       variant="subtle"
-      size={36}
+      size={44}
       radius="md"
       data-reader-interactive="true"
       data-reader-tts-trigger="true"
+      data-reader-tts-active={isActive ? 'true' : undefined}
       title={label}
       aria-label={label}
       aria-expanded={false}

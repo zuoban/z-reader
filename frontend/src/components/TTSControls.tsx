@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { ActionIcon, Button, Drawer, UnstyledButton } from '@mantine/core';
+import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from 'react';
+import { ActionIcon, Drawer, UnstyledButton } from '@mantine/core';
 import {
   AlertCircle,
   ChevronDown,
@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { VoiceSelector } from '@/components/VoiceSelector';
-import { getModernReaderSurface, withOpacity } from '@/lib/reader-ui';
+import { getModernReaderSurface, getReaderPanelThemeVars, withOpacity } from '@/lib/reader-ui';
 import { cn } from '@/lib/utils';
 import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
@@ -34,7 +34,7 @@ const FLOATING_DOCK_RIGHT = 0;
 const FLOATING_VIEWPORT_MARGIN = 12;
 const FLOATING_PANEL_FOOTER_PADDING = 12;
 
-// 悬浮按钮组件 - 精致的视觉效果
+// 悬浮按钮组件
 interface FloatingButtonProps {
   isActive: boolean;
   isPlaying: boolean;
@@ -45,7 +45,7 @@ interface FloatingButtonProps {
   placement?: 'fixed' | 'inline';
   onClick: (e: React.MouseEvent) => void;
   onPointerDownCapture: (e: React.PointerEvent<HTMLDivElement>) => void;
-  uiScheme: ThemeColors;
+  panelThemeVars: CSSProperties;
 }
 
 const FloatingButton = ({
@@ -58,16 +58,9 @@ const FloatingButton = ({
   placement = 'fixed',
   onClick,
   onPointerDownCapture,
-  uiScheme,
+  panelThemeVars,
 }: FloatingButtonProps) => {
   const ActiveIconGlyph = isPlaying ? Pause : isPaused ? Play : Volume2;
-  const iconColor = isActive
-    ? withOpacity(uiScheme.link, 0.95)
-    : withOpacity(uiScheme.buttonText, 0.9);
-  const buttonStyles = {
-    ...getTriggerSurface(uiScheme, isActive),
-    transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.03)' : 'scale(1)',
-  };
 
   return (
     <div
@@ -84,12 +77,13 @@ const FloatingButton = ({
       tabIndex={0}
       aria-label={isActive ? 'TTS 控制面板（正在播放）' : 'TTS 控制面板'}
       aria-expanded={expanded}
-      className={
-        placement === 'fixed'
-          ? 'fixed z-[60] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
-          : 'relative z-10 shrink-0 focus-visible:outline-none'
-      }
+      aria-haspopup="dialog"
+      className={cn(
+        'rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--reader-panel-accent)]',
+        placement === 'fixed' ? 'fixed z-[60]' : 'relative z-10 shrink-0',
+      )}
       style={{
+        ...panelThemeVars,
         ...(placement === 'fixed'
           ? {
               right: `calc(env(safe-area-inset-right, 0px) + ${position.x}px)`,
@@ -99,18 +93,20 @@ const FloatingButton = ({
         cursor: 'pointer',
         userSelect: 'none',
         pointerEvents: 'auto',
-        opacity: isActive || isDragging || expanded ? 1 : 0.82,
-        outline: 'none',
+        opacity: isActive || isDragging || expanded ? 1 : 0.86,
       }}
       title="朗读控制"
     >
       <div
-        className="relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ease-out motion-reduce:transition-none"
-        style={buttonStyles}
+        data-active={isActive ? 'true' : undefined}
+        className="reader-tts-fab motion-reduce:transition-none"
+        style={{
+          transform: isDragging ? 'scale(1.06)' : expanded ? 'scale(1.03)' : undefined,
+        }}
       >
         <ActiveIconGlyph
+          aria-hidden="true"
           className={isPaused ? 'relative ml-0.5 h-4.5 w-4.5' : 'relative h-4.5 w-4.5'}
-          style={{ color: iconColor }}
         />
       </div>
     </div>
@@ -128,14 +124,13 @@ const RATE_OPTIONS = [
 interface RateButtonsProps {
   value: number;
   onChange: (value: number) => void;
-  uiScheme: ThemeColors;
 }
 
-const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
+const RateButtons = ({ value, onChange }: RateButtonsProps) => (
   <div
     role="group"
     aria-label="朗读倍速"
-    className="grid grid-cols-5 gap-1"
+    className="grid grid-cols-5 gap-1.5"
   >
     {RATE_OPTIONS.map((option) => {
       const active = value === option.value;
@@ -146,8 +141,11 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
           type="button"
           aria-pressed={active}
           onClick={() => onChange(option.value)}
-          className="min-h-11 rounded-lg px-0.5 text-xs font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2"
-          style={segmentStyle(active, uiScheme)}
+          className={cn(
+            'reader-settings-option min-h-11 border px-0.5 text-xs tabular-nums lg:min-h-9',
+            active && 'font-medium',
+          )}
+          style={active ? undefined : { borderColor: 'var(--reader-panel-rule)' }}
         >
           {option.label}
         </button>
@@ -159,30 +157,28 @@ const RateButtons = ({ value, onChange, uiScheme }: RateButtonsProps) => (
 const TTSSection = ({
   title,
   description,
-  uiScheme,
   children,
 }: {
   title: string;
   description?: string;
-  uiScheme: ThemeColors;
   children: React.ReactNode;
 }) => (
   <section
-    className="space-y-3 border-t pt-4"
-    style={{ borderColor: uiScheme.cardBorder }}
+    className="space-y-3 border-t pt-4 first:border-t-0 first:pt-0"
+    style={{ borderColor: 'var(--reader-panel-rule)' }}
   >
     <div className="flex items-center justify-between gap-3">
       <div className="space-y-0.5">
         <h3
-          className="text-sm font-semibold tracking-tight"
-          style={{ color: uiScheme.fg }}
+          className="text-sm font-medium tracking-tight"
+          style={{ color: 'var(--reader-panel-fg)' }}
         >
           {title}
         </h3>
         {description ? (
           <p
-            className="text-xs font-medium leading-relaxed"
-            style={{ color: uiScheme.mutedText }}
+            className="text-xs leading-relaxed"
+            style={{ color: 'var(--reader-panel-muted)' }}
           >
             {description}
           </p>
@@ -193,7 +189,7 @@ const TTSSection = ({
   </section>
 );
 
-// 复用的控制按钮 - 增强交互反馈和动画
+// 复用的控制按钮
 interface ControlButtonProps {
   onClick: () => void;
   disabled?: boolean;
@@ -201,47 +197,25 @@ interface ControlButtonProps {
   children: React.ReactNode;
   active?: boolean;
   variant?: 'default' | 'danger' | 'accent';
-  uiScheme: ThemeColors;
 }
 
-const ControlButton = ({ onClick, disabled, title, children, active, variant, uiScheme }: ControlButtonProps) => {
-  const getButtonColor = () => {
-    if (disabled) return uiScheme.mutedText;
-    if (variant === 'danger' && active) return '#ef4444';
-    if (variant === 'accent' && active) return uiScheme.link;
-    return active ? uiScheme.fg : withOpacity(uiScheme.mutedText, 0.9);
-  };
-
-  return (
-    <ActionIcon
-      type="button"
-      variant="subtle"
-      size={44}
-      radius="md"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      className="size-11 rounded-lg transition-colors hover:bg-secondary active:scale-95"
-      style={{
-        color: getButtonColor(),
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-      }}
-    >
-      {children}
-    </ActionIcon>
-  );
-};
-
-/** Shared segmented control styles for highlight / sleep options */
-function segmentStyle(active: boolean, uiScheme: ThemeColors) {
-  return {
-    color: active ? uiScheme.link : uiScheme.mutedText,
-    background: active ? withOpacity(uiScheme.link, 0.09) : 'transparent',
-    border: `1px solid ${active ? uiScheme.link : uiScheme.cardBorder}`,
-  } as const;
-}
+const ControlButton = ({ onClick, disabled, title, children, active, variant }: ControlButtonProps) => (
+  <ActionIcon
+    type="button"
+    variant="subtle"
+    size={44}
+    radius="md"
+    onClick={onClick}
+    disabled={disabled}
+    title={title}
+    aria-label={title}
+    data-active={active ? 'true' : undefined}
+    data-variant={variant && variant !== 'default' ? variant : undefined}
+    className="reader-panel-icon"
+  >
+    {children}
+  </ActionIcon>
+);
 
 export interface TTSControlsProps {
   state: TTSState;
@@ -340,6 +314,7 @@ export function TTSControls({
   const autoDockTimerRef = useRef<number | null>(null);
 
   const surface = getModernReaderSurface(uiScheme);
+  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
@@ -557,12 +532,12 @@ export function TTSControls({
   const statusTone = ttsStatus?.tone ?? (isActive ? 'active' : 'idle');
   const statusColor =
     statusTone === 'error'
-      ? '#ef4444'
+      ? 'var(--reader-panel-danger)'
       : statusTone === 'warning'
-        ? '#f59e0b'
+        ? 'var(--reader-panel-warning)'
         : statusTone === 'active'
-          ? uiScheme.link
-          : uiScheme.mutedText;
+          ? 'var(--reader-panel-accent)'
+          : 'var(--reader-panel-muted)';
   const sleepTimerActive = sleepTimer?.mode && sleepTimer.mode !== 'off';
   const closePanel = useCallback(() => {
     setExpanded(false);
@@ -683,10 +658,7 @@ export function TTSControls({
     : `${floatingPopupMaxHeight - 120}px`;
 
   const renderStatusContent = (withDragHandle = false) => ttsStatus ? (
-    <div
-      className="flex items-center gap-2.5 px-1 py-1"
-      style={{ color: uiScheme.fg }}
-    >
+    <div className="reader-tts-status flex items-center gap-2.5 px-3 py-2">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <span
           aria-hidden="true"
@@ -696,7 +668,7 @@ export function TTSControls({
         <p className="min-w-0 flex-1 text-xs font-medium leading-5 [overflow-wrap:anywhere]">
           {ttsStatus.headline}
           {ttsStatus.detail && (
-            <span className="ml-2 font-normal" style={{ color: uiScheme.mutedText }}>
+            <span className="ml-2 font-normal" style={{ color: 'var(--reader-panel-muted)' }}>
               {ttsStatus.detail}
             </span>
           )}
@@ -708,16 +680,16 @@ export function TTSControls({
           onPointerDown={handleDragHandlePointerDown}
           onPointerUp={handleDragHandlePointerUp}
           onPointerCancel={handleDragHandlePointerCancel}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg  transition-all hover:scale-[1.04] active:scale-95"
+          data-active={isDragging ? 'true' : undefined}
+          data-variant={isDragging ? 'accent' : undefined}
+          className="reader-panel-icon !size-7"
           style={{
-            color: isDragging ? uiScheme.link : uiScheme.mutedText,
             cursor: isDragging ? 'grabbing' : 'grab',
-            background: withOpacity(uiScheme.buttonBg, 0.34),
-            border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.18)}`,
           }}
+          aria-label="拖动控制面板"
           title="拖动控制面板"
         >
-          <GripVertical className="h-3 w-3" />
+          <GripVertical aria-hidden="true" className="h-3.5 w-3.5" />
         </button>
       )}
     </div>
@@ -799,6 +771,7 @@ export function TTSControls({
           }}
           styles={{
             content: {
+              ...panelThemeVars,
               flex: '0 1 auto',
               height: 'auto',
               background: uiScheme.cardBg,
@@ -813,13 +786,13 @@ export function TTSControls({
             data-reader-interactive="true"
             data-reader-tts-popup="true"
           >
-            <div
-              className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
-              style={{ borderColor: surface.hairline }}
-            >
+            <div className="reader-panel-header shrink-0 bg-transparent px-4 py-3.5 sm:px-6">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <Drawer.Title className="text-xl font-medium" style={{ color: surface.fg }}>
+                  <Drawer.Title
+                    className="font-heading text-lg font-medium leading-tight"
+                    style={{ color: 'var(--reader-panel-fg)' }}
+                  >
                     朗读控制
                   </Drawer.Title>
                   <p className="sr-only">
@@ -832,10 +805,7 @@ export function TTSControls({
                   size={44}
                   radius="md"
                   onClick={() => setExpanded(false)}
-                  className="size-11 min-h-0 min-w-0 shrink-0 rounded-lg transition-colors hover:bg-secondary lg:size-9"
-                  style={{
-                    color: surface.muted,
-                  }}
+                  className="reader-panel-icon"
                   aria-label="关闭朗读控制"
                   title="关闭"
                 >
@@ -891,7 +861,6 @@ export function TTSControls({
               <TTSSection
                 title="播放控制"
                 description="从当前位置开始、暂停或切换到相邻句子。"
-                uiScheme={uiScheme}
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-2.5">
@@ -900,39 +869,31 @@ export function TTSControls({
                       disabled={!isActive || isBusy}
                       title="上一句"
                       active={isActive}
-                      uiScheme={uiScheme}
                     >
                       <SkipBack className="h-5 w-5" />
                     </ControlButton>
 
                     <div className="relative flex items-center justify-center">
-                      <ActionIcon
+                      <button
                         type="button"
-                        variant="filled"
-                        size={48}
-                        radius="md"
                         onClick={handleStartClick}
                         disabled={isBusy}
+                        aria-busy={isBusy || undefined}
+                        data-playing={isPlaying ? 'true' : undefined}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                         aria-label={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        className="size-12 rounded-lg transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
-                        style={{
-                          color: uiScheme.cardBg,
-                          background: isPlaying
-                            ? withOpacity(uiScheme.link, 0.92)
-                            : uiScheme.fg,
-                        }}
+                        className="reader-tts-primary size-12"
                       >
                         {isBusy ? (
-                          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                          <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin motion-reduce:animate-none" />
                         ) : isPaused ? (
-                          <Play className="ml-0.5 h-4 w-4 fill-current" />
+                          <Play aria-hidden="true" className="ml-0.5 h-4 w-4 fill-current" />
                         ) : isPlaying ? (
-                          <Pause className="h-4 w-4 fill-current" />
+                          <Pause aria-hidden="true" className="h-4 w-4 fill-current" />
                         ) : (
-                          <Play className="ml-0.5 h-4 w-4 fill-current" />
+                          <Play aria-hidden="true" className="ml-0.5 h-4 w-4 fill-current" />
                         )}
-                      </ActionIcon>
+                      </button>
                     </div>
 
                     <ControlButton
@@ -940,7 +901,6 @@ export function TTSControls({
                       disabled={!isActive || isBusy}
                       title="下一句"
                       active={isActive}
-                      uiScheme={uiScheme}
                     >
                       <SkipForward className="h-5 w-5" />
                     </ControlButton>
@@ -949,9 +909,8 @@ export function TTSControls({
                       onClick={handleStopClick}
                       disabled={!isActive && !isBusy}
                       title="停止"
-                      active={isActive}
+                      active={isActive || isBusy}
                       variant="danger"
-                      uiScheme={uiScheme}
                     >
                       <Square className="h-5 w-5" />
                     </ControlButton>
@@ -960,7 +919,6 @@ export function TTSControls({
                   <RateButtons
                     value={settings.rate}
                     onChange={handleRateChange}
-                    uiScheme={uiScheme}
                   />
                 </div>
               </TTSSection>
@@ -968,9 +926,8 @@ export function TTSControls({
               <TTSSection
                 title="高亮方式"
                 description="选择朗读时跟随词语或整句。"
-                uiScheme={uiScheme}
               >
-                <div className="grid grid-cols-2 gap-2">
+                <div role="group" aria-label="高亮方式" className="grid grid-cols-2 gap-2">
                   {([
                     ['word', '词语'],
                     ['sentence', '句子'],
@@ -982,8 +939,11 @@ export function TTSControls({
                         type="button"
                         onClick={() => handleHighlightModeChange(mode)}
                         aria-pressed={active}
-                        className="min-h-11 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.97]"
-                        style={segmentStyle(active, uiScheme)}
+                        className={cn(
+                          'reader-settings-option min-h-11 border px-3 py-2 text-xs lg:min-h-9',
+                          active && 'font-medium',
+                        )}
+                        style={active ? undefined : { borderColor: 'var(--reader-panel-rule)' }}
                       >
                         {label}
                       </button>
@@ -995,43 +955,38 @@ export function TTSControls({
               <TTSSection
                 title="睡眠定时"
                 description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
-                uiScheme={uiScheme}
               >
-                <div className="grid grid-cols-4 gap-2">
+                <div role="group" aria-label="睡眠定时" className="grid grid-cols-4 gap-2">
                   {[15, 30, 60].map((minutes) => {
                     const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                     return (
-                      <Button
+                      <button
                         key={minutes}
                         type="button"
-                        variant="subtle"
-                        size="xs"
                         onClick={() => onSleepTimerMinutes?.(minutes)}
                         aria-pressed={active}
-                        className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97]"
-                        style={segmentStyle(active, uiScheme)}
+                        className={cn(
+                          'reader-settings-option min-h-11 border text-xs tabular-nums lg:min-h-9',
+                          active && 'font-medium',
+                        )}
+                        style={active ? undefined : { borderColor: 'var(--reader-panel-rule)' }}
                       >
                         {minutes}分
-                      </Button>
+                      </button>
                     );
                   })}
-                  <Button
+                  <button
                     type="button"
-                    variant="subtle"
-                    size="xs"
                     onClick={() => onClearSleepTimer?.()}
                     disabled={!sleepTimerActive}
-                    className="h-11 rounded-lg text-xs font-semibold"
+                    className="reader-settings-option min-h-11 border text-xs lg:min-h-9"
                     style={{
-                      ...segmentStyle(false, uiScheme),
-                      color: sleepTimerActive
-                        ? uiScheme.mutedText
-                        : withOpacity(uiScheme.mutedText, 0.35),
-                      opacity: sleepTimerActive ? 1 : 0.7,
+                      borderColor: 'var(--reader-panel-rule)',
+                      color: 'var(--reader-panel-muted)',
                     }}
                   >
                     取消
-                  </Button>
+                  </button>
                 </div>
               </TTSSection>
 
@@ -1039,7 +994,6 @@ export function TTSControls({
                 <TTSSection
                   title="语音偏好"
                   description="选择发音人、情绪风格与输出声音。"
-                  uiScheme={uiScheme}
                 >
                   <VoiceSelector
                     settings={settings}
@@ -1080,7 +1034,7 @@ export function TTSControls({
         style={{ pointerEvents: 'auto' }}
       >
         <div aria-live="polite" aria-atomic="true" className="sr-only">
-          {isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
+          {isBusy ? '正在准备朗读' : isActive ? (isPlaying ? '正在朗读' : isPaused ? '已暂停' : '待开始') : '朗读已停止'}
         </div>
         {isToolbar ? (
           <ActionIcon
@@ -1123,7 +1077,7 @@ export function TTSControls({
               expanded={expanded}
               onClick={handleClick}
               onPointerDownCapture={stopInteractivePropagation}
-              uiScheme={uiScheme}
+              panelThemeVars={panelThemeVars}
             />
           )
         )}
@@ -1140,7 +1094,10 @@ export function TTSControls({
                 ? 'paper-reveal-soft fixed left-3 right-3 top-[calc(env(safe-area-inset-top,0px)+4.9rem)] z-[70] origin-top sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:origin-top-right'
                 : 'paper-reveal-soft fixed z-[70] origin-bottom-right'
             }
-            style={isToolbar ? toolbarPopupStyle : floatingPopupStyle}
+            style={{
+              ...panelThemeVars,
+              ...(isToolbar ? toolbarPopupStyle : floatingPopupStyle),
+            }}
             onClick={stopInteractivePropagation}
           >
             <div
@@ -1148,6 +1105,7 @@ export function TTSControls({
               style={{
                 background: uiScheme.cardBg,
                 borderColor: surface.border,
+                color: surface.fg,
                 boxShadow: 'var(--paper-shadow-floating)',
               }}
             >
@@ -1155,18 +1113,17 @@ export function TTSControls({
                 <div
                   className="pointer-events-none absolute bottom-[-8px] right-5 h-4 w-4 rotate-45 border-r border-b"
                   style={{
-                    background: uiScheme.cardBg,
-                    borderColor: `${uiScheme.cardBorder}72`,
-                    boxShadow: `8px 8px 18px -16px ${uiScheme.cardBorder}40`,
+                    background: 'var(--reader-panel-bg)',
+                    borderColor: 'var(--reader-panel-border)',
                   }}
                 />
               )}
 
-              <div
-                className="flex items-center justify-between gap-3 px-4 py-3.5"
-                style={{ borderBottom: `1px solid ${surface.hairline}` }}
-              >
-                <p className="font-heading text-lg font-medium" style={{ color: uiScheme.fg }}>
+              <div className="reader-panel-header flex items-center justify-between gap-3 px-4 py-3.5">
+                <p
+                  className="font-heading text-lg font-medium leading-tight"
+                  style={{ color: 'var(--reader-panel-fg)' }}
+                >
                   朗读控制
                 </p>
                 <ActionIcon
@@ -1176,8 +1133,7 @@ export function TTSControls({
                   radius="md"
                   onPointerDown={preserveReaderSelection}
                   onClick={closePanel}
-                  className="size-11 min-h-0 min-w-0 rounded-lg border-0 transition-colors lg:size-9"
-                  style={{ color: surface.muted }}
+                  className="reader-panel-icon"
                   aria-label="关闭朗读控制面板"
                   title="关闭"
                 >
@@ -1234,32 +1190,27 @@ export function TTSControls({
                   <div className="flex items-center justify-between gap-3 px-1">
                     <h3
                       className="text-xs font-medium"
-                      style={{ color: uiScheme.mutedText }}
+                      style={{ color: 'var(--reader-panel-muted)' }}
                     >
                       快捷控制
                     </h3>
                     {showSettingsPanel && (
-                      <Button
+                      <button
                         type="button"
-                        variant="subtle"
-                        size="xs"
+                        aria-expanded={detailsExpanded}
                         onClick={() => setDetailsExpanded((value) => !value)}
-                        rightSection={
-                          detailsExpanded ? (
-                            <ChevronUp className="h-3 w-3" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3" />
-                          )
-                        }
-                        className="h-11 rounded-lg px-2.5 lg:h-9 text-xs font-medium transition-colors active:scale-[0.98]"
-                        style={{
-                          color: detailsExpanded ? uiScheme.link : uiScheme.mutedText,
-                          background: withOpacity(uiScheme.buttonBg, 0.45),
-                          border: `1px solid ${withOpacity(uiScheme.cardBorder, 0.45)}`,
-                        }}
+                        className={cn(
+                          detailsExpanded ? 'reader-panel-action' : 'reader-panel-secondary',
+                          'px-2.5 text-xs',
+                        )}
                       >
-                        {detailsExpanded ? '收起设置' : '更多设置'}
-                      </Button>
+                        <span>{detailsExpanded ? '收起设置' : '更多设置'}</span>
+                        {detailsExpanded ? (
+                          <ChevronUp aria-hidden="true" className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
+                        )}
+                      </button>
                     )}
                   </div>
 
@@ -1271,38 +1222,31 @@ export function TTSControls({
                       disabled={!isActive || isBusy}
                       title="上一句"
                       active={isActive}
-                      uiScheme={uiScheme}
                     >
                       <SkipBack className="h-5 w-5" />
                     </ControlButton>
 
                     <div className="relative flex items-center justify-center">
-                      <ActionIcon
+                      <button
                         type="button"
-                        variant="filled"
-                        size={44}
-                        radius="md"
                         onClick={handleStartClick}
                         disabled={isBusy}
+                        aria-busy={isBusy || undefined}
+                        data-playing={isPlaying ? 'true' : undefined}
                         title={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
                         aria-label={isPlaying ? '暂停' : isPaused ? '继续' : '开始'}
-                        className="size-11 rounded-lg transition-opacity hover:opacity-90 active:scale-95"
-                        style={{
-                          background: isPlaying ? uiScheme.link : uiScheme.fg,
-                          color: uiScheme.cardBg,
-                          cursor: isBusy ? 'not-allowed' : 'pointer',
-                        }}
+                        className="reader-tts-primary size-11"
                       >
                         {isBusy ? (
-                          <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" />
+                          <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin motion-reduce:animate-none" />
                         ) : isPaused ? (
-                          <Play className="ml-0.5 h-5 w-5 fill-current" />
+                          <Play aria-hidden="true" className="ml-0.5 h-5 w-5 fill-current" />
                         ) : isPlaying ? (
-                          <Pause className="h-5 w-5 fill-current" />
+                          <Pause aria-hidden="true" className="h-5 w-5 fill-current" />
                         ) : (
-                          <Play className="ml-0.5 h-5 w-5 fill-current" />
+                          <Play aria-hidden="true" className="ml-0.5 h-5 w-5 fill-current" />
                         )}
-                      </ActionIcon>
+                      </button>
                     </div>
 
                     <ControlButton
@@ -1310,7 +1254,6 @@ export function TTSControls({
                       disabled={!isActive || isBusy}
                       title="下一句"
                       active={isActive}
-                      uiScheme={uiScheme}
                     >
                       <SkipForward className="h-5 w-5" />
                     </ControlButton>
@@ -1319,8 +1262,8 @@ export function TTSControls({
                       onClick={handleStopClick}
                       disabled={!isActive && !isBusy}
                       title="停止"
-                      active={isActive}
-                      uiScheme={uiScheme}
+                      active={isActive || isBusy}
+                      variant="danger"
                     >
                       <Square className="h-5 w-5" />
                     </ControlButton>
@@ -1330,7 +1273,6 @@ export function TTSControls({
                     <RateButtons
                       value={settings.rate}
                       onChange={handleRateChange}
-                      uiScheme={uiScheme}
                     />
                   </div>
 
@@ -1339,12 +1281,12 @@ export function TTSControls({
                       <div className="flex items-center justify-between gap-3 px-1">
                         <h3
                           className="text-xs font-medium"
-                          style={{ color: uiScheme.mutedText }}
+                          style={{ color: 'var(--reader-panel-muted)' }}
                         >
                           高亮方式
                         </h3>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div role="group" aria-label="高亮方式" className="grid grid-cols-2 gap-1.5">
                         {([
                           ['word', '词语'],
                           ['sentence', '句子'],
@@ -1356,8 +1298,11 @@ export function TTSControls({
                               type="button"
                               aria-pressed={active}
                               onClick={() => handleHighlightModeChange(mode)}
-                              className="touch-control min-h-11 rounded-lg py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 active:scale-[0.98] lg:min-h-9"
-                              style={segmentStyle(active, uiScheme)}
+                              className={cn(
+                                'reader-settings-option touch-control min-h-11 border py-2 text-xs lg:min-h-9',
+                                active && 'font-medium',
+                              )}
+                              style={active ? undefined : { borderColor: 'var(--reader-panel-rule)' }}
                             >
                               {label}
                             </button>
@@ -1372,55 +1317,52 @@ export function TTSControls({
                       <div className="flex items-center justify-between gap-3 px-1">
                         <h3
                           className="text-xs font-medium"
-                          style={{ color: uiScheme.mutedText }}
+                          style={{ color: 'var(--reader-panel-muted)' }}
                         >
                           睡眠定时
                         </h3>
                         {sleepTimerActive && (
                           <span
-                            className="text-[11px] font-semibold"
-                            style={{ color: uiScheme.link }}
+                            className="text-[11px] font-medium tabular-nums"
+                            style={{ color: 'var(--reader-panel-accent)' }}
                           >
                             {sleepTimer?.label}
                           </span>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-4 gap-1.5">
+                      <div role="group" aria-label="睡眠定时" className="grid grid-cols-4 gap-1.5">
                         {[15, 30, 60].map((minutes) => {
                           const active =
                             sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;
                           return (
-                            <Button
+                            <button
                               key={minutes}
                               type="button"
-                              variant="subtle"
-                              size="xs"
                               aria-pressed={active}
                               onClick={() => onSleepTimerMinutes?.(minutes)}
-                              className="h-11 rounded-lg text-xs font-semibold transition-all active:scale-[0.97] lg:h-9"
-                              style={segmentStyle(active, uiScheme)}
+                              className={cn(
+                                'reader-settings-option min-h-11 border text-xs tabular-nums lg:min-h-9',
+                                active && 'font-medium',
+                              )}
+                              style={active ? undefined : { borderColor: 'var(--reader-panel-rule)' }}
                             >
                               {minutes}分
-                            </Button>
+                            </button>
                           );
                         })}
-                        <Button
+                        <button
                           type="button"
-                          variant="subtle"
-                          size="xs"
                           onClick={() => onClearSleepTimer?.()}
                           disabled={!sleepTimerActive}
-                          className="h-11 rounded-lg text-xs font-semibold lg:h-9"
+                          className="reader-settings-option min-h-11 border text-xs lg:min-h-9"
                           style={{
-                            ...segmentStyle(false, uiScheme),
-                            color: sleepTimerActive
-                              ? uiScheme.mutedText
-                              : withOpacity(uiScheme.mutedText, 0.35),
+                            borderColor: 'var(--reader-panel-rule)',
+                            color: 'var(--reader-panel-muted)',
                           }}
                         >
                           取消
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1447,7 +1389,7 @@ export function TTSControls({
                 <div
                   className="border-t p-3"
                   style={{
-                    borderColor: `${uiScheme.cardBorder}24`,
+                    borderColor: 'var(--reader-panel-rule)',
                   }}
                 >
                   {ttsStatus && !detailsExpanded ? renderStatusContent(true) : null}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { handleAuthResponse } from '@/lib/api';
+import { getAccessGeneration } from '@/lib/library-access';
 import { mergeVoicesWithFallback, Voice } from '@/lib/tts';
 
 export function useTTSVoices(preferredVoiceName: string, enabled = false) {
@@ -22,6 +23,7 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
       setVoicesLoading(true);
       setVoicesError(null);
 
+      const generation = getAccessGeneration();
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const { controller, timeoutId } = createAbortController(12000);
         controllerRef.current = controller;
@@ -29,10 +31,12 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
         try {
           const response = await fetch(`${API_BASE}/api/voices`, {
             credentials: 'include',
+            cache: 'no-store',
             signal: controller.signal,
           });
 
-          handleAuthResponse(response);
+          if (generation !== getAccessGeneration()) break;
+          handleAuthResponse(response, generation);
           if (!response.ok) {
             if (response.status === 401) {
               if (mountedRef.current) setVoicesLoading(false);
@@ -42,6 +46,7 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
           }
 
           const data = await response.json();
+          if (generation !== getAccessGeneration()) break;
           if (mountedRef.current) {
             setVoices(mergeVoicesWithFallback(data || [], preferredVoiceRef.current));
             setVoicesError(null);
@@ -60,6 +65,7 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
           } else {
             await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
             if (!mountedRef.current) return;
+            if (generation !== getAccessGeneration()) break;
           }
         } finally {
           clearTimeout(timeoutId);

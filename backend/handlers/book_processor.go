@@ -254,14 +254,15 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 		return
 	}
 
-	bookPath, err := resolveUploadPath(h.cfg.UploadDir, book.Filename)
+	file, _, err := openUploadFile(h.cfg.UploadDir, book.Filename)
 	if err != nil {
 		h.markBookProcessingFailed(job, err)
 		return
 	}
 
 	startedAt := time.Now()
-	metadata, coverData, contentType, err := extractBookPreview(bookPath, book.Format)
+	metadata, coverData, contentType, err := extractBookPreview(file, book.Format)
+	file.Close()
 	telemetry.Observe("book_preview", time.Since(startedAt), 1)
 	if err != nil {
 		h.markBookProcessingFailed(job, err)

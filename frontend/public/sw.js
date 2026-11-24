@@ -82,14 +82,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Immutable static assets (Foliate-JS & content-hashed Next.js chunks): Cache-First
-  // These files are immutable in production, caching them speeds up repeat loads and offline reading.
-  if (url.pathname.includes('/foliate/') || url.pathname.startsWith('/_next/static/')) {
+  // Keep the content-hashed reader bundles and their vendored resources available offline.
+  if (
+    url.pathname.startsWith('/foliate/built/') ||
+    url.pathname.startsWith('/foliate/vendor/') ||
+    url.pathname.startsWith('/_next/static/')
+  ) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
-  // 2. API responses and authenticated shelf views must skip shared Cache Storage
+  // Standalone Foliate entry points are unversioned and must be revalidated by HTTP.
+  if (url.pathname.startsWith('/foliate/')) return;
+
+  // API responses and authenticated shelf views must skip shared Cache Storage
   // so revisiting always validates current library access.
   if (
     url.pathname.startsWith('/api/') ||
@@ -99,6 +105,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Default Next.js pages, CSS, and public images: Network-First
+  // Default Next.js pages, CSS, and public images: Network-First
   event.respondWith(networkFirst(request));
 });

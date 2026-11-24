@@ -2,9 +2,11 @@ package backup
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,6 +50,36 @@ func TestCreateAndVerifyBackup(t *testing.T) {
 	}
 	if err := Verify(backupDir); err != nil {
 		t.Fatalf("Verify returned error: %v", err)
+	}
+
+	manifestPath := filepath.Join(backupDir, manifestName)
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"data.db", "data.db.sessions", "uploads/book.epub"} {
+		t.Run("manifest requires "+name, func(t *testing.T) {
+			var manifest Manifest
+			if err := json.Unmarshal(manifestData, &manifest); err != nil {
+				t.Fatal(err)
+			}
+			delete(manifest.Files, name)
+			data, err := json.Marshal(manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(manifestPath, data, 0600); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := os.WriteFile(manifestPath, manifestData, 0600); err != nil {
+					t.Error(err)
+				}
+			})
+			if err := Verify(backupDir); err == nil || !strings.Contains(err.Error(), name) {
+				t.Fatalf("Verify did not report the missing manifest entry for %s: %v", name, err)
+			}
+		})
 	}
 
 	backedUpBook := filepath.Join(backupDir, "uploads", "book.epub")

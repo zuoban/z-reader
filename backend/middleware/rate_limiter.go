@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -60,7 +59,7 @@ func NewRateLimiter(maxReqs int, window time.Duration) *RateLimiter {
 func (rl *RateLimiter) evictExpired(now time.Time) {
 	var oldest time.Time
 	for ip, v := range rl.visitors {
-		if now.Sub(v.windowStart) > rl.window {
+		if now.Sub(v.windowStart) >= rl.window {
 			delete(rl.visitors, ip)
 			continue
 		}
@@ -84,6 +83,11 @@ func (rl *RateLimiter) cleanupExpired(now time.Time) {
 }
 
 func (rl *RateLimiter) Allow(ip string) bool {
+	allowed, _ := rl.allow(ip)
+	return allowed
+}
+
+func (rl *RateLimiter) allow(ip string) (bool, time.Duration) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -91,34 +95,27 @@ func (rl *RateLimiter) Allow(ip string) bool {
 	rl.cleanupExpired(now)
 
 	v, exists := rl.visitors[ip]
-	if !exists {
-		if rl.maxVisitors > 0 && len(rl.visitors) >= rl.maxVisitors {
-			if rl.oldestWindowStart.IsZero() || now.Sub(rl.oldestWindowStart) > rl.window {
-				rl.evictExpired(now)
-			}
-			if len(rl.visitors) >= rl.maxVisitors {
-				return false
-			}
+	if !exists && rl.maxVisitors > 0 && len(rl.visitors) >= rl.maxVisitors {
+		if rl.oldestWindowStart.IsZero() || now.Sub(rl.oldestWindowStart) >= rl.window {
+			rl.evictExpired(now)
 		}
-		rl.visitors[ip] = &visitor{count: 1, windowStart: now}
-		if rl.oldestWindowStart.IsZero() || now.Before(rl.oldestWindowStart) {
-			rl.oldestWindowStart = now
+		if len(rl.visitors) >= rl.maxVisitors {
+			return false, rl.window - now.Sub(rl.oldestWindowStart)
 		}
-		return true
 	}
-	if now.Sub(v.windowStart) > rl.window {
+	if !exists || now.Sub(v.windowStart) >= rl.window {
 		rl.visitors[ip] = &visitor{count: 1, windowStart: now}
 		if rl.oldestWindowStart.IsZero() || now.Before(rl.oldestWindowStart) {
 			rl.oldestWindowStart = now
 		}
-		return true
+		return true, 0
 	}
 
-	v.count++
-	if v.count > rl.maxReqs {
-		return false
+	if v.count >= rl.maxReqs {
+		return false, rl.window - now.Sub(v.windowStart)
 	}
-	return true
+	v.count++
+	return true, 0
 }
 
 // RateLimit 返回速率限制中间件
@@ -141,9 +138,10 @@ func rateLimitByKey(
 		if key == "" {
 			key = c.ClientIP()
 		}
-		if !rl.Allow(key) {
+		if allowed, retryAfter := rl.allow(key); !allowed {
 			recordRateLimitRejection(scope)
-			c.Header("Retry-After", strconv.Itoa(int(math.Ceil(rl.window.Seconds()))))
+			seconds := 1 + (retryAfter-time.Nanosecond)/time.Second
+			c.Header("Retry-After", strconv.FormatInt(int64(seconds), 10))
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "请求过于频繁，请稍后再试",
 			})

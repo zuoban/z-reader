@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { runInNewContext } from 'node:vm';
+import { describe, expect, it, vi } from 'vitest';
 
 const serviceWorkerSource = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8');
 const performanceBudget = JSON.parse(
@@ -37,6 +38,28 @@ describe('service worker privacy policy', () => {
 
   it('uses cache-first for immutable Next.js static chunks', () => {
     expect(serviceWorkerSource).toContain("url.pathname.startsWith('/_next/static/')");
+  });
+
+  it('lets HTTP revalidate standalone Foliate files and caches the versioned reader', async () => {
+    type FetchHandler = (event: {
+      request: Request;
+      respondWith: (response: Promise<Response>) => void;
+    }) => void;
+    const handlers = new Map<string, FetchHandler>();
+    const origin = 'https://reader.test';
+    const cachedReader = new Response('versioned reader');
+    runInNewContext(serviceWorkerSource, {
+      URL,
+      self: { location: { origin }, addEventListener: handlers.set.bind(handlers) },
+      caches: { match: async () => cachedReader },
+    });
+
+    const respondWith = vi.fn<(response: Promise<Response>) => void>();
+    const fetchHandler = handlers.get('fetch')!;
+    fetchHandler({ request: new Request(`${origin}/foliate/view.js`), respondWith });
+    expect(respondWith).not.toHaveBeenCalled();
+    fetchHandler({ request: new Request(`${origin}/foliate/built/abc/view.js`), respondWith });
+    await expect(respondWith.mock.calls[0]?.[0]).resolves.toBe(cachedReader);
   });
 
   it('ignores cross-origin requests in the fetch handler', () => {

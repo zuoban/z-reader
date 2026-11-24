@@ -91,6 +91,8 @@ export class FixedLayout extends HTMLElement {
         const element = document.createElement('div')
         element.setAttribute('dir', 'ltr')
         const iframe = document.createElement('iframe')
+        // Keep DOM access for page layout, with scripts disabled.
+        iframe.setAttribute('sandbox', 'allow-same-origin')
         element.append(iframe)
         Object.assign(iframe.style, {
             border: '0',

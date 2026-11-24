@@ -54,22 +54,16 @@ export function createAbortController(timeout: number = DEFAULT_TIMEOUT): {
 }
 
 export function isAbortLikeError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    (error.name === 'AbortError' || error.name === 'TimeoutError')
-  );
+  // Fetch and DOM exceptions can originate from a different JavaScript realm.
+  return typeof error === 'object' && error !== null && 'name' in error &&
+    (error.name === 'AbortError' || error.name === 'TimeoutError');
 }
 
 export function normalizeRequestError(
   error: unknown,
   timeoutMessage = '请求超时，请稍后重试'
 ): Error {
-  if (error instanceof Error) {
-    if (isAbortLikeError(error)) {
-      return new Error(timeoutMessage);
-    }
-    return error;
-  }
-
+  if (isAbortLikeError(error)) return new Error(timeoutMessage);
+  if (error instanceof Error) return error;
   return new Error('未知错误');
 }

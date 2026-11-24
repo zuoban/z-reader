@@ -17,7 +17,36 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  smoke:
+    name: Test image before publishing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build smoke-test image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: z-reader:publish-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test container lifecycle
+        run: bash docker/smoke-test.sh z-reader:publish-smoke
+
   build:
+    needs: smoke
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,6 +58,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Validate release tag
         if: startsWith(github.ref, 'refs/tags/')

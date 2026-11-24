@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { ACCESS_GENERATION_KEY, accessStorageKey } from '@/lib/library-access';
 import { useProgress } from '@/hooks/useProgress';
 import { ApiError, api } from '@/lib/api';
 import type { Progress } from '@/lib/api';
@@ -61,6 +62,25 @@ describe('useProgress', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it('loads progress from the current access session without replaying the previous queue', async () => {
+    const queueKey = 'z-reader-offline-pending-sync-books';
+    const progressKey = 'z-reader-offline-progress:book-1';
+    localStorage.setItem(accessStorageKey(queueKey, 'previous'), JSON.stringify(['book-1']));
+    localStorage.setItem(accessStorageKey(progressKey, 'previous'), JSON.stringify({
+      cfi: 'epubcfi(/6/2)', percentage: 10,
+    }));
+    localStorage.setItem(accessStorageKey(progressKey, 'current'), JSON.stringify({
+      cfi: 'epubcfi(/6/4)', percentage: 20,
+    }));
+    localStorage.setItem(ACCESS_GENERATION_KEY, 'current');
+    vi.mocked(api.getProgress).mockResolvedValue(MOCK_PROGRESS({ cfi: '', percentage: 0 }));
+
+    const { result } = renderHook(() => useProgress({ bookId: 'book-1' }));
+    expect(result.current.progress).toMatchObject({ cfi: 'epubcfi(/6/4)', percentage: 20 });
+    await waitFor(() => expect(api.getProgress).toHaveBeenCalledWith('book-1'));
+    expect(api.saveProgress).not.toHaveBeenCalled();
   });
 
   it('loads progress on mount', async () => {

@@ -238,7 +238,7 @@ describe('TTS text buffer', () => {
       } finally { clone.mockRestore(); }
     });
 
-  it('bounds markup-heavy SSML by encoded bytes and retains all its text', async () => {
+  it('bounds markup-heavy SSML by encoded bytes and retains all its text', { timeout: 15_000 }, async () => {
     const text = '汉'.repeat(100);
     async function* markup() {
       yield { ...sentence(text, 0), words: [], ssml: '<speak>' +

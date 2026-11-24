@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"archive/zip"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -13,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"unicode"
 )
 
 type epubMetadata struct {
@@ -45,76 +44,11 @@ type epubPackage struct {
 	} `xml:"manifest"`
 }
 
-func saveNormalizedEPUBFile(file *multipart.FileHeader, path string, maxExpandedBytes int64) (bool, string, error) {
-	src, err := file.Open()
-	if err != nil {
-		return false, "", err
+func writeNormalizedEPUBZip(reader *zip.Reader, root string, dst io.Writer, maxExpandedBytes int64) (err error) {
+	if maxExpandedBytes <= 0 {
+		maxExpandedBytes = maxEPUBExpandedBytes
 	}
-	defer src.Close()
-
-	reader, err := zip.NewReader(src, file.Size)
-	if err != nil {
-		return false, "", nil
-	}
-
-	root, ok := epubPackageRoot(reader)
-	if !ok {
-		return false, "", nil
-	}
-	if err := validateEPUBArchive(reader, maxExpandedBytes); err != nil {
-		return true, "", err
-	}
-
-	contentHash, err := writeNormalizedEPUBZip(reader, root, path, maxExpandedBytes)
-	if err != nil {
-		removeFileIfExists(path)
-		return true, "", err
-	}
-
-	return true, contentHash, nil
-}
-
-func normalizeStoredEPUBFile(path string) (bool, error) {
-	reader, err := zip.OpenReader(path)
-	if err != nil {
-		return false, nil
-	}
-	defer reader.Close()
-
-	root, ok := epubPackageRoot(&reader.Reader)
-	if !ok {
-		return false, nil
-	}
-	if err := validateEPUBArchive(&reader.Reader, maxEPUBExpandedBytes); err != nil {
-		return false, err
-	}
-
-	tmpPath := path + ".normalized"
-	if _, err := writeNormalizedEPUBZip(&reader.Reader, root, tmpPath, maxEPUBExpandedBytes); err != nil {
-		removeFileIfExists(tmpPath)
-		return false, err
-	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		removeFileIfExists(tmpPath)
-		return false, err
-	}
-
-	return true, nil
-}
-
-func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string, maxExpandedBytes int64) (contentHash string, err error) {
-	dst, err := os.Create(path)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		if closeErr := dst.Close(); err == nil && closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	hash := sha256.New()
-	writer := zip.NewWriter(io.MultiWriter(dst, hash))
+	writer := zip.NewWriter(dst)
 	defer func() {
 		if err != nil {
 			_ = writer.Close()
@@ -138,37 +72,34 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, path string, maxExp
 
 		entryReader, err := entry.Open()
 		if err != nil {
-			return "", err
+			return err
 		}
 		target, err := writer.CreateHeader(&header)
 		if err != nil {
 			entryReader.Close()
-			return "", err
+			return err
 		}
 		remaining := maxExpandedBytes - copiedBytes
 		if remaining < 0 {
 			entryReader.Close()
-			return "", fmt.Errorf("EPUB 解压后的内容超过大小限制")
+			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
 		}
 		copied, err := io.Copy(target, io.LimitReader(entryReader, remaining+1))
 		if err != nil {
 			entryReader.Close()
-			return "", err
+			return err
 		}
 		if copied > remaining {
 			entryReader.Close()
-			return "", fmt.Errorf("EPUB 解压后的内容超过大小限制")
+			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
 		}
 		copiedBytes += copied
 		if err := entryReader.Close(); err != nil {
-			return "", err
+			return err
 		}
 	}
 
-	if err := writer.Close(); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return writer.Close()
 }
 
 func isValidEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) bool {
@@ -281,26 +212,39 @@ func stripEPUBPackageRoot(name string, root string) (string, bool) {
 	return strings.TrimLeft(trimmed[len(root):], "/"), true
 }
 
-func extractBookPreview(path string, format string) (*epubMetadata, []byte, string, error) {
+func extractBookPreview(file *os.File, format string) (*epubMetadata, []byte, string, error) {
 	switch format {
 	case "epub":
-		return extractEPUBPreview(path)
+		return extractEPUBPreview(file)
 	default:
 		return nil, nil, "", fmt.Errorf("metadata extraction not implemented for %s", format)
 	}
 }
 
-func extractEPUBPreview(path string) (*epubMetadata, []byte, string, error) {
-	r, err := zip.OpenReader(path)
+func openStoredEPUB(file *os.File) (*zip.Reader, error) {
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	reader, err := zip.NewReader(file, info.Size())
+	if err != nil {
+		return nil, err
+	}
+	if err := validateEPUBArchive(reader, maxEPUBExpandedBytes); err != nil {
+		return nil, err
+	}
+	return reader, nil
+}
+
+func extractEPUBPreview(file *os.File) (*epubMetadata, []byte, string, error) {
+	r, err := openStoredEPUB(file)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer r.Close()
-	meta := &epubMetadata{}
-	if extractedMeta, err := extractEPUBMetadataFromReader(&r.Reader); err == nil {
-		meta = extractedMeta
-	}
-	coverData, contentType, coverErr := extractEPUBCoverFromReader(&r.Reader)
+	lookup := indexEPUBEntries(r)
+	pkg, opfDir := readEPUBPackage(r, lookup)
+	meta := metadataFromEPUBPackage(pkg)
+	coverData, contentType, coverErr := extractEPUBCoverCandidate(r, lookup, pkg, opfDir)
 	if coverErr != nil {
 		// A cover is optional and should not make an otherwise valid upload fail.
 		return meta, nil, "", nil
@@ -308,29 +252,51 @@ func extractEPUBPreview(path string) (*epubMetadata, []byte, string, error) {
 	return meta, coverData, contentType, nil
 }
 
-func findZipFile(reader *zip.Reader, target string) *zip.File {
-	cleanTarget := path.Clean(strings.TrimLeft(strings.ReplaceAll(target, "\\", "/"), "/"))
-	if cleanTarget == "." || cleanTarget == ".." || strings.HasPrefix(cleanTarget, "../") {
-		return nil
-	}
-	var ciMatch *zip.File
-	for _, f := range reader.File {
-		if strings.HasSuffix(f.Name, "/") {
+func indexEPUBEntries(reader *zip.Reader) func(string) *zip.File {
+	exact := make(map[string]*zip.File, len(reader.File))
+	folded := make(map[string]*zip.File, len(reader.File))
+	for _, file := range reader.File {
+		if strings.HasSuffix(file.Name, "/") {
 			continue
 		}
-		cleanName := path.Clean(strings.TrimLeft(strings.ReplaceAll(f.Name, "\\", "/"), "/"))
-		if cleanName == cleanTarget {
-			return f
+		name := cleanEPUBEntryName(file.Name)
+		if exact[name] == nil {
+			exact[name] = file
 		}
-		if ciMatch == nil && strings.EqualFold(cleanName, cleanTarget) {
-			ciMatch = f
+		key := foldEPUBName(name)
+		if folded[key] == nil {
+			folded[key] = file
 		}
 	}
-	return ciMatch
+	return func(name string) *zip.File {
+		name = cleanEPUBEntryName(name)
+		if name == "." || name == ".." || strings.HasPrefix(name, "../") {
+			return nil
+		}
+		if file := exact[name]; file != nil {
+			return file
+		}
+		return folded[foldEPUBName(name)]
+	}
 }
 
-func findEPUBOPFFile(reader *zip.Reader) *zip.File {
-	if containerFile := findZipFile(reader, "META-INF/container.xml"); containerFile != nil {
+// Canonicalize the same Unicode case-fold groups as strings.EqualFold.
+func foldEPUBName(name string) string {
+	return strings.Map(func(char rune) rune {
+		canonical := char
+		for next := unicode.SimpleFold(char); next != char; next = unicode.SimpleFold(next) {
+			canonical = min(canonical, next)
+		}
+		return canonical
+	}, name)
+}
+
+func cleanEPUBEntryName(name string) string {
+	return path.Clean(strings.TrimLeft(strings.ReplaceAll(name, "\\", "/"), "/"))
+}
+
+func findEPUBOPFFile(reader *zip.Reader, lookup func(string) *zip.File) *zip.File {
+	if containerFile := lookup("META-INF/container.xml"); containerFile != nil {
 		if data, err := readZipFileWithLimit(containerFile, maxEPUBMetadataBytes); err == nil {
 			var container epubContainer
 			if err := xml.Unmarshal(data, &container); err == nil {
@@ -339,7 +305,7 @@ func findEPUBOPFFile(reader *zip.Reader) *zip.File {
 					if fullPath == "" {
 						continue
 					}
-					if f := findZipFile(reader, fullPath); f != nil {
+					if f := lookup(fullPath); f != nil {
 						return f
 					}
 				}
@@ -347,7 +313,7 @@ func findEPUBOPFFile(reader *zip.Reader) *zip.File {
 		}
 	}
 
-	if f := findZipFile(reader, "OEBPS/content.opf"); f != nil {
+	if f := lookup("OEBPS/content.opf"); f != nil {
 		return f
 	}
 	for _, f := range reader.File {
@@ -358,11 +324,7 @@ func findEPUBOPFFile(reader *zip.Reader) *zip.File {
 	return nil
 }
 
-func parseEPUBPackage(reader *zip.Reader) (*epubPackage, string, error) {
-	opfFile := findEPUBOPFFile(reader)
-	if opfFile == nil {
-		return nil, "", fmt.Errorf("未找到 OPF 文件")
-	}
+func parseEPUBPackage(opfFile *zip.File) (*epubPackage, string, error) {
 	data, err := readZipFileWithLimit(opfFile, maxEPUBMetadataBytes)
 	if err != nil {
 		return nil, "", err
@@ -371,7 +333,7 @@ func parseEPUBPackage(reader *zip.Reader) (*epubPackage, string, error) {
 	if err := xml.Unmarshal(data, &pkg); err != nil {
 		return nil, "", err
 	}
-	cleanOPF := path.Clean(strings.TrimLeft(strings.ReplaceAll(opfFile.Name, "\\", "/"), "/"))
+	cleanOPF := cleanEPUBEntryName(opfFile.Name)
 	opfDir := path.Dir(cleanOPF)
 	if opfDir == "." {
 		opfDir = ""
@@ -426,31 +388,49 @@ func hasXMLProperty(properties, target string) bool {
 	return false
 }
 
-func extractEPUBMetadataFromReader(reader *zip.Reader) (*epubMetadata, error) {
-	pkg, _, err := parseEPUBPackage(reader)
-	if err != nil {
-		if findEPUBOPFFile(reader) == nil {
-			return &epubMetadata{}, nil
-		}
-		return nil, err
+func metadataFromEPUBPackage(pkg *epubPackage) *epubMetadata {
+	if pkg == nil {
+		return &epubMetadata{}
 	}
-	return &epubMetadata{
-		Title:  pkg.Metadata.Title,
-		Author: pkg.Metadata.Author,
-	}, nil
+	return &epubMetadata{Title: pkg.Metadata.Title, Author: pkg.Metadata.Author}
 }
 
-func extractEPUBCover(path string) ([]byte, string, error) {
-	r, err := zip.OpenReader(path)
+func readEPUBPackage(reader *zip.Reader, lookup func(string) *zip.File) (*epubPackage, string) {
+	if file := findEPUBOPFFile(reader, lookup); file != nil {
+		pkg, dir, err := parseEPUBPackage(file)
+		if err == nil {
+			return pkg, dir
+		}
+	}
+	return nil, ""
+}
+
+func extractEPUBCover(file *os.File) ([]byte, string, error) {
+	r, err := openStoredEPUB(file)
 	if err != nil {
 		return nil, "", err
 	}
-	defer r.Close()
-	return extractEPUBCoverFromReader(&r.Reader)
+	return extractEPUBCoverFromReader(r)
 }
 
 func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
-	if pkg, opfDir, err := parseEPUBPackage(reader); err == nil {
+	lookup := indexEPUBEntries(reader)
+	pkg, opfDir := readEPUBPackage(reader, lookup)
+	return extractEPUBCoverCandidate(reader, lookup, pkg, opfDir)
+}
+
+func extractEPUBCoverCandidate(
+	reader *zip.Reader, lookup func(string) *zip.File, pkg *epubPackage, opfDir string,
+) ([]byte, string, error) {
+	checked := make(map[*zip.File]bool)
+	readCandidate := func(file *zip.File) ([]byte, string, bool) {
+		if file == nil || checked[file] {
+			return nil, "", false
+		}
+		checked[file] = true
+		return readEPUBImageEntry(file)
+	}
+	if pkg != nil {
 		var candidateHrefs []string
 		seen := make(map[string]struct{})
 		addHref := func(href string) {
@@ -466,13 +446,17 @@ func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
 		}
 
 		// 1. EPUB 3: manifest item with properties="cover-image"
+		hrefsByID := make(map[string][]string)
 		for _, item := range pkg.Manifest.Items {
+			id := foldEPUBName(item.ID)
+			hrefsByID[id] = append(hrefsByID[id], item.Href)
 			if hasXMLProperty(item.Properties, "cover-image") {
 				addHref(item.Href)
 			}
 		}
 
 		// 2. EPUB 2: <meta name="cover" content="<manifest-item-id>"/>
+		seenIDs := make(map[string]bool)
 		for _, meta := range pkg.Metadata.Metas {
 			if !strings.EqualFold(strings.TrimSpace(meta.Name), "cover") {
 				continue
@@ -481,16 +465,16 @@ func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
 			if coverID == "" {
 				continue
 			}
-			matched := false
-			for _, item := range pkg.Manifest.Items {
-				if item.ID == coverID || strings.EqualFold(item.ID, coverID) {
-					addHref(item.Href)
-					matched = true
-				}
-			}
-			if !matched {
+			id := foldEPUBName(coverID)
+			hrefs := hrefsByID[id]
+			if len(hrefs) == 0 {
 				// Some malformed EPUBs put an image path directly in meta content.
 				addHref(coverID)
+			} else if !seenIDs[id] {
+				seenIDs[id] = true
+				for _, href := range hrefs {
+					addHref(href)
+				}
 			}
 		}
 
@@ -506,7 +490,7 @@ func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
 		}
 
 		for _, target := range candidateHrefs {
-			if data, contentType, ok := readEPUBImageEntry(findZipFile(reader, target)); ok {
+			if data, contentType, ok := readCandidate(lookup(target)); ok {
 				return data, contentType, nil
 			}
 		}
@@ -519,7 +503,7 @@ func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
 		"OEBPS/Images/cover.jpg", "OEBPS/Images/cover.jpeg", "OEBPS/Images/cover.png",
 	}
 	for _, coverName := range coverNames {
-		if data, contentType, ok := readEPUBImageEntry(findZipFile(reader, coverName)); ok {
+		if data, contentType, ok := readCandidate(lookup(coverName)); ok {
 			return data, contentType, nil
 		}
 	}
@@ -531,7 +515,7 @@ func extractEPUBCoverFromReader(reader *zip.Reader) ([]byte, string, error) {
 		if !strings.Contains(strings.ToLower(f.Name), "cover") {
 			continue
 		}
-		if data, contentType, ok := readEPUBImageEntry(f); ok {
+		if data, contentType, ok := readCandidate(f); ok {
 			return data, contentType, nil
 		}
 	}

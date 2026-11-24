@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -40,12 +39,17 @@ func TestBooksUploadRejectsDamagedEPUBWithoutPersistingData(t *testing.T) {
 }
 
 func TestSaveUploadedBookFileLeavesNoOutputForUnreadableSource(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "interrupted.pdf")
-	_, err := saveUploadedBookFile(&multipart.FileHeader{Filename: "interrupted.pdf"}, "pdf", path, 0)
+	root, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	const name = "interrupted.pdf"
+	_, err = saveUploadedBookFile(&multipart.FileHeader{Filename: name}, "pdf", root, name, 0)
 	if err == nil {
 		t.Fatal("expected unreadable upload source to fail")
 	}
-	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+	if _, statErr := root.Stat(name); !os.IsNotExist(statErr) {
 		t.Fatalf("expected no partial upload file, stat error = %v", statErr)
 	}
 }

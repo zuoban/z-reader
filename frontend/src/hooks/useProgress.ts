@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ApiError, api } from '@/lib/api';
+import { accessStorageKey, getAccessGeneration } from '@/lib/library-access';
+import { offlineProgressKey, offlineProgressQueueKey, readOfflineQueue } from '@/lib/offline-progress-storage';
 import type { Progress } from '@/lib/api';
 
 type ProgressSnapshot = {
@@ -18,7 +20,6 @@ type PendingProgress = Pick<ProgressSnapshot, 'cfi' | 'percentage'> & {
   offlineBase?: { expectedUpdatedAt: string | null };
 };
 
-const offlineQueueKey = 'z-reader-offline-pending-sync-books';
 const replayingBooks = new Set<string>();
 
 interface UseProgressOptions {
@@ -32,10 +33,6 @@ function isBrowserOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
-function offlineProgressKey(bookId: string) {
-  return `z-reader-offline-progress:${bookId}`;
-}
-
 function parseOfflineProgress(raw: string | null): OfflineProgress | null {
   try {
     if (!raw) return null;
@@ -47,34 +44,25 @@ function parseOfflineProgress(raw: string | null): OfflineProgress | null {
   }
 }
 
-function readOfflineProgressSnapshot(bookId: string) {
+function readOfflineProgressSnapshot(bookId: string, generation: string | null) {
   if (typeof window === 'undefined') return null;
   try {
-    return parseOfflineProgress(localStorage.getItem(offlineProgressKey(bookId)));
+    return parseOfflineProgress(localStorage.getItem(offlineProgressKey(bookId, generation)));
   } catch {
     return null;
   }
 }
 
-function readOfflineQueue(): string[] {
-  try {
-    const queue = JSON.parse(localStorage.getItem(offlineQueueKey) ?? '[]');
-    return Array.isArray(queue) ? queue : [];
-  } catch {
-    return [];
-  }
-}
-
 // Persist the server version independently of the reading position, including across reloads.
-function confirmedVersionKey(bookId: string) {
-  return `z-reader-progress-server-version:${bookId}`;
+function confirmedVersionKey(bookId: string, generation: string | null) {
+  return accessStorageKey(`z-reader-progress-server-version:${bookId}`, generation);
 }
 
-function rememberServerVersion(bookId: string, progress: Progress | null) {
+function rememberServerVersion(bookId: string, progress: Progress | null, generation: string | null) {
   if (progress?.cfi && progress.updated_at) {
-    localStorage.setItem(confirmedVersionKey(bookId), progress.updated_at);
+    localStorage.setItem(confirmedVersionKey(bookId, generation), progress.updated_at);
   } else if (!progress?.cfi) {
-    localStorage.removeItem(confirmedVersionKey(bookId));
+    localStorage.removeItem(confirmedVersionKey(bookId, generation));
   }
 }
 
@@ -113,14 +101,16 @@ export function useProgress({
   debounceDelay = 1000,
   remoteSyncEnabled = true,
 }: UseProgressOptions) {
+  const [generation] = useState(getAccessGeneration);
+  const offlineQueueKey = offlineProgressQueueKey(generation);
   // Hydrate offline progress synchronously so the reader can open without waiting on network.
   const [progress, setProgress] = useState<ProgressSnapshot | null>(() => {
-    const offline = readOfflineProgressSnapshot(bookId);
+    const offline = readOfflineProgressSnapshot(bookId, generation);
     return offline;
   });
   const [isLoading, setIsLoading] = useState(() => {
     // If we already have offline progress, treat progress as ready for open; still refresh remote.
-    return !readOfflineProgressSnapshot(bookId);
+    return !readOfflineProgressSnapshot(bookId, generation);
   });
   const lastSavedRef = useRef<ProgressSnapshot | null>(progress);
   const pendingSaveRef = useRef<PendingProgress | null>(null);
@@ -155,11 +145,12 @@ export function useProgress({
 
   const persistOfflineProgress = useCallback((
     data: PendingProgress,
-    version = localStorage.getItem(confirmedVersionKey(bookId)),
+    version = localStorage.getItem(confirmedVersionKey(bookId, generation)),
   ) => {
-    const key = offlineProgressKey(bookId);
+    if (getAccessGeneration() !== generation) return;
+    const key = offlineProgressKey(bookId, generation);
     const cached = parseOfflineProgress(localStorage.getItem(key));
-    const queue = readOfflineQueue();
+    const queue = readOfflineQueue(offlineQueueKey);
     const alreadyQueued = queue.includes(bookId);
     const offlineSnapshot: OfflineProgress = {
       cfi: data.cfi,
@@ -181,18 +172,18 @@ export function useProgress({
     lastSavedRef.current = offlineSnapshot;
     setProgress(offlineSnapshot);
     if (pendingSaveRef.current === data) pendingSaveRef.current = null;
-  }, [bookId]);
+  }, [bookId, generation, offlineQueueKey]);
 
   const syncOfflineProgressQueue = useCallback(async () => {
     if (!remoteSyncEnabled || isBrowserOffline()) return;
-    const queue = readOfflineQueue();
+    const queue = readOfflineQueue(offlineQueueKey);
     for (const id of queue) {
-      if (isBrowserOffline()) break;
-      if (replayingBooks.has(id)) continue;
-      const key = offlineProgressKey(id);
+      if (isBrowserOffline() || getAccessGeneration() !== generation) break;
+      const key = offlineProgressKey(id, generation);
+      if (replayingBooks.has(key)) continue;
       const raw = localStorage.getItem(key);
       const cached = parseOfflineProgress(raw);
-      replayingBooks.add(id);
+      replayingBooks.add(key);
       try {
         if (cached) {
           const version = cached.expected_updated_at ?? null;
@@ -202,7 +193,8 @@ export function useProgress({
               ...progressPrecondition(version),
               deviceId: cached.device_id || getDeviceId(),
             });
-            rememberServerVersion(id, saved);
+            if (getAccessGeneration() !== generation) return;
+            rememberServerVersion(id, saved, generation);
             const pending = pendingSaveRef.current;
             if (pending?.bookId === id && pending.offlineBase?.expectedUpdatedAt === version) {
               pending.offlineBase.expectedUpdatedAt = saved.updated_at;
@@ -218,9 +210,11 @@ export function useProgress({
               queue.push(id);
             }
           } catch (error) {
+            if (getAccessGeneration() !== generation) return;
             if (error instanceof ApiError && error.status === 409) {
               const latest = await loadProgressAfterConflict(id, error);
-              rememberServerVersion(id, latest);
+              if (getAccessGeneration() !== generation) return;
+              rememberServerVersion(id, latest, generation);
               // Preserve the active reading position and keep in-flight edits on the old base.
               const pending = pendingSaveRef.current;
               if (pending?.bookId === id && !pending.offlineBase) {
@@ -235,30 +229,31 @@ export function useProgress({
         // Another edit may have replaced the snapshot during the request.
         if (localStorage.getItem(key) === raw) {
           localStorage.removeItem(key);
-          const remaining = readOfflineQueue().filter(book => book !== id);
+          const remaining = readOfflineQueue(offlineQueueKey).filter(book => book !== id);
           localStorage.setItem(offlineQueueKey, JSON.stringify(remaining));
         }
       } catch (error) {
         console.error(`Failed to background sync progress for book ${id}:`, error);
         break;
       } finally {
-        replayingBooks.delete(id);
+        replayingBooks.delete(key);
       }
     }
-  }, [remoteSyncEnabled]);
+  }, [generation, offlineQueueKey, remoteSyncEnabled]);
 
   const saveProgress = useCallback(async (data: PendingProgress, force = false) => {
+    if (getAccessGeneration() !== generation) return;
     if (data.bookId !== bookId || savingRef.current || (!force && !hasMeaningfulChange(data))) return;
 
     const canSync = remoteSyncEnabled && !isBrowserOffline();
-    if (!canSync || data.offlineBase || readOfflineQueue().includes(bookId)) {
+    if (!canSync || data.offlineBase || readOfflineQueue(offlineQueueKey).includes(bookId)) {
       persistOfflineProgress(data);
       if (canSync) void syncOfflineProgressQueue();
       return;
     }
 
     savingRef.current = true;
-    const version = localStorage.getItem(confirmedVersionKey(bookId));
+    const version = localStorage.getItem(confirmedVersionKey(bookId, generation));
     const latestPending = () => pendingSaveRef.current?.bookId === bookId
       ? pendingSaveRef.current
       : data;
@@ -267,7 +262,8 @@ export function useProgress({
         ...progressPrecondition(version),
         deviceId: getDeviceId(),
       });
-      rememberServerVersion(bookId, saved);
+      if (getAccessGeneration() !== generation) return;
+      rememberServerVersion(bookId, saved, generation);
       const snapshot = {
         cfi: saved.cfi,
         percentage: saved.percentage,
@@ -281,10 +277,12 @@ export function useProgress({
         setProgress(snapshot);
       }
     } catch (err) {
+      if (getAccessGeneration() !== generation) return;
       if (err instanceof ApiError && err.status === 409) {
         try {
           const latest = await loadProgressAfterConflict(bookId, err);
-          rememberServerVersion(bookId, latest);
+          if (getAccessGeneration() !== generation) return;
+          rememberServerVersion(bookId, latest, generation);
           if (pendingSaveRef.current === data) {
             pendingSaveRef.current = null;
             if (latest) applyLoadedProgress(latest);
@@ -303,7 +301,8 @@ export function useProgress({
     } finally {
       savingRef.current = false;
     }
-  }, [applyLoadedProgress, bookId, hasMeaningfulChange, persistOfflineProgress, remoteSyncEnabled, syncOfflineProgressQueue]);
+  }, [applyLoadedProgress, bookId, generation, hasMeaningfulChange, offlineQueueKey,
+    persistOfflineProgress, remoteSyncEnabled, syncOfflineProgressQueue]);
 
   // 防抖保存 - 避免快速翻页时频繁请求
   const debouncedSave = useCallback((data: PendingProgress) => {
@@ -316,8 +315,9 @@ export function useProgress({
   }, [saveProgress, debounceDelay]);
 
   const loadProgress = useCallback(async () => {
+    if (getAccessGeneration() !== generation) return;
     if (!remoteSyncEnabled || isBrowserOffline()) {
-      const offline = readOfflineProgressSnapshot(bookId);
+      const offline = readOfflineProgressSnapshot(bookId, generation);
       if (offline && pendingSaveRef.current?.bookId !== bookId) {
         setProgress(offline);
         lastSavedRef.current = offline;
@@ -326,15 +326,16 @@ export function useProgress({
       return;
     }
 
-    const versionKey = confirmedVersionKey(bookId);
+    const versionKey = confirmedVersionKey(bookId, generation);
     const versionBeforeLoad = localStorage.getItem(versionKey);
     try {
       const data = await api.getProgress(bookId);
+      if (getAccessGeneration() !== generation) return;
       // A save or replay may have completed while this GET was in flight.
       if (localStorage.getItem(versionKey) === versionBeforeLoad) {
-        rememberServerVersion(bookId, data);
+        rememberServerVersion(bookId, data, generation);
         if (!pendingSaveRef.current) {
-          const cached = readOfflineProgressSnapshot(bookId);
+          const cached = readOfflineProgressSnapshot(bookId, generation);
           const remoteTime = data.updated_at ? Date.parse(data.updated_at) : 0;
           const cachedTime = cached?.updated_at ? Date.parse(cached.updated_at) : 0;
           if (cached && (!data.cfi || cachedTime > remoteTime)) {
@@ -346,15 +347,16 @@ export function useProgress({
         }
       }
     } catch (err) {
+      if (getAccessGeneration() !== generation) return;
       console.error('Failed to load progress from server:', err);
-      const cached = readOfflineProgressSnapshot(bookId);
+      const cached = readOfflineProgressSnapshot(bookId, generation);
       if (cached && !pendingSaveRef.current) {
         setProgress(cached);
         lastSavedRef.current = cached;
       }
     }
     setIsLoading(false);
-  }, [applyLoadedProgress, bookId, remoteSyncEnabled]);
+  }, [applyLoadedProgress, bookId, generation, remoteSyncEnabled]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -379,19 +381,20 @@ export function useProgress({
   useEffect(() => {
     if (!remoteSyncEnabled) return;
     const refreshRemoteProgress = async () => {
-      if (isBrowserOffline()) return;
-      if (readOfflineQueue().includes(bookId)) {
+      if (isBrowserOffline() || getAccessGeneration() !== generation) return;
+      if (readOfflineQueue(offlineQueueKey).includes(bookId)) {
         void syncOfflineProgressQueue();
         return;
       }
       if (!lastSavedRef.current || savingRef.current || pendingSaveRef.current) return;
-      const versionKey = confirmedVersionKey(bookId);
+      const versionKey = confirmedVersionKey(bookId, generation);
       const versionBeforeRefresh = localStorage.getItem(versionKey);
       try {
         const latest = await api.getProgress(bookId);
-        if (localStorage.getItem(versionKey) !== versionBeforeRefresh) return;
-        rememberServerVersion(bookId, latest);
-        if (!latest.cfi || !latest.updated_at || readOfflineQueue().includes(bookId)) return;
+        if (getAccessGeneration() !== generation ||
+            localStorage.getItem(versionKey) !== versionBeforeRefresh) return;
+        rememberServerVersion(bookId, latest, generation);
+        if (!latest.cfi || !latest.updated_at || readOfflineQueue(offlineQueueKey).includes(bookId)) return;
 
         const lastSaved = lastSavedRef.current;
         const latestTime = Date.parse(latest.updated_at);
@@ -419,7 +422,7 @@ export function useProgress({
       window.removeEventListener('focus', refreshRemoteProgress);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [applyLoadedProgress, bookId, remoteSyncEnabled, syncOfflineProgressQueue]);
+  }, [applyLoadedProgress, bookId, generation, offlineQueueKey, remoteSyncEnabled, syncOfflineProgressQueue]);
 
   // 定时保存 - 低频检查
   useEffect(() => {
@@ -453,18 +456,19 @@ export function useProgress({
   // 页面卸载前保存
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (getAccessGeneration() !== generation) return;
       if (pendingSaveRef.current?.bookId === bookId) {
         const pending = pendingSaveRef.current;
         if (hasMeaningfulChange(pending)) {
           if (
             !remoteSyncEnabled || isBrowserOffline() || pending.offlineBase ||
-            readOfflineQueue().includes(bookId)
+            readOfflineQueue(offlineQueueKey).includes(bookId)
           ) {
             persistOfflineProgress(pending);
             return;
           }
           api.saveProgressOnUnload(bookId, pending.cfi, pending.percentage, {
-            ...progressPrecondition(localStorage.getItem(confirmedVersionKey(bookId))),
+            ...progressPrecondition(localStorage.getItem(confirmedVersionKey(bookId, generation))),
             deviceId: getDeviceId(),
           });
         }
@@ -477,16 +481,17 @@ export function useProgress({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('pagehide', handleBeforeUnload);
     };
-  }, [bookId, hasMeaningfulChange, persistOfflineProgress, remoteSyncEnabled]);
+  }, [bookId, generation, hasMeaningfulChange, offlineQueueKey, persistOfflineProgress, remoteSyncEnabled]);
 
   function updateProgress(cfi: string, percentage: number) {
+    if (getAccessGeneration() !== generation) return;
     setProgress({ cfi, percentage });
     const pending: PendingProgress = { bookId, cfi, percentage };
     if (!remoteSyncEnabled || isBrowserOffline()) {
-      const cached = readOfflineQueue().includes(bookId)
-        ? readOfflineProgressSnapshot(bookId)
+      const cached = readOfflineQueue(offlineQueueKey).includes(bookId)
+        ? readOfflineProgressSnapshot(bookId, generation)
         : null;
-      const version = localStorage.getItem(confirmedVersionKey(bookId));
+      const version = localStorage.getItem(confirmedVersionKey(bookId, generation));
       pending.offlineBase = {
         expectedUpdatedAt: cached ? cached.expected_updated_at ?? null : version,
       };

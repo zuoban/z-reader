@@ -80,6 +80,13 @@ func TestEscapeSSML_PreservesLanguageElementsOnly(t *testing.T) {
 	}
 }
 
+func TestEscapeSSML_PreservesAzureAudioDuration(t *testing.T) {
+	input := `<voice name="test"><mstts:audioduration value="1200ms"/>正文</voice>`
+	if output := EscapeSSML(input); output != input {
+		t.Errorf("audio duration markup changed: got %q, want %q", output, input)
+	}
+}
+
 func TestEscapeSSML_PreservesSpeakWithAttributes(t *testing.T) {
 	input := `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="zh-CN"><voice name="zh-CN-XiaoxiaoMultilingualNeural"><mstts:express-as style="general" styledegree="1.0"><prosody rate="+0%">你好世界</prosody></mstts:express-as></voice></speak>`
 
@@ -174,5 +181,29 @@ func TestEscapeSSML_PreservesBookmarkTag(t *testing.T) {
 	}
 	if strings.Contains(output, "&lt;bookmark") {
 		t.Errorf("expected <bookmark/> NOT to be escaped: %s", output)
+	}
+}
+
+func TestBuildSsmlPreservesPlainTextAndAttributeValues(t *testing.T) {
+	const text = "<p>Example</p> & more"
+	const voice = `Example "Voice"`
+	var result struct {
+		Voice struct {
+			Name string `xml:"name,attr"`
+			Text string `xml:"express-as>prosody"`
+		} `xml:"voice"`
+	}
+	if err := xml.Unmarshal([]byte(BuildSsml(text, voice, "0", "0", "general")), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Voice.Name != voice || result.Voice.Text != text {
+		t.Fatal("plain text or voice attribute changed")
+	}
+}
+
+func TestEscapeSSMLKeepsTextPlaceholdersLiteral(t *testing.T) {
+	input := `<speak>__SSML_PLACEHOLDER_speak_0__<lang xml:lang="en-US">Hello</lang></speak>`
+	if EscapeSSML(input) != input {
+		t.Fatal("ordinary text resembling a placeholder changed")
 	}
 }

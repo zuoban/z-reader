@@ -369,24 +369,32 @@ func TestBooksGetFileReturnsNotModifiedForMatchingETag(t *testing.T) {
 		t.Fatalf("failed to write book file: %v", err)
 	}
 
-	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
+	for _, tc := range []struct {
+		name, password, cacheControl string
+	}{
+		{name: "open library", cacheControl: "private, max-age=3600"},
+		{name: "password protected", password: "test-password", cacheControl: "private, no-cache"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir, AccessPassword: tc.password}, db)
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
+			ctx.Request.Header.Set("If-None-Match", `"abc123"`)
 
-	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
-	ctx.Request.Header.Set("If-None-Match", `"abc123"`)
+			handler.GetFile(ctx)
 
-	handler.GetFile(ctx)
-
-	if recorder.Code != http.StatusNotModified {
-		t.Fatalf("expected status 304, got %d body=%s", recorder.Code, recorder.Body.String())
-	}
-	if got := recorder.Header().Get("ETag"); got != `"abc123"` {
-		t.Fatalf("expected ETag header, got %q", got)
-	}
-	if got := recorder.Header().Get("Cache-Control"); got != "private, max-age=3600" {
-		t.Fatalf("expected private cache header, got %q", got)
+			if recorder.Code != http.StatusNotModified {
+				t.Fatalf("expected status 304, got %d body=%s", recorder.Code, recorder.Body.String())
+			}
+			if got := recorder.Header().Get("ETag"); got != `"abc123"` {
+				t.Fatalf("expected ETag header, got %q", got)
+			}
+			if got := recorder.Header().Get("Cache-Control"); got != tc.cacheControl {
+				t.Fatalf("Cache-Control = %q, want %q", got, tc.cacheControl)
+			}
+		})
 	}
 }
 
@@ -436,18 +444,12 @@ func TestBooksGetFileServesRequestedByteRange(t *testing.T) {
 	}
 }
 
-func TestResolveUploadPathRejectsTraversal(t *testing.T) {
-	uploadDir := t.TempDir()
-	if _, err := resolveUploadPath(uploadDir, "../secret.epub"); err == nil {
+func TestValidUploadName(t *testing.T) {
+	if validUploadName("../secret.epub") {
 		t.Fatal("expected traversal path to be rejected")
 	}
-
-	resolved, err := resolveUploadPath(uploadDir, "book.epub")
-	if err != nil {
-		t.Fatalf("expected normal path to resolve, got %v", err)
-	}
-	if filepath.Dir(resolved) != uploadDir {
-		t.Fatalf("expected resolved path to stay in upload dir, got %q", resolved)
+	if !validUploadName("book.epub") {
+		t.Fatal("expected a regular upload name to be accepted")
 	}
 }
 
@@ -708,38 +710,6 @@ func TestBooksUploadNormalizesMacOSPackagedEPUB(t *testing.T) {
 	}
 }
 
-func TestNormalizeStoredEPUBFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "book.epub")
-	if err := os.WriteFile(path, macOSPackagedEPUBBytes(t), 0600); err != nil {
-		t.Fatalf("failed to write packaged epub: %v", err)
-	}
-
-	normalized, err := normalizeStoredEPUBFile(path)
-	if err != nil {
-		t.Fatalf("normalizeStoredEPUBFile returned error: %v", err)
-	}
-	if !normalized {
-		t.Fatal("expected stored packaged epub to be normalized")
-	}
-
-	reader, err := zip.OpenReader(path)
-	if err != nil {
-		t.Fatalf("failed to open normalized epub: %v", err)
-	}
-	defer reader.Close()
-
-	names := make(map[string]bool)
-	for _, entry := range reader.File {
-		names[entry.Name] = true
-		if strings.HasPrefix(entry.Name, "笔记的方法.epub/") {
-			t.Fatalf("expected packaged epub root to be stripped, got entry %q", entry.Name)
-		}
-	}
-	if !names["mimetype"] || !names["META-INF/container.xml"] {
-		t.Fatalf("expected normalized epub root entries, got %#v", names)
-	}
-}
-
 func TestBooksUploadRejectsOversizedRequestBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -789,7 +759,13 @@ func TestExtractEPUBCoverDetectsContentType(t *testing.T) {
 		"OEBPS/cover.png": pngHeader,
 	})
 
-	data, contentType, err := extractEPUBCover(epubPath)
+	file, err := os.Open(epubPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	data, contentType, err := extractEPUBCover(file)
 	if err != nil {
 		t.Fatalf("extractEPUBCover returned error: %v", err)
 	}
@@ -812,7 +788,13 @@ func TestExtractEPUBPreviewReadsMetadataAndCoverTogether(t *testing.T) {
 		"OEBPS/cover.png":   pngHeader,
 	})
 
-	metadata, cover, contentType, err := extractBookPreview(epubPath, "epub")
+	file, err := os.Open(epubPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	metadata, cover, contentType, err := extractBookPreview(file, "epub")
 	if err != nil {
 		t.Fatalf("extractBookPreview returned error: %v", err)
 	}

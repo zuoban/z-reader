@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { api, ApiError, PERSONAL_LIBRARY, handleAuthResponse } from '@/lib/api';
+import { deferred } from '@/test/deferred';
+import { api, ApiError, AUTH_EXPIRED_EVENT, PERSONAL_LIBRARY, handleAuthResponse } from '@/lib/api';
 import * as config from '@/lib/config';
+import { getAccessGeneration, getOfflineLibrary } from '@/lib/library-access';
+import { offlineProgressKey, offlineProgressQueueKey } from '@/lib/offline-progress-storage';
 import {
   appendPartialBookDownload,
   createPartialBookDownloadWriter,
@@ -44,6 +47,7 @@ describe('ApiError', () => {
 });
 
 describe('library access', () => {
+  beforeEach(() => { localStorage.clear(); });
   afterEach(() => { vi.restoreAllMocks(); });
 
   it('submits only the password and uses a cookie', async () => {
@@ -51,6 +55,105 @@ describe('library access', () => {
     await api.login('test access');
     expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/login'),
       expect.objectContaining({ credentials: 'include', body: JSON.stringify({ password: 'test access' }) }));
+  });
+
+  it('isolates an old request from a newly established library session', async () => {
+    const listener = vi.fn();
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener);
+    try {
+      let finishOldRequest!: (response: Response) => void;
+      globalThis.fetch = vi.fn()
+        .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+          finishOldRequest = resolve;
+        }))
+        .mockResolvedValueOnce(Response.json({ valid: true, password_required: true }))
+        .mockResolvedValueOnce(Response.json([]));
+      const oldRequest = api.listBooks();
+      const rejected = expect(oldRequest).rejects.toMatchObject({ status: 401 });
+      const oldLibrary = getOfflineLibrary();
+      await api.login('test access');
+      const nextGeneration = getAccessGeneration();
+      expect(getOfflineLibrary()).not.toBe(oldLibrary);
+
+      finishOldRequest(new Response(null, { status: 401 }));
+      await rejected;
+      expect(getAccessGeneration()).toBe(nextGeneration);
+      expect(listener).not.toHaveBeenCalled();
+      await expect(api.listBooks()).resolves.toEqual([]);
+      expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('/api/books'),
+        expect.objectContaining({ credentials: 'include', cache: 'no-store' }));
+    } finally {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, listener);
+    }
+  });
+
+  it.each(['login', 'logout'] as const)('finishes %s after an earlier request returns 401', async (action) => {
+    const started = deferred<void>();
+    const oldResponse = deferred<Response>();
+    const authResponse = deferred<Response>();
+    globalThis.fetch = vi.fn()
+      .mockReturnValueOnce(oldResponse.promise)
+      .mockImplementationOnce(() => {
+        started.resolve();
+        return authResponse.promise;
+      });
+    const previous = getAccessGeneration();
+    const request = expect(api.listBooks()).rejects.toMatchObject({ status: 401 });
+    const change = action === 'login' ? api.login('test access') : api.logout();
+    await started.promise;
+    oldResponse.resolve(new Response(null, { status: 401 }));
+    await request;
+    expect(getAccessGeneration()).toBe(previous);
+
+    authResponse.resolve(Response.json({ valid: true, password_required: true }));
+    await change;
+    expect(getAccessGeneration()).not.toBe(previous);
+  });
+
+  it('dispatches the auth expiry event when local storage is blocked', async () => {
+    const listener = vi.fn();
+    const blocked = () => { throw new DOMException('Blocked', 'SecurityError'); };
+    const methods = [
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(blocked),
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(blocked),
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(blocked),
+    ];
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener);
+    try {
+      globalThis.fetch = mockFetch({ ok: false, status: 401, body: { error: 'expired' } });
+      await expect(api.verify()).rejects.toMatchObject({ status: 401, message: 'expired' });
+      expect(listener).toHaveBeenCalledOnce();
+      expect(getAccessGeneration()).toBeTruthy();
+    } finally {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, listener);
+      methods.forEach((mock) => mock.mockRestore());
+      globalThis.fetch = mockFetch({});
+      await api.logout();
+    }
+  });
+
+  it('moves queued offline progress only after successful reauthentication', async () => {
+    const initial = getAccessGeneration();
+    const queued = JSON.stringify({ cfi: 'epubcfi(/6/2)', expected_updated_at: 'server-version' });
+    localStorage.setItem(offlineProgressQueueKey(initial), JSON.stringify(['book-1']));
+    localStorage.setItem(offlineProgressKey('book-1', initial), queued);
+
+    handleAuthResponse(new Response(null, { status: 401 }));
+    const expired = getAccessGeneration();
+    expect(localStorage.getItem(offlineProgressQueueKey(expired))).toBeNull();
+    globalThis.fetch = mockFetch({ ok: false, status: 401 });
+    await expect(api.login('incorrect')).rejects.toMatchObject({ status: 401 });
+    expect(localStorage.getItem(offlineProgressKey('book-1', expired))).toBeNull();
+
+    globalThis.fetch = mockFetch({ body: { valid: true, password_required: true } });
+    await api.login('test access');
+    const authenticated = getAccessGeneration();
+    expect(localStorage.getItem(offlineProgressQueueKey(authenticated))).toBe('["book-1"]');
+    expect(localStorage.getItem(offlineProgressKey('book-1', authenticated))).toBe(queued);
+
+    await api.logout();
+    await api.login('test access');
+    expect(localStorage.getItem(offlineProgressQueueKey(getAccessGeneration()))).toBeNull();
   });
 
   it('reports a failed logout so the library is not shown as locked', async () => {
@@ -79,7 +182,9 @@ describe('library access', () => {
   it('keeps a password rejection on the responding server', async () => {
     vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['', 'http://reader:8080']);
     globalThis.fetch = vi.fn().mockResolvedValue(Response.json({ message: '密码错误' }, { status: 401 }));
+    const generation = getAccessGeneration();
     await expect(api.login('invalid')).rejects.toMatchObject({ message: '密码错误', status: 401 });
+    expect(getAccessGeneration()).toBe(generation);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -191,6 +296,61 @@ describe('api.fetchBook', () => {
         credentials: 'include',
       }),
     );
+  });
+
+  it('tries the LAN backend after a book response header timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['', 'http://reader:8080']);
+      globalThis.fetch = vi.fn()
+        .mockImplementationOnce((_, options: RequestInit) => new Promise<Response>((_, reject) => {
+          const signal = options.signal!;
+          signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+        }))
+        .mockResolvedValueOnce(new Response('book'));
+      const download = api.fetchBook('header-timeout');
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(await (await download).text()).toBe('book');
+      expect(fetch).toHaveBeenLastCalledWith(
+        'http://reader:8080/api/books/header-timeout/file', expect.anything(),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('times out when a download stalls and keeps the received prefix for retry', async () => {
+    vi.useFakeTimers();
+    try {
+      installBookCache();
+      const cancel = vi.fn();
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) { controller.enqueue(new TextEncoder().encode('first ')); },
+        cancel,
+      });
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce(new Response(body, { headers: { 'Content-Length': '13' } }))
+        .mockResolvedValueOnce(new Response('chapter', {
+          status: 206,
+          headers: { 'Content-Range': 'bytes 6-12/13' },
+        }));
+
+      const download = api.fetchBook('stalled');
+      const rejected = expect(download).rejects.toThrow('书籍下载超时');
+      await vi.waitFor(() => expect(body.locked).toBe(true));
+      await vi.advanceTimersByTimeAsync(30000);
+      await rejected;
+      expect(cancel).toHaveBeenCalledOnce();
+      expect((await getPartialBookDownload(getOfflineLibrary(), 'stalled'))?.downloadedBytes).toBe(6);
+
+      const resumed = await api.fetchBook('stalled');
+      expect(await resumed.text()).toBe('first chapter');
+      expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('/stalled/file'),
+        expect.objectContaining({ headers: expect.objectContaining({ Range: 'bytes=6-' }) }));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('discards a download that finishes after logout', async () => {

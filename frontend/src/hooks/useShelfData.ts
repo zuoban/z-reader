@@ -179,6 +179,10 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, [categoryOptions, sortBy]);
 
+  const refreshBooks = useCallback(() => {
+    setQueryRevision((revision) => revision + 1);
+  }, []);
+
   const retrySearch = useCallback(() => {
     setSearchRetryRevision((revision) => revision + 1);
   }, []);
@@ -482,13 +486,11 @@ export function useShelfData(isAuthenticated: boolean) {
       toast.error(failureMessages[0] ?? '上传失败');
     }
 
-    if (successCount > 0) {
-      await loadBooks();
-    }
+    if (successCount > 0) refreshBooks();
 
     setUploadProgress(null);
     setIsUploading(false);
-  }, [loadBooks]);
+  }, [refreshBooks]);
 
   const uploadFile = useCallback(async (file: File | null | undefined) => {
     if (!file) return;
@@ -608,7 +610,7 @@ export function useShelfData(isAuthenticated: boolean) {
           uncategorized: summary.uncategorized + (normalized ? 0 : count) };
       });
       if (selectedCategoryId === currentCategory) setSelectedCategoryId(normalized);
-      setQueryRevision(value => value + 1);
+      refreshBooks();
       toast.success(normalized ? `已设置为「${normalized}」` : '已清空分类');
       return { successCount: result.updated_ids.length, failedCount: 0 };
     } catch (err) {
@@ -617,7 +619,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsUpdatingManyCategories(false);
     }
-  }, [selectedCategoryId]);
+  }, [refreshBooks, selectedCategoryId]);
 
   return {
     books,
@@ -639,7 +641,7 @@ export function useShelfData(isAuthenticated: boolean) {
     isUpdatingManyCategories,
     filteredBooks,
     bookCounts,
-    loadBooks,
+    refreshBooks,
     loadMoreBooks,
     searchQuery,
     setSearchQuery,

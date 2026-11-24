@@ -23,8 +23,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    reportClientError(error, errorInfo.componentStack ?? 'ErrorBoundary');
+  componentDidCatch(error: Error) {
+    reportClientError(error, 'ErrorBoundary');
   }
 
   handleReset = () => {

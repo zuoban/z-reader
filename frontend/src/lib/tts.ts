@@ -2,6 +2,7 @@
 
 import { API_BASE, createAbortController } from '@/lib/config';
 import { handleAuthResponse } from '@/lib/api';
+import { getAccessGeneration } from '@/lib/library-access';
 import { recordTTSDiagnostic } from '@/lib/tts-diagnostics';
 import { enhanceProsodyBreaks } from '@/lib/tts-text';
 import { classifyTTSError, parseTTSRetryAfter, TTSRequestError } from '@/lib/tts-request';
@@ -958,9 +959,11 @@ export class BackendTTS {
       throw new TTSRequestError(this.providerRetryError.status, this.providerRetryError.code,
         this.providerRetryNotBefore - Date.now());
     }
+    const generation = getAccessGeneration();
     try {
       const response = await fetch(`${API_BASE}/api/ssml`, {
         credentials: 'include',
+        cache: 'no-store',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -973,7 +976,8 @@ export class BackendTTS {
         signal: controller.signal,
       });
 
-      handleAuthResponse(response);
+      if (generation !== getAccessGeneration()) throw new DOMException('登录状态已变更', 'AbortError');
+      handleAuthResponse(response, generation);
       if (!response.ok) {
         const body = await response.json().catch(() => null) as { code?: string } | null;
         const error = new TTSRequestError(response.status, body?.code,
@@ -990,7 +994,9 @@ export class BackendTTS {
         throw error;
       }
 
-      return await response.blob();
+      const audio = await response.blob();
+      if (generation !== getAccessGeneration()) throw new DOMException('登录状态已变更', 'AbortError');
+      return audio;
     } catch (error) {
       // Keep names and status intact so timeout, cancellation, permission and
       // retryable provider errors can follow different recovery paths.

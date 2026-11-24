@@ -13,7 +13,7 @@ import { useReaderChrome } from "@/hooks/useReaderChrome";
 import { useReaderBookmarks } from "@/hooks/useReaderBookmarks";
 import { useReaderImageZoom } from "@/hooks/useReaderImageZoom";
 import { useTTS } from "@/hooks/useTTS";
-import { useFoliateReader } from "@/hooks/useFoliateReader";
+import { useFoliateView } from "@/hooks/useFoliateView";
 import { ReaderResumePrompt } from "@/components/reader/ReaderResumePrompt";
 import { ReaderStatusBar } from "@/components/reader/ReaderStatusBar";
 import {
@@ -24,7 +24,8 @@ import {
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderImageZoomOverlay } from "@/components/reader/ReaderImageZoomOverlay";
 import { DeferredTTSControls } from "@/components/DeferredTTSControls";
-import { api, PERSONAL_LIBRARY, type BookDownloadProgress } from "@/lib/api";
+import { api, type BookDownloadProgress } from "@/lib/api";
+import { getOfflineLibrary } from "@/lib/library-access";
 import { hasOfflineBook, saveOfflineBook } from "@/lib/offline-books";
 import { formatOfflineDownloadLabel } from "@/lib/reader-page";
 import {
@@ -43,9 +44,13 @@ const ReaderShortcutsDialog = dynamic(
 );
 
 export default function ReadPage() {
+  const { id } = useParams<{ id: string }>();
+  return <Reader key={id} bookId={id} />;
+}
+
+function Reader({ bookId }: { bookId: string }) {
   const router = useRouter();
-  const params = useParams();
-  const bookId = params.id as string;
+  const [library] = useState(getOfflineLibrary);
   const {
     isLoading: authLoading,
     isAuthenticated,
@@ -57,7 +62,7 @@ export default function ReadPage() {
     isLoading: progressLoading,
     updateProgress,
     saveNow,
-  } = useProgress({ bookId, remoteSyncEnabled: !isOffline });
+  } = useProgress({ bookId, remoteSyncEnabled: isAuthenticated });
   const { theme, setTheme, getStylesheet, getUIScheme } = useReaderTheme();
   const uiScheme = getUIScheme();
 
@@ -127,8 +132,6 @@ export default function ReadPage() {
     showHeader,
     hideHeader,
     scrollToCurrentChapter,
-    bindHeaderInteractionDocument,
-    cleanupHeaderInteractionDocuments,
     syncChromeState,
   } = useReaderChrome();
 
@@ -189,15 +192,15 @@ export default function ReadPage() {
   useEffect(() => {
     if (authLoading || !isOffline || !bookId) return;
     let cancelled = false;
-    void hasOfflineBook(PERSONAL_LIBRARY, bookId).then((available) => {
-      if (!cancelled) {
+    void hasOfflineBook(library, bookId).then((available) => {
+      if (!cancelled && library === getOfflineLibrary()) {
         setOfflineAvailability({ bookId, available });
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [authLoading, bookId, isOffline]);
+  }, [authLoading, bookId, isOffline, library]);
 
   const offlineCheckedForBook = offlineAvailability?.bookId === bookId;
   const hasLocalOfflineCopy =
@@ -314,7 +317,7 @@ export default function ReadPage() {
     loadingMsg,
     loadingDetail,
     cleanupReader,
-  } = useFoliateReader({
+  } = useFoliateView({
     bookId,
     containerRef,
     viewRef,
@@ -326,8 +329,6 @@ export default function ReadPage() {
     getStylesheet,
     updateProgress,
     bindReaderDocument,
-    bindHeaderInteractionDocument,
-    cleanupHeaderInteractionDocuments,
     onImageOpen: handleImageOpen,
   });
 
@@ -348,7 +349,7 @@ export default function ReadPage() {
   });
 
   const handleSaveOffline = useCallback(async () => {
-    if (!isAuthenticated || isSavingOffline) return;
+    if (!isAuthenticated || isSavingOffline || library !== getOfflineLibrary()) return;
 
     setIsSavingOffline(true);
     setOfflineDownloadProgress(null);
@@ -357,7 +358,9 @@ export default function ReadPage() {
         api.getBook(bookId),
         api.fetchBook(bookId, { onProgress: setOfflineDownloadProgress }),
       ]);
-      await saveOfflineBook(PERSONAL_LIBRARY, book, file);
+      if (library !== getOfflineLibrary()) return;
+      await saveOfflineBook(library, book, file, () => library === getOfflineLibrary());
+      if (library !== getOfflineLibrary()) return;
       toast.success("图书已保存到此设备，可在断网时继续阅读");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "保存离线图书失败");
@@ -365,7 +368,7 @@ export default function ReadPage() {
       setOfflineDownloadProgress(null);
       setIsSavingOffline(false);
     }
-  }, [bookId, isSavingOffline, isAuthenticated]);
+  }, [bookId, isSavingOffline, isAuthenticated, library]);
 
   useEffect(() => {
     cleanupReaderRef.current = cleanupReader;

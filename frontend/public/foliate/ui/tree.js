@@ -24,7 +24,8 @@ const createTOCItemElement = (list, map, onclick) => {
         list.push(a)
         if (href) {
             if (!map.has(href)) map.set(href, a)
-            a.href = href
+            // The reader resolves the chapter address. Keep native navigation local.
+            a.href = '#'
             a.onclick = event => {
                 event.preventDefault()
                 onclick(href)

@@ -49,6 +49,27 @@ describe('partial book download writer', () => {
 });
 
 describe('offline book validation and metadata', () => {
+  it('removes an offline write that completes after its access expires', async () => {
+    const { cache, entries, storage } = installBookCache();
+    let active = true;
+    let finishWrite!: () => void;
+    const write = new Promise<void>((resolve) => { finishWrite = resolve; });
+    const put = cache.put.getMockImplementation()!;
+    cache.put.mockImplementation(async (request, response) => {
+      await write;
+      await put(request, response);
+    });
+    const book = { id: 'book', filename: 'book.epub' } as Book;
+    const save = saveOfflineBook('reader', book, new Blob(['cached book']), () => active);
+    await vi.waitFor(() => expect(cache.put).toHaveBeenCalledOnce());
+    active = false;
+    await clearOfflineBooks('reader');
+    finishWrite();
+    await save;
+    expect(entries.size).toBe(0);
+    expect(storage.delete).toHaveBeenCalledTimes(2);
+  });
+
   it('only returns a cached book when the requested content hash matches', async () => {
     installBookCache();
     const book = { id: 'book', filename: 'book.epub', content_hash: 'original' } as Book;

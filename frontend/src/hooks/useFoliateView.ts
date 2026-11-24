@@ -5,26 +5,48 @@ import type { RefObject } from "react";
 import { FoliateView, type TOCItem } from "@/lib/types";
 import type { ReaderTheme } from "@/hooks/useReaderTheme";
 import { PRESET_STYLES } from "@/hooks/useReaderTheme";
+import { getOfflineLibrary } from "@/lib/library-access";
+import { formatDownloadBytes } from "@/lib/reader-page";
 import foliateAssets from "@/lib/foliate-assets.generated.json";
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-function withTimeout<T>(promise: Promise<T> | T, ms: number, message: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T> | T,
+  ms: number,
+  message: string,
+  signal: AbortSignal,
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => reject(new Error(message)), ms);
-    Promise.resolve(promise)
-      .then(resolve, reject)
-      .finally(() => window.clearTimeout(timeoutId));
+    const finish = () => {
+      window.clearTimeout(timeoutId);
+      signal.removeEventListener("abort", onAbort);
+    };
+    const onAbort = () => {
+      finish();
+      reject(signal.reason);
+    };
+    const timeoutId = window.setTimeout(() => {
+      finish();
+      reject(new Error(message));
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+    void Promise.resolve(promise).then(resolve, reject).finally(finish);
   });
 }
 
-function waitForNonZeroRect(element: HTMLElement, timeoutMs = 3000): Promise<void> {
+function waitForNonZeroRect(element: HTMLElement, signal: AbortSignal, timeoutMs = 3000): Promise<void> {
   const startedAt = window.performance.now();
 
   return new Promise((resolve) => {
     const check = () => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
       const rect = element.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         resolve();
@@ -58,11 +80,6 @@ function normalizeMetadataText(value: unknown): string {
     );
   }
   return "";
-}
-
-function formatDownloadBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
 function getReaderCompatibilityError(): string | null {
@@ -165,23 +182,27 @@ function ensureFoliateScript(): Promise<void> {
     script.crossOrigin = "anonymous";
     script.referrerPolicy = "no-referrer-when-downgrade";
 
-    await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => {
-        reject(new Error("加载阅读器脚本超时，请检查网络连接"));
-      }, 15000);
-      script.onload = () => {
-        window.clearTimeout(timeout);
-        resolve();
-      };
-      script.onerror = (event) => {
-        window.clearTimeout(timeout);
-        console.error("Failed to load foliate script:", event);
-        reject(new Error("加载阅读器脚本失败，请尝试使用 Chrome 浏览器"));
-      };
-      document.head.appendChild(script);
-    });
-
-    await waitForFoliateView();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const finish = (error?: Error) => {
+          window.clearTimeout(timeout);
+          script.onload = null;
+          script.onerror = null;
+          if (error) reject(error);
+          else resolve();
+        };
+        const timeout = window.setTimeout(() => {
+          finish(new Error("加载阅读器脚本超时，请检查网络连接"));
+        }, 15000);
+        script.onload = () => finish();
+        script.onerror = () => finish(new Error("加载阅读器脚本失败，请尝试使用 Chrome 浏览器"));
+        document.head.appendChild(script);
+      });
+      await waitForFoliateView();
+    } catch (error) {
+      script.remove();
+      throw error;
+    }
   })().catch((err) => {
     foliateScriptPromise = null;
     throw err;
@@ -201,9 +222,7 @@ interface UseFoliateViewOptions {
   theme: ReaderTheme;
   getStylesheet: () => string;
   updateProgress: (cfi: string, percentage: number) => void;
-  bindReaderDocument: (doc: Document) => void;
-  bindHeaderInteractionDocument: (doc: Document) => void;
-  cleanupHeaderInteractionDocuments: () => void;
+  bindReaderDocument: (doc: Document) => void | (() => void);
   onImageOpen?: (image: { src: string; alt: string }) => void;
 }
 
@@ -219,8 +238,6 @@ export function useFoliateView({
   getStylesheet,
   updateProgress,
   bindReaderDocument,
-  bindHeaderInteractionDocument,
-  cleanupHeaderInteractionDocuments,
   onImageOpen,
 }: UseFoliateViewOptions) {
   const canLoad = isAuthenticated || canLoadOffline;
@@ -238,7 +255,9 @@ export function useFoliateView({
   const [loadingMsg, setLoadingMsg] = useState("准备阅读环境…");
   const [loadingDetail, setLoadingDetail] = useState("正在并行加载引擎与书籍");
 
-  const destroyedRef = useRef(false);
+  const [library] = useState(getOfflineLibrary);
+  const readerControllerRef = useRef<AbortController | null>(null);
+  const openingViewsRef = useRef(new WeakSet<FoliateView>());
   const isAuthenticatedRef = useRef(isAuthenticated);
   const fallbackTitleRef = useRef("");
   const fallbackAuthorRef = useRef("");
@@ -249,21 +268,19 @@ export function useFoliateView({
   const updateProgressRef = useRef(updateProgress);
   const onImageOpenRef = useRef(onImageOpen);
   const appliedRemoteProgressRef = useRef<string | null>(null);
-  const imageDocCleanupsRef = useRef<Map<Document, () => void>>(new Map());
-  const firstDocumentLoadedRef = useRef(false);
-  const revealScheduledRef = useRef(false);
+  const chapterCleanupsRef = useRef<Map<Document, () => void>>(new Map());
   const compatibilityModeRef = useRef(false);
-  const filePrefetchRef = useRef<Promise<File | Blob> | null>(null);
-  const downloadControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!currentCFI && progress?.cfi) {
-      queueMicrotask(() => {
-        setCurrentCFI(progress.cfi);
-        setPercentage(progress.percentage);
-      });
-    }
-  }, [progress, currentCFI]);
+    if (currentCFI || !progress?.cfi) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setCurrentCFI(progress.cfi);
+      setPercentage(progress.percentage);
+    });
+    return () => { cancelled = true; };
+  }, [bookId, progress, currentCFI]);
 
   useEffect(() => {
     isAuthenticatedRef.current = isAuthenticated;
@@ -276,24 +293,28 @@ export function useFoliateView({
   }, [getStylesheet, isAuthenticated, onImageOpen, progress, progressLoading, theme, updateProgress]);
 
   const loadBookFile = useCallback(
-    async (signal: AbortSignal, isCancelled: () => boolean): Promise<File | Blob> => {
+    async (signal: AbortSignal): Promise<File | Blob> => {
+      const cancelled = () => signal.aborted || library !== getOfflineLibrary();
+      const checkAccess = () => {
+        if (cancelled()) throw new DOMException("已取消加载书籍", "AbortError");
+      };
+      checkAccess();
       if (!isAuthenticatedRef.current) {
-        const { PERSONAL_LIBRARY } = await import("@/lib/api");
         const { getOfflineBookEntry } = await import("@/lib/offline-books");
-        const entry = await getOfflineBookEntry(PERSONAL_LIBRARY, bookId);
+        const entry = await getOfflineBookEntry(library, bookId);
+        checkAccess();
         if (!entry) {
           throw new Error("当前处于离线状态，本书尚未保存到离线缓存");
         }
         fallbackTitleRef.current = entry.title ?? "";
         fallbackAuthorRef.current = entry.author ?? "";
-        if (!isCancelled() && !destroyedRef.current) {
-          if (entry.title) setBookTitle((prev) => prev || entry.title || "");
-          if (entry.author) setBookAuthor((prev) => prev || entry.author || "");
-        }
+        if (entry.title) setBookTitle((prev) => prev || entry.title || "");
+        if (entry.author) setBookAuthor((prev) => prev || entry.author || "");
         return entry.file;
       }
 
       const { api } = await import("@/lib/api");
+      checkAccess();
       return api.createBookFile(bookId, {
         signal,
         onProgress: ({
@@ -303,7 +324,7 @@ export function useFoliateView({
           bytesPerSecond,
           resumed,
         }) => {
-          if (isCancelled() || destroyedRef.current) return;
+          if (cancelled()) return;
           const percentageLabel =
             percentage === null ? "" : ` ${Math.floor(percentage)}%`;
           const sizeLabel =
@@ -321,40 +342,8 @@ export function useFoliateView({
         },
       });
     },
-    [bookId]
+    [bookId, library]
   );
-
-  // Prefetch foliate engine + book file as soon as auth or offline copy is ready (do not wait for progress).
-  useEffect(() => {
-    if (!canLoad || !bookId) {
-      filePrefetchRef.current = null;
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-    downloadControllerRef.current = controller;
-    fallbackTitleRef.current = "";
-    fallbackAuthorRef.current = "";
-    void ensureFoliateScript().catch(() => {
-      // initReader will surface the error if the engine still fails.
-    });
-
-    const promise = Promise.resolve().then(() =>
-      loadBookFile(controller.signal, () => cancelled)
-    );
-
-    filePrefetchRef.current = promise;
-    void promise.catch(() => {
-      // Swallow here; initReader awaits the same promise and handles errors.
-    });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      if (downloadControllerRef.current === controller) downloadControllerRef.current = null;
-    };
-  }, [bookId, canLoad, loadBookFile]);
 
   const applyRendererPreferences = useCallback((renderer?: FoliateView["renderer"] | null) => {
     if (!renderer) return;
@@ -435,7 +424,6 @@ export function useFoliateView({
   }, []);
 
   const bindImageZoomDocument = useCallback((doc: Document) => {
-    if (imageDocCleanupsRef.current.has(doc)) return;
     const docWindow = doc.defaultView;
     if (!docWindow) return;
 
@@ -516,51 +504,42 @@ export function useFoliateView({
     doc.addEventListener("pointerup", handlePointerUp, true);
     doc.addEventListener("click", handleClick, true);
     doc.addEventListener("touchstart", handleTouchStart, true);
-    imageDocCleanupsRef.current.set(doc, () => {
+    return () => {
       doc.removeEventListener("pointerdown", handlePointerDown, true);
       doc.removeEventListener("pointerup", handlePointerUp, true);
       doc.removeEventListener("click", handleClick, true);
       doc.removeEventListener("touchstart", handleTouchStart, true);
-    });
+    };
   }, []);
 
-  const cleanupImageZoomDocuments = useCallback(() => {
-    imageDocCleanupsRef.current.forEach((cleanup) => cleanup());
-    imageDocCleanupsRef.current.clear();
+  const cleanupChapterDocuments = useCallback(() => {
+    chapterCleanupsRef.current.forEach((cleanup) => cleanup());
+    chapterCleanupsRef.current.clear();
   }, []);
 
   const cleanupReader = useCallback(() => {
-    destroyedRef.current = true;
-    downloadControllerRef.current?.abort();
-    cleanupHeaderInteractionDocuments();
-    cleanupImageZoomDocuments();
+    const controller = readerControllerRef.current;
+    readerControllerRef.current = null;
+    controller?.abort();
+    cleanupChapterDocuments();
 
     const view = viewRef.current;
     viewRef.current = null;
 
     if (view) {
       try {
-        view.close?.();
-        if (view.parentNode) {
-          view.parentNode.removeChild(view as unknown as Node);
-        }
+        if (!openingViewsRef.current.has(view)) view.close?.();
       } catch (err) {
         console.error("Failed to cleanup reader view:", err);
+      } finally {
+        view.parentNode?.removeChild(view as unknown as Node);
       }
     }
+  }, [cleanupChapterDocuments, viewRef]);
 
-    if (containerRef.current) {
-      containerRef.current.innerHTML = "";
-    }
-  }, [
-    cleanupHeaderInteractionDocuments,
-    cleanupImageZoomDocuments,
-    containerRef,
-    viewRef,
-  ]);
-
-  const initReader = useCallback(async () => {
-    if (!containerRef.current || destroyedRef.current) return;
+  const initReader = useCallback(async (signal: AbortSignal) => {
+    const cancelled = () => signal.aborted || library !== getOfflineLibrary();
+    if (!containerRef.current || cancelled()) return;
 
     try {
       const compatibilityError = getReaderCompatibilityError();
@@ -569,18 +548,19 @@ export function useFoliateView({
       }
 
       compatibilityModeRef.current = shouldUseReaderCompatibilityMode();
-      setReaderReady(false);
-      firstDocumentLoadedRef.current = false;
-      revealScheduledRef.current = false;
       setLoadingMsg(
         compatibilityModeRef.current ? "加载兼容阅读模式…" : "加载阅读器引擎…"
       );
       setLoadingDetail("引擎、书籍与阅读进度并行准备");
 
-      // Engine may already be warming from the prefetch effect.
+      // Download the file alongside the engine, before waiting for progress.
+      const filePromise = loadBookFile(signal);
+      void filePromise.catch(() => {
+        // Initialization reports any download error when it awaits the file.
+      });
       await ensureFoliateScript();
 
-      if (destroyedRef.current) return;
+      if (cancelled() || !containerRef.current) return;
       setLoadingMsg("创建视图…");
       setLoadingDetail("正在挂载阅读画布");
 
@@ -588,42 +568,46 @@ export function useFoliateView({
       view.style.height = "100%";
       view.style.width = "100%";
       view.style.display = "block";
-      containerRef.current.innerHTML = "";
+      containerRef.current.replaceChildren();
       containerRef.current.appendChild(view as unknown as Node);
       viewRef.current = view;
-      await waitForNonZeroRect(view as unknown as HTMLElement);
+      await waitForNonZeroRect(view as unknown as HTMLElement, signal);
+      if (cancelled()) return;
 
-      view.addEventListener?.("load", (e: CustomEvent) => {
-        if (destroyedRef.current || !viewRef.current) return;
+      let loadedSections: Set<number> | null = new Set();
+      const handleLoad = (e: CustomEvent) => {
+        if (cancelled() || viewRef.current !== view) return;
+        const { doc, index } = e.detail ?? {};
+        if (!doc?.documentElement || !Number.isInteger(index) || index < 0) return;
+        loadedSections?.add(index);
         try {
           const book = view.book;
           setToc(book?.toc || []);
           setBookTitle(normalizeMetadataText(book?.metadata?.title) || fallbackTitleRef.current);
           setBookAuthor(normalizeMetadataText(book?.metadata?.author) || fallbackAuthorRef.current);
-          firstDocumentLoadedRef.current = true;
-          if (!revealScheduledRef.current) {
-            revealScheduledRef.current = true;
-            window.requestAnimationFrame(() => {
-              if (destroyedRef.current || !firstDocumentLoadedRef.current) return;
-              setReaderReady(true);
-              setLoading(false);
+          const cleanups = chapterCleanupsRef.current;
+          for (const [chapter, cleanup] of cleanups) {
+            if (!chapter.defaultView?.frameElement?.isConnected) {
+              cleanup();
+              cleanups.delete(chapter);
+            }
+          }
+          if (!cleanups.has(doc)) {
+            const unbindControls = bindReaderDocument(doc);
+            const unbindImageZoom = bindImageZoomDocument(doc);
+            cleanups.set(doc, () => {
+              unbindControls?.();
+              unbindImageZoom?.();
             });
           }
-
-          const doc = e.detail?.doc;
-          if (doc) {
-            bindReaderDocument(doc);
-            bindImageZoomDocument(doc);
-            bindHeaderInteractionDocument(doc);
-            cleanInlineStyles(doc);
-          }
+          cleanInlineStyles(doc);
         } catch (err) {
           console.error("Failed to handle book load event:", err);
         }
-      });
+      };
 
-      view.addEventListener?.("relocate", (e: CustomEvent) => {
-        if (destroyedRef.current || !viewRef.current) return;
+      const handleRelocate = (e: CustomEvent) => {
+        if (cancelled() || viewRef.current !== view) return;
         try {
           const { cfi, fraction, tocItem, pageItem, location } = e.detail;
 
@@ -641,53 +625,60 @@ export function useFoliateView({
           }
 
           updatePageLabel(pageItem, location);
-
-          const doc = e.detail?.doc;
-          if (doc) {
-            bindReaderDocument(doc);
-            bindImageZoomDocument(doc);
-            bindHeaderInteractionDocument(doc);
-            cleanInlineStyles(doc);
-          }
         } catch (err) {
           console.error("Failed to handle relocate event:", err);
         }
-      });
+      };
 
-      if (destroyedRef.current) return;
+      view.addEventListener?.("load", handleLoad);
+      view.addEventListener?.("relocate", handleRelocate);
+      signal.addEventListener("abort", () => {
+        view.removeEventListener?.("load", handleLoad);
+        view.removeEventListener?.("relocate", handleRelocate);
+      }, { once: true });
+
+      if (cancelled()) return;
       setLoadingMsg("获取书籍…");
       setLoadingDetail("等待预取完成（通常已在后台进行）");
 
-      // Prefer the in-flight prefetch started on auth; fall back if missing.
-      let file: File | Blob;
-      if (filePrefetchRef.current) {
-        file = await filePrefetchRef.current;
-      } else {
-        const controller = new AbortController();
-        downloadControllerRef.current = controller;
-        file = await loadBookFile(controller.signal, () => destroyedRef.current);
-      }
+      const file = await filePromise;
 
-      if (destroyedRef.current) return;
+      if (cancelled()) return;
 
       // Soft-wait for progress so we open near the last location without blocking
       // cold starts when the progress API is slow.
       if (progressLoadingRef.current) {
         setLoadingDetail("同步阅读进度（最多约 0.4 秒）");
-        await waitUntil(() => !progressLoadingRef.current, 400);
+        await waitUntil(() => cancelled() || !progressLoadingRef.current, 400);
       }
 
-      if (destroyedRef.current) return;
+      if (cancelled()) return;
       setLoadingMsg("打开书籍…");
       setLoadingDetail("解析章节并定位阅读位置");
 
       try {
+        const openingViews = openingViewsRef.current;
+        openingViews.add(view);
+        const opening = Promise.resolve().then(() => {
+          if (!cancelled()) return view.open?.(file);
+        }).finally(() => {
+          openingViews.delete(view);
+          if (signal.aborted) {
+            try {
+              view.close?.();
+            } catch (err) {
+              console.error("Failed to cleanup reader view:", err);
+            }
+          }
+        });
         await withTimeout(
-          view.open?.(file),
+          opening,
           30000,
           "打开书籍超时：手机浏览器可能不支持当前解压能力，请尝试刷新或使用 Chrome 浏览器",
+          signal,
         );
       } catch (err) {
+        if (cancelled()) return;
         console.error("Failed to open book:", err);
         // Provide more user-friendly error message for mobile browsers
         const errorMessage = err instanceof Error ? err.message : "未知错误";
@@ -697,30 +688,49 @@ export function useFoliateView({
         throw new Error(`打开书籍失败：${errorMessage}`);
       }
 
-      if (destroyedRef.current) return;
+      if (cancelled()) return;
 
       view.renderer?.setStyles?.(getStylesheetRef.current());
       applyRendererPreferences(view.renderer);
 
       const savedProgress = progressRef.current;
       appliedRemoteProgressRef.current = savedProgress?.updated_at ?? null;
-      const initPromise = withTimeout(
-        view.goTo?.(savedProgress?.cfi || 0),
-        12000,
-        "初始化阅读位置超时，已显示可用内容",
-      );
-      await initPromise.catch((err) => {
-        if (!firstDocumentLoadedRef.current) {
-          throw err;
+      const openLocation = async (target: string | number) => {
+        const timeoutMessage = "初始化阅读位置超时";
+        try {
+          // goTo() can swallow errors or resolve for an index outside the book.
+          const resolved = await withTimeout(
+            view.goTo?.(target), 12000, timeoutMessage, signal,
+          ) as void | { index: number };
+          if (typeof target === "number") return loadedSections?.has(target) ?? false;
+          return !!resolved && !!loadedSections?.has(resolved.index);
+        } catch (err) {
+          if (cancelled()) return false;
+          if (err instanceof Error && err.message === timeoutMessage) {
+            // Preserve usable content if only the final positioning stalled.
+            if (typeof target === "number" ? loadedSections?.has(target) : loadedSections?.size) {
+              return true;
+            }
+            throw err;
+          }
+          return false;
         }
-        console.warn("Reader location initialization timed out after content loaded:", err);
-      });
-      if (!destroyedRef.current) {
-        setReaderReady(true);
-        setLoading(false);
+      };
+
+      const savedCFI = savedProgress?.cfi;
+      const savedLocationLoaded = savedCFI && await openLocation(savedCFI);
+      if (cancelled()) return;
+      if (!savedLocationLoaded && !await openLocation(0)) {
+        if (cancelled()) return;
+        throw new Error("无法加载书籍的首个章节，请尝试重新打开");
       }
+      if (cancelled()) return;
+      loadedSections = null;
+      setReaderReady(true);
+      setLoading(false);
     } catch (err) {
-      if (!destroyedRef.current) {
+      if (!cancelled()) {
+        cleanupReader();
         setReaderReady(false);
         setError(err instanceof Error ? err.message : "加载书籍失败");
         setLoading(false);
@@ -728,11 +738,12 @@ export function useFoliateView({
     }
   }, [
     applyRendererPreferences,
-    bindHeaderInteractionDocument,
     bindImageZoomDocument,
     bindReaderDocument,
     cleanInlineStyles,
+    cleanupReader,
     containerRef,
+    library,
     loadBookFile,
     updatePageLabel,
     viewRef,
@@ -764,22 +775,24 @@ export function useFoliateView({
 
   useEffect(() => {
     // Start as soon as auth or offline copy is ready — do not wait for progress API.
-    if (!canLoad) return;
+    if (!canLoad || !bookId) return;
 
-    destroyedRef.current = false;
+    const controller = new AbortController();
+    readerControllerRef.current = controller;
+    fallbackTitleRef.current = "";
+    fallbackAuthorRef.current = "";
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset UI for the external book load.
     setLoading(true);
+    setReaderReady(false);
     setError(null);
     setLoadingMsg("准备阅读环境…");
     setLoadingDetail("引擎、书籍与进度并行加载");
-    let cancelled = false;
     queueMicrotask(() => {
-      if (!cancelled) void initReader();
+      if (!controller.signal.aborted) void initReader(controller.signal);
     });
 
     return () => {
-      cancelled = true;
-      cleanupReader();
+      if (readerControllerRef.current === controller) cleanupReader();
     };
   }, [cleanupReader, initReader, canLoad, bookId]);
 

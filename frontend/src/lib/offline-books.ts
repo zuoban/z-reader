@@ -77,23 +77,31 @@ function titleFromFilename(filename: string): string {
   return trimmed.replace(/\.[^.]+$/, '') || trimmed;
 }
 
-export async function saveOfflineBook(userId: string, book: Book, file: Blob) {
+export async function saveOfflineBook(
+  userId: string, book: Book, file: Blob, isCurrent = () => true,
+) {
   if (!supportsOfflineBooks()) {
     throw new Error('当前浏览器不支持离线图书');
   }
   await ensureCapacity(file.size);
+  if (!isCurrent()) return;
   const cache = await caches.open(cacheName(userId));
-  await cache.put(cacheRequest(book.id), new Response(file, {
-    headers: {
-      'Content-Type': file.type || 'application/octet-stream',
-      'X-Z-Reader-Filename': encodeURIComponent(book.filename),
-      'X-Z-Reader-Content-Hash': book.content_hash ?? '',
-      'X-Z-Reader-Title': encodeURIComponent(book.title ?? ''),
-      'X-Z-Reader-Author': encodeURIComponent(book.author ?? ''),
-      'X-Z-Reader-Size': String(file.size),
-      'X-Z-Reader-Saved-At': new Date().toISOString(),
-    },
-  }));
+  try {
+    if (!isCurrent()) return;
+    await cache.put(cacheRequest(book.id), new Response(file, {
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-Z-Reader-Filename': encodeURIComponent(book.filename),
+        'X-Z-Reader-Content-Hash': book.content_hash ?? '',
+        'X-Z-Reader-Title': encodeURIComponent(book.title ?? ''),
+        'X-Z-Reader-Author': encodeURIComponent(book.author ?? ''),
+        'X-Z-Reader-Size': String(file.size),
+        'X-Z-Reader-Saved-At': new Date().toISOString(),
+      },
+    }));
+  } finally {
+    if (!isCurrent()) await clearOfflineBooks(userId);
+  }
 }
 
 // Cache Storage cannot append to a Response. In-progress downloads are instead

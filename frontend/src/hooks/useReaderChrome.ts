@@ -115,10 +115,6 @@ export function useReaderChrome() {
     setIsHeaderVisible(false);
   }, []);
 
-  const bindHeaderInteractionDocument = useCallback(() => {}, []);
-
-  const cleanupHeaderInteractionDocuments = useCallback(() => {}, []);
-
   useEffect(() => {
     return () => {
       if (locateFrameRef.current !== null) {
@@ -127,9 +123,8 @@ export function useReaderChrome() {
       if (showHeaderFrameRef.current !== null) {
         window.cancelAnimationFrame(showHeaderFrameRef.current);
       }
-      cleanupHeaderInteractionDocuments();
     };
-  }, [cleanupHeaderInteractionDocuments]);
+  }, []);
 
   return {
     isHeaderVisible,
@@ -137,8 +132,6 @@ export function useReaderChrome() {
     showHeader,
     hideHeader,
     scrollToCurrentChapter,
-    bindHeaderInteractionDocument,
-    cleanupHeaderInteractionDocuments,
     syncChromeState,
   };
 }

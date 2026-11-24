@@ -43,6 +43,7 @@ type Manifest struct {
 // an atomically-published backup directory, then verifies its checksums.
 // Unchanged uploads that already exist in the latest backup are hard-linked
 // from that backup to save disk space while keeping live uploads isolated.
+// If retention cleanup fails, Create returns the published path and the error.
 func Create(db *storage.DB, config Config) (string, error) {
 	prevDir, prevManifest, _ := latestManifest(config.Dir)
 	digests := make(map[string]string)
@@ -100,18 +101,13 @@ func listBackupDirsDescending(dir string) []string {
 }
 
 func readManifest(dir string) (Manifest, bool) {
-	data, err := os.ReadFile(filepath.Join(dir, manifestName))
+	root, err := os.OpenRoot(dir)
 	if err != nil {
 		return Manifest{}, false
 	}
-	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return Manifest{}, false
-	}
-	if manifest.CreatedAt.IsZero() || len(manifest.Files) == 0 {
-		return Manifest{}, false
-	}
-	return manifest, true
+	defer root.Close()
+	manifest, err := readBackupManifest(root)
+	return manifest, err == nil
 }
 
 func latestManifest(dir string) (string, Manifest, bool) {
@@ -190,7 +186,7 @@ func createWithDigests(
 		return "", err
 	}
 	if err := removeExpired(config.Dir, config.RetentionDays); err != nil {
-		return "", err
+		return finalDir, fmt.Errorf("remove expired backups: %w", err)
 	}
 	return finalDir, nil
 }
@@ -207,25 +203,57 @@ func VerifyContext(ctx context.Context, path string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	data, err := os.ReadFile(filepath.Join(path, manifestName))
+	root, err := os.OpenRoot(path)
 	if err != nil {
 		return err
 	}
-	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
+	defer root.Close()
+	manifest, err := readBackupManifest(root)
+	if err != nil {
 		return err
 	}
-	if manifest.CreatedAt.IsZero() || len(manifest.Files) == 0 {
-		return fmt.Errorf("invalid backup manifest")
+	return verifyManifest(ctx, root, manifest)
+}
+
+func readBackupManifest(root *os.Root) (Manifest, error) {
+	var manifest Manifest
+	file, err := openRegularBackupFile(root, manifestName)
+	if err != nil {
+		return manifest, err
 	}
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return manifest, err
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return manifest, err
+	}
+	if manifest.CreatedAt.IsZero() {
+		return manifest, fmt.Errorf("invalid backup manifest")
+	}
+	for _, name := range []string{"data.db", "data.db.sessions"} {
+		if _, ok := manifest.Files[name]; !ok {
+			return manifest, fmt.Errorf("%s is missing from the manifest", name)
+		}
+	}
+	return manifest, nil
+}
+
+func verifyManifest(ctx context.Context, root *os.Root, manifest Manifest) error {
 	for relativePath, expected := range manifest.Files {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if !safeRelativePath(relativePath) {
+		if !validManifestFile(relativePath) {
 			return fmt.Errorf("unsafe manifest path %q", relativePath)
 		}
-		actual, err := fileSHA256Context(ctx, filepath.Join(path, relativePath))
+		file, err := openRegularBackupFile(root, relativePath)
+		if err != nil {
+			return err
+		}
+		actual, err := hashBackupReader(ctx, file)
+		file.Close()
 		if err != nil {
 			return err
 		}
@@ -236,14 +264,30 @@ func VerifyContext(ctx context.Context, path string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	uploads, err := os.Lstat(filepath.Join(path, "uploads"))
+	uploads, err := root.Lstat("uploads")
 	if err != nil {
 		return fmt.Errorf("open snapshot uploads: %w", err)
 	}
 	if !uploads.IsDir() {
 		return fmt.Errorf("snapshot uploads is not a directory")
 	}
-	if err := visitSnapshotUploads(filepath.Join(path, "data.db"), func(name string) error {
+	if err := fs.WalkDir(root.FS(), "uploads", func(name string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if !entry.IsDir() {
+			if _, ok := manifest.Files[name]; !ok {
+				return fmt.Errorf("%s is missing from the manifest", name)
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := visitSnapshotUploads(root, "data.db", func(name string) error {
 		relativePath := filepath.Join("uploads", name)
 		if _, ok := manifest.Files[filepath.ToSlash(relativePath)]; !ok {
 			return fmt.Errorf("%s is missing from the manifest", relativePath)
@@ -252,7 +296,7 @@ func VerifyContext(ctx context.Context, path string) error {
 	}); err != nil {
 		return err
 	}
-	sessions, err := openSnapshot(filepath.Join(path, "data.db.sessions"))
+	sessions, err := openSnapshot(root, "data.db.sessions")
 	if err != nil {
 		return err
 	}
@@ -260,8 +304,8 @@ func VerifyContext(ctx context.Context, path string) error {
 }
 
 // Restore verifies a backup and copies it into an empty application data
-// location. The application must be stopped before its restored files are
-// used. Existing targets are rejected rather than overwritten.
+// location. It clears sessions in the staged copy before publishing. The app
+// must be stopped, and existing targets are rejected.
 func Restore(source string, config RestoreConfig) error {
 	if config.DBPath == "" {
 		return fmt.Errorf("database path is required")
@@ -269,7 +313,16 @@ func Restore(source string, config RestoreConfig) error {
 	if config.UploadDir == "" {
 		return fmt.Errorf("upload directory is required")
 	}
-	if err := Verify(source); err != nil {
+	root, err := os.OpenRoot(source)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	manifest, err := readBackupManifest(root)
+	if err != nil {
+		return fmt.Errorf("read backup before restore: %w", err)
+	}
+	if err := verifyManifest(context.Background(), root, manifest); err != nil {
 		return fmt.Errorf("verify backup before restore: %w", err)
 	}
 
@@ -317,27 +370,62 @@ func Restore(source string, config RestoreConfig) error {
 	}
 	defer os.RemoveAll(uploadTempDir)
 
-	if err := copyFile(filepath.Join(source, "data.db"), mainDBTempPath); err != nil {
-		return fmt.Errorf("restore main database: %w", err)
-	}
-	if err := copyFile(filepath.Join(source, "data.db.sessions"), sessionDBTempPath); err != nil {
-		return fmt.Errorf("restore session database: %w", err)
-	}
-	if err := copyTree(filepath.Join(source, "uploads"), uploadTempDir); err != nil {
-		return fmt.Errorf("restore uploads: %w", err)
+	for name, expected := range manifest.Files {
+		var target string
+		switch name {
+		case "data.db":
+			target = mainDBTempPath
+		case "data.db.sessions":
+			target = sessionDBTempPath
+		default:
+			target = filepath.Join(uploadTempDir, filepath.FromSlash(strings.TrimPrefix(name, "uploads/")))
+			if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
+				return err
+			}
+		}
+		if err := copyVerifiedFile(root, name, target, expected); err != nil {
+			return fmt.Errorf("restore %s: %w", name, err)
+		}
 	}
 
-	if err := os.Rename(mainDBTempPath, mainDBPath); err != nil {
+	sessions, err := storage.OpenSession(sessionDBTempPath)
+	if err != nil {
+		return fmt.Errorf("open restored session database: %w", err)
+	}
+	if err := errors.Join(sessions.ClearSessions(), sessions.Close()); err != nil {
+		return fmt.Errorf("clear restored sessions: %w", err)
+	}
+
+	// Reserve the database paths, then publish the complete upload tree in one step.
+	return publishRestore(uploadTempDir, uploadDir, mainDBTempPath, mainDBPath,
+		sessionDBTempPath, sessionDBPath)
+}
+
+func publishRestore(uploadTempDir, uploadDir, mainTemp, mainPath, sessionTemp, sessionPath string) error {
+	if err := os.Link(mainTemp, mainPath); err != nil {
 		return err
 	}
-	if err := os.Rename(sessionDBTempPath, sessionDBPath); err != nil {
-		os.Remove(mainDBPath)
+	if err := os.Link(sessionTemp, sessionPath); err != nil {
+		return errors.Join(err, os.Remove(mainPath))
+	}
+	if err := publishUploadDirectory(uploadTempDir, uploadDir); err != nil {
+		return errors.Join(err, os.Remove(mainPath), os.Remove(sessionPath))
+	}
+	return nil
+}
+
+func copyVerifiedFile(root *os.Root, name, target, expected string) error {
+	input, err := openRegularBackupFile(root, name)
+	if err != nil {
 		return err
 	}
-	if err := os.Rename(uploadTempDir, uploadDir); err != nil {
-		os.Remove(mainDBPath)
-		os.Remove(sessionDBPath)
+	defer input.Close()
+	hash := sha256.New()
+	if err := copyToFile(io.TeeReader(input, hash), target); err != nil {
 		return err
+	}
+	if hex.EncodeToString(hash.Sum(nil)) != expected {
+		return fmt.Errorf("checksum changed during restore")
 	}
 	return nil
 }
@@ -388,44 +476,6 @@ func buildManifestWithDigests(root string, createdAt time.Time, precomputed map[
 	return manifest, err
 }
 
-func copyTree(source, destination string) error {
-	if err := os.MkdirAll(destination, 0700); err != nil {
-		return err
-	}
-	return filepath.WalkDir(source, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relativePath, err := filepath.Rel(source, path)
-		if err != nil {
-			return err
-		}
-		if relativePath == "." {
-			return nil
-		}
-		if !safeRelativePath(relativePath) {
-			return fmt.Errorf("unsafe upload path %q", relativePath)
-		}
-		target := filepath.Join(destination, relativePath)
-		if entry.IsDir() {
-			return os.MkdirAll(target, 0700)
-		}
-		if entry.Type()&os.ModeSymlink != 0 || !entry.Type().IsRegular() {
-			return fmt.Errorf("unsupported upload entry %q", path)
-		}
-		return copyFile(path, target)
-	})
-}
-
-func copyFile(source, destination string) error {
-	input, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer input.Close()
-	return copyToFile(input, destination)
-}
-
 func copyToFile(input io.Reader, destination string) error {
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
@@ -459,18 +509,45 @@ func copyToBackupFileWithDigest(input io.Reader, destination string) (string, er
 }
 
 func fileSHA256(path string) (string, error) {
-	return fileSHA256Context(context.Background(), path)
-}
-
-func fileSHA256Context(ctx context.Context, path string) (string, error) {
-	if err := ctx.Err(); err != nil {
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
 		return "", err
 	}
-	file, err := os.Open(path)
+	defer root.Close()
+	file, err := openRegularBackupFile(root, filepath.Base(path))
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
+	return hashBackupReader(context.Background(), file)
+}
+
+func validManifestFile(name string) bool {
+	return fs.ValidPath(name) && filepath.ToSlash(filepath.Clean(name)) == name &&
+		(name == "data.db" || name == "data.db.sessions" || strings.HasPrefix(name, "uploads/"))
+}
+
+func openRegularBackupFile(root *os.Root, name string) (*os.File, error) {
+	info, err := root.Lstat(name)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("%s is not a regular backup file", name)
+	}
+	file, err := root.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	current, err := file.Stat()
+	if err != nil || !os.SameFile(info, current) {
+		file.Close()
+		return nil, fmt.Errorf("%s changed while opening backup file", name)
+	}
+	return file, nil
+}
+
+func hashBackupReader(ctx context.Context, file io.Reader) (string, error) {
 	hash := sha256.New()
 	buf := make([]byte, 64*1024)
 	for {

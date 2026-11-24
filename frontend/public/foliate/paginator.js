@@ -238,6 +238,8 @@ class View {
     constructor({ container, onExpand }) {
         this.container = container
         this.onExpand = onExpand
+        // Keep DOM access for pagination and selection, with scripts disabled.
+        this.#iframe.setAttribute('sandbox', 'allow-same-origin')
         this.#iframe.setAttribute('part', 'filter')
         this.#element.append(this.#iframe)
         Object.assign(this.#element.style, {

@@ -121,7 +121,7 @@ make dev
 - 恢复前先停止服务，并把当前 `data.db`、`data.db.sessions` 和 `uploads/` 移至安全位置。
   本地开发可运行 `cd backend && go run ./cmd/restore-backup --dir <备份目录>`；Compose 部署可使用
   `cd backend && go run ./cmd/restore-backup --dir <备份目录> --db ../data/data.db --uploads ../uploads`。
-  该命令会先校验备份，且只写入不存在的目标，避免误覆盖。启动服务后访问 `/readyz`，收到 `{"status":"ready"}` 才算恢复完成。
+  该命令会先校验备份，且只写入不存在的目标。恢复后需要重新登录。启动服务后访问 `/readyz`，收到 `{"status":"ready"}` 才算恢复完成。
 - `/healthz` 是存活探针，`/readyz` 会检查数据库与上传目录；启用 `METRICS_ENABLED=true` 后可在内网采集 `/metrics`。
 - `PPROF_ENABLED=true` 只应在短时性能排障时启用。pprof 端点没有应用认证，Compose 的 Caddy 不会代理
   `/debug/pprof/*`；详细用法见 [`docs/performance-baseline.md`](docs/performance-baseline.md)。

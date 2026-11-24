@@ -8,10 +8,10 @@ AGENTS.md
 CLAUDE.md
 README.md
 
-# Development files
+# Development files and local environment
 .serena
-.env
-.env.example
+.alma-snapshots
+**/.env*
 Makefile
 
 # Backend build artifacts
@@ -25,8 +25,15 @@ frontend/node_modules
 frontend/.next
 frontend/out
 frontend/dist
+frontend/coverage
+frontend/playwright-report
+frontend/test-results
+frontend/performance-results
+frontend/public/foliate/built
+frontend/src/lib/foliate-assets.generated.json
 
-# Uploads (user data)
+# Live and backup data
+data/
 uploads/
 
 # IDE

@@ -443,7 +443,7 @@ func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh 
 			close(call.done)
 		}()
 
-		logger.Info("TTS cache miss", "key", key, "provider", provider.Name(), "ssml_bytes", len(ssml), "output_format", outputFormat)
+		logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml))
 		call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
 		// A browser decode failure can be local to that client. Recovery leaves
 		// the shared cache alone and runs under the same synthesis limits.
@@ -459,7 +459,7 @@ func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh 
 			"key", key,
 			"bytes", len(call.data),
 			"waiters", call.waiters.Load(),
-			"error", errorString(call.err),
+			"error", ttsFailureKind(call.err),
 		)
 	}()
 
@@ -501,12 +501,10 @@ func callTTSAPIThrottled(ctx context.Context, provider TTSProvider, ssml, output
 	data, err := provider.Synthesize(ctx, ssml, outputFormat)
 	logger.Info(
 		"TTS API call",
-		"provider", provider.Name(),
 		"latency_ms", time.Since(start).Milliseconds(),
 		"bytes", len(data),
 		"ssml_bytes", len(ssml),
-		"output_format", outputFormat,
-		"error", errorString(err),
+		"error", ttsFailureKind(err),
 	)
 	return data, err
 }
@@ -555,22 +553,22 @@ func readDiskTTSCache(config ttsCacheConfig, key string) ([]byte, bool) {
 	}
 
 	path := diskTTSCachePath(config, key)
-	info, err := os.Stat(path)
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 ||
+		info.Size() > int64(config.MaxBytes) || time.Since(info.ModTime()) > config.TTL {
+		return nil, false
+	}
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, false
 	}
-	if info.Size() <= 0 || info.Size() > int64(config.MaxBytes) {
-		removeStaleDiskCache(path)
+	defer file.Close()
+	current, err := file.Stat()
+	if err != nil || !os.SameFile(info, current) {
 		return nil, false
 	}
-	if time.Since(info.ModTime()) > config.TTL {
-		removeStaleDiskCache(path)
-		return nil, false
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		logger.Warn("Failed to read TTS disk cache", "key", key, "error", err)
+	data, err := readBoundedBody(file, int64(config.MaxBytes))
+	if err != nil || len(data) == 0 {
 		return nil, false
 	}
 	_ = os.Chtimes(path, time.Now(), time.Now())
@@ -586,13 +584,16 @@ func writeDiskTTSCache(config ttsCacheConfig, key string, data []byte) error {
 		return err
 	}
 
-	path := diskTTSCachePath(config, key)
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
+	tmp, err := os.CreateTemp(config.Dir, ".tts-audio-*")
+	if err != nil {
 		return err
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		_ = os.Remove(tmpPath)
+	defer os.Remove(tmp.Name())
+	_, writeErr := tmp.Write(data)
+	if err := errors.Join(writeErr, tmp.Close()); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp.Name(), diskTTSCachePath(config, key)); err != nil {
 		return err
 	}
 
@@ -660,9 +661,9 @@ func removeStaleDiskCache(path string) {
 	}
 }
 
-func errorString(err error) string {
+func ttsFailureKind(err error) string {
 	if err == nil {
 		return ""
 	}
-	return err.Error()
+	return TTSHTTPError(err).Kind
 }

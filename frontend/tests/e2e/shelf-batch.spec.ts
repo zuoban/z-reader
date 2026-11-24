@@ -99,6 +99,63 @@ test.describe('shelf batch operations', () => {
     await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible();
   });
 
+  test('categorizes and deletes a search result outside the loaded shelf page', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    const mock = await mockMutableShelfApis(page);
+    await page.route('**/api/books?*', async (route) => {
+      await route.fulfill({ json: { books: mock.books.filter((book) => book.id !== 'book-1') } });
+    });
+
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《三体》' })).toBeVisible();
+    const searchOnlyBook = page.getByRole('button', { name: '阅读《红楼梦》' });
+    await expect(searchOnlyBook).toHaveCount(0);
+
+    const searchBox = page.getByRole('searchbox', { name: '搜索书库' });
+    await searchBox.fill('三体');
+    await expect(page.getByText('共 1 本', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /批量操作/ }).click();
+    const batchToolbar = page.getByRole('region', { name: '书籍批量操作' });
+    await expect(batchToolbar).toBeVisible();
+
+    let releaseSearch!: () => void;
+    const pendingSearch = new Promise<void>((resolve) => { releaseSearch = resolve; });
+    await page.route('**/api/books/search?*', async (route) => {
+      await pendingSearch;
+      await route.fallback();
+    });
+    await searchBox.fill('红楼梦');
+    try {
+      await expect(page.getByText('正在搜索…')).toBeVisible();
+      await expect(batchToolbar).toBeHidden();
+    } finally {
+      releaseSearch();
+    }
+
+    const selectBook = page.getByRole('button', { name: '选择《红楼梦》' });
+    await selectBook.click();
+    const selectedCount = page.getByText('已选中').locator('..');
+    await expect(selectedCount).toContainText('1 本');
+
+    await page.getByRole('button', { name: '批量分类', exact: true }).click();
+    const categoryDialog = page.getByRole('dialog', { name: '批量设置分类' });
+    await categoryDialog.getByRole('button', { name: /科幻/ }).click();
+    await categoryDialog.getByRole('button', { name: '保存' }).click();
+    await expect.poll(() => mock.categoryCalls).toEqual([{ ids: ['book-1'], category: '科幻' }]);
+    await expect(searchOnlyBook).toBeVisible();
+
+    await page.getByRole('button', { name: /批量操作/ }).click();
+    await page.getByRole('button', { name: '选择已加载' }).click();
+    await expect(selectedCount).toContainText('1 本');
+    await page.getByRole('button', { name: '批量删除', exact: true }).click();
+    const deleteDialog = page.getByRole('alertdialog', { name: '删除所选图书' });
+    await expect(deleteDialog.getByText(/确定删除选中的 1 本图书/)).toBeVisible();
+    await deleteDialog.getByRole('button', { name: '确认删除' }).click();
+    await expect.poll(() => mock.deleteCalls).toEqual([['book-1']]);
+    await expect(searchOnlyBook).toHaveCount(0);
+  });
+
   test('selects all loaded books and batch-deletes them', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);

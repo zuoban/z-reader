@@ -6,6 +6,7 @@ import { Check } from 'lucide-react';
 import { buildAzureSSML } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { handleAuthResponse } from '@/lib/api';
+import { getAccessGeneration } from '@/lib/library-access';
 import { claimTTSAudioFocus } from '@/lib/tts-audio-focus';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 import { withOpacity } from '@/lib/reader-ui';
@@ -346,8 +347,10 @@ export function VoiceSelector({
       onPreviewStart?.();
       if (!isActive()) return;
       const ssml = buildSSML('你好，这是一个语音试听示例。');
+      const generation = getAccessGeneration();
       const response = await fetch(`${API_BASE}/api/ssml`, {
         credentials: 'include',
+        cache: 'no-store',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -359,14 +362,14 @@ export function VoiceSelector({
         signal: controller.signal,
       });
 
-      if (!isActive()) return;
-      handleAuthResponse(response);
+      if (!isActive() || generation !== getAccessGeneration()) return;
+      handleAuthResponse(response, generation);
       if (!response.ok) {
         throw new Error(`语音试听失败，状态码：${response.status}`);
       }
 
       const blob = await response.blob();
-      if (!isActive()) return;
+      if (!isActive() || generation !== getAccessGeneration()) return;
       clearTimeout(timeoutId);
       session.url = URL.createObjectURL(blob);
       const audio = new Audio(session.url);

@@ -7,6 +7,8 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -121,10 +123,8 @@ func TestExtractEPUBCoverPrefersEPUB3CoverImageProperty(t *testing.T) {
 		{name: "OPS/assets/book art.png", data: epub3PNG},
 	})
 
-	meta, err := extractEPUBMetadataFromReader(zr)
-	if err != nil {
-		t.Fatalf("extract metadata: %v", err)
-	}
+	pkg, _ := readEPUBPackage(zr, indexEPUBEntries(zr))
+	meta := metadataFromEPUBPackage(pkg)
 	if meta.Title != "EPUB3 Book" || meta.Author != "Ada" {
 		t.Fatalf("meta = %+v, want Title='EPUB3 Book' Author='Ada'", meta)
 	}
@@ -174,5 +174,28 @@ func TestExtractEPUBCoverUsesEPUB2MetaCover(t *testing.T) {
 	}
 	if contentType != "image/jpeg" || !bytes.Equal(data, frontJPEG) {
 		t.Fatalf("got contentType=%q len=%d, want EPUB2 JPEG len=%d", contentType, len(data), len(frontJPEG))
+	}
+}
+
+func TestOpenUploadFileReadsRegularNestedUpload(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "library"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	name := filepath.Join("library", "book.epub")
+	if err := os.WriteFile(filepath.Join(dir, name), []byte("book"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	file, info, err := openUploadFile(dir, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if info.Name() != "book.epub" || info.Size() != 4 {
+		t.Fatal("unexpected file metadata")
+	}
+	if dirFile, _, err := openUploadFile(dir, "library"); err == nil {
+		dirFile.Close()
+		t.Fatal("expected upload reads to require a regular file")
 	}
 }

@@ -148,6 +148,49 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	}
 }
 
+func TestRateLimiterRetryAfterUsesWindowExpiry(t *testing.T) {
+	previous := rateLimitRejections.custom.Load()
+	t.Cleanup(func() { rateLimitRejections.custom.Store(previous) })
+
+	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
+	now := start
+	rl := NewRateLimiter(1, 10*time.Second)
+	rl.now = func() time.Time { return now }
+	rl.maxVisitors = 2
+	gin.SetMode(gin.TestMode)
+	handler := RateLimitByKey(rl, func(c *gin.Context) string {
+		return c.GetHeader("X-Quota-Key")
+	})
+
+	for _, step := range []struct {
+		elapsed    time.Duration
+		key        string
+		status     int
+		retryAfter string
+	}{
+		{0, "a", http.StatusOK, ""},
+		{2250 * time.Millisecond, "b", http.StatusOK, ""},
+		{7750 * time.Millisecond, "b", http.StatusTooManyRequests, "5"},
+		{7750 * time.Millisecond, "a", http.StatusTooManyRequests, "3"},
+		{7750 * time.Millisecond, "c", http.StatusTooManyRequests, "3"},
+		{9900 * time.Millisecond, "c", http.StatusTooManyRequests, "1"},
+		{10 * time.Second, "a", http.StatusOK, ""},
+		{10 * time.Second, "c", http.StatusTooManyRequests, "3"},
+		{12250 * time.Millisecond, "c", http.StatusOK, ""},
+	} {
+		now = start.Add(step.elapsed)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/limited", nil)
+		c.Request.Header.Set("X-Quota-Key", step.key)
+		handler(c)
+		if got := w.Header().Get("Retry-After"); w.Code != step.status || got != step.retryAfter {
+			t.Fatalf("key %q at %v: got status %d, Retry-After %q; want %d, %q",
+				step.key, step.elapsed, w.Code, got, step.status, step.retryAfter)
+		}
+	}
+}
+
 func TestRateLimitByKeyRecordsCustomScope(t *testing.T) {
 	previous := rateLimitRejections.custom.Load()
 	rateLimitRejections.custom.Store(0)

@@ -96,9 +96,30 @@ func (sdb *SessionDB) GetSession(token string) (*models.Session, error) {
 
 // DeleteSession 从独立 session 数据库删除 session。
 func (sdb *SessionDB) DeleteSession(token string) error {
+	return sdb.DeleteSessions(token)
+}
+
+// DeleteSessions 在一次事务中撤销所有指定的 session。
+func (sdb *SessionDB) DeleteSessions(tokens ...string) error {
 	return sdb.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
-		return b.Delete([]byte(hashToken(token)))
+		for _, token := range tokens {
+			if err := b.Delete([]byte(hashToken(token))); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// ClearSessions invalidates all sessions in one transaction.
+func (sdb *SessionDB) ClearSessions() error {
+	return sdb.Update(func(tx *bbolt.Tx) error {
+		if err := tx.DeleteBucket(SessionsBucket); err != nil {
+			return err
+		}
+		_, err := tx.CreateBucket(SessionsBucket)
+		return err
 	})
 }
 

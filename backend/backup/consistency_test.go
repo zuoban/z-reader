@@ -3,8 +3,10 @@ package backup
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/jpeg"
+	"io/fs"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -226,6 +228,41 @@ func TestCreateRestoreEmptyLibrary(t *testing.T) {
 	}
 }
 
+func TestPublishRestoreLeavesAnExistingUploadDirectoryIntact(t *testing.T) {
+	root := t.TempDir()
+	staged := filepath.Join(root, "staged")
+	uploads := filepath.Join(root, "uploads")
+	for _, dir := range []string{staged, uploads} {
+		if err := os.Mkdir(dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(staged, "book.epub"), []byte("book"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	mainTemp := filepath.Join(root, "staged.db")
+	sessionTemp := mainTemp + ".sessions"
+	for _, path := range []string{mainTemp, sessionTemp} {
+		if err := os.WriteFile(path, nil, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mainPath := filepath.Join(root, "data.db")
+	sessionPath := mainPath + ".sessions"
+	if err := publishRestore(staged, uploads, mainTemp, mainPath, sessionTemp, sessionPath); err == nil {
+		t.Fatal("expected an existing upload directory to block publication")
+	}
+	for _, path := range []string{mainPath, sessionPath} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("database path remains after failed publication: %s (%v)", path, err)
+		}
+	}
+	if entries, err := os.ReadDir(uploads); err != nil || len(entries) != 0 {
+		t.Fatalf("existing upload directory changed: %v, %v", entries, err)
+	}
+	assertBackupFile(t, staged, "book.epub", "book")
+}
+
 func newConsistencyFixture(t *testing.T) (*storage.DB, Config) {
 	t.Helper()
 	root := t.TempDir()
@@ -308,4 +345,42 @@ func assertBackupFile(t *testing.T, root, name, want string) {
 	if err != nil || string(content) != want {
 		t.Fatalf("file %q = %q, err = %v", name, content, err)
 	}
+}
+
+func copyTree(source, destination string) error {
+	if err := os.MkdirAll(destination, 0700); err != nil {
+		return err
+	}
+	return filepath.WalkDir(source, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relativePath, err := filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
+		if relativePath == "." {
+			return nil
+		}
+		if !safeRelativePath(relativePath) {
+			return fmt.Errorf("unsafe upload path %q", relativePath)
+		}
+		target := filepath.Join(destination, relativePath)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0700)
+		}
+		if entry.Type()&os.ModeSymlink != 0 || !entry.Type().IsRegular() {
+			return fmt.Errorf("unsupported upload entry %q", path)
+		}
+		return copyFile(path, target)
+	})
+}
+
+func copyFile(source, destination string) error {
+	input, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer input.Close()
+	return copyToFile(input, destination)
 }

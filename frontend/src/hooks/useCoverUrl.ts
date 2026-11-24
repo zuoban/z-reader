@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { getAccessGeneration } from '@/lib/library-access';
 
 // Global cover fetch queue with concurrency limit to avoid flooding
 // the browser with parallel HTTP requests (browser limit ~6 per domain).
@@ -76,8 +77,7 @@ function getCachedCoverUrl(cacheKey: string): string | undefined {
   return url;
 }
 
-function setCachedCoverUrl(bookId: string, cacheKey: string, url: string) {
-  const bookKeyPrefix = `${bookId}:`;
+function setCachedCoverUrl(bookKeyPrefix: string, cacheKey: string, url: string) {
   for (const [key, cachedUrl] of coverUrlCache) {
     if (key !== cacheKey && key.startsWith(bookKeyPrefix)) {
       coverUrlCache.delete(key);
@@ -122,16 +122,18 @@ export function useCoverUrl(
   coverUrl: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
 } {
-  const cacheKey = `${bookId}:${size ?? 'full'}:${coverVersion ?? ''}`;
+  const [generation] = useState(getAccessGeneration);
+  const bookKeyPrefix = `${generation ?? ''}:${bookId}:`;
+  const cacheKey = `${bookKeyPrefix}${size ?? 'full'}:${coverVersion ?? ''}`;
   const [fetchedCover, setFetchedCover] = useState<{
     cacheKey: string;
     url: string;
   } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const inFlightKeyRef = useRef<string | null>(null);
-  const coverUrl =
-    getCachedCoverUrl(cacheKey) ??
-    (fetchedCover?.cacheKey === cacheKey ? fetchedCover.url : null);
+  const coverUrl = generation === getAccessGeneration()
+    ? getCachedCoverUrl(cacheKey) ?? (fetchedCover?.cacheKey === cacheKey ? fetchedCover.url : null)
+    : null;
 
   useEffect(() => {
     if (getCachedCoverUrl(cacheKey)) {
@@ -153,21 +155,18 @@ export function useCoverUrl(
     };
 
     const startFetch = () => {
-      if (disposed || inFlightKeyRef.current === cacheKey) return;
+      if (disposed || generation !== getAccessGeneration() ||
+          inFlightKeyRef.current === cacheKey) return;
       if (getCachedCoverUrl(cacheKey)) return;
 
       inFlightKeyRef.current = cacheKey;
       cancelFetch = scheduleCoverFetch(async (signal) => {
         try {
           const blob = await api.fetchCover(bookId, size, signal);
-          if (!blob || disposed || signal.aborted) return;
+          if (!blob || disposed || signal.aborted || generation !== getAccessGeneration()) return;
 
           const url = URL.createObjectURL(blob);
-          if (disposed || signal.aborted) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          setCachedCoverUrl(bookId, cacheKey, url);
+          setCachedCoverUrl(bookKeyPrefix, cacheKey, url);
           setFetchedCover({ cacheKey, url });
         } finally {
           if (inFlightKeyRef.current === cacheKey) {
@@ -198,7 +197,7 @@ export function useCoverUrl(
       observer.disconnect();
       stopFetch();
     };
-  }, [bookId, cacheKey, size]);
+  }, [bookId, bookKeyPrefix, cacheKey, generation, size]);
 
   return { coverUrl, ref };
 }

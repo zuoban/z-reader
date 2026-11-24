@@ -3,11 +3,13 @@ package services
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -204,6 +206,40 @@ func readBoundedBody(r io.Reader, limit int64) ([]byte, error) {
 	return data, nil
 }
 
+func readTTSAudioResponse(resp *http.Response) ([]byte, error) {
+	contentType, _, _ := strings.Cut(resp.Header.Get("Content-Type"), ";")
+	contentType = strings.ToLower(strings.TrimSpace(contentType))
+	if contentType == "application/json" || contentType == "text/json" ||
+		strings.HasSuffix(contentType, "+json") || contentType == "text/html" || contentType == "application/xhtml+xml" {
+		return nil, TTSHTTPError(errors.New("upstream returned a non-audio content type"))
+	}
+
+	data, err := readBoundedBody(resp.Body, maxTTSAudioResponseBytes)
+	if err != nil {
+		return nil, TTSHTTPError(err)
+	}
+	if len(data) == 0 {
+		return nil, TTSHTTPError(errors.New("upstream returned an empty audio response"))
+	}
+
+	// Error documents can arrive with a generic or missing content type.
+	// Raw PCM has no signature, so leave unrecognized bytes alone.
+	body := bytes.TrimLeft(bytes.TrimPrefix(data, []byte("\xef\xbb\xbf")), " \t\r\n")
+	if len(body) > 0 {
+		switch body[0] {
+		case '{', '[':
+			if json.Valid(body) {
+				return nil, TTSHTTPError(errors.New("upstream returned JSON instead of audio"))
+			}
+		case '<':
+			if strings.HasPrefix(http.DetectContentType(body), "text/html;") && bytes.IndexByte(body, 0) < 0 {
+				return nil, TTSHTTPError(errors.New("upstream returned HTML instead of audio"))
+			}
+		}
+	}
+	return data, nil
+}
+
 type microsoftTranslatorProvider struct{}
 
 func (microsoftTranslatorProvider) Name() string {
@@ -224,6 +260,9 @@ func callMicrosoftTranslatorTTS(ctx context.Context, ssml, outputFormat string, 
 		return nil, TTSHTTPError(err)
 	}
 
+	if !validTTSRegion(cache.Endpoint) {
+		return nil, TTSHTTPError(errors.New("invalid speech provider region"))
+	}
 	endpointURL := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", cache.Endpoint)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpointURL, bytes.NewBufferString(ssml))
 	if err != nil {
@@ -240,11 +279,7 @@ func callMicrosoftTranslatorTTS(ctx context.Context, ssml, outputFormat string, 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
-		data, err := readBoundedBody(resp.Body, maxTTSAudioResponseBytes)
-		if err != nil {
-			return nil, TTSHTTPError(err)
-		}
-		return data, nil
+		return readTTSAudioResponse(resp)
 	}
 	if !isRetry && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden) {
 		// Invalidate only the rejected credentials, preserving a refresh another call completed.
@@ -264,11 +299,20 @@ type azureTTSProvider struct {
 	region string
 }
 
+var ttsRegionPattern = regexp.MustCompile(`(?i)^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
+
+func validTTSRegion(region string) bool {
+	return ttsRegionPattern.MatchString(region)
+}
+
 func (p *azureTTSProvider) Name() string {
 	return "azure:" + p.region
 }
 
 func (p *azureTTSProvider) Synthesize(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
+	if !validTTSRegion(p.region) {
+		return nil, TTSHTTPError(errors.New("invalid Azure speech region"))
+	}
 	endpointURL := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/v1", p.region)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpointURL, bytes.NewBufferString(ssml))
 	if err != nil {
@@ -283,6 +327,9 @@ func (p *azureTTSProvider) Synthesize(ctx context.Context, ssml, outputFormat st
 }
 
 func (p *azureTTSProvider) ListVoices(ctx context.Context) ([]Voice, error) {
+	if !validTTSRegion(p.region) {
+		return nil, TTSHTTPError(errors.New("invalid Azure speech region"))
+	}
 	endpointURL := fmt.Sprintf("https://%s.tts.speech.microsoft.com/cognitiveservices/voices/list", p.region)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpointURL, nil)
 	if err != nil {
@@ -344,11 +391,7 @@ func doSynthesisRequest(req *http.Request) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		data, err := readBoundedBody(resp.Body, maxTTSAudioResponseBytes)
-		if err != nil {
-			return nil, TTSHTTPError(err)
-		}
-		return data, nil
+		return readTTSAudioResponse(resp)
 	}
 	return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), true)
 }

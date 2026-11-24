@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	EndpointRefreshThreshold = 300
+	maxTTSEndpointResponseBytes = 64 * 1024
+	EndpointRefreshThreshold    = 300
 )
 
 // defaultSignatureKey 是 Microsoft Translator TTS 端点的默认签名密钥。
@@ -206,11 +207,18 @@ func callEndpointAPIContext(ctx context.Context) (*EndpointResponse, error) {
 		return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), false)
 	}
 
+	body, err := readBoundedBody(resp.Body, maxTTSEndpointResponseBytes)
+	if err != nil {
+		return nil, err
+	}
 	var endpointResp EndpointResponse
-	if err := json.NewDecoder(resp.Body).Decode(&endpointResp); err != nil {
+	if err := json.Unmarshal(body, &endpointResp); err != nil {
 		return nil, err
 	}
 
+	if !validTTSRegion(endpointResp.R) {
+		return nil, fmt.Errorf("invalid speech provider region")
+	}
 	return &endpointResp, nil
 }
 

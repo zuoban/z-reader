@@ -71,19 +71,31 @@ func TestBooksUploadReturnsBeforeEPUBPreviewCompletes(t *testing.T) {
 
 func TestSaveUploadedBookFileHashesWrittenBytes(t *testing.T) {
 	content := []byte("book bytes written only once")
-	path := filepath.Join(t.TempDir(), "book.pdf")
+	dir := t.TempDir()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	const name = "book.pdf"
 
 	contentHash, err := saveUploadedBookFile(
 		newMultipartFileHeader(t, "book.pdf", content),
 		"pdf",
-		path,
+		root,
+		name,
 		maxEPUBExpandedBytes,
 	)
 	if err != nil {
 		t.Fatalf("saveUploadedBookFile returned error: %v", err)
 	}
 
-	storedHash, err := hashFile(path)
+	file, err := root.Open(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	storedHash, err := hashBook(file)
 	if err != nil {
 		t.Fatalf("failed to hash saved book: %v", err)
 	}

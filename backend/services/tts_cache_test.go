@@ -2,7 +2,10 @@ package services
 
 import (
 	"errors"
+	"net/http"
+	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -99,5 +102,47 @@ func TestTTSQueueMetricsSnapshotAndPrometheusOutput(t *testing.T) {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("expected metric %q in output: %s", expected, body)
 		}
+	}
+}
+
+func TestConcurrentDiskCacheWritesPublishCompleteAudio(t *testing.T) {
+	config := ttsCacheConfig{Dir: t.TempDir(), MaxBytes: 4096, MaxItems: 8, TTL: time.Hour}
+	const key = "audio"
+	first := strings.Repeat("a", 512)
+	second := strings.Repeat("b", 1024)
+	var group sync.WaitGroup
+	for _, audio := range []string{first, second} {
+		group.Go(func() {
+			if err := writeDiskTTSCache(config, key, []byte(audio)); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	group.Wait()
+	if audio, ok := readDiskTTSCache(config, key); !ok || (string(audio) != first && string(audio) != second) {
+		t.Fatal("expected a complete cached audio response")
+	}
+	entries, err := os.ReadDir(config.Dir)
+	if err != nil || len(entries) != 1 || entries[0].Name() != "audio.audio" {
+		t.Fatal("expected only the published audio file in the cache")
+	}
+}
+
+func TestSharedHTTPClientStopsAtProviderRedirect(t *testing.T) {
+	client := *sharedHTTPClient
+	calls := 0
+	client.Transport = ttsRoundTripFunc(func(req *http.Request) (*http.Response, error) {
+		calls++
+		response := ttsResponse(http.StatusTemporaryRedirect, "")
+		response.Header = http.Header{"Location": {"https://speech.example/v2"}}
+		return response, nil
+	})
+	response, err := client.Get("https://speech.example/v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusTemporaryRedirect || calls != 1 {
+		t.Fatal("expected the original provider response without a second request")
 	}
 }

@@ -111,10 +111,11 @@ func (worker *legacyHashBackfill) batch(userID *string, cursor string) (string, 
 			return "", fmt.Errorf("hash backfill stopped")
 		default:
 		}
-		path, err := resolveUploadPath(worker.handler.cfg.UploadDir, book.Filename)
+		file, _, err := openUploadFile(worker.handler.cfg.UploadDir, book.Filename)
 		if err == nil {
 			var hash string
-			hash, err = hashFile(path)
+			hash, err = hashBook(file)
+			file.Close()
 			if err == nil {
 				book.ContentHash = hash
 				hashes = append(hashes, book)

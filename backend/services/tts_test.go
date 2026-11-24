@@ -631,6 +631,72 @@ func TestTTSErrorMessagesUnwrapAndRetryAfterDates(t *testing.T) {
 	}
 }
 
+func TestTTSRejectsNonAudioSuccessBeforeCaching(t *testing.T) {
+	const ssml, format = "<speak>cache validation</speak>", "raw-24khz-16bit-mono-pcm"
+	const pcm = "\x00\x00\xff\x7f\x00\x80\x20\x20"
+	for _, tc := range []struct {
+		name, contentType, body string
+	}{
+		{name: "empty", contentType: "audio/pcm"},
+		{name: "declared JSON", contentType: "Application/Problem+JSON; charset=utf-8", body: "upstream error"},
+		{name: "declared HTML", contentType: "text/html; charset=utf-8", body: "upstream error"},
+		{name: "JSON as binary", contentType: "application/octet-stream", body: "\xef\xbb\xbf \n{\"error\":\"upstream error\"}"},
+		{name: "HTML without content type", body: "\n<!DOCTYPE html><html><body>upstream error</body></html>"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, provider := range []string{"translator", "custom"} {
+				t.Run(provider, func(t *testing.T) {
+					t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+					t.Setenv("AZURE_TTS_KEY", "")
+					t.Setenv("AZURE_TTS_REGION", "")
+					if provider == "custom" {
+						t.Setenv("TTS_CUSTOM_ENDPOINT", "https://tts.example.test/synthesize")
+					}
+					var calls atomic.Int32
+					runtime := installTTSTestRuntime(t, func(*http.Request) (*http.Response, error) {
+						contentType, body := "application/octet-stream", pcm
+						if calls.Add(1) == 1 {
+							contentType, body = tc.contentType, tc.body
+						}
+						resp := ttsResponse(http.StatusOK, body)
+						if contentType != "" {
+							resp.Header.Set("Content-Type", contentType)
+						}
+						return resp, nil
+					})
+					runtime.config.Dir = t.TempDir()
+					key := ttsCacheKey(ActiveTTSProvider().Name(), ssml, format)
+
+					data, err := GenerateAudioFromSsml(ssml, format)
+					var failure *TTSError
+					if data != nil || !errors.As(err, &failure) || failure.StatusCode != http.StatusBadGateway || failure.Kind != "unavailable" {
+						t.Fatalf("invalid audio: got %q, %v; want unavailable (502)", data, err)
+					}
+					if _, ok := runtime.cache.get(key); ok {
+						t.Fatal("invalid audio entered the memory cache")
+					}
+					if _, ok := readDiskTTSCache(runtime.config, key); ok {
+						t.Fatal("invalid audio entered the disk cache")
+					}
+
+					for range 2 {
+						data, err = GenerateAudioFromSsml(ssml, format)
+						if err != nil || string(data) != pcm {
+							t.Fatalf("binary PCM: got %q, %v; want %q", data, err, pcm)
+						}
+					}
+					if got := calls.Load(); got != 2 {
+						t.Fatalf("provider calls = %d, want 2", got)
+					}
+					if data, ok := readDiskTTSCache(runtime.config, key); !ok || string(data) != pcm {
+						t.Fatalf("binary PCM disk cache: got %q, found %v", data, ok)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestTTSCacheSeparatesProvidersAndBoundsResponseSize(t *testing.T) {
 	t.Run("switching provider does not reuse audio cached by previous provider", func(t *testing.T) {
 		t.Setenv("TTS_CUSTOM_ENDPOINT", "")

@@ -6,7 +6,7 @@ import { ActionIcon, Button, Modal } from '@mantine/core';
 import { BookOpen, HardDrive, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/AppShell';
-import { PERSONAL_LIBRARY } from '@/lib/api';
+import { getOfflineLibrary } from '@/lib/library-access';
 import {
   clearOfflineBooks,
   listOfflineBooks,
@@ -31,30 +31,31 @@ export function OfflineBooksDialog({
   open,
   onOpenChange,
 }: OfflineBooksDialogProps) {
+  const [library] = useState(getOfflineLibrary);
   const [books, setBooks] = useState<OfflineBookSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || library !== getOfflineLibrary()) return;
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       setIsLoading(true);
-      void listOfflineBooks(PERSONAL_LIBRARY)
+      void listOfflineBooks(library)
         .then((items) => {
-          if (!cancelled) {
+          if (!cancelled && library === getOfflineLibrary()) {
             setBooks(items);
           }
         })
         .catch(() => {
-          if (!cancelled) {
+          if (!cancelled && library === getOfflineLibrary()) {
             setBooks([]);
           }
         })
         .finally(() => {
-          if (!cancelled) {
+          if (!cancelled && library === getOfflineLibrary()) {
             setIsLoading(false);
           }
         });
@@ -63,7 +64,7 @@ export function OfflineBooksDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [library, open]);
 
   const totalBytes = useMemo(
     () => books.reduce((sum, item) => sum + item.size, 0),
@@ -71,10 +72,10 @@ export function OfflineBooksDialog({
   );
 
   async function handleRemove(book: OfflineBookSummary) {
-    if (removingId || isClearing) return;
+    if (removingId || isClearing || library !== getOfflineLibrary()) return;
     setRemovingId(book.bookId);
     try {
-      await removeOfflineBook(PERSONAL_LIBRARY, book.bookId);
+      await removeOfflineBook(library, book.bookId);
       setBooks((current) => current.filter((item) => item.bookId !== book.bookId));
       toast.success(`已移除《${book.title || book.filename}》的离线缓存`);
     } catch {
@@ -85,10 +86,10 @@ export function OfflineBooksDialog({
   }
 
   async function handleClearAll() {
-    if (isClearing || books.length === 0) return;
+    if (isClearing || books.length === 0 || library !== getOfflineLibrary()) return;
     setIsClearing(true);
     try {
-      await clearOfflineBooks(PERSONAL_LIBRARY);
+      await clearOfflineBooks(library);
       setBooks([]);
       toast.success('已清空全部离线缓存');
     } catch {

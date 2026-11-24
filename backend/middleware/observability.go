@@ -91,7 +91,8 @@ func HTTPMetrics() gin.HandlerFunc {
 		if path == "" {
 			path = "unmatched"
 		}
-		key := strings.Join([]string{c.Request.Method, path, strconv.Itoa(c.Writer.Status())}, "\x00")
+		method := metricHTTPMethod(c.Request.Method)
+		key := strings.Join([]string{method, path, strconv.Itoa(c.Writer.Status())}, "\x00")
 		httpMetrics.mu.Lock()
 		httpMetrics.inFlight--
 		metric := httpMetrics.requests[key]
@@ -102,6 +103,17 @@ func HTTPMetrics() gin.HandlerFunc {
 		metric.count++
 		metric.durationSec += time.Since(startedAt).Seconds()
 		httpMetrics.mu.Unlock()
+	}
+}
+
+// metricHTTPMethod keeps extension methods from creating unbounded metric labels.
+func metricHTTPMethod(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+		http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace:
+		return method
+	default:
+		return "OTHER"
 	}
 }
 

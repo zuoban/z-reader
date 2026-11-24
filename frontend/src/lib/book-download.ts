@@ -1,4 +1,4 @@
-import { isAbortLikeError } from '@/lib/config';
+import { DEFAULT_TIMEOUT, isAbortLikeError } from '@/lib/config';
 import {
   createPartialBookDownloadWriter,
   clearPartialBookDownload,
@@ -69,6 +69,21 @@ function createDownloadProgressReporter(
   };
 }
 
+async function waitForDownload<T>(pending: Promise<T>, cancel: () => void): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error('书籍下载超时，请重试以继续下载'));
+      cancel();
+    }, DEFAULT_TIMEOUT);
+  });
+  try {
+    return await Promise.race([pending, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function getBookFileResponse(
   context: BookDownloadContext,
   id: string,
@@ -76,7 +91,7 @@ async function getBookFileResponse(
   signal?: AbortSignal,
   etag?: string
 ): Promise<Response> {
-  return context.requestFile('/api/books/' + id + '/file', {
+  return context.requestFile(`/api/books/${encodeURIComponent(id)}/file`, {
     credentials: 'include',
     headers: startAt > 0 ? {
       Range: `bytes=${startAt}-`,
@@ -89,8 +104,10 @@ async function getBookFileResponse(
 async function downloadBookFile(
   id: string, options: FetchBookOptions, context: BookDownloadContext
 ): Promise<Blob> {
+  const generation = context.generation();
   const throwIfAborted = () => {
     if (options.signal?.aborted) throw bookDownloadAborted();
+    if (context.generation() !== generation) throw context.authChangedError();
   };
   throwIfAborted();
   const userId = context.library;
@@ -125,6 +142,12 @@ async function downloadBookFile(
     }
   }
 
+  try {
+    throwIfAborted();
+  } catch (error) {
+    void response.body?.cancel().catch(() => {});
+    throw error;
+  }
   if (!response.ok) {
     throw new Error(`加载书籍失败：${response.status} ${response.statusText}`);
   }
@@ -159,7 +182,7 @@ async function downloadBookFile(
     parts.push(chunk);
     if (!writer) return;
     writeChain = writeChain.then(async () => {
-      if (!writer) return;
+      if (!writer || context.generation() !== generation) return;
       try {
         await writer.append(chunk);
       } catch {
@@ -192,11 +215,12 @@ async function downloadBookFile(
     } else {
       const reader = response.body.getReader();
       const cancelReader = () => { void reader.cancel().catch(() => {}); };
-      options.signal?.addEventListener('abort', cancelReader, { once: true });
+      if (options.signal?.aborted) cancelReader();
+      else options.signal?.addEventListener('abort', cancelReader, { once: true });
       try {
         while (true) {
           throwIfAborted();
-          const { done, value } = await reader.read();
+          const { done, value } = await waitForDownload(reader.read(), cancelReader);
           throwIfAborted();
           if (done) break;
           if (!value?.byteLength) continue;
@@ -237,8 +261,10 @@ export async function fetchBook(
 ): Promise<Blob> {
   const generation = context.generation();
   const key = JSON.stringify([context.library, generation, id]);
-  const file = await shareBookDownload(key, options, (downloadOptions) =>
-    downloadBookFile(id, downloadOptions, context));
+  const file = await shareBookDownload(key, options, (downloadOptions) => {
+    if (context.generation() !== generation) throw context.authChangedError();
+    return downloadBookFile(id, downloadOptions, context);
+  });
   if (context.generation() !== generation) throw context.authChangedError();
   return file;
 }
@@ -256,6 +282,7 @@ export async function createBookFile(
   );
   const cached = await getOfflineBookEntry(userId, id).catch(() => null);
   if (options.signal?.aborted) throw bookDownloadAborted();
+  if (context.generation() !== generation) throw context.authChangedError();
   const downloadController = new AbortController();
   const cancelDownload = () => downloadController.abort();
   options.signal?.addEventListener('abort', cancelDownload, { once: true });
@@ -275,6 +302,7 @@ export async function createBookFile(
       return cached.file;
     }
     blob = await (download ?? context.fetchBook(id, downloadOptions));
+    if (context.generation() !== generation) throw context.authChangedError();
   } catch (error) {
     cancelDownload();
     if (options.signal?.aborted) throw bookDownloadAborted();

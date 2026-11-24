@@ -66,8 +66,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	if token := middleware.SessionToken(c); token != "" {
-		if err := h.db.DeleteSession(middleware.SessionKey(h.cfg.AccessPassword, token)); err != nil {
+	c.Header("Cache-Control", "no-store")
+	token := middleware.SessionToken(c)
+	cookie, _ := c.Cookie(middleware.SessionCookieName)
+	var keys []string
+	if token != "" {
+		keys = append(keys, middleware.SessionKey(h.cfg.AccessPassword, token))
+	}
+	if cookie != "" && cookie != token {
+		keys = append(keys, middleware.SessionKey(h.cfg.AccessPassword, cookie))
+	}
+	if len(keys) > 0 {
+		if err := h.db.DeleteSessions(keys...); err != nil {
 			response.InternalError(c, "退出失败")
 			return
 		}

@@ -114,6 +114,7 @@ func TestCreateVerifyRestoreAndReady(t *testing.T) {
 	t.Cleanup(bookHandler.Close)
 	router := gin.New()
 	router.GET("/readyz", handlers.Ready(restoredDB, restoredUploads))
+	router.POST("/api/auth/login", handlers.NewAuthHandler(&config.Config{AccessPassword: testPassword}, restoredDB).Login)
 	router.GET("/api/books/:id/file", middleware.AuthRequired(restoredDB, testPassword), bookHandler.GetFile)
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/readyz", nil))
@@ -121,8 +122,26 @@ func TestCreateVerifyRestoreAndReady(t *testing.T) {
 		t.Fatalf("expected restored service to be ready, got %d: %s", response.Code, response.Body.String())
 	}
 
-	download := httptest.NewRequest(http.MethodGet, "/api/books/"+books[0].ID+"/file", nil)
-	download.AddCookie(cookies[0])
+	downloadPath := "/api/books/" + books[0].ID + "/file"
+	oldDownload := httptest.NewRequest(http.MethodGet, downloadPath, nil)
+	oldDownload.AddCookie(cookies[0])
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, oldDownload)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("expected restored service to reject the old session, got %d", response.Code)
+	}
+
+	newLogin := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"password":"restore-test-password"}`))
+	newLogin.Header.Set("Content-Type", "application/json")
+	newLoginResponse := httptest.NewRecorder()
+	router.ServeHTTP(newLoginResponse, newLogin)
+	newCookies := newLoginResponse.Result().Cookies()
+	if newLoginResponse.Code != http.StatusOK || len(newCookies) != 1 {
+		t.Fatalf("restored login failed with status %d, cookie count %d", newLoginResponse.Code, len(newCookies))
+	}
+
+	download := httptest.NewRequest(http.MethodGet, downloadPath, nil)
+	download.AddCookie(newCookies[0])
 	response = httptest.NewRecorder()
 	router.ServeHTTP(response, download)
 	if response.Code != http.StatusOK || !bytes.Equal(response.Body.Bytes(), bookContent) {

@@ -46,6 +46,32 @@ func TestMetricsHandlerReportsCompletedRoute(t *testing.T) {
 	}
 }
 
+func TestHTTPMetricsGroupsExtensionMethods(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	previous := httpMetrics
+	httpMetrics = &httpMetricsRegistry{requests: make(map[string]*httpMetric)}
+	t.Cleanup(func() { httpMetrics = previous })
+
+	router := gin.New()
+	router.Use(HTTPMetrics())
+	router.GET("/metrics", MetricsHandler)
+	for _, method := range []string{"PROPFIND", "MKCOL"} {
+		req := httptest.NewRequest(method, "/", nil)
+		router.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	body := rec.Body.String()
+	want := `z_reader_http_requests_total{method="OTHER",path="unmatched",status="404"} 2` + "\n"
+	if rec.Code != http.StatusOK || !strings.Contains(body, want) {
+		t.Fatalf("expected one series for extension methods, got status=%d body=%s", rec.Code, body)
+	}
+	if strings.Contains(body, "PROPFIND") || strings.Contains(body, "MKCOL") {
+		t.Fatal("metrics contain raw extension method labels")
+	}
+}
+
 func TestMetricsHandlerReportsOperationHistogram(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	telemetry.Observe("book_search", 20*time.Millisecond, 4)

@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -16,16 +17,22 @@ import (
 	"z-reader/backend/storage"
 )
 
-func openSnapshot(path string) (*bbolt.DB, error) {
-	db, err := bbolt.Open(path, 0600, &bbolt.Options{ReadOnly: true, Timeout: time.Second})
+func openSnapshot(root *os.Root, name string) (*bbolt.DB, error) {
+	db, err := bbolt.Open(name, 0600, &bbolt.Options{
+		ReadOnly: true,
+		Timeout:  time.Second,
+		OpenFile: func(name string, _ int, _ os.FileMode) (*os.File, error) {
+			return openRegularBackupFile(root, name)
+		},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("open snapshot %s: %w", filepath.Base(path), err)
+		return nil, fmt.Errorf("open snapshot %s: %w", name, err)
 	}
 	return db, nil
 }
 
-func visitSnapshotUploads(snapshot string, visit func(name string) error) error {
-	db, err := openSnapshot(snapshot)
+func visitSnapshotUploads(root *os.Root, snapshot string, visit func(name string) error) error {
+	db, err := openSnapshot(root, snapshot)
 	if err != nil {
 		return err
 	}
@@ -82,21 +89,23 @@ func copySnapshotUploadsWithDedup(
 	if err := os.MkdirAll(destination, 0700); err != nil {
 		return err
 	}
-	return visitSnapshotUploads(snapshot, func(name string) error {
-		info, err := root.Lstat(name)
-		if err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() {
-			return fmt.Errorf("unsupported upload entry")
-		}
-		input, err := root.Open(name)
+	snapshotRoot, err := os.OpenRoot(filepath.Dir(snapshot))
+	if err != nil {
+		return err
+	}
+	defer snapshotRoot.Close()
+	return visitSnapshotUploads(snapshotRoot, filepath.Base(snapshot), func(name string) error {
+		input, err := openRegularBackupFile(root, name)
 		if err != nil {
 			return err
 		}
 		defer input.Close()
 		target := filepath.Join(destination, name)
 		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
+			return err
+		}
+		info, err := input.Stat()
+		if err != nil {
 			return err
 		}
 		manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
@@ -134,8 +143,17 @@ func tryHardLinkFromPreviousBackup(
 	if !ok || expectedDigest == "" {
 		return "", false
 	}
-	prevPath := filepath.Join(prevBackupDir, "uploads", name)
-	prevInfo, err := os.Lstat(prevPath)
+	root, err := os.OpenRoot(prevBackupDir)
+	if err != nil {
+		return "", false
+	}
+	defer root.Close()
+	previous, err := openRegularBackupFile(root, manifestKey)
+	if err != nil {
+		return "", false
+	}
+	defer previous.Close()
+	prevInfo, err := previous.Stat()
 	if err != nil || !prevInfo.Mode().IsRegular() || prevInfo.Size() != size {
 		return "", false
 	}
@@ -147,11 +165,12 @@ func tryHardLinkFromPreviousBackup(
 	if sourceDigest != expectedDigest {
 		return "", false
 	}
-	prevDigest, err := fileSHA256(prevPath)
+	prevDigest, err := hashBackupReader(context.Background(), previous)
 	if err != nil || prevDigest != sourceDigest {
 		return "", false
 	}
-	if err := os.Link(prevPath, target); err != nil {
+	// The digest of the resulting staged file is verified before publication.
+	if err := os.Link(filepath.Join(prevBackupDir, manifestKey), target); err != nil {
 		return "", false
 	}
 	return sourceDigest, true

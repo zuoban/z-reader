@@ -203,7 +203,7 @@ func refreshVoiceCacheContext(ctx context.Context, provider TTSProvider) ([]Voic
 	}
 
 	if len(voices) == 0 {
-		logger.Warn("Voice list provider returned empty list; skipping cache write", "provider", providerName)
+		logger.Warn("Voice list provider returned empty list; skipping cache write")
 		if len(previous) > 0 {
 			return previous, nil
 		}

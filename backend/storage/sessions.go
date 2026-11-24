@@ -22,6 +22,11 @@ func (db *DB) DeleteSession(token string) error {
 	return db.sessionDB.DeleteSession(token)
 }
 
+// DeleteSessions 在一次事务中撤销所有指定的 session。
+func (db *DB) DeleteSessions(tokens ...string) error {
+	return db.sessionDB.DeleteSessions(tokens...)
+}
+
 // CleanExpiredSessions 清理独立 session 数据库中过期的 session。
 func (db *DB) CleanExpiredSessions() error {
 	return db.sessionDB.CleanExpiredSessions()

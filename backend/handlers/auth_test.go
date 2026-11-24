@@ -73,6 +73,69 @@ func TestPersonalLibraryAccess(t *testing.T) {
 	}
 }
 
+func TestLogoutRevokesCookieAndBearerSessions(t *testing.T) {
+	const password = "library password"
+	db := openHandlerTestDB(t)
+	handler := NewAuthHandler(&config.Config{AccessPassword: password}, db)
+	router := gin.New()
+	router.POST("/login", handler.Login)
+	router.POST("/logout", handler.Logout)
+	router.GET("/verify", middleware.AuthRequired(db, password), handler.Verify)
+
+	login := func() *http.Cookie {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"password":"library password"}`))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		cookies := rec.Result().Cookies()
+		if rec.Code != http.StatusOK || len(cookies) != 1 {
+			t.Fatalf("login returned %d with %d cookies", rec.Code, len(cookies))
+		}
+		return cookies[0]
+	}
+	cookie, bearer, other := login(), login(), login()
+
+	logout := func() {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/logout", nil)
+		req.AddCookie(cookie)
+		req.Header.Set("Authorization", "Bearer "+bearer.Value)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		cookies := rec.Result().Cookies()
+		if rec.Code != http.StatusOK || len(cookies) != 1 || cookies[0].MaxAge >= 0 {
+			t.Fatalf("logout returned %d, expected an expired session cookie", rec.Code)
+		}
+		if rec.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("logout response must not be stored")
+		}
+	}
+	logout()
+	logout()
+
+	for _, tc := range []struct {
+		name string
+		add  func(*http.Request)
+		want int
+	}{
+		{"cookie", func(req *http.Request) { req.AddCookie(cookie) }, http.StatusUnauthorized},
+		{"bearer", func(req *http.Request) {
+			req.Header.Set("Authorization", "Bearer "+bearer.Value)
+		}, http.StatusUnauthorized},
+		{"other device", func(req *http.Request) { req.AddCookie(other) }, http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/verify", nil)
+			tc.add(req)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != tc.want {
+				t.Fatalf("verify returned %d, want %d", rec.Code, tc.want)
+			}
+		})
+	}
+}
+
 func TestAccessCookieSecureFlagRespectsTrustedProxiesAndTLS(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := openHandlerTestDB(t)

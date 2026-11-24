@@ -48,6 +48,44 @@ test.describe('reader happy path', () => {
     await expect(page).toHaveURL(/\/read\/book-1/);
     await waitForReaderReady(page);
     expect(mock.fileHits).toBeGreaterThan(0);
+    await expect.poll(() => page.locator('foliate-view').evaluate((element) => {
+      const view = element as HTMLElement & {
+        renderer?: { getContents(): Array<{ doc: Document }> };
+      };
+      const doc = view.renderer?.getContents()[0]?.doc;
+      return {
+        sandbox: doc?.defaultView?.frameElement?.getAttribute('sandbox'),
+        body: doc?.body?.textContent,
+      };
+    })).toEqual({
+      sandbox: 'allow-same-origin',
+      body: expect.stringContaining('Hello Z Reader.'),
+    });
+
+    const openedLink = await page.locator('foliate-view').evaluate(async (element) => {
+      const view = element as HTMLElement & {
+        renderer: { getContents(): Array<{ doc: Document }> };
+      };
+      const { doc } = view.renderer.getContents()[0];
+      const link = doc.createElement('a');
+      link.href = 'https://example.com/reading';
+      doc.body.append(link);
+      const calls: string[][] = [];
+      const originalOpen = window.open;
+      window.open = (...args) => {
+        calls.push(args.map(String));
+        return null;
+      };
+      try {
+        link.click();
+        await Promise.resolve();
+        return calls;
+      } finally {
+        window.open = originalOpen;
+        link.remove();
+      }
+    });
+    expect(openedLink).toEqual([['https://example.com/reading', '_blank', 'noopener,noreferrer']]);
 
     await ensureToolbarVisible(page);
     await expect(page.getByRole('button', { name: /目录/ }).first()).toBeVisible();
@@ -68,6 +106,46 @@ test.describe('reader happy path', () => {
     );
     await expect(page.locator('meta[data-z-reader-theme-color]'))
       .toHaveAttribute('content', shelfBackground);
+  });
+
+  test('isolates fixed-layout content and preserves standalone chapter selection', async ({ page }) => {
+    await page.route('**/api/auth/verify', (route) => route.fulfill({ status: 401 }));
+    await gotoStable(page, '/login');
+    const chapter = await page.evaluate(async () => {
+      const modulePath = '/foliate/fixed-layout.js';
+      const { FixedLayout } = await import(modulePath);
+      const renderer = new FixedLayout();
+      document.body.append(renderer);
+      const url = URL.createObjectURL(new Blob([
+        '<meta name="viewport" content="width=600,height=800"><p>Fixed layout chapter</p>',
+      ], { type: 'text/html' }));
+      try {
+        renderer.open({ rendition: { spread: 'none' }, sections: [{ load: () => url }] });
+        await renderer.goTo({ index: 0 });
+        const { doc } = renderer.getContents()[0];
+        return {
+          sandbox: doc.defaultView.frameElement.getAttribute('sandbox'),
+          body: doc.body.textContent,
+        };
+      } finally {
+        renderer.destroy();
+        renderer.remove();
+        URL.revokeObjectURL(url);
+      }
+    });
+    expect(chapter).toEqual({ sandbox: 'allow-same-origin', body: 'Fixed layout chapter' });
+
+    const chapterSelection = await page.evaluate(async () => {
+      const modulePath = '/foliate/ui/tree.js';
+      const { createTOCView } = await import(modulePath);
+      const selected: string[] = [];
+      const { element } = createTOCView([{ label: 'Chapter 1', href: 'chapter.xhtml' }],
+        (href: string) => selected.push(href));
+      const item = element.querySelector('a');
+      item.click();
+      return { selected, nativeHref: item.getAttribute('href') };
+    });
+    expect(chapterSelection).toEqual({ selected: ['chapter.xhtml'], nativeHref: '#' });
   });
 
   test('reconnects after opening the reader without a server connection', async ({ page }) => {

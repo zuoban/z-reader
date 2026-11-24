@@ -1,38 +1,16 @@
 import { API_BASE } from '@/lib/config';
 
-const MAX_MESSAGE_LENGTH = 1000;
-const MAX_STACK_LENGTH = 8000;
-const MAX_COMPONENT_LENGTH = 300;
+type ClientErrorSource = 'ErrorBoundary' | 'window.onerror' | 'unhandledrejection';
 
-interface ClientErrorPayload {
-  message: string;
-  stack?: string;
-  component?: string;
-  path?: string;
-}
-
-function truncate(value: string | undefined, maximum: number): string | undefined {
-  if (!value) return undefined;
-  return value.length > maximum ? value.slice(0, maximum) : value;
-}
-
-function currentPath(): string | undefined {
-  if (typeof window === 'undefined') return undefined;
-  return window.location.pathname;
-}
-
-// Reports are intentionally best-effort: rendering error handling must never
-// introduce another visible error or retain user content in the browser.
-export function reportClientError(error: unknown, component?: string) {
+// Reports carry coarse categories. Error details may include library content.
+export function reportClientError(error: unknown, component: ClientErrorSource) {
   if (typeof window === 'undefined') return;
 
-  const message = error instanceof Error ? error.message : String(error);
-  const payload: ClientErrorPayload = {
-    message: truncate(message, MAX_MESSAGE_LENGTH) || 'Unknown client error',
-    stack: truncate(error instanceof Error ? error.stack : undefined, MAX_STACK_LENGTH),
-    component: truncate(component, MAX_COMPONENT_LENGTH),
-    path: currentPath(),
-  };
+  const path = window.location.pathname;
+  let page: string | undefined;
+  if (path.startsWith('/read/')) page = '/read/:id';
+  else if (path === '/' || path === '/login' || path === '/shelf') page = path;
+  const payload = { message: 'Client error', component, path: page };
 
   if (process.env.NODE_ENV !== 'production') {
     console.error('[client-error]', error);

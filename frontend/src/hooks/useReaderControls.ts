@@ -77,7 +77,7 @@ export function useReaderControls({
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const boundDocsRef = useRef<Set<Document>>(new Set());
+  const boundDocsRef = useRef(new WeakSet<Document>());
   const prevRef = useRef(onPrev);
   const nextRef = useRef(onNext);
   const backRef = useRef(onBack);
@@ -272,16 +272,14 @@ export function useReaderControls({
     doc.addEventListener('keydown', keyboardHandler);
     doc.addEventListener('touchstart', handleTouchStart, { passive: true });
     doc.addEventListener('touchend', handleTouchEnd, { passive: true });
-    boundDocsRef.current.add(doc);
-  }, [keyboardHandler, handleTouchStart, handleTouchEnd]);
-
-  const cleanupBoundDocuments = useCallback(() => {
-    boundDocsRef.current.forEach((doc) => {
+    const boundDocs = boundDocsRef.current;
+    boundDocs.add(doc);
+    return () => {
       doc.removeEventListener('keydown', keyboardHandler);
       doc.removeEventListener('touchstart', handleTouchStart);
       doc.removeEventListener('touchend', handleTouchEnd);
-    });
-    boundDocsRef.current.clear();
+      boundDocs.delete(doc);
+    };
   }, [keyboardHandler, handleTouchStart, handleTouchEnd]);
 
   useEffect(() => {
@@ -293,10 +291,9 @@ export function useReaderControls({
       window.removeEventListener('keydown', keyboardHandler);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
-      cleanupBoundDocuments();
       stopTTSRef.current?.();
     };
-  }, [cleanupBoundDocuments, keyboardHandler, handleTouchStart, handleTouchEnd]);
+  }, [keyboardHandler, handleTouchStart, handleTouchEnd]);
 
   return {
     isTouchReader,
@@ -304,6 +301,5 @@ export function useReaderControls({
     isFullscreen,
     toggleFullscreen,
     bindReaderDocument,
-    cleanupBoundDocuments,
   };
 }

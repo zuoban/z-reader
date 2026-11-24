@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
@@ -69,8 +70,12 @@ func main() {
 		middleware.RequestID(),
 		middleware.RequestLogger(),
 		middleware.HTTPMetrics(),
-		gin.Recovery(),
-		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes),
+		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, _ any) {
+			logger.Error("Request panic", "request_id", logger.RequestID(c.Request.Context()),
+				"route", c.FullPath(), "stack", string(debug.Stack()))
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}),
+		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes, "/api/books", "/api/books/:id/cover"),
 	)
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		logger.Error("Failed to configure trusted proxies", "error", err)
@@ -215,12 +220,16 @@ func startBackupWorker(ctx context.Context, db *storage.DB, cfg *config.Config) 
 			UploadDir:     cfg.UploadDir,
 			RetentionDays: cfg.BackupRetentionDays,
 		})
-		telemetry.ObserveBackup(time.Since(startedAt), err)
-		if err != nil {
+		if path == "" {
+			telemetry.ObserveBackup(time.Since(startedAt), err)
 			logger.Error("Failed to create verified backup", "error", err)
 			return
 		}
+		telemetry.ObserveBackup(time.Since(startedAt), nil)
 		logger.Info("Verified backup created", "path", path)
+		if err != nil {
+			logger.Warn("Backup retention cleanup failed", "error", err)
+		}
 	}
 
 	initialDelay := time.Duration(0)

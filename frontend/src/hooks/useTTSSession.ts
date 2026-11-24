@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import {
   TTS_SESSION_TTL,
   getTTSSessionKey,
   type TTSSessionSnapshot,
 } from '@/lib/tts-helpers';
+import { accessStorageKey, getAccessGeneration } from '@/lib/library-access';
 import type { TTSMark, TTSSettings } from '@/lib/tts';
 import type { FoliateView } from '@/lib/types';
 
@@ -22,6 +23,9 @@ export function useTTSSession({
   currentMarkRef,
   getSettings,
 }: UseTTSSessionOptions) {
+  const [generation] = useState(getAccessGeneration);
+  const legacyKey = getTTSSessionKey(bookId);
+  const key = legacyKey ? accessStorageKey(legacyKey, generation) : null;
   const pendingRef = useRef<{ key: string; snapshot: TTSSessionSnapshot } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastWriteRef = useRef<number | null>(null);
@@ -30,20 +34,17 @@ export function useTTSSession({
     timerRef.current = null;
     const pending = pendingRef.current;
     pendingRef.current = null;
-    if (!pending) return;
+    if (!pending || generation !== getAccessGeneration()) return;
     try {
       localStorage.setItem(pending.key, JSON.stringify(pending.snapshot));
       lastWriteRef.current = Date.now();
     } catch {
       // Storage availability must never interrupt narration.
     }
-  }, []);
+  }, [generation]);
   useEffect(() => () => writePending(), [bookId, writePending]);
   const loadTTSSession = useCallback((): TTSSessionSnapshot | null => {
-    if (typeof window === 'undefined') return null;
-
-    const key = getTTSSessionKey(bookId);
-    if (!key) return null;
+    if (!key || generation !== getAccessGeneration()) return null;
 
     try {
       const saved = localStorage.getItem(key);
@@ -58,12 +59,10 @@ export function useTTSSession({
     } catch {
       return null;
     }
-  }, [bookId]);
+  }, [generation, key]);
 
   const saveTTSSession = useCallback((flush = false) => {
-    if (typeof window === 'undefined') return;
-
-    const key = getTTSSessionKey(bookId);
+    if (generation !== getAccessGeneration()) return;
     const cfi = currentMarkRef.current?.cfi || viewRef.current?.lastLocation?.cfi;
     if (!key || !cfi) return;
 
@@ -83,14 +82,12 @@ export function useTTSSession({
     } else if (timerRef.current === null) {
       timerRef.current = setTimeout(writePending, 2000 - elapsed);
     }
-  }, [bookId, currentMarkRef, getSettings, viewRef, writePending]);
+  }, [currentMarkRef, generation, getSettings, key, viewRef, writePending]);
 
   const flushTTSSession = useCallback(() => saveTTSSession(true), [saveTTSSession]);
 
   const clearTTSSession = useCallback(() => {
-    if (typeof window === 'undefined') return;
-
-    const key = getTTSSessionKey(bookId);
+    if (generation !== getAccessGeneration()) return;
     if (!key) return;
     if (timerRef.current !== null) clearTimeout(timerRef.current);
     timerRef.current = null;
@@ -102,7 +99,7 @@ export function useTTSSession({
     } catch {
       // Ignore storage cleanup failures.
     }
-  }, [bookId]);
+  }, [generation, key]);
 
   return {
     loadTTSSession,

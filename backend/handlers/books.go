@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -337,17 +338,22 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	}
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 
-	filePath, err := resolveUploadPath(h.cfg.UploadDir, book.Filename)
+	file, info, err := openUploadFile(h.cfg.UploadDir, book.Filename)
+	if os.IsNotExist(err) {
+		response.NotFound(c, "文件不存在")
+		return
+	}
 	if err != nil {
 		response.Forbidden(c, "文件访问被拒绝")
 		return
 	}
-	setPrivateCache(c, bookFileCacheMaxAge)
+	defer file.Close()
+	h.setBookCache(c, bookFileCacheMaxAge)
 	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
 		return
 	}
 	c.Header("Accept-Ranges", "bytes")
-	c.File(filePath)
+	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
 }
 
 type optionalString struct {
@@ -416,19 +422,18 @@ func (h *BooksHandler) removePublishedUploadFiles(names ...string) {
 }
 
 func (h *BooksHandler) removeUploadFiles(names ...string) {
-	for _, name := range names {
-		if path, err := resolveUploadPath(h.cfg.UploadDir, name); err == nil {
-			removeFileIfExists(path)
-		}
+	root, err := os.OpenRoot(h.cfg.UploadDir)
+	if err != nil {
+		logger.Warn("Failed to open upload directory during cleanup", slog.Any("error", err))
+		return
 	}
-}
-
-func removeFileIfExists(path string) {
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		logger.Warn("Failed to remove file during cleanup",
-			slog.String("path", path),
-			slog.Any("error", err),
-		)
+	defer root.Close()
+	for _, name := range names {
+		if validUploadName(name) {
+			if err := root.Remove(filepath.Clean(name)); err != nil && !os.IsNotExist(err) {
+				logger.Warn("Failed to remove upload during cleanup", slog.Any("error", err))
+			}
+		}
 	}
 }
 
@@ -436,14 +441,19 @@ func limitUploadBody(c *gin.Context, maxBytes int64) {
 	if maxBytes <= 0 || c.Request == nil || c.Request.Body == nil {
 		return
 	}
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes+multipartOverhead)
+	limit := min(maxBytes, math.MaxInt64-multipartOverhead) + multipartOverhead
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
 }
 
 func isRequestBodyTooLarge(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "request body too large")
 }
 
-func setPrivateCache(c *gin.Context, maxAgeSeconds int) {
+func (h *BooksHandler) setBookCache(c *gin.Context, maxAgeSeconds int) {
+	if h.cfg.AccessPassword != "" {
+		c.Header("Cache-Control", "private, no-cache")
+		return
+	}
 	c.Header("Cache-Control", fmt.Sprintf("private, max-age=%d", maxAgeSeconds))
 }
 
@@ -463,26 +473,35 @@ func hashBytes(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func resolveUploadPath(uploadDir string, name string) (string, error) {
-	if strings.TrimSpace(name) == "" {
-		return "", fmt.Errorf("empty upload path")
-	}
+func validUploadName(name string) bool {
+	return strings.TrimSpace(name) != "" && filepath.IsLocal(name) && filepath.Clean(name) != "."
+}
 
-	uploadDirAbs, err := filepath.Abs(uploadDir)
+func openUploadFile(uploadDir, name string) (*os.File, os.FileInfo, error) {
+	if !validUploadName(name) {
+		return nil, nil, fmt.Errorf("invalid upload path")
+	}
+	root, err := os.OpenRoot(uploadDir)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
-	resolved, err := filepath.Abs(filepath.Join(uploadDirAbs, name))
+	defer root.Close()
+	name = filepath.Clean(name)
+	info, err := root.Lstat(name)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
-
-	rel, err := filepath.Rel(uploadDirAbs, resolved)
+	if !info.Mode().IsRegular() {
+		return nil, nil, fmt.Errorf("upload is not a regular file")
+	}
+	file, err := root.Open(name)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
-	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
-		return "", fmt.Errorf("upload path escapes base directory")
+	current, err := file.Stat()
+	if err != nil || !os.SameFile(info, current) {
+		file.Close()
+		return nil, nil, fmt.Errorf("upload changed while opening file")
 	}
-	return resolved, nil
+	return file, current, nil
 }

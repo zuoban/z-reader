@@ -18,8 +18,9 @@ export function ErrorSuppressor() {
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
-      if (event.reason?.message?.includes('documentElement') || 
-          event.reason?.message?.includes('this.document')) {
+      const message = event.reason?.message;
+      if (typeof message === 'string' &&
+          (message.includes('documentElement') || message.includes('this.document'))) {
         event.preventDefault();
         return;
       }

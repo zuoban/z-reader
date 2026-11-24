@@ -102,7 +102,7 @@ export default function ShelfPage() {
     isUpdatingManyCategories,
     filteredBooks,
     bookCounts,
-    loadBooks,
+    refreshBooks,
     loadMoreBooks,
     handleUpload,
     handleDelete,
@@ -178,16 +178,15 @@ export default function ShelfPage() {
     }
   }
 
-  const selectedExistingIds = useMemo(() => {
-    const existingIds = new Set(books.map((book) => book.id));
-    return Array.from(selectedBookIds).filter((id) => existingIds.has(id));
-  }, [books, selectedBookIds]);
-
-  const selectedCount = selectedExistingIds.length;
   const filteredBookIds = useMemo(
     () => filteredBooks.map((book) => book.id),
     [filteredBooks]
   );
+  const selectedExistingIds = useMemo(
+    () => filteredBookIds.filter((id) => selectedBookIds.has(id)),
+    [filteredBookIds, selectedBookIds]
+  );
+  const selectedCount = selectedExistingIds.length;
   const allVisibleSelected =
     filteredBookIds.length > 0 && filteredBookIds.every((id) => selectedBookIds.has(id));
 
@@ -459,7 +458,7 @@ export default function ShelfPage() {
               description="请确认服务器可用后重新加载。"
               detail={`错误信息：${loadError}`}
               action={(
-                <Button type="button" variant="filled" className="min-h-11 rounded-lg" onClick={() => void loadBooks()}>
+                <Button type="button" variant="filled" className="min-h-11 rounded-lg" onClick={refreshBooks}>
                   重新加载
                 </Button>
               )}
@@ -694,7 +693,7 @@ export default function ShelfPage() {
                         bookCounts={bookCounts}
                         onRead={() => router.push(`/read/${book.id}`)}
                         onDelete={() => handleDelete(book.id)}
-                        onUpdate={loadBooks}
+                        onUpdate={refreshBooks}
                         isDeleting={deletingId === book.id}
                         formatSize={formatFileSize}
                         progressPercentage={progressByBookId[book.id] ?? null}
@@ -753,7 +752,7 @@ export default function ShelfPage() {
               )}
             </section>
 
-            {selectionMode && !isLoadingBooks && filteredBooks.length > 0 && (
+            {selectionMode && !isLoadingBooks && !isSearching && filteredBooks.length > 0 && (
               <div
                 className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:inset-x-8 lg:left-auto lg:right-10 lg:max-w-[42rem]"
               >

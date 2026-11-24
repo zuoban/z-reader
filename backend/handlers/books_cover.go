@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -56,24 +57,11 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	}
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
 	if thumbnailRequested && book.CoverThumbPath != "" {
-		thumbnailPath, err := resolveUploadPath(h.cfg.UploadDir, book.CoverThumbPath)
-		if err != nil {
-			response.Forbidden(c, "封面访问被拒绝")
-			return
-		}
-		setPrivateCache(c, bookCoverCacheMaxAge)
-		c.File(thumbnailPath)
+		h.serveCover(c, book.CoverThumbPath)
 		return
 	}
-
 	if book.CoverPath != "" {
-		coverPath, err := resolveUploadPath(h.cfg.UploadDir, book.CoverPath)
-		if err != nil {
-			response.Forbidden(c, "封面访问被拒绝")
-			return
-		}
-		setPrivateCache(c, bookCoverCacheMaxAge)
-		c.File(coverPath)
+		h.serveCover(c, book.CoverPath)
 		return
 	}
 
@@ -82,14 +70,19 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		return
 	}
 
-	bookPath, err := resolveUploadPath(h.cfg.UploadDir, book.Filename)
+	file, _, err := openUploadFile(h.cfg.UploadDir, book.Filename)
+	if os.IsNotExist(err) {
+		response.NotFound(c, "封面不存在")
+		return
+	}
 	if err != nil {
 		response.Forbidden(c, "文件访问被拒绝")
 		return
 	}
 
 	// Try to extract and cache the cover to disk on first request
-	coverData, contentType, err := extractEPUBCover(bookPath)
+	defer file.Close()
+	coverData, contentType, err := extractEPUBCover(file)
 	if err != nil {
 		response.NotFound(c, "封面不存在")
 		return
@@ -98,12 +91,27 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	// Cache the extracted cover to disk for future requests
 	go h.cacheExtractedCover(book, coverData, contentType)
 
-	setPrivateCache(c, bookCoverCacheMaxAge)
+	h.setBookCache(c, bookCoverCacheMaxAge)
 	if writeNotModifiedIfETagMatches(c, hashBytes(coverData)) {
 		return
 	}
 	c.Header("Content-Type", contentType)
 	c.Data(http.StatusOK, contentType, coverData)
+}
+
+func (h *BooksHandler) serveCover(c *gin.Context, name string) {
+	file, info, err := openUploadFile(h.cfg.UploadDir, name)
+	if os.IsNotExist(err) {
+		response.NotFound(c, "封面不存在")
+		return
+	}
+	if err != nil {
+		response.Forbidden(c, "封面访问被拒绝")
+		return
+	}
+	defer file.Close()
+	h.setBookCache(c, bookCoverCacheMaxAge)
+	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
 }
 
 func (h *BooksHandler) UploadCover(c *gin.Context) {
@@ -309,37 +317,33 @@ func (h *BooksHandler) prepareCover(bookID, ext string, source io.Reader) (bookC
 // Other requests can safely remove replaced files without reusing those paths.
 func (h *BooksHandler) writeCoverFile(bookID, suffix string, write func(io.Writer) error) (string, error) {
 	filename := bookID + "." + uuid.NewString() + ".cover" + suffix
-	path, err := resolveUploadPath(h.cfg.UploadDir, filename)
+	if !validUploadName(filename) {
+		return "", fmt.Errorf("invalid cover path")
+	}
+	root, err := os.OpenRoot(h.cfg.UploadDir)
 	if err != nil {
 		return "", err
 	}
-	target, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	defer root.Close()
+	target, err := root.OpenFile(filepath.Clean(filename), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		return "", err
 	}
 	writeErr := write(target)
 	closeErr := target.Close()
 	if writeErr != nil || closeErr != nil {
-		removeFileIfExists(path)
-		if writeErr != nil {
-			return "", writeErr
-		}
-		return "", closeErr
+		return "", errors.Join(writeErr, closeErr, root.Remove(filepath.Clean(filename)))
 	}
 	return filename, nil
 }
 
 func (h *BooksHandler) createCoverThumbnail(bookID, coverFilename string) (string, error) {
-	coverPath, err := resolveUploadPath(h.cfg.UploadDir, coverFilename)
+	source, _, err := openUploadFile(h.cfg.UploadDir, coverFilename)
 	if err != nil {
 		return "", err
 	}
-	source, err := os.Open(coverPath)
-	if err != nil {
-		return "", err
-	}
+	defer source.Close()
 	config, _, err := image.DecodeConfig(source)
-	source.Close()
 	if err != nil {
 		// WebP is intentionally served as-is until a thumbnail encoder is
 		// configured; a failed optimization must not reject a valid cover.
@@ -352,11 +356,9 @@ func (h *BooksHandler) createCoverThumbnail(bookID, coverFilename string) (strin
 		return "", nil
 	}
 
-	source, err = os.Open(coverPath)
-	if err != nil {
+	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
-	defer source.Close()
 	decoded, _, err := image.Decode(source)
 	if err != nil {
 		return "", nil

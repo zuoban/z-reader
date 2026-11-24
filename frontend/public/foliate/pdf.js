@@ -1,4 +1,4 @@
-const pdfjsPath = path => new URL(`vendor/pdfjs/${path}`, import.meta.url).toString()
+const pdfjsPath = path => new URL(/* @vite-ignore */ `vendor/pdfjs/${path}`, import.meta.url).toString()
 
 import './vendor/pdfjs/pdf.mjs'
 const pdfjsLib = globalThis.pdfjsLib
@@ -147,14 +147,32 @@ export const makePDF = async file => {
     book.toc = outline?.map(makeTOCItem)
 
     const cache = new Map()
+    const pageURLs = new Set()
+    let destroyed = false
+    let destroyPromise
+    const checkOpen = () => {
+        if (destroyed) throw new DOMException('PDF is closed', 'AbortError')
+    }
     book.sections = Array.from({ length: pdf.numPages }).map((_, i) => ({
         id: i,
         load: async () => {
-            const cached = cache.get(i)
-            if (cached) return cached
-            const url = await renderPage(await pdf.getPage(i + 1))
-            cache.set(i, url)
-            return url
+            checkOpen()
+            if (!cache.has(i)) {
+                const loading = (async () => {
+                    const page = await pdf.getPage(i + 1)
+                    checkOpen()
+                    const result = await renderPage(page)
+                    if (destroyed) URL.revokeObjectURL(result.src)
+                    checkOpen()
+                    pageURLs.add(result.src)
+                    return result
+                })().catch(error => {
+                    cache.delete(i)
+                    throw error
+                })
+                cache.set(i, loading)
+            }
+            return cache.get(i)
         },
         size: 1000,
     }))
@@ -175,6 +193,14 @@ export const makePDF = async file => {
     }
     book.getTOCFragment = doc => doc.documentElement
     book.getCover = async () => renderPage(await pdf.getPage(1), true)
-    book.destroy = () => pdf.destroy()
+    book.destroy = () => {
+        if (destroyed) return destroyPromise
+        destroyed = true
+        for (const src of pageURLs) URL.revokeObjectURL(src)
+        pageURLs.clear()
+        cache.clear()
+        destroyPromise = pdf.destroy()
+        return destroyPromise
+    }
     return book
 }

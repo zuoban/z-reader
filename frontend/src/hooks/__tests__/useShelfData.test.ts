@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
+import { deferred } from '@/test/deferred';
 import { useShelfData } from '@/hooks/useShelfData';
 import { api } from '@/lib/api';
 import type { Book } from '@/lib/api';
@@ -201,7 +202,7 @@ describe('useShelfData', () => {
   it('ignores a late failure from a previous search and drops its pagination cursor', async () => {
     vi.mocked(api.listBooks).mockResolvedValue([]);
     vi.mocked(api.listProgress).mockResolvedValue([]);
-    const late = Promise.withResolvers<Awaited<ReturnType<typeof api.searchBooks>>>();
+    const late = deferred<Awaited<ReturnType<typeof api.searchBooks>>>();
     vi.mocked(api.searchBooks)
       .mockResolvedValueOnce({ books: [mockBook({ title: 'First' })], next_cursor: 'first-cursor' })
       .mockReturnValueOnce(late.promise)
@@ -421,8 +422,69 @@ describe('useShelfData', () => {
       await result.current.handleUpload(fakeEvent);
     });
 
-    expect(result.current.books).toHaveLength(1);
+    await waitFor(() => expect(result.current.books).toHaveLength(1));
     expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
+  });
+
+  it('refreshes the current category, sort and search after a pending upload', async () => {
+    const oldBook = mockBook({ id: 'old-book', title: '新书一', category: '科幻' });
+    const newBook = mockBook({ id: 'new-book', title: '新书二', category: '科幻' });
+    let resolveUpload!: (book: Book) => void;
+    let uploaded = false;
+    vi.mocked(api.uploadBook).mockReturnValue(new Promise((resolve) => {
+      resolveUpload = resolve;
+    }));
+    vi.mocked(api.listBooksPage).mockImplementation(async (_cursor, _limit, sort, options) => ({
+      books: sort === 'title' && options?.category === '科幻' && uploaded
+        ? [newBook, oldBook]
+        : [oldBook],
+    }));
+    vi.mocked(api.getBookLibrarySummary).mockResolvedValue({
+      total: 1, uncategorized: 0, categories: { 科幻: 1 },
+    });
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    let resolveOldSearch!: (page: Awaited<ReturnType<typeof api.searchBooks>>) => void;
+    vi.mocked(api.searchBooks)
+      .mockReturnValueOnce(new Promise((resolve) => { resolveOldSearch = resolve; }))
+      .mockResolvedValue({ books: [newBook] });
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toEqual([oldBook]));
+    const fakeFile = new File(['test'], 'test.epub', { type: 'application/epub+zip' });
+    let uploadPromise!: Promise<void>;
+    act(() => { uploadPromise = result.current.uploadFile(fakeFile); });
+
+    act(() => {
+      result.current.setSelectedCategoryId('科幻');
+      result.current.setSortBy('title');
+      result.current.setSearchQuery('新书');
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(result.current.isSearching).toBe(true);
+    expect(api.searchBooks).toHaveBeenCalledTimes(1);
+    const previousSearchSignal = vi.mocked(api.searchBooks).mock.calls[0][4]?.signal;
+
+    await act(async () => {
+      uploaded = true;
+      resolveUpload(newBook);
+      await uploadPromise;
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(api.listBooksPage).toHaveBeenCalledTimes(3);
+    expect(api.listBooksPage).toHaveBeenLastCalledWith(
+      undefined, 50, 'title', expect.objectContaining({ category: '科幻' }),
+    );
+    expect(api.searchBooks).toHaveBeenCalledTimes(2);
+    expect(api.searchBooks).toHaveBeenLastCalledWith(
+      '新书', undefined, 50, 'title', expect.objectContaining({ category: '科幻' }),
+    );
+    expect(previousSearchSignal?.aborted).toBe(true);
+    expect(result.current.books).toEqual([newBook, oldBook]);
+    expect(result.current.isSearching).toBe(false);
+
+    await act(async () => { resolveOldSearch({ books: [oldBook], next_cursor: 'stale' }); });
+    expect(result.current.filteredBooks).toEqual([newBook]);
+    expect(result.current.hasMoreBooks).toBe(false);
   });
 
   it('does not reparse uploaded books or upload covers from the client', async () => {
@@ -472,7 +534,7 @@ describe('useShelfData', () => {
     });
 
     expect(api.uploadBook).toHaveBeenCalledTimes(2);
-    expect(result.current.books).toHaveLength(2);
+    await waitFor(() => expect(result.current.books).toHaveLength(2));
   });
 
   it('handles upload error', async () => {
@@ -901,16 +963,10 @@ describe('useShelfData', () => {
       total: 1, uncategorized: 0, categories: { 奇幻: 1 },
     });
 
-    await act(async () => {
-      await result.current.loadBooks();
-    });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
-    });
+    act(() => result.current.refreshBooks());
 
     // Category should be cleared since 科幻 no longer exists
-    expect(result.current.selectedCategoryId).toBeNull();
+    await waitFor(() => expect(result.current.selectedCategoryId).toBeNull());
   });
 
   it('does not erase search progress when the slower background page arrives', async () => {

@@ -205,6 +205,28 @@ func TestListProgressFiltersByUser(t *testing.T) {
 	}
 }
 
+func TestProgressTimeIndexKeyPreservesStoredFormat(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		time   time.Time
+		bookID string
+		want   string
+	}{
+		{"before epoch", time.Unix(0, -1), "book-a", "user-a\x000000000000000000000\x00book-a"},
+		{"epoch", time.Unix(0, 0), "book-a", "user-a\x000000000000000000000\x00book-a"},
+		{"padded", time.Unix(0, 42), "book-a", "user-a\x000000000000000000042\x00book-a"},
+		{"seek at update", time.Unix(1_700_000_000, 123), "", "user-a\x001700000000000000123\x00"},
+		{"max nanoseconds", time.Unix(0, 1<<63-1), "book-a", "user-a\x009223372036854775807\x00book-a"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			progress := models.Progress{UserID: "user-a", BookID: tc.bookID, UpdatedAt: tc.time}
+			if got := string(progressTimeIndexKey(&progress)); got != tc.want {
+				t.Fatalf("key = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestListProgressForBooksAndSince(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

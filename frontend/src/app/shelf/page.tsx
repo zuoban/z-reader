@@ -69,6 +69,7 @@ export default function ShelfPage() {
   const router = useRouter();
   const [isDraggingBookFile, setIsDraggingBookFile] = useState(false);
   const dragDepthRef = useRef(0);
+  const categoryStripRef = useRef<HTMLDivElement>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(() => new Set());
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
@@ -142,6 +143,31 @@ export default function ShelfPage() {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, isOffline, router]);
+
+  const showCategoryFilters = !isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty;
+
+  useEffect(() => {
+    const strip = categoryStripRef.current;
+    if (!showCategoryFilters || !strip) return;
+
+    const updateOverflowHint = () => {
+      strip.parentElement?.toggleAttribute(
+        'data-more-categories',
+        strip.scrollWidth - strip.clientWidth - strip.scrollLeft > 1
+      );
+    };
+
+    const resizeObserver = new ResizeObserver(updateOverflowHint);
+    resizeObserver.observe(strip);
+    for (const chip of strip.children) resizeObserver.observe(chip);
+    strip.addEventListener('scroll', updateOverflowHint, { passive: true });
+    updateOverflowHint();
+
+    return () => {
+      resizeObserver.disconnect();
+      strip.removeEventListener('scroll', updateOverflowHint);
+    };
+  }, [showCategoryFilters, categories, bookCounts]);
 
   async function handleRetryConnection() {
     if (isRetryingAuth) return;
@@ -320,10 +346,10 @@ export default function ShelfPage() {
       contentClassName="flex min-h-dvh w-full flex-col"
     >
       <header className="shelf-header sticky top-0 z-50 w-full border-b border-border">
-        <div className="app-container flex h-14 items-center justify-between">
-          <BrandLogo compact />
+        <div className="app-container flex h-16 items-center justify-between gap-3">
+          <BrandLogo compact className="shrink-0 whitespace-nowrap" />
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {!isOffline && (
               <FileUploadAction
                 accept={SUPPORTED_FORMATS_ACCEPT}
@@ -332,14 +358,16 @@ export default function ShelfPage() {
                 title="上传书籍"
                 multiple
                 buttonSize="sm"
-                buttonClassName="h-11 w-11 min-h-0 min-w-0 px-0 sm:h-9 sm:w-auto sm:px-3.5"
+                buttonClassName="h-11 min-w-11 rounded-lg px-3 text-sm font-medium tabular-nums dark:aria-[disabled=false]:text-primary-foreground sm:h-9 sm:px-4"
               >
                 {isUploading ? (
                   <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
                 ) : (
                   <Upload className="h-4 w-4" strokeWidth={1.5} />
                 )}
-                <span className="hidden sm:inline">{uploadStatusLabel ?? '上传'}</span>
+                <span className="truncate" role={isUploading ? 'status' : undefined}>
+                  {uploadStatusLabel ?? '上传'}
+                </span>
               </FileUploadAction>
             )}
             {!isOffline && passwordRequired ? (
@@ -429,9 +457,9 @@ export default function ShelfPage() {
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
-        <div className="mb-4 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="font-heading text-2xl font-medium leading-tight tracking-[-0.02em] text-foreground">
+            <h1 className="font-heading text-2xl font-medium leading-tight tracking-[-0.02em] text-foreground sm:text-[28px]">
               我的书库
             </h1>
             {!isOffline && !isLoadingBooks && !loadError && (
@@ -441,9 +469,9 @@ export default function ShelfPage() {
             )}
           </div>
 
-          {!isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty && (
-            <div className="flex items-center gap-2">
-              <div className="min-w-0 flex-1 sm:w-64 lg:w-72">
+          {showCategoryFilters && (
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <div className="min-w-0 flex-1 sm:w-56 lg:w-72">
                 <TextInput
                   type="search"
                   value={searchQuery}
@@ -471,16 +499,13 @@ export default function ShelfPage() {
                   rightSectionPointerEvents="all"
                   rightSectionWidth={36}
                   classNames={{
-                    input: 'shelf-search app-field pl-9 pr-9 sm:text-[13px]',
+                    input: 'shelf-search app-field pl-9 pr-9 sm:h-10 sm:text-sm',
                   }}
                 />
               </div>
 
               <div className="w-11 shrink-0 sm:w-36">
-                <SortSelector
-                  value={sortBy}
-                  onChange={setSortBy}
-                />
+                <SortSelector value={sortBy} onChange={setSortBy} className="sm:h-10" />
               </div>
             </div>
           )}
@@ -545,7 +570,7 @@ export default function ShelfPage() {
                   title="上传书籍"
                   multiple
                   wrapperClassName="w-full sm:w-auto"
-                  buttonClassName="h-11 w-full sm:h-11 sm:w-auto"
+                  buttonClassName="h-11 w-full dark:aria-[disabled=false]:text-primary-foreground sm:h-11 sm:w-auto"
                 >
                   {isUploading ? (
                     <>
@@ -579,46 +604,49 @@ export default function ShelfPage() {
           </div>
         ) : (
           <div className="flex min-w-0 flex-col gap-3">
-            {!isLoadingBooks && !isLibraryEmpty && (
-              <div className="relative flex min-w-0 items-center justify-between gap-3">
-                <div
-                  role="group"
-                  aria-label="书籍分类筛选"
-                  className="scrollbar-none flex min-w-0 flex-1 snap-x items-center gap-1 overflow-x-auto sm:flex-wrap sm:overflow-visible"
-                >
-                  <button
-                    type="button"
-                    onClick={() => changeSelectedCategory(null)}
-                    aria-pressed={selectedCategoryId === null}
-                    data-active={selectedCategoryId === null}
-                    className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            {showCategoryFilters && (
+              <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
+                <div className="shelf-category-strip relative min-w-0 flex-1">
+                  <div
+                    ref={categoryStripRef}
+                    role="group"
+                    aria-label="书籍分类筛选"
+                    className="scrollbar-none flex min-w-0 snap-x items-center gap-1 overflow-x-auto sm:flex-wrap sm:overflow-visible"
                   >
-                    全部
-                  </button>
-                  {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
                     <button
                       type="button"
-                      onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
-                      aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                      data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                      onClick={() => changeSelectedCategory(null)}
+                      aria-pressed={selectedCategoryId === null}
+                      data-active={selectedCategoryId === null}
                       className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
-                      未分类
+                      全部
                     </button>
-                  )}
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => changeSelectedCategory(category)}
-                      aria-pressed={selectedCategoryId === category}
-                      data-active={selectedCategoryId === category}
-                      className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:max-w-[10rem]"
-                      title={category}
-                    >
-                      {category}
-                    </button>
-                  ))}
+                    {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => changeSelectedCategory(UNCATEGORIZED_FILTER_ID)}
+                        aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                        data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
+                        className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                      >
+                        未分类
+                      </button>
+                    )}
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => changeSelectedCategory(category)}
+                        aria-pressed={selectedCategoryId === category}
+                        data-active={selectedCategoryId === category}
+                        className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:max-w-[10rem]"
+                        title={category}
+                      >
+                        <span className="truncate">{category}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">
                   <Button
@@ -649,7 +677,7 @@ export default function ShelfPage() {
                     {selectionMode ? '取消选择' : '批量操作'}
                   </Button>
                 </div>
-                <div className="shrink-0 self-start sm:hidden">
+                <div className="shrink-0 sm:hidden">
                   <Menu position="bottom-end" offset={6} width={176} radius="md" shadow="md">
                     <Menu.Target>
                       <ActionIcon

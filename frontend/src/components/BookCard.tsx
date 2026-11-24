@@ -118,7 +118,6 @@ interface BookCoverFaceProps {
   titleLabel: string;
   bookId: string;
   formatLabel: string;
-  categoryLabel: string;
   priority?: boolean;
 }
 
@@ -133,7 +132,6 @@ function BookCoverFace({
   titleLabel,
   bookId,
   formatLabel,
-  categoryLabel,
   priority = false,
 }: BookCoverFaceProps) {
   if (coverUrl) {
@@ -165,14 +163,12 @@ function BookCoverFace({
       className="book-cover-fallback relative grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] items-center gap-1.5 py-4 pl-[calc(11%+6px)] pr-[11%] text-center"
       style={{ '--cover-color': coverColor } as CSSProperties}
     >
-      <span className="truncate text-[10px] font-medium tracking-[0.14em] opacity-70">
-        {formatLabel}
-      </span>
+      <span className="mx-auto h-px w-5 bg-current/35" />
       <p className="line-clamp-4 min-h-0 max-h-full [overflow-wrap:anywhere] text-balance font-heading text-base font-semibold leading-[1.38] sm:text-[18px]">
         {titleLabel}
       </p>
-      <span className="mx-auto max-w-full truncate border-t border-current/20 px-2.5 pt-1.5 text-[11px] leading-4 opacity-80">
-        {categoryLabel || '未分类'}
+      <span className="mx-auto max-w-full truncate border-t border-current/20 px-2 pt-1 text-[11px] leading-4 opacity-80">
+        {formatLabel}
       </span>
     </div>
   );
@@ -206,19 +202,18 @@ export const BookCard = memo(function BookCard({
   const authorLabel = book.author?.trim() || '未知作者';
   const sizeLabel = book.size ? formatSize(book.size) : '';
   const titleLabel = book.title?.trim() || '未命名';
-  const normalizedProgressValue = progressPercentage !== null
-    ? Math.max(0, Math.min(progressPercentage, 100))
-    : null;
-  const progressValue = normalizedProgressValue ?? 0;
+  const progressValue = Math.max(0, Math.min(progressPercentage ?? 0, 100));
   const progressDisplay = progressValue > 0 && progressValue < 1
-    ? '<1'
-    : Math.round(progressValue).toString();
+    ? '<1%'
+    : `${Math.min(Math.round(progressValue), progressValue === 100 ? 100 : 99)}%`;
   const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
-  const progressMetaLabel = progressValue > 0
-    ? (book.last_read_at ? `${progressDisplay}% · ${lastReadLabel}` : `已读 ${progressDisplay}%`)
-    : lastReadLabel;
+  const progressStatus = progressValue === 100
+    ? '已读完'
+    : book.last_read_at ? lastReadLabel : progressValue > 0 ? '' : '未读';
+  const progressMetaLabel = [progressStatus, progressValue > 0 && progressDisplay]
+    .filter(Boolean).join(' · ');
   const uploadedAtLabel = formatDateTime(book.created_at);
-  const categoryLabel = book.category?.trim() ?? '';
+  const categoryLabel = book.category?.trim() || '未分类';
   const readActionLabel = progressValue > 0 ? '继续阅读' : '开始阅读';
 
   function activateCard() {
@@ -246,7 +241,6 @@ export const BookCard = memo(function BookCard({
               titleLabel={titleLabel}
               bookId={book.id}
               formatLabel={formatLabel}
-              categoryLabel={categoryLabel}
               priority={index < SHELF_COVER_PRIORITY_COUNT}
             />
             {selectionMode && (
@@ -255,7 +249,7 @@ export const BookCard = memo(function BookCard({
               </div>
             )}
             {book.processing_state === 'pending' && (
-              <span className="absolute bottom-2 left-2.5 z-10 rounded-md border border-border/60 bg-card/95 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm">
+              <span className="absolute left-2 top-2 z-10 max-w-[calc(100%-3rem)] truncate rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground">
                 正在生成封面
               </span>
             )}
@@ -264,7 +258,7 @@ export const BookCard = memo(function BookCard({
           <div className="shelf-book-details">
             <div className="min-w-0">
               <h2
-                className="line-clamp-2 [overflow-wrap:anywhere] font-heading text-[14px] font-semibold leading-[1.38] tracking-[-0.01em] text-foreground transition-colors"
+                className="line-clamp-2 [overflow-wrap:anywhere] font-heading text-base font-semibold leading-5 text-foreground transition-colors"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
@@ -274,43 +268,25 @@ export const BookCard = memo(function BookCard({
               </p>
             </div>
 
-            <div className="min-w-0 space-y-1.5">
-              <div
-                className={cn('h-1 flex items-center', progressValue <= 0 && 'invisible')}
-                aria-hidden="true"
-              >
-                <div className="h-[3px] w-full overflow-hidden rounded-full bg-foreground/[0.08] dark:bg-foreground/[0.12]">
-                  <div
-                    className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
-                    style={{ transform: `scaleX(${Math.max(progressValue, 3) / 100})` }}
-                  />
-                </div>
-              </div>
-              <div className="flex min-w-0 items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
-                <span
-                  className="inline-flex max-w-[46%] shrink items-center truncate rounded-[4px] bg-secondary px-1.5 py-[1px] text-[11px] font-medium leading-[1.35] text-subtle-foreground"
-                  title={categoryLabel || formatLabel}
-                >
-                  {categoryLabel || formatLabel}
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
+                <span className="min-w-0 flex-1 truncate" title={categoryLabel}>
+                  {categoryLabel}
                 </span>
-                <p
-                  className="min-w-0 max-w-[60%] shrink-0 truncate text-[11.5px] leading-4 tabular-nums"
-                  title={progressMetaLabel}
-                >
-                  {progressValue > 0 ? (
-                    book.last_read_at ? (
-                      <>
-                        <span className="font-medium text-foreground/80">{progressDisplay}%</span>
-                        <span aria-hidden="true" className="mx-1 opacity-55">·</span>
-                        <span>{lastReadLabel}</span>
-                      </>
-                    ) : (
-                      <span className="font-medium text-foreground/80">已读 {progressDisplay}%</span>
-                    )
-                  ) : (
-                    lastReadLabel
+                <p className="flex min-w-0 max-w-[65%] items-baseline gap-1" title={progressMetaLabel}>
+                  {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
+                  {progressValue > 0 && (
+                    <span className="shrink-0 font-medium tabular-nums text-foreground">
+                      {progressDisplay}
+                    </span>
                   )}
                 </p>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08] dark:bg-foreground/[0.12]" aria-hidden="true">
+                <div
+                  className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
+                  style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}
+                />
               </div>
             </div>
           </div>
@@ -322,7 +298,7 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onSelectionToggle}
               aria-pressed={selected}
-              className="-ml-1 inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:-ml-1.5 sm:min-h-8 sm:px-1.5"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
               <Check
                 className={cn(
@@ -337,9 +313,9 @@ export const BookCard = memo(function BookCard({
               type="button"
               onClick={onRead}
               aria-label={`${readActionLabel}：${titleLabel}`}
-              className="-ml-1 inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground group-hover/card:text-primary focus-visible:outline-2 focus-visible:outline-ring sm:-ml-1.5 sm:min-h-8 sm:px-1.5"
+              className="inline-flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-meta transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
-              <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.6} />
+              <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
               <span className="truncate">{readActionLabel}</span>
             </button>
           )}
@@ -355,7 +331,7 @@ export const BookCard = memo(function BookCard({
               isDeleting={isDeleting}
               onCategoryClick={() => setCategoryDialogOpen(true)}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
-              triggerClassName="-mr-2.5 size-11 sm:-mr-2.5 sm:size-8"
+              triggerClassName="size-11 sm:size-9"
             />
           )}
         </div>

@@ -12,10 +12,9 @@ export const SHELF_GRID_MIN_COL_PX = {
 } as const;
 
 /**
- * Non-cover body of BookCard (title, author, progress, footer).
- * Tuned from actual layout; measureElement refines after paint.
+ * Non-cover body of BookCard: 100px details and 44px actions in shelf.css.
  */
-export const SHELF_CARD_BODY_HEIGHT_PX = 152;
+export const SHELF_CARD_BODY_HEIGHT_PX = 144;
 
 /**
  * Column count aligned with shelf CSS:

@@ -20,12 +20,12 @@ export function BookCardSkeleton() {
           <Skeleton height={16} width="80%" radius="xs" aria-hidden="true" />
           <Skeleton height={12} width="50%" radius="xs" aria-hidden="true" />
         </div>
-        <div className="space-y-1.5">
-          <Skeleton height={3} width="100%" radius="xl" aria-hidden="true" />
-          <div className="flex items-center justify-between gap-2">
-            <Skeleton height={16} width={40} radius={4} aria-hidden="true" />
-            <Skeleton height={12} width={56} radius="xs" aria-hidden="true" />
+        <div className="space-y-1">
+          <div className="flex h-4 items-center justify-between gap-2">
+            <Skeleton height={12} width={40} radius="xs" aria-hidden="true" />
+            <Skeleton height={12} width={32} radius="xs" aria-hidden="true" />
           </div>
+          <Skeleton height={4} width="100%" radius="xl" aria-hidden="true" />
         </div>
       </div>
       <div className="shelf-book-actions">

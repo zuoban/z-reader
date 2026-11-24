@@ -25,7 +25,7 @@
   }
 
   .shelf-filter-chip {
-    @apply inline-flex min-h-10 shrink-0 items-center truncate rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-8 sm:px-2.5;
+    @apply inline-flex min-h-11 shrink-0 items-center rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-9;
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -41,6 +41,17 @@
     border-color: transparent;
     background: var(--accent);
     color: var(--accent-foreground);
+  }
+
+  @media (width < 40rem) {
+    .shelf-category-strip[data-more-categories]:not(:has(:focus-visible))::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 1.25rem;
+      background: linear-gradient(to right, transparent, var(--shelf-app-bg));
+      pointer-events: none;
+    }
   }
 
   .shelf-search::-webkit-search-cancel-button {
@@ -101,7 +112,6 @@
   }
 
   .shelf-book-card:hover .shelf-book-cover {
-    transform: translateY(-2px);
     box-shadow:
       0 2px 4px rgb(24 23 20 / 8%),
       0 12px 24px -8px rgb(24 23 20 / 18%);
@@ -140,21 +150,13 @@
     color: var(--primary-foreground);
   }
 
-  /* Details (112px) + actions (36px desktop / 44px mobile) total ~148-156px, matching the virtual grid estimate. */
+  /* Details (100px) + actions (44px) match SHELF_CARD_BODY_HEIGHT_PX. */
   .shelf-book-details {
-    @apply flex h-[7rem] w-full flex-col justify-between gap-1.5 pb-1.5 pt-2.5;
+    @apply flex h-25 w-full flex-col justify-between gap-1 pt-2;
   }
 
   .shelf-book-actions {
-    @apply relative flex h-11 items-center justify-between gap-1 sm:h-9;
-  }
-
-  .shelf-book-actions::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto;
-    border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
-    pointer-events: none;
+    @apply flex h-11 items-center justify-between gap-1;
   }
 
   .book-cover-fallback {

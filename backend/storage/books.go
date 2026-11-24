@@ -516,6 +516,15 @@ func (db *DB) UpdateBook(id, userID string, merge func(*models.Book) bool) (*mod
 			return err
 		}
 		book = *previous
+		// Preserve the old values for index removal and for a rejected merge.
+		if previous.Category != nil {
+			category := *previous.Category
+			book.Category = &category
+		}
+		if previous.LastReadAt != nil {
+			lastReadAt := *previous.LastReadAt
+			book.LastReadAt = &lastReadAt
+		}
 		if !merge(&book) {
 			book = *previous
 			return nil

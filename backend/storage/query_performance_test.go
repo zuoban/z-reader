@@ -12,6 +12,66 @@ import (
 	"z-reader/backend/models"
 )
 
+func TestUpdateBookKeepsPreviousPointerFields(t *testing.T) {
+	db := openTestDB(t)
+	oldCategory, newCategory := "旧书目", "新目录"
+	oldReadAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	newReadAt := oldReadAt.Add(time.Hour)
+	original := &models.Book{ID: "a", UserID: "u", Category: &oldCategory, LastReadAt: &oldReadAt}
+	if err := db.CreateBook(original); err != nil {
+		t.Fatal(err)
+	}
+	update := func(commit bool) {
+		t.Helper()
+		book, err := db.UpdateBook(original.ID, original.UserID, func(book *models.Book) bool {
+			*book.Category = newCategory
+			*book.LastReadAt = newReadAt
+			return commit
+		})
+		wantCategory, wantReadAt := oldCategory, oldReadAt
+		if commit {
+			wantCategory, wantReadAt = newCategory, newReadAt
+		}
+		if err != nil || book == nil || book.Category == nil || *book.Category != wantCategory ||
+			book.LastReadAt == nil || !book.LastReadAt.Equal(wantReadAt) {
+			t.Errorf("update(commit=%t) returned %+v, %v", commit, book, err)
+		}
+	}
+	update(false)
+	update(true)
+
+	updated := *original
+	updated.Category, updated.LastReadAt = &newCategory, &newReadAt
+	books, _, err := db.SearchBooks(original.UserID, newCategory, "", 10, "recent_read")
+	if err != nil || len(books) != 1 || books[0].ID != original.ID {
+		t.Errorf("search after update returned %+v, %v", books, err)
+	}
+
+	summary, err := db.GetBookLibrarySummary(original.UserID)
+	if err != nil || summary.Total != 1 || len(summary.Categories) != 1 || summary.Categories[newCategory] != 1 {
+		t.Errorf("summary after update = %+v, %v", summary, err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		for _, entry := range []struct{ bucket, key []byte }{
+			{BookSortIndex, bookSortIndexKey(original, "recent_read")},
+			{BookCategorySortIndex, bookCategorySortIndexKey(original, "recent_read")},
+			{BookSearchGramIndex, []byte("u\x00旧书\x00a")},
+			{BookSearchGramCounts, []byte("u\x00旧书\x00")},
+		} {
+			if tx.Bucket(entry.bucket).Get(entry.key) != nil {
+				t.Errorf("old index entry survived in %s: %q", entry.bucket, entry.key)
+			}
+		}
+		if string(tx.Bucket(BookSortIndex).Get(bookSortIndexKey(&updated, "recent_read"))) != original.ID ||
+			string(tx.Bucket(BookCategorySortIndex).Get(bookCategorySortIndexKey(&updated, "recent_read"))) != original.ID {
+			t.Error("new recent-read index entries are missing")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCategoryMutationUpdatesSummaryAndSearch(t *testing.T) {
 	db := openTestDB(t)
 	oldCategory, newCategory := "Old unique category", "New distinct category"

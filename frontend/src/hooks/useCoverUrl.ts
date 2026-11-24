@@ -130,7 +130,6 @@ export function useCoverUrl(
     url: string;
   } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
-  const inFlightKeyRef = useRef<string | null>(null);
   const coverUrl = generation === getAccessGeneration()
     ? getCachedCoverUrl(cacheKey) ?? (fetchedCover?.cacheKey === cacheKey ? fetchedCover.url : null)
     : null;
@@ -144,23 +143,22 @@ export function useCoverUrl(
     if (!element) return;
 
     let disposed = false;
-    let cancelFetch: (() => void) | undefined;
+    type CoverRequest = { cancel?: () => void };
+    let pendingRequest: CoverRequest | undefined;
 
     const stopFetch = () => {
-      cancelFetch?.();
-      cancelFetch = undefined;
-      if (inFlightKeyRef.current === cacheKey) {
-        inFlightKeyRef.current = null;
-      }
+      const request = pendingRequest;
+      pendingRequest = undefined;
+      request?.cancel?.();
     };
 
     const startFetch = () => {
-      if (disposed || generation !== getAccessGeneration() ||
-          inFlightKeyRef.current === cacheKey) return;
+      if (disposed || generation !== getAccessGeneration() || pendingRequest) return;
       if (getCachedCoverUrl(cacheKey)) return;
 
-      inFlightKeyRef.current = cacheKey;
-      cancelFetch = scheduleCoverFetch(async (signal) => {
+      const request: CoverRequest = {};
+      pendingRequest = request;
+      request.cancel = scheduleCoverFetch(async (signal) => {
         try {
           const blob = await api.fetchCover(bookId, size, signal);
           if (!blob || disposed || signal.aborted || generation !== getAccessGeneration()) return;
@@ -169,8 +167,8 @@ export function useCoverUrl(
           setCachedCoverUrl(bookKeyPrefix, cacheKey, url);
           setFetchedCover({ cacheKey, url });
         } finally {
-          if (inFlightKeyRef.current === cacheKey) {
-            inFlightKeyRef.current = null;
+          if (pendingRequest === request) {
+            pendingRequest = undefined;
           }
         }
       });

@@ -8,6 +8,7 @@ import {
   useCoverUrl,
 } from '@/hooks/useCoverUrl';
 import { api } from '@/lib/api';
+import { deferred } from '@/test/deferred';
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -296,6 +297,38 @@ describe('useCoverUrl hook', () => {
       await Promise.resolve();
     });
     expect(api.fetchCover).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+  });
+
+  it('keeps the replacement fetch pending when an aborted fetch settles late', async () => {
+    const abandoned = deferred<Blob | null>();
+    const replacement = deferred<Blob | null>();
+    const fetchCover = vi.mocked(api.fetchCover)
+      .mockResolvedValue(null)
+      .mockReturnValueOnce(abandoned.promise)
+      .mockReturnValueOnce(replacement.promise);
+
+    render(React.createElement(CoverProbe, { bookId: 'book-fast-scroll' }));
+
+    act(() => {
+      observers[0].trigger(true);
+      observers[0].trigger(false);
+      observers[0].trigger(true);
+    });
+    expect(fetchCover).toHaveBeenCalledTimes(2);
+    expect(fetchCover.mock.calls[0][2]?.aborted).toBe(true);
+
+    await act(async () => {
+      abandoned.resolve(new Blob(['stale']));
+    });
+    expect(createObjectURLSpy).not.toHaveBeenCalled();
+
+    act(() => observers[0].trigger(true));
+    expect(fetchCover).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      replacement.resolve(new Blob(['fresh']));
+    });
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
   });
 

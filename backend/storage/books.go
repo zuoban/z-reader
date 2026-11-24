@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"go.etcd.io/bbolt"
@@ -102,8 +103,36 @@ func removeBookFromSortIndex(tx *bbolt.Tx, book *models.Book) error {
 
 func normalizeBookSearchText(value string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
-	value = strings.ReplaceAll(value, bookSortSeparator, "")
-	return strings.Join(strings.Fields(value), " ")
+	if stripped := strings.ReplaceAll(value, bookSortSeparator, ""); len(stripped) != len(value) {
+		// Removing separators can expose whitespace at either end.
+		value = strings.TrimSpace(stripped)
+	}
+
+	// Copy only when an internal whitespace run needs to change.
+	var normalized strings.Builder
+	start, spaceStart := 0, -1
+	for i, char := range value {
+		if unicode.IsSpace(char) {
+			if spaceStart < 0 {
+				spaceStart = i
+			}
+			continue
+		}
+		if spaceStart >= 0 && (i-spaceStart != 1 || value[spaceStart] != ' ') {
+			if start == 0 {
+				normalized.Grow(len(value))
+			}
+			normalized.WriteString(value[start:spaceStart])
+			normalized.WriteByte(' ')
+			start = i
+		}
+		spaceStart = -1
+	}
+	if start == 0 {
+		return value
+	}
+	normalized.WriteString(value[start:])
+	return normalized.String()
 }
 
 func bookSearchIndexKey(userID, bookID string) []byte {

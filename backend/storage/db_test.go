@@ -288,6 +288,22 @@ func TestSearchBooksUsesFullUserLibrary(t *testing.T) {
 	}
 }
 
+func TestNormalizeBookSearchTextPreservesWhitespaceRules(t *testing.T) {
+	for _, tt := range []struct{ text, want string }{
+		{"the three body problem", "the three body problem"},
+		{"\x00\t 　\x00", ""},
+		{"\x00　 书名\t作者 \x00", "书名 作者"},
+		{" A\u0085B\u00A0C\u2003D \t E\nF ", "a b c d e f"},
+		{"第一章 第\x00二章　　第三章 第四章", "第一章 第二章 第三章 第四章"},
+		{"x\xc3\x00\xa9y", "x\ufffd\ufffdy"},
+		{"A\u200bB", "a\u200bb"},
+	} {
+		if got := normalizeBookSearchText(tt.text); got != tt.want {
+			t.Errorf("normalized %q = %q, want %q", tt.text, got, tt.want)
+		}
+	}
+}
+
 func TestBookSearchGramsPreservesNormalizedRunePairs(t *testing.T) {
 	for _, tt := range []struct {
 		text string

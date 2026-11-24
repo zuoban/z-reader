@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"go.etcd.io/bbolt"
 
@@ -126,19 +127,24 @@ func appendBookSearchGramIndexKey(key []byte, userID, gram, bookID string) []byt
 // One-rune queries intentionally use the existing bounded scan fallback: an
 // index for common single characters would be larger and rarely selective.
 func bookSearchGrams(normalized string) []string {
-	runes := []rune(normalized)
-	if len(runes) < 2 {
+	pairs := utf8.RuneCountInString(normalized) - 1
+	if pairs < 1 {
 		return nil
 	}
-	grams := make([]string, 0, len(runes)-1)
-	seen := make(map[string]struct{}, len(runes)-1)
-	for i := 0; i < len(runes)-1; i++ {
-		gram := string(runes[i : i+2])
-		if _, ok := seen[gram]; ok {
-			continue
+	grams := make([]string, 0, pairs)
+	seen := make(map[string]struct{}, pairs)
+	// Normalization produces valid UTF-8, so each gram can share the input bytes.
+	start := 0
+	_, middle := utf8.DecodeRuneInString(normalized)
+	for middle < len(normalized) {
+		_, size := utf8.DecodeRuneInString(normalized[middle:])
+		end := middle + size
+		gram := normalized[start:end]
+		if _, ok := seen[gram]; !ok {
+			seen[gram] = struct{}{}
+			grams = append(grams, gram)
 		}
-		seen[gram] = struct{}{}
-		grams = append(grams, gram)
+		start, middle = middle, end
 	}
 	return grams
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"math"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -284,6 +285,25 @@ func TestSearchBooksUsesFullUserLibrary(t *testing.T) {
 	}
 	if nextCursor != "" || len(got) != 1 || got[0].ID != "book-a" {
 		t.Fatalf("unexpected search response: books=%+v next=%q", got, nextCursor)
+	}
+}
+
+func TestBookSearchGramsPreservesNormalizedRunePairs(t *testing.T) {
+	for _, tt := range []struct {
+		text string
+		want []string
+	}{
+		{text: " \t\x00　"},
+		{text: "😀"},
+		{text: "AaAa", want: []string{"aa"}},
+		{text: "三体三体", want: []string{"三体", "体三"}},
+		{text: " \t三\x00体　Ä😀Å\u0301😀\xff \n", want: []string{
+			"三体", "体 ", " ä", "ä😀", "😀å", "å\u0301", "\u0301😀", "😀\ufffd",
+		}},
+	} {
+		if got := bookSearchGrams(normalizeBookSearchText(tt.text)); !slices.Equal(got, tt.want) {
+			t.Errorf("grams for %q = %q, want %q", tt.text, got, tt.want)
+		}
 	}
 }
 

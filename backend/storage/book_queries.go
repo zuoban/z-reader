@@ -67,7 +67,7 @@ func scanSortedBooks(
 	tx *bbolt.Tx, userID, query, cursor string, limit int, sortKey string,
 	category *string, candidateCount *int,
 ) ([]models.Book, error) {
-	books := make([]models.Book, 0, limit+1)
+	books := []models.Book{}
 	index, prefix := bookQueryIndex(tx, userID, sortKey, category)
 	start, err := bookQueryStart(tx, userID, cursor, sortKey, category, prefix)
 	if err != nil {
@@ -104,6 +104,9 @@ func scanSortedBooks(
 		}
 		if book.UserID != userID || (category != nil && categoryForBook(&book) != *category) {
 			continue
+		}
+		if len(books) == 0 {
+			books = make([]models.Book, 0, limit+1)
 		}
 		books = append(books, book)
 		if len(books) > limit {
@@ -160,7 +163,7 @@ func (db *DB) SearchBooks(
 	}
 	sortKey = NormalizeBookSort(sortKey)
 	category := selectedBookCategory(filters)
-	books := make([]models.Book, 0, limit+1)
+	books := []models.Book{}
 	err := db.View(func(tx *bbolt.Tx) error {
 		grams := bookSearchGrams(query)
 		gram, count := mostSelectiveBookSearchGram(tx.Bucket(BookSearchGramIndex), userID, grams)
@@ -241,8 +244,9 @@ func (db *DB) SearchBooks(
 			}
 		}
 		slices.SortFunc(candidates, compareCandidates)
-		for i := range candidates[:min(len(candidates), pageSize)] {
-			books = append(books, candidates[i].book)
+		books = make([]models.Book, min(len(candidates), pageSize))
+		for i := range books {
+			books[i] = candidates[i].book
 		}
 		return nil
 	})

@@ -240,6 +240,19 @@ func TestBroadSearchStopsBeforeDeserializingLaterPages(t *testing.T) {
 	}
 }
 
+func TestSearchBooksReturnsEmptySliceWithoutMatches(t *testing.T) {
+	db := openTestDB(t)
+	if err := db.CreateBook(&models.Book{ID: "a", UserID: "u", Title: "ab bc"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []string{"absent", "星", "abc"} {
+		books, cursor, err := db.SearchBooks("u", query, "", 50, "title")
+		if err != nil || books == nil || len(books) != 0 || cursor != "" {
+			t.Errorf("query %q = %#v, %q, %v; want an empty page", query, books, cursor, err)
+		}
+	}
+}
+
 func TestSelectiveSearchKeepsBestMatchesAcrossCandidateBatches(t *testing.T) {
 	db := openTestDB(t)
 	// The gram index yields IDs in ascending order, while titles sort in reverse.

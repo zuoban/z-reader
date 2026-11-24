@@ -1,7 +1,7 @@
 'use client';
 
 import { ActionIcon, Menu } from '@mantine/core';
-import { Loader2, MoreVertical, Tag, Trash2 } from 'lucide-react';
+import { Loader2, MoreVertical, Pencil, Tag, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BookCardDropdownProps {
@@ -10,8 +10,8 @@ interface BookCardDropdownProps {
   formatLabel: string;
   sizeLabel: string;
   uploadedAtLabel: string;
-  lastReadLabel: string;
   isDeleting: boolean;
+  onEditClick: () => void;
   onCategoryClick: () => void;
   onDeleteClick: () => void;
   triggerClassName?: string;
@@ -34,8 +34,8 @@ export function BookCardDropdown({
   formatLabel,
   sizeLabel,
   uploadedAtLabel,
-  lastReadLabel,
   isDeleting,
+  onEditClick,
   onCategoryClick,
   onDeleteClick,
   triggerClassName,
@@ -95,11 +95,28 @@ export function BookCardDropdown({
           >
             <DetailRow label="大小" value={sizeLabel || '未知'} />
             <DetailRow label="上传日期" value={uploadedAtLabel} />
-            <DetailRow label="上次阅读" value={lastReadLabel} />
           </dl>
         </div>
 
         <div className="p-1.5">
+          <Menu.Item
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditClick();
+            }}
+            disabled={isDeleting}
+            leftSection={
+              <Pencil
+                className="h-4 w-4 text-muted-foreground transition-colors"
+                strokeWidth={1.6}
+                aria-hidden="true"
+              />
+            }
+            className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors data-[hovered]:bg-secondary data-[hovered]:text-foreground sm:min-h-9 sm:py-1.5"
+          >
+            <span className="shrink-0">编辑信息</span>
+          </Menu.Item>
+
           <Menu.Item
             onClick={(e) => {
               e.stopPropagation();

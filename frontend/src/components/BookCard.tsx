@@ -9,6 +9,8 @@ import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
 
+const BookMetadataDialog = dynamic(() => import('@/components/BookMetadataDialog')
+  .then((module) => module.BookMetadataDialog));
 const CategorySelector = dynamic(() => import('@/components/CategorySelector')
   .then((module) => module.CategorySelector));
 const ConfirmDialog = dynamic(() => import('@/components/ConfirmDialog')
@@ -190,6 +192,7 @@ export const BookCard = memo(function BookCard({
   selected = false,
   onSelectionToggle,
 }: BookCardProps) {
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { coverUrl, ref: coverRef } = useCoverUrl(
@@ -206,10 +209,9 @@ export const BookCard = memo(function BookCard({
   const progressDisplay = progressValue > 0 && progressValue < 1
     ? '<1%'
     : `${Math.min(Math.round(progressValue), progressValue === 100 ? 100 : 99)}%`;
-  const lastReadLabel = book.last_read_at ? formatRelativeTime(book.last_read_at) : '未开始';
   const progressStatus = progressValue === 100
     ? '已读完'
-    : book.last_read_at ? lastReadLabel : progressValue > 0 ? '' : '未读';
+    : book.last_read_at ? formatRelativeTime(book.last_read_at) : progressValue > 0 ? '' : '未读';
   const progressMetaLabel = [progressStatus, progressValue > 0 && progressDisplay]
     .filter(Boolean).join(' · ');
   const uploadedAtLabel = formatDateTime(book.created_at);
@@ -363,8 +365,8 @@ export const BookCard = memo(function BookCard({
               formatLabel={formatLabel}
               sizeLabel={sizeLabel}
               uploadedAtLabel={uploadedAtLabel}
-              lastReadLabel={lastReadLabel}
               isDeleting={isDeleting}
+              onEditClick={() => setEditDialogOpen(true)}
               onCategoryClick={() => setCategoryDialogOpen(true)}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
               triggerClassName="size-11 sm:size-9"
@@ -372,6 +374,14 @@ export const BookCard = memo(function BookCard({
           )}
         </div>
       </article>
+      {editDialogOpen && <BookMetadataDialog
+        bookId={book.id}
+        currentTitle={book.title}
+        currentAuthor={book.author}
+        onUpdate={onUpdate}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />}
       {categoryDialogOpen && <CategorySelector
         bookId={book.id}
         currentCategory={book.category}

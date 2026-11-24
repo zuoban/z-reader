@@ -73,8 +73,21 @@ describe('BookCard', () => {
     fireEvent.click(screen.getByRole('button', { name: '更多操作：《红楼梦》' }));
     expect(screen.getByLabelText('书籍信息')).toBeInTheDocument();
     expect(screen.getByText('100 B')).toBeInTheDocument();
+    expect(screen.queryByText('上次阅读')).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '编辑信息' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /设置分类/ })).toHaveTextContent('未分类');
     expect(screen.getByRole('menuitem', { name: '删除图书' })).toBeInTheDocument();
+  });
+
+  it('opens the metadata edit dialog from the book actions menu', async () => {
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: '更多操作：《红楼梦》' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '编辑信息' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '编辑书籍信息' });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '书名' })).toHaveValue('红楼梦');
+    expect(screen.getByRole('textbox', { name: '作者' })).toHaveValue('曹雪芹');
   });
 
   it('keeps the delete confirmation open while async deletion is in flight and disables card actions', async () => {

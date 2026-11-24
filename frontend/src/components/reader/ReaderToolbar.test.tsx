@@ -166,4 +166,88 @@ describe('ReaderToolbar', () => {
     expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
     await waitFor(() => expect(moreButton).toHaveFocus());
   });
+
+  it('blends the header into the paper background and keeps desktop actions icon-quiet until offline saving', () => {
+    const { container, rerender } = render(
+      <ReaderToolbar
+        visible
+        bookTitle="中国近代史"
+        bookAuthor="徐中约"
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        onSaveOffline={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={{ ...uiScheme, bg: '#f8f7f4', cardBg: '#ffffff' }}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+      />,
+    );
+
+    const header = container.querySelector('header.reader-chrome') as HTMLElement;
+    expect(header.style.getPropertyValue('--reader-chrome-bg')).toBe('#f8f7f4');
+    expect(header.style.getPropertyValue('--reader-chrome-menu-bg')).toBe('#ffffff');
+    expect(screen.getByText('· 徐中约')).toBeInTheDocument();
+
+    const desktop = within(
+      document.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
+    );
+    expect(desktop.getByText('离线')).toHaveClass('sr-only');
+
+    rerender(
+      <ReaderToolbar
+        visible
+        bookTitle="中国近代史"
+        bookAuthor="徐中约"
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        onSaveOffline={vi.fn()}
+        isSavingOffline
+        offlineDownloadLabel="42%"
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={{ ...uiScheme, bg: '#f8f7f4', cardBg: '#ffffff' }}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+      />,
+    );
+
+    expect(desktop.getByText('42%')).not.toHaveClass('sr-only');
+  });
 });

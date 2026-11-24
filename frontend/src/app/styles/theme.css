@@ -48,7 +48,7 @@
   --font-playfair: "Playfair Display";
   --font-noto-serif-sc: "Noto Serif SC";
   --status-bar-reserved: calc(env(safe-area-inset-bottom, 0px) + 2.75rem);
-  --reader-toolbar-height: 3.5rem;
+  --reader-toolbar-height: 3rem;
   --z-reader-overlay: 90;
   --z-skip-link: 100;
   /* Calm paper surfaces with terracotta accent. */

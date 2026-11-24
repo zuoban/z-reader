@@ -2,14 +2,21 @@
 
 @layer components {
   .reader-chrome-btn {
-    @apply flex h-9 shrink-0 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-[13px] font-medium shadow-none;
+    @apply inline-flex h-8 w-8 min-h-0 min-w-0 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-xs font-normal shadow-none;
+    --button-height: 2rem;
+    --button-padding-x: 0;
     color: var(--reader-chrome-muted);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
+  .reader-chrome-btn-expanded {
+    @apply w-auto gap-1.5 px-2 tabular-nums;
+    --button-padding-x: 0.5rem;
+  }
+
   .reader-chrome-btn:disabled {
-    @apply cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed opacity-45;
   }
 
   .reader-chrome-icon {
@@ -48,35 +55,45 @@
   }
 
   .reader-chrome-surface {
-    background: color-mix(in srgb, var(--reader-chrome-bg) 92%, transparent);
+    background: color-mix(in srgb, var(--reader-chrome-bg) 90%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-color: var(--reader-chrome-rule);
+    border-color: color-mix(in srgb, var(--reader-chrome-rule) 42%, transparent);
     color: var(--reader-chrome-ink);
-    box-shadow: 0 8px 24px -16px var(--paper-shadow);
+    box-shadow: none;
   }
 
-  .reader-toolbar-actions,
-  .reader-chrome .reader-toolbar-edge {
-    border: 1px solid var(--reader-chrome-rule);
-    background: color-mix(in srgb, var(--reader-chrome-hover) 55%, var(--reader-chrome-bg));
-    border-radius: var(--radius-xl);
+  .reader-toolbar-title {
+    color: color-mix(in srgb, var(--reader-chrome-ink) 78%, var(--reader-chrome-muted));
+  }
+
+  .reader-toolbar-author {
+    color: var(--reader-chrome-muted);
   }
 
   .reader-toolbar-actions {
-    padding: 0.1875rem;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+
+  .reader-toolbar-divider {
+    background: color-mix(in srgb, var(--reader-chrome-rule) 75%, transparent);
   }
 
   .reader-chrome .reader-toolbar-edge {
-    color: var(--reader-chrome-ink);
-    box-shadow: var(--paper-shadow-control);
+    border: 0;
+    background: transparent;
+    border-radius: var(--paper-radius-control);
+    color: var(--reader-chrome-muted);
+    box-shadow: none;
   }
 
   .reader-chrome .reader-toolbar-edge:hover,
   .reader-chrome .reader-chrome-btn:enabled:hover,
   .reader-toolbar-menu .reader-mobile-menu-item:enabled:hover {
-    background: var(--reader-chrome-hover);
-    color: var(--reader-chrome-accent);
+    background: color-mix(in srgb, var(--reader-chrome-hover) 72%, transparent);
+    color: var(--reader-chrome-ink);
   }
 
   .reader-chrome :is(.reader-chrome-btn, .reader-toolbar-edge, .reader-mobile-menu-item):focus-visible {
@@ -85,15 +102,16 @@
   }
 
   .reader-chrome .reader-toolbar-edge[aria-expanded="true"],
+  .reader-chrome .reader-chrome-btn[aria-expanded="true"],
   .reader-chrome [data-reader-tts-active="true"] {
-    background: color-mix(in srgb, var(--reader-chrome-accent) 12%, var(--reader-chrome-bg));
+    background: color-mix(in srgb, var(--reader-chrome-accent) 11%, transparent);
     color: var(--reader-chrome-accent);
   }
 
   .reader-toolbar-menu {
     border: 1px solid var(--reader-chrome-rule);
     border-radius: var(--radius-2xl);
-    background: var(--reader-chrome-bg);
+    background: var(--reader-chrome-menu-bg);
     color: var(--reader-chrome-ink);
     box-shadow: var(--paper-shadow-floating);
   }

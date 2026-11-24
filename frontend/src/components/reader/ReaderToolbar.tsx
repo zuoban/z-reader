@@ -172,7 +172,8 @@ export function ReaderToolbar({
             : "-translate-y-[calc(100%+env(safe-area-inset-top,0px))] opacity-0"
         }`}
         style={{
-          "--reader-chrome-bg": uiScheme.cardBg,
+          "--reader-chrome-bg": uiScheme.bg,
+          "--reader-chrome-menu-bg": uiScheme.cardBg,
           "--reader-chrome-rule": uiScheme.cardBorder,
           "--reader-chrome-ink": uiScheme.fg,
           "--reader-chrome-muted": uiScheme.mutedText,
@@ -182,7 +183,7 @@ export function ReaderToolbar({
         } as React.CSSProperties}
       >
         <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-6xl items-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
-          <div className="flex min-w-0 flex-1 items-center gap-2 pr-2 sm:gap-3 sm:pr-4">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2 sm:gap-2 sm:pr-4">
             <ActionIcon
               variant="subtle"
               size={36}
@@ -192,14 +193,19 @@ export function ReaderToolbar({
               aria-label="返回书库"
               className="reader-chrome-icon reader-toolbar-edge"
             >
-              <ArrowLeft className="size-5" strokeWidth={1.75} aria-hidden="true" />
+              <ArrowLeft className="size-4" strokeWidth={1.6} aria-hidden="true" />
             </ActionIcon>
-            <div className="min-w-0">
-              <h1 className="truncate font-heading text-base leading-5 font-semibold sm:text-lg sm:leading-6">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <h1
+                className="reader-toolbar-title min-w-0 truncate text-[13px] leading-5 font-medium sm:text-sm"
+                title={bookTitle || undefined}
+              >
                 {bookTitle || "阅读中"}
               </h1>
               {author && (
-                <p className="truncate text-xs leading-4 text-[var(--reader-chrome-muted)]">{author}</p>
+                <span className="reader-toolbar-author hidden max-w-[10rem] shrink-0 truncate text-xs leading-4 xl:inline">
+                  · {author}
+                </span>
               )}
             </div>
           </div>
@@ -220,7 +226,7 @@ export function ReaderToolbar({
                 size={44}
                 radius="md"
               >
-                <MoreHorizontal className="size-5" strokeWidth={1.75} aria-hidden="true" />
+                <MoreHorizontal className="size-4" strokeWidth={1.6} aria-hidden="true" />
               </ActionIcon>
               <div
                 ref={mobileActionsMenuRef}
@@ -357,10 +363,10 @@ export function ReaderToolbar({
                 onLocateCurrent={onLocateCurrentChapter}
                 onGoTo={onGoTo}
                 trigger={
-                  <div className="flex items-center gap-2">
-                    <List className="h-4 w-4" />
-                    <span className="hidden sm:inline">目录</span>
-                  </div>
+                  <>
+                    <List className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <span className="sr-only">目录</span>
+                  </>
                 }
               />
 
@@ -381,10 +387,10 @@ export function ReaderToolbar({
                     onGoTo={onGoToBookmark}
                     onDelete={onDeleteBookmark}
                     trigger={
-                      <div className="flex items-center gap-2">
-                        <BookmarkIcon className="h-4 w-4" />
-                        <span className="hidden sm:inline">书签</span>
-                      </div>
+                      <>
+                        <BookmarkIcon className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                        <span className="sr-only">书签</span>
+                      </>
                     }
                   />
 
@@ -396,10 +402,10 @@ export function ReaderToolbar({
                     onClick={onCreateBookmark}
                     title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
                     className={chromeBtnClass}
-                    classNames={{ label: "flex items-center gap-1.5" }}
+                    classNames={{ label: "flex items-center justify-center" }}
                   >
-                    <BookmarkPlus className="h-4 w-4" />
-                    <span className="hidden sm:inline">
+                    <BookmarkPlus className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <span className="sr-only">
                       {isSavingBookmark ? "添加中..." : "添加"}
                     </span>
                   </Button>
@@ -414,17 +420,25 @@ export function ReaderToolbar({
                   disabled={isSavingOffline}
                   onClick={onSaveOffline}
                   title="保存到此设备，退出登录后会自动清除"
-                  className={chromeBtnClass}
-                  classNames={{ label: "flex items-center gap-1.5" }}
+                  className={cn(
+                    chromeBtnClass,
+                    isSavingOffline && "reader-chrome-btn-expanded"
+                  )}
+                  classNames={{ label: "flex items-center justify-center gap-1.5" }}
                 >
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">
+                  <Download className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  <span className={isSavingOffline ? "text-[11px]" : "sr-only"}>
                     {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}
                   </span>
                 </Button>
               )}
 
               {ttsControls}
+
+              <span
+                aria-hidden="true"
+                className="reader-toolbar-divider mx-1 h-3.5 w-px shrink-0"
+              />
 
               <Button
                 type="button"
@@ -433,10 +447,14 @@ export function ReaderToolbar({
                 onClick={onToggleFullscreen}
                 title={isFullscreen ? "退出全屏" : "全屏阅读"}
                 className={chromeBtnClass}
-                classNames={{ label: "flex items-center gap-1.5" }}
+                classNames={{ label: "flex items-center justify-center" }}
               >
-                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                <span className="hidden sm:inline">{isFullscreen ? "退出" : "全屏"}</span>
+                {isFullscreen ? (
+                  <Minimize className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                ) : (
+                  <Maximize className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                )}
+                <span className="sr-only">{isFullscreen ? "退出全屏" : "全屏"}</span>
               </Button>
 
               {settingsRequested || themeSettingsOpen ? <ThemeSettings
@@ -452,10 +470,10 @@ export function ReaderToolbar({
                 triggerClassName={chromeBtnClass}
                 triggerStyle={{}}
                 trigger={
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">设置</span>
-                  </div>
+                  <>
+                    <Settings className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <span className="sr-only">设置</span>
+                  </>
                 }
               /> : (
                 <Button
@@ -464,14 +482,14 @@ export function ReaderToolbar({
                   size="sm"
                   title="阅读设置"
                   className={chromeBtnClass}
-                  classNames={{ label: "flex items-center gap-1.5" }}
+                  classNames={{ label: "flex items-center justify-center" }}
                   onClick={() => {
                     setSettingsRequested(true);
                     onThemeSettingsOpenChange(true);
                   }}
                 >
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">设置</span>
+                  <Settings className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  <span className="sr-only">设置</span>
                 </Button>
               )}
 
@@ -479,14 +497,14 @@ export function ReaderToolbar({
                 <ActionIcon
                   type="button"
                   variant="subtle"
-                  size={36}
+                  size={32}
                   radius="md"
                   onClick={onOpenShortcuts}
                   title="快捷键 (?)"
                   aria-label="快捷键"
-                  className={cn(chromeBtnClass, "h-9 w-9 min-h-0 min-w-0 p-0")}
+                  className={chromeBtnClass}
                 >
-                  <KeyboardIcon className="h-4 w-4" />
+                  <KeyboardIcon className="size-4" strokeWidth={1.6} aria-hidden="true" />
                 </ActionIcon>
               )}
             </div>

@@ -27,7 +27,6 @@ import { DeferredTTSControls } from "@/components/DeferredTTSControls";
 import { api, PERSONAL_LIBRARY, type BookDownloadProgress } from "@/lib/api";
 import { hasOfflineBook, saveOfflineBook } from "@/lib/offline-books";
 import { formatOfflineDownloadLabel } from "@/lib/reader-page";
-import { withOpacity } from "@/lib/reader-ui";
 import {
   applyThemeColor,
   themeColorForAppMode,
@@ -512,10 +511,10 @@ export default function ReadPage() {
                 triggerClassName="reader-chrome-btn"
                 triggerStyle={{}}
                 triggerContent={
-                  <div className="flex items-center gap-2">
-                    <Volume2 className="h-4 w-4" strokeWidth={1.5} />
-                    <span className="hidden sm:inline">朗读</span>
-                  </div>
+                  <>
+                    <Volume2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <span className="sr-only">朗读</span>
+                  </>
                 }
               />
             ) : undefined
@@ -566,9 +565,6 @@ export default function ReadPage() {
                   className="reader-page-surface h-full w-full overflow-hidden"
                   style={{
                     background: uiScheme.bg,
-                    boxShadow: isHeaderVisible
-                      ? `inset 0 1px 0 ${withOpacity(uiScheme.fg, theme.preset === "dark" ? 0.04 : 0.03)}`
-                      : "none",
                   }}
                 />
               </div>

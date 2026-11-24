@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, createAbortController } from '@/lib/config';
 import { handleAuthResponse } from '@/lib/api';
 import { getAccessGeneration } from '@/lib/library-access';
-import { mergeVoicesWithFallback, Voice } from '@/lib/tts';
+import { mergeVoicesWithFallback } from '@/lib/tts';
+import { waitForRetry } from '@/lib/tts-request';
+import type { Voice } from '@/lib/tts';
 
 export function useTTSVoices(preferredVoiceName: string, enabled = false) {
   const [voices, setVoices] = useState<Voice[]>(() =>
@@ -14,19 +16,27 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
   const [voicesError, setVoicesError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const preferredVoiceRef = useRef(preferredVoiceName);
-  const controllerRef = useRef<AbortController | null>(null);
-  const loadPromiseRef = useRef<Promise<void> | null>(null);
+  const loadRef = useRef<{ controller: AbortController; promise: Promise<void> } | null>(null);
 
   const loadVoices = useCallback(() => {
-    if (loadPromiseRef.current) return loadPromiseRef.current;
+    if (loadRef.current) return loadRef.current.promise;
+    if (!mountedRef.current) return Promise.resolve();
+
+    const lifetime = new AbortController();
+    const { signal } = lifetime;
+    const generation = getAccessGeneration();
+    const isCurrent = () => !signal.aborted && generation === getAccessGeneration();
     const promise = (async () => {
       setVoicesLoading(true);
       setVoicesError(null);
 
-      const generation = getAccessGeneration();
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (let attempt = 0; attempt < 3 && isCurrent(); attempt += 1) {
         const { controller, timeoutId } = createAbortController(12000);
-        controllerRef.current = controller;
+        const abortAttempt = () => {
+          clearTimeout(timeoutId);
+          controller.abort();
+        };
+        signal.addEventListener('abort', abortAttempt, { once: true });
 
         try {
           const response = await fetch(`${API_BASE}/api/voices`, {
@@ -35,49 +45,39 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
             signal: controller.signal,
           });
 
-          if (generation !== getAccessGeneration()) break;
+          if (!isCurrent()) return;
           handleAuthResponse(response, generation);
-          if (!response.ok) {
-            if (response.status === 401) {
-              if (mountedRef.current) setVoicesLoading(false);
-              return;
-            }
-            throw new Error(`voice_list_${response.status}`);
-          }
+          if (response.status === 401) return;
+          if (!response.ok) throw new Error(`voice_list_${response.status}`);
 
           const data = await response.json();
-          if (generation !== getAccessGeneration()) break;
-          if (mountedRef.current) {
+          if (isCurrent()) {
             setVoices(mergeVoicesWithFallback(data || [], preferredVoiceRef.current));
             setVoicesError(null);
-            setVoicesLoading(false);
           }
           return;
         } catch (err) {
-          if (!mountedRef.current) return;
-          const isLastAttempt = attempt === 2;
-          if (isLastAttempt) {
+          if (!isCurrent()) return;
+          if (attempt === 2) {
             if (process.env.NODE_ENV === 'development') console.error('Failed to load voices:', err);
-            if (mountedRef.current) {
-              setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceRef.current));
-              setVoicesError('声音列表加载失败，已切换到内置声线。');
-            }
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
-            if (!mountedRef.current) return;
-            if (generation !== getAccessGeneration()) break;
+            setVoices((prev) => mergeVoicesWithFallback(prev, preferredVoiceRef.current));
+            setVoicesError('声音列表加载失败，已切换到内置声线。');
+            return;
           }
         } finally {
           clearTimeout(timeoutId);
+          signal.removeEventListener('abort', abortAttempt);
         }
-      }
 
-      if (mountedRef.current) setVoicesLoading(false);
+        await waitForRetry(600 * (attempt + 1), signal).catch(() => {});
+      }
     })().finally(() => {
-      loadPromiseRef.current = null;
-      controllerRef.current = null;
+      if (loadRef.current?.controller === lifetime) {
+        loadRef.current = null;
+        setVoicesLoading(false);
+      }
     });
-    loadPromiseRef.current = promise;
+    loadRef.current = { controller: lifetime, promise };
     return promise;
   }, []);
 
@@ -85,7 +85,9 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      controllerRef.current?.abort();
+      const load = loadRef.current;
+      loadRef.current = null;
+      load?.controller.abort();
     };
   }, []);
 

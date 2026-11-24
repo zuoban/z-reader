@@ -42,7 +42,7 @@ function cancelled(): Error {
   return Object.assign(new Error('朗读操作已取消'), { name: 'AbortError' });
 }
 
-function waitForRetry(delayMs: number, signal: AbortSignal): Promise<void> {
+export function waitForRetry(delayMs: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) { reject(cancelled()); return; }
     const abort = () => { clearTimeout(timer); reject(cancelled()); };

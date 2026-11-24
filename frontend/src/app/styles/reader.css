@@ -320,6 +320,80 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
+  .reader-tts-status {
+    border-radius: var(--paper-radius-control);
+    border: 1px solid var(--reader-panel-rule);
+    background: color-mix(in srgb, var(--reader-panel-hover) 46%, transparent);
+    color: var(--reader-panel-fg);
+  }
+
+  .reader-tts-alert {
+    border-radius: var(--paper-radius-control);
+    border: 1px solid color-mix(in srgb, var(--reader-panel-danger) 28%, transparent);
+    background: color-mix(in srgb, var(--reader-panel-danger) 9%, transparent);
+    color: var(--reader-panel-danger);
+  }
+
+  .reader-select-trigger {
+    @apply flex min-h-11 w-full cursor-pointer items-center bg-transparent px-3 text-[13px] font-medium shadow-none lg:min-h-9;
+    border-radius: var(--paper-radius-control);
+    border: 1px solid var(--reader-panel-border);
+    color: var(--reader-panel-fg);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-select-trigger:hover {
+    background: color-mix(in srgb, var(--reader-panel-hover) 52%, transparent);
+  }
+
+  .reader-select-trigger[data-expanded="true"],
+  .reader-select-trigger[aria-expanded="true"] {
+    border-color: var(--reader-panel-accent);
+    background: color-mix(in srgb, var(--reader-panel-hover) 36%, transparent);
+  }
+
+  .reader-select-trigger:focus-visible {
+    outline: 2px solid var(--reader-panel-accent);
+    outline-offset: -2px;
+  }
+
+  .reader-select-dropdown {
+    background: var(--reader-panel-bg);
+    border: 1px solid var(--reader-panel-border);
+    color: var(--reader-panel-fg);
+    box-shadow: var(--paper-shadow-floating);
+  }
+
+  .reader-select-option {
+    @apply my-0.5 flex min-h-11 cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-3 py-2 text-sm lg:min-h-9;
+    color: var(--reader-panel-fg);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-select-option[data-muted="true"] {
+    color: var(--reader-panel-muted);
+  }
+
+  .reader-select-option:hover,
+  .reader-select-option[data-combobox-selected],
+  .reader-select-option[data-hovered] {
+    background: color-mix(in srgb, var(--reader-panel-hover) 72%, transparent);
+  }
+
+  .reader-select-option[data-combobox-active="true"] {
+    background: color-mix(in srgb, var(--reader-panel-accent) 11%, transparent);
+    color: var(--reader-panel-accent);
+  }
+
+  .reader-select-option[data-combobox-active="true"]:hover,
+  .reader-select-option[data-combobox-active="true"][data-combobox-selected],
+  .reader-select-option[data-combobox-active="true"][data-hovered] {
+    background: color-mix(in srgb, var(--reader-panel-accent) 16%, transparent);
+  }
+
   .reader-panel-item {
     @apply relative flex min-h-11 cursor-pointer overflow-hidden text-left;
     border-radius: var(--paper-radius-control);

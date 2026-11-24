@@ -250,4 +250,53 @@ describe('VoiceSelector preview lifecycle', () => {
       release();
     }
   });
+
+  it('surfaces loading, error, empty states, and selected option semantics', async () => {
+    const onReloadVoices = vi.fn();
+    const { props, rerender } = renderSelector();
+
+    const trigger = screen.getByRole('combobox', { name: '语音' });
+    fireEvent.click(trigger);
+    await flush();
+    expect(trigger).toHaveAttribute('data-expanded', 'true');
+    expect(screen.getByRole('option', { name: '晓晓 多语种 (女)' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: '晓伊 (女)' })).toHaveAttribute('aria-selected', 'false');
+
+    rerender(
+      <VoiceSelector
+        {...props}
+        voices={[]}
+        voicesLoading
+        onReloadVoices={onReloadVoices}
+      />
+    );
+    const reloadButton = screen.getByRole('button', { name: '重新加载语音' });
+    expect(reloadButton).toBeDisabled();
+    expect(reloadButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('正在加载声音列表');
+
+    rerender(
+      <VoiceSelector
+        {...props}
+        voices={[]}
+        voicesLoading={false}
+        voicesError="声音列表拉取失败"
+        onReloadVoices={onReloadVoices}
+      />
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('声音列表拉取失败');
+    fireEvent.click(screen.getByRole('button', { name: '重新加载语音' }));
+    expect(onReloadVoices).toHaveBeenCalledOnce();
+
+    rerender(
+      <VoiceSelector
+        {...props}
+        voices={[]}
+        voicesLoading={false}
+        voicesError={null}
+        onReloadVoices={onReloadVoices}
+      />
+    );
+    expect(screen.getByText(/暂无可用中文语音/)).toBeVisible();
+  });
 });

@@ -488,6 +488,15 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 	}
 
 	book.Category = normalizeCategoryName(book.Category)
+	// Cover and processing-state updates can leave both search indexes intact.
+	searchUnchanged := false
+	if oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID {
+		indexedText := tx.Bucket(BookSearchIndex).Get(bookSearchIndexKey(book.UserID, book.ID))
+		if indexedText != nil {
+			text := bookSearchValue(book)
+			searchUnchanged = bytes.Equal(indexedText, text) && bytes.Equal(bookSearchValue(oldBook), text)
+		}
+	}
 	data, err := book.MarshalDB()
 	if err != nil {
 		return err
@@ -517,6 +526,8 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		if err := removeBookFromSortIndex(tx, oldBook); err != nil {
 			return err
 		}
+	}
+	if !searchUnchanged && oldBook != nil {
 		if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
 			return err
 		}
@@ -527,11 +538,13 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 	if err := addBookToSortIndex(tx, book); err != nil {
 		return err
 	}
-	if err := addBookToSearchIndex(tx, book); err != nil {
-		return err
-	}
-	if err := addBookToSearchGramIndex(tx, book); err != nil {
-		return err
+	if !searchUnchanged {
+		if err := addBookToSearchIndex(tx, book); err != nil {
+			return err
+		}
+		if err := addBookToSearchGramIndex(tx, book); err != nil {
+			return err
+		}
 	}
 	if err := addBookToContentIndex(tx, book); err != nil {
 		return err

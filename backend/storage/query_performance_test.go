@@ -39,6 +39,40 @@ func TestCategoryMutationUpdatesSummaryAndSearch(t *testing.T) {
 	}
 }
 
+func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
+	db := openTestDB(t)
+	book := &models.Book{ID: "book", UserID: "reader", Title: "古典 Art"}
+	if err := db.CreateBook(book); err != nil {
+		t.Fatal(err)
+	}
+	assertMatches := func(query string, want bool) {
+		t.Helper()
+		books, _, err := db.SearchBooks(book.UserID, query, "", 10, "title")
+		if err != nil || len(books) > 1 || (len(books) == 1) != want {
+			t.Fatalf("query %q: got %d matches, want match %t, err %v", query, len(books), want, err)
+		}
+		if want && (books[0].ID != book.ID || books[0].CoverPath != "cover.png") {
+			t.Fatalf("query %q returned %+v", query, books[0])
+		}
+	}
+	if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+		book.CoverPath = "cover.png"
+		return true
+	}); err != nil {
+		t.Fatal(err)
+	}
+	assertMatches("古典 art", true)
+
+	if _, err := db.UpdateBook(book.ID, book.UserID, func(book *models.Book) bool {
+		book.Title = "当代 Design"
+		return true
+	}); err != nil {
+		t.Fatal(err)
+	}
+	assertMatches("古典 art", false)
+	assertMatches("当代 design", true)
+}
+
 func TestBroadSearchStopsBeforeDeserializingLaterPages(t *testing.T) {
 	db := openTestDB(t)
 	for i := 0; i < 80; i++ {

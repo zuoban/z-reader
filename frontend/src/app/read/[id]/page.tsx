@@ -610,6 +610,7 @@ function Reader({ bookId }: { bookId: string }) {
                 onOpenChange={setShortcutsOpen}
                 uiScheme={uiScheme}
                 overlayContainer={overlayContainer}
+                isFullscreenSupported={isFullscreenSupported}
               />
             )}
           </div>

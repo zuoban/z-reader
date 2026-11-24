@@ -18,7 +18,7 @@ export function ReaderAuthLoading({ uiScheme }: ReaderAuthLoadingProps) {
 
   return (
     <div
-      className="flex h-dvh items-center justify-center px-[max(1.25rem,env(safe-area-inset-left,0px))] py-[max(1.5rem,env(safe-area-inset-top,0px))]"
+      className="flex h-dvh items-center justify-center pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))] pt-[max(1.5rem,env(safe-area-inset-top,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
       style={{ background: uiScheme.bg }}
       role="status"
       aria-live="polite"
@@ -37,7 +37,7 @@ export function ReaderAuthLoading({ uiScheme }: ReaderAuthLoadingProps) {
           }}
         >
           <div
-            className="h-6 w-6 animate-spin rounded-full border-2"
+            className="h-6 w-6 animate-spin rounded-full border-2 motion-reduce:animate-none"
             style={{
               borderColor: withOpacity(uiScheme.link, 0.18),
               borderTopColor: uiScheme.link,
@@ -85,7 +85,7 @@ export function ReaderErrorState({
 
   return (
     <div
-      className="flex h-dvh items-center justify-center px-[max(1.25rem,env(safe-area-inset-left,0px))] py-[max(1.5rem,env(safe-area-inset-top,0px))]"
+      className="flex h-dvh items-center justify-center pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))] pt-[max(1.5rem,env(safe-area-inset-top,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
       style={{ background: uiScheme.bg }}
     >
       <div
@@ -103,7 +103,7 @@ export function ReaderErrorState({
         >
           <AlertCircle className="h-5 w-5" strokeWidth={1.7} aria-hidden="true" />
         </div>
-        <div className="mt-4 max-w-xs">
+        <div className="mt-4 w-full max-w-xs">
           <p
             className="font-heading text-lg font-medium leading-snug"
             style={{ color: "var(--reader-panel-danger)" }}
@@ -111,7 +111,7 @@ export function ReaderErrorState({
             无法打开本书
           </p>
           <p
-            className="mt-2 text-sm leading-6"
+            className="mt-2 break-words text-sm leading-6"
             style={{ color: surface.muted }}
           >
             {error}
@@ -127,7 +127,11 @@ export function ReaderErrorState({
               className="reader-panel-action h-10 px-4 lg:h-10"
             >
               <RotateCw
-                className={isRetrying ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                className={
+                  isRetrying
+                    ? "h-4 w-4 animate-spin motion-reduce:animate-none"
+                    : "h-4 w-4"
+                }
                 strokeWidth={1.7}
                 aria-hidden="true"
               />
@@ -192,7 +196,7 @@ export function ReaderLoadingOverlay({
     >
       {/* Page skeleton for perceived readiness */}
       <div
-        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl animate-pulse opacity-35 sm:inset-x-16"
+        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl animate-pulse opacity-35 motion-reduce:animate-none sm:inset-x-16"
         aria-hidden="true"
       >
         <div
@@ -223,7 +227,7 @@ export function ReaderLoadingOverlay({
           }}
         >
           <div
-            className="h-6 w-6 animate-spin rounded-full border-2"
+            className="h-6 w-6 animate-spin rounded-full border-2 motion-reduce:animate-none"
             style={{
               borderColor: withOpacity(uiScheme.link, 0.18),
               borderTopColor: uiScheme.link,

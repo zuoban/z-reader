@@ -16,30 +16,40 @@ interface ShortcutGroup {
   items: ShortcutItem[];
 }
 
-const READER_SHORTCUT_GROUPS: ShortcutGroup[] = [
-  {
-    title: "翻页导航",
-    items: [
-      { label: "上一页", keys: ["←", "PageUp", "K", "Shift + Space"] },
-      { label: "下一页", keys: ["→", "PageDown", "J", "Space"] },
-    ],
-  },
-  {
-    title: "视图与浮层",
-    items: [
-      { label: "切换全屏", keys: ["F"] },
-      { label: "图片预览缩放", keys: ["+", "-", "0"] },
-      { label: "快捷键帮助", keys: ["?"] },
-      { label: "退出全屏 / 关闭浮层 / 返回书库", keys: ["Esc"] },
-    ],
-  },
-];
+function getReaderShortcutGroups(isFullscreenSupported: boolean): ShortcutGroup[] {
+  const overlayItems: ShortcutItem[] = [
+    ...(isFullscreenSupported ? [{ label: "切换全屏", keys: ["F"] }] : []),
+    { label: "图片预览缩放", keys: ["+", "-", "0"] },
+    { label: "快捷键帮助", keys: ["?"] },
+    {
+      label: isFullscreenSupported
+        ? "退出全屏 / 关闭浮层 / 返回书库"
+        : "关闭浮层 / 返回书库",
+      keys: ["Esc"],
+    },
+  ];
+
+  return [
+    {
+      title: "翻页导航",
+      items: [
+        { label: "上一页", keys: ["←", "PageUp", "K", "Shift + Space"] },
+        { label: "下一页", keys: ["→", "PageDown", "J", "Space"] },
+      ],
+    },
+    {
+      title: "视图与浮层",
+      items: overlayItems,
+    },
+  ];
+}
 
 interface ReaderShortcutsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
+  isFullscreenSupported?: boolean;
 }
 
 export function ReaderShortcutsDialog({
@@ -47,10 +57,12 @@ export function ReaderShortcutsDialog({
   onOpenChange,
   uiScheme,
   overlayContainer,
+  isFullscreenSupported = true,
 }: ReaderShortcutsDialogProps) {
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const surface = getModernReaderSurface(uiScheme);
   const panelThemeVars = getReaderPanelThemeVars(uiScheme);
+  const shortcutGroups = getReaderShortcutGroups(isFullscreenSupported);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -97,7 +109,7 @@ export function ReaderShortcutsDialog({
       portalProps={{ target: overlayContainer ?? undefined }}
       classNames={{
         inner:
-          "px-[max(0.75rem,env(safe-area-inset-left,0px))] py-[max(0.75rem,env(safe-area-inset-top,0px))]",
+          "pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
         content:
           "flex max-h-[min(82svh,36rem)] flex-col overflow-hidden rounded-2xl border p-0",
       }}
@@ -150,7 +162,7 @@ export function ReaderShortcutsDialog({
             data-autofocus
             onClick={() => onOpenChange(false)}
             aria-label="关闭快捷键帮助"
-            title="关闭"
+            title="关闭 (Esc)"
             className="reader-panel-icon"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -158,7 +170,7 @@ export function ReaderShortcutsDialog({
         </div>
 
         <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-3.5 sm:px-5">
-          {READER_SHORTCUT_GROUPS.map((group) => (
+          {shortcutGroups.map((group) => (
             <section key={group.title} aria-label={group.title}>
               <h3
                 className="mb-1.5 text-[11px] font-medium tracking-[0.06em]"

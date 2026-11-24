@@ -58,6 +58,22 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByRole('dialog').style.getPropertyValue('--reader-panel-bg')).toBe('#ffffff');
   });
 
+  it('hides fullscreen shortcuts and narrows Escape hint when fullscreen is unsupported', () => {
+    render(
+      <ReaderShortcutsDialog
+        open
+        onOpenChange={vi.fn()}
+        uiScheme={uiScheme}
+        isFullscreenSupported={false}
+      />,
+    );
+
+    expect(screen.queryByText('切换全屏')).not.toBeInTheDocument();
+    expect(screen.queryByText('F')).not.toBeInTheDocument();
+    expect(screen.queryByText('退出全屏 / 关闭浮层 / 返回书库')).not.toBeInTheDocument();
+    expect(screen.getByText('关闭浮层 / 返回书库')).toBeInTheDocument();
+  });
+
   it('closes via close button, backdrop click, and Escape key', () => {
     const onOpenChange = vi.fn();
     render(

@@ -46,7 +46,7 @@ export function ReaderResumePrompt({
       data-reader-interactive="true"
       role="status"
       aria-live="polite"
-      className="pointer-events-none absolute inset-x-0 z-40 flex justify-center px-[max(1rem,env(safe-area-inset-left,0px))]"
+      className="pointer-events-none absolute inset-x-0 z-40 flex justify-center pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]"
       style={{
         bottom: "calc(var(--status-bar-reserved) + 0.75rem)",
       }}
@@ -82,10 +82,13 @@ export function ReaderResumePrompt({
           disabled={isResuming}
           aria-busy={isResuming || undefined}
           onClick={() => void handleResume()}
-          className="reader-panel-action h-9 px-3.5 text-sm lg:h-9"
+          className="reader-panel-action h-10 px-3.5 text-sm sm:h-9 lg:h-9"
         >
           {isResuming ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            <Loader2
+              className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
           ) : (
             <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
           )}

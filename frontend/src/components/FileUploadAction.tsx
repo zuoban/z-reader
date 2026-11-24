@@ -1,7 +1,7 @@
 'use client';
 
-import { useId, useRef } from 'react';
-import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
+import { useRef } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { Button, type ButtonProps } from '@mantine/core';
 import { cn } from '@/lib/utils';
 
@@ -32,39 +32,25 @@ export function FileUploadAction({
   buttonSize = 'sm',
   multiple = false,
 }: FileUploadActionProps) {
-  const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-
-  function handleKeyDown(event: KeyboardEvent<HTMLLabelElement>) {
-    if (disabled || (event.key !== 'Enter' && event.key !== ' ')) return;
-
-    event.preventDefault();
-    inputRef.current?.click();
-  }
 
   return (
     <div className={cn('relative min-w-0', wrapperClassName)} data-tooltip={title}>
       <input
-        id={inputId}
         ref={inputRef}
         type="file"
         accept={accept}
         multiple={multiple}
         onChange={onChange}
         disabled={disabled}
-        className="sr-only"
-        tabIndex={-1}
+        hidden
       />
       <Button
-        component="label"
-        htmlFor={disabled ? undefined : inputId}
-        role="button"
-        tabIndex={disabled ? -1 : 0}
+        type="button"
         aria-label={title}
-        aria-disabled={disabled}
         aria-busy={Boolean(statusLabel)}
-        data-disabled={disabled || undefined}
-        onKeyDown={handleKeyDown}
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
         variant={buttonVariant}
         size={buttonSize}
         radius="md"

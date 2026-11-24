@@ -11,28 +11,25 @@ import {
   BookOpen,
   CheckSquare,
   HardDrive,
-  LogOut,
   MoreHorizontal,
-  Moon,
   Plus,
   Search,
   Settings2,
-  Sun,
   Tag,
   Trash2,
   Upload,
-  UserRound,
   WifiOff,
   X,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useShelfData } from '@/hooks/useShelfData';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
-import { AppScreen, BrandLogo, LoadingSpinner } from '@/components/AppShell';
+import { AppScreen, LoadingSpinner } from '@/components/AppShell';
 import { BookCard } from '@/components/BookCard';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
+import { ShelfHeader } from '@/components/ShelfHeader';
 import { SortSelector } from '@/components/SortSelector';
 import { VirtualBookGrid } from '@/components/VirtualBookGrid';
 import { cn } from '@/lib/utils';
@@ -283,6 +280,10 @@ export default function ShelfPage() {
     await handleRenameCategory(category, nextCategory);
   }
 
+  function handleLogout() {
+    void logout().catch(() => toast.error('退出失败，请重试'));
+  }
+
   function handleShelfDragEnter(event: DragEvent<HTMLElement>) {
     if (!event.dataTransfer.types.includes('Files')) return;
 
@@ -342,111 +343,20 @@ export default function ShelfPage() {
 
   return (
     <AppScreen
-      className="bg-[var(--shelf-app-bg)] font-sans"
+      className="overflow-clip bg-[var(--shelf-app-bg)] font-sans"
       contentClassName="flex min-h-dvh w-full flex-col"
     >
-      <header className="shelf-header sticky top-0 z-50 w-full border-b border-border">
-        <div className="app-container flex h-16 items-center justify-between gap-3">
-          <BrandLogo compact className="shrink-0 whitespace-nowrap" />
-
-          <div className="flex min-w-0 items-center gap-2">
-            {!isOffline && (
-              <FileUploadAction
-                accept={SUPPORTED_FORMATS_ACCEPT}
-                onChange={handleUpload}
-                disabled={isUploading}
-                title="上传书籍"
-                multiple
-                buttonSize="sm"
-                buttonClassName="h-11 min-w-11 rounded-lg px-3 text-sm font-medium tabular-nums dark:aria-[disabled=false]:text-primary-foreground sm:h-9 sm:px-4"
-              >
-                {isUploading ? (
-                  <LoadingSpinner className="h-4 w-4 border-primary-foreground/35 border-t-primary-foreground" />
-                ) : (
-                  <Upload className="h-4 w-4" strokeWidth={1.5} />
-                )}
-                <span className="truncate" role={isUploading ? 'status' : undefined}>
-                  {uploadStatusLabel ?? '上传'}
-                </span>
-              </FileUploadAction>
-            )}
-            {!isOffline && passwordRequired ? (
-              <Menu position="bottom-end" offset={8} width={192} radius="md" shadow="md">
-                <Menu.Target>
-                  <ActionIcon
-                    variant="default"
-                    size="md"
-                    className="size-11 min-h-0 min-w-0 rounded-lg border-border bg-card text-foreground shadow-[var(--paper-shadow-control)] hover:border-input hover:bg-secondary sm:size-9"
-                    aria-label="书架设置"
-                    title="书架设置"
-                  >
-                    <UserRound className="h-4 w-4" strokeWidth={1.5} />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown className="shelf-account-menu paper-menu w-48 rounded-lg border-border p-1">
-                  <Menu.Item
-                    leftSection={
-                      isDark ? (
-                        <Sun className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                      ) : (
-                        <Moon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                      )
-                    }
-                    className="shelf-account-menu-item min-h-11 rounded-md px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
-                    onClick={toggleTheme}
-                  >
-                    {isDark ? '亮色模式' : '暗色模式'}
-                  </Menu.Item>
-                  <Menu.Item
-                    leftSection={<HardDrive className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />}
-                    className="shelf-account-menu-item min-h-11 rounded-md px-3 py-2 text-sm font-medium text-foreground data-[hovered]:bg-secondary"
-                    onClick={() => setOfflineBooksOpen(true)}
-                  >
-                    离线图书管理
-                  </Menu.Item>
-                  <Menu.Item
-                    color="red"
-                    leftSection={<LogOut className="h-4 w-4 text-destructive" strokeWidth={1.5} />}
-                    onClick={() => { void logout().catch(() => toast.error('退出失败，请重试')); }}
-                    className="shelf-account-menu-item shelf-account-menu-danger min-h-11 rounded-md px-3 py-2 text-sm font-medium text-destructive data-[hovered]:bg-destructive/10"
-                  >
-                    退出登录
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            ) : (
-              <>
-                <ActionIcon
-                  type="button"
-                  variant="default"
-                  size="md"
-                  className="size-11 min-h-0 min-w-0 rounded-lg border-border bg-card text-foreground shadow-[var(--paper-shadow-control)] hover:border-input hover:bg-secondary sm:size-9"
-                  onClick={() => setOfflineBooksOpen(true)}
-                  aria-label="离线图书管理"
-                  title="离线图书管理"
-                >
-                  <HardDrive className="h-4 w-4" strokeWidth={1.5} />
-                </ActionIcon>
-                <ActionIcon
-                  type="button"
-                  variant="default"
-                  size="md"
-                  className="size-11 min-h-0 min-w-0 rounded-lg border-border bg-card text-foreground shadow-[var(--paper-shadow-control)] hover:border-input hover:bg-secondary sm:size-9"
-                  onClick={toggleTheme}
-                  aria-label={isDark ? '亮色模式' : '暗色模式'}
-                  title={isDark ? '亮色模式' : '暗色模式'}
-                >
-                  {isDark ? (
-                    <Sun className="h-4 w-4" strokeWidth={1.5} />
-                  ) : (
-                    <Moon className="h-4 w-4" strokeWidth={1.5} />
-                  )}
-                </ActionIcon>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <ShelfHeader
+        uploadAccept={SUPPORTED_FORMATS_ACCEPT}
+        isOffline={isOffline}
+        isUploading={isUploading}
+        uploadStatusLabel={uploadStatusLabel}
+        isDark={isDark}
+        onUpload={handleUpload}
+        onToggleTheme={toggleTheme}
+        onManageOfflineBooks={() => setOfflineBooksOpen(true)}
+        onLogout={!isOffline && passwordRequired ? handleLogout : undefined}
+      />
 
       <main
         id="shelf-main"
@@ -570,7 +480,7 @@ export default function ShelfPage() {
                   title="上传书籍"
                   multiple
                   wrapperClassName="w-full sm:w-auto"
-                  buttonClassName="h-11 w-full dark:aria-[disabled=false]:text-primary-foreground sm:h-11 sm:w-auto"
+                  buttonClassName="h-11 w-full dark:enabled:text-primary-foreground sm:h-11 sm:w-auto"
                 >
                   {isUploading ? (
                     <>

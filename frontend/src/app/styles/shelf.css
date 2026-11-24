@@ -1,4 +1,4 @@
-/* Shelf cards, category controls, and the account menu. */
+/* Shelf cards, category controls, and the settings menu. */
 
 @layer components {
   .category-chip-pill {
@@ -209,48 +209,35 @@
     }
   }
 
-  .shelf-account-menu {
-    background: var(--popover);
-    border-color: var(--border);
-    box-shadow: var(--paper-shadow-floating);
-  }
-
-  .shelf-account-menu .shelf-account-menu-item {
-    min-height: 2.75rem;
+  .shelf-settings-item {
+    min-height: var(--control-touch-size);
     gap: 0.625rem;
     border-radius: var(--radius-md);
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--foreground);
-    transition:
-      background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .shelf-account-menu .shelf-account-menu-item svg {
+  .shelf-settings-item svg {
     width: 1rem;
     height: 1rem;
     color: var(--muted-foreground);
   }
 
-  .shelf-account-menu .shelf-account-menu-item:focus,
-  .shelf-account-menu .shelf-account-menu-item:hover {
+  .shelf-settings-item:hover,
+  .shelf-settings-item:focus-visible {
     background: var(--secondary);
-    color: var(--foreground);
   }
 
-  .shelf-account-menu .shelf-account-menu-danger {
+  .shelf-settings-item-danger,
+  .shelf-settings-item-danger svg {
     color: var(--destructive);
   }
 
-  .shelf-account-menu .shelf-account-menu-danger svg {
-    color: var(--destructive);
-  }
-
-  .shelf-account-menu .shelf-account-menu-danger:focus,
-  .shelf-account-menu .shelf-account-menu-danger:hover {
+  .shelf-settings-item-danger:hover,
+  .shelf-settings-item-danger:focus-visible {
     background: color-mix(in srgb, var(--destructive) 10%, transparent);
-    color: var(--destructive);
   }
 }

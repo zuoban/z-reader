@@ -617,9 +617,10 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 
 	book.Category = normalizeCategoryName(book.Category)
 	searchText := bookSearchText(book)
+	sameSearchKey := oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID
 	// Cover and processing-state updates can leave both search indexes intact.
 	searchUnchanged := false
-	if oldBook != nil && oldUserID == book.UserID && oldBook.ID == book.ID && oldSearchText == searchText {
+	if sameSearchKey && oldSearchText == searchText {
 		indexedText := tx.Bucket(BookSearchIndex).Get(bookSearchIndexKey(book.UserID, book.ID))
 		searchUnchanged = indexedText != nil && string(indexedText) == searchText
 	}
@@ -653,7 +654,7 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 			return err
 		}
 	}
-	if !searchUnchanged && oldBook != nil {
+	if oldBook != nil && !sameSearchKey {
 		if err := removeBookFromSearchIndex(tx, oldBook); err != nil {
 			return err
 		}
@@ -668,7 +669,11 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return err
 		}
-		if err := addBookToSearchGramIndex(tx, book, bookSearchGrams(searchText)); err != nil {
+		if sameSearchKey {
+			if err := replaceBookSearchGrams(tx, book, oldSearchText, searchText); err != nil {
+				return err
+			}
+		} else if err := addBookToSearchGramIndex(tx, book, bookSearchGrams(searchText)); err != nil {
 			return err
 		}
 	}

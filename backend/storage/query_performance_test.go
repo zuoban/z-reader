@@ -228,8 +228,11 @@ func TestBatchDeleteUpdatesSummaryOnlyOnCommit(t *testing.T) {
 
 func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
 	db := openTestDB(t)
-	book := &models.Book{ID: "book", UserID: "reader", Title: "古典 Art"}
+	book := &models.Book{ID: "book", UserID: "reader", Title: "古典 Art", Author: "Alice"}
 	if err := db.CreateBook(book); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.CreateBook(&models.Book{ID: "other", UserID: "reader", Author: "Alice"}); err != nil {
 		t.Fatal(err)
 	}
 	assertMatches := func(query string, want bool) {
@@ -260,8 +263,8 @@ func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
 	assertMatches("当代 design", true)
 	if err := db.View(func(tx *bbolt.Tx) error {
 		text := tx.Bucket(BookSearchIndex).Get([]byte("reader\x00book"))
-		if string(text) != "当代 design" {
-			t.Errorf("stored search text = %q, want 当代 design", text)
+		if string(text) != "当代 design alice" {
+			t.Errorf("stored search text = %q, want 当代 design alice", text)
 		}
 		postings := tx.Bucket(BookSearchGramIndex)
 		counts := tx.Bucket(BookSearchGramCounts)
@@ -271,6 +274,11 @@ func TestUpdateBookKeepsSearchConsistent(t *testing.T) {
 		if postings.Get([]byte("reader\x00当代\x00book")) == nil ||
 			string(counts.Get([]byte("reader\x00当代\x00"))) != "\x00\x00\x00\x00\x00\x00\x00\x01" {
 			t.Error("new title posting or count is incorrect")
+		}
+		if postings.Get([]byte("reader\x00al\x00book")) == nil ||
+			postings.Get([]byte("reader\x00al\x00other")) == nil ||
+			bookSearchGramCount(counts, []byte("reader\x00al\x00")) != 2 {
+			t.Error("shared author postings or count changed during the title update")
 		}
 		return nil
 	}); err != nil {

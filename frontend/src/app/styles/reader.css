@@ -588,6 +588,7 @@
   .reader-panel-search input {
     @apply min-w-0 flex-1 bg-transparent text-base outline-none lg:text-sm;
     color: var(--reader-panel-fg);
+    caret-color: var(--reader-panel-accent);
   }
 
   .reader-panel-search input::placeholder {

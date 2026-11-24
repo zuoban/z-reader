@@ -188,6 +188,51 @@ describe('ReaderTOCSheet', () => {
     fireEvent.keyDown(firstChapter, { key: 'ArrowUp' });
     expect(searchInput).toHaveFocus();
   });
+
+  it('ignores IME composing Escape and restores focus to search input when Escape clears a query', () => {
+    const onOpenChange = vi.fn();
+
+    render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={onOpenChange}
+        toc={createLongTOC()}
+        bookTitle="测试书籍"
+        bookAuthor="测试作者"
+        tocListRef={{ current: null }}
+        currentChapter="第一章 初遇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        onLocateCurrent={vi.fn()}
+        onGoTo={vi.fn()}
+      />,
+    );
+
+    const searchInput = screen.getByRole('searchbox', { name: '筛选目录章节' });
+    searchInput.focus();
+
+    // Composing Escape with an empty query must not close the TOC drawer
+    const composingEscape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEscape, 'isComposing', { value: true });
+    fireEvent(searchInput, composingEscape);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // Escape from the empty-state clear button clears the query and returns focus to search
+    fireEvent.change(searchInput, { target: { value: '不存在的章节' } });
+    const clearButton = screen.getByRole('button', { name: '清空筛选' });
+    clearButton.focus();
+    fireEvent.keyDown(clearButton, { key: 'Escape' });
+
+    expect(searchInput).toHaveValue('');
+    expect(searchInput).toHaveFocus();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });
 
 describe('ReaderBookmarksSheet', () => {

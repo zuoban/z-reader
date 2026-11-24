@@ -165,7 +165,7 @@ export function ReaderToolbar({
         !mobileActionsMenuRef.current?.contains(target) &&
         !mobileActionsButtonRef.current?.contains(target)
       ) {
-        closeMobileActions();
+        closeMobileActions(false);
       }
     }
 
@@ -186,6 +186,7 @@ export function ReaderToolbar({
 
   function handleMobileActionsKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
+      if (event.nativeEvent.isComposing) return;
       event.preventDefault();
       event.stopPropagation();
       closeMobileActions();

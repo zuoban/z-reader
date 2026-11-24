@@ -424,4 +424,56 @@ describe('ReaderToolbar', () => {
     rerender(<ReaderToolbar {...baseProps} ttsOpen />);
     expect(mobileMenu).toHaveAttribute('inert');
   });
+
+  it('closes the mobile menu on outside pointerdown without stealing focus back to the trigger', async () => {
+    const { container } = render(
+      <ReaderToolbar
+        visible
+        bookTitle="测试书籍"
+        bookAuthor=""
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={uiScheme}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+      />,
+    );
+
+    const mobileMenu = container.querySelector('.reader-toolbar-menu') as HTMLElement;
+    const moreButton = screen.getByTitle('更多阅读操作');
+    const backButton = screen.getByRole('button', { name: '返回书库' });
+
+    fireEvent.click(moreButton);
+    expect(mobileMenu).not.toHaveAttribute('inert');
+
+    backButton.focus();
+    fireEvent.pointerDown(backButton);
+    expect(mobileMenu).toHaveAttribute('inert');
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+    expect(backButton).toHaveFocus();
+    expect(moreButton).not.toHaveFocus();
+  });
 });

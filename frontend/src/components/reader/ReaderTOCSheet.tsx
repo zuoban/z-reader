@@ -107,6 +107,19 @@ export function ReaderTOCSheet({
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleComposingEscape(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape" && event.isComposing) {
+        event.stopPropagation();
+      }
+    }
+
+    window.addEventListener("keydown", handleComposingEscape, true);
+    return () => window.removeEventListener("keydown", handleComposingEscape, true);
+  }, [open]);
+
   const totalCount = useMemo(() => countTOCItems(toc), [toc]);
   const showFilter = totalCount > TOC_FILTER_THRESHOLD;
   const normalizedQuery = showFilter ? searchQuery.trim().toLowerCase() : "";
@@ -247,7 +260,7 @@ export function ReaderTOCSheet({
               if (event.key === "Escape" && !event.nativeEvent.isComposing && searchQuery) {
                 event.preventDefault();
                 event.stopPropagation();
-                setSearchQuery("");
+                handleClearSearch();
               }
             }}
           >

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"archive/zip"
+	"bufio"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -376,15 +377,32 @@ func resolveEPUBRelativePath(baseDir, href string) (string, bool) {
 }
 
 func readEPUBImageEntry(f *zip.File) ([]byte, string, bool) {
-	if f == nil || strings.HasSuffix(f.Name, "/") {
+	if f == nil || strings.HasSuffix(f.Name, "/") || f.UncompressedSize64 > maxEPUBCoverBytes {
 		return nil, "", false
 	}
-	data, err := readZipFileWithLimit(f, maxEPUBCoverBytes)
-	if err != nil || len(data) == 0 {
+	rc, err := f.Open()
+	if err != nil {
 		return nil, "", false
 	}
-	contentType := http.DetectContentType(data)
+	defer rc.Close()
+
+	const sniffBytes = 512 // http.DetectContentType only examines this prefix.
+	reader := bufio.NewReaderSize(rc, sniffBytes)
+	prefix, err := reader.Peek(sniffBytes)
+	if len(prefix) == 0 || (err != nil && err != io.EOF) {
+		return nil, "", false
+	}
+	contentType := http.DetectContentType(prefix)
 	if !strings.HasPrefix(contentType, "image/") {
+		return nil, "", false
+	}
+	if err == io.EOF {
+		return prefix, contentType, true
+	}
+
+	// Read through EOF to verify the ZIP checksum before accepting an image.
+	data, err := io.ReadAll(io.LimitReader(reader, maxEPUBCoverBytes+1))
+	if err != nil || len(data) > maxEPUBCoverBytes {
 		return nil, "", false
 	}
 	return data, contentType, true

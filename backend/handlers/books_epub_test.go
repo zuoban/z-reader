@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -66,6 +67,70 @@ func buildTestZipReader(t *testing.T, entries []struct {
 		t.Fatalf("open zip reader: %v", err)
 	}
 	return zr
+}
+
+type countingReaderAt struct {
+	io.ReaderAt
+	bytesRead int
+}
+
+func (r *countingReaderAt) ReadAt(p []byte, offset int64) (int, error) {
+	n, err := r.ReaderAt.ReadAt(p, offset)
+	r.bytesRead += n
+	return n, err
+}
+
+func TestReadEPUBImageEntrySniffsBeforeReadingCover(t *testing.T) {
+	text := bytes.Repeat([]byte("<html>not a cover</html>"), 4096)
+	png := encodeTestPNG(t, color.RGBA{R: 30, G: 180, B: 90, A: 255})
+	imageData := append(png, make([]byte, 1024)...)
+	var archive bytes.Buffer
+	writer := zip.NewWriter(&archive)
+	for _, entry := range []struct {
+		name string
+		data []byte
+	}{
+		{"cover.xhtml", text},
+		{"cover.png", imageData},
+	} {
+		file, err := writer.CreateHeader(&zip.FileHeader{Name: entry.name, Method: zip.Store})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.Write(entry.data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	input := &countingReaderAt{ReaderAt: bytes.NewReader(archive.Bytes())}
+	reader, err := zip.NewReader(input, int64(archive.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	input.bytesRead = 0
+	if _, _, ok := readEPUBImageEntry(reader.File[0]); ok {
+		t.Fatal("accepted a non-image cover")
+	}
+	if input.bytesRead > 1024 {
+		t.Fatalf("read %d bytes for a non-image cover, including ZIP headers", input.bytesRead)
+	}
+
+	cover := reader.File[1]
+	if data, mime, ok := readEPUBImageEntry(cover); !ok || mime != "image/png" || !bytes.Equal(data, imageData) {
+		t.Fatalf("image cover = %d bytes, %q, %t", len(data), mime, ok)
+	}
+	// Damage a byte beyond the MIME prefix. Reading to EOF must catch the bad CRC.
+	offset, err := cover.DataOffset()
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive.Bytes()[offset+int64(len(imageData))-1] ^= 1
+	if _, _, ok := readEPUBImageEntry(cover); ok {
+		t.Fatal("accepted a corrupt image cover")
+	}
 }
 
 func TestExtractEPUBCoverSkipsNonImageCoverEntries(t *testing.T) {

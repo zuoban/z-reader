@@ -90,13 +90,75 @@ describe('OfflineBooksDialog', () => {
     expect(toast.success).toHaveBeenCalledWith('已移除《三体》的离线缓存');
     expect(screen.getByText('已缓存 1 本 · 共 1.5 KB')).toBeInTheDocument();
 
-    // Clear all remaining books
+    // Clear all remaining books requires inline confirmation
     fireEvent.click(screen.getByRole('button', { name: '清空全部离线缓存' }));
+    expect(screen.getByText('确定清空全部 1 本离线缓存？')).toBeInTheDocument();
+    expect(clearOfflineBooks).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '确认清空' }));
     await waitFor(() => {
       expect(clearOfflineBooks).toHaveBeenCalledWith(PERSONAL_LIBRARY);
     });
     expect(await screen.findByText('暂无已保存的离线图书')).toBeInTheDocument();
     expect(toast.success).toHaveBeenCalledWith('已清空全部离线缓存');
+  });
+
+  it('cancels inline clear confirmation on Escape without closing the dialog', async () => {
+    const onOpenChange = vi.fn();
+    vi.mocked(listOfflineBooks).mockResolvedValue([SAMPLE_BOOKS[0]]);
+
+    render(<OfflineBooksDialog open onOpenChange={onOpenChange} />);
+    expect(await screen.findByText('三体')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '清空全部离线缓存' }));
+    expect(screen.getByText('确定清空全部 1 本离线缓存？')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+    expect(screen.queryByText('确定清空全部 1 本离线缓存？')).not.toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('guards closing and disables other actions while removing a book', async () => {
+    let resolveRemove!: () => void;
+    const onOpenChange = vi.fn();
+    vi.mocked(listOfflineBooks).mockResolvedValue(SAMPLE_BOOKS);
+    vi.mocked(removeOfflineBook).mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRemove = resolve;
+        })
+    );
+
+    render(<OfflineBooksDialog open onOpenChange={onOpenChange} />);
+    expect(await screen.findByText('三体')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '移除《三体》' }));
+    expect(screen.getByRole('button', { name: '正在移除《三体》' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '移除《读书笔记》' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '关闭离线图书管理' })).toBeDisabled();
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' });
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    resolveRemove();
+    await waitFor(() => {
+      expect(screen.queryByText('三体')).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: '关闭' })).toBeEnabled();
+  });
+
+  it('shows retry state when loading cached books fails', async () => {
+    vi.mocked(listOfflineBooks)
+      .mockRejectedValueOnce(new Error('storage error'))
+      .mockResolvedValueOnce([SAMPLE_BOOKS[0]]);
+
+    render(<OfflineBooksDialog open onOpenChange={vi.fn()} />);
+
+    expect(await screen.findByText('无法读取离线缓存')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重新加载' }));
+
+    expect(await screen.findByText('三体')).toBeInTheDocument();
   });
 
   it('shows error toast when remove or clear fails and closes on Escape', async () => {
@@ -114,6 +176,7 @@ describe('OfflineBooksDialog', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: '清空全部离线缓存' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认清空' }));
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('清空离线缓存失败，请重试');
     });

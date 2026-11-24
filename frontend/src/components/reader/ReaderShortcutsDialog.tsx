@@ -77,6 +77,17 @@ export function ReaderShortcutsDialog({
       closeOnEscape={false}
       closeOnClickOutside
       portalProps={{ target: overlayContainer ?? undefined }}
+      // Modal.Content forwards direct styling props to its viewport wrapper as well.
+      classNames={{
+        content: "overscroll-contain rounded-2xl border p-4 shadow-[var(--paper-shadow-floating)] sm:p-5",
+      }}
+      styles={{
+        content: {
+          background: uiScheme.cardBg,
+          borderColor: withOpacity(uiScheme.cardBorder, 0.8),
+          color: uiScheme.fg,
+        },
+      }}
       data-reader-interactive="true"
     >
       <Modal.Overlay
@@ -84,15 +95,7 @@ export function ReaderShortcutsDialog({
         backgroundOpacity={0.42}
         blur={3}
       />
-      <Modal.Content
-        data-reader-interactive="true"
-        className="w-full max-w-md overflow-hidden rounded-2xl border p-5 shadow-[0_20px_48px_-20px_rgba(0,0,0,0.38)] outline-none"
-        style={{
-          background: uiScheme.cardBg,
-          borderColor: withOpacity(uiScheme.cardBorder, 0.8),
-          color: uiScheme.fg,
-        }}
-      >
+      <Modal.Content data-reader-interactive="true">
         <div
           className="flex items-center justify-between border-b pb-3.5"
           style={{ borderColor: withOpacity(uiScheme.cardBorder, 0.5) }}

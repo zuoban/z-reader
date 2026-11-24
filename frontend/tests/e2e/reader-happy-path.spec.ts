@@ -142,6 +142,44 @@ test.describe('reader happy path', () => {
     expect(serverProgress).toEqual(otherDeviceProgress);
   });
 
+  for (const width of [390, 1280]) {
+    test(`centers the keyboard shortcuts dialog at ${width}px`, async ({ page }) => {
+      const height = 720;
+      await page.setViewportSize({ width, height });
+      await installBrowserStubs(page, { preset: 'light', authenticated: true });
+      await mockReaderHappyPath(page);
+      await gotoStable(page, '/read/book-1');
+      await waitForReaderReady(page);
+      await ensureToolbarVisible(page);
+
+      if (width < 1024) {
+        await page.getByRole('button', { name: '更多阅读操作' }).click();
+      }
+      await page.getByRole('button', { name: '快捷键', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: '键盘快捷键' });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('button', { name: '关闭快捷键帮助' })).toBeFocused();
+      await expect.poll(async () => {
+        const box = await dialog.boundingBox();
+        if (!box) return Infinity;
+        return Math.max(
+          Math.abs(box.x + box.width / 2 - width / 2),
+          Math.abs(box.y + box.height / 2 - height / 2),
+        );
+      }).toBeLessThan(1);
+      await expect(dialog.locator('..')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(page).toHaveURL(/\/read\/book-1$/);
+      await page.locator('#main-content').focus();
+      await page.keyboard.press('?');
+      await expect(dialog).toBeVisible();
+      await page.mouse.click(4, 4);
+      await expect(dialog).toBeHidden();
+    });
+  }
+
   test('turns pages with keyboard and can open the next chapter via TOC', async ({
     page,
   }) => {

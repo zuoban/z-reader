@@ -517,6 +517,44 @@ describe('api.fetchBook', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps shared downloads running when a subscriber throws during progress updates', async () => {
+    const initialProgress = deferred<void>();
+    let finish!: () => void;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        finish = () => { controller.enqueue(new TextEncoder().encode('book')); controller.close(); };
+      },
+    });
+    const fetch = vi.fn().mockResolvedValue(new Response(body, { headers: { 'Content-Length': '4' } }));
+    globalThis.fetch = fetch;
+    const first = api.fetchBook('shared-progress', { onProgress: () => initialProgress.resolve() });
+    await initialProgress.promise;
+
+    const throwingProgress = vi.fn(() => { throw new Error('progress UI failed'); });
+    const lastProgress = vi.fn();
+    const downloads = Promise.allSettled([
+      first,
+      api.fetchBook('shared-progress', { onProgress: throwingProgress }),
+      api.fetchBook('shared-progress', { onProgress: lastProgress }),
+    ]);
+    try {
+      await vi.waitFor(() => {
+        expect(throwingProgress).toHaveBeenCalledWith(expect.objectContaining({ downloadedBytes: 0 }));
+        expect(lastProgress).toHaveBeenCalledWith(expect.objectContaining({ downloadedBytes: 0 }));
+      });
+    } finally {
+      finish();
+    }
+
+    for (const result of await downloads) {
+      if (result.status === 'rejected') throw result.reason;
+      expect(await result.value.text()).toBe('book');
+    }
+    expect(throwingProgress).toHaveBeenLastCalledWith(expect.objectContaining({ downloadedBytes: 4 }));
+    expect(lastProgress).toHaveBeenLastCalledWith(expect.objectContaining({ downloadedBytes: 4 }));
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it('cancels the network when the final caller leaves and saves received bytes', async () => {
     installBookCache();
     const cancel = vi.fn();

@@ -13,6 +13,14 @@ interface SharedDownload {
 
 const downloads = new Map<string, SharedDownload>();
 
+function notifyProgress(subscriber: DownloadSubscriber, progress: BookDownloadProgress): void {
+  try {
+    subscriber.onProgress?.(progress);
+  } catch {
+    // A progress observer must not interrupt the transfer or other subscribers.
+  }
+}
+
 export function bookDownloadAborted(): DOMException {
   return new DOMException('书籍下载已取消', 'AbortError');
 }
@@ -55,7 +63,7 @@ export function shareBookDownload(
         signal: controller.signal,
         onProgress(progress) {
           entry.latestProgress = progress;
-          for (const subscriber of subscribers) subscriber.onProgress?.(progress);
+          for (const subscriber of subscribers) notifyProgress(subscriber, progress);
         },
       })).finally(() => {
         if (downloads.get(key) === entry) downloads.delete(key);
@@ -81,7 +89,7 @@ export function shareBookDownload(
     };
     entry.subscribers.add(subscriber);
     options.signal?.addEventListener('abort', abort, { once: true });
-    if (entry.latestProgress) options.onProgress?.(entry.latestProgress);
+    if (entry.latestProgress) notifyProgress(subscriber, entry.latestProgress);
     entry.promise.then(
       (blob) => { detach(); resolve(blob); },
       (error) => { detach(); reject(error); }

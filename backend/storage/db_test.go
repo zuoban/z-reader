@@ -290,7 +290,7 @@ func TestSearchBooksUsesGramIndexForCJKQueries(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"
 	book := &models.Book{
-		ID: "book-cjk", UserID: userID, Title: "三体", Author: "刘慈欣",
+		ID: "book-cjk", UserID: userID, Title: "三体　ÄBC", Author: "刘慈欣",
 		Filename: "three-body.epub", Format: "epub", CreatedAt: time.Now().UTC(),
 	}
 	if err := db.SaveBook(book); err != nil {
@@ -298,16 +298,18 @@ func TestSearchBooksUsesGramIndexForCJKQueries(t *testing.T) {
 	}
 
 	err := db.View(func(tx *bbolt.Tx) error {
-		key := bookSearchGramIndexKey(userID, "三体", book.ID)
-		if tx.Bucket(BookSearchGramIndex).Get(key) == nil {
-			t.Fatalf("expected CJK gram index entry for %q", key)
+		for _, gram := range []string{"三体", "体 ", " ä", "äb"} {
+			key := bookSearchGramIndexKey(userID, gram, book.ID)
+			if tx.Bucket(BookSearchGramIndex).Get(key) == nil {
+				t.Fatalf("expected gram index entry for %q", key)
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, _, err := db.SearchBooks(userID, "三体", "", 10, "title")
+	got, _, err := db.SearchBooks(userID, " \t三\x00体　 ÄBC\n", "", 10, "title")
 	if err != nil || len(got) != 1 || got[0].ID != book.ID {
 		t.Fatalf("unexpected CJK search response: books=%+v err=%v", got, err)
 	}

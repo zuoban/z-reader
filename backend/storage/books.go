@@ -126,12 +126,12 @@ func appendBookSearchGramIndexKey(key []byte, userID, gram, bookID string) []byt
 	return append(key, bookID...)
 }
 
-// bookSearchGrams produces deduplicated adjacent-rune grams. It works for
-// space-separated languages and CJK text without relying on a dictionary.
+// bookSearchGrams produces deduplicated adjacent-rune grams from normalized text.
+// It works for space-separated languages and CJK text without a dictionary.
 // One-rune queries intentionally use the existing bounded scan fallback: an
 // index for common single characters would be larger and rarely selective.
-func bookSearchGrams(value string) []string {
-	runes := []rune(normalizeBookSearchText(value))
+func bookSearchGrams(normalized string) []string {
+	runes := []rune(normalized)
 	if len(runes) < 2 {
 		return nil
 	}

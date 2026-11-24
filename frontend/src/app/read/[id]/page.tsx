@@ -291,6 +291,7 @@ function Reader({ bookId }: { bookId: string }) {
 
   const {
     isTouchReader,
+    isFullscreenSupported,
     isFullscreen,
     toggleFullscreen,
     bindReaderDocument,
@@ -506,6 +507,7 @@ function Reader({ bookId }: { bookId: string }) {
           setTheme={setTheme}
           themeSettingsOpen={themeSettingsOpen}
           onThemeSettingsOpenChange={setThemeSettingsOpen}
+          isFullscreenSupported={isFullscreenSupported}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
           onOpenShortcuts={handleOpenShortcuts}
@@ -534,7 +536,7 @@ function Reader({ bookId }: { bookId: string }) {
                 triggerStyle={{}}
                 triggerContent={
                   <>
-                    <Volume2 className="size-4 opacity-80" />
+                    <Volume2 className="size-4 opacity-80" aria-hidden="true" />
                     <span>朗读</span>
                   </>
                 }

@@ -241,4 +241,27 @@ describe('reader controls', () => {
     fireEvent.keyDown(page, { key: 'Escape' });
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+
+  it('reports fullscreen support from the boolean value of document.fullscreenEnabled', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(document, 'fullscreenEnabled');
+    try {
+      Object.defineProperty(document, 'fullscreenEnabled', {
+        configurable: true,
+        value: false,
+      });
+      expect(renderControls().result.current.isFullscreenSupported).toBe(false);
+
+      Object.defineProperty(document, 'fullscreenEnabled', {
+        configurable: true,
+        value: true,
+      });
+      expect(renderControls().result.current.isFullscreenSupported).toBe(true);
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(document, 'fullscreenEnabled', originalDescriptor);
+      } else {
+        delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+      }
+    }
+  });
 });

@@ -18,6 +18,7 @@ import {
   Download,
   Keyboard as KeyboardIcon,
   List,
+  Loader2,
   Maximize,
   Minimize,
   MoreHorizontal,
@@ -68,6 +69,7 @@ interface ReaderToolbarProps {
   setTheme: (theme: Partial<ReaderTheme>) => void;
   themeSettingsOpen: boolean;
   onThemeSettingsOpenChange: (open: boolean) => void;
+  isFullscreenSupported?: boolean;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenShortcuts?: () => void;
@@ -107,6 +109,7 @@ export function ReaderToolbar({
   setTheme,
   themeSettingsOpen,
   onThemeSettingsOpenChange,
+  isFullscreenSupported = true,
   isFullscreen,
   onToggleFullscreen,
   onOpenShortcuts,
@@ -160,11 +163,48 @@ export function ReaderToolbar({
   }, [mobileActionsOpen]);
 
   function handleMobileActionsKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "Escape") return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMobileActions();
+      return;
+    }
+
+    if (
+      event.key !== "ArrowDown" &&
+      event.key !== "ArrowUp" &&
+      event.key !== "Home" &&
+      event.key !== "End"
+    ) {
+      return;
+    }
+
+    const items = Array.from(
+      mobileActionsMenuRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []
+    );
+    if (items.length === 0) return;
 
     event.preventDefault();
     event.stopPropagation();
-    closeMobileActions();
+
+    if (event.key === "Home") {
+      items[0]?.focus();
+      return;
+    }
+    if (event.key === "End") {
+      items[items.length - 1]?.focus();
+      return;
+    }
+
+    const activeIndex = items.findIndex((item) => item === document.activeElement);
+    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex =
+      activeIndex === -1
+        ? delta > 0
+          ? 0
+          : items.length - 1
+        : (activeIndex + delta + items.length) % items.length;
+    items[nextIndex]?.focus();
   }
 
   const chromeBtnClass = "reader-chrome-btn";
@@ -295,7 +335,14 @@ export function ReaderToolbar({
                       }}
                       type="button"
                     >
-                      <BookmarkPlus className="h-4 w-4 opacity-80" aria-hidden="true" />
+                      {isSavingBookmark ? (
+                        <Loader2
+                          className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <BookmarkPlus className="h-4 w-4 opacity-80" aria-hidden="true" />
+                      )}
                       <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
                     </button>
                   </>
@@ -311,8 +358,15 @@ export function ReaderToolbar({
                     }}
                     type="button"
                   >
-                    <Download className="h-4 w-4 opacity-80" aria-hidden="true" />
-                    <span>
+                    {isSavingOffline ? (
+                      <Loader2
+                        className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Download className="h-4 w-4 opacity-80" aria-hidden="true" />
+                    )}
+                    <span className="tabular-nums">
                       {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}
                     </span>
                   </button>
@@ -330,22 +384,24 @@ export function ReaderToolbar({
                   <Settings className="h-4 w-4 opacity-80" aria-hidden="true" />
                   <span>设置</span>
                 </button>
-                <button
-                  className="reader-mobile-menu-item"
-                  aria-pressed={isFullscreen}
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onToggleFullscreen();
-                  }}
-                  type="button"
-                >
-                  {isFullscreen ? (
-                    <Minimize className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  ) : (
-                    <Maximize className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  )}
-                  <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
-                </button>
+                {isFullscreenSupported && (
+                  <button
+                    className="reader-mobile-menu-item"
+                    aria-pressed={isFullscreen}
+                    onClick={() => {
+                      closeMobileActions(false);
+                      onToggleFullscreen();
+                    }}
+                    type="button"
+                  >
+                    {isFullscreen ? (
+                      <Minimize className="h-4 w-4 opacity-80" aria-hidden="true" />
+                    ) : (
+                      <Maximize className="h-4 w-4 opacity-80" aria-hidden="true" />
+                    )}
+                    <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
+                  </button>
+                )}
                 {onOpenShortcuts && (
                   <button
                     className="reader-mobile-menu-item"
@@ -424,7 +480,15 @@ export function ReaderToolbar({
                     className={chromeBtnClass}
                     classNames={{ label: "flex items-center justify-center" }}
                   >
-                    <BookmarkPlus className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    {isSavingBookmark ? (
+                      <Loader2
+                        className="size-4 animate-spin motion-reduce:animate-none"
+                        strokeWidth={1.6}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <BookmarkPlus className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    )}
                     <span className="sr-only">
                       {isSavingBookmark ? "添加中..." : "添加"}
                     </span>
@@ -447,7 +511,15 @@ export function ReaderToolbar({
                   )}
                   classNames={{ label: "flex items-center justify-center gap-1.5" }}
                 >
-                  <Download className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  {isSavingOffline ? (
+                    <Loader2
+                      className="size-4 animate-spin motion-reduce:animate-none"
+                      strokeWidth={1.6}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Download className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  )}
                   <span className={isSavingOffline ? "text-[11px]" : "sr-only"}>
                     {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}
                   </span>
@@ -461,23 +533,25 @@ export function ReaderToolbar({
                 className="reader-toolbar-divider mx-1 h-3.5 w-px shrink-0"
               />
 
-              <Button
-                type="button"
-                variant="subtle"
-                size="sm"
-                aria-pressed={isFullscreen}
-                onClick={onToggleFullscreen}
-                title={isFullscreen ? "退出全屏" : "全屏阅读"}
-                className={chromeBtnClass}
-                classNames={{ label: "flex items-center justify-center" }}
-              >
-                {isFullscreen ? (
-                  <Minimize className="size-4" strokeWidth={1.6} aria-hidden="true" />
-                ) : (
-                  <Maximize className="size-4" strokeWidth={1.6} aria-hidden="true" />
-                )}
-                <span className="sr-only">{isFullscreen ? "退出全屏" : "全屏"}</span>
-              </Button>
+              {isFullscreenSupported && (
+                <Button
+                  type="button"
+                  variant="subtle"
+                  size="sm"
+                  aria-pressed={isFullscreen}
+                  onClick={onToggleFullscreen}
+                  title={isFullscreen ? "退出全屏" : "全屏阅读"}
+                  className={chromeBtnClass}
+                  classNames={{ label: "flex items-center justify-center" }}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  ) : (
+                    <Maximize className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  )}
+                  <span className="sr-only">{isFullscreen ? "退出全屏" : "全屏"}</span>
+                </Button>
+              )}
 
               {settingsRequested || themeSettingsOpen ? <ThemeSettings
                 theme={theme}

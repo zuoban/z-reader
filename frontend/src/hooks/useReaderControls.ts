@@ -83,7 +83,7 @@ export function useReaderControls({
   });
   const [isFullscreenSupported] = useState(() => {
     if (typeof document === 'undefined') return false;
-    return typeof document.fullscreenEnabled === 'boolean';
+    return Boolean(document.fullscreenEnabled);
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
 

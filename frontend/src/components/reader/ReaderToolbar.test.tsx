@@ -305,4 +305,62 @@ describe('ReaderToolbar', () => {
     expect(header).not.toHaveAttribute('inert');
     expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
   });
+
+  it('hides fullscreen actions when unsupported and supports arrow-key navigation in the mobile menu', async () => {
+    render(
+      <ReaderToolbar
+        visible
+        bookTitle="测试书籍"
+        bookAuthor=""
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={uiScheme}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        isFullscreenSupported={false}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /全屏/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle('更多阅读操作'));
+    const mobileActions = screen.getByRole('dialog', { name: '阅读操作' });
+    const tocButton = within(mobileActions).getByRole('button', { name: '目录' });
+    const bookmarksButton = within(mobileActions).getByRole('button', { name: '书签' });
+    const settingsButton = within(mobileActions).getByRole('button', { name: '设置' });
+
+    await waitFor(() => expect(tocButton).toHaveFocus());
+
+    fireEvent.keyDown(mobileActions, { key: 'ArrowDown' });
+    expect(bookmarksButton).toHaveFocus();
+
+    fireEvent.keyDown(mobileActions, { key: 'End' });
+    expect(settingsButton).toHaveFocus();
+
+    fireEvent.keyDown(mobileActions, { key: 'ArrowDown' });
+    expect(tocButton).toHaveFocus();
+
+    fireEvent.keyDown(mobileActions, { key: 'ArrowUp' });
+    expect(settingsButton).toHaveFocus();
+  });
 });

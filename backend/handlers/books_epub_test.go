@@ -157,6 +157,22 @@ func TestIndexEPUBEntriesMatchesMixedCaseAndUnicodeNames(t *testing.T) {
 	}
 }
 
+func TestFindEPUBOPFFileFallsBackToFirstMatchingExtension(t *testing.T) {
+	reader := buildTestZipReader(t, []struct {
+		name string
+		data []byte
+	}{
+		{name: "a"},
+		{name: "Book/ignored.OPF/"},
+		{name: "Book/ignored.OPF.bak"},
+		{name: "图书/Package.OpF"},
+		{name: "Book/another.opf"},
+	})
+	if got := findEPUBOPFFile(reader, indexEPUBEntries(reader)); got != reader.File[3] {
+		t.Fatalf("fallback match = %v, want %q", got, reader.File[3].Name)
+	}
+}
+
 func TestExtractEPUBCoverUsesEPUB2MetaCover(t *testing.T) {
 	frontJPEG := encodeTestJPEG(t, color.RGBA{R: 30, G: 180, B: 90, A: 255})
 

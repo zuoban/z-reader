@@ -324,8 +324,10 @@ func findEPUBOPFFile(reader *zip.Reader, lookup func(string) *zip.File) *zip.Fil
 	if f := lookup("OEBPS/content.opf"); f != nil {
 		return f
 	}
+	const extension = ".opf"
 	for _, f := range reader.File {
-		if !strings.HasSuffix(f.Name, "/") && strings.HasSuffix(strings.ToLower(f.Name), ".opf") {
+		name := f.Name
+		if len(name) >= len(extension) && strings.EqualFold(name[len(name)-len(extension):], extension) {
 			return f
 		}
 	}

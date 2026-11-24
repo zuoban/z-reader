@@ -71,9 +71,11 @@ describe('CategorySelector', () => {
     fireEvent.click(scifiButton);
     expect(scifiButton).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('textbox', { name: '分类名称' })).toHaveValue('');
+    expect(screen.getByText('保存后将移除当前分类「古典」')).toBeInTheDocument();
 
     // Re-select and submit
     fireEvent.click(scifiButton);
+    expect(screen.queryByText('保存后将移除当前分类「古典」')).not.toBeInTheDocument();
     fireEvent.click(saveButton);
 
     await waitFor(() => {

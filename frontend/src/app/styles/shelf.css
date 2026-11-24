@@ -8,7 +8,14 @@
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .category-chip-pill:enabled:active {
+      transform: scale(0.98);
+    }
   }
 
   .category-chip-pill:enabled:hover {

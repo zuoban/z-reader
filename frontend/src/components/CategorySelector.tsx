@@ -1,10 +1,10 @@
 'use client';
 
 import type { FormEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
-import { Check, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Check, Loader2, Plus, Tag, Trash2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,7 @@ export function CategorySelector({
   open,
   onOpenChange,
 }: CategorySelectorProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [pendingAction, setPendingAction] = useState<'save' | 'clear' | null>(null);
   const normalizedCurrentCategory = currentCategory?.trim() || null;
   const [categoryName, setCategoryName] = useState(normalizedCurrentCategory ?? '');
@@ -39,14 +40,20 @@ export function CategorySelector({
   const isNewCategory = Boolean(
     trimmedCategoryName && !normalizedCategories.includes(trimmedCategoryName)
   );
+  const willClearCategory = Boolean(normalizedCurrentCategory && !selectedCategory);
   const isUnchanged = selectedCategory === normalizedCurrentCategory;
 
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     queueMicrotask(() => {
+      if (cancelled) return;
       setCategoryName(normalizedCurrentCategory ?? '');
       setPendingAction(null);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [normalizedCurrentCategory, open]);
 
   async function saveCategory(
@@ -98,6 +105,8 @@ export function CategorySelector({
       closeOnClickOutside={!loading}
       closeOnEscape={!loading}
       classNames={{
+        inner:
+          'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
         content:
           'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
       }}
@@ -129,24 +138,32 @@ export function CategorySelector({
             disabled={loading}
             className="dialog-close-btn -mr-1 h-9 w-9"
             aria-label="关闭"
-            title="关闭"
+            title="关闭 (Esc)"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         </div>
 
         <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             <div className="app-surface-panel rounded-xl px-4 py-3.5">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
                   分类名称
                 </p>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
+                <span
+                  className={cn(
+                    'font-mono text-[11px] tabular-nums transition-colors',
+                    categoryName.length >= 45
+                      ? 'font-medium text-primary'
+                      : 'text-muted-foreground/75'
+                  )}
+                >
                   {categoryName.length}/50
                 </span>
               </div>
               <TextInput
+                ref={inputRef}
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.currentTarget.value)}
                 maxLength={50}
@@ -161,7 +178,10 @@ export function CategorySelector({
                       size={32}
                       radius="sm"
                       disabled={loading}
-                      onClick={() => setCategoryName('')}
+                      onClick={() => {
+                        setCategoryName('');
+                        inputRef.current?.focus();
+                      }}
                       title="清空输入"
                       aria-label="清空输入"
                     >
@@ -178,6 +198,12 @@ export function CategorySelector({
                 <div className="mt-2.5 inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                   <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span className="truncate">将新建分类「{trimmedCategoryName}」</span>
+                </div>
+              )}
+              {willClearCategory && (
+                <div className="mt-2.5 inline-flex max-w-full items-center gap-1.5 rounded-md border border-destructive/20 bg-destructive/8 px-2.5 py-1 text-xs font-medium text-destructive">
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">保存后将移除当前分类「{normalizedCurrentCategory}」</span>
                 </div>
               )}
             </div>
@@ -252,8 +278,18 @@ export function CategorySelector({
                   disabled={loading}
                   aria-busy={pendingAction === 'clear' || undefined}
                   onClick={() => void saveCategory(null, 'clear')}
-                  leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />}
-                  className="h-9 rounded-lg px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  leftSection={
+                    pendingAction === 'clear' ? (
+                      <Loader2
+                        className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
+                    )
+                  }
+                  className="h-9 rounded-lg px-2.5 text-xs font-medium text-destructive transition-[background-color,color,transform] duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] motion-reduce:active:scale-100"
                 >
                   {pendingAction === 'clear' ? '移除中…' : '移除分类'}
                 </Button>
@@ -266,7 +302,7 @@ export function CategorySelector({
                 color="gray"
                 disabled={loading}
                 onClick={handleClose}
-                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground"
+                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
               >
                 取消
               </Button>
@@ -274,7 +310,16 @@ export function CategorySelector({
                 type="submit"
                 disabled={loading || isUnchanged}
                 aria-busy={pendingAction === 'save' || undefined}
-                className="h-9 rounded-lg px-4 text-sm font-medium"
+                leftSection={
+                  pendingAction === 'save' ? (
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                  ) : undefined
+                }
+                className="h-9 rounded-lg px-4 text-sm font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
               >
                 {pendingAction === 'save' ? '保存中…' : '保存'}
               </Button>

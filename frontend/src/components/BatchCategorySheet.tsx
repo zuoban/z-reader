@@ -1,9 +1,9 @@
 'use client';
 
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
-import { Check, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Check, Loader2, Plus, Tag, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BatchCategorySheetProps {
@@ -25,6 +25,7 @@ export function BatchCategorySheet({
   loading = false,
   onSave,
 }: BatchCategorySheetProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [categoryName, setCategoryName] = useState('');
   const [pendingAction, setPendingAction] = useState<'save' | 'clear' | null>(null);
   const isBusy = loading || pendingAction !== null;
@@ -38,6 +39,19 @@ export function BatchCategorySheet({
   );
   const isSaving = isBusy && pendingAction !== 'clear';
   const isClearing = pendingAction === 'clear';
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setCategoryName('');
+      setPendingAction(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,6 +95,8 @@ export function BatchCategorySheet({
       closeOnClickOutside={!isBusy}
       closeOnEscape={!isBusy}
       classNames={{
+        inner:
+          'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
         content:
           'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
       }}
@@ -110,24 +126,32 @@ export function BatchCategorySheet({
             onClick={() => handleOpenChange(false)}
             className="dialog-close-btn -mr-1 h-9 w-9"
             aria-label="关闭"
-            title="关闭"
+            title="关闭 (Esc)"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         </div>
 
         <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             <div className="app-surface-panel rounded-xl px-4 py-3.5">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
                   分类名称
                 </p>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
+                <span
+                  className={cn(
+                    'font-mono text-[11px] tabular-nums transition-colors',
+                    categoryName.length >= 45
+                      ? 'font-medium text-primary'
+                      : 'text-muted-foreground/75'
+                  )}
+                >
                   {categoryName.length}/50
                 </span>
               </div>
               <TextInput
+                ref={inputRef}
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.currentTarget.value)}
                 maxLength={50}
@@ -142,7 +166,10 @@ export function BatchCategorySheet({
                       size={32}
                       radius="sm"
                       disabled={isBusy}
-                      onClick={() => setCategoryName('')}
+                      onClick={() => {
+                        setCategoryName('');
+                        inputRef.current?.focus();
+                      }}
                       title="清空输入"
                       aria-label="清空输入"
                     >
@@ -216,8 +243,18 @@ export function BatchCategorySheet({
               onClick={() => void handleClear()}
               disabled={isBusy}
               aria-busy={isClearing || undefined}
-              leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />}
-              className="h-9 rounded-lg px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+              leftSection={
+                isClearing ? (
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
+                )
+              }
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-destructive transition-[background-color,color,transform] duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] motion-reduce:active:scale-100"
             >
               {isClearing ? '清空中…' : '清空分类'}
             </Button>
@@ -228,7 +265,7 @@ export function BatchCategorySheet({
                 color="gray"
                 disabled={isBusy}
                 onClick={() => handleOpenChange(false)}
-                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground"
+                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
               >
                 取消
               </Button>
@@ -236,7 +273,16 @@ export function BatchCategorySheet({
                 type="submit"
                 disabled={isBusy || !trimmedCategoryName}
                 aria-busy={isSaving || undefined}
-                className="h-9 rounded-lg px-4 text-sm font-medium"
+                leftSection={
+                  isSaving ? (
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                  ) : undefined
+                }
+                className="h-9 rounded-lg px-4 text-sm font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
               >
                 {isSaving ? '保存中…' : '保存'}
               </Button>

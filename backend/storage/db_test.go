@@ -548,6 +548,39 @@ func TestListBooksByCursorReturnsOnlyRequestedPage(t *testing.T) {
 	}
 }
 
+func TestBookTimeSortKeysPreserveStoredFormat(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		at   time.Time
+		want string
+	}{
+		{"before epoch", time.Unix(0, -1), "9223372036854775807"},
+		{"epoch", time.Unix(0, 0), "9223372036854775807"},
+		{"after epoch", time.Unix(0, 1), "9223372036854775806"},
+		{"padded", time.Unix(0, 1<<63-2), "0000000000000000001"},
+		{"max nanoseconds", time.Unix(0, 1<<63-1), "0000000000000000000"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			category := " Fiction "
+			book := &models.Book{UserID: "user-a", ID: "book-a", CreatedAt: tc.at, Category: &category}
+			want := "recent_added\x00user-a\x00" + tc.want + "\x00book-a"
+			if got := string(bookSortIndexKey(book, "recent_added")); got != want {
+				t.Fatalf("recent_added key = %q, want %q", got, want)
+			}
+			want = "recent_read\x00user-a\x00RmljdGlvbg\x00" + tc.want + "\x00book-a"
+			if got := string(bookCategorySortIndexKey(book, "recent_read")); got != want {
+				t.Fatalf("recent_read fallback key = %q, want %q", got, want)
+			}
+			lastRead := time.Unix(0, 100)
+			book.LastReadAt = &lastRead
+			want = "recent_read\x00user-a\x00RmljdGlvbg\x009223372036854775707\x00book-a"
+			if got := string(bookCategorySortIndexKey(book, "recent_read")); got != want {
+				t.Fatalf("recent_read key = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestListBooksBySortedCursorUsesPersistentTitleIndex(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

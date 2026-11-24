@@ -3,7 +3,6 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"go.etcd.io/bbolt"
@@ -20,19 +19,10 @@ func progressTimeIndexPrefix(userID string) []byte {
 }
 
 func progressTimeIndexKey(progress *models.Progress) []byte {
-	timestamp := progress.UpdatedAt.UnixNano()
-	if timestamp < 0 {
-		timestamp = 0
-	}
-	// Keep the existing 19-digit field so stored keys still sort by timestamp.
-	const zeroTimestamp = "0000000000000000000"
-	var digits [len(zeroTimestamp)]byte
-	encoded := strconv.AppendInt(digits[:0], timestamp, 10)
-	key := make([]byte, 0, len(progress.UserID)+len(zeroTimestamp)+2*len(bookSortSeparator)+len(progress.BookID))
+	key := make([]byte, 0, len(progress.UserID)+len(zeroIndexTimestamp)+2*len(bookSortSeparator)+len(progress.BookID))
 	key = append(key, progress.UserID...)
 	key = append(key, bookSortSeparator...)
-	key = append(key, zeroTimestamp[:len(zeroTimestamp)-len(encoded)]...)
-	key = append(key, encoded...)
+	key = appendIndexTimestamp(key, max(0, progress.UpdatedAt.UnixNano()))
 	key = append(key, bookSortSeparator...)
 	return append(key, progress.BookID...)
 }

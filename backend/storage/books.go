@@ -3,7 +3,8 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,12 +44,19 @@ func bookSortValue(book *models.Book, sortKey string) string {
 }
 
 func invertedBookTimestamp(value time.Time) string {
-	const maxTimestamp = int64(^uint64(0) >> 1)
-	timestamp := value.UnixNano()
-	if timestamp < 0 {
-		timestamp = 0
-	}
-	return fmt.Sprintf("%019d", maxTimestamp-timestamp)
+	var buf [len(zeroIndexTimestamp)]byte
+	return string(appendIndexTimestamp(buf[:0], math.MaxInt64-max(0, value.UnixNano())))
+}
+
+const zeroIndexTimestamp = "0000000000000000000"
+
+// appendIndexTimestamp encodes a nonnegative int64 as 19 decimal digits.
+// The fixed width preserves the bytewise ordering of existing index keys.
+func appendIndexTimestamp(key []byte, timestamp int64) []byte {
+	var digits [len(zeroIndexTimestamp)]byte
+	encoded := strconv.AppendInt(digits[:0], timestamp, 10)
+	key = append(key, zeroIndexTimestamp[:len(zeroIndexTimestamp)-len(encoded)]...)
+	return append(key, encoded...)
 }
 
 func bookSortIndexKey(book *models.Book, sortKey string) []byte {

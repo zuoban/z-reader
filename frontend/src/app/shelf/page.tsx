@@ -905,8 +905,9 @@ export default function ShelfPage() {
             onOpenChange={setBatchDeleteOpen}
             title="删除所选图书"
             description={`确定删除选中的 ${selectedCount} 本图书吗？删除后将无法恢复。`}
-            confirmLabel={isDeletingMany ? '删除中' : '确认删除'}
+            confirmLabel={isDeletingMany ? '删除中…' : '确认删除'}
             confirmDisabled={selectedCount === 0 || isDeletingMany}
+            loading={isDeletingMany}
             onConfirm={confirmBatchDelete}
           />
         )}

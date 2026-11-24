@@ -26,6 +26,8 @@ export function CategoryManagerSheet({
   const [editingCategory, setEditingCategory] = useState('');
   const [editValue, setEditValue] = useState('');
   const [deleteConfirmCategory, setDeleteConfirmCategory] = useState('');
+  const [pendingAction, setPendingAction] = useState<'rename' | 'delete' | null>(null);
+  const isBusy = loading || pendingAction !== null;
   const normalizedCategories = categories.map((category) => category.trim()).filter(Boolean);
   const totalCategorizedBooks = normalizedCategories.reduce(
     (sum, category) => sum + (bookCounts[category] || 0),
@@ -40,31 +42,51 @@ export function CategoryManagerSheet({
   }
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && isBusy) return;
     if (!nextOpen) reset();
     onOpenChange(nextOpen);
   }
 
   function startEdit(category: string) {
+    if (isBusy) return;
     setEditingCategory(category);
     setEditValue(category);
   }
 
   function cancelEdit() {
+    if (isBusy) return;
     setEditingCategory('');
     setEditValue('');
   }
 
   async function saveRename() {
-    if (!trimmedEditValue || trimmedEditValue === editingCategory || trimmedEditValue.length > 50) {
+    if (
+      isBusy ||
+      !trimmedEditValue ||
+      trimmedEditValue === editingCategory ||
+      trimmedEditValue.length > 50
+    ) {
       return;
     }
-    await onRenameCategory(editingCategory, trimmedEditValue);
-    cancelEdit();
+    setPendingAction('rename');
+    try {
+      await onRenameCategory(editingCategory, trimmedEditValue);
+      setEditingCategory('');
+      setEditValue('');
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   async function clearCategory(category: string) {
-    await onRenameCategory(category, null);
-    setDeleteConfirmCategory('');
+    if (isBusy) return;
+    setPendingAction('delete');
+    try {
+      await onRenameCategory(category, null);
+      setDeleteConfirmCategory('');
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   return (
@@ -77,7 +99,9 @@ export function CategoryManagerSheet({
         radius="lg"
         padding={0}
         zIndex={80}
-        closeOnEscape={!editingCategory && !deleteConfirmCategory}
+        returnFocus={false}
+        closeOnClickOutside={!isBusy}
+        closeOnEscape={!isBusy && !editingCategory && !deleteConfirmCategory}
         classNames={{
           content:
             'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
@@ -88,7 +112,7 @@ export function CategoryManagerSheet({
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
-                <Tags className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                <Tags className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
@@ -106,11 +130,12 @@ export function CategoryManagerSheet({
               color="gray"
               size={36}
               radius="md"
+              disabled={isBusy}
               onClick={() => handleOpenChange(false)}
-              className="dialog-close-btn -mr-1 h-9 w-9"
+              className="dialog-close-btn -mr-1 h-9 w-9 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="关闭"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </ActionIcon>
           </div>
 
@@ -118,7 +143,7 @@ export function CategoryManagerSheet({
             {normalizedCategories.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
-                  <Tags className="h-5 w-5" strokeWidth={1.5} />
+                  <Tags className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-foreground">暂无图书分类</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -130,6 +155,7 @@ export function CategoryManagerSheet({
                 {normalizedCategories.map((category) => {
                   const count = bookCounts[category] || 0;
                   const isEditing = editingCategory === category;
+                  const isRenaming = pendingAction === 'rename' && isEditing;
                   const willMerge =
                     isEditing &&
                     Boolean(trimmedEditValue) &&
@@ -162,6 +188,7 @@ export function CategoryManagerSheet({
                                   cancelEdit();
                                 }
                               }}
+                              disabled={isBusy}
                               maxLength={50}
                               autoFocus
                               placeholder="输入新分类名称"
@@ -178,16 +205,17 @@ export function CategoryManagerSheet({
                               radius="md"
                               onClick={() => void saveRename()}
                               disabled={
-                                loading ||
+                                isBusy ||
                                 !trimmedEditValue ||
                                 trimmedEditValue === category ||
                                 trimmedEditValue.length > 50
                               }
-                              className="h-9 w-9 shrink-0 rounded-lg"
+                              aria-busy={isRenaming || undefined}
+                              className="h-9 w-9 shrink-0 cursor-pointer rounded-lg disabled:cursor-not-allowed"
                               aria-label="保存"
                               title="保存"
                             >
-                              <Check className="h-4 w-4" strokeWidth={1.8} />
+                              <Check className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
                             </ActionIcon>
                             <ActionIcon
                               variant="subtle"
@@ -195,20 +223,23 @@ export function CategoryManagerSheet({
                               size={36}
                               radius="md"
                               onClick={cancelEdit}
-                              className="dialog-close-btn h-9 w-9 shrink-0"
+                              disabled={isBusy}
+                              className="dialog-close-btn h-9 w-9 shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                               aria-label="取消"
                               title="取消"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-4 w-4" aria-hidden="true" />
                             </ActionIcon>
                           </div>
                           <div className="flex items-center justify-between gap-2 px-0.5 text-[11px] text-muted-foreground">
                             <span
                               className={cn('truncate', willMerge && 'font-medium text-primary')}
                             >
-                              {willMerge
-                                ? `保存后将与已有分类「${trimmedEditValue}」合并`
-                                : `正在重命名「${category}」· Enter 保存`}
+                              {isRenaming
+                                ? '正在保存…'
+                                : willMerge
+                                  ? `保存后将与已有分类「${trimmedEditValue}」合并`
+                                  : `正在重命名「${category}」· Enter 保存`}
                             </span>
                             <span className="shrink-0 font-mono tabular-nums text-muted-foreground/75">
                               {editValue.length}/50
@@ -218,7 +249,7 @@ export function CategoryManagerSheet({
                       ) : (
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/75 bg-card text-muted-foreground transition-colors group-hover:border-primary/25 group-hover:text-primary">
-                            <Tag className="h-3.5 w-3.5" strokeWidth={1.6} />
+                            <Tag className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
                           </div>
 
                           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -240,12 +271,12 @@ export function CategoryManagerSheet({
                               size={34}
                               radius="md"
                               onClick={() => startEdit(category)}
-                              disabled={loading}
-                              className="h-9 w-9 text-muted-foreground hover:bg-card hover:text-foreground sm:h-8 sm:w-8"
+                              disabled={isBusy}
+                              className="h-9 w-9 cursor-pointer text-muted-foreground hover:bg-card hover:text-foreground disabled:cursor-not-allowed sm:h-8 sm:w-8"
                               aria-label={`重命名 ${category}`}
                               title={`重命名 ${category}`}
                             >
-                              <Pencil className="h-3.5 w-3.5" strokeWidth={1.6} />
+                              <Pencil className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
                             </ActionIcon>
                             <ActionIcon
                               variant="subtle"
@@ -253,12 +284,12 @@ export function CategoryManagerSheet({
                               size={34}
                               radius="md"
                               onClick={() => setDeleteConfirmCategory(category)}
-                              disabled={loading}
-                              className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-8 sm:w-8"
+                              disabled={isBusy}
+                              className="h-9 w-9 cursor-pointer text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed sm:h-8 sm:w-8"
                               aria-label={`删除 ${category}`}
                               title={`删除 ${category}`}
                             >
-                              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />
+                              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
                             </ActionIcon>
                           </div>
                         </div>
@@ -279,8 +310,9 @@ export function CategoryManagerSheet({
                 type="button"
                 variant="default"
                 size="xs"
+                disabled={isBusy}
                 onClick={() => handleOpenChange(false)}
-                className="h-8 shrink-0 rounded-lg px-3.5 text-xs font-medium"
+                className="h-8 shrink-0 cursor-pointer rounded-lg px-3.5 text-xs font-medium disabled:cursor-not-allowed"
               >
                 完成
               </Button>
@@ -291,12 +323,17 @@ export function CategoryManagerSheet({
 
       <ConfirmDialog
         open={!!deleteConfirmCategory}
-        onOpenChange={(nextOpen) => !nextOpen && setDeleteConfirmCategory('')}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isBusy) {
+            setDeleteConfirmCategory('');
+          }
+        }}
         title="删除分类"
         description={`确认将分类 "${deleteConfirmCategory}" 从 ${bookCounts[deleteConfirmCategory] || 0} 本书中移除？这些图书将变为未分类。`}
-        confirmLabel="删除"
-        confirmDisabled={loading}
-        onConfirm={() => void clearCategory(deleteConfirmCategory)}
+        confirmLabel={pendingAction === 'delete' || loading ? '删除中…' : '确认删除'}
+        confirmDisabled={isBusy}
+        loading={isBusy}
+        onConfirm={() => clearCategory(deleteConfirmCategory)}
       />
     </>
   );

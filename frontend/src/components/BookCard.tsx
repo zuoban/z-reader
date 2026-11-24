@@ -350,8 +350,9 @@ export const BookCard = memo(function BookCard({
         onOpenChange={setDeleteConfirmOpen}
         title="删除图书"
         description="确定删除这本图书吗？删除后将无法恢复。"
-        confirmLabel={isDeleting ? '删除中' : '确认删除'}
+        confirmLabel={isDeleting ? '删除中…' : '确认删除'}
         confirmDisabled={isDeleting}
+        loading={isDeleting}
         onConfirm={() => {
           onDelete();
           setDeleteConfirmOpen(false);

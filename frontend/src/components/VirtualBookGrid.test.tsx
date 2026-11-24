@@ -1,8 +1,11 @@
 import type { ComponentProps } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { act, render, screen, waitFor } from '@/test/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VirtualBookGrid } from '@/components/VirtualBookGrid';
+
+vi.mock('@tanstack/react-virtual', { spy: true });
 
 type IoCallback = IntersectionObserverCallback;
 
@@ -102,6 +105,7 @@ function renderGrid(props: Partial<GridProps> = {}) {
 
 describe('VirtualBookGrid', () => {
   beforeEach(() => {
+    vi.mocked(useWindowVirtualizer).mockClear();
     ioCallback = null;
     observedTargets = [];
     roCallback = null;
@@ -172,6 +176,27 @@ describe('VirtualBookGrid', () => {
     expect(root).toBeTruthy();
     expect(root?.getAttribute('data-column-count')).toBeTruthy();
     expect(Number(root?.getAttribute('data-row-count'))).toBeGreaterThan(0);
+  });
+
+  it('reuses row measurements when only card content changes', () => {
+    const items = [{ id: 'book', title: 'Book' }];
+    const grid = (label: string) => (
+      <VirtualBookGrid
+        items={items}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => `${item.title} ${label}`}
+      />
+    );
+    const { rerender } = render(grid('unselected'));
+    expect(screen.getByText('Book unselected')).toBeInTheDocument();
+    const virtualizer = vi.mocked(useWindowVirtualizer).mock.results.at(-1)?.value;
+    const cachedMeasurements = virtualizer.measurementsCache;
+    expect(cachedMeasurements).toHaveLength(1);
+
+    rerender(grid('selected'));
+
+    expect(screen.getByText('Book selected')).toBeInTheDocument();
+    expect(virtualizer.measurementsCache).toBe(cachedMeasurements);
   });
 
   it('requests load more when the end sentinel is near the viewport', async () => {

@@ -135,13 +135,18 @@ export function VirtualBookGrid<T>({
   }, [measureChrome]);
 
   const estimateSize = useCallback(() => estimatedRowHeight, [estimatedRowHeight]);
+  // The virtualizer uses the key function's identity to cache row measurements.
+  const getRowKey = useCallback(
+    (rowIndex: number) => `${columnCount}:${gap}:${rowIndex}`,
+    [columnCount, gap]
+  );
 
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
     estimateSize,
     overscan,
     scrollMargin,
-    getItemKey: (rowIndex) => `${columnCount}:${gap}:${rowIndex}`,
+    getItemKey: getRowKey,
   });
 
   // Remeasure cached sizes when layout breakpoints change.

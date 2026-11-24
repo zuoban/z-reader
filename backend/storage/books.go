@@ -62,20 +62,27 @@ func appendIndexTimestamp(key []byte, timestamp int64) []byte {
 }
 
 func bookSortIndexKey(book *models.Book, sortKey string) []byte {
-	return []byte(strings.Join([]string{sortKey, book.UserID, bookSortValue(book, sortKey), book.ID}, bookSortSeparator))
+	return bookSortIndexKeyWithValue(book, sortKey, bookSortValue(book, sortKey))
+}
+
+func bookSortIndexKeyWithValue(book *models.Book, sortKey, value string) []byte {
+	return []byte(strings.Join([]string{sortKey, book.UserID, value, book.ID}, bookSortSeparator))
 }
 
 func addBookToSortIndex(tx *bbolt.Tx, book *models.Book) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
-	bucket := tx.Bucket(BookSortIndex)
+	bucket, categoryBucket := tx.Bucket(BookSortIndex), tx.Bucket(BookCategorySortIndex)
+	category, id := categoryForBook(book), []byte(book.ID)
 	for _, sortKey := range supportedBookSorts {
-		if err := bucket.Put(bookSortIndexKey(book, sortKey), []byte(book.ID)); err != nil {
+		value := bookSortValue(book, sortKey)
+		if err := bucket.Put(bookSortIndexKeyWithValue(book, sortKey, value), id); err != nil {
 			return err
 		}
-		if categoryBucket := tx.Bucket(BookCategorySortIndex); categoryBucket != nil {
-			if err := categoryBucket.Put(bookCategorySortIndexKey(book, sortKey), []byte(book.ID)); err != nil {
+		if categoryBucket != nil {
+			key := bookCategorySortIndexKeyWithValue(book, sortKey, category, value)
+			if err := categoryBucket.Put(key, id); err != nil {
 				return err
 			}
 		}
@@ -87,13 +94,16 @@ func removeBookFromSortIndex(tx *bbolt.Tx, book *models.Book) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
-	bucket := tx.Bucket(BookSortIndex)
+	bucket, categoryBucket := tx.Bucket(BookSortIndex), tx.Bucket(BookCategorySortIndex)
+	category := categoryForBook(book)
 	for _, sortKey := range supportedBookSorts {
-		if err := bucket.Delete(bookSortIndexKey(book, sortKey)); err != nil {
+		value := bookSortValue(book, sortKey)
+		if err := bucket.Delete(bookSortIndexKeyWithValue(book, sortKey, value)); err != nil {
 			return err
 		}
-		if categoryBucket := tx.Bucket(BookCategorySortIndex); categoryBucket != nil {
-			if err := categoryBucket.Delete(bookCategorySortIndexKey(book, sortKey)); err != nil {
+		if categoryBucket != nil {
+			key := bookCategorySortIndexKeyWithValue(book, sortKey, category, value)
+			if err := categoryBucket.Delete(key); err != nil {
 				return err
 			}
 		}

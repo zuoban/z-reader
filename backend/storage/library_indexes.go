@@ -33,8 +33,10 @@ func makeBookCategorySortPrefix(userID, category, sortKey string, suffixLen int)
 }
 
 func bookCategorySortIndexKey(book *models.Book, sortKey string) []byte {
-	category := categoryForBook(book)
-	value := bookSortValue(book, sortKey)
+	return bookCategorySortIndexKeyWithValue(book, sortKey, categoryForBook(book), bookSortValue(book, sortKey))
+}
+
+func bookCategorySortIndexKeyWithValue(book *models.Book, sortKey, category, value string) []byte {
 	suffixLen := len(value) + len(bookSortSeparator) + len(book.ID)
 	key := makeBookCategorySortPrefix(book.UserID, category, sortKey, suffixLen)
 	key = append(key, value...)
@@ -238,23 +240,27 @@ func (db *DB) ListBooksForIDs(userID string, ids []string) ([]models.Book, error
 }
 
 func updateBookSortKey(tx *bbolt.Tx, oldBook, book *models.Book, sortKey string) error {
-	oldKey, newKey := bookSortIndexKey(oldBook, sortKey), bookSortIndexKey(book, sortKey)
+	oldValue, value := bookSortValue(oldBook, sortKey), bookSortValue(book, sortKey)
+	id := []byte(book.ID)
+	oldKey := bookSortIndexKeyWithValue(oldBook, sortKey, oldValue)
+	newKey := bookSortIndexKeyWithValue(book, sortKey, value)
 	if !bytes.Equal(oldKey, newKey) {
 		bucket := tx.Bucket(BookSortIndex)
 		if err := bucket.Delete(oldKey); err != nil {
 			return err
 		}
-		if err := bucket.Put(newKey, []byte(book.ID)); err != nil {
+		if err := bucket.Put(newKey, id); err != nil {
 			return err
 		}
 	}
-	oldKey, newKey = bookCategorySortIndexKey(oldBook, sortKey), bookCategorySortIndexKey(book, sortKey)
+	oldKey = bookCategorySortIndexKeyWithValue(oldBook, sortKey, categoryForBook(oldBook), oldValue)
+	newKey = bookCategorySortIndexKeyWithValue(book, sortKey, categoryForBook(book), value)
 	if !bytes.Equal(oldKey, newKey) {
 		bucket := tx.Bucket(BookCategorySortIndex)
 		if err := bucket.Delete(oldKey); err != nil {
 			return err
 		}
-		if err := bucket.Put(newKey, []byte(book.ID)); err != nil {
+		if err := bucket.Put(newKey, id); err != nil {
 			return err
 		}
 	}

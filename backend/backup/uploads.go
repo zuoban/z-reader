@@ -92,10 +92,7 @@ func copySnapshotUploadsWithDedup(
 		return err
 	}
 	defer snapshotRoot.Close()
-	var digestBuffer []byte
-	if prevBackupDir != "" && len(prevManifest.Files) > 0 {
-		digestBuffer = make([]byte, hashBufferSize)
-	}
+	var readBuffer []byte
 	return visitSnapshotUploads(snapshotRoot, filepath.Base(snapshot), func(name string) error {
 		input, err := openRegularBackupFile(root, name)
 		if err != nil {
@@ -111,7 +108,10 @@ func copySnapshotUploadsWithDedup(
 			return err
 		}
 		manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
-		if digest, ok := tryHardLinkFromPreviousBackup(input, info.Size(), name, target, prevBackupDir, prevManifest, digestBuffer); ok {
+		if readBuffer == nil {
+			readBuffer = make([]byte, hashBufferSize)
+		}
+		if digest, ok := tryHardLinkFromPreviousBackup(input, info.Size(), name, target, prevBackupDir, prevManifest, readBuffer); ok {
 			if digests != nil {
 				digests[manifestKey] = digest
 			}
@@ -120,7 +120,7 @@ func copySnapshotUploadsWithDedup(
 		if _, err := input.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		digest, err := copyToBackupFileWithDigest(input, target)
+		digest, err := copyToBackupFileWithDigest(input, target, readBuffer)
 		if err != nil {
 			return err
 		}

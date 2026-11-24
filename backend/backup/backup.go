@@ -495,13 +495,14 @@ func copyToFile(input io.Reader, destination string) error {
 
 // copyToBackupFileWithDigest copies input to destination as a read-only (0400)
 // backup file and returns its SHA-256 hex digest in a single pass.
-func copyToBackupFileWithDigest(input io.Reader, destination string) (string, error) {
+func copyToBackupFileWithDigest(input io.Reader, destination string, readBuffer []byte) (string, error) {
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
 	if err != nil {
 		return "", err
 	}
 	hash := sha256.New()
-	_, copyErr := io.Copy(io.MultiWriter(output, hash), input)
+	// Expose only Read so a file's WriteTo cannot bypass the supplied buffer.
+	_, copyErr := io.CopyBuffer(io.MultiWriter(output, hash), struct{ io.Reader }{input}, readBuffer)
 	closeErr := output.Close()
 	if copyErr != nil {
 		return "", copyErr

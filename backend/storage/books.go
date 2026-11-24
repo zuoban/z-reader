@@ -113,11 +113,6 @@ func bookSearchGramIndexPrefix(userID, gram string) []byte {
 	return []byte(userID + bookSortSeparator + gram + bookSortSeparator)
 }
 
-func bookSearchGramIndexKey(userID, gram, bookID string) []byte {
-	key := make([]byte, 0, len(userID)+len(gram)+len(bookID)+2*len(bookSortSeparator))
-	return appendBookSearchGramIndexKey(key, userID, gram, bookID)
-}
-
 func appendBookSearchGramIndexKey(key []byte, userID, gram, bookID string) []byte {
 	key = append(key, userID...)
 	key = append(key, bookSortSeparator...)
@@ -283,13 +278,15 @@ func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
 		return nil
 	}
 	bucket := tx.Bucket(BookSearchGramIndex)
+	// bbolt copies keys on Put, so the buffer can be reused for the next gram.
+	var key []byte
 	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
-		key := bookSearchGramIndexKey(book.UserID, gram, book.ID)
+		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
 		if bucket.Get(key) == nil {
 			if err := bucket.Put(key, []byte{}); err != nil {
 				return err
 			}
-			if err := adjustBookSearchGramCount(tx, book.UserID, gram, 1); err != nil {
+			if err := adjustBookSearchGramCount(tx, key[:len(key)-len(book.ID)], 1); err != nil {
 				return err
 			}
 		}
@@ -309,13 +306,14 @@ func removeBookFromSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
 		return nil
 	}
 	bucket := tx.Bucket(BookSearchGramIndex)
+	var key []byte
 	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
-		key := bookSearchGramIndexKey(book.UserID, gram, book.ID)
+		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
 		if bucket.Get(key) != nil {
 			if err := bucket.Delete(key); err != nil {
 				return err
 			}
-			if err := adjustBookSearchGramCount(tx, book.UserID, gram, -1); err != nil {
+			if err := adjustBookSearchGramCount(tx, key[:len(key)-len(book.ID)], -1); err != nil {
 				return err
 			}
 		}

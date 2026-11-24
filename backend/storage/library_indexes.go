@@ -34,13 +34,12 @@ func bookContentMembershipKey(book *models.Book) []byte {
 	return append(key, []byte(book.ID)...)
 }
 
-func adjustBookSearchGramCount(tx *bbolt.Tx, userID, gram string, delta int) error {
+func adjustBookSearchGramCount(tx *bbolt.Tx, key []byte, delta int) error {
 	bucket := tx.Bucket(BookSearchGramCounts)
 	if bucket == nil {
 		return nil
 	} // Migrations 6–9 predate the counts bucket.
-	key := bookSearchGramIndexPrefix(userID, gram)
-	count := bookSearchGramCount(bucket, userID, gram) + delta
+	count := bookSearchGramCount(bucket, key) + delta
 	if count <= 0 {
 		return bucket.Delete(key)
 	}
@@ -49,8 +48,8 @@ func adjustBookSearchGramCount(tx *bbolt.Tx, userID, gram string, delta int) err
 	return bucket.Put(key, data[:])
 }
 
-func bookSearchGramCount(bucket *bbolt.Bucket, userID, gram string) int {
-	data := bucket.Get(bookSearchGramIndexPrefix(userID, gram))
+func bookSearchGramCount(bucket *bbolt.Bucket, key []byte) int {
+	data := bucket.Get(key)
 	if len(data) != 8 {
 		return 0
 	}

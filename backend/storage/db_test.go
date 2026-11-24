@@ -297,22 +297,39 @@ func TestSearchBooksUsesGramIndexForCJKQueries(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err := db.View(func(tx *bbolt.Tx) error {
-		for _, gram := range []string{"三体", "体 ", " ä", "äb"} {
-			key := bookSearchGramIndexKey(userID, gram, book.ID)
-			if tx.Bucket(BookSearchGramIndex).Get(key) == nil {
-				t.Fatalf("expected gram index entry for %q", key)
-			}
+	assertIndex := func(exists bool) {
+		t.Helper()
+		wantCount := ""
+		if exists {
+			wantCount = "\x00\x00\x00\x00\x00\x00\x00\x01"
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
+		err := db.View(func(tx *bbolt.Tx) error {
+			for _, gram := range []string{"三体", "体 ", " ä", "äb"} {
+				countKey := userID + "\x00" + gram + "\x00"
+				posting := tx.Bucket(BookSearchGramIndex).Get([]byte(countKey + book.ID))
+				if (posting != nil) != exists {
+					t.Errorf("posting for %q exists = %t, want %t", gram, posting != nil, exists)
+				}
+				count := tx.Bucket(BookSearchGramCounts).Get([]byte(countKey))
+				if string(count) != wantCount || (count != nil) != exists {
+					t.Errorf("unexpected count for %q: %x (exists = %t)", gram, count, exists)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
+	assertIndex(true)
 	got, _, err := db.SearchBooks(userID, " \t三\x00体　 ÄBC\n", "", 10, "title")
 	if err != nil || len(got) != 1 || got[0].ID != book.ID {
 		t.Fatalf("unexpected CJK search response: books=%+v err=%v", got, err)
 	}
+	if _, err := db.DeleteBook(book.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	assertIndex(false)
 }
 
 func TestGetSessionReturnsNilForExpiredSession(t *testing.T) {

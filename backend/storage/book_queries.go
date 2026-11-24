@@ -137,7 +137,7 @@ func mostSelectiveBookSearchGram(gramBucket *bbolt.Bucket, userID string, grams 
 	selected, count := "", -1
 	bucket := gramBucket.Tx().Bucket(BookSearchGramCounts)
 	for _, gram := range grams {
-		n := bookSearchGramCount(bucket, userID, gram)
+		n := bookSearchGramCount(bucket, bookSearchGramIndexPrefix(userID, gram))
 		if n == 0 {
 			return gram, 0
 		}

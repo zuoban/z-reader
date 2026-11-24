@@ -175,6 +175,7 @@ func TestFindEPUBOPFFileFallsBackToFirstMatchingExtension(t *testing.T) {
 
 func TestExtractEPUBCoverUsesEPUB2MetaCover(t *testing.T) {
 	frontJPEG := encodeTestJPEG(t, color.RGBA{R: 30, G: 180, B: 90, A: 255})
+	decoyJPEG := encodeTestJPEG(t, color.RGBA{R: 180, G: 30, B: 90, A: 255})
 
 	containerXML := `<?xml version="1.0" encoding="UTF-8"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -187,10 +188,13 @@ func TestExtractEPUBCoverUsesEPUB2MetaCover(t *testing.T) {
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:title>EPUB2 Book</dc:title>
     <dc:creator>Grace</dc:creator>
-    <meta name="cover" content="front-img"/>
+    <meta name="cover" content=" "/>
+    <meta name=" COVER " content=" FrOnT-ImG "/>
   </metadata>
   <manifest>
+    <item id="FRONT-IMG" href="img/missing.jpg" media-type="image/jpeg"/>
     <item id="front-img" href="img/front.jpg" media-type="image/jpeg"/>
+    <item id="Front-img" href="img/back.jpg" media-type="image/jpeg"/>
   </manifest>
 </package>`
 
@@ -201,6 +205,7 @@ func TestExtractEPUBCoverUsesEPUB2MetaCover(t *testing.T) {
 		{name: "META-INF/container.xml", data: []byte(containerXML)},
 		{name: "book/content.opf", data: []byte(opfXML)},
 		{name: "book/img/front.jpg", data: frontJPEG},
+		{name: "book/img/back.jpg", data: decoyJPEG},
 	})
 
 	data, contentType, err := extractEPUBCoverFromReader(zr)

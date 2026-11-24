@@ -456,16 +456,14 @@ func extractEPUBCoverCandidate(
 		}
 
 		// 1. EPUB 3: manifest item with properties="cover-image"
-		hrefsByID := make(map[string][]string)
 		for _, item := range pkg.Manifest.Items {
-			id := foldEPUBName(item.ID)
-			hrefsByID[id] = append(hrefsByID[id], item.Href)
 			if hasXMLProperty(item.Properties, "cover-image") {
 				addHref(item.Href)
 			}
 		}
 
 		// 2. EPUB 2: <meta name="cover" content="<manifest-item-id>"/>
+		var hrefsByID map[string][]string
 		seenIDs := make(map[string]bool)
 		for _, meta := range pkg.Metadata.Metas {
 			if !strings.EqualFold(strings.TrimSpace(meta.Name), "cover") {
@@ -474,6 +472,13 @@ func extractEPUBCoverCandidate(
 			coverID := strings.TrimSpace(meta.Content)
 			if coverID == "" {
 				continue
+			}
+			if hrefsByID == nil {
+				hrefsByID = make(map[string][]string)
+				for _, item := range pkg.Manifest.Items {
+					id := foldEPUBName(item.ID)
+					hrefsByID[id] = append(hrefsByID[id], item.Href)
+				}
 			}
 			id := foldEPUBName(coverID)
 			hrefs := hrefsByID[id]

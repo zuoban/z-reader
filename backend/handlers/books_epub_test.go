@@ -157,6 +157,44 @@ func TestIndexEPUBEntriesMatchesMixedCaseAndUnicodeNames(t *testing.T) {
 	}
 }
 
+func TestWriteNormalizedEPUBZipPreservesEntriesAtExpansionLimit(t *testing.T) {
+	entries := []struct {
+		name string
+		data []byte
+	}{
+		{name: "book.epub/Text/first.xhtml", data: bytes.Repeat([]byte("first"), 7_000)},
+		{name: "book.epub/Text/empty.xhtml"},
+		{name: "book.epub/Text/last.xhtml", data: []byte("last")},
+	}
+	reader := buildTestZipReader(t, entries)
+	limit := int64(len(entries[0].data) + len(entries[2].data))
+	var output bytes.Buffer
+	if err := writeNormalizedEPUBZip(reader, "book.epub/", &output, limit); err != nil {
+		t.Fatal(err)
+	}
+	normalized, err := zip.NewReader(bytes.NewReader(output.Bytes()), int64(output.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(normalized.File) != len(entries) {
+		t.Fatalf("got %d entries, want %d", len(normalized.File), len(entries))
+	}
+	for i, file := range normalized.File {
+		want := entries[i]
+		if file.Name != want.name[len("book.epub/"):] {
+			t.Fatalf("unexpected normalized name %q", file.Name)
+		}
+		data, err := readZipFileWithLimit(file, limit)
+		if err != nil || !bytes.Equal(data, want.data) {
+			t.Fatalf("%s: got %d bytes, want %d, err %v", file.Name, len(data), len(want.data), err)
+		}
+	}
+	output.Reset()
+	if err := writeNormalizedEPUBZip(reader, "book.epub/", &output, limit-1); err == nil {
+		t.Fatal("expected expansion limit error")
+	}
+}
+
 func TestNormalizeEPUBZipEntryNamePreservesNestedPath(t *testing.T) {
 	for _, tt := range []struct{ name, want string }{
 		{"///Édition.EPUB/META-INF/Container.XML", "meta-inf/container.xml"},

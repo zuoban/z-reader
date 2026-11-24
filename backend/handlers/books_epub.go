@@ -55,6 +55,7 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, dst io.Writer, maxE
 		}
 	}()
 	var copiedBytes int64
+	var copyBuffer []byte
 	for _, entry := range reader.File {
 		normalizedName, ok := stripEPUBPackageRoot(entry.Name, root)
 		if !ok || normalizedName == "" || strings.HasSuffix(normalizedName, "/") {
@@ -84,7 +85,10 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, dst io.Writer, maxE
 			entryReader.Close()
 			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
 		}
-		copied, err := io.Copy(target, io.LimitReader(entryReader, remaining+1))
+		if copyBuffer == nil {
+			copyBuffer = make([]byte, 32*1024)
+		}
+		copied, err := io.CopyBuffer(target, io.LimitReader(entryReader, remaining+1), copyBuffer)
 		if err != nil {
 			entryReader.Close()
 			return err

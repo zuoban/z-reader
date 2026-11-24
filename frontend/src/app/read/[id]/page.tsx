@@ -509,7 +509,7 @@ export default function ReadPage() {
               <DeferredTTSControls
                 {...sharedTTSControlsProps}
                 variant="toolbar"
-                triggerClassName="reader-chrome-btn border-0 bg-transparent shadow-none"
+                triggerClassName="reader-chrome-btn"
                 triggerStyle={{}}
                 triggerContent={
                   <div className="flex items-center gap-2">

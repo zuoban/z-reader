@@ -2,21 +2,14 @@
 
 @layer components {
   .reader-chrome-btn {
-    @apply flex min-h-11 items-center gap-1.5 px-2.5 text-xs font-medium sm:min-h-8 sm:text-[13px];
-    border-radius: var(--paper-radius-control);
-    color: var(--muted-foreground);
+    @apply flex h-9 shrink-0 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-[13px] font-medium shadow-none;
+    color: var(--reader-chrome-muted);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
-      transform var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
-  .reader-chrome-btn:hover {
-    color: var(--primary);
-    background: var(--secondary);
-  }
-
-  .reader-chrome-btn:active {
-    transform: scale(0.98);
+  .reader-chrome-btn:disabled {
+    @apply cursor-not-allowed opacity-50;
   }
 
   .reader-chrome-icon {
@@ -55,7 +48,7 @@
   }
 
   .reader-chrome-surface {
-    background: color-mix(in srgb, var(--reader-chrome-bg) 96%, transparent);
+    background: color-mix(in srgb, var(--reader-chrome-bg) 92%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-color: var(--reader-chrome-rule);
@@ -63,20 +56,52 @@
     box-shadow: 0 8px 24px -16px var(--paper-shadow);
   }
 
-  .reader-chrome .reader-chrome-btn,
-  .reader-chrome .reader-chrome-icon {
-    color: var(--reader-chrome-muted);
+  .reader-toolbar-actions,
+  .reader-chrome .reader-toolbar-edge {
+    border: 1px solid var(--reader-chrome-rule);
+    background: color-mix(in srgb, var(--reader-chrome-hover) 55%, var(--reader-chrome-bg));
+    border-radius: var(--radius-xl);
   }
 
-  .reader-chrome .reader-chrome-btn:hover,
-  .reader-chrome .reader-chrome-icon:hover {
-    background: var(--reader-chrome-hover);
+  .reader-toolbar-actions {
+    padding: 0.1875rem;
+  }
+
+  .reader-chrome .reader-toolbar-edge {
     color: var(--reader-chrome-ink);
+    box-shadow: var(--paper-shadow-control);
   }
 
-  .reader-chrome [data-reader-tts-active="true"] {
+  .reader-chrome .reader-toolbar-edge:hover,
+  .reader-chrome .reader-chrome-btn:enabled:hover,
+  .reader-toolbar-menu .reader-mobile-menu-item:enabled:hover {
     background: var(--reader-chrome-hover);
     color: var(--reader-chrome-accent);
+  }
+
+  .reader-chrome :is(.reader-chrome-btn, .reader-toolbar-edge, .reader-mobile-menu-item):focus-visible {
+    outline: 2px solid var(--reader-chrome-accent);
+    outline-offset: -2px;
+  }
+
+  .reader-chrome .reader-toolbar-edge[aria-expanded="true"],
+  .reader-chrome [data-reader-tts-active="true"] {
+    background: color-mix(in srgb, var(--reader-chrome-accent) 12%, var(--reader-chrome-bg));
+    color: var(--reader-chrome-accent);
+  }
+
+  .reader-toolbar-menu {
+    border: 1px solid var(--reader-chrome-rule);
+    border-radius: var(--radius-2xl);
+    background: var(--reader-chrome-bg);
+    color: var(--reader-chrome-ink);
+    box-shadow: var(--paper-shadow-floating);
+  }
+
+  .reader-toolbar-menu-title {
+    @apply mx-1 mb-1 border-b px-2 pt-1.5 pb-2 text-xs font-semibold;
+    border-color: var(--reader-chrome-rule);
+    color: var(--reader-chrome-muted);
   }
 
   .reader-panel-body {

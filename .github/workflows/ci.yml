@@ -9,10 +9,7 @@ on:
       - main
     tags:
       - 'v*.*.*'
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.serena/**'
+    # Every new main tip can supersede a pending publication, including docs-only pushes.
   pull_request:
     branches:
       - main
@@ -30,9 +27,14 @@ on:
         description: 'Also upload updated visual snapshots artifact (does not commit)'
         type: boolean
         default: false
+      publish_image:
+        description: 'Publish from main or a release tag after full CI'
+        type: boolean
+        default: false
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Let publishing runs finish independently. The publisher serializes registry writes.
+  group: ci-${{ github.ref }}-${{ (github.event_name == 'push' || inputs.publish_image) && github.run_id || github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -45,6 +47,8 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       heavy: ${{ steps.filter.outputs.heavy }}
       visual: ${{ steps.filter.outputs.visual }}
+      docker: ${{ steps.filter.outputs.docker }}
+      publish: ${{ steps.filter.outputs.publish }}
 
     steps:
       - name: Checkout repository
@@ -55,11 +59,9 @@ jobs:
       - name: Compute affected scopes
         id: filter
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF: ${{ github.ref }}
-          BEFORE_SHA: ${{ github.event.before }}
           RUN_HEAVY: ${{ inputs.run_heavy_checks }}
           UPDATE_VISUAL: ${{ inputs.update_visual_snapshots }}
+          PUBLISH_IMAGE: ${{ inputs.publish_image }}
         run: |
           set -euo pipefail
 
@@ -67,40 +69,48 @@ jobs:
           frontend=false
           heavy=false
           visual=false
+          docker=false
+          publish=false
 
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == push ]] ||
+            [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$PUBLISH_IMAGE" == true ]]; then
+            number='(0|[1-9][0-9]*)'
+            identifier="($number|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+            release_ref="^refs/tags/v$number\.$number\.$number(-$identifier(\.$identifier)*)?$"
+            if [[ "$GITHUB_REF" != refs/heads/main && ! "$GITHUB_REF" =~ $release_ref ]]; then
+              echo 'Image publishing requires main or a vMAJOR.MINOR.PATCH release tag (optional prerelease).'
+              exit 1
+            fi
+
             backend=true
             frontend=true
-            heavy=true
-            visual=true
-          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            backend=true
-            frontend=true
-            if [[ "$RUN_HEAVY" == "true" ]]; then
+            docker=true
+            publish=true
+            if [[ "$GITHUB_REF" != refs/heads/main || "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
               heavy=true
               visual=true
             fi
-            if [[ "$UPDATE_VISUAL" == "true" ]]; then
+          elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            backend=true
+            frontend=true
+            if [[ "$RUN_HEAVY" == true ]]; then
+              heavy=true
+              visual=true
+              docker=true
+            fi
+            if [[ "$UPDATE_VISUAL" == true ]]; then
               visual=true
             fi
-          else
-            files=""
-            if [[ "$EVENT_NAME" == "pull_request" ]]; then
-              files="$(git diff --name-only HEAD^1 HEAD || true)"
-            elif [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]] && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
-              files="$(git diff --name-only "$BEFORE_SHA" HEAD || true)"
-            else
+          elif [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            files="$(git diff --no-renames --name-only HEAD^1 HEAD)"
+            if grep -Eq '^(backend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
               backend=true
+            fi
+            if grep -Eq '^(frontend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
               frontend=true
             fi
-
-            if [[ -n "$files" ]]; then
-              if grep -Eq '^(backend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
-                backend=true
-              fi
-              if grep -Eq '^(frontend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
-                frontend=true
-              fi
+            if grep -Eq '^(docker/|Dockerfile$|\.dockerignore$|Caddyfile$|docker-compose\.yml$|\.env\.example$|\.github/workflows/(ci|docker-publish)\.yml$)' <<<"$files"; then
+              docker=true
             fi
           fi
 
@@ -109,6 +119,8 @@ jobs:
             echo "frontend=$frontend"
             echo "heavy=$heavy"
             echo "visual=$visual"
+            echo "docker=$docker"
+            echo "publish=$publish"
           } >> "$GITHUB_OUTPUT"
 
   backend:
@@ -403,11 +415,8 @@ jobs:
 
   release-docker:
     name: Release Docker Smoke Check
-    needs:
-      - changes
-      - backend
-      - frontend
-    if: needs.changes.outputs.heavy == 'true'
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -438,3 +447,39 @@ jobs:
 
       - name: Smoke test container lifecycle
         run: bash docker/smoke-test.sh z-reader:ci
+
+  publish-image:
+    name: Publish verified image
+    needs:
+      - changes
+      - backend
+      - frontend
+      - release-backend-extended
+      - release-frontend-extended
+      - release-e2e-and-perf
+      - release-visual
+      - release-docker
+    if: >-
+      ${{ !cancelled()
+        && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_image))
+        && needs.changes.outputs.publish == 'true'
+        && needs.changes.result == 'success'
+        && needs.backend.result == 'success'
+        && needs.frontend.result == 'success'
+        && needs.release-docker.result == 'success'
+        && ((github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && needs.release-backend-extended.result == 'skipped'
+          && needs.release-frontend-extended.result == 'skipped'
+          && needs.release-e2e-and-perf.result == 'skipped'
+          && needs.release-visual.result == 'skipped')
+          || (needs.release-backend-extended.result == 'success'
+          && needs.release-frontend-extended.result == 'success'
+          && needs.release-e2e-and-perf.result == 'success'
+          && needs.release-visual.result == 'success')) }}
+    uses: ./.github/workflows/docker-publish.yml
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      artifact-metadata: write
+      id-token: write

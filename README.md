@@ -187,22 +187,18 @@ z-reader/
 
 ## CI
 
-仓库当前包含两条 GitHub Actions 工作流：
-
 - `CI`（`.github/workflows/ci.yml`）
-  - 触发：`main` push、符合 SemVer 的发布 tag、PR、`workflow_dispatch`
-  - **Backend**：`go test` / `go vet` / govulncheck
-  - **Coverage**：核心后端模块与前端数据链路不低于提交的覆盖率基线
-  - **Frontend**：lint、build、Vitest unit、功能 E2E（含搜索/批量）、**视觉回归（Linux 基线）**
-  - **Docker**：镜像构建检查（不推送）
-  - 视觉基线按平台分目录：`linux/`（CI 门禁）与 `darwin/`（本机 macOS 可选）
-  - 更新 Linux 基线：`cd frontend && npm run test:visual:update:linux`（需 Docker）
+  - `main` 推送（含仅文档改动）运行前后端基础检查和容器冒烟。发布标签运行完整检查。对应检查在同一提交的 CI 运行中全部通过后，才会发布镜像。
+  - **Backend**：`go test` / `go vet` / govulncheck，以及覆盖率和备份恢复检查。
+  - **Frontend**：lint、build、Vitest unit、覆盖率、JS 预算、功能 E2E（含搜索／批量）、性能和 Linux 视觉回归。
+  - **Docker**：验证 Compose 配置，构建并冒烟测试容器。发布时构建 `linux/amd64` 和 `linux/arm64` 镜像并推送到 GHCR，附带 SBOM 和 provenance attestation。
+  - PR 按改动路径运行后端、前端及容器检查，无镜像发布权限。容器相关路径包括 Dockerfile、Compose 配置和 CI／发布工作流。
+  - 手动运行 CI 默认只做检查。要发布，请选择 `main` 或符合 `vMAJOR.MINOR.PATCH` 格式的发布标签并启用 `publish_image`。这会强制运行完整检查，即使关闭了 `run_heavy_checks`。支持预发布后缀，具体边界见[发布检查清单](docs/release-checklist.md)。
+  - 视觉基线按平台分目录：`linux/`（CI 门禁）与 `darwin/`（本机 macOS 可选）。更新 Linux 基线可运行 `cd frontend && npm run test:visual:update:linux`（需 Docker）。
 - `CodeQL`（`.github/workflows/codeql.yml`）
   - 分析 Go 与 TypeScript/JavaScript 代码；在 PR、主分支变更及每周定时运行
 - `Dependabot`（`.github/dependabot.yml`）
-  - 每周检查 GitHub Actions、Docker、Go modules 与 npm 依赖更新
-- `Build and Push Docker Image`
-  在 `main` 分支、发布 tag 或手动触发时构建并推送镜像到 `ghcr.io`
+  - 每周检查 GitHub Actions、Docker、Go modules 与 npm 依赖更新。
 
 ## 参与贡献
 

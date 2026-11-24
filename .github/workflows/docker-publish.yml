@@ -1,53 +1,19 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.serena/**'
-  workflow_dispatch:
+  workflow_call:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  smoke:
-    name: Test image before publishing
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build smoke-test image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./Dockerfile
-          load: true
-          tags: z-reader:publish-smoke
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Smoke test container lifecycle
-        run: bash docker/smoke-test.sh z-reader:publish-smoke
-
   build:
-    needs: smoke
     runs-on: ubuntu-latest
+    concurrency:
+      # Branches and stable tags can both write the latest alias.
+      group: ghcr-publish
+      queue: max
     permissions:
       contents: read
       packages: write
@@ -56,33 +22,17 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout verified commit
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
-
-      - name: Validate release tag
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
-            echo "Release tags must follow vMAJOR.MINOR.PATCH (optional prerelease suffix)."
-            exit 1
-          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
-
-      - name: Log in to Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata for Docker
         id: meta
@@ -91,11 +41,36 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Verify the ref still points to the verified commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          refs=$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
+            ls-remote --exit-code origin "$GITHUB_REF" "${GITHUB_REF}^{}")
+          # For annotated tags, use the peeled commit rather than the tag object.
+          current_sha=$(awk -v ref="$GITHUB_REF" '
+            $2 == ref { sha = $1 }
+            $2 == ref "^{}" { peeled = $1 }
+            END { print (peeled ? peeled : sha) }
+          ' <<<"$refs")
+          verified_sha=$(git rev-parse HEAD)
+          if [[ "$current_sha" != "$verified_sha" ]]; then
+            echo "Ref $GITHUB_REF no longer points to $verified_sha. Publication stopped."
+            exit 1
+          fi
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         id: build-push
@@ -104,7 +79,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -112,7 +87,6 @@ jobs:
           sbom: true
 
       - name: Generate artifact attestation
-        if: github.event_name != 'pull_request'
         uses: actions/attest@v4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}

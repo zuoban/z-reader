@@ -76,8 +76,8 @@ Run the lightweight checks matching PR CI for the area you change (or `make chec
   ```
 
 - **Release / heavy checks** (`test:coverage:check`, `test:js-budget`, `test:e2e:ci`, `test:visual`,
-  `govulncheck`): Run locally only when relevant to the change; in CI they run on `v*.*.*`
-  release tags or manual `workflow_dispatch`.
+  `govulncheck`): Run locally only when relevant to the change. CI runs them on release tag
+  pushes and manual runs with heavy checks or image publication enabled.
 
 ## Workflow & Commits
 

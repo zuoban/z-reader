@@ -50,10 +50,38 @@ git tag -a vMAJOR.MINOR.PATCH -m "Release vMAJOR.MINOR.PATCH"
 git push origin vMAJOR.MINOR.PATCH
 ```
 
-The tag triggers CI and the image workflow. The image workflow validates the
-SemVer tag and publishes multi-architecture image tags through `docker/metadata-action`.
+Pushing the tag runs the full CI suite for the tagged commit. The `Publish verified image`
+job calls the reusable publisher only after all required jobs in that run succeed, including
+Compose validation and a container smoke test. A failed, cancelled, or skipped required job
+blocks publication. Every push to `main` runs the backend and frontend base checks plus the
+container smoke test before publishing. Documentation-only pushes follow the same rule so they
+can publish the new tip if they supersede a pending publication.
 
-## After the workflows succeed
+The publisher builds `linux/amd64` and `linux/arm64` images with an SBOM and a provenance
+attestation. `main` pushes publish `main` and `latest`. Stable releases publish the Git tag,
+the version without `v`, the `MAJOR.MINOR` alias, and `latest`. Prereleases publish the Git tag
+and the prerelease version without `v`.
+
+### Manual publication
+
+In **Actions → CI → Run workflow**, select `main` or a `vMAJOR.MINOR.PATCH` release tag
+created from reviewed `main`, and enable `publish_image`. Optional SemVer prerelease suffixes
+are supported. Build metadata (`+...`), other branches, and raw SHAs are outside the supported
+publication scope. The switch defaults to off. Enabling it forces all required checks even
+when `run_heavy_checks` is off.
+
+Use a ref that contains this CI workflow. GitHub executes the workflow revision on the
+selected ref, so older refs can still contain the legacy standalone publisher. Treat write
+access to `main`, release tags, and their workflow definitions as part of the release trust
+boundary. Keep release tags immutable.
+
+Publication jobs share a queue and run one at a time. Before logging in to GHCR, each job checks
+that the remote ref still resolves to the tested commit. If `main` advances after that check,
+the active build and upload can finish before a newer successful run publishes its image.
+`latest` is shared by `main` and stable releases, and stable releases also share their
+minor-version alias.
+
+## After CI and publication succeed
 
 - [ ] Create the GitHub Release for the same tag and paste the corresponding
   `CHANGELOG.md` section as release notes.

@@ -4,10 +4,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ActionIcon, Button, Drawer, Slider, Tabs } from "@mantine/core";
 import { useUncontrolled } from "@mantine/hooks";
-import { Check, ChevronDown, ChevronUp, RotateCcw, Settings, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Minus, Plus, RotateCcw, Settings, X } from "lucide-react";
 
 import {
   getModernReaderSurface,
+  getReaderPanelThemeVars,
   withOpacity,
 } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,18 @@ interface SliderFieldProps {
   uiScheme: ThemeColors;
 }
 
+function stepNumericValue(
+  current: number,
+  direction: -1 | 1,
+  min: number,
+  max: number,
+  step: number,
+) {
+  const decimals = step.toString().split(".")[1]?.length ?? 0;
+  const next = Math.min(max, Math.max(min, current + direction * step));
+  return Number(next.toFixed(decimals));
+}
+
 function SettingChoice({
   label,
   active,
@@ -104,10 +117,14 @@ function SettingChoice({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="reader-settings-option flex min-h-11 flex-1 items-center justify-center border px-2 text-sm"
-      style={{ borderColor: active ? "var(--reader-option-accent)" : "var(--reader-option-rule)" }}
+      className={cn(
+        "reader-settings-option flex min-h-11 flex-1 items-center justify-center gap-1.5 border px-2.5 text-sm",
+        active && "font-medium",
+      )}
+      style={active ? undefined : { borderColor: "var(--reader-panel-rule)" }}
     >
-      {label}
+      {active && <Check aria-hidden="true" className="size-3.5 shrink-0" />}
+      <span>{label}</span>
     </button>
   );
 }
@@ -130,17 +147,24 @@ function SliderField({
         <span className="text-sm font-medium" style={{ color: uiScheme.fg }}>
           {label}
         </span>
-        <span className="text-xs font-medium tabular-nums text-[var(--reader-option-accent)]">
+        <span
+          className="text-xs font-medium tabular-nums"
+          style={{ color: uiScheme.link }}
+        >
           {valueLabel}
         </span>
       </div>
-      <div className="flex items-center gap-3">
-        <span
-          className="w-8 shrink-0 text-center text-xs tabular-nums"
-          style={{ color: uiScheme.mutedText }}
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          className="reader-panel-stepper"
+          disabled={value <= min}
+          onClick={() => onChange(stepNumericValue(value, -1, min, max, step))}
+          aria-label={`减小${label}`}
+          title={`减小${label}（最小 ${minLabel}）`}
         >
-          {minLabel}
-        </span>
+          <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
         <Slider
           value={value}
           onChange={onChange}
@@ -164,12 +188,16 @@ function SliderField({
             },
           }}
         />
-        <span
-          className="w-8 shrink-0 text-center text-xs tabular-nums"
-          style={{ color: uiScheme.mutedText }}
+        <button
+          type="button"
+          className="reader-panel-stepper"
+          disabled={value >= max}
+          onClick={() => onChange(stepNumericValue(value, 1, min, max, step))}
+          aria-label={`增大${label}`}
+          title={`增大${label}（最大 ${maxLabel}）`}
         >
-          {maxLabel}
-        </span>
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
       </div>
     </div>
   );
@@ -187,13 +215,15 @@ function ReaderPreview({
 
   return (
     <section
-      className="mb-5 rounded-lg border px-4"
+      className="mb-5 rounded-lg border px-4 transition-colors duration-200"
       aria-label="阅读效果预览"
       style={{
         background: preset.bg,
         color: preset.fg,
         borderColor: withOpacity(preset.fg, 0.12),
-      }}
+        "--reader-preview-fg": preset.fg,
+        "--reader-preview-accent": preset.link,
+      } as CSSProperties}
     >
       <div className="flex flex-wrap items-center gap-x-2">
         <span
@@ -215,8 +245,7 @@ function ReaderPreview({
           aria-expanded={expanded}
           aria-controls={passageId}
           onClick={() => setExpanded((value) => !value)}
-          className="flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          style={{ color: withOpacity(preset.fg, 0.8) }}
+          className="reader-preview-toggle"
         >
           {expanded ? "收起预览" : "展开预览"}
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -266,6 +295,7 @@ export function ThemeSettings({
   const layoutPanelLabelId = useId();
   const advancedPanelLabelId = useId();
   const surface = getModernReaderSurface(uiScheme);
+  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
 
   useEffect(() => {
     return () => {
@@ -284,7 +314,7 @@ export function ThemeSettings({
     resetFeedbackTimeoutRef.current = window.setTimeout(() => {
       setIsResetFeedbackVisible(false);
       resetFeedbackTimeoutRef.current = null;
-    }, 480);
+    }, 1500);
     setTheme(DEFAULT_READER_THEME);
   }
 
@@ -325,6 +355,7 @@ export function ThemeSettings({
         }}
         styles={{
           content: {
+            ...panelThemeVars,
             flex: "0 1 auto",
             height: "auto",
             background: uiScheme.cardBg,
@@ -336,23 +367,35 @@ export function ThemeSettings({
       >
         <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
         <Drawer.Content data-reader-interactive="true">
-          <div
-            className="shrink-0 bg-transparent px-4 py-3 sm:px-6"
-            style={{ borderColor: surface.hairline }}
-          >
+          <div className="shrink-0 bg-transparent px-4 py-3.5 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <Drawer.Title
-                  className="text-xl font-medium"
-                  style={{ color: surface.fg }}
-                >
-                  阅读偏好
-                </Drawer.Title>
-                <p className="mt-1 text-xs" style={{ color: surface.muted }}>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Drawer.Title
+                    className="font-heading text-lg font-medium leading-tight"
+                    style={{ color: surface.fg }}
+                  >
+                    阅读偏好
+                  </Drawer.Title>
+                  {isResetFeedbackVisible ? (
+                    <span
+                      role="status"
+                      aria-live="polite"
+                      className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      style={{
+                        background: withOpacity(uiScheme.link, 0.12),
+                        color: uiScheme.link,
+                      }}
+                    >
+                      已恢复默认
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 text-xs" style={{ color: surface.muted }}>
                   调整纸色、字号与版式细节
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1">
                 <ActionIcon
                   type="button"
                   variant="subtle"
@@ -362,18 +405,10 @@ export function ThemeSettings({
                   disabled={isDefaultTheme}
                   title="重置阅读偏好"
                   aria-label="重置阅读偏好"
-                  className={cn(
-                    "size-11 min-h-0 min-w-0 rounded-lg border-0 transition-colors hover:bg-secondary disabled:opacity-45 lg:size-9",
-                    isResetFeedbackVisible && "scale-[1.04]",
-                  )}
-                  style={{
-                    color: isDefaultTheme
-                      ? surface.muted
-                      : withOpacity(uiScheme.fg, 0.72),
-                  }}
+                  className="reader-panel-icon"
                 >
                   <RotateCcw
-                    className="h-3.5 w-3.5 transition-transform duration-300 ease-out"
+                    className="h-4 w-4 transition-transform duration-300 ease-out"
                     style={{
                       transform: `rotate(${resetFeedbackCount * 360}deg)`,
                     }}
@@ -385,14 +420,11 @@ export function ThemeSettings({
                   size={44}
                   radius="md"
                   onClick={() => setIsOpen(false)}
-                  className="size-11 min-h-0 min-w-0 rounded-lg transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.08] lg:size-9"
-                  style={{
-                    color: surface.muted,
-                  }}
+                  className="reader-panel-icon"
                   aria-label="关闭阅读偏好"
                   title="关闭"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </ActionIcon>
               </div>
             </div>
@@ -414,34 +446,21 @@ export function ThemeSettings({
             <Tabs.List
               grow
               aria-label="阅读设置分类"
-              className="grid shrink-0 grid-cols-3 border-0 px-4 sm:px-6"
+              className="grid shrink-0 grid-cols-3 border-b px-4 sm:px-6"
+              style={{ borderColor: surface.hairline }}
             >
-              {SETTINGS_SECTIONS.map((section) => {
-                const active = activeSection === section.id;
-                return (
-                  <Tabs.Tab
-                    key={section.id}
-                    value={section.id}
-                    className="min-h-11 rounded-none border-b bg-transparent px-2 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2"
-                    style={{
-                      borderColor: active ? uiScheme.link : surface.hairline,
-                      color: active ? uiScheme.link : surface.muted,
-                    }}
-                  >
-                    {section.label}
-                  </Tabs.Tab>
-                );
-              })}
+              {SETTINGS_SECTIONS.map((section) => (
+                <Tabs.Tab
+                  key={section.id}
+                  value={section.id}
+                  className="reader-panel-tab"
+                >
+                  {section.label}
+                </Tabs.Tab>
+              ))}
             </Tabs.List>
 
-            <div
-              className="reader-panel-body custom-scrollbar px-4 pb-5 pt-4 sm:px-6"
-              style={{
-                "--reader-option-selected": withOpacity(uiScheme.link, 0.09),
-                "--reader-option-accent": uiScheme.link,
-                "--reader-option-rule": surface.hairline,
-              } as CSSProperties}
-            >
+            <div className="reader-panel-body custom-scrollbar px-4 pb-5 pt-4 sm:px-6">
               <ReaderPreview theme={theme} />
 
               <Tabs.Panel
@@ -463,7 +482,7 @@ export function ThemeSettings({
                           onClick={() => setTheme({ preset: preset.key })}
                           aria-pressed={isActive}
                           className="reader-settings-option grid min-h-11 min-w-0 justify-items-center gap-1 border p-1 text-xs sm:p-1.5"
-                          style={{ borderColor: isActive ? uiScheme.link : surface.hairline }}
+                          style={isActive ? undefined : { borderColor: surface.hairline }}
                         >
                           <span
                             aria-hidden="true"
@@ -507,7 +526,10 @@ export function ThemeSettings({
                 <span id={layoutPanelLabelId} className="sr-only">排版设置</span>
                 <section className="space-y-2">
                   <h3 className="text-sm font-medium">字型选择</h3>
-                  <div className="divide-y divide-[var(--reader-option-rule)] border-y border-[var(--reader-option-rule)]">
+                  <div
+                    className="divide-y overflow-hidden rounded-[var(--paper-radius-control)] border"
+                    style={{ borderColor: surface.hairline }}
+                  >
                     {FONT_ORDER.map((key) => {
                       const option = FONT_FAMILY_OPTIONS[key];
                       const isActive = theme.fontFamily === key;
@@ -517,10 +539,17 @@ export function ThemeSettings({
                           type="button"
                           onClick={() => setTheme({ fontFamily: key })}
                           aria-pressed={isActive}
-                          className="reader-settings-option flex min-h-11 w-full items-center gap-3 px-2.5 py-2 text-left"
+                          className="reader-settings-row flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left"
+                          style={{ borderColor: surface.hairline }}
                         >
                           <span className="min-w-0 flex-1">
-                            <span className="block text-base" style={{ fontFamily: option.stack }}>
+                            <span
+                              className={cn("block text-base", isActive && "font-medium")}
+                              style={{
+                                fontFamily: option.stack,
+                                color: isActive ? uiScheme.link : surface.fg,
+                              }}
+                            >
                               {option.label}
                             </span>
                             <span className="block text-xs" style={{ color: surface.muted }}>
@@ -619,8 +648,11 @@ export function ThemeSettings({
                   uiScheme={uiScheme}
                 />
 
-                <div className="space-y-3 border-t border-border/30 pt-4">
-                  <span className="block pl-0.5 text-xs font-medium" style={{ color: uiScheme.mutedText }}>
+                <div
+                  className="space-y-3 border-t pt-4"
+                  style={{ borderColor: surface.hairline }}
+                >
+                  <span className="block pl-0.5 text-xs font-medium" style={{ color: surface.muted }}>
                     中文排版
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">

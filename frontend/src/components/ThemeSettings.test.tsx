@@ -56,5 +56,40 @@ describe('ThemeSettings preview', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '重置阅读偏好' }));
     expect(setTheme).toHaveBeenCalledWith(DEFAULT_READER_THEME);
+    expect(screen.getByRole('status')).toHaveTextContent('已恢复默认');
+  });
+
+  it('steps slider values precisely and disables steppers at bounds', () => {
+    const { setTheme, rerender } = renderSettings({
+      fontSize: 12,
+      lineHeight: 1.6,
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: '排版' }));
+
+    const decreaseFont = screen.getByRole('button', { name: '减小字号大小' });
+    const increaseFont = screen.getByRole('button', { name: '增大字号大小' });
+    const increaseLineHeight = screen.getByRole('button', { name: '增大行间距' });
+
+    expect(decreaseFont).toBeDisabled();
+    expect(increaseFont).toBeEnabled();
+
+    fireEvent.click(increaseFont);
+    expect(setTheme).toHaveBeenCalledWith({ fontSize: 13 });
+
+    fireEvent.click(increaseLineHeight);
+    expect(setTheme).toHaveBeenCalledWith({ lineHeight: 1.65 });
+
+    rerender(
+      <ThemeSettings
+        theme={{ ...DEFAULT_READER_THEME, fontSize: 32, lineHeight: 2.2 }}
+        setTheme={setTheme}
+        uiScheme={PRESET_STYLES.dark}
+        open
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: '增大字号大小' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '增大行间距' })).toBeDisabled();
   });
 });

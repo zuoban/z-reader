@@ -112,6 +112,16 @@ func TestBatchCategoryUpdateCountsEachBookOnce(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		book := &models.Book{ID: "a", UserID: "u"}
+		bucket := tx.Bucket(BookSortIndex)
+		if err := bucket.Delete(bookSortIndexKey(book, "title")); err != nil {
+			return err
+		}
+		return bucket.Put(bookSortIndexKey(book, "author"), []byte("d"))
+	}); err != nil {
+		t.Fatal(err)
+	}
 	books, err := db.UpdateBooksCategory([]string{"b", "a", "b", "", "c"}, "u", &destination)
 	if err != nil || len(books) != 3 || books[0].ID != "b" || books[1].ID != "a" || books[2].ID != "c" {
 		t.Fatalf("updated books = %+v, err = %v", books, err)
@@ -124,6 +134,30 @@ func TestBatchCategoryUpdateCountsEachBookOnce(t *testing.T) {
 	other, err := db.GetBookLibrarySummary("other")
 	if err != nil || other.Total != 1 || other.Categories[source] != 1 {
 		t.Fatalf("other summary = %+v, err = %v", other, err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		allBooks, byCategory := tx.Bucket(BookSortIndex), tx.Bucket(BookCategorySortIndex)
+		for _, sortKey := range supportedBookSorts {
+			for i := range books {
+				book := &books[i]
+				if got := string(allBooks.Get(bookSortIndexKey(book, sortKey))); got != book.ID {
+					t.Errorf("all-books %s index has %q, want %q", sortKey, got, book.ID)
+				}
+				if got := string(byCategory.Get(bookCategorySortIndexKey(book, sortKey))); got != book.ID {
+					t.Errorf("destination %s index has %q, want %q", sortKey, got, book.ID)
+				}
+			}
+			for i, oldCategory := range []string{"", source} {
+				previous := books[i]
+				previous.Category = &oldCategory
+				if byCategory.Get(bookCategorySortIndexKey(&previous, sortKey)) != nil {
+					t.Errorf("old %s index entry for %q still exists", sortKey, previous.ID)
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -267,6 +267,35 @@ func updateBookSortKey(tx *bbolt.Tx, oldBook, book *models.Book, sortKey string)
 	return nil
 }
 
+func moveBookCategorySortKeys(tx *bbolt.Tx, book *models.Book, from, to string) error {
+	if book.UserID == "" || book.ID == "" {
+		return nil
+	}
+	allBooks, byCategory := tx.Bucket(BookSortIndex), tx.Bucket(BookCategorySortIndex)
+	id := []byte(book.ID)
+	for _, sortKey := range supportedBookSorts {
+		value := bookSortValue(book, sortKey)
+		key := bookSortIndexKeyWithValue(book, sortKey, value)
+		// Only rebuild an all-books entry if it is missing or incorrect.
+		if !bytes.Equal(allBooks.Get(key), id) {
+			if err := allBooks.Put(key, id); err != nil {
+				return err
+			}
+		}
+		if byCategory != nil {
+			oldKey := bookCategorySortIndexKeyWithValue(book, sortKey, from, value)
+			if err := byCategory.Delete(oldKey); err != nil {
+				return err
+			}
+			newKey := bookCategorySortIndexKeyWithValue(book, sortKey, to, value)
+			if err := byCategory.Put(newKey, id); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func updateBooksCategoryInTx(
 	tx *bbolt.Tx, ids []string, userID string, category *string, includeBooks bool,
 ) ([]models.Book, error) {
@@ -294,11 +323,9 @@ func updateBooksCategoryInTx(
 			}
 			summary = &current
 		}
+		oldCategory := categoryForBook(&book)
 		if summary != nil {
-			summary.adjustCount(categoryForBook(&book), -1)
-		}
-		if err := removeBookFromSortIndex(tx, &book); err != nil {
-			return nil, err
+			summary.adjustCount(oldCategory, -1)
 		}
 		if err := removeBookFromSearchGramIndex(tx, &book, bookSearchText(&book)); err != nil {
 			return nil, err
@@ -315,14 +342,15 @@ func updateBooksCategoryInTx(
 		if err := addBookToSearchIndex(tx, &book, searchText); err != nil {
 			return nil, err
 		}
-		if err := addBookToSortIndex(tx, &book); err != nil {
+		newCategory := categoryForBook(&book)
+		if err := moveBookCategorySortKeys(tx, &book, oldCategory, newCategory); err != nil {
 			return nil, err
 		}
 		if err := addBookToSearchGramIndex(tx, &book, searchText); err != nil {
 			return nil, err
 		}
 		if summary != nil {
-			summary.adjustCount(categoryForBook(&book), 1)
+			summary.adjustCount(newCategory, 1)
 		}
 		if includeBooks {
 			updatedBooks = append(updatedBooks, book)

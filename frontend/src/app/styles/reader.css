@@ -2,12 +2,13 @@
 
 @layer components {
   .reader-chrome-btn {
-    @apply inline-flex h-8 w-8 min-h-0 min-w-0 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-xs font-normal shadow-none;
+    @apply inline-flex h-8 w-8 min-h-0 min-w-0 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-xs font-normal shadow-none;
     --button-height: 2rem;
     --button-padding-x: 0;
     color: var(--reader-chrome-muted);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-chrome-btn-expanded {
@@ -20,7 +21,7 @@
   }
 
   .reader-chrome-icon {
-    @apply flex h-11 w-11 min-h-0 min-w-0 shrink-0 items-center justify-center lg:h-8 lg:w-8;
+    @apply flex h-11 w-11 min-h-0 min-w-0 shrink-0 cursor-pointer items-center justify-center lg:h-8 lg:w-8;
     border-radius: var(--paper-radius-control);
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -34,7 +35,7 @@
   }
 
   .reader-mobile-menu-item {
-    @apply flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium transition-colors;
+    @apply flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left text-sm font-medium transition-colors;
     border-radius: var(--paper-radius-control);
   }
 
@@ -205,6 +206,11 @@
     @apply mx-1 mb-1 border-b px-2 pt-1.5 pb-2 text-xs font-semibold;
     border-color: var(--reader-chrome-rule);
     color: var(--reader-chrome-muted);
+  }
+
+  .reader-toolbar-menu-divider {
+    @apply mx-2 my-1 h-px;
+    background: color-mix(in srgb, var(--reader-chrome-rule) 70%, transparent);
   }
 
   .reader-panel-header {
@@ -718,7 +724,8 @@
   .reader-status-trigger {
     @apply relative flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-full px-2.5 text-[11px] font-normal tracking-[0.04em] tabular-nums;
     color: var(--reader-status-muted);
-    transition: color var(--paper-duration-fast) var(--paper-ease-soft);
+    transition: color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-status-trigger::before,
@@ -741,13 +748,23 @@
   }
 
   .reader-status-action {
-    @apply relative inline-flex shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 shadow-none;
+    @apply relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 shadow-none;
     --ai-size: 1.75rem;
     width: 1.75rem;
     height: 1.75rem;
     color: var(--reader-status-muted);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft);
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reader-chrome-btn:enabled:active,
+    .reader-chrome-icon:enabled:active,
+    .reader-status-action:enabled:active,
+    .reader-status-trigger:active {
+      transform: scale(0.95);
+    }
   }
 
   .reader-status-action:hover {

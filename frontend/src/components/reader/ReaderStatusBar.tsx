@@ -56,6 +56,7 @@ export function ReaderStatusBar({
             onClick={onToggleToolbar}
             title="展开操作栏"
             aria-label="展开操作栏"
+            aria-pressed={false}
             className="reader-status-trigger"
           >
             {formattedPercentage}
@@ -93,7 +94,10 @@ export function ReaderStatusBar({
         <span className="text-[11px] font-normal tracking-[0.04em] tabular-nums">
           {formattedPercentage}
         </span>
-        <span className="reader-status-chapter truncate text-center text-xs font-normal tracking-[0.01em]">
+        <span
+          className="reader-status-chapter truncate text-center text-xs font-normal tracking-[0.01em]"
+          title={currentChapter || undefined}
+        >
           {currentChapter || "—"}
         </span>
         <span

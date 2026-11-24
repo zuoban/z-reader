@@ -20,6 +20,7 @@ describe('ReaderStatusBar', () => {
     );
 
     const expandButton = screen.getByRole('button', { name: '展开操作栏' });
+    expect(expandButton).toHaveAttribute('aria-pressed', 'false');
     expect(expandButton).toHaveTextContent('12.3%');
     expect(screen.queryByText('第一章 开篇')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '朗读控制' })).toBeInTheDocument();
@@ -45,7 +46,7 @@ describe('ReaderStatusBar', () => {
     const collapseButton = screen.getByRole('button', { name: '收起顶部操作栏' });
     expect(collapseButton).toHaveAttribute('aria-pressed', 'true');
     expect(collapseButton).toHaveTextContent('100.0%');
-    expect(collapseButton).toHaveTextContent('前言');
+    expect(screen.getByText('前言')).toHaveAttribute('title', '前言');
     expect(collapseButton).toHaveTextContent('1/4');
 
     const progressFill = container.querySelector('.reader-status-progress-fill');

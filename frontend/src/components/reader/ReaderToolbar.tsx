@@ -112,11 +112,19 @@ export function ReaderToolbar({
   onOpenShortcuts,
 }: ReaderToolbarProps) {
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [prevVisible, setPrevVisible] = useState(visible);
   const [settingsRequested, setSettingsRequested] = useState(false);
   const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
   const mobileActionsMenuRef = useRef<HTMLDivElement>(null);
   const mobileActionsMenuId = useId();
   const mobileActionsTitleId = useId();
+
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    if (!visible && mobileActionsOpen) {
+      setMobileActionsOpen(false);
+    }
+  }
 
   function closeMobileActions(returnFocus = true) {
     setMobileActionsOpen(false);
@@ -166,6 +174,8 @@ export function ReaderToolbar({
     <>
       <header
         data-reader-interactive="true"
+        aria-hidden={!visible || undefined}
+        inert={!visible || undefined}
         className={`reader-chrome reader-chrome-surface pointer-events-none border-b absolute inset-x-0 top-0 z-50 transition-[transform,opacity] duration-200 ease-out ${
           visible
             ? "translate-y-0 opacity-100"
@@ -182,7 +192,12 @@ export function ReaderToolbar({
           paddingTop: headerSafeAreaPaddingTop,
         } as React.CSSProperties}
       >
-        <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-6xl items-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
+        <div
+          className={cn(
+            "mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-6xl items-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]",
+            visible ? "pointer-events-auto" : "pointer-events-none"
+          )}
+        >
           <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2 sm:gap-2 sm:pr-4">
             <ActionIcon
               variant="subtle"
@@ -254,7 +269,7 @@ export function ReaderToolbar({
                   }}
                   type="button"
                 >
-                  <List className="h-4 w-4 opacity-80" />
+                  <List className="h-4 w-4 opacity-80" aria-hidden="true" />
                   <span>目录</span>
                 </button>
                 {showBookmarks && (
@@ -267,19 +282,20 @@ export function ReaderToolbar({
                       }}
                       type="button"
                     >
-                      <BookmarkIcon className="h-4 w-4 opacity-80" />
+                      <BookmarkIcon className="h-4 w-4 opacity-80" aria-hidden="true" />
                       <span>书签</span>
                     </button>
                     <button
                       className="reader-mobile-menu-item"
                       disabled={!canCreateBookmark || isSavingBookmark}
+                      aria-busy={isSavingBookmark || undefined}
                       onClick={() => {
                         closeMobileActions(false);
                         onCreateBookmark();
                       }}
                       type="button"
                     >
-                      <BookmarkPlus className="h-4 w-4 opacity-80" />
+                      <BookmarkPlus className="h-4 w-4 opacity-80" aria-hidden="true" />
                       <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
                     </button>
                   </>
@@ -288,19 +304,21 @@ export function ReaderToolbar({
                   <button
                     className="reader-mobile-menu-item"
                     disabled={isSavingOffline}
+                    aria-busy={isSavingOffline || undefined}
                     onClick={() => {
                       closeMobileActions(false);
                       onSaveOffline();
                     }}
                     type="button"
                   >
-                    <Download className="h-4 w-4 opacity-80" />
+                    <Download className="h-4 w-4 opacity-80" aria-hidden="true" />
                     <span>
                       {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}
                     </span>
                   </button>
                 )}
                 {mobileTtsControls}
+                <div className="reader-toolbar-menu-divider" role="separator" />
                 <button
                   className="reader-mobile-menu-item"
                   onClick={() => {
@@ -309,11 +327,12 @@ export function ReaderToolbar({
                   }}
                   type="button"
                 >
-                  <Settings className="h-4 w-4 opacity-80" />
+                  <Settings className="h-4 w-4 opacity-80" aria-hidden="true" />
                   <span>设置</span>
                 </button>
                 <button
                   className="reader-mobile-menu-item"
+                  aria-pressed={isFullscreen}
                   onClick={() => {
                     closeMobileActions(false);
                     onToggleFullscreen();
@@ -321,9 +340,9 @@ export function ReaderToolbar({
                   type="button"
                 >
                   {isFullscreen ? (
-                    <Minimize className="h-4 w-4 opacity-80" />
+                    <Minimize className="h-4 w-4 opacity-80" aria-hidden="true" />
                   ) : (
-                    <Maximize className="h-4 w-4 opacity-80" />
+                    <Maximize className="h-4 w-4 opacity-80" aria-hidden="true" />
                   )}
                   <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
                 </button>
@@ -336,7 +355,7 @@ export function ReaderToolbar({
                     }}
                     type="button"
                   >
-                    <KeyboardIcon className="h-4 w-4 opacity-80" />
+                    <KeyboardIcon className="h-4 w-4 opacity-80" aria-hidden="true" />
                     <span>快捷键</span>
                   </button>
                 )}
@@ -399,6 +418,7 @@ export function ReaderToolbar({
                     variant="subtle"
                     size="sm"
                     disabled={!canCreateBookmark || isSavingBookmark}
+                    aria-busy={isSavingBookmark || undefined}
                     onClick={onCreateBookmark}
                     title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
                     className={chromeBtnClass}
@@ -418,6 +438,7 @@ export function ReaderToolbar({
                   variant="subtle"
                   size="sm"
                   disabled={isSavingOffline}
+                  aria-busy={isSavingOffline || undefined}
                   onClick={onSaveOffline}
                   title="保存到此设备，退出登录后会自动清除"
                   className={cn(
@@ -444,6 +465,7 @@ export function ReaderToolbar({
                 type="button"
                 variant="subtle"
                 size="sm"
+                aria-pressed={isFullscreen}
                 onClick={onToggleFullscreen}
                 title={isFullscreen ? "退出全屏" : "全屏阅读"}
                 className={chromeBtnClass}

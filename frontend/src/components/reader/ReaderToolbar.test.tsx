@@ -249,5 +249,60 @@ describe('ReaderToolbar', () => {
     );
 
     expect(desktop.getByText('42%')).not.toHaveClass('sr-only');
+    expect(desktop.getByRole('button', { name: '42%' })).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('closes the mobile actions menu and makes the header inert when hidden', () => {
+    const baseProps = {
+      visible: true,
+      bookTitle: '测试书籍',
+      bookAuthor: '',
+      toc: [],
+      tocOpen: false,
+      onTocOpenChange: vi.fn(),
+      bookmarksOpen: false,
+      onBookmarksOpenChange: vi.fn(),
+      bookmarks: [],
+      canCreateBookmark: true,
+      isSavingBookmark: false,
+      onCreateBookmark: vi.fn(),
+      onGoToBookmark: vi.fn(),
+      onDeleteBookmark: vi.fn(),
+      tocListRef: { current: null },
+      currentChapter: '',
+      currentChapterHref: '',
+      onLocateCurrentChapter: vi.fn(),
+      onGoTo: vi.fn(),
+      onBack: vi.fn(),
+      uiScheme,
+      headerSafeAreaPaddingTop: '0px',
+      theme,
+      setTheme: vi.fn(),
+      themeSettingsOpen: false,
+      onThemeSettingsOpenChange: vi.fn(),
+      isFullscreen: true,
+      onToggleFullscreen: vi.fn(),
+    };
+
+    const { container, rerender } = render(<ReaderToolbar {...baseProps} />);
+    const desktop = within(
+      document.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
+    );
+    expect(desktop.getByRole('button', { name: '退出全屏' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByTitle('更多阅读操作'));
+    expect(screen.getByRole('dialog', { name: '阅读操作' })).toBeInTheDocument();
+
+    rerender(<ReaderToolbar {...baseProps} visible={false} />);
+
+    const header = container.querySelector('header.reader-chrome') as HTMLElement;
+    expect(header).toHaveAttribute('aria-hidden', 'true');
+    expect(header).toHaveAttribute('inert');
+    expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
+
+    rerender(<ReaderToolbar {...baseProps} visible />);
+    expect(header).not.toHaveAttribute('aria-hidden');
+    expect(header).not.toHaveAttribute('inert');
+    expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
   });
 });

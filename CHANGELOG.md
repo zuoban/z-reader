@@ -8,6 +8,62 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-24
+
+### Breaking Changes
+
+- Replace multi-user account registration and per-user libraries with a single
+  shared personal library protected by an optional `ACCESS_PASSWORD`. Existing
+  books, bookmarks, and reading progress are merged into the shared library on
+  upgrade. Set `ACCESS_PASSWORD` before upgrading if authentication is required.
+
+### Added
+
+- Support Azure Speech and custom SSML TTS providers alongside the existing
+  speech synthesis flow, with URL-safe JWT decoding and format-matched audio
+  response headers.
+- Add offline reading management, a reader keyboard shortcuts dialog, and
+  conflict-safe offline progress replay.
+- Add unified local development startup via `make dev` for running frontend and
+  backend together.
+
+### Changed
+
+- Migrate frontend UI components to Mantine v9 and refresh the full-site Modern
+  Study design with a warm paper-and-terracotta palette and redesigned hardcover
+  bookmark Z Reader logo.
+- Refine shelf and reader ergonomics: consolidate header actions into a settings
+  menu, polish book cards and upload buttons across desktop/mobile/empty states,
+  soften the reader toolbar and status bar into paper-blended chrome, and center
+  modal dialogs (category manager, offline books, keyboard shortcuts).
+- Refactor backend storage and book handlers by domain, harden the async book
+  processing queue, and deduplicate unchanged upload backups while skipping
+  redundant startup backups.
+- Upgrade Next.js to 16.4.6, bump Go to 1.26.11, and harden container runtime
+  ownership, CSP headers, and CI workflows.
+
+### Fixed
+
+- Parse EPUB metadata and covers reliably via `container.xml` and merge
+  concurrent metadata/cover updates without clobbering fields.
+- Preserve files referenced by online backup snapshots, enforce strict `Bearer`
+  prefix checks, honor `X-Forwarded-Proto` only from trusted proxies, and
+  restrict service worker caching to same-origin OK responses while skipping
+  `/shelf` routes.
+- Recover the current TTS passage after browser audio decode failures, offer
+  search retry on failure, keep reader toolbar actions visible with long titles,
+  leave paging keys to focused controls, and keep book action menus at a fixed
+  width.
+
+### Upgrade notes
+
+- **Authentication change**: If your deployment requires login, set
+  `ACCESS_PASSWORD` before starting `v0.2.0` (an empty `ACCESS_PASSWORD` allows
+  direct access to the library). Back up your `data` and `uploads` volumes
+  before upgrading from `v0.1.x` so you can roll back if needed.
+- Refresh open browser tabs after upgrading so the updated `z-reader-v0.2.0`
+  service worker and static assets take effect.
+
 ## [0.1.5] - 2026-10-20
 
 ### Fixed
@@ -247,7 +303,8 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/zuoban/z-reader/releases/tag/v0.2.0
 [0.1.5]: https://github.com/zuoban/z-reader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/zuoban/z-reader/releases/tag/v0.1.4
 [0.1.3]: https://github.com/zuoban/z-reader/releases/tag/v0.1.3

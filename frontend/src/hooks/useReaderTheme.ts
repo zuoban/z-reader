@@ -64,11 +64,11 @@ export interface ThemeColors {
 }
 
 export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
-  /* 净白 — warm neutral paper with pine-ink accent (aligned with app shell) */
+  /* 净白 — warm neutral paper with terracotta accent (aligned with app shell) */
   light: {
     bg: "#f8f7f4",
     fg: "#1c1b19",
-    link: "#234d3e",
+    link: "#8e4934",
     headerBg: "#f8f7f4",
     headerBorder: "#e6e4de",
     cardBg: "#ffffff",
@@ -78,7 +78,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     buttonText: "#1c1b19",
     muted: "#f3f2ed",
     mutedText: "#6b6860",
-    accentText: "#234d3e",
+    accentText: "#8e4934",
   },
   /* 旧书 — classic parchment */
   sepia: {
@@ -116,7 +116,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
   dark: {
     bg: "#141413",
     fg: "#ededeb",
-    link: "#88bfa0",
+    link: "#e4a186",
     headerBg: "#141413",
     headerBorder: "#2a2a27",
     cardBg: "#1b1b19",
@@ -126,7 +126,7 @@ export const PRESET_STYLES: Record<ReaderTheme["preset"], ThemeColors> = {
     buttonText: "#ededeb",
     muted: "#20201e",
     mutedText: "#9a9891",
-    accentText: "#88bfa0",
+    accentText: "#e4a186",
   },
 };
 

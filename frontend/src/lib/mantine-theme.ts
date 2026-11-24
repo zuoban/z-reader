@@ -4,29 +4,29 @@ import {
   type MantineColorsTuple,
 } from '@mantine/core';
 
-const pine: MantineColorsTuple = [
-  '#edf4f0',
-  '#dbe9e1',
-  '#b9d5c5',
-  '#88bfa0',
-  '#62a37f',
-  '#3f8161',
-  '#2d644d',
-  '#234d3e',
-  '#1a3c30',
-  '#102820',
+const terracotta: MantineColorsTuple = [
+  '#fcf2ed',
+  '#f6e0d5',
+  '#edb69f',
+  '#e4a186',
+  '#d4886c',
+  '#be6d50',
+  '#a5563e',
+  '#8e4934',
+  '#743925',
+  '#592b1e',
 ];
 
 // Use plain component extension objects instead of `Component.extend(...)`
 // so root layout does not eagerly bundle Modal/Drawer/Select/Menu on every route.
 export const mantineTheme = createTheme({
-  primaryColor: 'pine',
+  primaryColor: 'terracotta',
   primaryShade: { light: 7, dark: 3 },
   autoContrast: true,
   luminanceThreshold: 0.35,
   respectReducedMotion: true,
   colors: {
-    pine,
+    terracotta,
   },
   fontFamily: 'var(--font-sans)',
   fontFamilyMonospace: 'var(--font-mono)',

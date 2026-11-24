@@ -125,4 +125,28 @@ describe('ReaderImageZoomOverlay', () => {
     fireEvent.click(surface);
     expect(screen.queryByRole('dialog', { name: '图片预览' })).not.toBeInTheDocument();
   });
+
+  it('traps Tab focus inside the modal and shows a graceful fallback on image load error', () => {
+    render(<ImageZoomHarness alt="插图说明" />);
+
+    fireEvent.click(screen.getByRole('button', { name: '打开图片' }));
+    const dialog = screen.getByRole('dialog', { name: '图片预览' });
+    const closeButton = screen.getByRole('button', { name: '关闭图片预览' });
+    const zoomInButton = screen.getByRole('button', { name: '放大图片' });
+
+    expect(closeButton).toHaveFocus();
+
+    // Shift+Tab from the first focusable wraps to the last enabled button (zoomIn at 100%)
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+    expect(zoomInButton).toHaveFocus();
+
+    // Tab from the last enabled button wraps back to closeButton
+    fireEvent.keyDown(dialog, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+
+    // Image load error swaps in a fallback card and hides zoom controls
+    fireEvent.error(screen.getByRole('img', { name: '插图说明' }));
+    expect(screen.getByText('图片暂时无法加载')).toBeVisible();
+    expect(screen.queryByRole('group', { name: '图片缩放控制' })).not.toBeInTheDocument();
+  });
 });

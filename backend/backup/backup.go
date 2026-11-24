@@ -18,7 +18,10 @@ import (
 	"z-reader/backend/storage"
 )
 
-const manifestName = "manifest.json"
+const (
+	manifestName   = "manifest.json"
+	hashBufferSize = 64 * 1024
+)
 
 type Config struct {
 	Dir           string
@@ -241,6 +244,7 @@ func readBackupManifest(root *os.Root) (Manifest, error) {
 }
 
 func verifyManifest(ctx context.Context, root *os.Root, manifest Manifest) error {
+	buf := make([]byte, hashBufferSize)
 	for relativePath, expected := range manifest.Files {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -252,7 +256,7 @@ func verifyManifest(ctx context.Context, root *os.Root, manifest Manifest) error
 		if err != nil {
 			return err
 		}
-		actual, err := hashBackupReader(ctx, file)
+		actual, err := hashBackupReaderWithBuffer(ctx, file, buf)
 		file.Close()
 		if err != nil {
 			return err
@@ -548,8 +552,11 @@ func openRegularBackupFile(root *os.Root, name string) (*os.File, error) {
 }
 
 func hashBackupReader(ctx context.Context, file io.Reader) (string, error) {
+	return hashBackupReaderWithBuffer(ctx, file, make([]byte, hashBufferSize))
+}
+
+func hashBackupReaderWithBuffer(ctx context.Context, file io.Reader, buf []byte) (string, error) {
 	hash := sha256.New()
-	buf := make([]byte, 64*1024)
 	for {
 		if err := ctx.Err(); err != nil {
 			return "", err

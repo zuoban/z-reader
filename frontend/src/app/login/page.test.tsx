@@ -66,4 +66,26 @@ describe('LoginPage', () => {
     fireEvent.change(input, { target: { value: 'new-pass' } });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  it('exposes password visibility toggle state and hints when Caps Lock is active', () => {
+    render(<LoginPage />);
+
+    const input = screen.getByLabelText('访问密码');
+    const toggle = screen.getByRole('button', { name: '显示密码' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle).toHaveAttribute('title', '显示密码');
+
+    fireEvent.mouseDown(toggle);
+    const hideToggle = screen.getByRole('button', { name: '隐藏密码' });
+    expect(hideToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(hideToggle).toHaveAttribute('title', '隐藏密码');
+    expect(input).toHaveAttribute('type', 'text');
+
+    fireEvent.keyDown(input, { key: 'A', modifierCapsLock: true });
+    expect(screen.getByRole('status')).toHaveTextContent('大写锁定已开启');
+    expect(input).toHaveAttribute('aria-describedby', 'caps-lock-hint');
+
+    fireEvent.blur(input);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
 });

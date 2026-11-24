@@ -14,10 +14,17 @@ export default function LoginPage() {
   const { isLoading, isAuthenticated, login } = useAuth({ redirectOnExpire: false });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordRef = useRef<HTMLInputElement>(null);
+
+  function updateCapsLockState(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (typeof e.getModifierState === 'function') {
+      setCapsLockOn(e.getModifierState('CapsLock'));
+    }
+  }
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -98,6 +105,7 @@ export default function LoginPage() {
                 id="password"
                 ref={passwordRef}
                 label="访问密码"
+                inputWrapperOrder={['label', 'input', 'description', 'error']}
                 value={password}
                 disabled={isSubmitting}
                 onChange={(e) => {
@@ -105,15 +113,32 @@ export default function LoginPage() {
                   if (passwordError) setPasswordError('');
                   if (error) setError('');
                 }}
+                onKeyDown={updateCapsLockState}
+                onKeyUp={updateCapsLockState}
+                onBlur={() => setCapsLockOn(false)}
                 visible={showPassword}
                 onVisibilityChange={setShowPassword}
                 visibilityToggleFocusable
                 placeholder="请输入访问密码"
                 autoComplete="current-password"
                 aria-invalid={Boolean(passwordError || error)}
-                aria-describedby={
-                  passwordError ? 'password-error' : error ? 'login-error' : undefined
+                description={
+                  capsLockOn ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <CircleAlert
+                        size={14}
+                        className="shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
+                      <span>大写锁定已开启</span>
+                    </span>
+                  ) : undefined
                 }
+                descriptionProps={{
+                  id: 'caps-lock-hint',
+                  role: 'status',
+                  'aria-live': 'polite',
+                }}
                 error={passwordError || undefined}
                 errorProps={{ id: 'password-error', role: 'alert' }}
                 visibilityToggleIcon={({ reveal }) =>
@@ -125,6 +150,8 @@ export default function LoginPage() {
                 }
                 visibilityToggleButtonProps={{
                   'aria-label': showPassword ? '隐藏密码' : '显示密码',
+                  'aria-pressed': showPassword,
+                  title: showPassword ? '隐藏密码' : '显示密码',
                   disabled: isSubmitting,
                   className: 'entry-password-toggle',
                 }}
@@ -133,6 +160,7 @@ export default function LoginPage() {
                   input: 'app-field entry-field',
                   innerInput: 'entry-password-input',
                   section: 'entry-password-section',
+                  description: 'mt-2 text-xs text-muted-foreground',
                   error: 'mt-2 text-sm text-destructive',
                 }}
               />

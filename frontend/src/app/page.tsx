@@ -45,7 +45,7 @@ export default function LandingPage() {
                 <ArrowRight
                   size={16}
                   strokeWidth={1.5}
-                  className="transition-transform duration-150 group-hover:translate-x-0.5"
+                  className="transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
                   aria-hidden="true"
                 />
               </Link>

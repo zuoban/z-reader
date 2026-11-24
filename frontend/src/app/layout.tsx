@@ -91,7 +91,7 @@ export default function RootLayout({
         <ThemeProvider>
           <a
             href="#main-content"
-            className="fixed left-4 top-4 z-[var(--z-skip-link)] -translate-y-16 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_-16px_var(--paper-shadow)] transition-transform focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="fixed left-[max(1rem,env(safe-area-inset-left,0px))] top-[max(1rem,env(safe-area-inset-top,0px))] z-[var(--z-skip-link)] -translate-y-24 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_-16px_var(--paper-shadow)] transition-transform motion-reduce:transition-none focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             跳到主内容
           </a>

@@ -4,7 +4,25 @@
   .entry-screen {
     --entry-control-size: var(--control-touch-size);
     padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
-    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  }
+
+  .entry-screen .app-container {
+    padding-inline-start: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-inline-end: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 40rem) {
+    .entry-screen .app-container {
+      padding-inline-start: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-inline-end: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .entry-screen .app-container {
+      padding-inline-start: max(2rem, env(safe-area-inset-left, 0px));
+      padding-inline-end: max(2rem, env(safe-area-inset-right, 0px));
+    }
   }
 
   .entry-title {
@@ -42,8 +60,13 @@
     border-color: var(--input);
   }
 
-  .entry-field:hover {
+  .entry-field:not([data-disabled]):hover {
     border-color: var(--muted-foreground);
+  }
+
+  .entry-field[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.65;
   }
 
   .entry-field[data-error] {
@@ -61,7 +84,7 @@
   }
 
   .entry-password-input {
-    @apply h-full ps-3 text-base text-foreground placeholder:text-muted-foreground sm:text-sm;
+    @apply h-full ps-3 text-base text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed sm:text-sm;
     padding-inline-end: calc(var(--entry-control-size) + 0.5rem);
   }
 
@@ -71,8 +94,22 @@
   }
 
   .entry-password-toggle {
-    @apply cursor-pointer justify-center hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply cursor-pointer justify-center enabled:hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50;
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
     outline-offset: -3px;
+  }
+
+  .entry-password-toggle:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -3px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .entry-password-toggle:enabled:active {
+      transform: scale(0.95);
+    }
   }
 
   .landing-hero {
@@ -117,7 +154,7 @@
       box-shadow var(--paper-duration-base) var(--paper-ease-soft);
   }
 
-  @media (hover: hover) {
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .preview-cover:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 16px -6px rgb(15 20 17 / 28%), inset 0 0 0 1px rgb(255 255 255 / 14%);

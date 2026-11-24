@@ -107,7 +107,11 @@ export function LoadingSpinner({
 }) {
   return (
     <div
-      className={cn('h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary', className)}
+      aria-hidden="true"
+      className={cn(
+        'h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary motion-reduce:animate-none',
+        className
+      )}
     />
   );
 }
@@ -133,7 +137,14 @@ export function LoadingState({
   );
 
   return (
-    <div className={cn('flex min-h-dvh items-center justify-center px-6 py-12', className)}>
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn(
+        'flex min-h-dvh items-center justify-center pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(3rem,env(safe-area-inset-bottom,0px))]',
+        className
+      )}
+    >
       <div
         className={cn(
           'flex flex-col items-center',

@@ -215,7 +215,7 @@ func VerifyContext(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	return verifyManifest(ctx, root, manifest)
+	return verifyManifest(ctx, root, manifest, make([]byte, hashBufferSize))
 }
 
 func readBackupManifest(root *os.Root) (Manifest, error) {
@@ -243,8 +243,7 @@ func readBackupManifest(root *os.Root) (Manifest, error) {
 	return manifest, nil
 }
 
-func verifyManifest(ctx context.Context, root *os.Root, manifest Manifest) error {
-	buf := make([]byte, hashBufferSize)
+func verifyManifest(ctx context.Context, root *os.Root, manifest Manifest, readBuffer []byte) error {
 	for relativePath, expected := range manifest.Files {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -256,7 +255,7 @@ func verifyManifest(ctx context.Context, root *os.Root, manifest Manifest) error
 		if err != nil {
 			return err
 		}
-		actual, err := hashBackupReaderWithBuffer(ctx, file, buf)
+		actual, err := hashBackupReaderWithBuffer(ctx, file, readBuffer)
 		file.Close()
 		if err != nil {
 			return err
@@ -326,7 +325,8 @@ func Restore(source string, config RestoreConfig) error {
 	if err != nil {
 		return fmt.Errorf("read backup before restore: %w", err)
 	}
-	if err := verifyManifest(context.Background(), root, manifest); err != nil {
+	readBuffer := make([]byte, hashBufferSize)
+	if err := verifyManifest(context.Background(), root, manifest, readBuffer); err != nil {
 		return fmt.Errorf("verify backup before restore: %w", err)
 	}
 
@@ -387,7 +387,7 @@ func Restore(source string, config RestoreConfig) error {
 				return err
 			}
 		}
-		if err := copyVerifiedFile(root, name, target, expected); err != nil {
+		if err := copyVerifiedFile(root, name, target, expected, readBuffer); err != nil {
 			return fmt.Errorf("restore %s: %w", name, err)
 		}
 	}
@@ -418,14 +418,14 @@ func publishRestore(uploadTempDir, uploadDir, mainTemp, mainPath, sessionTemp, s
 	return nil
 }
 
-func copyVerifiedFile(root *os.Root, name, target, expected string) error {
+func copyVerifiedFile(root *os.Root, name, target, expected string, readBuffer []byte) error {
 	input, err := openRegularBackupFile(root, name)
 	if err != nil {
 		return err
 	}
 	defer input.Close()
 	hash := sha256.New()
-	if err := copyToFile(io.TeeReader(input, hash), target); err != nil {
+	if err := copyToFile(io.TeeReader(input, hash), target, readBuffer); err != nil {
 		return err
 	}
 	if hex.EncodeToString(hash.Sum(nil)) != expected {
@@ -480,12 +480,13 @@ func buildManifestWithDigests(root string, createdAt time.Time, precomputed map[
 	return manifest, err
 }
 
-func copyToFile(input io.Reader, destination string) error {
+func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
-	_, copyErr := io.Copy(output, input)
+	// Hide ReadFrom so the destination file uses the supplied buffer.
+	_, copyErr := io.CopyBuffer(struct{ io.Writer }{output}, input, readBuffer)
 	closeErr := output.Close()
 	if copyErr != nil {
 		return copyErr

@@ -382,5 +382,5 @@ func copyFile(source, destination string) error {
 		return err
 	}
 	defer input.Close()
-	return copyToFile(input, destination)
+	return copyToFile(input, destination, nil)
 }

@@ -103,12 +103,19 @@ export default function RootLayout({
           <Toaster
             position="top-center"
             closeButton
+            containerAriaLabel="应用通知"
+            offset={{ top: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+            mobileOffset={{
+              top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)',
+              left: '1rem',
+              right: '1rem',
+            }}
             toastOptions={{
               closeButtonAriaLabel: '关闭通知',
               style: {
-                background: 'var(--card)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border)',
+                background: 'var(--toast-bg)',
+                color: 'var(--toast-fg)',
+                border: '1px solid var(--toast-border)',
                 borderRadius: 'var(--radius-xl)',
                 paddingRight: '3.25rem',
                 boxShadow: 'var(--paper-shadow-floating)',

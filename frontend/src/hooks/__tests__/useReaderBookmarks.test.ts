@@ -121,4 +121,25 @@ describe('useReaderBookmarks', () => {
     expect(list).toHaveBeenCalledOnce();
     expect(toast.error).not.toHaveBeenCalled();
   });
+
+  it('notifies the user and reloads bookmarks when deletion fails for the active book', async () => {
+    const existing = { ...bookmark('first'), cfi: 'other' };
+    const list = vi.mocked(api.listBookmarks).mockResolvedValue([existing]);
+    vi.mocked(api.deleteBookmark).mockRejectedValueOnce(new Error('network error'));
+
+    const { result } = renderHook(() => useReaderBookmarks({
+      ...options, bookId: 'first', isAuthenticated: true,
+    }));
+    await waitFor(() => expect(result.current.bookmarks).toEqual([existing]));
+
+    await act(async () => {
+      await result.current.handleDeleteBookmark(existing.id);
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('删除书签失败');
+    await waitFor(() => {
+      expect(list).toHaveBeenCalledTimes(2);
+      expect(result.current.bookmarks).toEqual([existing]);
+    });
+  });
 });

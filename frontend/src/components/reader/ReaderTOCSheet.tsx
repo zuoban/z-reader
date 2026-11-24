@@ -117,6 +117,12 @@ export function ReaderTOCSheet({
     () => (normalizedQuery ? countTOCItems(visibleTOC) : totalCount),
     [normalizedQuery, visibleTOC, totalCount],
   );
+  const hasCurrentChapter = Boolean(currentChapter || currentChapterHref);
+  const locateLabel = currentChapter
+    ? `定位到当前章节：${currentChapter}`
+    : hasCurrentChapter
+      ? "定位到当前章节"
+      : "暂未识别当前章节";
 
   function handleClose() {
     if (pendingLocateFrameRef.current !== null) {
@@ -160,7 +166,7 @@ export function ReaderTOCSheet({
         style={triggerStyle}
         onClick={() => onOpenChange(!open)}
       >
-        {trigger || <List className="h-4 w-4" />}
+        {trigger || <List className="h-4 w-4" aria-hidden="true" />}
       </Button>
 
       <Drawer.Root
@@ -175,7 +181,7 @@ export function ReaderTOCSheet({
         portalProps={{ target: overlayContainer ?? undefined }}
         classNames={{
           inner:
-            "items-end justify-center px-[max(0.75rem,env(safe-area-inset-left,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
+            "items-end justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
           content:
             "reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:w-[560px] sm:max-w-[calc(100vw-2rem)]",
         }}
@@ -251,17 +257,9 @@ export function ReaderTOCSheet({
                   size={44}
                   radius="md"
                   onClick={handleLocateCurrent}
-                  disabled={!currentChapter}
-                  title={
-                    currentChapter
-                      ? `定位到当前章节：${currentChapter}`
-                      : "暂未识别当前章节"
-                  }
-                  aria-label={
-                    currentChapter
-                      ? `定位到当前章节：${currentChapter}`
-                      : "暂未识别当前章节"
-                  }
+                  disabled={!hasCurrentChapter}
+                  title={locateLabel}
+                  aria-label={locateLabel}
                   className="reader-panel-icon"
                 >
                   <LocateFixed className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
@@ -292,6 +290,18 @@ export function ReaderTOCSheet({
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown" && !event.nativeEvent.isComposing) {
+                      const firstItem =
+                        tocListRef.current?.querySelector<HTMLButtonElement>(
+                          "button:not(:disabled)",
+                        );
+                      if (firstItem) {
+                        event.preventDefault();
+                        firstItem.focus();
+                      }
+                    }
+                  }}
                   placeholder="搜索章节"
                   aria-label="筛选目录章节"
                 />

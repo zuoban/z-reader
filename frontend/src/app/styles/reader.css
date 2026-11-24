@@ -583,7 +583,7 @@
   }
 
   .reader-panel-search input {
-    @apply min-w-0 flex-1 bg-transparent text-sm outline-none;
+    @apply min-w-0 flex-1 bg-transparent text-base outline-none lg:text-sm;
     color: var(--reader-panel-fg);
   }
 
@@ -837,6 +837,10 @@
 
   .reader-status-bar:hover {
     background: color-mix(in srgb, var(--reader-status-hover) 40%, var(--reader-status-bg));
+  }
+
+  .reader-status-bar:active {
+    background: color-mix(in srgb, var(--reader-status-hover) 62%, var(--reader-status-bg));
   }
 
   .reader-status-chapter {

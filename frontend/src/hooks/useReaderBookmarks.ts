@@ -123,6 +123,7 @@ export function useReaderBookmarks({
       } catch (err) {
         if (!isCurrentBookmarkContext(context)) return;
         console.error('Failed to delete bookmark:', err);
+        toast.error('删除书签失败');
         void loadBookmarks(context);
       }
     },

@@ -37,10 +37,15 @@ export function useReaderChrome() {
         return false;
       }
 
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
       activeItem.scrollIntoView({
         block: "center",
         inline: "nearest",
-        behavior,
+        behavior: prefersReducedMotion ? "auto" : behavior,
       });
 
       return true;
@@ -77,7 +82,7 @@ export function useReaderChrome() {
 
       if (
         nextState.tocOpen &&
-        nextState.currentChapter &&
+        (nextState.currentChapter || nextState.currentChapterHref) &&
         (!previous.tocOpen ||
           previous.currentChapter !== nextState.currentChapter ||
           previous.currentChapterHref !== nextState.currentChapterHref)

@@ -117,7 +117,7 @@ export function ReaderBookmarksSheet({
         style={triggerStyle}
         onClick={() => onOpenChange(!open)}
       >
-        {trigger || <Bookmark className="h-4 w-4" />}
+        {trigger || <Bookmark className="h-4 w-4" aria-hidden="true" />}
       </Button>
 
       <Drawer.Root
@@ -131,7 +131,7 @@ export function ReaderBookmarksSheet({
         portalProps={{ target: overlayContainer ?? undefined }}
         classNames={{
           inner:
-            "items-end justify-center px-[max(0.75rem,env(safe-area-inset-left,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
+            "items-end justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
           content:
             "reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:w-[460px] sm:max-w-[calc(100vw-2rem)]",
         }}
@@ -163,6 +163,7 @@ export function ReaderBookmarksSheet({
                     <span
                       className="text-xs font-medium tabular-nums"
                       style={{ color: surface.muted }}
+                      aria-live="polite"
                     >
                       {bookmarks.length}
                     </span>

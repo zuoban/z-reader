@@ -97,6 +97,10 @@ describe('ReaderTOCSheet', () => {
     expect(screen.queryByRole('button', { name: /^第一章 初遇/ })).not.toBeInTheDocument();
     expect(screen.getByText('2 / 12')).toBeInTheDocument();
 
+    // Pressing ArrowDown in the search input moves focus to the first matching chapter.
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(screen.getByRole('button', { name: '第一卷 启程' })).toHaveFocus();
+
     // Pressing Escape clears the active query without dismissing the drawer.
     fireEvent.keyDown(searchInput, { key: 'Escape' });
     expect(searchInput).toHaveValue('');
@@ -117,6 +121,32 @@ describe('ReaderTOCSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: '定位到当前章节：第一章 初遇' }));
     expect(searchInput).toHaveValue('');
     await waitFor(() => expect(onLocateCurrent).toHaveBeenCalledTimes(1));
+  });
+
+  it('enables locate-current when only currentChapterHref is known', () => {
+    const onLocateCurrent = vi.fn();
+    render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={vi.fn()}
+        toc={[{ label: '第一章 开篇', href: 'ch-1.xhtml' }]}
+        bookTitle="短篇集"
+        bookAuthor=""
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        onLocateCurrent={onLocateCurrent}
+        onGoTo={vi.fn()}
+      />,
+    );
+
+    const locateButton = screen.getByRole('button', { name: '定位到当前章节' });
+    expect(locateButton).toBeEnabled();
+    fireEvent.click(locateButton);
+    expect(onLocateCurrent).toHaveBeenCalledTimes(1);
   });
 });
 

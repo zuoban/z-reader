@@ -651,6 +651,35 @@ func TestListBooksPaginatedUsesFullOwnerPrefix(t *testing.T) {
 	}
 }
 
+func TestListBooksPaginatedStopsAfterRequestedPage(t *testing.T) {
+	db := openTestDB(t)
+	const userID = "reader"
+	for _, id := range []string{"a", "b", "c", "d"} {
+		if err := db.CreateBook(&models.Book{ID: id, UserID: userID}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		return tx.Bucket(BooksBucket).Put([]byte("d"), []byte("invalid"))
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	page, err := db.ListBooksPaginated(userID, 2, 1)
+	if err != nil || len(page) != 1 || page[0].ID != "b" {
+		t.Fatalf("second page = %+v, err = %v", page, err)
+	}
+	if _, err := db.ListBooksPaginated(userID, 4, 1); err == nil {
+		t.Fatal("expected an error when reading the damaged record")
+	}
+	if _, err := db.ListBooksPaginated(userID, math.MaxInt, 2); err == nil {
+		t.Fatal("expected an error when scanning for an overflowing page offset")
+	}
+	if _, err := db.ListBooks(userID); err == nil {
+		t.Fatal("expected an error when reading the full list")
+	}
+}
+
 func TestListBooksByCursorReturnsOnlyRequestedPage(t *testing.T) {
 	db := openTestDB(t)
 	userID := "user-a"

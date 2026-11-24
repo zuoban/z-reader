@@ -783,6 +783,16 @@ func (db *DB) ListBooksByCursor(userID, cursor string, limit int) ([]models.Book
 
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
 	books := []models.Book{}
+	paginated := page > 0 && pageSize > 0
+	skip := 0
+	if paginated {
+		if page-1 > math.MaxInt/pageSize {
+			// The page is beyond the end; still propagate database and decoding errors.
+			skip = math.MaxInt
+		} else {
+			skip = (page - 1) * pageSize
+		}
+	}
 	err := db.View(func(tx *bbolt.Tx) error {
 		if userID == "" {
 			return nil
@@ -799,22 +809,20 @@ func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]model
 			if err := book.UnmarshalDB(data); err != nil {
 				return err
 			}
-			if book.UserID == userID {
-				books = append(books, book)
+			if book.UserID != userID {
+				continue
+			}
+			if skip > 0 {
+				skip--
+				continue
+			}
+			books = append(books, book)
+			if paginated && len(books) == pageSize {
+				break
 			}
 		}
 		return nil
 	})
-
-	if page > 0 && pageSize > 0 {
-		if len(books) == 0 || page-1 > (len(books)-1)/pageSize {
-			return []models.Book{}, err
-		}
-		start := (page - 1) * pageSize
-		end := start + min(pageSize, len(books)-start)
-		return books[start:end], err
-	}
-
 	return books, err
 }
 

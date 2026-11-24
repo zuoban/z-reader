@@ -467,7 +467,7 @@ export class Paginator extends HTMLElement {
     #mediaQueryListener
     #scrollBounds
     #touchState
-    #touchScrolled
+    #touchFrame
     #lastVisibleRange
     constructor() {
         super()
@@ -588,10 +588,12 @@ export class Paginator extends HTMLElement {
         this.addEventListener('touchstart', this.#onTouchStart.bind(this), opts)
         this.addEventListener('touchmove', this.#onTouchMove.bind(this), opts)
         this.addEventListener('touchend', this.#onTouchEnd.bind(this))
+        this.addEventListener('touchcancel', this.#onTouchCancel.bind(this))
         this.addEventListener('load', ({ detail: { doc } }) => {
             doc.addEventListener('touchstart', this.#onTouchStart.bind(this), opts)
             doc.addEventListener('touchmove', this.#onTouchMove.bind(this), opts)
             doc.addEventListener('touchend', this.#onTouchEnd.bind(this))
+            doc.addEventListener('touchcancel', this.#onTouchCancel.bind(this))
         })
 
         this.addEventListener('relocate', ({ detail }) => {
@@ -684,6 +686,7 @@ export class Paginator extends HTMLElement {
         })
     }
     #createView() {
+        this.#cancelTouch()
         if (this.#view) {
             this.#view.destroy()
             this.#container.removeChild(this.#view.element)
@@ -841,45 +844,68 @@ export class Paginator extends HTMLElement {
         })
     }
     #onTouchStart(e) {
-        const touch = e.changedTouches[0]
+        this.#cancelTouch()
+        if (this.scrolled || e.touches.length !== 1) return
+        const touch = e.touches[0]
+        const scrollProp = this.scrollProp
         this.#touchState = {
-            x: touch?.screenX, y: touch?.screenY,
-            t: e.timeStamp,
-            vx: 0, xy: 0,
+            source: e.currentTarget, identifier: touch.identifier,
+            x: touch.screenX, y: touch.screenY, t: e.timeStamp,
+            scrollProp, offset: this.#container[scrollProp],
+            vx: 0, vy: 0, moved: false,
         }
+    }
+    #cancelTouch() {
+        if (this.#touchFrame !== undefined) cancelAnimationFrame(this.#touchFrame)
+        this.#touchFrame = undefined
+        const state = this.#touchState
+        this.#touchState = undefined
+        // An interrupted drag stays on the page where it began.
+        if (state?.moved && !this.scrolled)
+            this.#container[state.scrollProp] = state.offset
+    }
+    #onTouchCancel(e) {
+        if (this.#touchState?.source === e.currentTarget) this.#cancelTouch()
     }
     #onTouchMove(e) {
         const state = this.#touchState
-        if (state.pinched) return
-        state.pinched = globalThis.visualViewport.scale > 1
-        if (this.scrolled || state.pinched) return
-        if (e.touches.length > 1) {
-            if (this.#touchScrolled) e.preventDefault()
+        if (!state || state.source !== e.currentTarget || this.#touchFrame !== undefined) return
+        const touch = e.changedTouches[0]
+        if (this.scrolled || (globalThis.visualViewport?.scale ?? 1) > 1 ||
+            e.touches.length !== 1 || touch?.identifier !== state.identifier) {
+            this.#cancelTouch()
             return
         }
         e.preventDefault()
-        const touch = e.changedTouches[0]
         const x = touch.screenX, y = touch.screenY
         const dx = state.x - x, dy = state.y - y
         const dt = e.timeStamp - state.t
         state.x = x
         state.y = y
         state.t = e.timeStamp
-        state.vx = dx / dt
-        state.vy = dy / dt
-        this.#touchScrolled = true
+        state.vx = dt > 0 ? dx / dt : 0
+        state.vy = dt > 0 ? dy / dt : 0
+        state.moved = true
         this.scrollBy(dx, dy)
     }
-    #onTouchEnd() {
-        this.#touchScrolled = false
-        if (this.scrolled) return
-
-        // XXX: Firefox seems to report scale as 1... sometimes...?
-        // at this point I'm basically throwing `requestAnimationFrame` at
-        // anything that doesn't work
-        requestAnimationFrame(() => {
-            if (globalThis.visualViewport.scale === 1)
-                this.snap(this.#touchState.vx, this.#touchState.vy)
+    #onTouchEnd(e) {
+        const state = this.#touchState
+        if (!state || state.source !== e.currentTarget || this.#touchFrame !== undefined) return
+        if (!state.moved || this.scrolled || e.touches.length !== 0 ||
+            e.changedTouches.length !== 1 || e.changedTouches[0].identifier !== state.identifier) {
+            this.#cancelTouch()
+            return
+        }
+        // The paginator owns this drag. Let the viewport settle before snapping.
+        e.preventDefault()
+        this.#touchFrame = requestAnimationFrame(() => {
+            this.#touchFrame = undefined
+            if (this.scrolled || (globalThis.visualViewport?.scale ?? 1) !== 1) {
+                this.#cancelTouch()
+                return
+            }
+            this.#touchState = undefined
+            this.snap(state.vx, state.vy)
         })
     }
     // allows one to process rects as if they were LTR and horizontal
@@ -909,6 +935,7 @@ export class Paginator extends HTMLElement {
         return this.#scrollToPage(Math.floor(offset / this.size) + (this.#rtl ? -1 : 1), reason)
     }
     async #scrollTo(offset, reason, smooth) {
+        this.#cancelTouch()
         const element = this.#container
         const { scrollProp, size } = this
         if (element[scrollProp] === offset) {
@@ -1082,6 +1109,7 @@ export class Paginator extends HTMLElement {
     }
     async #turnPage(dir, distance) {
         if (this.#locked) return
+        this.#cancelTouch()
         this.#locked = true
         const prev = dir === -1
         const shouldGo = await (prev ? this.#scrollPrev(distance) : this.#scrollNext(distance))
@@ -1144,6 +1172,7 @@ export class Paginator extends HTMLElement {
         this.#view?.document?.defaultView?.focus()
     }
     destroy() {
+        this.#cancelTouch()
         this.#observer.unobserve(this)
         this.#view?.destroy()
         this.#view = null

@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useReaderControls } from '@/hooks/useReaderControls';
 
-describe('reader keyboard controls', () => {
+function touch(identifier: number, clientX: number, clientY = 40) {
+  return { identifier, clientX, clientY };
+}
+
+describe('reader controls', () => {
   let page: HTMLDivElement;
 
   beforeEach(() => {
@@ -103,6 +107,52 @@ describe('reader keyboard controls', () => {
     fireEvent.keyDown(frameDocument.body, { key: ' ' });
     expect(onPrev).toHaveBeenCalledTimes(1);
     expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a pinch and still turns the page for the next single-finger swipe', () => {
+    const { onPrev, onNext } = renderControls();
+    const first = touch(1, 160);
+    const second = touch(2, 110);
+    fireEvent.touchStart(page, { touches: [first] });
+    fireEvent.touchStart(page, { touches: [first, second] });
+    fireEvent.touchEnd(page, { touches: [second], changedTouches: [touch(1, 30)] });
+    fireEvent.touchEnd(page, { touches: [], changedTouches: [touch(2, 220)] });
+    expect(onPrev).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+
+    fireEvent.touchStart(page, { touches: [touch(3, 160)] });
+    fireEvent.touchEnd(page, { touches: [], changedTouches: [touch(3, 30)] });
+    expect(onNext).toHaveBeenCalledOnce();
+  });
+
+  it('ignores a cancelled swipe and a touch end with a different identifier in an iframe', () => {
+    const { result, onNext } = renderControls();
+    const frame = document.createElement('iframe');
+    page.append(frame);
+    const frameDocument = frame.contentDocument!;
+    const surface = frameDocument.body;
+    const unbind = result.current.bindReaderDocument(frameDocument);
+
+    try {
+      fireEvent.touchStart(surface, { touches: [touch(1, 160)] });
+      fireEvent.touchCancel(surface, { touches: [], changedTouches: [touch(1, 120)] });
+      fireEvent.touchEnd(surface, { touches: [], changedTouches: [touch(1, 30)] });
+
+      fireEvent.touchStart(surface, { touches: [touch(2, 160)] });
+      fireEvent.touchEnd(surface, { touches: [], changedTouches: [touch(3, 30)] });
+      expect(onNext).not.toHaveBeenCalled();
+
+      fireEvent.touchStart(surface, { touches: [touch(4, 160)] });
+      fireEvent.touchEnd(surface, { touches: [], changedTouches: [touch(4, 30)] });
+      expect(onNext).toHaveBeenCalledOnce();
+
+      surface.addEventListener('touchend', (event) => event.preventDefault(), { once: true });
+      fireEvent.touchStart(surface, { touches: [touch(5, 160)] });
+      fireEvent.touchEnd(surface, { touches: [], changedTouches: [touch(5, 30)] });
+      expect(onNext).toHaveBeenCalledOnce();
+    } finally {
+      unbind?.();
+    }
   });
 
   it('keeps help and Escape available when a button has focus', () => {

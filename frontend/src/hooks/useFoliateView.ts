@@ -222,7 +222,7 @@ interface UseFoliateViewOptions {
   theme: ReaderTheme;
   getStylesheet: () => string;
   updateProgress: (cfi: string, percentage: number) => void;
-  bindReaderDocument: (doc: Document) => void | (() => void);
+  bindReaderDocument: (doc: Document, view?: FoliateView) => void | (() => void);
   onImageOpen?: (image: { src: string; alt: string }) => void;
 }
 
@@ -593,7 +593,7 @@ export function useFoliateView({
             }
           }
           if (!cleanups.has(doc)) {
-            const unbindControls = bindReaderDocument(doc);
+            const unbindControls = bindReaderDocument(doc, view);
             const unbindImageZoom = bindImageZoomDocument(doc);
             cleanups.set(doc, () => {
               unbindControls?.();

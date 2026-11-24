@@ -2,6 +2,7 @@
 
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { FoliateView } from '@/lib/types';
 
 const PAGING_CONTROL_SELECTOR = [
   'a[href]',
@@ -37,6 +38,15 @@ function hasActiveOverlay(doc: Document | null | undefined): boolean {
     return true;
   }
   return false;
+}
+
+type SwipeView = Pick<FoliateView, 'renderer'>;
+
+function paginatorHandlesSwipe(event: TouchEvent, chapterView?: SwipeView): boolean {
+  const target = event.target as (Element & SwipeView) | null;
+  const view = chapterView ?? (target?.localName === 'foliate-view' ? target : undefined);
+  const renderer = view?.renderer;
+  return renderer?.localName === 'foliate-paginator' && renderer.getAttribute('flow') !== 'scrolled';
 }
 
 interface UseReaderControlsOptions {
@@ -228,20 +238,40 @@ export function useReaderControls({
     }
   }, [pageRef, toggleFullscreen]);
 
-  // Swipe gesture tracking
-  const touchStartXRef = useRef<number>(0);
-  const touchStartYRef = useRef<number>(0);
+  const swipeStartRef = useRef<{
+    source: EventTarget | null;
+    identifier: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const swipeThreshold = 50; // pixels
 
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
+  const handleTouchStart = useCallback((e: TouchEvent, chapterView?: SwipeView) => {
+    if (e.touches.length !== 1 || paginatorHandlesSwipe(e, chapterView)) {
+      swipeStartRef.current = null;
+      return;
+    }
+    const touch = e.touches[0];
+    swipeStartRef.current = {
+      source: e.currentTarget, identifier: touch.identifier, x: touch.clientX, y: touch.clientY,
+    };
   }, []);
 
-  const handleTouchEnd = useCallback((e: TouchEvent) => {
-    if (e.changedTouches.length !== 1) return;
-    
+  const clearSwipe = useCallback((source: EventTarget | null) => {
+    if (swipeStartRef.current?.source === source) swipeStartRef.current = null;
+  }, []);
+
+  const handleTouchCancel = useCallback((e: TouchEvent) => clearSwipe(e.currentTarget), [clearSwipe]);
+
+  const handleTouchEnd = useCallback((e: TouchEvent, chapterView?: SwipeView) => {
+    const start = swipeStartRef.current;
+    if (!start || start.source !== e.currentTarget) return;
+    swipeStartRef.current = null;
+    if (e.defaultPrevented || e.touches.length !== 0 || e.changedTouches.length !== 1 ||
+        paginatorHandlesSwipe(e, chapterView)) return;
+    const touch = e.changedTouches[0];
+    if (touch.identifier !== start.identifier) return;
+
     // Check if the target is interactive (inputs, sliders, buttons, links, or marked elements)
     const target = e.target as HTMLElement | null;
     if (target) {
@@ -251,10 +281,8 @@ export function useReaderControls({
       if (interactive) return;
     }
 
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const deltaX = touchEndX - touchStartXRef.current;
-    const deltaY = touchEndY - touchStartYRef.current;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
 
     // Check if horizontal and exceeds threshold
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
@@ -266,34 +294,42 @@ export function useReaderControls({
     }
   }, []);
 
-  const bindReaderDocument = useCallback((doc: Document) => {
+  const bindReaderDocument = useCallback((doc: Document, chapterView?: SwipeView) => {
     if (boundDocsRef.current.has(doc)) return;
 
+    const onTouchStart = (event: TouchEvent) => handleTouchStart(event, chapterView);
+    const onTouchEnd = (event: TouchEvent) => handleTouchEnd(event, chapterView);
     doc.addEventListener('keydown', keyboardHandler);
-    doc.addEventListener('touchstart', handleTouchStart, { passive: true });
-    doc.addEventListener('touchend', handleTouchEnd, { passive: true });
+    doc.addEventListener('touchstart', onTouchStart, { passive: true });
+    doc.addEventListener('touchend', onTouchEnd, { passive: true });
+    doc.addEventListener('touchcancel', handleTouchCancel, { passive: true });
     const boundDocs = boundDocsRef.current;
     boundDocs.add(doc);
     return () => {
       doc.removeEventListener('keydown', keyboardHandler);
-      doc.removeEventListener('touchstart', handleTouchStart);
-      doc.removeEventListener('touchend', handleTouchEnd);
+      doc.removeEventListener('touchstart', onTouchStart);
+      doc.removeEventListener('touchend', onTouchEnd);
+      doc.removeEventListener('touchcancel', handleTouchCancel);
+      clearSwipe(doc);
       boundDocs.delete(doc);
     };
-  }, [keyboardHandler, handleTouchStart, handleTouchEnd]);
+  }, [keyboardHandler, handleTouchStart, handleTouchEnd, handleTouchCancel, clearSwipe]);
 
   useEffect(() => {
     window.addEventListener('keydown', keyboardHandler);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchCancel, { passive: true });
 
     return () => {
       window.removeEventListener('keydown', keyboardHandler);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchCancel);
+      clearSwipe(window);
       stopTTSRef.current?.();
     };
-  }, [keyboardHandler, handleTouchStart, handleTouchEnd]);
+  }, [keyboardHandler, handleTouchStart, handleTouchEnd, handleTouchCancel, clearSwipe]);
 
   return {
     isTouchReader,

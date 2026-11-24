@@ -4,12 +4,12 @@ import { AppScreen, BrandLogo } from '@/components/AppShell';
 import { LibraryPreview } from '@/components/LibraryPreview';
 
 const features = [
-  { icon: Upload, title: '多格式统一收纳', description: '支持批量导入 EPUB、MOBI、AZW3 和 PDF，用分类整理个人书库' },
-  { icon: Cloud, title: '阅读进度实时同步', description: '记录精确到段落位置，换设备打开直接接着上次读' },
-  { icon: Palette, title: '细粒度排版调节', description: '净白、旧书、苔纸与夜读四种主题，字号、行距和中文缩进自由设定' },
-  { icon: Bookmark, title: '章节目录与书签', description: '随时为常翻的段落做标记，长书跳读更快回到原处' },
-  { icon: Smartphone, title: '桌面与移动同样顺手', description: '支持键盘翻页、触控手势与本地离线缓存，断网也能读' },
-  { icon: Server, title: '开源自托管', description: '书籍与阅读记录只存在你自己的服务器里，不依赖第三方云盘' },
+  { icon: Upload, title: '导入与分类', description: '批量导入 EPUB、MOBI、AZW3 和 PDF，按分类整理书库' },
+  { icon: Cloud, title: '进度同步', description: '保存读到的段落，换设备也能接着读' },
+  { icon: Palette, title: '主题与排版', description: '支持净白、旧书、苔纸和夜读主题，可调整字号、行距和中文缩进' },
+  { icon: Bookmark, title: '目录与书签', description: '按目录跳到章节，用书签标记想再读的段落' },
+  { icon: Smartphone, title: '跨设备与离线阅读', description: '支持键盘翻页与触控手势，缓存书籍后可离线阅读' },
+  { icon: Server, title: '开源自托管', description: '在自己的服务器上保存书籍和阅读记录' },
 ];
 
 export default function LandingPage() {
@@ -18,14 +18,11 @@ export default function LandingPage() {
       <header className="border-b border-border">
         <div className="app-container flex h-14 items-center justify-between gap-4 sm:h-16">
           <BrandLogo compact />
-          <nav className="flex items-center gap-5" aria-label="主导航">
-            <a
-              href="#features"
-              className="hidden min-h-9 items-center text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-            >
+          <nav className="flex items-center gap-6" aria-label="主导航">
+            <a href="#features" className="entry-nav-link hidden sm:inline-flex">
               功能一览
             </a>
-            <Link href="/shelf" className="app-secondary-link whitespace-nowrap px-3.5 sm:min-h-9">
+            <Link href="/shelf" className="entry-nav-link inline-flex">
               进入书架
             </Link>
           </nav>
@@ -35,20 +32,20 @@ export default function LandingPage() {
       <main className="flex-1">
         <section className="app-container landing-hero">
           <div className="min-w-0">
-            <h1 className="landing-title font-heading font-medium text-foreground">
-              <span className="sr-only">Z Reader — </span>
-              把喜欢的书收进自己的书房<br />翻开就是上次那页
+            <h1 className="entry-title landing-title">
+              <span className="sr-only">Z Reader </span>
+              你的私人书库<br />打开就是上次那页
             </h1>
-            <p className="mt-5 max-w-[30rem] text-pretty text-[15px] leading-7 text-muted-foreground sm:text-base">
-              自托管多格式私人电子书库。导入 EPUB、MOBI、AZW3 与 PDF，在手机、平板和电脑间保持同一页阅读进度。
+            <p className="mt-4 max-w-[27rem] text-pretty text-base leading-7 text-muted-foreground sm:mt-5">
+              自托管 EPUB、MOBI、AZW3 和 PDF 书库，在手机、平板和电脑上接着读
             </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3 sm:mt-8">
-              <Link href="/shelf" className="app-primary-link">
+            <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-8">
+              <Link href="/shelf" className="app-primary-link entry-action">
                 进入我的书架
-                <ArrowRight size={15} strokeWidth={1.75} aria-hidden="true" />
+                <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
               </Link>
-              <a href="#features" className="app-secondary-link">
-                了解特性
+              <a href="#features" className="app-secondary-link entry-action">
+                了解功能
               </a>
             </div>
           </div>
@@ -61,17 +58,17 @@ export default function LandingPage() {
         <section id="features" className="scroll-mt-8 border-y border-border bg-surface-subtle py-14 sm:py-16 lg:py-20">
           <div className="app-container grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-16 xl:gap-20">
             <div>
-              <h2 className="max-w-[12em] text-balance font-heading text-2xl font-medium leading-snug sm:text-[1.75rem]">
-                少一点打扰，专注阅读本身
+              <h2 className="entry-title text-2xl sm:text-[1.75rem]">
+                书库与阅读功能
               </h2>
               <p className="mt-3 max-w-sm text-pretty text-sm leading-6 text-muted-foreground">
-                从导入整理到翻页朗读，把常用的功能做到顺手、安静
+                整理藏书、调整排版，也可以开启朗读
               </p>
             </div>
             <ul role="list" className="grid gap-x-8 sm:grid-cols-2">
               {features.map(({ icon: Icon, title, description }) => (
                 <li key={title} className="entry-feature">
-                  <Icon size={16} className="mt-1 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                  <Icon size={16} className="mt-1 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                   <div>
                     <h3 className="text-[15px] font-medium text-foreground">{title}</h3>
                     <p className="mt-1.5 text-pretty text-sm leading-6 text-muted-foreground">

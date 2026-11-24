@@ -1,50 +1,97 @@
-/* Entry-page compositions and the shared library preview. */
+/* Entry-page compositions and controls. Keep variants local to landing and login. */
 
 @layer utilities {
   .entry-screen {
+    --entry-control-size: var(--control-touch-size);
     padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
     padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
   }
 
+  .entry-title {
+    @apply font-heading font-medium leading-tight text-foreground;
+  }
+
+  .entry-nav-link,
+  .entry-password-toggle {
+    @apply items-center gap-2 rounded-lg text-sm text-muted-foreground transition-colors hover:text-foreground;
+    min-height: var(--entry-control-size);
+  }
+
+  .entry-nav-link {
+    @apply whitespace-nowrap hover:underline underline-offset-4;
+  }
+
+  .entry-action {
+    height: var(--entry-control-size);
+    box-shadow: none;
+  }
+
+  .entry-action:disabled {
+    @apply cursor-not-allowed bg-secondary text-muted-foreground;
+    transform: none;
+  }
+
+  .entry-field {
+    width: 100%;
+    height: var(--entry-control-size);
+    border-color: var(--input);
+  }
+
+  .entry-field:hover {
+    border-color: var(--muted-foreground);
+  }
+
+  .entry-field[data-error] {
+    border-color: var(--destructive);
+  }
+
+  .entry-field:focus-within {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .entry-password-input {
+    @apply h-full ps-3 text-base text-foreground placeholder:text-muted-foreground sm:text-sm;
+    padding-inline-end: calc(var(--entry-control-size) + 0.5rem);
+  }
+
+  .entry-password-section,
+  .entry-password-toggle {
+    width: var(--entry-control-size);
+  }
+
+  .entry-password-toggle {
+    @apply justify-center hover:bg-secondary;
+    outline-offset: -3px;
+  }
+
   .landing-hero {
-    @apply grid items-center gap-10 py-14 sm:gap-12 sm:py-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-24 xl:gap-20;
+    @apply grid items-center gap-8 py-12 sm:gap-12 sm:py-16 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:py-20;
   }
 
   .landing-title {
-    font-size: clamp(2.125rem, 4vw, 3.25rem);
-    line-height: 1.22;
+    font-size: clamp(2rem, 4vw, 3.25rem);
     letter-spacing: -0.025em;
   }
 
   .entry-feature {
-    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-t border-border py-5;
+    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-t border-border py-4;
   }
 
   .library-preview {
-    --preview-ink: var(--foreground);
-    --preview-muted: var(--muted-foreground);
-    --preview-line: var(--border);
-    @apply rounded-2xl border border-border bg-card p-5 sm:p-6;
-    box-shadow: var(--paper-shadow-panel);
-    container-type: inline-size;
+    @apply rounded-2xl border border-border bg-card p-4 sm:p-6;
   }
 
   .library-preview-compact {
-    --preview-ink: var(--entry-green-ink);
-    --preview-muted: var(--entry-green-muted);
-    --preview-line: var(--entry-green-line);
-    @apply rounded-none border-0 bg-transparent p-0 shadow-none;
+    @apply rounded-none border-0 bg-transparent p-0;
   }
 
   .preview-caption {
-    @apply flex items-baseline justify-between gap-3 border-b pb-3 text-sm font-medium;
-    color: var(--preview-ink);
-    border-color: var(--preview-line);
+    @apply flex items-baseline justify-between gap-3 border-b border-border pb-3 text-sm font-medium text-foreground;
   }
 
   .preview-caption span {
-    @apply text-xs font-normal tabular-nums;
-    color: var(--preview-muted);
+    @apply text-xs font-normal text-muted-foreground tabular-nums;
   }
 
   .preview-cover {
@@ -52,6 +99,7 @@
     @apply relative grid aspect-[5/7] grid-rows-[1fr_auto] items-center justify-items-center gap-1 overflow-hidden rounded-[4px] py-3 pl-2 pr-1 text-center;
     color: var(--cover-paper);
     background: var(--cover-color);
+    container-type: inline-size;
     box-shadow: 0 2px 8px -2px rgb(15 20 17 / 22%), inset 0 0 0 1px rgb(255 255 255 / 10%);
   }
 
@@ -65,42 +113,27 @@
 
   .preview-cover-title {
     @apply font-heading font-medium;
-    font-size: clamp(1rem, 5.2cqw, 1.875rem);
+    font-size: clamp(0.875rem, 24cqw, 1.875rem);
     line-height: 1;
     white-space: nowrap;
     writing-mode: vertical-rl;
   }
 
   .preview-cover-author {
-    font-size: clamp(0.625rem, 2.7cqi, 0.75rem);
+    font-size: clamp(0.6875rem, 9cqw, 0.75rem);
     line-height: 1.25;
     opacity: 0.88;
   }
 
   .auth-layout {
-    @apply grid w-full max-w-md overflow-hidden lg:max-w-5xl lg:grid-cols-[1.04fr_1fr] lg:rounded-2xl lg:border lg:border-border lg:bg-card;
-    box-shadow: var(--paper-shadow-panel);
+    @apply grid w-full max-w-md lg:max-w-5xl lg:grid-cols-2 lg:rounded-2xl lg:border lg:border-border lg:bg-card;
   }
 
   .auth-editorial {
-    --entry-green: #214236;
-    --entry-green-ink: #faf8f2;
-    --entry-green-muted: #c9d9cf;
-    --entry-green-line: rgb(250 248 242 / 18%);
-    @apply hidden min-w-0 flex-col justify-between gap-8 p-10 lg:flex xl:p-12;
-    background: var(--entry-green);
-    color: var(--entry-green-ink);
-  }
-
-  .dark .auth-editorial {
-    --entry-green: #1b2f27;
-  }
-
-  .auth-editorial-copy {
-    color: var(--entry-green-muted);
+    @apply hidden min-w-0 flex-col justify-between gap-6 rounded-s-[inherit] border-e border-border bg-surface-subtle p-10 lg:flex xl:p-12;
   }
 
   .auth-form-panel {
-    @apply mx-auto flex w-full max-w-[23rem] min-w-0 flex-col justify-center py-2 lg:max-w-none lg:px-12 lg:py-14 xl:px-16;
+    @apply mx-auto flex w-full max-w-[23rem] min-w-0 flex-col justify-center lg:max-w-none lg:px-12 lg:py-14 xl:px-16;
   }
 }

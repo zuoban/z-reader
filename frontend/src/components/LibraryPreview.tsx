@@ -10,7 +10,7 @@ export function LibraryPreview({ compact = false }: { compact?: boolean }) {
   return (
     <figure className={compact ? 'library-preview library-preview-compact' : 'library-preview'}>
       <figcaption className="preview-caption">
-        最近在读
+        书架示例
         <span>{books.length} 本</span>
       </figcaption>
       <ul role="list" className="mt-4 grid grid-cols-3 gap-3 sm:gap-4">
@@ -29,7 +29,7 @@ export function LibraryPreview({ compact = false }: { compact?: boolean }) {
         <div className="mt-5 border-t border-border pt-4">
           <div className="flex items-baseline justify-between gap-3">
             <div>
-              <p className="text-xs text-muted-foreground">上次读到</p>
+              <p className="text-xs text-muted-foreground">阅读进度示例</p>
               <p className="mt-1 font-heading text-base font-medium sm:text-[17px]">
                 西游记 · 第十四回
               </p>

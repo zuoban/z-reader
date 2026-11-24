@@ -46,7 +46,7 @@ test('redirects unauthenticated shelf visitors to login', async ({ page }) => {
   await page.goto('/shelf');
 
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '解锁书库' })).toBeVisible();
 });
 
 test('logs in and shows the empty shelf', async ({ page }) => {

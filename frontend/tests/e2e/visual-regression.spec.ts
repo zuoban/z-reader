@@ -63,7 +63,7 @@ test.describe('visual regression', () => {
     await installBrowserStubs(page, { preset: 'light' });
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/login');
-    await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '解锁书库' })).toBeVisible();
     await expectStableScreenshot(page, 'login-light.png', { fullPage: true });
   });
 
@@ -71,13 +71,13 @@ test.describe('visual regression', () => {
     await installBrowserStubs(page, { preset: 'dark' });
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/login');
-    await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '解锁书库' })).toBeVisible();
     await expectStableScreenshot(page, 'login-dark.png', { fullPage: true });
   });
 
   for (const entry of [
     { path: '/', heading: 'Z Reader', preset: 'light', snapshot: 'landing-mobile-light.png' },
-    { path: '/login', heading: '欢迎回来', preset: 'dark', snapshot: 'login-mobile-dark.png' },
+    { path: '/login', heading: '解锁书库', preset: 'dark', snapshot: 'login-mobile-dark.png' },
   ] as const) {
     test(`mobile entry — ${entry.snapshot}`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });

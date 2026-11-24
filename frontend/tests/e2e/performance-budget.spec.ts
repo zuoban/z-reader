@@ -112,7 +112,7 @@ test.describe('frontend performance budgets', () => {
 
     await mockAuthUnauthorized(page);
     await gotoStable(page, '/login');
-    await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible({
+    await expect(page.getByRole('heading', { name: '解锁书库' })).toBeVisible({
       timeout: 15_000,
     });
 

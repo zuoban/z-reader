@@ -129,7 +129,7 @@ test('production mobile login has bounded font transfers and long tasks', async 
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   await observe(page);
   await page.goto('/login');
-  await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '解锁书库' })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await expect.poll(async () => (await metrics(page)).lcp).toBeGreaterThan(0);
   const measured = await metrics(page);

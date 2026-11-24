@@ -645,25 +645,21 @@ export type ReaderHappyPathMock = {
   fileHits: number;
 };
 
-const SAMPLE_EPUB_PATH = path.join(
-  process.cwd(),
-  'tests/e2e/fixtures/sample.epub'
-);
-
 /**
  * Reader happy-path APIs: real minimal EPUB bytes + empty progress/bookmarks.
  * Catch-all so nothing falls through to a live backend.
  */
 export async function mockReaderHappyPath(
   page: Page,
-  bookId = 'book-1'
+  bookId = 'book-1',
+  fixture = { filename: 'sample.epub', title: 'E2E Sample Book' }
 ): Promise<ReaderHappyPathMock> {
   const book = {
     ...(MOCK_BOOKS.find((item) => item.id === bookId) ?? MOCK_BOOKS[0]),
     id: bookId,
-    title: 'E2E Sample Book',
+    title: fixture.title,
     author: 'Fixture Author',
-    filename: 'sample.epub',
+    filename: fixture.filename,
     format: 'epub',
     processing_state: 'ready' as const,
   };
@@ -674,7 +670,7 @@ export async function mockReaderHappyPath(
     fileHits: 0,
   };
 
-  const epubBytes = readFileSync(SAMPLE_EPUB_PATH);
+  const epubBytes = readFileSync(path.join(process.cwd(), 'tests/e2e/fixtures', fixture.filename));
 
   await page.route('**/api/**', async (route) => {
     const method = route.request().method();

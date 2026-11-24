@@ -182,7 +182,7 @@ export function ReaderToolbar({
         } as React.CSSProperties}
       >
         <div className="pointer-events-auto mx-auto flex h-[calc(var(--reader-toolbar-height)-1px)] max-w-6xl items-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
-          <div className="flex flex-1 items-center gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2 sm:gap-2">
             <ActionIcon
               variant="subtle"
               size={36}
@@ -204,7 +204,7 @@ export function ReaderToolbar({
             </div>
           </div>
 
-          <div className="relative flex items-center gap-0.5 sm:gap-1">
+          <div className="relative flex shrink-0 items-center gap-0.5 sm:gap-1">
             <div className="lg:hidden">
               <ActionIcon
                 ref={mobileActionsButtonRef}

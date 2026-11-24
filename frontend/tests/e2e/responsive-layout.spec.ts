@@ -54,21 +54,34 @@ test.describe('responsive reading and shelf controls', () => {
     });
   }
 
-  for (const width of [640, 768, 1023]) {
-    test(`reader keeps its title and back control at ${width}px`, async ({ page }) => {
+  for (const width of [390, 640, 768, 1023]) {
+    test(`reader keeps the back and menu controls with a long title at ${width}px`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width, height: 900 });
       await installBrowserStubs(page, { authenticated: true });
-      await mockReaderHappyPath(page);
+      const { book } = await mockReaderHappyPath(page, 'book-1', {
+        filename: 'long-title.epub',
+        title: 'Go语言精进之路：从新手到高手的编程思想、方法和技巧'.repeat(3),
+      });
       await gotoStable(page, '/read/book-1');
-      const title = page.getByRole('heading', { name: 'E2E Sample Book' });
+      const title = page.getByRole('heading', { name: book.title, exact: true });
       await expect(title).toBeVisible({ timeout: 30_000 });
       const toolbarBox = await page.locator('header.reader-chrome').boundingBox();
       const contentBox = await page.locator('.reader-page-frame').boundingBox();
       expect(contentBox!.y).toBeGreaterThanOrEqual(toolbarBox!.y + toolbarBox!.height);
       const back = page.getByRole('button', { name: '返回书库', exact: true });
+      const more = page.getByRole('button', { name: '更多阅读操作', exact: true });
       await expect(back).toBeInViewport({ ratio: 1 });
-      expect((await title.boundingBox())!.width).toBeGreaterThanOrEqual(120);
-      await page.getByRole('button', { name: '更多阅读操作', exact: true }).click();
+      await expect(more).toBeInViewport({ ratio: 1 });
+      await expect(title).toHaveCSS('text-overflow', 'ellipsis');
+      expect(await title.evaluate((element) => element.scrollWidth > element.clientWidth))
+        .toBe(true);
+      const titleBox = await title.boundingBox();
+      const moreBox = await more.boundingBox();
+      expect(titleBox!.width).toBeGreaterThanOrEqual(120);
+      expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(moreBox!.x);
+      await more.click();
       const actions = page.getByRole('dialog', { name: '阅读操作' });
       await expect(actions.getByRole('button', { name: '目录', exact: true })).toBeVisible();
       await actions.getByRole('button', { name: '设置', exact: true }).click();

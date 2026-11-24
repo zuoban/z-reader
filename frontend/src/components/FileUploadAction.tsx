@@ -1,21 +1,20 @@
 'use client';
 
 import { useRef } from 'react';
-import type { ChangeEvent, ReactNode } from 'react';
-import { Button, type ButtonProps } from '@mantine/core';
+import type { ChangeEvent } from 'react';
+import { Button } from '@mantine/core';
+import { Loader2, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileUploadActionProps {
   accept: string;
   disabled?: boolean;
   title: string;
-  children: ReactNode;
+  label: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   statusLabel?: string;
   wrapperClassName?: string;
   buttonClassName?: string;
-  buttonVariant?: ButtonProps['variant'];
-  buttonSize?: ButtonProps['size'];
   multiple?: boolean;
 }
 
@@ -23,13 +22,11 @@ export function FileUploadAction({
   accept,
   disabled = false,
   title,
-  children,
+  label,
   onChange,
   statusLabel,
   wrapperClassName,
   buttonClassName,
-  buttonVariant = 'filled',
-  buttonSize = 'sm',
   multiple = false,
 }: FileUploadActionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,28 +45,40 @@ export function FileUploadAction({
       <Button
         type="button"
         aria-label={title}
-        aria-busy={Boolean(statusLabel)}
+        aria-busy={disabled}
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
-        variant={buttonVariant}
-        size={buttonSize}
-        radius="md"
+        variant="filled"
+        size="sm"
         className={cn(
-          'cursor-pointer select-none shadow-[var(--paper-shadow-control)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-          disabled && 'pointer-events-none opacity-50',
+          'h-11 min-w-11 max-w-full select-none rounded-xl border border-transparent',
+          'bg-primary px-2.5 pr-3 text-sm font-semibold text-primary-foreground',
+          'shadow-[var(--paper-shadow-control)] enabled:cursor-pointer',
+          'enabled:hover:bg-[var(--primary-hover)]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'motion-safe:transition-[background-color,border-color,color,scale]',
+          'motion-safe:enabled:active:scale-[0.98]',
+          'disabled:cursor-wait disabled:border-border disabled:bg-secondary',
+          'disabled:text-secondary-foreground disabled:opacity-100 disabled:shadow-none',
           buttonClassName
         )}
         classNames={{
-          label: 'inline-flex items-center justify-center gap-1.5',
+          label: 'min-w-0 gap-2',
         }}
       >
-        {children}
-      </Button>
-      {statusLabel && (
-        <span className="paper-chip pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-primary shadow-sm">
-          {statusLabel}
+        <span
+          aria-hidden="true"
+          className="grid size-6 shrink-0 place-items-center rounded-md bg-current/10"
+        >
+          {disabled ? (
+            <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
+          ) : (
+            <Upload className="size-3.5" strokeWidth={2} />
+          )}
         </span>
-      )}
+        <span className="truncate tabular-nums">{statusLabel ?? label}</span>
+      </Button>
     </div>
   );
 }

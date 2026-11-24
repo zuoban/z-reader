@@ -12,7 +12,6 @@ import {
   CheckSquare,
   HardDrive,
   MoreHorizontal,
-  Plus,
   Search,
   Settings2,
   Tag,
@@ -478,22 +477,12 @@ export default function ShelfPage() {
                   onChange={handleUpload}
                   disabled={isUploading}
                   title="上传书籍"
+                  label="添加第一本书"
+                  statusLabel={uploadStatusLabel}
                   multiple
                   wrapperClassName="w-full sm:w-auto"
-                  buttonClassName="h-11 w-full dark:enabled:text-primary-foreground sm:h-11 sm:w-auto"
-                >
-                  {isUploading ? (
-                    <>
-                      <LoadingSpinner className="h-4 w-4 border-primary-foreground/30 border-t-primary-foreground" />
-                      {uploadStatusLabel ?? '添加中...'}
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4" strokeWidth={1.75} />
-                      添加第一本书
-                    </>
-                  )}
-                </FileUploadAction>
+                  buttonClassName="w-full sm:w-auto sm:pr-4"
+                />
               }
             />
             {isDraggingBookFile && (

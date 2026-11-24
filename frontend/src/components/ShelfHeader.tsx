@@ -2,8 +2,8 @@
 
 import type { ChangeEvent } from 'react';
 import { ActionIcon, Menu } from '@mantine/core';
-import { HardDrive, LogOut, Moon, MoreHorizontal, Sun, Upload } from 'lucide-react';
-import { BrandLogo, LoadingSpinner } from '@/components/AppShell';
+import { HardDrive, LogOut, Moon, MoreHorizontal, Sun } from 'lucide-react';
+import { BrandLogo } from '@/components/AppShell';
 import { FileUploadAction } from '@/components/FileUploadAction';
 
 interface ShelfHeaderProps {
@@ -44,17 +44,11 @@ export function ShelfHeader({
                 onChange={onUpload}
                 disabled={isUploading}
                 title="上传书籍"
+                label="上传"
+                statusLabel={uploadStatusLabel}
                 multiple
-                buttonSize="sm"
-                buttonClassName="h-11 min-w-11 max-w-full rounded-lg px-2.5 text-[13px] font-medium tabular-nums disabled:bg-secondary disabled:text-secondary-foreground disabled:opacity-100 dark:enabled:text-primary-foreground sm:h-9 sm:px-4 sm:text-sm"
-              >
-                {isUploading ? (
-                  <LoadingSpinner className="hidden size-4 shrink-0 border-secondary-foreground/35 border-t-secondary-foreground sm:block" />
-                ) : (
-                  <Upload aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
-                )}
-                <span className="truncate">{uploadStatusLabel ?? '上传'}</span>
-              </FileUploadAction>
+                buttonClassName="text-[13px] sm:h-9 sm:pr-3.5 sm:text-sm"
+              />
               <span className="sr-only" role="status" aria-atomic="true">{uploadStatusLabel}</span>
             </>
           )}

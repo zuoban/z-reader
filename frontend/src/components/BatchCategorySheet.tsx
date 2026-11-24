@@ -2,8 +2,8 @@
 
 import type { FormEvent } from 'react';
 import { useState } from 'react';
-import { ActionIcon, Button, Drawer, TextInput } from '@mantine/core';
-import { Check, Plus, Tag, X } from 'lucide-react';
+import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
+import { Check, Plus, Tag, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BatchCategorySheetProps {
@@ -26,21 +26,42 @@ export function BatchCategorySheet({
   onSave,
 }: BatchCategorySheetProps) {
   const [categoryName, setCategoryName] = useState('');
+  const [pendingAction, setPendingAction] = useState<'save' | 'clear' | null>(null);
+  const isBusy = loading || pendingAction !== null;
   const trimmedCategoryName = categoryName.trim();
   const selectedCategory = trimmedCategoryName || null;
-  const normalizedCategories = categories
-    .map((category) => category.trim())
-    .filter(Boolean);
+  const normalizedCategories = Array.from(
+    new Set(categories.map((category) => category.trim()).filter(Boolean))
+  );
   const isNewCategory = Boolean(
     trimmedCategoryName && !normalizedCategories.includes(trimmedCategoryName)
   );
+  const isSaving = isBusy && pendingAction !== 'clear';
+  const isClearing = pendingAction === 'clear';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await onSave(selectedCategory);
+    if (isBusy || !trimmedCategoryName) return;
+    setPendingAction('save');
+    try {
+      await onSave(trimmedCategoryName);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleClear() {
+    if (isBusy) return;
+    setPendingAction('clear');
+    try {
+      await onSave(null);
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && isBusy) return;
     if (!nextOpen) {
       setCategoryName('');
     }
@@ -48,42 +69,34 @@ export function BatchCategorySheet({
   }
 
   return (
-    <Drawer.Root
+    <Modal.Root
       opened={open}
       onClose={() => handleOpenChange(false)}
-      position="bottom"
-      size="auto"
+      centered
+      size={440}
+      radius="lg"
       padding={0}
       zIndex={90}
       returnFocus={false}
+      closeOnClickOutside={!isBusy}
+      closeOnEscape={!isBusy}
       classNames={{
-        inner:
-          'items-end justify-center px-3 pb-[max(env(safe-area-inset-bottom,0px),0.75rem)] pt-3 sm:pb-10',
         content:
-          'app-sheet-shell flex max-h-[min(86svh,38rem)] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-w-[420px]',
-      }}
-      styles={{
-        content: {
-          flex: '0 1 auto',
-          height: 'auto',
-        },
+          'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
       }}
     >
-      <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
-      <Drawer.Content>
-        <div className="flex justify-center pb-0.5 pt-2.5">
-          <div className="h-1 w-9 rounded-full bg-border" />
-        </div>
-        <div className="app-sheet-header relative shrink-0 border-b border-border/60 bg-transparent px-5 pb-4 pt-2 pr-16 shadow-none sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-              <Tag className="h-4.5 w-4.5" strokeWidth={1.5} />
+      <Modal.Overlay backgroundOpacity={0.42} blur={3} />
+      <Modal.Content>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
+              <Tag className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
             </div>
-            <div className="min-w-0 flex-1">
-              <Drawer.Title className="font-heading text-lg font-medium text-foreground">
+            <div className="min-w-0">
+              <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
                 批量设置分类
-              </Drawer.Title>
-              <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+              </Modal.Title>
+              <p className="mt-0.5 truncate text-xs leading-5 tabular-nums text-muted-foreground">
                 将对已选择的 {selectedCount} 本图书生效
               </p>
             </div>
@@ -91,25 +104,26 @@ export function BatchCategorySheet({
           <ActionIcon
             variant="subtle"
             color="gray"
-            size={40}
+            size={36}
             radius="md"
+            disabled={isBusy}
             onClick={() => handleOpenChange(false)}
-            className="dialog-close-btn absolute right-4 top-3 border border-border bg-card"
+            className="dialog-close-btn -mr-1 h-9 w-9"
             aria-label="关闭"
             title="关闭"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </ActionIcon>
         </div>
 
-        <form className="flex min-h-0 flex-col overflow-hidden" onSubmit={handleSubmit}>
-          <div className="app-sheet-body min-h-0 overflow-y-auto px-5 py-4 sm:px-6">
-            <div className="app-surface-panel rounded-xl p-3.5">
+        <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+            <div className="app-surface-panel rounded-xl px-4 py-3.5">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
-                  新标签
+                  分类名称
                 </p>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
                   {categoryName.length}/50
                 </span>
               </div>
@@ -117,9 +131,9 @@ export function BatchCategorySheet({
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.currentTarget.value)}
                 maxLength={50}
-                placeholder="输入标签名称"
-                aria-label="新标签"
-                disabled={loading}
+                placeholder="输入或新建分类名称"
+                aria-label="分类名称"
+                disabled={isBusy}
                 rightSection={
                   categoryName ? (
                     <ActionIcon
@@ -127,11 +141,12 @@ export function BatchCategorySheet({
                       color="gray"
                       size={32}
                       radius="sm"
+                      disabled={isBusy}
                       onClick={() => setCategoryName('')}
                       title="清空输入"
                       aria-label="清空输入"
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3.5 w-3.5" aria-hidden="true" />
                     </ActionIcon>
                   ) : null
                 }
@@ -142,82 +157,93 @@ export function BatchCategorySheet({
               />
               {isNewCategory && (
                 <div className="mt-2.5 inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  <Plus className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{trimmedCategoryName}</span>
+                  <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">将新建分类「{trimmedCategoryName}」</span>
                 </div>
               )}
             </div>
 
-            <div className="mt-4">
-              <div className="mb-2.5 flex items-center justify-between px-0.5">
-                <p className="text-xs font-medium text-muted-foreground">
-                  已有标签
-                </p>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
-                  {normalizedCategories.length} 个
-                </span>
+            {normalizedCategories.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-2.5 flex items-center justify-between px-0.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    已有分类
+                  </p>
+                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
+                    {normalizedCategories.length} 个
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {normalizedCategories.map((cat) => {
+                    const isSelected = selectedCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategoryName(isSelected ? '' : cat)}
+                        disabled={isBusy}
+                        aria-pressed={isSelected}
+                        data-active={isSelected}
+                        className={cn(
+                          'category-chip-pill',
+                          isSelected && 'category-chip-pill-active'
+                        )}
+                        title={cat}
+                      >
+                        {isSelected ? (
+                          <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        ) : (
+                          <Tag className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={1.5} aria-hidden="true" />
+                        )}
+                        <span className="truncate">{cat}</span>
+                        <span className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums opacity-75">
+                          {bookCounts[cat] || 0}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {normalizedCategories.map((cat) => {
-                  const isSelected = selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategoryName(cat)}
-                      disabled={loading}
-                      data-active={isSelected}
-                      className={cn(
-                        'category-chip-pill disabled:cursor-not-allowed disabled:opacity-50',
-                        isSelected && 'category-chip-pill-active'
-                      )}
-                      title={cat}
-                    >
-                      {isSelected ? (
-                        <Check className="h-3.5 w-3.5 shrink-0" />
-                      ) : (
-                        <Tag className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={1.5} />
-                      )}
-                      <span className="truncate">{cat}</span>
-                      <span className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums opacity-75">
-                        {bookCounts[cat] || 0}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            )}
           </div>
 
-          <div className="app-sheet-footer flex shrink-0 flex-col gap-2 px-5 py-3.5 sm:grid sm:grid-cols-[1fr_auto_auto] sm:items-center sm:px-6">
-            <Button
-              type="button"
-              variant="default"
-              onClick={() => void onSave(null)}
-              disabled={loading}
-              className="h-10 rounded-lg px-4 text-sm font-medium"
-            >
-              清空分类
-            </Button>
+          <div className="app-dialog-footer flex shrink-0 items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
             <Button
               type="button"
               variant="subtle"
-              color="gray"
-              onClick={() => handleOpenChange(false)}
-              className="h-10 rounded-lg px-4 text-sm font-medium text-muted-foreground sm:order-2"
+              color="red"
+              size="xs"
+              onClick={() => void handleClear()}
+              disabled={isBusy}
+              aria-busy={isClearing || undefined}
+              leftSection={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />}
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
-              取消
+              {isClearing ? '清空中…' : '清空分类'}
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-10 rounded-lg px-5 text-sm font-medium sm:order-3"
-            >
-              {loading ? '保存中...' : '保存'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="subtle"
+                color="gray"
+                disabled={isBusy}
+                onClick={() => handleOpenChange(false)}
+                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground"
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={isBusy || !trimmedCategoryName}
+                aria-busy={isSaving || undefined}
+                className="h-9 rounded-lg px-4 text-sm font-medium"
+              >
+                {isSaving ? '保存中…' : '保存'}
+              </Button>
+            </div>
           </div>
         </form>
-      </Drawer.Content>
-    </Drawer.Root>
+      </Modal.Content>
+    </Modal.Root>
   );
 }

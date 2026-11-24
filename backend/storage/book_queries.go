@@ -2,7 +2,7 @@ package storage
 
 import (
 	"bytes"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -190,7 +190,11 @@ func (db *DB) SearchBooks(
 			book models.Book
 			key  []byte
 		}
-		candidates := make([]candidate, 0, count)
+		compareCandidates := func(a, b candidate) int { return bytes.Compare(a.key, b.key) }
+		pageSize := limit + 1
+		// The gram count includes substring misses and books outside the page.
+		// Keep one page plus its lookahead, with room to batch incoming matches.
+		candidates := make([]candidate, 0, min(count, 2*pageSize))
 		gramBucket, searchBucket, booksBucket := tx.Bucket(BookSearchGramIndex), tx.Bucket(BookSearchIndex), tx.Bucket(BooksBucket)
 		prefix := bookSearchGramIndexPrefix(userID, gram)
 		c := gramBucket.Cursor()
@@ -218,9 +222,14 @@ func (db *DB) SearchBooks(
 				continue
 			}
 			candidates = append(candidates, candidate{book, orderKey})
+			if len(candidates) == 2*pageSize {
+				slices.SortFunc(candidates, compareCandidates)
+				clear(candidates[pageSize:])
+				candidates = candidates[:pageSize]
+			}
 		}
-		sort.Slice(candidates, func(i, j int) bool { return bytes.Compare(candidates[i].key, candidates[j].key) < 0 })
-		for i := 0; i < len(candidates) && i <= limit; i++ {
+		slices.SortFunc(candidates, compareCandidates)
+		for i := range candidates[:min(len(candidates), pageSize)] {
 			books = append(books, candidates[i].book)
 		}
 		return nil

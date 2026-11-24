@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -54,6 +55,46 @@ func TestBroadSearchStopsBeforeDeserializingLaterPages(t *testing.T) {
 		if err != nil || len(books) != 10 || cursor != "b009" {
 			t.Fatalf("query %q page = %d, %q, %v", q, len(books), cursor, err)
 		}
+	}
+}
+
+func TestSelectiveSearchKeepsBestMatchesAcrossCandidateBatches(t *testing.T) {
+	db := openTestDB(t)
+	// The gram index yields IDs in ascending order, while titles sort in reverse.
+	for i := range 9 {
+		book := &models.Book{
+			ID:     fmt.Sprintf("b%d", i),
+			UserID: "u",
+			Title:  fmt.Sprintf("Needle %d", 9-i),
+		}
+		if err := db.SaveBook(book); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var cursor string
+	for _, page := range []struct {
+		ids  []string
+		next string
+	}{
+		{[]string{"b8", "b7"}, "b7"},
+		{[]string{"b6", "b5"}, "b5"},
+		{[]string{"b4", "b3"}, "b3"},
+		{[]string{"b2", "b1"}, "b1"},
+		{[]string{"b0"}, ""},
+	} {
+		books, next, err := db.SearchBooks("u", "Needle", cursor, 2, "title")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids := make([]string, len(books))
+		for i := range books {
+			ids[i] = books[i].ID
+		}
+		if !slices.Equal(ids, page.ids) || next != page.next {
+			t.Fatalf("page after %q = %v, next cursor = %q; want %v, %q", cursor, ids, next, page.ids, page.next)
+		}
+		cursor = next
 	}
 }
 

@@ -332,6 +332,49 @@ func TestSearchBooksUsesGramIndexForCJKQueries(t *testing.T) {
 	assertIndex(false)
 }
 
+func TestRebuildBookSearchGramIndexCountsDistinctPostings(t *testing.T) {
+	db := openTestDB(t)
+	if err := db.Update(func(tx *bbolt.Tx) error {
+		for key, book := range map[string]models.Book{
+			"first":     {ID: "first", UserID: "u", Title: "三体三体"},
+			"duplicate": {ID: "first", UserID: "u", Title: "三体"},
+			"second":    {ID: "second", UserID: "u", Title: "三体"},
+			"other":     {ID: "other", UserID: "v", Title: "三体"},
+		} {
+			data, err := book.MarshalDB()
+			if err != nil {
+				return err
+			}
+			if err := tx.Bucket(BooksBucket).Put([]byte(key), data); err != nil {
+				return err
+			}
+		}
+		if err := tx.Bucket(BookSearchGramCounts).Put([]byte("u\x00旧词\x00"), []byte{9}); err != nil {
+			return err
+		}
+		return rebuildBookSearchGramIndex(tx)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.View(func(tx *bbolt.Tx) error {
+		counts := tx.Bucket(BookSearchGramCounts)
+		for key, want := range map[string]string{
+			"u\x00三体\x00": "\x00\x00\x00\x00\x00\x00\x00\x02",
+			"v\x00三体\x00": "\x00\x00\x00\x00\x00\x00\x00\x01",
+		} {
+			if got := string(counts.Get([]byte(key))); got != want {
+				t.Errorf("count for %q = %x, want %x", key, got, want)
+			}
+		}
+		if counts.Get([]byte("u\x00旧词\x00")) != nil {
+			t.Error("stale count survived rebuild")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestGetSessionReturnsNilForExpiredSession(t *testing.T) {
 	db := openTestDB(t)
 

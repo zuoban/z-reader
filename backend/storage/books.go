@@ -271,19 +271,27 @@ func addBookToSearchIndex(tx *bbolt.Tx, book *models.Book) error {
 }
 
 func addBookToSearchGramIndex(tx *bbolt.Tx, book *models.Book) error {
+	return addBookSearchGramPostings(tx.Bucket(BookSearchGramIndex), book, func(countKey []byte) error {
+		return adjustBookSearchGramCount(tx, countKey, 1)
+	})
+}
+
+func addBookSearchGramPostings(bucket *bbolt.Bucket, book *models.Book, onInsert func([]byte) error) error {
 	if book.UserID == "" || book.ID == "" {
 		return nil
 	}
-	bucket := tx.Bucket(BookSearchGramIndex)
 	// bbolt copies keys on Put, so the buffer can be reused for the next gram.
 	var key []byte
 	for _, gram := range bookSearchGrams(string(bookSearchValue(book))) {
 		key = appendBookSearchGramIndexKey(key[:0], book.UserID, gram, book.ID)
-		if bucket.Get(key) == nil {
-			if err := bucket.Put(key, []byte{}); err != nil {
-				return err
-			}
-			if err := adjustBookSearchGramCount(tx, key[:len(key)-len(book.ID)], 1); err != nil {
+		if bucket.Get(key) != nil {
+			continue
+		}
+		if err := bucket.Put(key, []byte{}); err != nil {
+			return err
+		}
+		if onInsert != nil {
+			if err := onInsert(key[:len(key)-len(book.ID)]); err != nil {
 				return err
 			}
 		}
@@ -361,28 +369,47 @@ func rebuildBookSearchIndex(tx *bbolt.Tx) error {
 }
 
 func rebuildBookSearchGramIndex(tx *bbolt.Tx) error {
+	var countBucket *bbolt.Bucket
+	var counts map[string]int
+	var onInsert func([]byte) error
+	// Older migrations rebuild postings before the counts bucket exists.
 	if tx.Bucket(BookSearchGramCounts) != nil {
 		if err := tx.DeleteBucket(BookSearchGramCounts); err != nil {
 			return err
 		}
-		if _, err := tx.CreateBucket(BookSearchGramCounts); err != nil {
+		var err error
+		countBucket, err = tx.CreateBucket(BookSearchGramCounts)
+		if err != nil {
 			return err
+		}
+		counts = make(map[string]int)
+		onInsert = func(countKey []byte) error {
+			counts[string(countKey)]++
+			return nil
 		}
 	}
 	if err := tx.DeleteBucket(BookSearchGramIndex); err != nil && err != bbolt.ErrBucketNotFound {
 		return err
 	}
-	if _, err := tx.CreateBucket(BookSearchGramIndex); err != nil {
+	postingBucket, err := tx.CreateBucket(BookSearchGramIndex)
+	if err != nil {
 		return err
 	}
-	booksBucket := tx.Bucket(BooksBucket)
-	return booksBucket.ForEach(func(_, data []byte) error {
+	if err := tx.Bucket(BooksBucket).ForEach(func(_, data []byte) error {
 		var book models.Book
 		if err := book.UnmarshalDB(data); err != nil {
 			return err
 		}
-		return addBookToSearchGramIndex(tx, &book)
-	})
+		return addBookSearchGramPostings(postingBucket, &book, onInsert)
+	}); err != nil {
+		return err
+	}
+	for key, count := range counts {
+		if err := putBookSearchGramCount(countBucket, []byte(key), count); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func rebuildBookContentIndex(tx *bbolt.Tx) error {

@@ -43,6 +43,10 @@ func adjustBookSearchGramCount(tx *bbolt.Tx, key []byte, delta int) error {
 	if count <= 0 {
 		return bucket.Delete(key)
 	}
+	return putBookSearchGramCount(bucket, key, count)
+}
+
+func putBookSearchGramCount(bucket *bbolt.Bucket, key []byte, count int) error {
 	var data [8]byte
 	binary.BigEndian.PutUint64(data[:], uint64(count))
 	return bucket.Put(key, data[:])

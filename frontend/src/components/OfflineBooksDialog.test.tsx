@@ -117,6 +117,28 @@ describe('OfflineBooksDialog', () => {
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
     expect(screen.queryByText('确定清空全部 1 本离线缓存？')).not.toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '清空全部离线缓存' })).toHaveFocus();
+    });
+  });
+
+  it('announces loading state as a busy status while reading offline books', async () => {
+    let resolveList!: (items: OfflineBookSummary[]) => void;
+    vi.mocked(listOfflineBooks).mockImplementation(
+      () =>
+        new Promise<OfflineBookSummary[]>((resolve) => {
+          resolveList = resolve;
+        })
+    );
+
+    render(<OfflineBooksDialog open onOpenChange={vi.fn()} />);
+
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent('读取设备缓存中…');
+    expect(status).toHaveAttribute('aria-busy', 'true');
+
+    resolveList([]);
+    expect(await screen.findByText('暂无已保存的离线图书')).toBeInTheDocument();
   });
 
   it('guards closing and disables other actions while removing a book', async () => {

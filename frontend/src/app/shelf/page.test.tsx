@@ -157,6 +157,7 @@ describe('ShelfPage', () => {
     expect(screen.getByRole('button', { name: '批量分类' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '批量删除' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '取消选择' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '更多书库操作' })).toBeDisabled();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.getByRole('region', { name: '书籍批量操作' })).toBeInTheDocument();

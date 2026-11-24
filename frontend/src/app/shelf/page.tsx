@@ -701,10 +701,11 @@ export default function ShelfPage() {
                       <ActionIcon
                         variant={selectionMode ? 'filled' : 'default'}
                         size="md"
+                        disabled={isBatchBusy}
                         aria-label="更多书库操作"
                         title="更多书库操作"
                         className={cn(
-                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-[background-color,color,border-color,transform] duration-150 hover:bg-secondary data-[expanded]:bg-secondary active:scale-95 motion-reduce:active:scale-100',
+                          'flex h-11 w-11 min-h-0 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground transition-[background-color,color,border-color,transform] duration-150 hover:bg-secondary data-[expanded]:bg-secondary active:scale-95 motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-50',
                           selectionMode && 'border-primary bg-primary text-primary-foreground hover:bg-primary/92 data-[expanded]:bg-primary'
                         )}
                       >

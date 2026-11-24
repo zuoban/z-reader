@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ActionIcon, Button, Modal } from '@mantine/core';
 import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Trash2, X } from 'lucide-react';
@@ -40,8 +40,30 @@ export function OfflineBooksDialog({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const clearAllButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusFrameRef = useRef<number | null>(null);
 
   const isBusy = isClearing || Boolean(removingId);
+
+  const cancelClearConfirm = useCallback(() => {
+    setConfirmingClear(false);
+    if (typeof window === 'undefined') return;
+    if (restoreFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(restoreFocusFrameRef.current);
+    }
+    restoreFocusFrameRef.current = window.requestAnimationFrame(() => {
+      restoreFocusFrameRef.current = null;
+      clearAllButtonRef.current?.focus();
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (restoreFocusFrameRef.current !== null) {
+        window.cancelAnimationFrame(restoreFocusFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!open || library !== getOfflineLibrary()) return;
@@ -79,15 +101,15 @@ export function OfflineBooksDialog({
     if (!open || !confirmingClear || isBusy) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
+      if (event.key !== 'Escape' || event.isComposing) return;
       event.preventDefault();
       event.stopPropagation();
-      setConfirmingClear(false);
+      cancelClearConfirm();
     }
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [confirmingClear, isBusy, open]);
+  }, [cancelClearConfirm, confirmingClear, isBusy, open]);
 
   const totalBytes = useMemo(
     () => books.reduce((sum, item) => sum + item.size, 0),
@@ -187,7 +209,12 @@ export function OfflineBooksDialog({
 
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
+            <div
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+              className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground"
+            >
               <LoadingSpinner className="h-6 w-6 border-primary/25" />
               <span className="text-xs">读取设备缓存中…</span>
             </div>
@@ -326,7 +353,7 @@ export function OfflineBooksDialog({
                   size="xs"
                   autoFocus
                   disabled={isClearing}
-                  onClick={() => setConfirmingClear(false)}
+                  onClick={cancelClearConfirm}
                   className="h-9 cursor-pointer rounded-lg px-3 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8"
                 >
                   取消
@@ -358,6 +385,7 @@ export function OfflineBooksDialog({
             <>
               {books.length > 0 ? (
                 <Button
+                  ref={clearAllButtonRef}
                   type="button"
                   variant="subtle"
                   color="red"

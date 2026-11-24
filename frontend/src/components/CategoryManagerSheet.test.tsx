@@ -27,7 +27,9 @@ describe('CategoryManagerSheet', () => {
 
     const input = screen.getByRole('textbox', { name: '新分类名称' });
     fireEvent.change(input, { target: { value: '科幻' } });
-    expect(screen.getByText('保存后将与已有分类「科幻」合并')).toBeInTheDocument();
+    const mergeStatus = screen.getByRole('status');
+    expect(mergeStatus).toHaveTextContent('保存后将与已有分类「科幻」合并');
+    expect(mergeStatus).toHaveAttribute('aria-live', 'polite');
 
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     expect(onRenameCategory).toHaveBeenCalledWith('古典', '科幻');
@@ -44,7 +46,7 @@ describe('CategoryManagerSheet', () => {
     });
   });
 
-  it('cancels inline editing on Escape without closing the sheet even when focus leaves the input', () => {
+  it('cancels inline editing on Escape without closing the sheet even when focus leaves the input', async () => {
     const onOpenChange = vi.fn();
 
     render(
@@ -64,6 +66,9 @@ describe('CategoryManagerSheet', () => {
 
     expect(screen.queryByRole('textbox', { name: '新分类名称' })).not.toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '重命名 科幻' })).toHaveFocus();
+    });
   });
 
   it('resets stale inline editing state when closed externally and reopened', async () => {

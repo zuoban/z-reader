@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
 import { Check, Loader2, Pencil, Tag, Tags, Trash2, X } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -27,6 +27,8 @@ export function CategoryManagerSheet({
   const [editValue, setEditValue] = useState('');
   const [deleteConfirmCategory, setDeleteConfirmCategory] = useState('');
   const [pendingAction, setPendingAction] = useState<'rename' | 'delete' | null>(null);
+  const renameButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const restoreFocusFrameRef = useRef<number | null>(null);
   const isBusy = loading || pendingAction !== null;
   const normalizedCategories = categories.map((category) => category.trim()).filter(Boolean);
   const totalCategorizedBooks = normalizedCategories.reduce(
@@ -34,6 +36,25 @@ export function CategoryManagerSheet({
     0
   );
   const trimmedEditValue = editValue.trim();
+
+  const focusRenameButton = useCallback((category: string) => {
+    if (typeof window === 'undefined') return;
+    if (restoreFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(restoreFocusFrameRef.current);
+    }
+    restoreFocusFrameRef.current = window.requestAnimationFrame(() => {
+      restoreFocusFrameRef.current = null;
+      renameButtonRefs.current.get(category)?.focus();
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (restoreFocusFrameRef.current !== null) {
+        window.cancelAnimationFrame(restoreFocusFrameRef.current);
+      }
+    };
+  }, []);
 
   function reset() {
     setEditingCategory('');
@@ -62,13 +83,15 @@ export function CategoryManagerSheet({
       if (event.key !== 'Escape' || event.isComposing) return;
       event.preventDefault();
       event.stopPropagation();
+      const targetCategory = editingCategory;
       setEditingCategory('');
       setEditValue('');
+      focusRenameButton(targetCategory);
     }
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [deleteConfirmCategory, editingCategory, isBusy, open]);
+  }, [deleteConfirmCategory, editingCategory, focusRenameButton, isBusy, open]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && isBusy) return;
@@ -84,8 +107,12 @@ export function CategoryManagerSheet({
 
   function cancelEdit() {
     if (isBusy) return;
+    const targetCategory = editingCategory;
     setEditingCategory('');
     setEditValue('');
+    if (targetCategory) {
+      focusRenameButton(targetCategory);
+    }
   }
 
   async function saveRename() {
@@ -97,11 +124,13 @@ export function CategoryManagerSheet({
     ) {
       return;
     }
+    const nextCategory = trimmedEditValue;
     setPendingAction('rename');
     try {
-      await onRenameCategory(editingCategory, trimmedEditValue);
+      await onRenameCategory(editingCategory, nextCategory);
       setEditingCategory('');
       setEditValue('');
+      focusRenameButton(nextCategory);
     } finally {
       setPendingAction(null);
     }
@@ -274,6 +303,8 @@ export function CategoryManagerSheet({
                           </div>
                           <div className="flex items-center justify-between gap-2 px-0.5 text-[11px] text-muted-foreground">
                             <span
+                              role="status"
+                              aria-live="polite"
                               className={cn('truncate', willMerge && 'font-medium text-primary')}
                             >
                               {isRenaming
@@ -314,6 +345,13 @@ export function CategoryManagerSheet({
 
                           <div className="flex shrink-0 items-center gap-0.5">
                             <ActionIcon
+                              ref={(node) => {
+                                if (node) {
+                                  renameButtonRefs.current.set(category, node);
+                                } else {
+                                  renameButtonRefs.current.delete(category);
+                                }
+                              }}
                               variant="subtle"
                               color="gray"
                               size={34}

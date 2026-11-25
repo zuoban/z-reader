@@ -2,52 +2,52 @@
   "schema": 1,
   "files": {
     "src/hooks/useCoverUrl.ts": {
-      "statements": 29.8,
-      "branches": 14.03,
-      "functions": 43.75,
-      "lines": 31.91
+      "statements": 93.33,
+      "branches": 86.25,
+      "functions": 100,
+      "lines": 97.56
     },
     "src/hooks/useProgress.ts": {
-      "statements": 53.96,
-      "branches": 29.31,
-      "functions": 84.84,
-      "lines": 55.91
+      "statements": 89.01,
+      "branches": 80.63,
+      "functions": 100,
+      "lines": 94.96
     },
     "src/hooks/useShelfData.ts": {
-      "statements": 83.05,
-      "branches": 58.91,
-      "functions": 81.92,
-      "lines": 87.53
+      "statements": 92.84,
+      "branches": 72.38,
+      "functions": 91.34,
+      "lines": 95.16
     },
     "src/lib/api.ts": {
-      "statements": 51.79,
-      "branches": 43.85,
-      "functions": 53.22,
-      "lines": 55.44
+      "statements": 72.45,
+      "branches": 66.47,
+      "functions": 71.92,
+      "lines": 73.77
     },
     "src/lib/reader-page.ts": {
-      "statements": 63.15,
-      "branches": 34.48,
-      "functions": 71.42,
-      "lines": 64.51
+      "statements": 92.3,
+      "branches": 78.37,
+      "functions": 88.88,
+      "lines": 95.34
     },
     "src/lib/shelf-grid.ts": {
-      "statements": 95.83,
-      "branches": 94.44,
+      "statements": 100,
+      "branches": 100,
       "functions": 100,
       "lines": 100
     },
     "src/lib/tts-helpers.ts": {
-      "statements": 82.85,
-      "branches": 75,
-      "functions": 83.33,
-      "lines": 83.33
+      "statements": 90.47,
+      "branches": 80.76,
+      "functions": 100,
+      "lines": 88.88
     },
     "src/hooks/useTTS.ts": {
-      "statements": 76.02,
-      "branches": 57.94,
-      "functions": 75,
-      "lines": 84.35
+      "statements": 80.87,
+      "branches": 66.45,
+      "functions": 78.12,
+      "lines": 86.83
     },
     "src/hooks/useTTSMediaSession.ts": {
       "statements": 86.11,
@@ -56,16 +56,16 @@
       "lines": 100
     },
     "src/lib/tts.ts": {
-      "statements": 75.82,
-      "branches": 62.58,
-      "functions": 83.16,
-      "lines": 80.19
+      "statements": 86.55,
+      "branches": 75.95,
+      "functions": 91.5,
+      "lines": 90.98
     },
     "src/lib/tts-batch.ts": {
-      "statements": 91.25,
-      "branches": 83.33,
-      "functions": 81.81,
-      "lines": 94.11
+      "statements": 95.28,
+      "branches": 90.35,
+      "functions": 87.5,
+      "lines": 98.84
     }
   }
 }

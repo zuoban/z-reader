@@ -11,7 +11,7 @@ Z Reader is an online e-book reader application for personal library management,
 | Component | Technology |
 | --- | --- |
 | Backend | Go 1.26.11+, Gin, bbolt (embedded KV database) |
-| Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui |
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, Mantine (`@mantine/core`) |
 | Reading Engine | foliate-js (vendored in `frontend/public/foliate/`) |
 | Reverse Proxy | Caddy |
 
@@ -127,17 +127,19 @@ src/
 │   ├── shelf/              # Shelf page
 │   └── read/[id]/          # Reader page (dynamic route)
 ├── components/
-│   ├── ui/                 # shadcn/ui components
 │   ├── reader/             # Reader-specific components
+│   ├── shelf/              # Shelf toolbar, grid, batch bar, dialogs
+│   ├── tts/                # TTS subcomponents and floating panel
 │   ├── AppShell.tsx        # Main app shell
 │   ├── BookCard.tsx        # Book card component
-│   ├── TTSControls.tsx     # TTS controls
+│   ├── TTSControls.tsx     # TTS controls orchestrator
 │   └── ...
 ├── hooks/
+│   ├── foliate/            # Foliate view loader, styles, events helpers
 │   ├── useAuth.ts          # Authentication hook
-│   ├── useApi.ts           # API usage patterns
 │   ├── useProgress.ts      # Reading progress hook
-│   ├── useFoliateReader.ts # foliate-js integration
+│   ├── useShelfData.ts     # Shelf library & pagination hook
+│   ├── useFoliateView.ts   # foliate-js integration
 │   ├── useTTS.ts           # TTS hook
 │   └── ...
 ├── lib/
@@ -145,16 +147,15 @@ src/
 │   ├── config.ts           # Frontend configuration
 │   ├── utils.ts            # Utility functions (cn() helper)
 │   └── types.ts            # Shared TypeScript types
-├── registry/               # Service worker registration
+├── types/                  # Shared ambient/module types
 └── test/                   # Test utilities
 ```
 
 **Key patterns:**
 - Components use `'use client'` for client-side interactivity
 - API client (`@/lib/api`) exports `api` object with typed methods and `auth` object for token management
-- Reading engine integrates foliate-js via `useFoliateReader` and `useFoliateView` hooks
-- Styling uses Tailwind CSS with `cn()` from `@/lib/utils` for conditional class merging
-- shadcn/ui components in `@/components/ui/`
+- Reading engine integrates foliate-js via `useFoliateView` and helpers under `src/hooks/foliate/`
+- Styling uses Tailwind CSS with `cn()` from `@/lib/utils` alongside Mantine (`@mantine/core`) primitives
 
 ## Important Conventions
 

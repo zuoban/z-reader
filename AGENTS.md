@@ -6,7 +6,7 @@ This document provides essential information for AI coding agents working on the
 
 Z Reader is an online EPUB reader application with:
 - **Backend**: Go 1.26+ with Gin framework and bbolt embedded database
-- **Frontend**: Next.js 16 with React 19, Tailwind CSS 4, and Shadcn/ui
+- **Frontend**: Next.js 16 with React 19, Tailwind CSS 4, and Mantine (`@mantine/core`)
 
 ## Build Commands
 
@@ -149,7 +149,7 @@ if err != nil {
 ```typescript
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@mantine/core';
 import { api, Book } from '@/lib/api';
 import type { Metadata } from 'next';
 ```
@@ -247,9 +247,8 @@ z-reader/
 ├── frontend/          # Next.js frontend
 │   └── src/
 │       ├── app/       # App router pages
-│       ├── components/# React components
-│       │   └── ui/    # Shadcn UI components
-│       ├── hooks/     # Custom React hooks
+│       ├── components/# React components (reader/, shelf/, tts/)
+│       ├── hooks/     # Custom React hooks (foliate/, reader, shelf, TTS)
 │       └── lib/       # Utilities, API client
 ├── uploads/           # EPUB file storage
 ├── Makefile           # Build commands

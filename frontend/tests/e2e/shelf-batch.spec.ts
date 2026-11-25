@@ -146,7 +146,7 @@ test.describe('shelf batch operations', () => {
     await expect(searchOnlyBook).toBeVisible();
 
     await page.getByRole('button', { name: /批量操作/ }).click();
-    await page.getByRole('button', { name: '选择已加载' }).click();
+    await page.getByRole('button', { name: '全选', exact: true }).click();
     await expect(selectedCount).toContainText('1 本');
     await page.getByRole('button', { name: '批量删除', exact: true }).click();
     const deleteDialog = page.getByRole('alertdialog', { name: '删除所选图书' });
@@ -167,7 +167,7 @@ test.describe('shelf batch operations', () => {
     });
 
     await page.getByRole('button', { name: /批量操作/ }).click();
-    await page.getByRole('button', { name: '选择已加载' }).click();
+    await page.getByRole('button', { name: '全选', exact: true }).click();
     await expect(page.getByText('已选中').locator('..')).toContainText('4');
 
     await page.getByRole('button', { name: '批量删除', exact: true }).click();

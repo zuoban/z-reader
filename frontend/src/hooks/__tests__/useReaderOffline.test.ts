@@ -398,4 +398,178 @@ describe('useReaderOffline', () => {
     expect(toast.error).toHaveBeenCalledWith('保存离线图书失败');
     expect(result.current.isSavingOffline).toBe(false);
   });
+
+  it('deduplicates rapid double-clicks on saveBookOffline before React re-renders', async () => {
+    const book = makeBook('book-1');
+    const fetchDeferred = deferred<Blob>();
+    vi.mocked(api.getBook).mockResolvedValueOnce(book);
+    vi.mocked(api.fetchBook).mockReturnValueOnce(fetchDeferred.promise);
+
+    const { result } = renderHook(() => useReaderOffline(defaultOptions));
+
+    let firstSave!: Promise<void>;
+    let secondSave!: Promise<void>;
+    act(() => {
+      // Invoke the same pre-render closure twice synchronously before state updates flush
+      const save = result.current.saveBookOffline;
+      firstSave = save(null);
+      secondSave = save(null);
+    });
+
+    expect(api.getBook).toHaveBeenCalledTimes(1);
+    expect(api.fetchBook).toHaveBeenCalledTimes(1);
+    expect(result.current.isSavingOffline).toBe(true);
+
+    await act(async () => {
+      fetchDeferred.resolve(new Blob(['bytes']));
+      await Promise.all([firstSave, secondSave]);
+    });
+
+    expect(saveOfflineBook).toHaveBeenCalledTimes(1);
+    expect(result.current.isSavingOffline).toBe(false);
+  });
+
+  it('resets state and ignores stale callbacks when switching books mid-save', async () => {
+    const book1Fetch = deferred<Blob>();
+    const book2Fetch = deferred<Blob>();
+    let book1OnProgress: ((progress: BookDownloadProgress) => void) | undefined;
+
+    vi.mocked(api.getBook)
+      .mockResolvedValueOnce(makeBook('book-1'))
+      .mockResolvedValueOnce(makeBook('book-2'));
+    vi.mocked(api.fetchBook)
+      .mockImplementationOnce((_id, opts) => {
+        book1OnProgress = opts?.onProgress;
+        return book1Fetch.promise;
+      })
+      .mockReturnValueOnce(book2Fetch.promise);
+
+    const { result, rerender } = renderHook(
+      (props: typeof defaultOptions) => useReaderOffline(props),
+      { initialProps: { ...defaultOptions, bookId: 'book-1' } },
+    );
+
+    let book1Save!: Promise<void>;
+    act(() => {
+      book1Save = result.current.saveBookOffline(null);
+    });
+    act(() => {
+      book1OnProgress?.({
+        downloadedBytes: 256 * 1024,
+        totalBytes: 1024 * 1024,
+        percentage: 25,
+        bytesPerSecond: 1024,
+        resumed: false,
+      });
+    });
+    expect(result.current.isSavingOffline).toBe(true);
+    expect(result.current.offlineDownloadLabel).toBe('保存 25%');
+
+    // Switch to book-2 while book-1 is still downloading
+    rerender({ ...defaultOptions, bookId: 'book-2' });
+    expect(result.current.isSavingOffline).toBe(false);
+    expect(result.current.offlineDownloadLabel).toBeUndefined();
+
+    // Start saving book-2 immediately while book-1's request is still pending
+    let book2Save!: Promise<void>;
+    act(() => {
+      book2Save = result.current.saveBookOffline(null);
+    });
+    expect(result.current.isSavingOffline).toBe(true);
+
+    // Late progress and resolution from book-1 must be ignored and must not clobber book-2
+    act(() => {
+      book1OnProgress?.({
+        downloadedBytes: 900 * 1024,
+        totalBytes: 1024 * 1024,
+        percentage: 90,
+        bytesPerSecond: 1024,
+        resumed: false,
+      });
+    });
+    expect(result.current.offlineDownloadLabel).toBeUndefined();
+
+    await act(async () => {
+      book1Fetch.resolve(new Blob(['stale-book-1']));
+      await book1Save;
+    });
+    expect(saveOfflineBook).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(result.current.isSavingOffline).toBe(true);
+
+    // Finish book-2 normally
+    await act(async () => {
+      book2Fetch.resolve(new Blob(['fresh-book-2']));
+      await book2Save;
+    });
+    expect(saveOfflineBook).toHaveBeenCalledTimes(1);
+    expect(saveOfflineBook).toHaveBeenCalledWith(
+      'personal:gen-1',
+      makeBook('book-2'),
+      expect.any(Blob),
+      expect.any(Function),
+    );
+    expect(toast.success).toHaveBeenCalledTimes(1);
+    expect(result.current.isSavingOffline).toBe(false);
+
+    // Switch book during saveOfflineBook write -> predicate turns false and toast.success is skipped
+    vi.mocked(toast.success).mockClear();
+    const writeDeferred = deferred<void>();
+    vi.mocked(api.getBook).mockResolvedValueOnce(makeBook('book-2'));
+    vi.mocked(saveOfflineBook).mockReturnValueOnce(writeDeferred.promise);
+
+    let writeSave!: Promise<void>;
+    act(() => {
+      writeSave = result.current.saveBookOffline(new Blob(['book-2-blob']));
+    });
+    await waitFor(() => expect(saveOfflineBook).toHaveBeenCalledTimes(2));
+    const isStillCurrent = vi.mocked(saveOfflineBook).mock.calls[1][3] as () => boolean;
+    expect(isStillCurrent()).toBe(true);
+
+    rerender({ ...defaultOptions, bookId: 'book-3' });
+    expect(isStillCurrent()).toBe(false);
+    expect(result.current.isSavingOffline).toBe(false);
+
+    await act(async () => {
+      writeDeferred.resolve();
+      await writeSave;
+    });
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('ignores late progress, resolution, and rejection after unmount mid-save', async () => {
+    const fetchDeferred = deferred<Blob>();
+    let capturedOnProgress: ((progress: BookDownloadProgress) => void) | undefined;
+    vi.mocked(api.getBook).mockResolvedValueOnce(makeBook('book-1'));
+    vi.mocked(api.fetchBook).mockImplementationOnce((_id, opts) => {
+      capturedOnProgress = opts?.onProgress;
+      return fetchDeferred.promise;
+    });
+
+    const { result, unmount } = renderHook(() => useReaderOffline(defaultOptions));
+
+    let savePromise!: Promise<void>;
+    act(() => {
+      savePromise = result.current.saveBookOffline(null);
+    });
+    expect(result.current.isSavingOffline).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      capturedOnProgress?.({
+        downloadedBytes: 512,
+        totalBytes: 1024,
+        percentage: 50,
+        bytesPerSecond: 512,
+        resumed: false,
+      });
+      fetchDeferred.reject(new Error('network dropped after unmount'));
+      await savePromise;
+    });
+
+    expect(saveOfflineBook).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
 });

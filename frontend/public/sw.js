@@ -15,7 +15,7 @@ async function networkFirst(request) {
   try {
     const response = await fetch(request);
     if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
-      cache.put(request, response.clone());
+      cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   } catch {
@@ -25,7 +25,10 @@ async function networkFirst(request) {
     }
 
     if (request.mode === 'navigate') {
-      return caches.match('/');
+      const fallback = await caches.match('/');
+      if (fallback) {
+        return fallback;
+      }
     }
 
     return new Response('Offline Content Unavailable', { status: 503 });
@@ -43,7 +46,7 @@ async function cacheFirst(request) {
   try {
     const response = await fetch(request);
     if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
-      cache.put(request, response.clone());
+      cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   } catch {

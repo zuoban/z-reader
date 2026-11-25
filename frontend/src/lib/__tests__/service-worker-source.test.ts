@@ -65,6 +65,126 @@ describe('service worker privacy policy', () => {
   it('ignores cross-origin requests in the fetch handler', () => {
     expect(serviceWorkerSource).toContain('url.origin !== self.location.origin');
   });
+
+  it('returns 503 for offline navigate requests when / is uncached and falls back to / when cached', async () => {
+    type FetchHandler = (event: {
+      request: { url: string; method: string; mode: string };
+      respondWith: (response: Promise<Response>) => void;
+    }) => void;
+    const origin = 'https://reader.test';
+
+    // Case 1: '/' is not in cache -> must resolve to 503 Response, not undefined
+    const handlersUncached = new Map<string, FetchHandler>();
+    runInNewContext(serviceWorkerSource, {
+      URL,
+      Response,
+      self: { location: { origin }, addEventListener: handlersUncached.set.bind(handlersUncached) },
+      fetch: vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+      caches: {
+        open: vi.fn().mockResolvedValue({ put: vi.fn().mockResolvedValue(undefined) }),
+        match: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    const respondWithUncached = vi.fn<(response: Promise<Response>) => void>();
+    handlersUncached.get('fetch')!({
+      request: { url: `${origin}/reader/1`, method: 'GET', mode: 'navigate' },
+      respondWith: respondWithUncached,
+    });
+    const offlineResponse = await respondWithUncached.mock.calls[0]?.[0];
+    expect(offlineResponse).toBeInstanceOf(Response);
+    expect(offlineResponse?.status).toBe(503);
+    expect(await offlineResponse?.text()).toBe('Offline Content Unavailable');
+
+    // Case 2: '/' is cached -> returns the cached shell response
+    const shellResponse = new Response('<html>shell</html>', { status: 200 });
+    const handlersCached = new Map<string, FetchHandler>();
+    runInNewContext(serviceWorkerSource, {
+      URL,
+      Response,
+      self: { location: { origin }, addEventListener: handlersCached.set.bind(handlersCached) },
+      fetch: vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+      caches: {
+        open: vi.fn().mockResolvedValue({ put: vi.fn().mockResolvedValue(undefined) }),
+        match: vi.fn(async (key: unknown) => (key === '/' ? shellResponse : undefined)),
+      },
+    });
+
+    const respondWithCached = vi.fn<(response: Promise<Response>) => void>();
+    handlersCached.get('fetch')!({
+      request: { url: `${origin}/reader/1`, method: 'GET', mode: 'navigate' },
+      respondWith: respondWithCached,
+    });
+    await expect(respondWithCached.mock.calls[0]?.[0]).resolves.toBe(shellResponse);
+  });
+
+  it('swallows cache.put rejections without failing networkFirst or cacheFirst responses', async () => {
+    type FetchHandler = (event: {
+      request: Request;
+      respondWith: (response: Promise<Response>) => void;
+    }) => void;
+    const handlers = new Map<string, FetchHandler>();
+    const origin = 'https://reader.test';
+    const put = vi.fn().mockRejectedValue(new Error('QuotaExceededError'));
+    const makeOkResponse = (body: string) =>
+      ({
+        status: 200,
+        type: 'basic',
+        body,
+        clone: () => ({ status: 200, type: 'basic', body }),
+      }) as unknown as Response;
+
+    const networkPageResponse = makeOkResponse('page');
+    const staticAssetResponse = makeOkResponse('asset');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(networkPageResponse)
+      .mockResolvedValueOnce(staticAssetResponse);
+
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown) => {
+      unhandledRejections.push(reason);
+    };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      runInNewContext(serviceWorkerSource, {
+        URL,
+        Response,
+        self: { location: { origin }, addEventListener: handlers.set.bind(handlers) },
+        fetch: fetchMock,
+        caches: {
+          open: vi.fn().mockResolvedValue({ put }),
+          match: vi.fn().mockResolvedValue(undefined),
+        },
+      });
+
+      const fetchHandler = handlers.get('fetch')!;
+
+      // networkFirst route
+      const respondWithNetwork = vi.fn<(response: Promise<Response>) => void>();
+      fetchHandler({
+        request: new Request(`${origin}/login`),
+        respondWith: respondWithNetwork,
+      });
+      await expect(respondWithNetwork.mock.calls[0]?.[0]).resolves.toBe(networkPageResponse);
+
+      // cacheFirst route
+      const respondWithCache = vi.fn<(response: Promise<Response>) => void>();
+      fetchHandler({
+        request: new Request(`${origin}/_next/static/chunks/app.js`),
+        respondWith: respondWithCache,
+      });
+      await expect(respondWithCache.mock.calls[0]?.[0]).resolves.toBe(staticAssetResponse);
+
+      // Flush microtask & macrotask queue to surface any unhandled rejection
+      await new Promise((resolveTimer) => setTimeout(resolveTimer, 0));
+      expect(put).toHaveBeenCalledTimes(2);
+      expect(unhandledRejections).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  });
 });
 
 describe('service worker offline shell budget', () => {

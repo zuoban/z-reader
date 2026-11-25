@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api, type BookDownloadProgress } from "@/lib/api";
 import { getOfflineLibrary } from "@/lib/library-access";
@@ -32,6 +32,28 @@ export function useReaderOffline({
   const [isSavingOffline, setIsSavingOffline] = useState(false);
   const [offlineDownloadProgress, setOfflineDownloadProgress] =
     useState<BookDownloadProgress | null>(null);
+  const savingOfflineRef = useRef(false);
+  const saveGenerationRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const wasSaving = savingOfflineRef.current;
+      saveGenerationRef.current += 1;
+      savingOfflineRef.current = false;
+      if (wasSaving && mountedRef.current) {
+        setOfflineDownloadProgress(null);
+        setIsSavingOffline(false);
+      }
+    };
+  }, [bookId]);
 
   useEffect(() => {
     if (!isOffline || isRetryingAuth) return;
@@ -76,10 +98,18 @@ export function useReaderOffline({
 
   const saveBookOffline = useCallback(
     async (loadedFile: File | Blob | null) => {
-      if (!isAuthenticated || isSavingOffline || library !== getOfflineLibrary()) {
+      if (
+        !isAuthenticated ||
+        savingOfflineRef.current ||
+        library !== getOfflineLibrary()
+      ) {
         return;
       }
 
+      const saveGeneration = saveGenerationRef.current;
+      const isCurrentSave = () => saveGenerationRef.current === saveGeneration;
+
+      savingOfflineRef.current = true;
       setIsSavingOffline(true);
       setOfflineDownloadProgress(null);
       try {
@@ -87,25 +117,36 @@ export function useReaderOffline({
           api.getBook(bookId),
           loadedFile
             ? Promise.resolve(loadedFile)
-            : api.fetchBook(bookId, { onProgress: setOfflineDownloadProgress }),
+            : api.fetchBook(bookId, {
+                onProgress: (progress) => {
+                  if (isCurrentSave()) {
+                    setOfflineDownloadProgress(progress);
+                  }
+                },
+              }),
         ]);
-        if (library !== getOfflineLibrary()) return;
+        if (!isCurrentSave() || library !== getOfflineLibrary()) return;
         await saveOfflineBook(
           library,
           book,
           file,
-          () => library === getOfflineLibrary(),
+          () => isCurrentSave() && library === getOfflineLibrary(),
         );
-        if (library !== getOfflineLibrary()) return;
+        if (!isCurrentSave() || library !== getOfflineLibrary()) return;
         toast.success("图书已保存到此设备，可在断网时继续阅读");
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "保存离线图书失败");
+        if (isCurrentSave()) {
+          toast.error(err instanceof Error ? err.message : "保存离线图书失败");
+        }
       } finally {
-        setOfflineDownloadProgress(null);
-        setIsSavingOffline(false);
+        if (isCurrentSave()) {
+          savingOfflineRef.current = false;
+          setOfflineDownloadProgress(null);
+          setIsSavingOffline(false);
+        }
       }
     },
-    [bookId, isAuthenticated, isSavingOffline, library],
+    [bookId, isAuthenticated, library],
   );
 
   return {

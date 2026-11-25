@@ -765,6 +765,73 @@ describe('continuous TTS session', () => {
     expect(result.current.state).toBe('playing');
   });
 
+  it('preserves the exact sentence position on updateSettings even when localStorage is unavailable', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+    });
+    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('SecurityError', 'SecurityError');
+    });
+
+    try {
+      const getTTSSentences = vi.fn(async function* (fromCFI?: string): AsyncGenerator<TTSSentence> {
+        const match = fromCFI?.match(/^cfi-(\d+)$/);
+        const startIndex = match ? Number(match[1]) : 0;
+        for (let i = startIndex; i < 20; i++) {
+          const text = `第${i}段，` + '连续朗读的测试文本。'.repeat(3);
+          yield {
+            text,
+            ssml: `<speak>${text}</speak>`,
+            cfi: `cfi-${i}`,
+            sectionIndex: Math.floor(i / 2),
+            words: [],
+          };
+        }
+      });
+      const view = {
+        getTTSSentences,
+        lastLocation: { cfi: 'cfi-start' },
+        renderer: { getContents: vi.fn(() => []), nextSection: vi.fn(), scrollToAnchor: vi.fn() },
+      } as unknown as FoliateView;
+      const viewRef = { current: view };
+      const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+
+      await act(() => result.current.start());
+      const audio = TestAudio.instances.at(-1)!;
+      await act(async () => {
+        audio.finish();
+        await flushMediaEvents();
+      });
+      await waitFor(() => expect(result.current.currentMark?.cfi).toBe('cfi-1'));
+
+      // Changing an audio setting while playing must restart from cfi-1, not view.lastLocation.cfi.
+      await act(async () => {
+        result.current.updateSettings({ rate: 1.25 });
+        await flushMediaEvents();
+      });
+      await waitFor(() => expect(getTTSSentences).toHaveBeenLastCalledWith('cfi-1'));
+
+      // Advance to cfi-2, pause, change voice without localStorage, then resume from cfi-2.
+      const restartedAudio = TestAudio.instances.at(-1)!;
+      await act(async () => {
+        restartedAudio.finish();
+        await flushMediaEvents();
+      });
+      await waitFor(() => expect(result.current.currentMark?.cfi).toBe('cfi-2'));
+
+      await act(() => result.current.pause());
+      await act(async () => {
+        result.current.updateSettings({ voiceName: 'zh-CN-YunxiNeural' });
+        await flushMediaEvents();
+      });
+      await act(() => result.current.resume());
+      expect(getTTSSentences).toHaveBeenLastCalledWith('cfi-2');
+    } finally {
+      setItemSpy.mockRestore();
+      getItemSpy.mockRestore();
+    }
+  });
+
   it('cleans up audio, preloads, and wake lock on unmount', async () => {
     const viewRef = { current: createView() };
     const { result, unmount } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));

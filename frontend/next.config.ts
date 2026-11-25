@@ -17,9 +17,11 @@ const allowedDevOrigins = parseCSV(process.env.NEXT_DEV_ALLOWED_ORIGINS);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   experimental: {
     agentUpgrade: "security",
     optimizePackageImports: ["@mantine/core", "@mantine/hooks"],
+    proxyTimeout: 120_000,
   },
   allowedDevOrigins: Array.from(
     new Set(["127.0.0.1", "localhost", ...allowedDevOrigins])

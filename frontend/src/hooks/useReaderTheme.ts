@@ -105,24 +105,36 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function clampNumeric(value: unknown, fallback: number, min: number, max: number) {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+  return clamp(Number.isFinite(numeric) ? numeric : fallback, min, max);
+}
+
 function normalizeReaderTheme(theme: ReaderTheme): ReaderTheme {
   return {
     ...theme,
-    fontSize: clamp(Number(theme.fontSize) || DEFAULT_READER_THEME.fontSize, 12, 32),
-    lineHeight: clamp(Number(theme.lineHeight) || DEFAULT_READER_THEME.lineHeight, 1.2, 2.2),
-    pagePaddingX: clamp(Number(theme.pagePaddingX) || DEFAULT_READER_THEME.pagePaddingX, 8, 56),
-    pagePaddingY: clamp(Number(theme.pagePaddingY) || DEFAULT_READER_THEME.pagePaddingY, 8, 48),
-    paragraphSpacing: clamp(
-      Number(theme.paragraphSpacing) || DEFAULT_READER_THEME.paragraphSpacing,
+    fontSize: clampNumeric(theme.fontSize, DEFAULT_READER_THEME.fontSize, 12, 32),
+    lineHeight: clampNumeric(theme.lineHeight, DEFAULT_READER_THEME.lineHeight, 1.2, 2.2),
+    pagePaddingX: clampNumeric(theme.pagePaddingX, DEFAULT_READER_THEME.pagePaddingX, 8, 56),
+    pagePaddingY: clampNumeric(theme.pagePaddingY, DEFAULT_READER_THEME.pagePaddingY, 8, 48),
+    paragraphSpacing: clampNumeric(
+      theme.paragraphSpacing,
+      DEFAULT_READER_THEME.paragraphSpacing,
       0.6,
       2.2
     ),
-    maxInlineSize: clamp(
-      Number(theme.maxInlineSize) || DEFAULT_READER_THEME.maxInlineSize,
+    maxInlineSize: clampNumeric(
+      theme.maxInlineSize,
+      DEFAULT_READER_THEME.maxInlineSize,
       520,
       1400
     ),
-    gap: clamp(Number(theme.gap) || DEFAULT_READER_THEME.gap, 0, 12),
+    gap: clampNumeric(theme.gap, DEFAULT_READER_THEME.gap, 0, 12),
     animated: Boolean(theme.animated),
     chineseIndent: theme.chineseIndent !== undefined ? Boolean(theme.chineseIndent) : DEFAULT_READER_THEME.chineseIndent,
     punctuationSqueeze: theme.punctuationSqueeze !== undefined ? Boolean(theme.punctuationSqueeze) : DEFAULT_READER_THEME.punctuationSqueeze,
@@ -161,14 +173,14 @@ function getSnapshot(): ReaderTheme {
       try {
         const parsed = JSON.parse(saved);
         if (parsed?.fontFamily) baseTheme.fontFamily = parsed.fontFamily;
-        if (parsed?.fontSize) baseTheme.fontSize = parsed.fontSize;
-        if (parsed?.lineHeight) baseTheme.lineHeight = parsed.lineHeight;
-        if (parsed?.pagePaddingX) baseTheme.pagePaddingX = parsed.pagePaddingX;
-        if (parsed?.pagePaddingY) baseTheme.pagePaddingY = parsed.pagePaddingY;
-        if (parsed?.paragraphSpacing) baseTheme.paragraphSpacing = parsed.paragraphSpacing;
+        if (parsed?.fontSize !== undefined) baseTheme.fontSize = parsed.fontSize;
+        if (parsed?.lineHeight !== undefined) baseTheme.lineHeight = parsed.lineHeight;
+        if (parsed?.pagePaddingX !== undefined) baseTheme.pagePaddingX = parsed.pagePaddingX;
+        if (parsed?.pagePaddingY !== undefined) baseTheme.pagePaddingY = parsed.pagePaddingY;
+        if (parsed?.paragraphSpacing !== undefined) baseTheme.paragraphSpacing = parsed.paragraphSpacing;
         if (parsed?.flow) baseTheme.flow = parsed.flow;
-        if (parsed?.maxInlineSize) baseTheme.maxInlineSize = parsed.maxInlineSize;
-        if (parsed?.gap) baseTheme.gap = parsed.gap;
+        if (parsed?.maxInlineSize !== undefined) baseTheme.maxInlineSize = parsed.maxInlineSize;
+        if (parsed?.gap !== undefined) baseTheme.gap = parsed.gap;
         if (parsed?.animated !== undefined) baseTheme.animated = parsed.animated;
         if (parsed?.chineseIndent !== undefined) baseTheme.chineseIndent = parsed.chineseIndent;
         if (parsed?.punctuationSqueeze !== undefined) baseTheme.punctuationSqueeze = parsed.punctuationSqueeze;

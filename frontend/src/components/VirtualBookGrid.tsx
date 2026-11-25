@@ -18,6 +18,8 @@ import {
 } from '@/lib/shelf-grid';
 import { cn } from '@/lib/utils';
 
+const LOAD_MORE_THROTTLE_MS = 400;
+
 export interface VirtualBookGridProps<T> {
   items: T[];
   getItemKey: (item: T, index: number) => string;
@@ -28,7 +30,7 @@ export interface VirtualBookGridProps<T> {
    */
   resetKey?: string | number;
   /** Fired near the end for infinite load. Caller should no-op if busy. */
-  onEndReached?: () => void;
+  onEndReached?: () => void | Promise<unknown>;
   /** Guard so the grid does not spam load-more while a page is in flight. */
   canLoadMore?: boolean;
   isLoadingMore?: boolean;
@@ -63,9 +65,19 @@ export function VirtualBookGrid<T>({
   const canLoadMoreRef = useRef(canLoadMore);
   const isLoadingMoreRef = useRef(isLoadingMore);
   const loadLockRef = useRef(false);
+  const loadTokenRef = useRef(0);
   const lastLoadAtRef = useRef(0);
+  const trailingRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSentinelIntersectingRef = useRef(false);
   const measureRafRef = useRef(0);
   const previousResetKeyRef = useRef(resetKey);
+
+  const clearTrailingRetryTimer = useCallback(() => {
+    if (trailingRetryTimerRef.current !== null) {
+      clearTimeout(trailingRetryTimerRef.current);
+      trailingRetryTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     onEndReachedRef.current = onEndReached;
@@ -79,6 +91,15 @@ export function VirtualBookGrid<T>({
       loadLockRef.current = false;
     }
   }, [isLoadingMore]);
+
+  // Cancel pending retry timer when loading is disabled or component unmounts.
+  useEffect(() => {
+    if (!canLoadMore || !onEndReached) {
+      clearTrailingRetryTimer();
+    }
+  }, [canLoadMore, clearTrailingRetryTimer, onEndReached]);
+
+  useEffect(() => clearTrailingRetryTimer, [clearTrailingRetryTimer]);
 
   const columnCount = useMemo(() => getShelfColumnCount(width || 360), [width]);
   const gap = useMemo(() => getShelfGapPx(width || 360), [width]);
@@ -162,6 +183,8 @@ export function VirtualBookGrid<T>({
     if (previousResetKeyRef.current === resetKey) return;
     previousResetKeyRef.current = resetKey;
     if (resetKey === undefined) return;
+    clearTrailingRetryTimer();
+    loadTokenRef.current += 1;
     loadLockRef.current = false;
     lastLoadAtRef.current = 0;
     if (rowCount > 0) {
@@ -178,20 +201,6 @@ export function VirtualBookGrid<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on resetKey
   }, [resetKey]);
 
-  const requestLoadMore = useCallback(() => {
-    if (!onEndReachedRef.current) return;
-    if (!canLoadMoreRef.current || isLoadingMoreRef.current) return;
-    if (loadLockRef.current) return;
-
-    const now = Date.now();
-    // Throttle bursts while scroll inertia fires many intersections.
-    if (now - lastLoadAtRef.current < 400) return;
-
-    loadLockRef.current = true;
-    lastLoadAtRef.current = now;
-    onEndReachedRef.current();
-  }, []);
-
   /** True when the end probe is still within the prefetch window. */
   const isSentinelNearViewport = useCallback(() => {
     const sentinel = sentinelRef.current;
@@ -201,14 +210,73 @@ export function VirtualBookGrid<T>({
     return rect.top <= window.innerHeight + prefetchPx;
   }, [endReachedOffsetRows, estimatedRowHeight]);
 
+  const isSentinelNearViewportRef = useRef(isSentinelNearViewport);
+  useEffect(() => {
+    isSentinelNearViewportRef.current = isSentinelNearViewport;
+  }, [isSentinelNearViewport]);
+
+  const requestLoadMore = useCallback(function attemptLoadMore() {
+    if (!onEndReachedRef.current) return;
+    if (!canLoadMoreRef.current || isLoadingMoreRef.current) return;
+    if (loadLockRef.current) return;
+
+    const now = Date.now();
+    const elapsed = now - lastLoadAtRef.current;
+    // Throttle bursts while scroll inertia fires many intersections, but schedule
+    // a trailing retry so fast short pages or stalled sentinels never get dropped.
+    if (elapsed < LOAD_MORE_THROTTLE_MS) {
+      if (trailingRetryTimerRef.current === null) {
+        trailingRetryTimerRef.current = setTimeout(() => {
+          trailingRetryTimerRef.current = null;
+          if (!canLoadMoreRef.current || isLoadingMoreRef.current) return;
+          if (!isSentinelIntersectingRef.current && !isSentinelNearViewportRef.current()) {
+            return;
+          }
+          attemptLoadMore();
+        }, LOAD_MORE_THROTTLE_MS - elapsed);
+      }
+      return;
+    }
+
+    clearTrailingRetryTimer();
+    const token = ++loadTokenRef.current;
+    loadLockRef.current = true;
+    lastLoadAtRef.current = now;
+
+    const releaseLockIfIdle = () => {
+      if (loadTokenRef.current === token && !isLoadingMoreRef.current) {
+        loadLockRef.current = false;
+      }
+    };
+
+    let result: void | Promise<unknown>;
+    try {
+      result = onEndReachedRef.current();
+    } catch (error) {
+      releaseLockIfIdle();
+      throw error;
+    }
+
+    if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
+      void Promise.resolve(result).then(releaseLockIfIdle, releaseLockIfIdle);
+    } else {
+      queueMicrotask(releaseLockIfIdle);
+    }
+  }, [clearTrailingRetryTimer]);
+
   // Sentinel at the bottom of the virtual list — more reliable than row-index checks.
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !onEndReached) return;
+    if (!sentinel || !onEndReached) {
+      isSentinelIntersectingRef.current = false;
+      return;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
+        const intersecting = entries.some((entry) => entry.isIntersecting);
+        isSentinelIntersectingRef.current = intersecting;
+        if (intersecting) {
           requestLoadMore();
         }
       },
@@ -221,7 +289,10 @@ export function VirtualBookGrid<T>({
     );
 
     observer.observe(sentinel);
-    return () => observer.disconnect();
+    return () => {
+      isSentinelIntersectingRef.current = false;
+      observer.disconnect();
+    };
   }, [endReachedOffsetRows, estimatedRowHeight, onEndReached, requestLoadMore, rowCount]);
 
   // Short first pages / fast networks: if the sentinel is still on-screen after a

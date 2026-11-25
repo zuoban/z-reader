@@ -278,7 +278,7 @@ export function useReaderControls({
         break;
       case 'Escape':
         if (typeof document !== 'undefined' && document.fullscreenElement === pageRef.current) {
-          void document.exitFullscreen();
+          void document.exitFullscreen()?.catch(() => {});
           break;
         }
         backRef.current();

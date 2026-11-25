@@ -353,3 +353,58 @@ it('aborts in-flight search and truncates results at MAX_BOOK_SEARCH_RESULTS', a
   });
   expect(truncatedCollected).toHaveLength(MAX_BOOK_SEARCH_RESULTS);
 });
+
+it('handles rejected goTo promises gracefully when applying remote progress updates', async () => {
+  const container = document.createElement('div');
+  const containerRef = { current: container };
+  const viewRef = { current: null as FoliateView | null };
+  const getStylesheet = vi.fn(() => 'body {}');
+  const updateProgress = vi.fn();
+  const bindReaderDocument = vi.fn();
+
+  const { result, rerender } = renderHook(
+    ({ progress }) =>
+      useFoliateView({
+        bookId: 'remote-sync',
+        containerRef,
+        viewRef,
+        isAuthenticated: true,
+        progressLoading: false,
+        progress,
+        theme: DEFAULT_READER_THEME,
+        getStylesheet,
+        updateProgress,
+        bindReaderDocument,
+      }),
+    {
+      initialProps: {
+        progress: {
+          cfi: 'epubcfi(/6/2!/4/2)',
+          percentage: 10,
+          updated_at: '2026-05-01T00:00:00Z',
+          remote: false,
+        },
+      },
+    },
+  );
+
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  goTo.mockRejectedValueOnce(new Error('invalid remote cfi'));
+
+  rerender({
+    progress: {
+      cfi: 'epubcfi(/6/99!/4/2)',
+      percentage: 80,
+      updated_at: '2026-05-01T01:00:00Z',
+      remote: true,
+    },
+  });
+
+  await waitFor(() => {
+    expect(goTo).toHaveBeenLastCalledWith(viewRef.current, 'epubcfi(/6/99!/4/2)');
+  });
+  // Flush microtasks so an unhandled rejection would fail the test.
+  await Promise.resolve();
+  await Promise.resolve();
+});

@@ -131,10 +131,12 @@ describe("buildBookmarksMarkdownFilename", () => {
 
 describe("downloadMarkdownFile", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it("creates a markdown blob, clicks a temporary anchor, and revokes the object URL", () => {
+  it("creates a markdown blob, clicks a temporary anchor, and defers revoking the object URL", () => {
+    vi.useFakeTimers();
     const createObjectURL = vi
       .spyOn(URL, "createObjectURL")
       .mockReturnValue("blob:bookmarks-md");
@@ -156,7 +158,13 @@ describe("downloadMarkdownFile", () => {
     expect(blobArg).toBeInstanceOf(Blob);
     expect(blobArg.type).toBe("text/markdown;charset=utf-8");
     expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:bookmarks-md");
     expect(document.body.querySelector('a[download="三体-书签.md"]')).toBeNull();
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(999);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:bookmarks-md");
   });
 });

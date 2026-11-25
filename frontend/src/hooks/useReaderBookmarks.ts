@@ -40,6 +40,7 @@ export function useReaderBookmarks({
 }: UseReaderBookmarksOptions) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
+  const savingBookmarkRef = useRef(false);
   const activeBookRef = useRef<BookmarkContext | null>(null);
   const loadedBookRef = useRef<BookmarkContext | null>(null);
 
@@ -57,6 +58,7 @@ export function useReaderBookmarks({
     // Reset the visible state before painting a different book or session.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBookmarks((items) => items.length ? [] : items);
+    savingBookmarkRef.current = false;
     setIsSavingBookmark(false);
     loadedBookRef.current = null;
     if (!isAuthenticated) return;
@@ -80,7 +82,7 @@ export function useReaderBookmarks({
 
   const handleCreateBookmark = useCallback(async () => {
     const context = activeBookRef.current;
-    if (!currentCFI || isSavingBookmark || context?.bookId !== bookId ||
+    if (!currentCFI || savingBookmarkRef.current || isSavingBookmark || context?.bookId !== bookId ||
       !isCurrentBookmarkContext(context)) return;
 
     const isDuplicate = bookmarks.some((item) => item.cfi === currentCFI);
@@ -89,6 +91,7 @@ export function useReaderBookmarks({
       return;
     }
 
+    savingBookmarkRef.current = true;
     setIsSavingBookmark(true);
     try {
       const bookmark = await api.createBookmark(bookId, {
@@ -105,6 +108,9 @@ export function useReaderBookmarks({
       console.error('Failed to create bookmark:', err);
       toast.error('添加书签失败');
     } finally {
+      if (activeBookRef.current === context) {
+        savingBookmarkRef.current = false;
+      }
       if (isCurrentBookmarkContext(context)) setIsSavingBookmark(false);
     }
   }, [

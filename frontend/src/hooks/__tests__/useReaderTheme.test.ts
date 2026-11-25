@@ -1,7 +1,7 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FONT_FAMILY_OPTIONS, useReaderTheme } from '@/hooks/useReaderTheme';
+import { DEFAULT_READER_THEME, FONT_FAMILY_OPTIONS, useReaderTheme } from '@/hooks/useReaderTheme';
 import { getReaderFontFaces } from '@/lib/reader-fonts';
 
 describe('reader font stylesheets', () => {
@@ -200,5 +200,29 @@ describe('reader font stylesheets', () => {
 
     expect(sepiaCss).toContain('color-scheme: light;');
     expect(sepiaCss).toContain('outline: 2px solid #7a4e2a;');
+  });
+
+  it('preserves gap: 0 and clamps numeric zero inputs instead of clobbering to defaults', () => {
+    const { result, unmount } = renderHook(() => useReaderTheme());
+
+    act(() => {
+      result.current.setTheme({ gap: 0, pagePaddingX: 0, pagePaddingY: 0 });
+    });
+
+    expect(result.current.theme.gap).toBe(0);
+    expect(result.current.theme.pagePaddingX).toBe(8);
+    expect(result.current.theme.pagePaddingY).toBe(8);
+    unmount();
+
+    // Reloading from localStorage must preserve gap: 0 and fall back only for non-finite values.
+    localStorage.setItem(
+      'z-reader-theme',
+      JSON.stringify({ gap: 0, fontSize: '', pagePaddingX: null }),
+    );
+    const reloaded = renderHook(() => useReaderTheme());
+    expect(reloaded.result.current.theme.gap).toBe(0);
+    expect(reloaded.result.current.theme.fontSize).toBe(DEFAULT_READER_THEME.fontSize);
+    expect(reloaded.result.current.theme.pagePaddingX).toBe(DEFAULT_READER_THEME.pagePaddingX);
+    reloaded.unmount();
   });
 });

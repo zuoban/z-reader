@@ -136,6 +136,8 @@ export function downloadMarkdownFile(filename: string, content: string): void {
     anchor.click();
   } finally {
     anchor.remove();
-    URL.revokeObjectURL(url);
+    globalThis.setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   }
 }

@@ -333,7 +333,11 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
     shouldResumeOnForegroundRef.current = true;
     const operation = operationRef.current;
     const source = new TTSSpeechBuffer(view.getTTSSentences(
-      fromCFI || loadTTSSession()?.cfi || view.lastLocation?.cfi,
+      fromCFI ||
+      currentMarkRef.current?.sentenceCfi ||
+      currentMarkRef.current?.cfi ||
+      loadTTSSession()?.cfi ||
+      view.lastLocation?.cfi,
     ));
     sourceRef.current = source;
     setPreparing(true);
@@ -458,7 +462,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       return;
     }
     if (shouldResumeOnForegroundRef.current) {
-      void begin();
+      void begin(currentMarkRef.current?.sentenceCfi || currentMarkRef.current?.cfi);
     } else if (stateRef.current === 'paused') {
       resetBuffer();
       backendTTS.pause();

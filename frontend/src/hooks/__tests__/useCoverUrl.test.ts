@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearCoverUrlCache,
@@ -182,6 +182,7 @@ describe('useCoverUrl hook', () => {
   });
 
   afterEach(() => {
+    cleanup();
     clearCoverUrlCache();
     vi.unstubAllGlobals();
   });
@@ -228,8 +229,10 @@ describe('useCoverUrl hook', () => {
     expect(api.fetchCover).toHaveBeenCalledTimes(1);
     remount.unmount();
 
-    // Full-size request for the same book replaces old cached entry for that bookId and revokes it
-    render(React.createElement(CoverProbe, { bookId: 'book-1', coverVersion: 'v1' }));
+    // Full-size request for the same book coexists with cached thumb without revoking it
+    const fullRender = render(
+      React.createElement(CoverProbe, { bookId: 'book-1', coverVersion: 'v1' }),
+    );
     await act(async () => {
       observers[observers.length - 1].trigger(true);
       await Promise.resolve();
@@ -238,8 +241,17 @@ describe('useCoverUrl hook', () => {
 
     expect(api.fetchCover).toHaveBeenLastCalledWith('book-1', undefined, expect.any(AbortSignal));
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-2');
-    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-1');
-    expect(getCoverCacheSizeForTests()).toBe(1);
+    expect(revokeObjectURLSpy).not.toHaveBeenCalledWith('blob:cover-1');
+    expect(getCoverCacheSizeForTests()).toBe(2);
+    fullRender.unmount();
+
+    // Thumb entry is still cached and served immediately without refetching
+    const thumbAgain = render(
+      React.createElement(CoverProbe, { bookId: 'book-1', coverVersion: 'v1', size: 'thumb' }),
+    );
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+    expect(api.fetchCover).toHaveBeenCalledTimes(2);
+    thumbAgain.unmount();
   });
 
   it('deduplicates inflight fetches when intersecting multiple times', async () => {
@@ -521,5 +533,84 @@ describe('useCoverUrl hook', () => {
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-2');
     expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-1');
     expect(api.fetchCover).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops revoked blob URLs after clearCoverUrlCache on mounted cards and cleanly refetches', async () => {
+    vi.mocked(api.fetchCover)
+      .mockResolvedValueOnce(new Blob(['first']))
+      .mockResolvedValueOnce(new Blob(['refetched']));
+
+    const { unmount } = render(
+      React.createElement(CoverProbe, { bookId: 'book-clear', size: 'thumb' }),
+    );
+
+    await act(async () => {
+      observers[observers.length - 1].trigger(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+
+    act(() => {
+      clearCoverUrlCache();
+    });
+
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-1');
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('empty');
+
+    await act(async () => {
+      observers[observers.length - 1].trigger(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-2');
+    expect(api.fetchCover).toHaveBeenCalledTimes(2);
+
+    unmount();
+    clearCoverUrlCache();
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-2');
+    expect(getCoverCacheSizeForTests()).toBe(0);
+  });
+
+  it('keeps mounted covers alive during LRU eviction by evicting unmounted entries first', async () => {
+    vi.mocked(api.fetchCover).mockImplementation(async () => new Blob(['img']));
+
+    const mounted = render(
+      React.createElement(CoverProbe, { bookId: 'mounted-book-0', size: 'thumb' }),
+    );
+    await act(async () => {
+      observers[observers.length - 1].trigger(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(mounted.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+
+    for (let i = 1; i <= 200; i += 1) {
+      const temp = render(
+        React.createElement(CoverProbe, { bookId: `unmounted-book-${i}`, size: 'thumb' }),
+      );
+      await act(async () => {
+        const observer = observers[observers.length - 1];
+        const target = observer.elements[observer.elements.length - 1];
+        observer.callback(
+          [{ isIntersecting: true, target } as IntersectionObserverEntry],
+          observer as unknown as IntersectionObserver,
+        );
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      temp.unmount();
+    }
+
+    expect(getCoverCacheSizeForTests()).toBe(200);
+    // Mounted cover should not have been revoked; oldest unmounted entry was evicted instead.
+    expect(revokeObjectURLSpy).not.toHaveBeenCalledWith('blob:cover-1');
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-2');
+    expect(mounted.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+
+    mounted.unmount();
+    clearCoverUrlCache();
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-1');
+    expect(getCoverCacheSizeForTests()).toBe(0);
   });
 });

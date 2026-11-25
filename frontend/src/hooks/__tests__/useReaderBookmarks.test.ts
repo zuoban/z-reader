@@ -273,4 +273,33 @@ describe('useReaderBookmarks', () => {
     await expect(lateFailurePromise).resolves.toBe(false);
     expect(toast.error).not.toHaveBeenCalled();
   });
+
+  it('deduplicates rapid bookmark creation clicks before React re-renders', async () => {
+    const firstSave = deferred<Bookmark>();
+    const create = vi.mocked(api.createBookmark).mockReturnValueOnce(firstSave.promise);
+    vi.mocked(api.listBookmarks).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useReaderBookmarks({
+      ...options,
+      bookId: 'first',
+      isAuthenticated: true,
+    }));
+    await waitFor(() => expect(api.listBookmarks).toHaveBeenCalledTimes(1));
+
+    // Fire two clicks synchronously in the same tick before isSavingBookmark state updates.
+    act(() => {
+      void result.current.handleCreateBookmark();
+      void result.current.handleCreateBookmark();
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(result.current.isSavingBookmark).toBe(true);
+
+    await act(async () => {
+      firstSave.resolve(bookmark('first'));
+    });
+
+    expect(result.current.isSavingBookmark).toBe(false);
+    expect(result.current.bookmarks).toEqual([bookmark('first')]);
+  });
 });

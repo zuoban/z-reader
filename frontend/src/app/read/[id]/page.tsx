@@ -152,7 +152,7 @@ function Reader({ bookId }: { bookId: string }) {
     cleanupReaderRef.current();
 
     if (document.fullscreenElement === pageRef.current) {
-      void document.exitFullscreen();
+      void document.exitFullscreen()?.catch(() => {});
     }
 
     router.push("/shelf");

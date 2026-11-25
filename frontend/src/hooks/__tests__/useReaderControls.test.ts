@@ -451,4 +451,31 @@ describe('reader controls', () => {
     expect(onOpenTOC).toHaveBeenCalledTimes(1);
     expect(onOpenBookmarks).toHaveBeenCalledTimes(1);
   });
+
+  it('swallows rejected document.exitFullscreen promises when pressing Escape in fullscreen', async () => {
+    const { onBack } = renderControls();
+    const exitFullscreen = vi.fn(() => Promise.reject(new Error('Document not active')));
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      value: page,
+    });
+    Object.defineProperty(document, 'exitFullscreen', {
+      configurable: true,
+      value: exitFullscreen,
+    });
+
+    try {
+      fireEvent.keyDown(page, { key: 'Escape' });
+      expect(exitFullscreen).toHaveBeenCalledTimes(1);
+      expect(onBack).not.toHaveBeenCalled();
+      // Flush microtasks so an unhandled rejection would surface in Vitest.
+      await Promise.resolve();
+      await Promise.resolve();
+    } finally {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: null,
+      });
+    }
+  });
 });

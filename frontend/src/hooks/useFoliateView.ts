@@ -314,7 +314,7 @@ export function useFoliateView({
     if (appliedRemoteProgressRef.current === progress.updated_at) return;
 
     appliedRemoteProgressRef.current = progress.updated_at;
-    void viewRef.current?.goTo?.(progress.cfi);
+    void viewRef.current?.goTo?.(progress.cfi)?.catch(() => {});
   }, [progress, readerReady, viewRef]);
 
   useEffect(() => {

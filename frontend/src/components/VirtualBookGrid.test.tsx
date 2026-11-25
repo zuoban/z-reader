@@ -344,4 +344,196 @@ describe('VirtualBookGrid', () => {
     expect(window.scrollTo).toHaveBeenCalled();
     void scrollToIndex;
   });
+
+  it('schedules a trailing retry when a fast page finishes inside the throttle window', async () => {
+    const onEndReached = vi.fn();
+    const { rerender } = render(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+    });
+
+    // Simulate a fast page completing within 100ms while sentinel remains visible.
+    rerender(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore
+      />
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    rerender(
+      <VirtualBookGrid
+        items={Array.from({ length: 12 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore={false}
+      />
+    );
+
+    // Throttled immediately after fast page load, but must fire automatically once throttle expires
+    // without requiring a new IntersectionObserver event.
+    expect(onEndReached).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    expect(onEndReached).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a pending trailing retry timer when canLoadMore becomes false or on unmount', async () => {
+    const onEndReached = vi.fn();
+    const { rerender, unmount } = render(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+    });
+
+    // Queue a trailing retry inside the throttle window.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+      fireIntersection(true);
+    });
+    expect(onEndReached).toHaveBeenCalledTimes(1);
+
+    // Disable further loads before the timer fires.
+    rerender(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore={false}
+        isLoadingMore={false}
+      />
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(onEndReached).toHaveBeenCalledTimes(1);
+
+    // Re-enable, trigger, queue another retry, and unmount before timer elapses.
+    rerender(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore={false}
+      />
+    );
+    await waitFor(() => {
+      expect(onEndReached).toHaveBeenCalledTimes(2);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+      fireIntersection(true);
+    });
+    unmount();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(onEndReached).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases loadLockRef when onEndReached returns early without toggling isLoadingMore', async () => {
+    const onEndReached = vi.fn();
+    render(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+    });
+
+    // Even though isLoadingMore never flipped to true, subsequent intersections after the
+    // throttle window must not be permanently blocked by loadLockRef.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+      fireIntersection(true);
+    });
+
+    expect(onEndReached).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps loadLockRef held while a Promise-returning onEndReached is pending and releases on settle', async () => {
+    let resolveFirst!: () => void;
+    const onEndReached = vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockResolvedValue(undefined);
+
+    render(
+      <VirtualBookGrid
+        items={Array.from({ length: 6 }, (_, i) => ({ id: `b-${i}`, title: `Book ${i}` }))}
+        getItemKey={(item) => item.id}
+        renderItem={(item) => <span>{item.title}</span>}
+        onEndReached={onEndReached}
+        canLoadMore
+        isLoadingMore={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+    });
+
+    // While the first Promise is still pending, intersections past 400ms must not re-fire.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+      fireIntersection(true);
+    });
+    expect(onEndReached).toHaveBeenCalledTimes(1);
+
+    // Once the Promise resolves without ever flipping isLoadingMore, lock is released.
+    await act(async () => {
+      resolveFirst();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireIntersection(true);
+    });
+    expect(onEndReached).toHaveBeenCalledTimes(2);
+  });
 });

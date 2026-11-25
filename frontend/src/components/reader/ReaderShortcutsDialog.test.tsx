@@ -46,6 +46,8 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByText('视图与浮层')).toBeInTheDocument();
     expect(screen.getByText('上一页')).toBeInTheDocument();
     expect(screen.getByText('下一页')).toBeInTheDocument();
+    expect(screen.getByText('书内搜索')).toBeInTheDocument();
+    expect(screen.getByText('⌘/Ctrl + F')).toBeInTheDocument();
     expect(screen.getByText('切换全屏')).toBeInTheDocument();
     expect(screen.getByText('图片预览缩放')).toBeInTheDocument();
     expect(screen.getByText('快捷键帮助')).toBeInTheDocument();

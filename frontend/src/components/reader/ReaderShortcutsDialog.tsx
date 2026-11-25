@@ -19,6 +19,7 @@ interface ShortcutGroup {
 
 function getReaderShortcutGroups(isFullscreenSupported: boolean): ShortcutGroup[] {
   const overlayItems: ShortcutItem[] = [
+    { label: "书内搜索", keys: ["⌘/Ctrl + F"] },
     ...(isFullscreenSupported ? [{ label: "切换全屏", keys: ["F"] }] : []),
     { label: "图片预览缩放", keys: ["+", "-", "0"] },
     { label: "快捷键帮助", keys: ["?"] },

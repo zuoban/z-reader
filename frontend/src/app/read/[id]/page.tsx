@@ -36,6 +36,14 @@ const ReaderTTSRuntime = dynamic(
   { ssr: false },
 );
 
+const ReaderSearchSheet = dynamic(
+  () =>
+    import("@/components/reader/ReaderSearchSheet").then(
+      (module) => module.ReaderSearchSheet,
+    ),
+  { ssr: false },
+);
+
 const HEADER_SAFE_AREA_PADDING_TOP = "env(safe-area-inset-top, 0px)";
 const READER_CONTENT_INSET_TOP =
   "calc(env(safe-area-inset-top, 0px) + var(--reader-toolbar-height))";
@@ -80,6 +88,25 @@ function Reader({ bookId }: { bookId: string }) {
   }, []);
 
   const sheets = useReaderSheets();
+  const { openSearch, closeSearch } = sheets;
+  const [searchMounted, setSearchMounted] = useState(false);
+
+  const handleOpenSearch = useCallback(() => {
+    setSearchMounted(true);
+    openSearch();
+  }, [openSearch]);
+
+  const handleSearchOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        setSearchMounted(true);
+        openSearch();
+      } else {
+        closeSearch();
+      }
+    },
+    [closeSearch, openSearch],
+  );
   const chrome = useReaderChrome();
   const tts = useReaderTTSBridge({
     viewRef,
@@ -137,6 +164,7 @@ function Reader({ bookId }: { bookId: string }) {
     shortcutsOpen: sheets.shortcutsOpen,
     onToggleShortcuts: sheets.handleToggleShortcuts,
     onCloseShortcuts: sheets.handleCloseShortcuts,
+    onOpenSearch: handleOpenSearch,
   });
 
   const reader = useFoliateView({
@@ -289,6 +317,8 @@ function Reader({ bookId }: { bookId: string }) {
           isFullscreen={controls.isFullscreen}
           onToggleFullscreen={controls.toggleFullscreen}
           onOpenShortcuts={sheets.handleOpenShortcuts}
+          searchOpen={sheets.showSearch}
+          onOpenSearch={handleOpenSearch}
           ttsOpen={tts.ttsOpen}
           ttsControls={
             isAuthenticated ? (
@@ -307,6 +337,19 @@ function Reader({ bookId }: { bookId: string }) {
             ) : undefined
           }
         />
+
+        {(searchMounted || sheets.showSearch) && (
+          <ReaderSearchSheet
+            open={sheets.showSearch}
+            onOpenChange={handleSearchOpenChange}
+            bookTitle={reader.bookTitle}
+            uiScheme={uiScheme}
+            overlayContainer={overlayContainer}
+            onSearch={reader.searchBook}
+            onClearSearch={reader.clearSearch}
+            onSelectResult={goTo}
+          />
+        )}
 
         <div className="flex min-h-0 flex-1 flex-col">
           <ReaderViewport

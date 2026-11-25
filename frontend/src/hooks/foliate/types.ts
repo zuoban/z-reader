@@ -14,6 +14,56 @@ export interface FoliateZoomImage {
   alt: string;
 }
 
+export interface BookSearchExcerpt {
+  pre: string;
+  match: string;
+  post: string;
+}
+
+export interface BookSearchResultItem {
+  cfi: string;
+  excerpt: BookSearchExcerpt;
+  sectionLabel: string;
+}
+
+export interface BookSearchCallbacks {
+  onProgress?: (progress: number) => void;
+  onResults?: (items: BookSearchResultItem[]) => void;
+}
+
+export interface BookSearchOutcome {
+  total: number;
+  supported: boolean;
+  truncated: boolean;
+}
+
+export interface FoliateRawSearchExcerpt {
+  pre?: string;
+  match?: string;
+  post?: string;
+}
+
+export interface FoliateRawSearchMatch {
+  cfi?: string;
+  excerpt?: string | FoliateRawSearchExcerpt;
+}
+
+export type FoliateSearchYield =
+  | "done"
+  | { progress: number }
+  | { label?: string; subitems: FoliateRawSearchMatch[] }
+  | FoliateRawSearchMatch;
+
+export type SearchableFoliateView = FoliateView & {
+  book?: FoliateView["book"] & {
+    sections?: Array<{
+      createDocument?: () => Promise<Document> | Document;
+    }>;
+  };
+  search?: (opts: { query: string }) => AsyncIterable<FoliateSearchYield>;
+  clearSearch?: () => void;
+};
+
 export interface UseFoliateViewOptions {
   bookId: string;
   containerRef: RefObject<HTMLDivElement | null>;

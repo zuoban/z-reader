@@ -1,7 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { deferred } from '@/test/deferred';
-import { useFoliateView } from '@/hooks/useFoliateView';
+import {
+  MAX_BOOK_SEARCH_RESULTS,
+  useFoliateView,
+  type BookSearchResultItem,
+} from '@/hooks/useFoliateView';
+import type { SearchableFoliateView } from '@/hooks/foliate/types';
 import { DEFAULT_READER_THEME } from '@/hooks/useReaderTheme';
 import { api } from '@/lib/api';
 import type { FoliateView } from '@/lib/types';
@@ -199,4 +204,152 @@ it('applies initial stylesheet once on open and reapplies only when stylesheet c
   expect(setStyles).toHaveBeenCalledTimes(2);
   expect(setStyles).toHaveBeenLastCalledWith(`body { font-size: ${DEFAULT_READER_THEME.fontSize + 2}px; }`);
   expect(setRendererAttribute.mock.calls.length).toBe(initialAttrCalls);
+});
+
+it('returns unsupported when view search is missing or sections lack createDocument', async () => {
+  const { result, viewRef } = renderReader();
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  const missingResult = await result.current.searchBook('test');
+  expect(missingResult).toEqual({ total: 0, supported: false, truncated: false });
+
+  const searchableView = viewRef.current as SearchableFoliateView;
+  searchableView.search = async function* () {
+    yield 'done';
+  };
+  searchableView.book = { sections: [{}] };
+  const noTextSectionsResult = await result.current.searchBook('test');
+  expect(noTextSectionsResult).toEqual({ total: 0, supported: false, truncated: false });
+});
+
+it('streams progress, section subitems, single items, and clears search cleanly', async () => {
+  const { result, viewRef } = renderReader();
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  const clearSearchMock = vi.fn();
+  const searchableView = viewRef.current as SearchableFoliateView;
+  searchableView.clearSearch = clearSearchMock;
+  searchableView.search = async function* () {
+    yield { progress: 0.5 };
+    yield {
+      label: '第一章',
+      subitems: [
+        {
+          cfi: 'epubcfi(/6/2!/4/2)',
+          excerpt: { pre: '前文', match: '关键词', post: '后文' },
+        },
+        {
+          cfi: 'epubcfi(/6/2!/4/4)',
+          excerpt: '字符串摘录里的关键词片段',
+        },
+      ],
+    };
+    yield {
+      cfi: 'epubcfi(/6/4!/4/6)',
+      excerpt: { pre: '单条', match: '关键词', post: '结尾' },
+    };
+    yield { progress: 1 };
+    yield 'done';
+  };
+
+  // Blank query clears search without running iterator
+  const blankOutcome = await result.current.searchBook('   ');
+  expect(blankOutcome).toEqual({ total: 0, supported: true, truncated: false });
+  expect(clearSearchMock).toHaveBeenCalledTimes(1);
+
+  const progressValues: number[] = [];
+  const collected: BookSearchResultItem[] = [];
+  const outcome = await result.current.searchBook(' 关键词 ', {
+    onProgress: (p) => progressValues.push(p),
+    onResults: (items) => collected.push(...items),
+  });
+
+  expect(outcome).toEqual({ total: 3, supported: true, truncated: false });
+  expect(progressValues).toEqual([0.5, 1]);
+  expect(collected).toEqual([
+    {
+      cfi: 'epubcfi(/6/2!/4/2)',
+      sectionLabel: '第一章',
+      excerpt: { pre: '前文', match: '关键词', post: '后文' },
+    },
+    {
+      cfi: 'epubcfi(/6/2!/4/4)',
+      sectionLabel: '第一章',
+      excerpt: { pre: '字符串摘录里的', match: '关键词', post: '片段' },
+    },
+    {
+      cfi: 'epubcfi(/6/4!/4/6)',
+      sectionLabel: '',
+      excerpt: { pre: '单条', match: '关键词', post: '结尾' },
+    },
+  ]);
+
+  result.current.clearSearch();
+  expect(clearSearchMock).toHaveBeenCalledTimes(2);
+});
+
+it('aborts in-flight search and truncates results at MAX_BOOK_SEARCH_RESULTS', async () => {
+  const { result, viewRef } = renderReader();
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  const searchableView = viewRef.current as SearchableFoliateView;
+  const gate = deferred<void>();
+  let generatorReturned = false;
+
+  searchableView.search = async function* () {
+    try {
+      yield {
+        label: '第一章',
+        subitems: [{ cfi: 'cfi-1', excerpt: { pre: '', match: 'a', post: '' } }],
+      };
+      await gate.promise;
+      yield {
+        label: '第二章',
+        subitems: [{ cfi: 'cfi-2', excerpt: { pre: '', match: 'a', post: '' } }],
+      };
+    } finally {
+      generatorReturned = true;
+    }
+  };
+
+  const controller = new AbortController();
+  const collected: BookSearchResultItem[] = [];
+  const searchPromise = result.current.searchBook(
+    'a',
+    {
+      onResults: (items) => {
+        collected.push(...items);
+        controller.abort();
+        gate.resolve();
+      },
+    },
+    controller.signal,
+  );
+
+  const abortedOutcome = await searchPromise;
+  expect(abortedOutcome).toEqual({ total: 1, supported: true, truncated: false });
+  expect(collected.map((item) => item.cfi)).toEqual(['cfi-1']);
+  expect(generatorReturned).toBe(true);
+
+  // Truncation at MAX_BOOK_SEARCH_RESULTS
+  searchableView.search = async function* () {
+    yield {
+      label: '大章节',
+      subitems: Array.from({ length: MAX_BOOK_SEARCH_RESULTS + 20 }, (_, i) => ({
+        cfi: `cfi-${i}`,
+        excerpt: { pre: '', match: 'x', post: '' },
+      })),
+    };
+  };
+
+  const truncatedCollected: BookSearchResultItem[] = [];
+  const truncatedOutcome = await result.current.searchBook('x', {
+    onResults: (items) => truncatedCollected.push(...items),
+  });
+  expect(truncatedOutcome).toEqual({
+    total: MAX_BOOK_SEARCH_RESULTS,
+    supported: true,
+    truncated: true,
+  });
+  expect(truncatedCollected).toHaveLength(MAX_BOOK_SEARCH_RESULTS);
 });

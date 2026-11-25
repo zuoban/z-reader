@@ -105,7 +105,7 @@ test.describe('responsive reading and shelf controls', () => {
 
       async function expectAlignedMenu() {
         const buttons = actions.getByRole('button');
-        await expect(buttons).toHaveCount(8);
+        await expect(buttons).toHaveCount(9);
         const geometry = await buttons.evaluateAll((elements) => elements.map((button) => {
           const row = button.getBoundingClientRect();
           const icon = button.querySelector('svg')!.getBoundingClientRect();

@@ -21,7 +21,9 @@ describe('reader controls', () => {
     vi.unstubAllGlobals();
   });
 
-  function renderControls(options: { shortcutsOpen?: boolean; overlayOpen?: boolean } | boolean = false) {
+  function renderControls(
+    options: { shortcutsOpen?: boolean; overlayOpen?: boolean; onOpenSearch?: () => void } | boolean = false,
+  ) {
     const resolved = typeof options === 'boolean' ? { shortcutsOpen: options } : options;
     const onPrev = vi.fn();
     const onNext = vi.fn();
@@ -37,6 +39,7 @@ describe('reader controls', () => {
       shortcutsOpen: resolved.shortcutsOpen ?? false,
       onToggleShortcuts,
       onCloseShortcuts,
+      onOpenSearch: resolved.onOpenSearch,
     }));
     return { result, unmount, onPrev, onNext, onBack, onToggleShortcuts, onCloseShortcuts };
   }
@@ -316,5 +319,71 @@ describe('reader controls', () => {
     fireEvent.keyDown(page, { key: '?' });
     expect(active.onToggleShortcuts).toHaveBeenCalledTimes(1);
     active.unmount();
+  });
+
+  it('binds Cmd/Ctrl+F to onOpenSearch when provided and ignores inputs/textareas', () => {
+    const onOpenSearch = vi.fn();
+    const { result } = renderControls({ onOpenSearch });
+
+    const ctrlEvent = new KeyboardEvent('keydown', {
+      key: 'f',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    page.dispatchEvent(ctrlEvent);
+    expect(ctrlEvent.defaultPrevented).toBe(true);
+    expect(onOpenSearch).toHaveBeenCalledTimes(1);
+
+    const metaEvent = new KeyboardEvent('keydown', {
+      key: 'F',
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    page.dispatchEvent(metaEvent);
+    expect(metaEvent.defaultPrevented).toBe(true);
+    expect(onOpenSearch).toHaveBeenCalledTimes(2);
+
+    // Input and textarea should not trigger reader search shortcut
+    page.innerHTML = '<input type="search" /><textarea></textarea>';
+    const input = page.querySelector('input')!;
+    const textarea = page.querySelector('textarea')!;
+    input.focus();
+    const inputEvent = new KeyboardEvent('keydown', {
+      key: 'f',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(inputEvent);
+    expect(inputEvent.defaultPrevented).toBe(false);
+    expect(onOpenSearch).toHaveBeenCalledTimes(2);
+
+    textarea.focus();
+    const textareaEvent = new KeyboardEvent('keydown', {
+      key: 'f',
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    textarea.dispatchEvent(textareaEvent);
+    expect(textareaEvent.defaultPrevented).toBe(false);
+    expect(onOpenSearch).toHaveBeenCalledTimes(2);
+
+    // Also works from inside bound foliate iframe document
+    const iframe = document.createElement('iframe');
+    page.append(iframe);
+    const frameDoc = iframe.contentDocument!;
+    result.current.bindReaderDocument(frameDoc);
+    const iframeEvent = new KeyboardEvent('keydown', {
+      key: 'f',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    frameDoc.body.dispatchEvent(iframeEvent);
+    expect(iframeEvent.defaultPrevented).toBe(true);
+    expect(onOpenSearch).toHaveBeenCalledTimes(3);
   });
 });

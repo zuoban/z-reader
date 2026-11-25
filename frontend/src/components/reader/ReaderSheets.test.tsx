@@ -1,11 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@/test/render';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
 
 import { ReaderBookmarksSheet } from '@/components/reader/ReaderBookmarksSheet';
 import { ReaderTOCSheet } from '@/components/reader/ReaderTOCSheet';
 import { PRESET_STYLES } from '@/hooks/useReaderTheme';
 import type { Bookmark } from '@/lib/api';
+import * as bookmarksExport from '@/lib/bookmarks-export';
 import type { TOCItem } from '@/lib/types';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 function createLongTOC(): TOCItem[] {
   return [
@@ -331,5 +340,96 @@ describe('ReaderBookmarksSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: '打开书签：第三章 风起，42.5%' }));
     expect(onGoTo).toHaveBeenCalledWith(bookmarks[0]);
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.mocked(toast.success).mockReset();
+    vi.mocked(toast.error).mockReset();
+  });
+
+  it('hides markdown export and copy actions when there are no bookmarks', () => {
+    render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={vi.fn()}
+        bookmarks={[]}
+        bookTitle="测试书籍"
+        bookAuthor="测试作者"
+        uiScheme={PRESET_STYLES.light}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: '导出 Markdown' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '复制 Markdown' })).not.toBeInTheDocument();
+  });
+
+  it('exports and copies bookmarks as Markdown with toast feedback', async () => {
+    const downloadSpy = vi
+      .spyOn(bookmarksExport, 'downloadMarkdownFile')
+      .mockImplementation(() => {});
+    const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-1',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/4!/4/2)',
+        chapter: '第一章 开篇',
+        percentage: 15.2,
+        note: '第一段摘录',
+        created_at: '2026-05-01T10:00:00.000Z',
+      },
+    ];
+
+    render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={vi.fn()}
+        bookmarks={bookmarks}
+        bookTitle="红楼梦"
+        bookAuthor="曹雪芹"
+        uiScheme={PRESET_STYLES.sepia}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '导出 Markdown' }));
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+    expect(downloadSpy.mock.calls[0][0]).toBe('红楼梦-书签.md');
+    expect(downloadSpy.mock.calls[0][1]).toContain('# 红楼梦');
+    expect(downloadSpy.mock.calls[0][1]).toContain('> 作者：曹雪芹');
+    expect(downloadSpy.mock.calls[0][1]).toContain('第一段摘录');
+    expect(toast.success).toHaveBeenCalledWith('已导出 Markdown 书签');
+
+    fireEvent.click(screen.getByRole('button', { name: '复制 Markdown' }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(toast.success).toHaveBeenCalledWith('已复制 Markdown 书签');
+    });
+    expect(writeText.mock.calls[0][0]).toContain('# 红楼梦');
+
+    fireEvent.click(screen.getByRole('button', { name: '复制 Markdown' }));
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('复制失败，请重试');
+    });
   });
 });

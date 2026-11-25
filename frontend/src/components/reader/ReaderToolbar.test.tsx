@@ -488,4 +488,97 @@ describe('ReaderToolbar', () => {
     expect(backButton).toHaveFocus();
     expect(moreButton).not.toHaveFocus();
   });
+
+  it('renders desktop and mobile in-book search triggers when onOpenSearch is provided', () => {
+    const onOpenSearch = vi.fn();
+    const { container, rerender } = render(
+      <ReaderToolbar
+        visible
+        bookTitle="测试书籍"
+        bookAuthor=""
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={uiScheme}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+        searchOpen={false}
+        onOpenSearch={onOpenSearch}
+      />,
+    );
+
+    const desktop = within(
+      container.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
+    );
+    const desktopSearch = desktop.getByRole('button', { name: '书内搜索' });
+    expect(desktopSearch).toHaveAttribute('title', '书内搜索 (Ctrl/⌘+F)');
+    expect(desktopSearch).toHaveAttribute('aria-expanded', 'false');
+    expect(desktopSearch).toHaveAttribute('aria-haspopup', 'dialog');
+
+    fireEvent.click(desktopSearch);
+    expect(onOpenSearch).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTitle('更多阅读操作'));
+    const mobileActions = screen.getByRole('dialog', { name: '阅读操作' });
+    fireEvent.click(within(mobileActions).getByRole('button', { name: '书内搜索' }));
+    expect(onOpenSearch).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle('更多阅读操作'));
+    expect(screen.getByRole('dialog', { name: '阅读操作' })).toBeInTheDocument();
+    rerender(
+      <ReaderToolbar
+        visible
+        bookTitle="测试书籍"
+        bookAuthor=""
+        toc={[]}
+        tocOpen={false}
+        onTocOpenChange={vi.fn()}
+        bookmarksOpen={false}
+        onBookmarksOpenChange={vi.fn()}
+        bookmarks={[]}
+        canCreateBookmark
+        isSavingBookmark={false}
+        onCreateBookmark={vi.fn()}
+        onGoToBookmark={vi.fn()}
+        onDeleteBookmark={vi.fn()}
+        tocListRef={{ current: null }}
+        currentChapter=""
+        currentChapterHref=""
+        onLocateCurrentChapter={vi.fn()}
+        onGoTo={vi.fn()}
+        onBack={vi.fn()}
+        uiScheme={uiScheme}
+        headerSafeAreaPaddingTop="0px"
+        theme={theme}
+        setTheme={vi.fn()}
+        themeSettingsOpen={false}
+        onThemeSettingsOpenChange={vi.fn()}
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+        searchOpen
+        onOpenSearch={onOpenSearch}
+      />,
+    );
+    expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
+  });
 });

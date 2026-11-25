@@ -3,10 +3,24 @@
 import { useMemo, type CSSProperties } from "react";
 import { ActionIcon, Button, Drawer } from "@mantine/core";
 import "@/app/styles/mantine-drawer.css";
-import { Bookmark, BookmarkPlus, Loader2, Trash2, X } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkPlus,
+  Copy,
+  Download,
+  Loader2,
+  Trash2,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
+import {
+  buildBookmarksMarkdownFilename,
+  downloadMarkdownFile,
+  formatBookmarksAsMarkdown,
+} from "@/lib/bookmarks-export";
 import {
   getModernReaderSurface,
   getReaderPanelThemeVars,
@@ -16,7 +30,8 @@ interface ReaderBookmarksSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bookmarks: ReaderBookmark[];
-  bookTitle: string;
+  bookTitle?: string;
+  bookAuthor?: string | null;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
   triggerClassName: string;
@@ -79,7 +94,8 @@ export function ReaderBookmarksSheet({
   open,
   onOpenChange,
   bookmarks,
-  bookTitle,
+  bookTitle = "",
+  bookAuthor,
   uiScheme,
   overlayContainer,
   triggerClassName,
@@ -104,6 +120,33 @@ export function ReaderBookmarksSheet({
       }),
     [bookmarks],
   );
+
+  function handleExportMarkdown() {
+    const markdown = formatBookmarksAsMarkdown(
+      { title: bookTitle, author: bookAuthor },
+      bookmarks,
+    );
+    const filename = buildBookmarksMarkdownFilename(bookTitle);
+    downloadMarkdownFile(filename, markdown);
+    toast.success("已导出 Markdown 书签");
+  }
+
+  async function handleCopyMarkdown() {
+    const markdown = formatBookmarksAsMarkdown(
+      { title: bookTitle, author: bookAuthor },
+      bookmarks,
+    );
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(markdown);
+      toast.success("已复制 Markdown 书签");
+    } catch {
+      toast.error("复制失败，请重试");
+    }
+  }
 
   return (
     <>
@@ -214,6 +257,26 @@ export function ReaderBookmarksSheet({
                 </ActionIcon>
               </div>
             </div>
+            {bookmarks.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportMarkdown}
+                  className="reader-panel-secondary !h-8 px-2.5 text-xs"
+                >
+                  <Download className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                  <span>导出 Markdown</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCopyMarkdown()}
+                  className="reader-panel-secondary !h-8 px-2.5 text-xs"
+                >
+                  <Copy className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                  <span>复制 Markdown</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">

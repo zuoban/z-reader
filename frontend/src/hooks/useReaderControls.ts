@@ -59,6 +59,7 @@ interface UseReaderControlsOptions {
   shortcutsOpen?: boolean;
   onToggleShortcuts?: () => void;
   onCloseShortcuts?: () => void;
+  onOpenSearch?: () => void;
 }
 
 export function useReaderControls({
@@ -71,6 +72,7 @@ export function useReaderControls({
   shortcutsOpen = false,
   onToggleShortcuts,
   onCloseShortcuts,
+  onOpenSearch,
 }: UseReaderControlsOptions) {
   const [isTouchReader] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -96,6 +98,7 @@ export function useReaderControls({
   const shortcutsOpenRef = useRef(shortcutsOpen);
   const toggleShortcutsRef = useRef(onToggleShortcuts);
   const closeShortcutsRef = useRef(onCloseShortcuts);
+  const openSearchRef = useRef(onOpenSearch);
 
   useEffect(() => {
     prevRef.current = onPrev;
@@ -128,6 +131,10 @@ export function useReaderControls({
   useEffect(() => {
     closeShortcutsRef.current = onCloseShortcuts;
   }, [onCloseShortcuts]);
+
+  useEffect(() => {
+    openSearchRef.current = onOpenSearch;
+  }, [onOpenSearch]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -177,6 +184,18 @@ export function useReaderControls({
       element?.matches('input, textarea') ||
       (element && 'isContentEditable' in element && element.isContentEditable)
     ) {
+      return;
+    }
+
+    const isSearchKey =
+      (e.metaKey || e.ctrlKey) &&
+      !e.altKey &&
+      !e.shiftKey &&
+      (e.key === 'f' || e.key === 'F');
+
+    if (isSearchKey && openSearchRef.current) {
+      e.preventDefault();
+      openSearchRef.current();
       return;
     }
 

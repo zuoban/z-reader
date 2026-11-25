@@ -22,6 +22,7 @@ import {
   Maximize,
   Minimize,
   MoreHorizontal,
+  Search,
   Settings,
 } from "lucide-react";
 
@@ -78,6 +79,8 @@ interface ReaderToolbarProps {
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenShortcuts?: () => void;
+  searchOpen?: boolean;
+  onOpenSearch?: () => void;
 }
 
 export function ReaderToolbar({
@@ -119,10 +122,13 @@ export function ReaderToolbar({
   isFullscreen,
   onToggleFullscreen,
   onOpenShortcuts,
+  searchOpen = false,
+  onOpenSearch,
 }: ReaderToolbarProps) {
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [prevVisible, setPrevVisible] = useState(visible);
-  const anySheetOpen = tocOpen || bookmarksOpen || themeSettingsOpen || ttsOpen;
+  const anySheetOpen =
+    tocOpen || bookmarksOpen || themeSettingsOpen || ttsOpen || searchOpen;
   const [prevAnySheetOpen, setPrevAnySheetOpen] = useState(anySheetOpen);
   const [settingsRequested, setSettingsRequested] = useState(false);
   const [tocRequested, setTocRequested] = useState(false);
@@ -347,6 +353,19 @@ export function ReaderToolbar({
                   <List className="h-4 w-4 opacity-80" aria-hidden="true" />
                   <span>目录</span>
                 </button>
+                {onOpenSearch && (
+                  <button
+                    className="reader-mobile-menu-item"
+                    onClick={() => {
+                      closeMobileActions(false);
+                      onOpenSearch();
+                    }}
+                    type="button"
+                  >
+                    <Search className="h-4 w-4 opacity-80" aria-hidden="true" />
+                    <span>书内搜索</span>
+                  </button>
+                )}
                 {showBookmarks && (
                   <>
                     <button
@@ -503,6 +522,23 @@ export function ReaderToolbar({
                 </Button>
               )}
 
+              {onOpenSearch && (
+                <ActionIcon
+                  type="button"
+                  variant="subtle"
+                  size={32}
+                  radius="md"
+                  onClick={onOpenSearch}
+                  aria-label="书内搜索"
+                  aria-expanded={searchOpen}
+                  aria-haspopup="dialog"
+                  title="书内搜索 (Ctrl/⌘+F)"
+                  className={chromeBtnClass}
+                >
+                  <Search className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                </ActionIcon>
+              )}
+
               {showBookmarks && (
                 <>
                   {bookmarksRequested || bookmarksOpen ? (
@@ -514,6 +550,7 @@ export function ReaderToolbar({
                       }}
                       bookmarks={bookmarks}
                       bookTitle={bookTitle}
+                      bookAuthor={bookAuthor}
                       uiScheme={uiScheme}
                       overlayContainer={overlayContainer}
                       triggerClassName={chromeBtnClass}

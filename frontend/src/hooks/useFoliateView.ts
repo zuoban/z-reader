@@ -22,8 +22,28 @@ import {
   waitForNonZeroRect,
   waitUntil,
 } from "./foliate/runtime";
-import type { UseFoliateViewOptions } from "./foliate/types";
+import {
+  clearFoliateSearch,
+  MAX_BOOK_SEARCH_RESULTS,
+  searchFoliateView,
+} from "./foliate/search";
+import type {
+  BookSearchCallbacks,
+  BookSearchExcerpt,
+  BookSearchOutcome,
+  BookSearchResultItem,
+  SearchableFoliateView,
+  UseFoliateViewOptions,
+} from "./foliate/types";
 import { bindFoliateViewEvents, mountFoliateView } from "./foliate/viewEvents";
+
+export {
+  MAX_BOOK_SEARCH_RESULTS,
+  type BookSearchCallbacks,
+  type BookSearchExcerpt,
+  type BookSearchOutcome,
+  type BookSearchResultItem,
+};
 
 export function useFoliateView({
   bookId,
@@ -341,6 +361,25 @@ export function useFoliateView({
     [bookId],
   );
 
+  const searchBook = useCallback(
+    (
+      query: string,
+      callbacks?: BookSearchCallbacks,
+      signal?: AbortSignal,
+    ): Promise<BookSearchOutcome> =>
+      searchFoliateView(
+        viewRef.current as SearchableFoliateView | null,
+        query,
+        callbacks,
+        signal,
+      ),
+    [viewRef],
+  );
+
+  const clearSearch = useCallback(() => {
+    clearFoliateSearch(viewRef.current as SearchableFoliateView | null);
+  }, [viewRef]);
+
   return {
     toc,
     bookTitle,
@@ -356,5 +395,7 @@ export function useFoliateView({
     loadingDetail,
     cleanupReader,
     getLoadedBookFile,
+    searchBook,
+    clearSearch,
   };
 }

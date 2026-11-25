@@ -185,6 +185,9 @@ func main() {
 		logger.Error("Failed to shut down server gracefully", "error", err)
 	}
 	booksHandler.Close()
+	if err := ttsHandler.Close(shutdownCtx); err != nil {
+		logger.Warn("Timed out waiting for TTS disk cache writes", "error", err)
+	}
 	wg.Wait()
 	db.Close()
 	logger.Info("Server stopped")
@@ -216,12 +219,16 @@ func startBackupWorker(ctx context.Context, db *storage.DB, cfg *config.Config) 
 	interval := time.Duration(cfg.BackupIntervalHours) * time.Hour
 	createBackup := func() {
 		startedAt := time.Now()
-		path, err := backup.Create(db, backup.Config{
+		path, err := backup.CreateContext(ctx, db, backup.Config{
 			Dir:           cfg.BackupDir,
 			UploadDir:     cfg.UploadDir,
 			RetentionDays: cfg.BackupRetentionDays,
 		})
 		if path == "" {
+			if errors.Is(err, context.Canceled) {
+				logger.Info("Backup canceled during shutdown")
+				return
+			}
 			telemetry.ObserveBackup(time.Since(startedAt), err)
 			logger.Error("Failed to create verified backup", "error", err)
 			return

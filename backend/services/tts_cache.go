@@ -5,13 +5,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,11 +23,7 @@ const (
 	defaultTTSMaxQueued          = 12
 	defaultTTSQueueWait          = 30 * time.Second
 	defaultTTSSynthesisTimeout   = 55 * time.Second
-	diskTTSCleanupMinInterval    = 30 * time.Second
-	diskTTSTouchMaxInterval      = 10 * time.Minute
 )
-
-var ErrTTSBusy = errors.New("tts service is busy")
 
 type ttsCacheConfig struct {
 	MaxBytes      int
@@ -76,76 +68,22 @@ func (r *ttsRuntimeState) waitDiskWrites() {
 	r.diskWG.Wait()
 }
 
-// Buckets and labels are fixed so content and provider identifiers never affect cardinality.
-var ttsDurationBuckets = [...]float64{0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10, 30, 55}
-
-type ttsHistogram struct {
-	buckets [len(ttsDurationBuckets)]uint64
-	count   uint64
-	sum     float64
-}
-
-func (h *ttsHistogram) observe(seconds float64) {
-	h.count++
-	h.sum += seconds
-	for i, boundary := range ttsDurationBuckets {
-		if seconds <= boundary {
-			h.buckets[i]++
-		}
+func (r *ttsRuntimeState) waitDiskWritesContext(ctx context.Context) error {
+	if ctx == nil {
+		r.diskWG.Wait()
+		return nil
 	}
-}
-
-type ttsMetrics struct {
-	mutex     sync.Mutex
-	cache     [2][2]uint64
-	results   [4]uint64
-	queueWait ttsHistogram
-	synthesis ttsHistogram
-}
-
-func (m *ttsMetrics) recordCache(layer int, hit bool) {
-	result := 1
-	if hit {
-		result = 0
+	done := make(chan struct{})
+	go func() {
+		r.diskWG.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-	m.mutex.Lock()
-	m.cache[layer][result]++
-	m.mutex.Unlock()
-}
-
-func (m *ttsMetrics) recordResult(err error) {
-	result := 0
-	if errors.Is(err, context.Canceled) {
-		result = 2
-	} else if errors.Is(err, ErrTTSBusy) {
-		result = 3
-	} else if err != nil {
-		result = 1
-	}
-	m.mutex.Lock()
-	m.results[result]++
-	m.mutex.Unlock()
-}
-
-func (m *ttsMetrics) observeQueueWait(duration time.Duration) {
-	m.mutex.Lock()
-	m.queueWait.observe(duration.Seconds())
-	m.mutex.Unlock()
-}
-
-func (m *ttsMetrics) observeSynthesis(duration time.Duration) {
-	m.mutex.Lock()
-	m.synthesis.observe(duration.Seconds())
-	m.mutex.Unlock()
-}
-
-func appendTTSHistogram(output *strings.Builder, name, help string, histogram ttsHistogram) {
-	fmt.Fprintf(output, "# HELP %s %s\n# TYPE %s histogram\n", name, help, name)
-	for i, boundary := range ttsDurationBuckets {
-		fmt.Fprintf(output, "%s_bucket{le=%q} %d\n", name, strconv.FormatFloat(boundary, 'g', -1, 64), histogram.buckets[i])
-	}
-	fmt.Fprintf(output, "%s_bucket{le=\"+Inf\"} %d\n", name, histogram.count)
-	fmt.Fprintf(output, "%s_sum %s\n%s_count %d\n", name, strconv.FormatFloat(histogram.sum, 'g', -1, 64), name, histogram.count)
 }
 
 var ttsRuntime struct {
@@ -172,78 +110,15 @@ func getTTSRuntime() *ttsRuntimeState {
 	return ttsRuntime.state.Load()
 }
 
-// TTSQueueMetrics is a point-in-time view of the bounded TTS synthesis queue.
-// It contains configuration and aggregate work counts only.
-type TTSQueueMetrics struct {
-	Active           int
-	Queued           int
-	QueueCapacity    int
-	ConcurrencyLimit int
-}
-
-// TTSQueueMetricsSnapshot returns false until TTS has been used for the first
-// time. Reading metrics must not initialize the runtime or create its cache.
-func TTSQueueMetricsSnapshot() (TTSQueueMetrics, bool) {
+// WaitTTSDiskWrites waits for any in-flight background TTS disk cache writes to
+// finish, bounded by ctx. If the TTS runtime has not been initialized, it
+// returns nil immediately without initializing the runtime.
+func WaitTTSDiskWrites(ctx context.Context) error {
 	runtime := ttsRuntime.state.Load()
 	if runtime == nil {
-		return TTSQueueMetrics{}, false
+		return nil
 	}
-
-	active := len(runtime.semaphore)
-	queued := len(runtime.queue) - active
-	if queued < 0 {
-		queued = 0
-	}
-	return TTSQueueMetrics{
-		Active:           active,
-		Queued:           queued,
-		QueueCapacity:    runtime.config.MaxQueued,
-		ConcurrencyLimit: runtime.config.MaxConcurrent,
-	}, true
-}
-
-// AppendTTSPrometheus adds TTS queue gauges when the TTS runtime is active.
-func AppendTTSPrometheus(output *strings.Builder) {
-	metrics, ok := TTSQueueMetricsSnapshot()
-	if !ok {
-		return
-	}
-
-	output.WriteString("# HELP z_reader_tts_active_syntheses Active TTS syntheses.\n")
-	output.WriteString("# TYPE z_reader_tts_active_syntheses gauge\n")
-	fmt.Fprintf(output, "z_reader_tts_active_syntheses %d\n", metrics.Active)
-	output.WriteString("# HELP z_reader_tts_queue_depth TTS requests waiting for a synthesis slot.\n")
-	output.WriteString("# TYPE z_reader_tts_queue_depth gauge\n")
-	fmt.Fprintf(output, "z_reader_tts_queue_depth %d\n", metrics.Queued)
-	output.WriteString("# HELP z_reader_tts_queue_capacity Configured TTS queue capacity.\n")
-	output.WriteString("# TYPE z_reader_tts_queue_capacity gauge\n")
-	fmt.Fprintf(output, "z_reader_tts_queue_capacity %d\n", metrics.QueueCapacity)
-	output.WriteString("# HELP z_reader_tts_concurrency_limit Configured concurrent TTS synthesis limit.\n")
-	output.WriteString("# TYPE z_reader_tts_concurrency_limit gauge\n")
-	fmt.Fprintf(output, "z_reader_tts_concurrency_limit %d\n", metrics.ConcurrencyLimit)
-	runtime := ttsRuntime.state.Load()
-	if runtime == nil {
-		return
-	}
-	runtime.metrics.mutex.Lock()
-	cache, results := runtime.metrics.cache, runtime.metrics.results
-	queueWait, synthesis := runtime.metrics.queueWait, runtime.metrics.synthesis
-	runtime.metrics.mutex.Unlock()
-	output.WriteString("# HELP z_reader_tts_cache_requests_total TTS cache lookups by layer and result.\n")
-	output.WriteString("# TYPE z_reader_tts_cache_requests_total counter\n")
-	for layer, layerName := range []string{"memory", "disk"} {
-		for result, resultName := range []string{"hit", "miss"} {
-			fmt.Fprintf(output, "z_reader_tts_cache_requests_total{layer=%q,result=%q} %d\n", layerName, resultName, cache[layer][result])
-		}
-	}
-	output.WriteString("# HELP z_reader_tts_requests_total Completed TTS callers including cache hits and shared waiters.\n")
-	output.WriteString("# TYPE z_reader_tts_requests_total counter\n")
-	for i, result := range []string{"success", "failure", "cancelled", "busy"} {
-		fmt.Fprintf(output, "z_reader_tts_requests_total{result=%q} %d\n", result, results[i])
-	}
-	appendTTSHistogram(output, "z_reader_tts_queue_wait_seconds", "Time waiting for a synthesis slot, including rejected or cancelled work.", queueWait)
-	appendTTSHistogram(output, "z_reader_tts_synthesis_duration_seconds", "Synthesis duration including endpoint refresh, excluding queue wait and cache hits.", synthesis)
-
+	return runtime.waitDiskWritesContext(ctx)
 }
 
 func newTTSRuntimeState(config ttsCacheConfig) *ttsRuntimeState {
@@ -379,367 +254,4 @@ func (c *ttsAudioCache) removeElement(el *list.Element) {
 	delete(c.items, entry.key)
 	c.bytes -= entry.size
 	c.order.Remove(el)
-}
-
-type ttsInflightCall struct {
-	data    []byte
-	err     error
-	done    chan struct{}
-	cancel  context.CancelFunc
-	waiters atomic.Int64
-	key     string
-	ctx     context.Context
-}
-
-var ttsInflight struct {
-	mutex sync.Mutex
-	calls map[string]*ttsInflightCall
-}
-
-func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
-	return synthesizeTTSAudio(ctx, ssml, outputFormat, false)
-}
-
-func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh bool) (data []byte, err error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	runtime := getTTSRuntime()
-	defer func() { runtime.metrics.recordResult(err) }()
-	provider := ActiveTTSProvider()
-	key := ttsCacheKey(provider.Name(), ssml, outputFormat)
-	if refresh {
-		// Share concurrent refreshes without joining a regular request that may
-		// still be publishing the audio the client just failed to decode.
-		key = "refresh:" + key
-	} else {
-		if data, ok := runtime.cache.get(key); ok {
-			runtime.metrics.recordCache(0, true)
-			logger.Info("TTS cache hit", "source", "memory", "key", key, "bytes", len(data))
-			return data, nil
-		}
-
-		runtime.metrics.recordCache(0, false)
-		if data, ok := readDiskTTSCache(runtime.config, key); ok {
-			runtime.metrics.recordCache(1, true)
-			runtime.cache.set(key, data)
-			logger.Info("TTS cache hit", "source", "disk", "key", key, "bytes", len(data))
-			return data, nil
-		}
-		runtime.metrics.recordCache(1, false)
-	}
-	ttsInflight.mutex.Lock()
-	if ttsInflight.calls == nil {
-		ttsInflight.calls = make(map[string]*ttsInflightCall)
-	}
-	if call, ok := ttsInflight.calls[key]; ok && call.ctx.Err() == nil {
-		call.waiters.Add(1)
-		ttsInflight.mutex.Unlock()
-		return waitForTTSCall(ctx, call)
-	}
-
-	workCtx, cancel := context.WithTimeout(context.Background(), defaultTTSSynthesisTimeout)
-	call := &ttsInflightCall{done: make(chan struct{}), cancel: cancel, key: key, ctx: workCtx}
-	call.waiters.Store(1)
-	ttsInflight.calls[key] = call
-	ttsInflight.mutex.Unlock()
-
-	go func() {
-		defer cancel()
-		var persistData []byte
-		persisting := false
-		func() {
-			defer func() {
-				ttsInflight.mutex.Lock()
-				if ttsInflight.calls[key] == call {
-					delete(ttsInflight.calls, key)
-				}
-				ttsInflight.mutex.Unlock()
-				close(call.done)
-			}()
-
-			logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml))
-			call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
-			// A browser decode failure can be local to that client. Recovery leaves
-			// the shared cache alone and runs under the same synthesis limits.
-			if call.err == nil && !refresh {
-				runtime.cache.set(key, call.data)
-				if shouldPersistDiskTTSCache(runtime.config, call.data) {
-					runtime.diskWG.Add(1)
-					persisting = true
-					persistData = call.data
-				}
-			}
-
-			logger.Info(
-				"TTS request completed",
-				"key", key,
-				"bytes", len(call.data),
-				"waiters", call.waiters.Load(),
-				"error", ttsFailureKind(call.err),
-			)
-		}()
-
-		if persisting {
-			defer runtime.diskWG.Done()
-			if err := writeDiskTTSCacheFile(runtime.config, key, persistData); err != nil {
-				logger.Warn("Failed to write TTS disk cache", "key", key, "error", err)
-				return
-			}
-			runtime.maybeCleanupDiskTTSCache()
-		}
-	}()
-
-	return waitForTTSCall(ctx, call)
-}
-
-func waitForTTSCall(ctx context.Context, call *ttsInflightCall) ([]byte, error) {
-	select {
-	case <-call.done:
-		if call.err != nil {
-			return nil, call.err
-		}
-		return append([]byte(nil), call.data...), nil
-	case <-ctx.Done():
-		ttsInflight.mutex.Lock()
-		if call.waiters.Add(-1) == 0 {
-			call.cancel()
-			if ttsInflight.calls[call.key] == call {
-				delete(ttsInflight.calls, call.key)
-			}
-		}
-		ttsInflight.mutex.Unlock()
-		return nil, ctx.Err()
-	}
-}
-
-func callTTSAPIThrottled(ctx context.Context, provider TTSProvider, ssml, outputFormat string) ([]byte, error) {
-	runtime := getTTSRuntime()
-	queueStart := time.Now()
-	release, err := acquireTTSSlotContext(ctx, runtime)
-	runtime.metrics.observeQueueWait(time.Since(queueStart))
-	if err != nil {
-		return nil, err
-	}
-	defer release()
-
-	start := time.Now()
-	defer func() { runtime.metrics.observeSynthesis(time.Since(start)) }()
-	data, err := provider.Synthesize(ctx, ssml, outputFormat)
-	logger.Info(
-		"TTS API call",
-		"latency_ms", time.Since(start).Milliseconds(),
-		"bytes", len(data),
-		"ssml_bytes", len(ssml),
-		"error", ttsFailureKind(err),
-	)
-	return data, err
-}
-
-func acquireTTSSlot(runtime *ttsRuntimeState) (func(), error) {
-	return acquireTTSSlotContext(context.Background(), runtime)
-}
-
-func acquireTTSSlotContext(ctx context.Context, runtime *ttsRuntimeState) (func(), error) {
-	select {
-	case runtime.queue <- struct{}{}:
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
-		return nil, ErrTTSBusy
-	}
-
-	timer := time.NewTimer(runtime.config.QueueWait)
-	defer timer.Stop()
-	select {
-	case runtime.semaphore <- struct{}{}:
-		return func() {
-			<-runtime.semaphore
-			<-runtime.queue
-		}, nil
-	case <-timer.C:
-		<-runtime.queue
-		return nil, ErrTTSBusy
-	case <-ctx.Done():
-		<-runtime.queue
-		return nil, ctx.Err()
-	}
-}
-
-func IsTTSBusy(err error) bool {
-	return errors.Is(err, ErrTTSBusy)
-}
-
-func diskTTSCachePath(config ttsCacheConfig, key string) string {
-	return filepath.Join(config.Dir, key+".audio")
-}
-
-func readDiskTTSCache(config ttsCacheConfig, key string) ([]byte, bool) {
-	if config.Dir == "" {
-		return nil, false
-	}
-
-	path := diskTTSCachePath(config, key)
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 ||
-		info.Size() > int64(config.MaxBytes) || time.Since(info.ModTime()) > config.TTL {
-		return nil, false
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, false
-	}
-	defer file.Close()
-	current, err := file.Stat()
-	if err != nil || !os.SameFile(info, current) {
-		return nil, false
-	}
-	data, err := readBoundedBody(file, int64(config.MaxBytes))
-	if err != nil || len(data) == 0 {
-		return nil, false
-	}
-	touchInterval := config.TTL / 4
-	if touchInterval > diskTTSTouchMaxInterval {
-		touchInterval = diskTTSTouchMaxInterval
-	}
-	if touchInterval <= 0 || time.Since(info.ModTime()) >= touchInterval {
-		now := time.Now()
-		_ = os.Chtimes(path, now, now)
-	}
-	return data, true
-}
-
-func shouldPersistDiskTTSCache(config ttsCacheConfig, data []byte) bool {
-	return config.Dir != "" && len(data) > 0 && len(data) <= config.MaxBytes
-}
-
-func writeDiskTTSCacheFile(config ttsCacheConfig, key string, data []byte) error {
-	if !shouldPersistDiskTTSCache(config, data) {
-		return nil
-	}
-
-	tmp, err := os.CreateTemp(config.Dir, ".tts-audio-*")
-	if errors.Is(err, os.ErrNotExist) {
-		if mkErr := os.MkdirAll(config.Dir, 0700); mkErr != nil {
-			return mkErr
-		}
-		tmp, err = os.CreateTemp(config.Dir, ".tts-audio-*")
-	}
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	_, writeErr := tmp.Write(data)
-	if err := errors.Join(writeErr, tmp.Close()); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), diskTTSCachePath(config, key))
-}
-
-func writeDiskTTSCache(config ttsCacheConfig, key string, data []byte) error {
-	if err := writeDiskTTSCacheFile(config, key, data); err != nil {
-		return err
-	}
-	if shouldPersistDiskTTSCache(config, data) {
-		cleanupDiskTTSCache(config)
-	}
-	return nil
-}
-
-func (r *ttsRuntimeState) maybeCleanupDiskTTSCache() {
-	if r.config.Dir == "" {
-		return
-	}
-	stride := uint64(max(1, r.config.MaxItems/8))
-	writes := r.diskWrites.Add(1)
-
-	r.cleanupMu.Lock()
-	if r.cleanupRunning {
-		r.cleanupMu.Unlock()
-		return
-	}
-	dueByCount := writes%stride == 0
-	dueByTime := r.lastCleanup.IsZero() || time.Since(r.lastCleanup) >= diskTTSCleanupMinInterval
-	if !dueByCount && !dueByTime {
-		r.cleanupMu.Unlock()
-		return
-	}
-	r.cleanupRunning = true
-	r.cleanupMu.Unlock()
-
-	defer func() {
-		r.cleanupMu.Lock()
-		r.lastCleanup = time.Now()
-		r.cleanupRunning = false
-		r.cleanupMu.Unlock()
-	}()
-
-	cleanupDiskTTSCache(r.config)
-}
-
-func cleanupDiskTTSCache(config ttsCacheConfig) {
-	if config.Dir == "" {
-		return
-	}
-
-	entries, err := os.ReadDir(config.Dir)
-	if err != nil {
-		return
-	}
-
-	var total int64
-	type fileInfo struct {
-		path    string
-		size    int64
-		modTime time.Time
-	}
-	files := make([]fileInfo, 0, len(entries))
-
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".audio" {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-		path := filepath.Join(config.Dir, entry.Name())
-		if time.Since(info.ModTime()) > config.TTL {
-			removeStaleDiskCache(path)
-			continue
-		}
-		total += info.Size()
-		files = append(files, fileInfo{path: path, size: info.Size(), modTime: info.ModTime()})
-	}
-
-	if total <= int64(config.MaxBytes) && len(files) <= config.MaxItems {
-		return
-	}
-
-	// 按修改时间升序排序（最旧的在前），使用 O(n log n) 排序
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].modTime.Before(files[j].modTime)
-	})
-
-	for _, file := range files {
-		if total <= int64(config.MaxBytes) && len(files) <= config.MaxItems {
-			break
-		}
-		removeStaleDiskCache(file.path)
-		total -= file.size
-		files = files[1:]
-	}
-}
-
-func removeStaleDiskCache(path string) {
-	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-		logger.Warn("Failed to remove TTS disk cache", "path", path, "error", err)
-	}
-}
-
-func ttsFailureKind(err error) string {
-	if err == nil {
-		return ""
-	}
-	return TTSHTTPError(err).Kind
 }

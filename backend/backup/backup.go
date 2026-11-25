@@ -48,10 +48,22 @@ type Manifest struct {
 // from that backup to save disk space while keeping live uploads isolated.
 // If retention cleanup fails, Create returns the published path and the error.
 func Create(db *storage.DB, config Config) (string, error) {
+	return CreateContext(context.Background(), db, config)
+}
+
+// CreateContext creates and verifies a backup like Create, aborting early and
+// cleaning up any staged temporary directory if ctx is canceled.
+func CreateContext(ctx context.Context, db *storage.DB, config Config) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	prevDir, prevManifest, _ := latestManifest(config.Dir)
 	digests := make(map[string]string)
-	return createWithDigests(db, config, digests, func(snapshot, source, destination string) error {
-		return copySnapshotUploadsWithDedup(snapshot, source, destination, prevDir, prevManifest, digests)
+	return createWithDigests(ctx, db, config, digests, func(ctx context.Context, snapshot, source, destination string) error {
+		return copySnapshotUploadsWithDedup(ctx, snapshot, source, destination, prevDir, prevManifest, digests)
 	})
 }
 
@@ -126,15 +138,24 @@ func latestManifest(dir string) (string, Manifest, bool) {
 }
 
 func create(db *storage.DB, config Config, copyUploads func(snapshot, source, destination string) error) (string, error) {
-	return createWithDigests(db, config, nil, copyUploads)
+	return createWithDigests(context.Background(), db, config, nil, func(_ context.Context, snapshot, source, destination string) error {
+		return copyUploads(snapshot, source, destination)
+	})
 }
 
 func createWithDigests(
+	ctx context.Context,
 	db *storage.DB,
 	config Config,
 	precomputedDigests map[string]string,
-	copyUploads func(snapshot, source, destination string) error,
+	copyUploads func(ctx context.Context, snapshot, source, destination string) error,
 ) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	if config.Dir == "" {
 		return "", fmt.Errorf("backup directory is required")
 	}
@@ -155,22 +176,37 @@ func createWithDigests(
 
 	snapshot := filepath.Join(temporaryDir, "data.db")
 	if err := db.WithUploadFilesRetained(func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := db.BackupTo(snapshot); err != nil {
 			return fmt.Errorf("snapshot main database: %w", err)
 		}
-		if err := copyUploads(snapshot, config.UploadDir, filepath.Join(temporaryDir, "uploads")); err != nil {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := copyUploads(ctx, snapshot, config.UploadDir, filepath.Join(temporaryDir, "uploads")); err != nil {
 			return fmt.Errorf("copy snapshot uploads: %w", err)
 		}
 		return nil
 	}); err != nil {
 		return "", err
 	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	if err := db.SessionBackupTo(filepath.Join(temporaryDir, "data.db.sessions")); err != nil {
 		return "", fmt.Errorf("snapshot session database: %w", err)
 	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 
-	manifest, err := buildManifestWithDigests(temporaryDir, createdAt, precomputedDigests)
+	manifest, err := buildManifestWithDigests(ctx, temporaryDir, createdAt, precomputedDigests)
 	if err != nil {
+		return "", err
+	}
+	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
@@ -180,8 +216,11 @@ func createWithDigests(
 	if err := os.WriteFile(filepath.Join(temporaryDir, manifestName), data, 0600); err != nil {
 		return "", err
 	}
-	if err := Verify(temporaryDir); err != nil {
+	if err := VerifyContext(ctx, temporaryDir); err != nil {
 		return "", fmt.Errorf("verify created backup: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 
 	finalDir := filepath.Join(config.Dir, name)
@@ -446,13 +485,19 @@ func requireAbsent(path string) error {
 }
 
 func buildManifest(root string, createdAt time.Time) (Manifest, error) {
-	return buildManifestWithDigests(root, createdAt, nil)
+	return buildManifestWithDigests(context.Background(), root, createdAt, nil)
 }
 
-func buildManifestWithDigests(root string, createdAt time.Time, precomputed map[string]string) (Manifest, error) {
+func buildManifestWithDigests(ctx context.Context, root string, createdAt time.Time, precomputed map[string]string) (Manifest, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	manifest := Manifest{CreatedAt: createdAt, Files: make(map[string]string)}
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
 			return err
 		}
 		if entry.IsDir() {
@@ -470,7 +515,7 @@ func buildManifestWithDigests(root string, createdAt time.Time, precomputed map[
 			manifest.Files[key] = digest
 			return nil
 		}
-		digest, err := fileSHA256(path)
+		digest, err := fileSHA256(ctx, path)
 		if err != nil {
 			return err
 		}
@@ -478,6 +523,18 @@ func buildManifestWithDigests(root string, createdAt time.Time, precomputed map[
 		return nil
 	})
 	return manifest, err
+}
+
+type contextReader struct {
+	ctx context.Context
+	r   io.Reader
+}
+
+func (cr contextReader) Read(p []byte) (int, error) {
+	if err := cr.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return cr.r.Read(p)
 }
 
 func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
@@ -496,14 +553,24 @@ func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
 
 // copyToBackupFileWithDigest copies input to destination as a read-only (0400)
 // backup file and returns its SHA-256 hex digest in a single pass.
-func copyToBackupFileWithDigest(input io.Reader, destination string, readBuffer []byte) (string, error) {
+func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destination string, readBuffer []byte) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
 	if err != nil {
 		return "", err
 	}
 	hash := sha256.New()
-	// Expose only Read so a file's WriteTo cannot bypass the supplied buffer.
-	_, copyErr := io.CopyBuffer(io.MultiWriter(output, hash), struct{ io.Reader }{input}, readBuffer)
+	// Wrap input in contextReader so a file's WriteTo cannot bypass readBuffer
+	// and cancellation is checked before each chunk read.
+	_, copyErr := io.CopyBuffer(io.MultiWriter(output, hash), contextReader{ctx: ctx, r: input}, readBuffer)
+	if copyErr == nil {
+		copyErr = ctx.Err()
+	}
 	closeErr := output.Close()
 	if copyErr != nil {
 		return "", copyErr
@@ -514,7 +581,7 @@ func copyToBackupFileWithDigest(input io.Reader, destination string, readBuffer 
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func fileSHA256(path string) (string, error) {
+func fileSHA256(ctx context.Context, path string) (string, error) {
 	root, err := os.OpenRoot(filepath.Dir(path))
 	if err != nil {
 		return "", err
@@ -525,7 +592,7 @@ func fileSHA256(path string) (string, error) {
 		return "", err
 	}
 	defer file.Close()
-	return hashBackupReader(context.Background(), file)
+	return hashBackupReader(ctx, file)
 }
 
 func validManifestFile(name string) bool {

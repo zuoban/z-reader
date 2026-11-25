@@ -30,6 +30,11 @@ func NewTTSHandler() *TTSHandler {
 	return &TTSHandler{}
 }
 
+// Close drains any in-flight background TTS disk cache writes bounded by ctx.
+func (h *TTSHandler) Close(ctx context.Context) error {
+	return services.WaitTTSDiskWrites(ctx)
+}
+
 func (h *TTSHandler) TTS(c *gin.Context) {
 	text := c.Query("t")
 	if text == "" {

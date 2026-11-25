@@ -746,3 +746,63 @@ func TestTTSCacheSeparatesProvidersAndBoundsResponseSize(t *testing.T) {
 		}
 	})
 }
+
+func TestWaitTTSDiskWrites(t *testing.T) {
+	t.Run("returns nil when runtime is not initialized", func(t *testing.T) {
+		previous := ttsRuntime.state.Swap(nil)
+		t.Cleanup(func() { ttsRuntime.state.Store(previous) })
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := WaitTTSDiskWrites(ctx); err != nil {
+			t.Fatalf("WaitTTSDiskWrites(nil runtime) = %v, want nil", err)
+		}
+		if ttsRuntime.state.Load() != nil {
+			t.Fatal("WaitTTSDiskWrites should not initialize ttsRuntime")
+		}
+	})
+
+	t.Run("waits for pending disk writes to complete", func(t *testing.T) {
+		runtime := installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusOK, "audio"), nil
+		})
+
+		var finished atomic.Bool
+		runtime.diskWG.Add(1)
+		go func() {
+			time.Sleep(30 * time.Millisecond)
+			finished.Store(true)
+			runtime.diskWG.Done()
+		}()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := WaitTTSDiskWrites(ctx); err != nil {
+			t.Fatalf("WaitTTSDiskWrites() = %v, want nil", err)
+		}
+		if !finished.Load() {
+			t.Fatal("WaitTTSDiskWrites returned before pending disk write finished")
+		}
+	})
+
+	t.Run("returns context error on timeout", func(t *testing.T) {
+		runtime := installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusOK, "audio"), nil
+		})
+
+		unblock := make(chan struct{})
+		runtime.diskWG.Add(1)
+		go func() {
+			defer runtime.diskWG.Done()
+			<-unblock
+		}()
+		t.Cleanup(func() { close(unblock) })
+
+		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
+		defer cancel()
+		err := WaitTTSDiskWrites(ctx)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("WaitTTSDiskWrites(timeout) = %v, want context.DeadlineExceeded", err)
+		}
+	})
+}

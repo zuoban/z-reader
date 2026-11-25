@@ -71,14 +71,21 @@ func visitSnapshotUploads(root *os.Root, snapshot string, visit func(name string
 }
 
 func copySnapshotUploads(snapshot, source, destination string) error {
-	return copySnapshotUploadsWithDedup(snapshot, source, destination, "", Manifest{}, nil)
+	return copySnapshotUploadsWithDedup(context.Background(), snapshot, source, destination, "", Manifest{}, nil)
 }
 
 func copySnapshotUploadsWithDedup(
+	ctx context.Context,
 	snapshot, source, destination, prevBackupDir string,
 	prevManifest Manifest,
 	digests map[string]string,
 ) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	root, err := os.OpenRoot(source)
 	if err != nil {
 		return err
@@ -94,6 +101,9 @@ func copySnapshotUploadsWithDedup(
 	defer snapshotRoot.Close()
 	var readBuffer []byte
 	return visitSnapshotUploads(snapshotRoot, filepath.Base(snapshot), func(name string) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		input, err := openRegularBackupFile(root, name)
 		if err != nil {
 			return err
@@ -111,16 +121,21 @@ func copySnapshotUploadsWithDedup(
 		if readBuffer == nil {
 			readBuffer = make([]byte, hashBufferSize)
 		}
-		if digest, ok := tryHardLinkFromPreviousBackup(input, info.Size(), name, target, prevBackupDir, prevManifest, readBuffer); ok {
+		if digest, ok, err := tryHardLinkFromPreviousBackup(ctx, input, info.Size(), name, target, prevBackupDir, prevManifest, readBuffer); err != nil {
+			return err
+		} else if ok {
 			if digests != nil {
 				digests[manifestKey] = digest
 			}
 			return nil
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if _, err := input.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		digest, err := copyToBackupFileWithDigest(input, target, readBuffer)
+		digest, err := copyToBackupFileWithDigest(ctx, input, target, readBuffer)
 		if err != nil {
 			return err
 		}
@@ -132,46 +147,61 @@ func copySnapshotUploadsWithDedup(
 }
 
 func tryHardLinkFromPreviousBackup(
+	ctx context.Context,
 	input *os.File,
 	size int64,
 	name, target, prevBackupDir string,
 	prevManifest Manifest,
 	digestBuffer []byte,
-) (string, bool) {
+) (string, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return "", false, err
+	}
 	if prevBackupDir == "" || len(prevManifest.Files) == 0 {
-		return "", false
+		return "", false, nil
 	}
 	manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
 	expectedDigest, ok := prevManifest.Files[manifestKey]
 	if !ok || expectedDigest == "" {
-		return "", false
+		return "", false, nil
 	}
 	root, err := os.OpenRoot(prevBackupDir)
 	if err != nil {
-		return "", false
+		return "", false, nil
 	}
 	defer root.Close()
 	previous, err := openRegularBackupFile(root, manifestKey)
 	if err != nil {
-		return "", false
+		return "", false, nil
 	}
 	defer previous.Close()
 	prevInfo, err := previous.Stat()
 	if err != nil || !prevInfo.Mode().IsRegular() || prevInfo.Size() != size {
-		return "", false
+		return "", false, nil
 	}
-	ctx := context.Background()
 	sourceDigest, err := hashBackupReaderWithBuffer(ctx, input, digestBuffer)
-	if err != nil || sourceDigest != expectedDigest {
-		return "", false
+	if err != nil {
+		if ctx.Err() != nil {
+			return "", false, ctx.Err()
+		}
+		return "", false, nil
+	}
+	if sourceDigest != expectedDigest {
+		return "", false, nil
 	}
 	prevDigest, err := hashBackupReaderWithBuffer(ctx, previous, digestBuffer)
-	if err != nil || prevDigest != sourceDigest {
-		return "", false
+	if err != nil {
+		if ctx.Err() != nil {
+			return "", false, ctx.Err()
+		}
+		return "", false, nil
+	}
+	if prevDigest != sourceDigest {
+		return "", false, nil
 	}
 	// The digest of the resulting staged file is verified before publication.
 	if err := os.Link(filepath.Join(prevBackupDir, manifestKey), target); err != nil {
-		return "", false
+		return "", false, nil
 	}
-	return sourceDigest, true
+	return sourceDigest, true, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -257,4 +258,132 @@ func TestLatestVerifiedTimeSkipsCorruptedBackup(t *testing.T) {
 	if _, ok := LatestVerifiedTimeContext(canceledCtx, backupRoot); ok {
 		t.Fatal("expected LatestVerifiedTimeContext to stop immediately on canceled ctx")
 	}
+}
+
+type cancelAfterFirstRead struct {
+	data   []byte
+	offset int
+	cancel context.CancelFunc
+	calls  int
+}
+
+func (r *cancelAfterFirstRead) Read(p []byte) (int, error) {
+	if r.offset >= len(r.data) {
+		return 0, io.EOF
+	}
+	n := copy(p, r.data[r.offset:])
+	r.offset += n
+	r.calls++
+	if r.calls == 1 {
+		r.cancel()
+	}
+	return n, nil
+}
+
+func TestCreateContextAbortsOnCancellationAndCleansUp(t *testing.T) {
+	root := t.TempDir()
+	uploadDir := filepath.Join(root, "uploads")
+	backupRoot := filepath.Join(root, "backups")
+	if err := os.MkdirAll(uploadDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(uploadDir, "book.epub"), []byte("book-content"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := storage.Open(filepath.Join(root, "data.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := db.CreateBook(&models.Book{
+		ID:        "book-1",
+		UserID:    "user-1",
+		Title:     "Cancelable book",
+		Filename:  "book.epub",
+		Format:    "epub",
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := Config{Dir: backupRoot, UploadDir: uploadDir, RetentionDays: 7}
+
+	t.Run("already canceled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		path, err := CreateContext(ctx, db, cfg)
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("CreateContext(canceled) err = %v, want context.Canceled", err)
+		}
+		if path != "" {
+			t.Fatalf("CreateContext(canceled) path = %q, want empty", path)
+		}
+		entries, readErr := os.ReadDir(backupRoot)
+		if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
+			t.Fatalf("ReadDir(%q) failed: %v", backupRoot, readErr)
+		}
+		if len(entries) != 0 {
+			t.Fatalf("expected no partial backup directories, found %d", len(entries))
+		}
+	})
+
+	t.Run("canceled mid-backup during upload copy cleans temporary dir", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		path, err := createWithDigests(ctx, db, cfg, nil, func(copyCtx context.Context, snapshot, source, destination string) error {
+			cancel()
+			return copySnapshotUploadsWithDedup(copyCtx, snapshot, source, destination, "", Manifest{}, nil)
+		})
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("mid-backup cancel err = %v, want context.Canceled", err)
+		}
+		if path != "" {
+			t.Fatalf("mid-backup cancel path = %q, want empty", path)
+		}
+		entries, readErr := os.ReadDir(backupRoot)
+		if readErr != nil {
+			t.Fatalf("ReadDir(%q) failed: %v", backupRoot, readErr)
+		}
+		if len(entries) != 0 {
+			names := make([]string, 0, len(entries))
+			for _, e := range entries {
+				names = append(names, e.Name())
+			}
+			t.Fatalf("expected no leftover backup directories in %q, found %v", backupRoot, names)
+		}
+	})
+
+	t.Run("streaming copy aborts mid-file when context cancels", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		reader := &cancelAfterFirstRead{
+			data:   []byte(strings.Repeat("chunk-data-", 4096)),
+			cancel: cancel,
+		}
+		dest := filepath.Join(t.TempDir(), "streamed.epub")
+		buf := make([]byte, 1024)
+		if _, err := copyToBackupFileWithDigest(ctx, reader, dest, buf); !errors.Is(err, context.Canceled) {
+			t.Fatalf("copyToBackupFileWithDigest err = %v, want context.Canceled", err)
+		}
+		if reader.calls != 1 {
+			t.Fatalf("expected streaming copy to stop after first chunk on cancellation, got %d reads", reader.calls)
+		}
+	})
+
+	t.Run("buildManifestWithDigests aborts on canceled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "data.db"), []byte("db"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := buildManifestWithDigests(ctx, dir, time.Now().UTC(), nil); !errors.Is(err, context.Canceled) {
+			t.Fatalf("buildManifestWithDigests(canceled) err = %v, want context.Canceled", err)
+		}
+	})
 }

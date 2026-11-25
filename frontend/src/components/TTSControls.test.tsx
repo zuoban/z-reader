@@ -169,8 +169,8 @@ describe('TTSControls', () => {
         bubbles: true,
         cancelable: true,
       });
-      voiceCombobox.dispatchEvent(escapeEvent);
       await act(async () => {
+        voiceCombobox.dispatchEvent(escapeEvent);
         await Promise.resolve();
       });
 

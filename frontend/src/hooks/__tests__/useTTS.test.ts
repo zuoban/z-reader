@@ -360,4 +360,419 @@ describe('continuous TTS session', () => {
     expect(view.getTTSSentences).toHaveBeenLastCalledWith('cfi-0');
     expect(result.current.state).toBe('playing');
   });
+
+  it('reports warning status when the reader view does not support TTS', async () => {
+    const viewRef = { current: null as FoliateView | null };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    expect(result.current.state).toBe('stopped');
+    expect(result.current.ttsStatus).toEqual({
+      headline: '当前文档暂不支持朗读',
+      tone: 'warning',
+    });
+  });
+
+  it('stops cleanly when the chapter has no readable sentences or reaches the end', async () => {
+    const emptyView = createView();
+    emptyView.getTTSSentences = vi.fn(async function* () {
+      // empty generator
+    });
+    const emptyRef = { current: emptyView };
+    const { result: emptyResult } = renderHook(() => useTTS({ viewRef: emptyRef, bookId: 'book' }));
+    await act(() => emptyResult.current.start());
+    expect(emptyResult.current.state).toBe('stopped');
+
+    const singleView = createView();
+    singleView.getTTSSentences = vi.fn(async function* () {
+      yield {
+        text: '唯一的一句话。',
+        ssml: '<speak>唯一的一句话。</speak>',
+        cfi: 'cfi-only',
+        sectionIndex: 0,
+        words: [],
+      };
+    });
+    const singleRef = { current: singleView };
+    const { result } = renderHook(() => useTTS({ viewRef: singleRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    expect(result.current.state).toBe('playing');
+
+    const audio = TestAudio.instances.at(-1)!;
+    await act(async () => {
+      audio.finish();
+      await flushMediaEvents();
+    });
+    await waitFor(() => expect(result.current.state).toBe('stopped'));
+  });
+
+  it('pauses and shows resume prompt on 401 unauthorized response without retrying', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 401,
+      headers: new Headers(),
+      json: async () => ({ code: 'unauthorized' }),
+    } as Response);
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toBe('paused');
+    expect(result.current.resumePromptVisible).toBe(true);
+  });
+
+  it('falls back to plain text SSML when backend rejects invalid_ssml', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        headers: new Headers(),
+        json: async () => ({ code: 'invalid_ssml' }),
+      } as Response)
+      .mockResolvedValue(audioResponse());
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    expect(result.current.state).toBe('playing');
+    expect(result.current.resumePromptVisible).toBe(false);
+    expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('surfaces decode recovery fetch failure with explicit resume prompt', async () => {
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    const audio = TestAudio.instances.at(-1)!;
+    await act(async () => {
+      audio.error = { code: 3 } as MediaError;
+      audio.onerror?.();
+      await flushMediaEvents();
+    });
+    expect(result.current.ttsStatus.headline).toBe('音频解码失败');
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      headers: new Headers(),
+      json: async () => ({ code: 'forbidden' }),
+    } as Response);
+    await act(() => result.current.resume());
+    expect(result.current.ttsStatus.headline).toBe('无法重新获取音频');
+    expect(result.current.resumePromptVisible).toBe(true);
+  });
+
+  it('synchronizes, restores, and navigates to reader highlights, and handles highlight errors', async () => {
+    const range = document.createRange();
+    const removeAllRanges = vi.fn();
+    const mockDoc = { getSelection: () => ({ removeAllRanges }) } as unknown as Document;
+    const onHighlight = vi.fn();
+    let loaded = false;
+    const view = createView();
+    view.renderer!.getContents = vi.fn(() => (loaded ? [{ index: 0, doc: mockDoc }] : []));
+    view.goTo = vi.fn(async () => {
+      loaded = true;
+    });
+    view.resolveCFI = vi.fn(() => ({
+      index: 0,
+      anchor: () => range,
+    }));
+
+    const viewRef = { current: view };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book', onHighlight }));
+    await act(() => result.current.start());
+    await waitFor(() => expect(onHighlight).toHaveBeenCalledWith(range));
+    expect(view.goTo).toHaveBeenCalledWith('cfi-0');
+    expect(view.renderer?.scrollToAnchor).toHaveBeenCalledWith(range, true);
+
+    onHighlight.mockClear();
+    await act(async () => {
+      result.current.restoreCurrentHighlight();
+      await flushMediaEvents();
+    });
+    expect(onHighlight).toHaveBeenCalledWith(range);
+
+    vi.mocked(view.resolveCFI).mockImplementationOnce(() => {
+      throw new Error('broken cfi');
+    });
+    await act(async () => {
+      result.current.restoreCurrentHighlight();
+      await flushMediaEvents();
+    });
+    expect(result.current.state).toBe('playing');
+
+    await act(() => result.current.stop());
+    expect(removeAllRanges).toHaveBeenCalled();
+  });
+
+  it('keeps playback paused when speech settings change while paused and resumes cleanly', async () => {
+    const view = createView();
+    const viewRef = { current: view };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    await act(() => result.current.pause());
+    expect(result.current.state).toBe('paused');
+
+    const sentenceCallsBefore = vi.mocked(view.getTTSSentences!).mock.calls.length;
+    await act(async () => {
+      result.current.updateSettings({ voiceName: 'zh-CN-YunxiNeural' });
+      await flushMediaEvents();
+    });
+    expect(result.current.state).toBe('paused');
+    expect(vi.mocked(view.getTTSSentences!).mock.calls.length).toBe(sentenceCallsBefore);
+
+    await act(() => result.current.resume());
+    expect(result.current.state).toBe('playing');
+    expect(backendTTS.getSettings().voiceName).toBe('zh-CN-YunxiNeural');
+  });
+
+  it('handles next/prev edge cases: idle no-op, end-of-book stop, first-sentence prev, and errors', async () => {
+    const view = createView();
+    view.getTTSSentences = vi.fn(async function* () {
+      yield {
+        text: '第一句。',
+        ssml: '<speak>第一句。</speak>',
+        cfi: 'cfi-0',
+        sectionIndex: 0,
+        words: [],
+      };
+    });
+    view.getTTSPreviousCFI = vi.fn()
+      .mockResolvedValueOnce('cfi-prev-chapter')
+      .mockResolvedValueOnce(null);
+
+    const viewRef = { current: view };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+
+    // Safe no-op when stopped
+    await act(() => result.current.next());
+    await act(() => result.current.prev());
+    expect(result.current.state).toBe('stopped');
+
+    await act(() => result.current.start());
+    expect(result.current.state).toBe('playing');
+
+    // prev() at first sentence uses getTTSPreviousCFI when available
+    await act(() => result.current.prev());
+    expect(view.getTTSSentences).toHaveBeenLastCalledWith('cfi-prev-chapter');
+    expect(result.current.state).toBe('playing');
+
+    // prev() when getTTSPreviousCFI returns null replays current sentence
+    await act(() => result.current.prev());
+    expect(result.current.state).toBe('playing');
+
+    // next() at last sentence stops playback
+    await act(() => result.current.next());
+    expect(result.current.state).toBe('stopped');
+
+    // prev() error during getTTSPreviousCFI shows resume prompt
+    vi.mocked(view.getTTSPreviousCFI).mockRejectedValueOnce(new Error('cfi lookup failed'));
+    await act(() => result.current.start());
+    await act(() => result.current.prev());
+    expect(result.current.resumePromptVisible).toBe(true);
+  });
+
+  it('handles start/begin and continuation generator errors gracefully', async () => {
+    const view = createView();
+    view.getTTSSentences = vi.fn(async function* () {
+      throw new Error('generator failed');
+    });
+    const viewRef = { current: view };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    expect(result.current.state).toBe('paused');
+    expect(result.current.resumePromptVisible).toBe(true);
+
+    // Continuation failure after first chunk finishes (iterator keeps throwing after first chunk)
+    view.getTTSSentences = vi.fn(() => {
+      let count = 0;
+      return {
+        [Symbol.asyncIterator]() {
+          return {
+            async next() {
+              if (count < 2) {
+                const index = count++;
+                const text = `第${index}段，` + '连续朗读的测试文本。'.repeat(3);
+                return {
+                  done: false,
+                  value: {
+                    text,
+                    ssml: `<speak>${text}</speak>`,
+                    cfi: `cfi-${index}`,
+                    sectionIndex: 0,
+                    words: [],
+                  },
+                };
+              }
+              throw new Error('next section broken');
+            },
+          };
+        },
+      } as unknown as AsyncGenerator<TTSSentence>;
+    });
+    await act(() => result.current.stop());
+    await act(() => result.current.start());
+    expect(result.current.state).toBe('playing');
+    const audio = TestAudio.instances.at(-1)!;
+    await act(async () => {
+      audio.finish();
+      await flushMediaEvents();
+    });
+    await waitFor(() => expect(result.current.state).toBe('paused'));
+    expect(result.current.resumePromptVisible).toBe(true);
+  });
+
+  it('cancels preparation when start() is toggled while preparing and handles resume races/errors', async () => {
+    let deliverFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => {
+      deliverFetch = resolve;
+    }));
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+
+    let startPromise!: Promise<void>;
+    await act(async () => {
+      startPromise = result.current.start();
+      await Promise.resolve();
+    });
+    expect(result.current.preparing).toBe(true);
+
+    // Clicking start() while preparing pauses/cancels preparation
+    await act(() => result.current.start());
+    deliverFetch(audioResponse());
+    await act(async () => {
+      await startPromise;
+    });
+    expect(result.current.preparing).toBe(false);
+    expect(result.current.state).toBe('paused');
+
+    // Calling resume() when stopped with no current chunk calls begin()
+    await act(() => result.current.stop());
+    await act(() => result.current.resume());
+    expect(result.current.state).toBe('playing');
+
+    // Calling resume() when already playing is a no-op
+    const audio = TestAudio.instances.at(-1)!;
+    const playCalls = audio.playCalls;
+    await act(() => result.current.resume());
+    expect(audio.playCalls).toBe(playCalls);
+
+    // Concurrent resume() while paused and play() rejects surfaces resume prompt
+    await act(() => result.current.pause());
+    audio.playError = new DOMException('Blocked', 'NotAllowedError');
+    try {
+      let finishPlay!: () => void;
+      const origPlay = audio.play.bind(audio);
+      vi.spyOn(audio, 'play').mockImplementationOnce(async () => {
+        await new Promise<void>((r) => { finishPlay = r; });
+        return origPlay();
+      });
+      await act(async () => {
+        const r1 = result.current.resume();
+        const r2 = result.current.resume();
+        finishPlay();
+        await Promise.all([r1, r2]);
+      });
+      expect(result.current.state).toBe('paused');
+      expect(result.current.resumePromptVisible).toBe(true);
+    } finally {
+      audio.playError = null;
+    }
+  });
+
+  it('calibrates duration ratio across chunks, updates remaining time, and re-acquires wake lock on foreground', async () => {
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    const audio = TestAudio.instances.at(-1)!;
+
+    // First chunk duration calibration + repeated timeupdate at same second
+    await act(async () => {
+      audio.tick(10);
+      audio.tick(10.2);
+      await flushMediaEvents();
+    });
+    expect(result.current.ttsStatus.headline).toBe('正在朗读');
+
+    // Advance to next chunk and tick to exercise EMA calibration branch (prior !== undefined)
+    await act(async () => {
+      audio.finish();
+      await flushMediaEvents();
+    });
+    await waitFor(() => expect(result.current.currentMark?.cfi).toBe('cfi-1'));
+    await act(async () => {
+      audio.tick(5);
+      await flushMediaEvents();
+    });
+
+    // Foreground event while still playing re-requests wake lock
+    mocks.requestWakeLock.mockClear();
+    await act(async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'visibilityState', { value: 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await flushMediaEvents();
+    });
+    expect(mocks.requestWakeLock).toHaveBeenCalled();
+  });
+
+  it('stops playback when sleep timer expires during playback, resume, or foreground check', async () => {
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    try {
+      const viewRef = { current: createView() };
+      const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+      await act(() => result.current.start());
+      await act(() => {
+        result.current.setSleepTimerForMinutes(1);
+      });
+
+      // Advance clock past timer expiry without firing setTimeout, then tick audio
+      nowSpy.mockReturnValue(1_000_000 + 120_000);
+      const audio = TestAudio.instances.at(-1)!;
+      await act(async () => {
+        audio.tick(12);
+        await flushMediaEvents();
+      });
+      expect(result.current.state).toBe('stopped');
+
+      // Start again, set timer, expire clock, and verify resume() respects expired timer
+      nowSpy.mockReturnValue(2_000_000);
+      await act(() => result.current.start());
+      await act(() => result.current.pause());
+      await act(() => {
+        result.current.setSleepTimerForMinutes(1);
+      });
+      nowSpy.mockReturnValue(2_000_000 + 120_000);
+      await act(() => result.current.resume());
+      expect(result.current.state).toBe('stopped');
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
+  it('advances via resume() when audio already ended before resume is called', async () => {
+    const viewRef = { current: createView() };
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    const audio = TestAudio.instances.at(-1)!;
+
+    // Simulate paused state where element itself is already ended
+    await act(() => result.current.pause());
+    audio.ended = true;
+    expect(backendTTS.hasEnded()).toBe(true);
+
+    await act(() => result.current.resume());
+    await waitFor(() => expect(result.current.currentMark?.cfi).toBe('cfi-1'));
+    expect(result.current.state).toBe('playing');
+  });
+
+  it('cleans up audio, preloads, and wake lock on unmount', async () => {
+    const viewRef = { current: createView() };
+    const { result, unmount } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
+    await act(() => result.current.start());
+    mocks.releaseWakeLock.mockClear();
+    unmount();
+    expect(backendTTS.getState()).toBe('stopped');
+    expect(backendTTS.getPreloadQueueLength()).toBe(0);
+    expect(mocks.releaseWakeLock).toHaveBeenCalled();
+  });
 });

@@ -432,4 +432,210 @@ describe('ReaderBookmarksSheet', () => {
       expect(toast.error).toHaveBeenCalledWith('复制失败，请重试');
     });
   });
+
+  it('supports inline bookmark note editing with save success, saving state, and cancel', async () => {
+    let resolveSave!: (value: boolean) => void;
+    const onUpdateNote = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-1',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/4!/4/2)',
+        chapter: '第三章 风起',
+        percentage: 42.5,
+        note: '原始备注',
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    const { rerender } = render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={vi.fn()}
+        bookmarks={bookmarks}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.sepia}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: '编辑书签备注：第三章 风起' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={vi.fn()}
+        bookmarks={bookmarks}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.sepia}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdateNote={onUpdateNote}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑书签备注：第三章 风起' }));
+
+    const textarea = screen.getByRole('textbox', { name: '书签备注' });
+    expect(textarea).toHaveValue('原始备注');
+    expect(textarea).toHaveAttribute('placeholder', '添加阅读笔记或摘录…');
+    expect(textarea).toHaveAttribute('maxlength', '10240');
+    expect(screen.getByText('第三章 风起')).toBeInTheDocument();
+    expect(screen.getByText('42.5%')).toBeInTheDocument();
+
+    fireEvent.change(textarea, { target: { value: '取消的修改' } });
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
+    expect(onUpdateNote).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑书签备注：第三章 风起' }));
+    const editTextarea = screen.getByRole('textbox', { name: '书签备注' });
+    fireEvent.change(editTextarea, { target: { value: '更新后的笔记' } });
+
+    const saveButton = screen.getByRole('button', { name: '保存' });
+    fireEvent.click(saveButton);
+
+    expect(onUpdateNote).toHaveBeenCalledWith('bm-1', '更新后的笔记');
+    expect(saveButton).toBeDisabled();
+    expect(saveButton).toHaveAttribute('aria-busy', 'true');
+
+    resolveSave(true);
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('retains draft on save failure and handles Ctrl+Enter, Meta+Enter, and Escape shortcuts', async () => {
+    const onOpenChange = vi.fn();
+    const onUpdateNote = vi
+      .fn<(bookmarkId: string, note: string) => Promise<boolean>>()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-1',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/4!/4/2)',
+        chapter: '',
+        percentage: 18,
+        note: '',
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={onOpenChange}
+        bookmarks={bookmarks}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.dark}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdateNote={onUpdateNote}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑书签备注：未识别章节' }));
+    const textarea = screen.getByRole('textbox', { name: '书签备注' });
+    fireEvent.change(textarea, { target: { value: '暂存草稿' } });
+
+    // Ctrl+Enter submits; failure keeps edit form open with draft intact
+    fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
+    await waitFor(() => {
+      expect(onUpdateNote).toHaveBeenNthCalledWith(1, 'bm-1', '暂存草稿');
+      expect(screen.getByRole('button', { name: '保存' })).not.toBeDisabled();
+    });
+    expect(screen.getByRole('textbox', { name: '书签备注' })).toHaveValue('暂存草稿');
+
+    // Escape cancels editing without closing the drawer
+    fireEvent.keyDown(textarea, { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // Meta+Enter submits and closes edit form on success
+    fireEvent.click(screen.getByRole('button', { name: '编辑书签备注：未识别章节' }));
+    const secondTextarea = screen.getByRole('textbox', { name: '书签备注' });
+    fireEvent.change(secondTextarea, { target: { value: '快捷键保存' } });
+    fireEvent.keyDown(secondTextarea, { key: 'Enter', metaKey: true });
+    await waitFor(() => {
+      expect(onUpdateNote).toHaveBeenNthCalledWith(2, 'bm-1', '快捷键保存');
+      expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('resets inline editing when drawer closes or edited bookmark is deleted', () => {
+    const onUpdateNote = vi.fn();
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-1',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/4!/4/2)',
+        chapter: '第一章',
+        percentage: 10,
+        note: '笔记一',
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    const baseProps = {
+      onOpenChange: vi.fn(),
+      bookTitle: '测试书籍',
+      uiScheme: PRESET_STYLES.light,
+      triggerClassName: 'reader-chrome-btn',
+      triggerStyle: {},
+      canCreate: true,
+      isSaving: false,
+      onCreate: vi.fn(),
+      onGoTo: vi.fn(),
+      onDelete: vi.fn(),
+      onUpdateNote,
+    };
+
+    const { rerender } = render(
+      <ReaderBookmarksSheet {...baseProps} open bookmarks={bookmarks} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑书签备注：第一章' }));
+    expect(screen.getByRole('textbox', { name: '书签备注' })).toBeInTheDocument();
+
+    // Closing and reopening clears editing state
+    rerender(<ReaderBookmarksSheet {...baseProps} open={false} bookmarks={bookmarks} />);
+    rerender(<ReaderBookmarksSheet {...baseProps} open bookmarks={bookmarks} />);
+    expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
+
+    // Deleting the bookmark being edited clears editing state
+    fireEvent.click(screen.getByRole('button', { name: '编辑书签备注：第一章' }));
+    expect(screen.getByRole('textbox', { name: '书签备注' })).toBeInTheDocument();
+    rerender(<ReaderBookmarksSheet {...baseProps} open bookmarks={[]} />);
+    rerender(<ReaderBookmarksSheet {...baseProps} open bookmarks={bookmarks} />);
+    expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
+  });
 });

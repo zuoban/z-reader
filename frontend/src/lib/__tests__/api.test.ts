@@ -1373,4 +1373,41 @@ describe('api progress options and bookmarks CRUD', () => {
       expect.objectContaining({ method: 'DELETE' }),
     );
   });
+
+  it('updates a bookmark note and propagates API errors', async () => {
+    const updatedBookmark = {
+      id: 'bm/1',
+      book_id: 'book/1',
+      user_id: 'reader',
+      cfi: 'epubcfi(/6/2)',
+      percentage: 12.5,
+      chapter: '第一章',
+      note: '更新后的笔记',
+      created_at: '2026-01-01T00:00:00Z',
+    };
+
+    globalThis.fetch = mockFetch({ body: updatedBookmark });
+    const result = await api.updateBookmark('book/1', 'bm/1', { note: '更新后的笔记' });
+    expect(result).toEqual(updatedBookmark);
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books/book%2F1/bookmarks/bm%2F1'),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ note: '更新后的笔记' }),
+      }),
+    );
+
+    globalThis.fetch = mockFetch({
+      ok: false,
+      status: 404,
+      body: { error: 'bookmark not found' },
+    });
+    await expect(
+      api.updateBookmark('book/1', 'missing', { note: '测试' }),
+    ).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 404,
+      message: 'bookmark not found',
+    });
+  });
 });

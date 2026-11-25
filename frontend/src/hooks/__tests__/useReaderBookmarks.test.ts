@@ -8,7 +8,12 @@ import { ACCESS_GENERATION_KEY, setAccessGeneration } from '@/lib/library-access
 import { deferred } from '@/test/deferred';
 
 vi.mock('@/lib/api', () => ({
-  api: { listBookmarks: vi.fn(), createBookmark: vi.fn(), deleteBookmark: vi.fn() },
+  api: {
+    listBookmarks: vi.fn(),
+    createBookmark: vi.fn(),
+    updateBookmark: vi.fn(),
+    deleteBookmark: vi.fn(),
+  },
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -170,5 +175,102 @@ describe('useReaderBookmarks', () => {
       await Promise.resolve();
     });
     expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates bookmark note on success, trims whitespace, and preserves other bookmarks', async () => {
+    const first = { ...bookmark('first'), id: 'bm-1', note: '旧笔记' };
+    const second = { ...bookmark('first'), id: 'bm-2', cfi: 'other', note: '另一条' };
+    const updated = { ...first, note: '新笔记' };
+    vi.mocked(api.listBookmarks).mockResolvedValue([first, second]);
+    vi.mocked(api.updateBookmark).mockResolvedValueOnce(updated);
+
+    const { result } = renderHook(() => useReaderBookmarks({
+      ...options, bookId: 'first', isAuthenticated: true,
+    }));
+    await waitFor(() => expect(result.current.bookmarks).toEqual([first, second]));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.handleUpdateBookmarkNote('bm-1', '  新笔记  ');
+    });
+
+    expect(ok).toBe(true);
+    expect(api.updateBookmark).toHaveBeenCalledWith('first', 'bm-1', { note: '新笔记' });
+    expect(result.current.bookmarks).toEqual([updated, second]);
+    expect(toast.success).toHaveBeenCalledWith('书签备注已更新');
+  });
+
+  it('handles updateBookmark errors for the active book and returns false', async () => {
+    const existing = { ...bookmark('first'), id: 'bm-1', note: '旧笔记' };
+    vi.mocked(api.listBookmarks).mockResolvedValue([existing]);
+    vi.mocked(api.updateBookmark).mockRejectedValueOnce(new Error('network error'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const { result } = renderHook(() => useReaderBookmarks({
+        ...options, bookId: 'first', isAuthenticated: true,
+      }));
+      await waitFor(() => expect(result.current.bookmarks).toEqual([existing]));
+
+      let ok = true;
+      await act(async () => {
+        ok = await result.current.handleUpdateBookmarkNote('bm-1', '修改');
+      });
+
+      expect(ok).toBe(false);
+      expect(result.current.bookmarks).toEqual([existing]);
+      expect(toast.error).toHaveBeenCalledWith('更新书签备注失败');
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('returns false and ignores stale updates when unauthenticated, book changes, or access expires', async () => {
+    const { result: unauthResult } = renderHook(() => useReaderBookmarks({
+      ...options, bookId: 'first', isAuthenticated: false,
+    }));
+    await expect(unauthResult.current.handleUpdateBookmarkNote('bm-1', 'test')).resolves.toBe(false);
+    expect(api.updateBookmark).not.toHaveBeenCalled();
+
+    const pendingSuccess = deferred<Bookmark>();
+    const pendingFailure = deferred<Bookmark>();
+    const existing = { ...bookmark('first'), id: 'bm-1', note: '旧笔记' };
+    vi.mocked(api.listBookmarks).mockImplementation(async (id) =>
+      id === 'first' ? [existing] : [bookmark(id)],
+    );
+    vi.mocked(api.updateBookmark)
+      .mockReturnValueOnce(pendingSuccess.promise)
+      .mockReturnValueOnce(pendingFailure.promise);
+
+    const { result, rerender } = renderHook(
+      (bookId: string) => useReaderBookmarks({ ...options, bookId, isAuthenticated: true }),
+      { initialProps: 'first' },
+    );
+    await waitFor(() => expect(result.current.bookmarks).toEqual([existing]));
+
+    let lateSuccessPromise!: Promise<boolean>;
+    act(() => {
+      lateSuccessPromise = result.current.handleUpdateBookmarkNote('bm-1', '新笔记');
+    });
+    rerender('second');
+    await waitFor(() => expect(result.current.bookmarks).toEqual([bookmark('second')]));
+    await act(async () => {
+      pendingSuccess.resolve({ ...existing, note: '新笔记' });
+    });
+    await expect(lateSuccessPromise).resolves.toBe(false);
+    expect(result.current.bookmarks).toEqual([bookmark('second')]);
+    expect(toast.success).not.toHaveBeenCalled();
+
+    let lateFailurePromise!: Promise<boolean>;
+    act(() => {
+      lateFailurePromise = result.current.handleUpdateBookmarkNote('second-bookmark', '失败');
+    });
+    await act(async () => {
+      setAccessGeneration('expired');
+      pendingFailure.reject(new Error('expired'));
+    });
+    await expect(lateFailurePromise).resolves.toBe(false);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

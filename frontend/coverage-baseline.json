@@ -22,8 +22,8 @@
     "src/lib/api.ts": {
       "statements": 99.25,
       "branches": 95.88,
-      "functions": 98.3,
-      "lines": 99.11
+      "functions": 98.33,
+      "lines": 99.12
     },
     "src/lib/reader-page.ts": {
       "statements": 92.3,
@@ -38,10 +38,10 @@
       "lines": 100
     },
     "src/lib/tts-helpers.ts": {
-      "statements": 90.47,
-      "branches": 80.76,
+      "statements": 95.23,
+      "branches": 84.61,
       "functions": 100,
-      "lines": 88.88
+      "lines": 94.44
     },
     "src/hooks/useTTS.ts": {
       "statements": 94.38,
@@ -50,9 +50,9 @@
       "lines": 98.98
     },
     "src/hooks/useTTSMediaSession.ts": {
-      "statements": 86.11,
-      "branches": 73.68,
-      "functions": 70,
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
       "lines": 100
     },
     "src/lib/tts.ts": {

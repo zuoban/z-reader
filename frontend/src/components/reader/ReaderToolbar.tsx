@@ -56,6 +56,7 @@ interface ReaderToolbarProps {
   onCreateBookmark: () => void;
   onGoToBookmark: (bookmark: Bookmark) => void;
   onDeleteBookmark: (bookmarkId: string) => void;
+  onUpdateBookmarkNote?: (bookmarkId: string, note: string) => Promise<boolean> | void;
   isSavingOffline?: boolean;
   offlineDownloadLabel?: string;
   onSaveOffline?: () => void;
@@ -99,6 +100,7 @@ export function ReaderToolbar({
   onCreateBookmark,
   onGoToBookmark,
   onDeleteBookmark,
+  onUpdateBookmarkNote,
   isSavingOffline = false,
   offlineDownloadLabel,
   onSaveOffline,
@@ -560,6 +562,7 @@ export function ReaderToolbar({
                       onCreate={onCreateBookmark}
                       onGoTo={onGoToBookmark}
                       onDelete={onDeleteBookmark}
+                      onUpdateNote={onUpdateBookmarkNote}
                       trigger={
                         <>
                           <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />

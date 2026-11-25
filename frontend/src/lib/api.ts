@@ -623,6 +623,20 @@ export const api = {
     });
   },
 
+  updateBookmark: async (
+    bookId: string,
+    bookmarkId: string,
+    data: { note: string },
+  ): Promise<Bookmark> => {
+    return fetchApi<Bookmark>(
+      `/api/books/${encodeURIComponent(bookId)}/bookmarks/${encodeURIComponent(bookmarkId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
   deleteBookmark: async (bookId: string, bookmarkId: string): Promise<void> => {
     await fetchApi(`/api/books/${encodeURIComponent(bookId)}/bookmarks/${encodeURIComponent(bookmarkId)}`, { method: 'DELETE' });
   },

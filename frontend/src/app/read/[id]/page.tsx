@@ -188,6 +188,7 @@ function Reader({ bookId }: { bookId: string }) {
     handleCreateBookmark,
     handleGoToBookmark,
     handleDeleteBookmark,
+    handleUpdateBookmarkNote,
   } = useReaderBookmarks({
     bookId,
     isAuthenticated,
@@ -297,6 +298,7 @@ function Reader({ bookId }: { bookId: string }) {
           onCreateBookmark={handleCreateBookmark}
           onGoToBookmark={handleGoToBookmark}
           onDeleteBookmark={handleDeleteBookmark}
+          onUpdateBookmarkNote={handleUpdateBookmarkNote}
           isSavingOffline={offline.isSavingOffline}
           offlineDownloadLabel={offline.offlineDownloadLabel}
           onSaveOffline={isAuthenticated ? handleSaveOffline : undefined}

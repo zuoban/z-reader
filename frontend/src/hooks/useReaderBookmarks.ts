@@ -142,11 +142,39 @@ export function useReaderBookmarks({
     [bookId, loadBookmarks]
   );
 
+  const handleUpdateBookmarkNote = useCallback(
+    async (bookmarkId: string, note: string): Promise<boolean> => {
+      const context = activeBookRef.current;
+      if (context?.bookId !== bookId || !isCurrentBookmarkContext(context)) {
+        return false;
+      }
+
+      try {
+        const updated = await api.updateBookmark(bookId, bookmarkId, {
+          note: note.trim(),
+        });
+        if (!isCurrentBookmarkContext(context)) return false;
+        setBookmarks((items) =>
+          items.map((item) => (item.id === bookmarkId ? updated : item))
+        );
+        toast.success('书签备注已更新');
+        return true;
+      } catch (err) {
+        if (!isCurrentBookmarkContext(context)) return false;
+        console.error('Failed to update bookmark note:', err);
+        toast.error('更新书签备注失败');
+        return false;
+      }
+    },
+    [bookId]
+  );
+
   return {
     bookmarks,
     isSavingBookmark,
     handleCreateBookmark,
     handleGoToBookmark,
     handleDeleteBookmark,
+    handleUpdateBookmarkNote,
   };
 }

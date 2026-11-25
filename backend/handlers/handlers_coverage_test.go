@@ -359,6 +359,237 @@ func TestBooksUploadCoverValidationAndReplacement(t *testing.T) {
 	}
 }
 
+func TestBooksDeleteCover(t *testing.T) {
+	h, db, uploadDir := newCoverageBooksHandler(t)
+	seedHandlerBook(t, db, "del-cov-1", "删除封面测试", "作者", "del-cov-1.epub", nil)
+
+	// Upload a large JPEG so both cover file and thumbnail file are created on disk.
+	uploadRec := httptest.NewRecorder()
+	uploadCtx, _ := gin.CreateTestContext(uploadRec)
+	uploadCtx.Params = gin.Params{{Key: "id", Value: "del-cov-1"}}
+	uploadCtx.Request = newCoverUploadMultipartRequest(t, "/api/books/del-cov-1/cover", "file", "cover.jpg", "image/jpeg", makeEncodedJPEG(t, 800, 1200))
+	h.UploadCover(uploadCtx)
+	if uploadRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 uploading cover, got %d body=%s", uploadRec.Code, uploadRec.Body.String())
+	}
+	var uploaded models.Book
+	if err := json.Unmarshal(uploadRec.Body.Bytes(), &uploaded); err != nil {
+		t.Fatalf("unmarshal uploaded book failed: %v", err)
+	}
+	if uploaded.CoverPath == "" || uploaded.CoverThumbPath == "" {
+		t.Fatalf("expected cover and thumb paths, got %+v", uploaded)
+	}
+
+	callDeleteCover := func(handler *BooksHandler, bookID string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Params = gin.Params{{Key: "id", Value: bookID}}
+		ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/books/"+bookID+"/cover", nil)
+		handler.DeleteCover(ctx)
+		return rec
+	}
+
+	// Deleting existing custom cover removes both files and updates book fields.
+	delRec := callDeleteCover(h, "del-cov-1")
+	if delRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 deleting cover, got %d body=%s", delRec.Code, delRec.Body.String())
+	}
+	var afterDelete models.Book
+	if err := json.Unmarshal(delRec.Body.Bytes(), &afterDelete); err != nil {
+		t.Fatalf("unmarshal delete cover response failed: %v", err)
+	}
+	if afterDelete.CoverPath != "" || afterDelete.CoverThumbPath != "" || afterDelete.CoverThumbChecked || !afterDelete.CoverMissing || afterDelete.Format != "epub" {
+		t.Fatalf("unexpected book after DeleteCover: %+v", afterDelete)
+	}
+	if _, err := os.Stat(filepath.Join(uploadDir, uploaded.CoverPath)); !os.IsNotExist(err) {
+		t.Fatalf("expected cover file removed from disk, stat err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(uploadDir, uploaded.CoverThumbPath)); !os.IsNotExist(err) {
+		t.Fatalf("expected thumbnail file removed from disk, stat err=%v", err)
+	}
+	persisted, err := db.GetBookForUser("del-cov-1", storage.PersonalLibrary)
+	if err != nil || persisted == nil {
+		t.Fatalf("GetBookForUser failed: book=%v err=%v", persisted, err)
+	}
+	if persisted.CoverPath != "" || persisted.CoverThumbPath != "" || persisted.CoverThumbChecked || !persisted.CoverMissing {
+		t.Fatalf("unexpected persisted book state: %+v", persisted)
+	}
+
+	// Calling DeleteCover again when already cleared is idempotent and returns 200.
+	idemRec := callDeleteCover(h, "del-cov-1")
+	if idemRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on idempotent DeleteCover, got %d body=%s", idemRec.Code, idemRec.Body.String())
+	}
+	var afterIdem models.Book
+	if err := json.Unmarshal(idemRec.Body.Bytes(), &afterIdem); err != nil {
+		t.Fatalf("unmarshal idempotent delete cover response failed: %v", err)
+	}
+	if afterIdem.CoverPath != "" || afterIdem.CoverThumbPath != "" || !afterIdem.CoverMissing || afterIdem.Format != "epub" {
+		t.Fatalf("unexpected book after idempotent DeleteCover: %+v", afterIdem)
+	}
+
+	// Missing book ID returns 404.
+	if rec := callDeleteCover(h, "no-such-book"); rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for missing book, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	// DB failure returns 500.
+	closedH, closedDB, _ := newCoverageBooksHandler(t)
+	if err := closedDB.Close(); err != nil {
+		t.Fatalf("Close db failed: %v", err)
+	}
+	if rec := callDeleteCover(closedH, "del-cov-1"); rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on closed DB, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestBooksCoverUploadAndReparseEdgeCases(t *testing.T) {
+	h, db, uploadDir := newCoverageBooksHandler(t)
+
+	// resizeCoverThumbnail covers NRGBA and default (Gray) branches plus edge clamping.
+	nrgba := image.NewNRGBA(image.Rect(0, 0, 800, 600))
+	for y := 0; y < 600; y++ {
+		for x := 0; x < 800; x++ {
+			nrgba.SetNRGBA(x, y, color.NRGBA{R: 100, G: 150, B: 200, A: 180})
+		}
+	}
+	if resized := resizeCoverThumbnail(nrgba, 300, 225); resized.Bounds().Dx() != 300 || resized.Bounds().Dy() != 225 {
+		t.Fatalf("unexpected NRGBA resized bounds: %v", resized.Bounds())
+	}
+	gray := image.NewGray(image.Rect(0, 0, 640, 480))
+	if resized := resizeCoverThumbnail(gray, 200, 150); resized.Bounds().Dx() != 200 || resized.Bounds().Dy() != 150 {
+		t.Fatalf("unexpected Gray resized bounds: %v", resized.Bounds())
+	}
+
+	// prepareExtractedCover for webp and gif extensions, and extractBookCover unsupported format.
+	for _, tc := range []struct {
+		ct  string
+		ext string
+	}{
+		{ct: "image/webp", ext: ".webp"},
+		{ct: "image/gif", ext: ".gif"},
+	} {
+		cov, err := h.prepareExtractedCover("ext-book", makeMinimalWebP(), tc.ct)
+		if err != nil || !strings.HasSuffix(cov.path, tc.ext) {
+			t.Fatalf("prepareExtractedCover(%s) = %+v, err=%v", tc.ct, cov, err)
+		}
+		h.removeUploadFiles(cov.path, cov.thumb)
+	}
+	if _, _, err := extractBookCover(nil, "pdf"); err == nil {
+		t.Fatal("expected error extracting cover for unsupported pdf format")
+	}
+
+	// UploadCover with oversized file and inferred jpeg/default extensions.
+	seedHandlerBook(t, db, "edge-cov", "边缘封面", "作者", "edge-cov.epub", nil)
+	h.cfg.MaxUploadBytes = 100
+	overRec := httptest.NewRecorder()
+	overCtx, _ := gin.CreateTestContext(overRec)
+	overCtx.Params = gin.Params{{Key: "id", Value: "edge-cov"}}
+	overCtx.Request = newCoverUploadMultipartRequest(t, "/api/books/edge-cov/cover", "file", "big.jpg", "image/jpeg", makeEncodedJPEG(t, 200, 200))
+	h.UploadCover(overCtx)
+	if overRec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413 for oversized cover, got %d body=%s", overRec.Code, overRec.Body.String())
+	}
+	h.cfg.MaxUploadBytes = 10 * 1024 * 1024
+
+	// UploadCover with empty ext + image/jpeg and empty ext + unknown Content-Type (defaults to .png).
+	jpegNoExtRec := httptest.NewRecorder()
+	jpegNoExtCtx, _ := gin.CreateTestContext(jpegNoExtRec)
+	jpegNoExtCtx.Params = gin.Params{{Key: "id", Value: "edge-cov"}}
+	jpegNoExtCtx.Request = newCoverUploadMultipartRequest(t, "/api/books/edge-cov/cover", "file", "cover", "image/jpeg", makeEncodedJPEG(t, 60, 80))
+	h.UploadCover(jpegNoExtCtx)
+	if jpegNoExtRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 uploading jpeg without ext, got %d body=%s", jpegNoExtRec.Code, jpegNoExtRec.Body.String())
+	}
+	defaultPngRec := httptest.NewRecorder()
+	defaultPngCtx, _ := gin.CreateTestContext(defaultPngRec)
+	defaultPngCtx.Params = gin.Params{{Key: "id", Value: "edge-cov"}}
+	defaultPngCtx.Request = newCoverUploadMultipartRequest(t, "/api/books/edge-cov/cover", "file", "cover", "application/octet-stream", makeEncodedPNG(t, 60, 80))
+	h.UploadCover(defaultPngCtx)
+	if defaultPngRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 uploading png with default ext fallback, got %d body=%s", defaultPngRec.Code, defaultPngRec.Body.String())
+	}
+
+	// Upload endpoint validation & format inference helpers.
+	uploadBook := func(fieldName, filename, contentType string, payload []byte) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = newCoverUploadMultipartRequest(t, "/api/books", fieldName, filename, contentType, payload)
+		h.Upload(ctx)
+		return rec
+	}
+	if rec := uploadBook("", "", "", nil); rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 when Upload missing file, got %d", rec.Code)
+	}
+	if rec := uploadBook("file", "empty.pdf", "application/pdf", nil); rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 when Upload file is empty, got %d", rec.Code)
+	}
+	if rec := uploadBook("file", "notes.txt", "text/plain", []byte("plain text file")); rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for unsupported book format, got %d", rec.Code)
+	}
+	// Infer PDF and MOBI by magic header when filename has no extension.
+	pdfRec := uploadBook("file", "magicpdf", "application/octet-stream", []byte("%PDF-1.4\n%%EOF\n"))
+	if pdfRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 inferring PDF from magic bytes, got %d body=%s", pdfRec.Code, pdfRec.Body.String())
+	}
+	mobiPayload := make([]byte, 80)
+	copy(mobiPayload[60:68], "BOOKMOBI")
+	mobiRec := uploadBook("file", "magicmobi", "application/octet-stream", mobiPayload)
+	if mobiRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 inferring MOBI from magic bytes, got %d body=%s", mobiRec.Code, mobiRec.Body.String())
+	}
+	// Content-Type inference and helpers.
+	if format, ext, ok := inferBookFormatFromContentType("application/x-mobipocket-ebook"); !ok || format != "mobi" || ext != ".mobi" {
+		t.Fatalf("unexpected mobi content-type inference: format=%q ext=%q ok=%v", format, ext, ok)
+	}
+	if supportsBookPreviewProcessing("txt") {
+		t.Fatal("expected supportsBookPreviewProcessing(txt) == false")
+	}
+	if msg := duplicateBookMessage(&models.Book{Title: "   "}); msg != "这本书已在书架中，请勿重复上传" {
+		t.Fatalf("unexpected blank-title duplicate message: %q", msg)
+	}
+
+	// ReparseMetadata error branches: 400 (corrupt epub), 403 (unsafe filename), 500 (closed DB), Error().
+	if errStr := (&reparseBookError{status: http.StatusBadRequest, message: "bad"}).Error(); errStr != "bad" {
+		t.Fatalf("unexpected reparseBookError.Error(): %q", errStr)
+	}
+	seedHandlerBook(t, db, "rep-bad", "损坏", "作者", "rep-bad.epub", nil)
+	if err := os.WriteFile(filepath.Join(uploadDir, "rep-bad.epub"), []byte("not-a-zip"), 0600); err != nil {
+		t.Fatalf("write corrupt epub failed: %v", err)
+	}
+	repBadRec := httptest.NewRecorder()
+	repBadCtx, _ := gin.CreateTestContext(repBadRec)
+	repBadCtx.Params = gin.Params{{Key: "id", Value: "rep-bad"}}
+	repBadCtx.Request = httptest.NewRequest(http.MethodPost, "/api/books/rep-bad/reparse", nil)
+	h.ReparseMetadata(repBadCtx)
+	if repBadRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 reparsing corrupt epub, got %d body=%s", repBadRec.Code, repBadRec.Body.String())
+	}
+
+	seedHandlerBook(t, db, "rep-unsafe", "越权", "作者", "../escape.epub", nil)
+	repForbRec := httptest.NewRecorder()
+	repForbCtx, _ := gin.CreateTestContext(repForbRec)
+	repForbCtx.Params = gin.Params{{Key: "id", Value: "rep-unsafe"}}
+	repForbCtx.Request = httptest.NewRequest(http.MethodPost, "/api/books/rep-unsafe/reparse", nil)
+	h.ReparseMetadata(repForbCtx)
+	if repForbRec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 reparsing unsafe filename, got %d body=%s", repForbRec.Code, repForbRec.Body.String())
+	}
+
+	closedH, closedDB, _ := newCoverageBooksHandler(t)
+	if err := closedDB.Close(); err != nil {
+		t.Fatalf("close db failed: %v", err)
+	}
+	repErrRec := httptest.NewRecorder()
+	repErrCtx, _ := gin.CreateTestContext(repErrRec)
+	repErrCtx.Params = gin.Params{{Key: "id", Value: "any"}}
+	repErrCtx.Request = httptest.NewRequest(http.MethodPost, "/api/books/any/reparse", nil)
+	closedH.ReparseMetadata(repErrCtx)
+	if repErrRec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 reparsing with closed DB, got %d body=%s", repErrRec.Code, repErrRec.Body.String())
+	}
+}
+
 func TestBooksSearchDeleteBatchDeleteGetFileAndStatus(t *testing.T) {
 	h, db, uploadDir := newCoverageBooksHandler(t)
 	book1 := seedHandlerBook(t, db, "s1", "红楼梦", "曹雪芹", "s1.epub", nil)

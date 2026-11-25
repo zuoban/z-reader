@@ -137,6 +137,7 @@ func main() {
 		api.PATCH("/books/:id", booksHandler.Update)
 		api.DELETE("/books/:id/category", booksHandler.RemoveCategory)
 		api.POST("/books/:id/cover", middleware.RateLimit(middleware.NewRateLimiter(30, 5*time.Minute)), booksHandler.UploadCover)
+		api.DELETE("/books/:id/cover", booksHandler.DeleteCover)
 		api.POST("/books/:id/reparse", middleware.RateLimit(middleware.NewRateLimiter(60, 5*time.Minute)), booksHandler.ReparseMetadata)
 		api.DELETE("/books/:id", booksHandler.Delete)
 		api.GET("/books/:id/file", booksHandler.GetFile)

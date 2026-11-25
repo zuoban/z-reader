@@ -279,6 +279,38 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	c.JSON(http.StatusOK, book)
 }
 
+func (h *BooksHandler) DeleteCover(c *gin.Context) {
+	id := c.Param("id")
+
+	var previous bookCover
+	book, err := h.db.UpdateBook(id, storage.PersonalLibrary, func(book *models.Book) bool {
+		if book.CoverPath == "" && book.CoverThumbPath == "" && !book.CoverThumbChecked && book.CoverMissing {
+			return false
+		}
+		previous = bookCover{path: book.CoverPath, thumb: book.CoverThumbPath}
+		book.CoverPath = ""
+		book.CoverThumbPath = ""
+		book.CoverThumbChecked = false
+		book.CoverMissing = true
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if err == storage.ErrNotFound {
+		response.NotFound(c, "书籍不存在")
+		return
+	}
+	if err != nil {
+		response.InternalError(c, "保存书籍失败")
+		return
+	}
+
+	if previous.path != "" || previous.thumb != "" {
+		h.removePublishedUploadFiles(previous.path, previous.thumb)
+	}
+	book.Format = normalizeBookFormat(book.Format, book.Filename)
+	c.JSON(http.StatusOK, book)
+}
+
 func validateUploadedCover(file *multipart.FileHeader, ext string) error {
 	header, err := readUploadedFileHeader(file, 512)
 	if err != nil {

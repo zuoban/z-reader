@@ -387,3 +387,448 @@ func TestCreateContextAbortsOnCancellationAndCleansUp(t *testing.T) {
 		}
 	})
 }
+
+type failingReader struct {
+	err error
+}
+
+func (r failingReader) Read(_ []byte) (int, error) {
+	return 0, r.err
+}
+
+func TestCreateAndLatestVerifiedErrorBranches(t *testing.T) {
+	root := t.TempDir()
+	db, err := storage.Open(filepath.Join(root, "data.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	// CreateContext with nil ctx + missing Dir / missing UploadDir / Dir is a file.
+	if _, err := CreateContext(nil, db, Config{UploadDir: root}); err == nil || !strings.Contains(err.Error(), "backup directory") {
+		t.Fatalf("expected backup directory error, got %v", err)
+	}
+	if _, err := CreateContext(nil, db, Config{Dir: filepath.Join(root, "b")}); err == nil || !strings.Contains(err.Error(), "upload directory") {
+		t.Fatalf("expected upload directory error, got %v", err)
+	}
+	fileAsDir := filepath.Join(root, "not-a-dir")
+	if err := os.WriteFile(fileAsDir, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Create(db, Config{Dir: fileAsDir, UploadDir: root}); err == nil {
+		t.Fatal("expected error when backup Dir is a file")
+	}
+
+	// LatestVerifiedTime edge cases: empty dir, missing dir, corrupt/zero manifest.
+	if _, ok := LatestVerifiedTime(""); ok {
+		t.Fatal("expected false for empty dir")
+	}
+	if _, ok := LatestVerifiedTime(filepath.Join(root, "does-not-exist")); ok {
+		t.Fatal("expected false for nonexistent dir")
+	}
+	if _, _, ok := latestManifest(""); ok {
+		t.Fatal("expected latestManifest(\"\") == false")
+	}
+	if _, ok := readManifest(filepath.Join(root, "missing")); ok {
+		t.Fatal("expected readManifest on missing dir == false")
+	}
+
+	badBackups := filepath.Join(root, "bad-backups")
+	badJSONDir := filepath.Join(badBackups, "backup-20260101T000000.000000000Z")
+	zeroTimeDir := filepath.Join(badBackups, "backup-20260102T000000.000000000Z")
+	for _, d := range []string{badJSONDir, zeroTimeDir} {
+		if err := os.MkdirAll(d, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(badJSONDir, manifestName), []byte("{invalid"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(zeroTimeDir, manifestName), []byte(`{"files":{"data.db":"a","data.db.sessions":"b"}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := LatestVerifiedTime(badBackups); ok {
+		t.Fatal("expected LatestVerifiedTime to skip invalid/zero-time manifests")
+	}
+}
+
+func TestVerifyErrorBranches(t *testing.T) {
+	root := t.TempDir()
+	uploadDir := filepath.Join(root, "uploads")
+	if err := os.MkdirAll(uploadDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(uploadDir, "b.epub"), []byte("epub"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	db, err := storage.Open(filepath.Join(root, "data.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := db.CreateBook(&models.Book{
+		ID:        "b1",
+		UserID:    "u1",
+		Title:     "T",
+		Filename:  "b.epub",
+		Format:    "epub",
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("nonexistent backup dir", func(t *testing.T) {
+		if err := Verify(filepath.Join(root, "missing-backup")); err == nil {
+			t.Fatal("expected Verify error for nonexistent dir")
+		}
+	})
+
+	t.Run("missing and invalid manifest", func(t *testing.T) {
+		emptyDir := t.TempDir()
+		if err := Verify(emptyDir); err == nil {
+			t.Fatal("expected error when manifest.json is missing")
+		}
+		if err := os.WriteFile(filepath.Join(emptyDir, manifestName), []byte("not-json"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(emptyDir); err == nil {
+			t.Fatal("expected error for invalid JSON manifest")
+		}
+		if err := os.WriteFile(filepath.Join(emptyDir, manifestName), []byte(`{"files":{"data.db":"x","data.db.sessions":"y"}}`), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(emptyDir); err == nil || !strings.Contains(err.Error(), "invalid backup manifest") {
+			t.Fatalf("expected invalid backup manifest error, got %v", err)
+		}
+	})
+
+	t.Run("unsafe manifest path", func(t *testing.T) {
+		dir := t.TempDir()
+		dbHash, err := copyToBackupFileWithDigest(context.Background(), strings.NewReader("db"), filepath.Join(dir, "data.db"), make([]byte, 1024))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sessHash, err := copyToBackupFileWithDigest(context.Background(), strings.NewReader("sess"), filepath.Join(dir, "data.db.sessions"), make([]byte, 1024))
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := Manifest{
+			CreatedAt: time.Now().UTC(),
+			Files: map[string]string{
+				"data.db":          dbHash,
+				"data.db.sessions": sessHash,
+				"../escape.epub":   "ghi",
+			},
+		}
+		raw, _ := json.Marshal(m)
+		if err := os.WriteFile(filepath.Join(dir, manifestName), raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(dir); err == nil || !strings.Contains(err.Error(), "unsafe manifest path") {
+			t.Fatalf("expected unsafe manifest path error, got %v", err)
+		}
+	})
+
+	t.Run("uploads missing or not a directory or has extra unlisted file", func(t *testing.T) {
+		backupDir, err := Create(db, Config{Dir: filepath.Join(root, "bk1"), UploadDir: uploadDir})
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Add an extra file in uploads/ not listed in manifest.
+		extraPath := filepath.Join(backupDir, "uploads", "extra.epub")
+		if err := os.WriteFile(extraPath, []byte("extra"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(backupDir); err == nil || !strings.Contains(err.Error(), "missing from the manifest") {
+			t.Fatalf("expected unlisted upload error, got %v", err)
+		}
+		if err := os.Remove(extraPath); err != nil {
+			t.Fatal(err)
+		}
+
+		// Replace uploads dir with a regular file.
+		if err := os.RemoveAll(filepath.Join(backupDir, "uploads")); err != nil {
+			t.Fatal(err)
+		}
+		// Also test missing uploads dir when manifest has no upload entries.
+		emptyDB, err := storage.Open(filepath.Join(root, "empty.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = emptyDB.Close() })
+		emptyBk, err := Create(emptyDB, Config{Dir: filepath.Join(root, "bk2"), UploadDir: uploadDir})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.RemoveAll(filepath.Join(emptyBk, "uploads")); err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(emptyBk); err == nil || !strings.Contains(err.Error(), "open snapshot uploads") {
+			t.Fatalf("expected missing uploads dir error, got %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(emptyBk, "uploads"), []byte("file"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(emptyBk); err == nil || !strings.Contains(err.Error(), "not a directory") {
+			t.Fatalf("expected uploads not a directory error, got %v", err)
+		}
+	})
+}
+
+func TestRestoreErrorBranches(t *testing.T) {
+	root := t.TempDir()
+	uploadDir := filepath.Join(root, "uploads")
+	if err := os.MkdirAll(uploadDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(uploadDir, "book.epub"), []byte("book-data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	db, err := storage.Open(filepath.Join(root, "data.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := db.CreateBook(&models.Book{
+		ID:        "r1",
+		UserID:    "u1",
+		Title:     "Restore Test",
+		Filename:  "book.epub",
+		Format:    "epub",
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	backupDir, err := Create(db, Config{Dir: filepath.Join(root, "backups"), UploadDir: uploadDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Required RestoreConfig fields and invalid source dirs.
+	if err := Restore(backupDir, RestoreConfig{UploadDir: filepath.Join(root, "u")}); err == nil || !strings.Contains(err.Error(), "database path") {
+		t.Fatalf("expected database path required error, got %v", err)
+	}
+	if err := Restore(backupDir, RestoreConfig{DBPath: filepath.Join(root, "d.db")}); err == nil || !strings.Contains(err.Error(), "upload directory") {
+		t.Fatalf("expected upload directory required error, got %v", err)
+	}
+	if err := Restore(filepath.Join(root, "nonexistent"), RestoreConfig{
+		DBPath:    filepath.Join(root, "r-none.db"),
+		UploadDir: filepath.Join(root, "r-none-u"),
+	}); err == nil {
+		t.Fatal("expected error restoring from nonexistent backup")
+	}
+
+	// Missing manifest -> read backup before restore.
+	noManifestDir := t.TempDir()
+	if err := Restore(noManifestDir, RestoreConfig{
+		DBPath:    filepath.Join(root, "r-nom.db"),
+		UploadDir: filepath.Join(root, "r-nom-u"),
+	}); err == nil || !strings.Contains(err.Error(), "read backup before restore") {
+		t.Fatalf("expected read backup before restore error, got %v", err)
+	}
+
+	// Existing target refusal for each target path individually (DBPath, DBPath.sessions, UploadDir).
+	existingDB := filepath.Join(root, "exists.db")
+	if err := os.WriteFile(existingDB, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(backupDir, RestoreConfig{
+		DBPath:    existingDB,
+		UploadDir: filepath.Join(root, "fresh-u1"),
+	}); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("expected existing DB refusal, got %v", err)
+	}
+
+	existingSessionsDB := filepath.Join(root, "exists-sess.db")
+	if err := os.WriteFile(existingSessionsDB+".sessions", []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(backupDir, RestoreConfig{
+		DBPath:    existingSessionsDB,
+		UploadDir: filepath.Join(root, "fresh-u2"),
+	}); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("expected existing sessions DB refusal, got %v", err)
+	}
+
+	existingUploadDir := filepath.Join(root, "existing-uploads")
+	if err := os.MkdirAll(existingUploadDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(backupDir, RestoreConfig{
+		DBPath:    filepath.Join(root, "fresh-d3.db"),
+		UploadDir: existingUploadDir,
+	}); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("expected existing uploadDir refusal, got %v", err)
+	}
+
+	// publishRestore cleans up on collision at mainPath or sessionPath.
+	stageDir := t.TempDir()
+	mainTmp := filepath.Join(stageDir, "main.tmp")
+	sessTmp := filepath.Join(stageDir, "sess.tmp")
+	upTmp := filepath.Join(stageDir, "up.tmp")
+	if err := os.WriteFile(mainTmp, []byte("m"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(sessTmp, []byte("s"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(upTmp, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := publishRestore(upTmp, filepath.Join(stageDir, "up1"), mainTmp, existingDB, sessTmp, filepath.Join(stageDir, "sess1")); err == nil {
+		t.Fatal("expected publishRestore error when mainPath already exists")
+	}
+
+	mainTarget := filepath.Join(stageDir, "main2.db")
+	sessExisting := filepath.Join(stageDir, "sess2.db")
+	if err := os.WriteFile(sessExisting, []byte("exists"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := publishRestore(upTmp, filepath.Join(stageDir, "up2"), mainTmp, mainTarget, sessTmp, sessExisting); err == nil {
+		t.Fatal("expected publishRestore error when sessionPath already exists")
+	}
+	if _, err := os.Lstat(mainTarget); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected mainTarget rolled back after session link failure, err=%v", err)
+	}
+
+	// Tampered backup fails verify before restore.
+	tamperedBook := filepath.Join(backupDir, "uploads", "book.epub")
+	if err := os.Chmod(tamperedBook, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(tamperedBook, []byte("tampered!"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(backupDir, RestoreConfig{
+		DBPath:    filepath.Join(root, "r-tampered.db"),
+		UploadDir: filepath.Join(root, "r-tampered-u"),
+	}); err == nil || !strings.Contains(err.Error(), "verify backup before restore") {
+		t.Fatalf("expected verify backup before restore error, got %v", err)
+	}
+}
+
+func TestCopyVerifiedFileAndManifestHelpers(t *testing.T) {
+	srcDir := t.TempDir()
+	dstDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(srcDir, "file.bin"), []byte("hello-backup"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(srcDir, "file.bin"), filepath.Join(srcDir, "link.bin")); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := os.OpenRoot(srcDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	buf := make([]byte, 1024)
+
+	// copyVerifiedFile: missing file, symlink (non-regular), unwritable target, digest mismatch.
+	if err := copyVerifiedFile(root, "missing.bin", filepath.Join(dstDir, "out1"), "abc", buf); err == nil {
+		t.Fatal("expected error for missing source file")
+	}
+	if err := copyVerifiedFile(root, "link.bin", filepath.Join(dstDir, "out2"), "abc", buf); err == nil || !strings.Contains(err.Error(), "not a regular backup file") {
+		t.Fatalf("expected non-regular file error, got %v", err)
+	}
+	if err := copyVerifiedFile(root, "file.bin", filepath.Join(dstDir, "no-such-dir", "out3"), "abc", buf); err == nil {
+		t.Fatal("expected error copying to nonexistent target directory")
+	}
+	if err := copyVerifiedFile(root, "file.bin", filepath.Join(dstDir, "out4"), "0000mismatch", buf); err == nil || !strings.Contains(err.Error(), "checksum changed during restore") {
+		t.Fatalf("expected checksum mismatch error, got %v", err)
+	}
+
+	// copyToFile read error.
+	if err := copyToFile(failingReader{err: errors.New("boom")}, filepath.Join(dstDir, "fail.bin"), buf); err == nil {
+		t.Fatal("expected copyToFile error from failing reader")
+	}
+
+	// copyToBackupFileWithDigest: nil ctx, canceled ctx, unwritable destination.
+	digest, err := copyToBackupFileWithDigest(nil, strings.NewReader("payload"), filepath.Join(dstDir, "ro.bin"), buf)
+	if err != nil || digest == "" {
+		t.Fatalf("copyToBackupFileWithDigest(nil) = %q, %v", digest, err)
+	}
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := copyToBackupFileWithDigest(canceledCtx, strings.NewReader("x"), filepath.Join(dstDir, "ro2.bin"), buf); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if _, err := copyToBackupFileWithDigest(context.Background(), strings.NewReader("x"), filepath.Join(dstDir, "missing-dir", "ro3.bin"), buf); err == nil {
+		t.Fatal("expected error for unwritable destination")
+	}
+
+	// hashBackupReaderWithBuffer read error.
+	if _, err := hashBackupReaderWithBuffer(context.Background(), failingReader{err: errors.New("read-fail")}, buf); err == nil {
+		t.Fatal("expected error from failing reader in hashBackupReaderWithBuffer")
+	}
+
+	// buildManifestWithDigests: nil ctx, precomputed hit, nonexistent root, symlink error.
+	manifestDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(manifestDir, "a.txt"), []byte("aaa"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(manifestDir, "b.txt"), []byte("bbb"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	m, err := buildManifestWithDigests(nil, manifestDir, time.Now().UTC(), map[string]string{"a.txt": "precomputed-digest"})
+	if err != nil {
+		t.Fatalf("buildManifestWithDigests(nil) error: %v", err)
+	}
+	if m.Files["a.txt"] != "precomputed-digest" || m.Files["b.txt"] == "" {
+		t.Fatalf("unexpected manifest files: %+v", m.Files)
+	}
+	if _, err := buildManifestWithDigests(context.Background(), filepath.Join(manifestDir, "missing"), time.Now().UTC(), nil); err == nil {
+		t.Fatal("expected error walking nonexistent directory")
+	}
+	if err := os.Symlink(filepath.Join(manifestDir, "a.txt"), filepath.Join(manifestDir, "sym.txt")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := buildManifestWithDigests(context.Background(), manifestDir, time.Now().UTC(), nil); err == nil || !strings.Contains(err.Error(), "not a regular backup file") {
+		t.Fatalf("expected symlink error in buildManifestWithDigests, got %v", err)
+	}
+
+	// safeRelativePath edge cases.
+	for _, unsafe := range []string{"", "/abs/path", ".", "..", "../escape"} {
+		if safeRelativePath(unsafe) {
+			t.Fatalf("expected safeRelativePath(%q) == false", unsafe)
+		}
+	}
+	if !safeRelativePath("uploads/book.epub") {
+		t.Fatal("expected safeRelativePath(\"uploads/book.epub\") == true")
+	}
+
+	// removeExpired: retentionDays<=0, nonexistent dir, expires old backup while preserving recent & unrelated entries.
+	if err := removeExpired(filepath.Join(dstDir, "does-not-exist"), 0); err != nil {
+		t.Fatalf("expected nil when retentionDays<=0, got %v", err)
+	}
+	if err := removeExpired(filepath.Join(dstDir, "does-not-exist"), 7); err == nil {
+		t.Fatal("expected error removing expired in nonexistent dir")
+	}
+	retDir := t.TempDir()
+	oldBk := filepath.Join(retDir, "backup-20200101T000000.000000000Z")
+	newBk := filepath.Join(retDir, "backup-20990101T000000.000000000Z")
+	otherDir := filepath.Join(retDir, "keep-me")
+	for _, d := range []string{oldBk, newBk, otherDir} {
+		if err := os.MkdirAll(d, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	oldTime := time.Now().AddDate(0, 0, -30)
+	if err := os.Chtimes(oldBk, oldTime, oldTime); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeExpired(retDir, 7); err != nil {
+		t.Fatalf("removeExpired failed: %v", err)
+	}
+	if _, err := os.Stat(oldBk); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected expired backup removed, stat err=%v", err)
+	}
+	if _, err := os.Stat(newBk); err != nil {
+		t.Fatalf("expected recent backup preserved, stat err=%v", err)
+	}
+	if _, err := os.Stat(otherDir); err != nil {
+		t.Fatalf("expected non-backup dir preserved, stat err=%v", err)
+	}
+}

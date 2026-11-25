@@ -152,8 +152,7 @@ export default function ShelfPage() {
   }, [loadMoreBooks]);
 
   const getBookItemKey = useCallback(
-    (book: (typeof filteredBooks)[number]) =>
-      `${book.id}:${book.cover_path ?? ''}:${book.cover_thumb_path ?? ''}:${book.format}`,
+    (book: (typeof filteredBooks)[number]) => book.id,
     []
   );
 

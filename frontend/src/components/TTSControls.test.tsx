@@ -285,4 +285,47 @@ describe('TTSControls', () => {
     expect(status).toHaveTextContent('正在朗读');
     expect(status).toHaveAttribute('aria-live', 'polite');
   });
+
+  it('calls onExpandedChange(false) when an expanded TTSControls instance unmounts', () => {
+    const onExpandedChange = vi.fn();
+    const { unmount } = renderControls({
+      variant: 'toolbar',
+      initialExpanded: true,
+      onExpandedChange,
+    });
+
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('dialog')).toBeVisible();
+
+    unmount();
+
+    expect(onExpandedChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('supports controlled expanded state and closes cleanly when parent sets expanded to false', () => {
+    const onExpandedChange = vi.fn();
+    const { rerender, props } = renderControls({
+      variant: 'toolbar',
+      expanded: true,
+      initialExpanded: false,
+      onExpandedChange,
+    });
+
+    expect(screen.getByRole('dialog')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭朗读控制' }));
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+
+    rerender(
+      <TTSControls
+        {...props}
+        variant="toolbar"
+        expanded={false}
+        initialExpanded={false}
+        onExpandedChange={onExpandedChange}
+      />,
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

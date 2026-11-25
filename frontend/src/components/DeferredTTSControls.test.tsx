@@ -84,4 +84,82 @@ describe('DeferredTTSControls', () => {
     rerender(<DeferredTTSControls {...props} onRequest={onRequest} runtimeReady />);
     expect(await screen.findByRole('dialog')).toHaveTextContent('打开朗读控制');
   });
+
+  it('clears pending auto-open when controlled expanded becomes false while loading', async () => {
+    const onRequest = vi.fn();
+    const props = {
+      state: 'stopped',
+      triggerClassName: 'reader-trigger',
+    } as TTSControlsProps;
+
+    const { rerender } = render(
+      <DeferredTTSControls
+        {...props}
+        expanded={false}
+        onRequest={onRequest}
+        runtimeReady={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '朗读控制' }));
+    expect(onRequest).toHaveBeenCalledOnce();
+
+    // Parent marks this slot active while loading
+    rerender(
+      <DeferredTTSControls
+        {...props}
+        expanded={true}
+        onRequest={onRequest}
+        runtimeReady={false}
+      />,
+    );
+    expect(screen.getByRole('button', { name: '正在加载朗读控制' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+
+    // Another sheet opens before runtimeReady -> parent clears expanded
+    rerender(
+      <DeferredTTSControls
+        {...props}
+        expanded={false}
+        onRequest={onRequest}
+        runtimeReady={false}
+      />,
+    );
+    expect(screen.getByRole('button', { name: '朗读控制' })).not.toHaveAttribute('aria-busy');
+
+    // Runtime finishes loading -> TTSControls mounts closed instead of auto-opening
+    rerender(
+      <DeferredTTSControls
+        {...props}
+        expanded={false}
+        onRequest={onRequest}
+        runtimeReady
+      />,
+    );
+    expect(await screen.findByRole('dialog')).toHaveTextContent('关闭朗读控制');
+  });
+
+  it('resets expanded state if DeferredTTSControls unmounts while still loading', () => {
+    const onRequest = vi.fn();
+    const onExpandedChange = vi.fn();
+    const props = {
+      state: 'stopped',
+      triggerClassName: 'reader-trigger',
+    } as TTSControlsProps;
+
+    const { unmount } = render(
+      <DeferredTTSControls
+        {...props}
+        expanded={true}
+        onExpandedChange={onExpandedChange}
+        onRequest={onRequest}
+        runtimeReady={false}
+      />,
+    );
+
+    unmount();
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
 });

@@ -11,6 +11,7 @@ describe('useReaderSheets', () => {
     expect(result.current.shortcutsOpen).toBe(false);
     expect(result.current.themeSettingsOpen).toBe(false);
     expect(result.current.showSearch).toBe(false);
+    expect(result.current.ttsOpen).toBe(false);
     expect(result.current.hasSheetOpen).toBe(false);
   });
 
@@ -41,10 +42,49 @@ describe('useReaderSheets', () => {
     expect(result.current.showSearch).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
 
-    act(() => result.current.setTocOpen(true));
+    act(() => result.current.setTtsOpen(true));
     expect(result.current.showSearch).toBe(false);
+    expect(result.current.ttsOpen).toBe(true);
+    expect(result.current.hasSheetOpen).toBe(true);
+
+    act(() => result.current.setTocOpen(true));
+    expect(result.current.ttsOpen).toBe(false);
     expect(result.current.tocOpen).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
+  });
+
+  it('closes ttsOpen whenever any other sheet opens and closes all other sheets when ttsOpen opens', () => {
+    const { result } = renderHook(() => useReaderSheets());
+
+    const openers = [
+      () => result.current.setTocOpen(true),
+      () => result.current.setBookmarksOpen(true),
+      () => result.current.setThemeSettingsOpen(true),
+      () => result.current.setShortcutsOpen(true),
+      () => result.current.openSearch(),
+    ];
+
+    for (const openOther of openers) {
+      act(() => result.current.setTtsOpen(true));
+      expect(result.current.ttsOpen).toBe(true);
+      expect(result.current.hasSheetOpen).toBe(true);
+
+      act(openOther);
+      expect(result.current.ttsOpen).toBe(false);
+      expect(result.current.hasSheetOpen).toBe(true);
+
+      act(() => result.current.setTtsOpen(true));
+      expect(result.current.ttsOpen).toBe(true);
+      expect(result.current.tocOpen).toBe(false);
+      expect(result.current.bookmarksOpen).toBe(false);
+      expect(result.current.themeSettingsOpen).toBe(false);
+      expect(result.current.shortcutsOpen).toBe(false);
+      expect(result.current.showSearch).toBe(false);
+    }
+
+    act(() => result.current.setTtsOpen(false));
+    expect(result.current.ttsOpen).toBe(false);
+    expect(result.current.hasSheetOpen).toBe(false);
   });
 
   it('closes individual sheets and clears hasSheetOpen without affecting other open sheets', () => {
@@ -55,6 +95,7 @@ describe('useReaderSheets', () => {
     act(() => result.current.setBookmarksOpen(false));
     act(() => result.current.setThemeSettingsOpen(false));
     act(() => result.current.setShortcutsOpen(false));
+    act(() => result.current.setTtsOpen(false));
     act(() => result.current.closeSearch());
     expect(result.current.tocOpen).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
@@ -100,6 +141,7 @@ describe('useReaderSheets', () => {
       setBookmarksOpen: result.current.setBookmarksOpen,
       setThemeSettingsOpen: result.current.setThemeSettingsOpen,
       setShortcutsOpen: result.current.setShortcutsOpen,
+      setTtsOpen: result.current.setTtsOpen,
       openSearch: result.current.openSearch,
       closeSearch: result.current.closeSearch,
       handleOpenShortcuts: result.current.handleOpenShortcuts,
@@ -108,12 +150,14 @@ describe('useReaderSheets', () => {
 
     act(() => result.current.setTocOpen(true));
     act(() => result.current.openSearch());
+    act(() => result.current.setTtsOpen(true));
     act(() => result.current.handleOpenShortcuts());
 
     expect(result.current.setTocOpen).toBe(initial.setTocOpen);
     expect(result.current.setBookmarksOpen).toBe(initial.setBookmarksOpen);
     expect(result.current.setThemeSettingsOpen).toBe(initial.setThemeSettingsOpen);
     expect(result.current.setShortcutsOpen).toBe(initial.setShortcutsOpen);
+    expect(result.current.setTtsOpen).toBe(initial.setTtsOpen);
     expect(result.current.openSearch).toBe(initial.openSearch);
     expect(result.current.closeSearch).toBe(initial.closeSearch);
     expect(result.current.handleOpenShortcuts).toBe(initial.handleOpenShortcuts);

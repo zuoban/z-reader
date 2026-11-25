@@ -156,6 +156,91 @@ describe('useShelfData', () => {
     secondPoll.resolve([]);
   });
 
+  it('removes remotely deleted pending books from shelf and search results, refreshes counts, and stops polling', async () => {
+    const deletedPending = mockBook({ id: 'deleted-pending', title: 'Deleted Book', processing_state: 'pending' });
+    const readyBook = mockBook({ id: 'ready-book', title: 'Ready Book', processing_state: 'ready' });
+    vi.mocked(api.listBooks).mockResolvedValue([deletedPending, readyBook]);
+    vi.mocked(api.listProgress).mockResolvedValue([
+      { book_id: deletedPending.id, user_id: 'user-1', cfi: 'cfi-1', percentage: 15, updated_at: '' },
+      { book_id: readyBook.id, user_id: 'user-1', cfi: 'cfi-2', percentage: 60, updated_at: '' },
+    ]);
+    vi.mocked(api.searchBooks).mockResolvedValue({ books: [deletedPending, readyBook] });
+    vi.mocked(api.getBookLibrarySummary)
+      .mockResolvedValueOnce({ total: 2, uncategorized: 2, categories: {} })
+      .mockResolvedValueOnce({ total: 1, uncategorized: 1, categories: {} });
+    const getStatus = vi.mocked(api.getBooksStatus).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toHaveLength(2));
+    expect(result.current.bookCounts.all).toBe(2);
+    expect(result.current.progressByBookId[deletedPending.id]).toBe(15);
+
+    act(() => result.current.setSearchQuery('Book'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(result.current.filteredBooks).toHaveLength(2);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenCalledExactlyOnceWith([deletedPending.id], expect.any(AbortSignal));
+    expect(result.current.books).toEqual([readyBook]);
+    expect(result.current.filteredBooks).toEqual([readyBook]);
+    expect(result.current.progressByBookId).toEqual({ [readyBook.id]: 60 });
+    await waitFor(() => expect(result.current.bookCounts.all).toBe(1));
+
+    // Polling must stop cleanly once the remotely deleted pending book is removed.
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(getStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues polling remaining pending books when one disappears and stops once all settle', async () => {
+    const deletedPending = mockBook({ id: 'pending-deleted', processing_state: 'pending' });
+    const stillPending = mockBook({ id: 'pending-alive', processing_state: 'pending' });
+    vi.mocked(api.listBooks).mockResolvedValue([deletedPending, stillPending]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    const getStatus = vi.mocked(api.getBooksStatus)
+      .mockResolvedValueOnce([stillPending])
+      .mockResolvedValueOnce([{ ...stillPending, processing_state: 'ready', cover_path: 'cover.jpg' }]);
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toHaveLength(2));
+    expect(result.current.bookCounts.all).toBe(2);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenNthCalledWith(1, [deletedPending.id, stillPending.id], expect.any(AbortSignal));
+    expect(result.current.books).toEqual([stillPending]);
+    expect(result.current.bookCounts.all).toBe(1);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenNthCalledWith(2, [stillPending.id], expect.any(AbortSignal));
+    expect(result.current.books).toEqual([
+      { ...stillPending, processing_state: 'ready', cover_path: 'cover.jpg' },
+    ]);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(getStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries polling on transient errors but stops on 401 auth errors', async () => {
+    const pendingBook = mockBook({ id: 'pending-err', processing_state: 'pending' });
+    vi.mocked(api.listBooks).mockResolvedValue([pendingBook]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+    const getStatus = vi.mocked(api.getBooksStatus)
+      .mockRejectedValueOnce(new Error('network blip'))
+      .mockRejectedValueOnce(Object.assign(new Error('unauthorized'), { status: 401 }));
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.books).toEqual([pendingBook]));
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenCalledTimes(1);
+    expect(result.current.books).toEqual([pendingBook]);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_500); });
+    expect(getStatus).toHaveBeenCalledTimes(2);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(getStatus).toHaveBeenCalledTimes(2);
+  });
+
   it('shows the first page while progress and summary are still pending', async () => {
     vi.mocked(api.listBooks).mockResolvedValue([mockBook()]);
     let resolveProgress!: (value: Awaited<ReturnType<typeof api.listProgress>>) => void;

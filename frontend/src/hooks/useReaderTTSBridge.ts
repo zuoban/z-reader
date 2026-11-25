@@ -21,11 +21,15 @@ const IDLE_TTS_STATUS = {
 const IDLE_SLEEP_TIMER = { mode: "off" as const, label: "关闭" };
 const NOOP_TTS = () => {};
 
+export type ReaderTTSSlot = "desktop-toolbar" | "mobile-menu" | "status-bar";
+
 interface UseReaderTTSBridgeOptions {
   viewRef: RefObject<FoliateView | null>;
   uiScheme: ThemeColors;
   overlayContainer: HTMLDivElement | null;
   hideHeader: () => void;
+  ttsOpen?: boolean;
+  onTtsOpenChange?: (open: boolean) => void;
 }
 
 export function useReaderTTSBridge({
@@ -33,11 +37,23 @@ export function useReaderTTSBridge({
   uiScheme,
   overlayContainer,
   hideHeader,
+  ttsOpen: controlledTtsOpen,
+  onTtsOpenChange,
 }: UseReaderTTSBridgeOptions) {
   const [ttsRequested, setTTSRequested] = useState(false);
-  const [ttsOpen, setTtsOpen] = useState(false);
+  const [uncontrolledTtsOpen, setUncontrolledTtsOpen] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<ReaderTTSSlot | null>(null);
   const [ttsRuntime, setTtsRuntime] = useState<ReaderTTSRuntimeState | null>(null);
   const ttsRuntimeRef = useRef<ReaderTTSRuntimeState | null>(null);
+  const activeSlotRef = useRef<ReaderTTSSlot | null>(null);
+
+  const ttsOpen = controlledTtsOpen ?? uncontrolledTtsOpen;
+  const setTtsOpen = onTtsOpenChange ?? setUncontrolledTtsOpen;
+  const resolvedActiveSlot = ttsOpen ? activeSlot : null;
+
+  useEffect(() => {
+    activeSlotRef.current = resolvedActiveSlot;
+  }, [resolvedActiveSlot]);
 
   const handleHighlight = useCallback(
     (range: Range) => {
@@ -88,14 +104,40 @@ export function useReaderTTSBridge({
     ttsRuntimeRef.current?.restoreCurrentHighlight();
   }, []);
 
-  const handleTTSExpandedChange = useCallback(
-    (expanded: boolean) => {
-      setTtsOpen(expanded);
-      if (!expanded) {
-        restoreTTSHighlight();
+  const prevTtsOpenRef = useRef(ttsOpen);
+  useEffect(() => {
+    if (prevTtsOpenRef.current && !ttsOpen) {
+      restoreTTSHighlight();
+    }
+    prevTtsOpenRef.current = ttsOpen;
+  }, [restoreTTSHighlight, ttsOpen]);
+
+  const requestTTSSlot = useCallback(
+    (slot: ReaderTTSSlot) => {
+      setTTSRequested(true);
+      activeSlotRef.current = slot;
+      setActiveSlot(slot);
+      setTtsOpen(true);
+    },
+    [setTtsOpen],
+  );
+
+  const handleSlotExpandedChange = useCallback(
+    (slot: ReaderTTSSlot, expanded: boolean) => {
+      if (expanded) {
+        activeSlotRef.current = slot;
+        setActiveSlot(slot);
+        setTtsOpen(true);
+        return;
+      }
+
+      if (activeSlotRef.current === slot) {
+        activeSlotRef.current = null;
+        setActiveSlot(null);
+        setTtsOpen(false);
       }
     },
-    [restoreTTSHighlight],
+    [setTtsOpen],
   );
 
   useEffect(() => {
@@ -105,7 +147,9 @@ export function useReaderTTSBridge({
   }, [hideHeader, ttsState]);
 
   const sharedTTSControlsProps = {
-    onRequest: () => setTTSRequested(true),
+    activeSlot: resolvedActiveSlot,
+    onRequestSlot: requestTTSSlot,
+    onSlotExpandedChange: handleSlotExpandedChange,
     runtimeReady: ttsRuntime !== null,
     state: ttsState,
     preparing: ttsPreparing,
@@ -130,7 +174,6 @@ export function useReaderTTSBridge({
     onSleepTimerMinutes: setSleepTimerForMinutes,
     onClearSleepTimer: clearSleepTimer,
     onResume: resumeTTS,
-    onExpandedChange: handleTTSExpandedChange,
     overlayContainer,
   } as const;
 

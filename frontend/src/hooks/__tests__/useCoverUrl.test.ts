@@ -465,4 +465,61 @@ describe('useCoverUrl hook', () => {
     expect(getCoverCacheSizeForTests()).toBe(0);
     expect(revokeObjectURLSpy.mock.calls.length).toBe(201);
   });
+
+  it('fetches and updates cover reactively on a mounted card when enabled and coverVersion change', async () => {
+    vi.mocked(api.fetchCover)
+      .mockResolvedValueOnce(new Blob(['cover-v1']))
+      .mockResolvedValueOnce(new Blob(['cover-v2']));
+
+    const { rerender } = render(
+      React.createElement(CoverProbe, {
+        bookId: 'book-reactive',
+        coverVersion: undefined,
+        size: 'thumb',
+        enabled: false,
+      }),
+    );
+
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('empty');
+    expect(observers).toHaveLength(0);
+    expect(api.fetchCover).not.toHaveBeenCalled();
+
+    // Background processing finishes: enabled becomes true and coverVersion arrives without remounting
+    rerender(
+      React.createElement(CoverProbe, {
+        bookId: 'book-reactive',
+        coverVersion: 'covers/v1-thumb.jpg',
+        size: 'thumb',
+        enabled: true,
+      }),
+    );
+
+    expect(observers).toHaveLength(1);
+    await act(async () => {
+      observers[0].trigger(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+    expect(api.fetchCover).toHaveBeenCalledTimes(1);
+
+    // Reparse / cover replacement updates coverVersion while staying mounted
+    rerender(
+      React.createElement(CoverProbe, {
+        bookId: 'book-reactive',
+        coverVersion: 'covers/v2-thumb.jpg',
+        size: 'thumb',
+        enabled: true,
+      }),
+    );
+
+    await act(async () => {
+      observers[observers.length - 1].trigger(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-2');
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:cover-1');
+    expect(api.fetchCover).toHaveBeenCalledTimes(2);
+  });
 });

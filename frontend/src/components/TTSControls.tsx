@@ -49,6 +49,7 @@ export interface TTSControlsProps {
   sleepTimer?: TTSSleepTimer;
   onSleepTimerMinutes?: (minutes: number) => void;
   onClearSleepTimer?: () => void;
+  expanded?: boolean;
   initialExpanded?: boolean;
 }
 
@@ -81,9 +82,12 @@ export function TTSControls({
   sleepTimer,
   onSleepTimerMinutes,
   onClearSleepTimer,
+  expanded: controlledExpanded,
   initialExpanded = false,
 }: TTSControlsProps) {
-  const [expanded, setExpanded] = useState(initialExpanded);
+  const isControlled = controlledExpanded !== undefined;
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(initialExpanded);
+  const expanded = isControlled ? controlledExpanded : uncontrolledExpanded;
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -93,6 +97,8 @@ export function TTSControls({
   const pendingRef = useRef(false);
   const resumingRef = useRef(false);
   const mountedRef = useRef(true);
+  const expandedRef = useRef(expanded);
+  const onExpandedChangeRef = useRef(onExpandedChange);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const isBusy = isPending || preparing;
@@ -119,6 +125,27 @@ export function TTSControls({
   } = useFloatingPosition({ expanded, isToolbar });
 
   useEffect(() => {
+    expandedRef.current = expanded;
+    onExpandedChangeRef.current = onExpandedChange;
+  }, [expanded, onExpandedChange]);
+
+  const setExpanded = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      if (isControlled) {
+        const nextExpanded =
+          typeof next === 'function' ? next(expandedRef.current) : next;
+        if (nextExpanded !== expandedRef.current) {
+          onExpandedChangeRef.current?.(nextExpanded);
+        }
+        return;
+      }
+
+      setUncontrolledExpanded(next);
+    },
+    [isControlled],
+  );
+
+  useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
@@ -127,8 +154,12 @@ export function TTSControls({
   }, []);
 
   useEffect(() => {
-    onExpandedChange?.(expanded);
-  }, [expanded, onExpandedChange]);
+    if (!expanded) return;
+    onExpandedChangeRef.current?.(true);
+    return () => {
+      onExpandedChangeRef.current?.(false);
+    };
+  }, [expanded]);
 
   useEffect(() => {
     if (!expanded) {
@@ -156,7 +187,7 @@ export function TTSControls({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded, isToolbar, isVoiceDropdownOpen]);
+  }, [expanded, isToolbar, isVoiceDropdownOpen, setExpanded]);
 
   const handleStartClick = async () => {
     if (pendingRef.current || preparing) return;
@@ -225,11 +256,11 @@ export function TTSControls({
 
   const closePanel = useCallback(() => {
     setExpanded(false);
-  }, []);
+  }, [setExpanded]);
 
   const toggleExpanded = useCallback(() => {
     setExpanded((value) => !value);
-  }, []);
+  }, [setExpanded]);
 
   const toggleDetails = useCallback(() => {
     setDetailsExpanded((value) => !value);

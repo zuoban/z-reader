@@ -206,26 +206,41 @@ export class TTSPreloadManager {
   }
 
   cleanupIrrelevantPreloads(relevantSSMLs: string[]): void {
+    const relevantSet = new Set(relevantSSMLs);
     const toRemove: string[] = [];
 
     this.preloadedQueue = this.preloadedQueue.filter((p) => {
-      const isRelevant = relevantSSMLs.includes(p.ssml);
+      const isRelevant = relevantSet.has(p.ssml);
       if (!isRelevant) {
         toRemove.push(p.ssml);
       }
       return isRelevant;
     });
 
-    toRemove.forEach((ssml) => this.cancelPreload(ssml));
     if (toRemove.length > 0) {
       this.logMetric('preload.cleanup-ready', { removed: toRemove.length });
     }
 
+    let cancelledInFlight = 0;
+    for (const ssml of Array.from(this.preloadAbortControllers.keys())) {
+      if (!relevantSet.has(ssml)) {
+        const controller = this.preloadAbortControllers.get(ssml);
+        controller?.abort();
+        this.preloadAbortControllers.delete(ssml);
+        this.preloadPromises.delete(ssml);
+        cancelledInFlight += 1;
+      }
+    }
+    if (cancelledInFlight > 0) {
+      this.logMetric('preload.cleanup-inflight', { removed: cancelledInFlight });
+    }
+
     let removedPending = 0;
     this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
-      const isRelevant = relevantSSMLs.includes(task.ssml);
+      const isRelevant = relevantSet.has(task.ssml);
       if (!isRelevant) {
         this.queuedPreloadKeys.delete(task.ssml);
+        this.preloadPromises.delete(task.ssml);
         task.resolve();
         removedPending += 1;
       }
@@ -242,6 +257,7 @@ export class TTSPreloadManager {
       controller.abort();
       this.preloadAbortControllers.delete(ssml);
     }
+    this.preloadPromises.delete(ssml);
 
     this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
       if (task.ssml !== ssml) return true;

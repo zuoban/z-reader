@@ -1,11 +1,15 @@
 "use client";
 
+import { useCallback } from "react";
 import { Loader2, Volume2 } from "lucide-react";
 import { DeferredTTSControls } from "@/components/DeferredTTSControls";
-import type { SharedTTSControlsProps } from "@/hooks/useReaderTTSBridge";
+import type {
+  ReaderTTSSlot,
+  SharedTTSControlsProps,
+} from "@/hooks/useReaderTTSBridge";
 
 interface ReaderTTSControlTriggerProps {
-  slot: "desktop-toolbar" | "mobile-menu" | "status-bar";
+  slot: ReaderTTSSlot;
   sharedProps: SharedTTSControlsProps;
 }
 
@@ -13,10 +17,31 @@ export function ReaderTTSControlTrigger({
   slot,
   sharedProps,
 }: ReaderTTSControlTriggerProps) {
+  const { activeSlot, onRequestSlot, onSlotExpandedChange, ...ttsProps } =
+    sharedProps;
+
+  const handleRequest = useCallback(() => {
+    onRequestSlot(slot);
+  }, [onRequestSlot, slot]);
+
+  const handleExpandedChange = useCallback(
+    (expanded: boolean) => {
+      onSlotExpandedChange(slot, expanded);
+    },
+    [onSlotExpandedChange, slot],
+  );
+
+  const slotProps = {
+    ...ttsProps,
+    expanded: activeSlot === slot,
+    onRequest: handleRequest,
+    onExpandedChange: handleExpandedChange,
+  };
+
   if (slot === "desktop-toolbar") {
     return (
       <DeferredTTSControls
-        {...sharedProps}
+        {...slotProps}
         variant="toolbar"
         triggerClassName="reader-chrome-btn"
         triggerStyle={{}}
@@ -43,7 +68,7 @@ export function ReaderTTSControlTrigger({
   if (slot === "mobile-menu") {
     return (
       <DeferredTTSControls
-        {...sharedProps}
+        {...slotProps}
         variant="toolbar"
         triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
         triggerStyle={{}}
@@ -59,12 +84,12 @@ export function ReaderTTSControlTrigger({
 
   return (
     <DeferredTTSControls
-      {...sharedProps}
+      {...slotProps}
       variant="toolbar"
       triggerClassName="reader-status-action [&_svg]:size-3.5"
       triggerStyle={
-        sharedProps.state !== "stopped"
-          ? { color: sharedProps.uiScheme.link }
+        slotProps.state !== "stopped"
+          ? { color: slotProps.uiScheme.link }
           : {}
       }
     />

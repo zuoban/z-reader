@@ -115,6 +115,8 @@ function Reader({ bookId }: { bookId: string }) {
     uiScheme,
     overlayContainer,
     hideHeader: chrome.hideHeader,
+    ttsOpen: sheets.ttsOpen,
+    onTtsOpenChange: sheets.setTtsOpen,
   });
   const offline = useReaderOffline({
     bookId,
@@ -175,7 +177,7 @@ function Reader({ bookId }: { bookId: string }) {
     onNext: handleNext,
     onBack: handleBack,
     onStopTTS: tts.stopTTS,
-    overlayOpen: sheets.hasSheetOpen || tts.ttsOpen,
+    overlayOpen: sheets.hasSheetOpen,
     shortcutsOpen: sheets.shortcutsOpen,
     onToggleShortcuts: sheets.handleToggleShortcuts,
     onCloseShortcuts: sheets.handleCloseShortcuts,

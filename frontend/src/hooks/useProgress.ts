@@ -36,6 +36,34 @@ interface UseProgressOptions {
   remoteSyncEnabled?: boolean;
 }
 
+let inMemoryDeviceId: string | null = null;
+
+function safeGetStorageItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetStorageItem(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeRemoveStorageItem(key: string): boolean {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function isBrowserOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
@@ -52,12 +80,7 @@ function parseOfflineProgress(raw: string | null): OfflineProgress | null {
 }
 
 function readOfflineProgressSnapshot(bookId: string, generation: string | null) {
-  if (typeof window === 'undefined') return null;
-  try {
-    return parseOfflineProgress(localStorage.getItem(offlineProgressKey(bookId, generation)));
-  } catch {
-    return null;
-  }
+  return parseOfflineProgress(safeGetStorageItem(offlineProgressKey(bookId, generation)));
 }
 
 // Persist the server version independently of the reading position, including across reloads.
@@ -67,9 +90,9 @@ function confirmedVersionKey(bookId: string, generation: string | null) {
 
 function rememberServerVersion(bookId: string, progress: Progress | null, generation: string | null) {
   if (progress?.cfi && progress.updated_at) {
-    localStorage.setItem(confirmedVersionKey(bookId, generation), progress.updated_at);
+    safeSetStorageItem(confirmedVersionKey(bookId, generation), progress.updated_at);
   } else if (!progress?.cfi) {
-    localStorage.removeItem(confirmedVersionKey(bookId, generation));
+    safeRemoveStorageItem(confirmedVersionKey(bookId, generation));
   }
 }
 
@@ -79,14 +102,17 @@ function progressPrecondition(version: string | null | undefined) {
 
 function getDeviceId() {
   const storageKey = 'z-reader-device-id';
-  const existing = localStorage.getItem(storageKey);
+  const existing = safeGetStorageItem(storageKey);
   if (existing) return existing;
 
   const next =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    inMemoryDeviceId ??
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
-      : `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  localStorage.setItem(storageKey, next);
+      : `device-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  if (!safeSetStorageItem(storageKey, next)) {
+    inMemoryDeviceId = next;
+  }
   return next;
 }
 
@@ -158,11 +184,11 @@ export function useProgress({
 
   const persistOfflineProgress = useCallback((
     data: PendingProgress,
-    version = localStorage.getItem(confirmedVersionKey(bookId, generation)),
+    version = safeGetStorageItem(confirmedVersionKey(bookId, generation)),
   ) => {
     if (getAccessGeneration() !== generation) return;
     const key = offlineProgressKey(bookId, generation);
-    const cached = parseOfflineProgress(localStorage.getItem(key));
+    const cached = parseOfflineProgress(safeGetStorageItem(key));
     const queue = readOfflineQueue(offlineQueueKey);
     const alreadyQueued = queue.includes(bookId);
     const offlineSnapshot: OfflineProgress = {
@@ -177,9 +203,9 @@ export function useProgress({
         : alreadyQueued && cached ? cached.expected_updated_at ?? null : version,
     };
 
-    localStorage.setItem(key, JSON.stringify(offlineSnapshot));
+    safeSetStorageItem(key, JSON.stringify(offlineSnapshot));
     if (!alreadyQueued) {
-      localStorage.setItem(offlineQueueKey, JSON.stringify([...queue, bookId]));
+      safeSetStorageItem(offlineQueueKey, JSON.stringify([...queue, bookId]));
     }
 
     lastSavedRef.current = offlineSnapshot;
@@ -200,7 +226,7 @@ export function useProgress({
       }
       replayingBooks.add(key);
       try {
-        const raw = localStorage.getItem(key);
+        const raw = safeGetStorageItem(key);
         const cached = parseOfflineProgress(raw);
         if (cached) {
           const version = cached.expected_updated_at ?? null;
@@ -216,11 +242,11 @@ export function useProgress({
             if (pending?.bookId === id && pending.offlineBase?.expectedUpdatedAt === version) {
               pending.offlineBase.expectedUpdatedAt = saved.updated_at;
             }
-            const newerRaw = localStorage.getItem(key);
+            const newerRaw = safeGetStorageItem(key);
             const newer = parseOfflineProgress(newerRaw);
             if (newerRaw !== raw && newer && (newer.expected_updated_at ?? null) === version) {
               // A successful upload advances the base of newer local edits in this queue.
-              localStorage.setItem(key, JSON.stringify({
+              safeSetStorageItem(key, JSON.stringify({
                 ...newer,
                 expected_updated_at: saved.updated_at,
               }));
@@ -245,10 +271,10 @@ export function useProgress({
         }
 
         // Another edit may have replaced the snapshot during the request.
-        if (localStorage.getItem(key) === raw) {
-          localStorage.removeItem(key);
+        if (safeGetStorageItem(key) === raw) {
+          safeRemoveStorageItem(key);
           const remaining = readOfflineQueue(offlineQueueKey).filter(book => book !== id);
-          localStorage.setItem(offlineQueueKey, JSON.stringify(remaining));
+          safeSetStorageItem(offlineQueueKey, JSON.stringify(remaining));
         }
       } catch (error) {
         console.error(`Failed to background sync progress for book ${id}:`, error);
@@ -272,7 +298,7 @@ export function useProgress({
     }
 
     savingRef.current = true;
-    const version = localStorage.getItem(confirmedVersionKey(bookId, generation));
+    const version = safeGetStorageItem(confirmedVersionKey(bookId, generation));
     const latestPending = () => pendingSaveRef.current?.bookId === bookId
       ? pendingSaveRef.current
       : data;
@@ -348,12 +374,12 @@ export function useProgress({
     }
 
     const versionKey = confirmedVersionKey(bookId, generation);
-    const versionBeforeLoad = localStorage.getItem(versionKey);
+    const versionBeforeLoad = safeGetStorageItem(versionKey);
     try {
       const data = await api.getProgress(bookId);
       if (getAccessGeneration() !== generation) return;
       // A save or replay may have completed while this GET was in flight.
-      if (localStorage.getItem(versionKey) === versionBeforeLoad) {
+      if (safeGetStorageItem(versionKey) === versionBeforeLoad) {
         rememberServerVersion(bookId, data, generation);
         if (!pendingSaveRef.current) {
           const cached = readOfflineProgressSnapshot(bookId, generation);
@@ -470,11 +496,11 @@ export function useProgress({
       }
       if (!lastSavedRef.current || savingRef.current || pendingSaveRef.current) return;
       const versionKey = confirmedVersionKey(bookId, generation);
-      const versionBeforeRefresh = localStorage.getItem(versionKey);
+      const versionBeforeRefresh = safeGetStorageItem(versionKey);
       try {
         const latest = await api.getProgress(bookId);
         if (getAccessGeneration() !== generation ||
-            localStorage.getItem(versionKey) !== versionBeforeRefresh) return;
+            safeGetStorageItem(versionKey) !== versionBeforeRefresh) return;
         rememberServerVersion(bookId, latest, generation);
         if (!latest.cfi || !latest.updated_at || readOfflineQueue(offlineQueueKey).includes(bookId)) return;
 
@@ -550,7 +576,7 @@ export function useProgress({
             return;
           }
           api.saveProgressOnUnload(bookId, pending.cfi, pending.percentage, {
-            ...progressPrecondition(localStorage.getItem(confirmedVersionKey(bookId, generation))),
+            ...progressPrecondition(safeGetStorageItem(confirmedVersionKey(bookId, generation))),
             deviceId: getDeviceId(),
           });
         }
@@ -573,7 +599,7 @@ export function useProgress({
       const cached = readOfflineQueue(offlineQueueKey).includes(bookId)
         ? readOfflineProgressSnapshot(bookId, generation)
         : null;
-      const version = localStorage.getItem(confirmedVersionKey(bookId, generation));
+      const version = safeGetStorageItem(confirmedVersionKey(bookId, generation));
       pending.offlineBase = {
         expectedUpdatedAt: cached ? cached.expected_updated_at ?? null : version,
       };

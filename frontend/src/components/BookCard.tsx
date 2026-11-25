@@ -140,9 +140,12 @@ function BookCoverFace({
   formatLabel,
   priority = false,
 }: BookCoverFaceProps) {
-  if (coverUrl) {
+  const [failedCoverUrl, setFailedCoverUrl] = useState<string | null>(null);
+
+  if (coverUrl && failedCoverUrl !== coverUrl) {
     return (
       <Image
+        key={coverUrl}
         src={coverUrl}
         alt={titleLabel}
         fill
@@ -152,6 +155,7 @@ function BookCoverFace({
         decoding={priority ? 'sync' : 'async'}
         sizes={SHELF_COVER_SIZES}
         className="shelf-book-cover-media object-cover"
+        onError={() => setFailedCoverUrl(coverUrl)}
       />
     );
   }
@@ -207,7 +211,7 @@ export const BookCard = memo(function BookCard({
     || (
       !book.cover_missing
       && !book.processing_state
-      && (!book.format || book.format.toLowerCase() === 'epub')
+      && (!book.format || ['epub', 'mobi', 'azw3'].includes(book.format.toLowerCase()))
     )
   );
   const { coverUrl, ref: coverRef } = useCoverUrl(

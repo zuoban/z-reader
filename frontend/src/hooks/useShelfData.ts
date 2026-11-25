@@ -346,6 +346,7 @@ export function useShelfData(isAuthenticated: boolean) {
     if (!isAuthenticated || !pendingBookIDs) return;
 
     const ids = pendingBookIDs.split(',').filter(Boolean);
+    const requestedIDSet = new Set(ids);
     const controller = new AbortController();
     const { signal } = controller;
     let refreshing = false;
@@ -355,17 +356,64 @@ export function useShelfData(isAuthenticated: boolean) {
       if (signal.aborted || refreshing || document.visibilityState === 'hidden') return;
 
       refreshing = true;
+      let shouldContinuePolling = true;
       try {
         const updatedBooks = await api.getBooksStatus(ids, signal);
         if (signal.aborted) return;
         const updatedByID = new Map(updatedBooks.map((book) => [book.id, book]));
-        setBooks((current) => current.map((book) => updatedByID.get(book.id) ?? book));
-        setSearchResults((current) => current?.map((book) => updatedByID.get(book.id) ?? book) ?? null);
-      } catch {
+        const missingIDs = ids.filter((id) => !updatedByID.has(id));
+        const applyStatusUpdate = (current: Book[]) => {
+          let changed = false;
+          const next: Book[] = [];
+          for (const book of current) {
+            if (!requestedIDSet.has(book.id)) {
+              next.push(book);
+              continue;
+            }
+            const updated = updatedByID.get(book.id);
+            if (!updated) {
+              changed = true;
+              continue;
+            }
+            if (updated !== book) changed = true;
+            next.push(updated);
+          }
+          return changed ? next : current;
+        };
+
+        setBooks(applyStatusUpdate);
+        setSearchResults((current) => (current ? applyStatusUpdate(current) : null));
+        if (missingIDs.length > 0) {
+          const missingIDSet = new Set(missingIDs);
+          setProgressByBookId((current) => {
+            let changed = false;
+            const next = { ...current };
+            missingIDSet.forEach((id) => {
+              if (id in next) {
+                delete next[id];
+                changed = true;
+              }
+            });
+            return changed ? next : current;
+          });
+          void loadLibrarySummary();
+        }
+        shouldContinuePolling = updatedBooks.some((book) => book.processing_state === 'pending');
+      } catch (error) {
+        if (
+          typeof error === 'object'
+          && error !== null
+          && 'status' in error
+          && (error as { status?: unknown }).status === 401
+        ) {
+          shouldContinuePolling = false;
+        }
         // Keep the current shelf usable and retry while the jobs are pending.
       } finally {
         refreshing = false;
-        schedulePoll();
+        if (!signal.aborted && shouldContinuePolling) {
+          schedulePoll();
+        }
       }
     };
 
@@ -394,7 +442,7 @@ export function useShelfData(isAuthenticated: boolean) {
       cancelScheduledPoll();
       controller.abort();
     };
-  }, [isAuthenticated, pendingBookIDs]);
+  }, [isAuthenticated, loadLibrarySummary, pendingBookIDs]);
 
   const categories = useMemo(() => {
     if (!librarySummary) return deriveCategories(books);

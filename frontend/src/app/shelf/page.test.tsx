@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Book } from '@/lib/api';
@@ -96,14 +96,26 @@ vi.mock('@/hooks/useShelfTheme', () => ({
   }),
 }));
 
+const capturedItemKeys: string[] = [];
+
 vi.mock('@/components/VirtualBookGrid', () => ({
   VirtualBookGrid: ({
     items,
+    getItemKey,
     renderItem,
   }: {
     items: Book[];
+    getItemKey: (item: Book, index: number) => string;
     renderItem: (item: Book, index: number) => ReactNode;
-  }) => <div>{items.map((item, index) => <div key={item.id}>{renderItem(item, index)}</div>)}</div>,
+  }) => (
+    <div>
+      {items.map((item, index) => {
+        const key = getItemKey(item, index);
+        capturedItemKeys.push(key);
+        return <div key={key}>{renderItem(item, index)}</div>;
+      })}
+    </div>
+  ),
 }));
 
 const bookCardRenderProps: Array<{
@@ -129,6 +141,7 @@ vi.mock('@/components/BookCard', () => ({
     selected?: boolean;
     onSelectionToggle?: (bookId: string) => void;
   }) => {
+    const [dialogOpen, setDialogOpen] = useState(false);
     bookCardRenderProps.push({
       bookId: book.id,
       onRead,
@@ -138,6 +151,10 @@ vi.mock('@/components/BookCard', () => ({
     return (
       <div>
         <span>{book.title}</span>
+        <button type="button" onClick={() => setDialogOpen(true)}>
+          {`打开弹窗 ${book.id}`}
+        </button>
+        {dialogOpen && <span role="dialog">{`已打开 ${book.id}`}</span>}
         {selectionMode && (
           <button type="button" onClick={() => onSelectionToggle?.(book.id)}>
             {selected ? `已选 ${book.title}` : `选择 ${book.title}`}
@@ -151,6 +168,7 @@ vi.mock('@/components/BookCard', () => ({
 describe('ShelfPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    capturedItemKeys.length = 0;
     bookCardRenderProps.length = 0;
     mockAuthState.isLoading = false;
     mockAuthState.isAuthenticated = true;
@@ -371,5 +389,43 @@ describe('ShelfPage', () => {
     expect(reparseButton).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByRole('button', { name: '批量分类' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '批量删除' })).toBeDisabled();
+  });
+
+  it('keeps BookCard mounted and dialog state intact when cover paths arrive', () => {
+    const pendingBook: Book = {
+      ...sampleBook,
+      processing_state: 'pending',
+      cover_path: undefined,
+      cover_thumb_path: undefined,
+    };
+    mockShelfData = {
+      ...mockShelfData,
+      books: [pendingBook],
+      filteredBooks: [pendingBook],
+    };
+
+    const { rerender } = render(<ShelfPage />);
+    expect(capturedItemKeys).toEqual(['book-1']);
+
+    fireEvent.click(screen.getByRole('button', { name: '打开弹窗 book-1' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('已打开 book-1');
+
+    capturedItemKeys.length = 0;
+    const processedBook: Book = {
+      ...pendingBook,
+      processing_state: 'ready',
+      cover_path: 'covers/book-1.jpg',
+      cover_thumb_path: 'covers/book-1-thumb.jpg',
+    };
+    mockShelfData = {
+      ...mockShelfData,
+      books: [processedBook],
+      filteredBooks: [processedBook],
+    };
+
+    rerender(<ShelfPage />);
+
+    expect(capturedItemKeys).toEqual(['book-1']);
+    expect(screen.getByRole('dialog')).toHaveTextContent('已打开 book-1');
   });
 });

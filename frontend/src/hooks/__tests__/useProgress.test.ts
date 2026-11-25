@@ -918,4 +918,131 @@ describe('useProgress', () => {
       { createOnly: true, deviceId: expect.any(String) },
     );
   });
+
+  it('degrades gracefully when localStorage getItem, setItem, and removeItem throw', async () => {
+    const storageError = new DOMException('Storage is blocked', 'SecurityError');
+    const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw storageError;
+    });
+    const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw storageError;
+    });
+    const removeItemSpy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+      throw storageError;
+    });
+
+    vi.mocked(api.getProgress).mockResolvedValueOnce(
+      MOCK_PROGRESS({
+        cfi: '',
+        percentage: 0,
+      }),
+    );
+    vi.mocked(api.saveProgress).mockResolvedValue(
+      MOCK_PROGRESS({
+        cfi: 'epubcfi(/6/10)',
+        percentage: 55,
+        updated_at: '2026-05-01T02:00:00Z',
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useProgress({ bookId: 'book-private', autoSaveInterval: 999999 }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Empty initial progress exercises safeRemoveStorageItem in rememberServerVersion
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.progress).toBeNull();
+    expect(getItemSpy).toHaveBeenCalled();
+    expect(removeItemSpy).toHaveBeenCalled();
+
+    // Save progress remotely (exercises safeGetStorageItem + safeSetStorageItem + getDeviceId)
+    await act(async () => {
+      result.current.updateProgress('epubcfi(/6/10)', 55);
+      result.current.saveNow();
+      await Promise.resolve();
+    });
+    expect(setItemSpy).toHaveBeenCalled();
+    expect(api.saveProgress).toHaveBeenCalledWith(
+      'book-private',
+      'epubcfi(/6/10)',
+      55,
+      { createOnly: true, deviceId: expect.any(String) },
+    );
+
+    // Focus triggers remote progress refresh cleanly even when localStorage throws
+    vi.mocked(api.getProgress).mockResolvedValueOnce(
+      MOCK_PROGRESS({
+        cfi: 'epubcfi(/6/11)',
+        percentage: 62,
+        updated_at: '2026-05-01T03:00:00Z',
+        device_id: 'other-device',
+      }),
+    );
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      await Promise.resolve();
+    });
+    expect(result.current.progress).toMatchObject({
+      cfi: 'epubcfi(/6/11)',
+      percentage: 62,
+    });
+
+    // beforeunload save completes without throwing
+    act(() => {
+      result.current.updateProgress('epubcfi(/6/12)', 70);
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+    expect(api.saveProgressOnUnload).toHaveBeenCalledWith(
+      'book-private',
+      'epubcfi(/6/12)',
+      70,
+      { createOnly: true, deviceId: expect.any(String) },
+    );
+  });
+
+  it('handles offline progress updates without throwing when localStorage writes fail', async () => {
+    const quotaError = new DOMException('Quota exceeded', 'QuotaExceededError');
+    const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw quotaError;
+    });
+    const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw quotaError;
+    });
+    vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+      throw quotaError;
+    });
+
+    const { result } = renderHook(() =>
+      useProgress({
+        bookId: 'book-quota',
+        autoSaveInterval: 999999,
+        remoteSyncEnabled: false,
+      }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.isLoading).toBe(false);
+
+    expect(() => {
+      act(() => {
+        result.current.updateProgress('epubcfi(/6/14)', 80);
+        result.current.saveNow();
+      });
+    }).not.toThrow();
+
+    expect(getItemSpy).toHaveBeenCalled();
+    expect(setItemSpy).toHaveBeenCalled();
+    expect(result.current.progress).toMatchObject({
+      cfi: 'epubcfi(/6/14)',
+      percentage: 80,
+      remote: false,
+    });
+    expect(api.saveProgress).not.toHaveBeenCalled();
+  });
 });

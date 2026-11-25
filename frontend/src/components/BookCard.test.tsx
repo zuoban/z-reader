@@ -194,6 +194,12 @@ describe('BookCard', () => {
     render(<BookCard {...baseProps} book={{ ...book, format: 'pdf' }} />);
     expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', undefined, 'thumb', false);
 
+    render(<BookCard {...baseProps} book={{ ...book, format: 'mobi' }} />);
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', undefined, 'thumb', true);
+
+    render(<BookCard {...baseProps} book={{ ...book, format: 'azw3' }} />);
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', undefined, 'thumb', true);
+
     render(<BookCard {...baseProps} book={{ ...book, processing_state: 'ready', cover_path: 'c.jpg' }} />);
     expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', 'c.jpg', 'thumb', true);
   });
@@ -326,5 +332,76 @@ describe('BookCard', () => {
       expect(screen.getByRole('button', { name: '更多操作：《红楼梦》' })).toBeEnabled();
     });
     reparseSpy.mockRestore();
+  });
+
+  it('reactively updates the cover image and recovers from image errors without losing open dialog state', async () => {
+    let mockedCoverUrl: string | null = null;
+    useCoverUrlMock.mockImplementation(() => ({
+      coverUrl: mockedCoverUrl,
+      ref: { current: null },
+    }));
+
+    const pendingBook: Book = {
+      ...book,
+      processing_state: 'pending',
+      cover_path: undefined,
+      cover_thumb_path: undefined,
+    };
+
+    const baseProps = {
+      index: 0,
+      categories: [] as string[],
+      bookCounts: {},
+      onRead: vi.fn(),
+      onDelete: vi.fn(),
+      onUpdate: vi.fn(),
+      isDeleting: false,
+      formatSize: () => '100 B',
+    };
+
+    const { rerender } = render(<BookCard {...baseProps} book={pendingBook} />);
+    expect(screen.queryByRole('img', { name: '红楼梦' })).not.toBeInTheDocument();
+
+    // Open metadata edit dialog and type an unsaved draft while the book is still pending
+    fireEvent.click(screen.getByRole('button', { name: '更多操作：《红楼梦》' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '编辑信息' }));
+    const titleInput = await screen.findByRole('textbox', { name: '书名' });
+    fireEvent.change(titleInput, { target: { value: '红楼梦（精校版）' } });
+
+    // Cover arrives while BookCard stays mounted
+    mockedCoverUrl = 'blob:cover-v1';
+    const readyBook: Book = {
+      ...pendingBook,
+      processing_state: 'ready',
+      cover_path: 'covers/v1.jpg',
+      cover_thumb_path: 'covers/v1-thumb.jpg',
+    };
+    rerender(<BookCard {...baseProps} book={readyBook} />);
+
+    expect(screen.getByRole('dialog', { name: '编辑书籍信息' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '书名' })).toHaveValue('红楼梦（精校版）');
+    const coverImgV1 = screen.getByRole('img', { name: '红楼梦' });
+    expect(coverImgV1).toHaveAttribute('src', 'blob:cover-v1');
+
+    // Simulate a failed image decode on v1 -> falls back to cloth cover
+    fireEvent.error(coverImgV1);
+    expect(screen.queryByRole('img', { name: '红楼梦' })).not.toBeInTheDocument();
+
+    // When a new cover URL arrives (e.g. reparse/upload), the image renders cleanly instead of staying stuck in error state
+    mockedCoverUrl = 'blob:cover-v2';
+    rerender(
+      <BookCard
+        {...baseProps}
+        book={{
+          ...readyBook,
+          cover_path: 'covers/v2.jpg',
+          cover_thumb_path: 'covers/v2-thumb.jpg',
+        }}
+      />,
+    );
+
+    const coverImgV2 = screen.getByRole('img', { name: '红楼梦' });
+    expect(coverImgV2).toHaveAttribute('src', 'blob:cover-v2');
+    expect(screen.getByRole('textbox', { name: '书名' })).toHaveValue('红楼梦（精校版）');
   });
 });

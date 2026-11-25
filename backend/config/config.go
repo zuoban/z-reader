@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -97,7 +99,37 @@ func getAllowedOrigins() []string {
 	})
 }
 
+func validateAllowedOrigins(origins []string) error {
+	if len(origins) == 0 {
+		return fmt.Errorf("ALLOWED_ORIGINS must contain at least one valid origin")
+	}
+	for _, origin := range origins {
+		if origin == "*" {
+			return fmt.Errorf("ALLOWED_ORIGINS cannot contain wildcard %q when credentials are enabled", origin)
+		}
+		parsed, err := url.Parse(origin)
+		if err != nil {
+			return fmt.Errorf("invalid ALLOWED_ORIGINS entry %q: %w", origin, err)
+		}
+		if parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return fmt.Errorf("invalid ALLOWED_ORIGINS entry %q: scheme must be http or https", origin)
+		}
+		if parsed.Opaque != "" || parsed.User != nil || parsed.Hostname() == "" {
+			return fmt.Errorf("invalid ALLOWED_ORIGINS entry %q: must include a valid host", origin)
+		}
+		if parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" ||
+			strings.ContainsAny(origin, "?#") {
+			return fmt.Errorf("invalid ALLOWED_ORIGINS entry %q: must not include path, query, or fragment", origin)
+		}
+	}
+	return nil
+}
+
 func Load() (*Config, error) {
+	allowedOrigins := getAllowedOrigins()
+	if err := validateAllowedOrigins(allowedOrigins); err != nil {
+		return nil, err
+	}
 	return &Config{
 		AccessPassword:      os.Getenv("ACCESS_PASSWORD"),
 		AppPort:             getEnv("APP_PORT", "8080"),
@@ -105,7 +137,7 @@ func Load() (*Config, error) {
 		DBPath:              getEnv("DB_PATH", "./data.db"),
 		MaxUploadBytes:      getEnvInt64("MAX_UPLOAD_BYTES", 256*1024*1024),
 		MaxRequestBodyBytes: getEnvInt64("MAX_REQUEST_BODY_BYTES", 1024*1024),
-		AllowedOrigins:      getAllowedOrigins(),
+		AllowedOrigins:      allowedOrigins,
 		TrustedProxies:      getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
 		MetricsEnabled:      getEnvBool("METRICS_ENABLED", false),
 		PprofEnabled:        getEnvBool("PPROF_ENABLED", false),

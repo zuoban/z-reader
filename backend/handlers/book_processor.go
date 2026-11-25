@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 	"time"
@@ -35,6 +36,7 @@ type bookProcessor struct {
 	notify       chan struct{}
 	stopFeeder   chan struct{}
 	stopRecovery chan struct{}
+	done         chan struct{}
 	recoveryWG   sync.WaitGroup
 	feederWG     sync.WaitGroup
 	workerWG     sync.WaitGroup
@@ -49,6 +51,7 @@ func newBookProcessor(handler *BooksHandler) *bookProcessor {
 		notify:       make(chan struct{}, 1),
 		stopFeeder:   make(chan struct{}),
 		stopRecovery: make(chan struct{}),
+		done:         make(chan struct{}),
 	}
 	processor.workerWG.Add(bookProcessingWorkers)
 	for range bookProcessingWorkers {
@@ -202,10 +205,9 @@ func (p *bookProcessor) recoverPendingBooks() {
 	}
 }
 
-func (p *bookProcessor) close() {
+func (p *bookProcessor) stopAsync() <-chan struct{} {
 	p.closeOnce.Do(func() {
 		close(p.stopRecovery)
-		p.recoveryWG.Wait()
 
 		p.mu.Lock()
 		p.closed = true
@@ -213,9 +215,14 @@ func (p *bookProcessor) close() {
 		close(p.stopFeeder)
 		p.signalFeeder()
 
-		p.feederWG.Wait()
-		p.workerWG.Wait()
+		go func() {
+			p.recoveryWG.Wait()
+			p.feederWG.Wait()
+			p.workerWG.Wait()
+			close(p.done)
+		}()
 	})
+	return p.done
 }
 
 func (h *BooksHandler) enqueueBookProcessing(book *models.Book) {
@@ -229,16 +236,39 @@ func (h *BooksHandler) enqueueBookProcessing(book *models.Book) {
 	})
 }
 
-// Close drains accepted background jobs. Call it after the HTTP server has
-// stopped accepting requests and before closing the database.
-func (h *BooksHandler) Close() {
+// Close drains accepted background jobs bounded by ctx. Call it after the HTTP
+// server has stopped accepting requests and before closing the database.
+func (h *BooksHandler) Close(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var legacyDone <-chan struct{}
 	if h.legacyHashes != nil {
-		h.legacyHashes.close()
+		legacyDone = h.legacyHashes.stopAsync()
 	}
+	var processorDone <-chan struct{}
 	if h.processor != nil {
-		h.processor.close()
+		processorDone = h.processor.stopAsync()
 	}
-	h.closeCoverCache()
+	coverDone := h.stopCoverCache()
+
+	for _, done := range []<-chan struct{}{legacyDone, processorDone, coverDone} {
+		if done == nil {
+			continue
+		}
+		select {
+		case <-done:
+			continue
+		default:
+		}
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
 }
 
 func (h *BooksHandler) processBookPreview(job bookProcessingJob) {

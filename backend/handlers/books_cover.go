@@ -542,7 +542,7 @@ func (h *BooksHandler) acquireCoverCacheSlot(ctx context.Context) (func(), bool)
 	}, true
 }
 
-func (h *BooksHandler) closeCoverCache() {
+func (h *BooksHandler) stopCoverCache() <-chan struct{} {
 	h.coverCacheMu.Lock()
 	if !h.coverCacheClosed {
 		h.coverCacheClosed = true
@@ -550,8 +550,17 @@ func (h *BooksHandler) closeCoverCache() {
 			close(h.coverCacheStop)
 		}
 	}
+	if h.coverCacheDone == nil {
+		done := make(chan struct{})
+		h.coverCacheDone = done
+		go func() {
+			h.coverCacheWG.Wait()
+			close(done)
+		}()
+	}
+	done := h.coverCacheDone
 	h.coverCacheMu.Unlock()
-	h.coverCacheWG.Wait()
+	return done
 }
 
 func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {

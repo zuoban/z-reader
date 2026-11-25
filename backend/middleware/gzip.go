@@ -151,10 +151,12 @@ func (w *gzipResponseWriter) Write(data []byte) (int, error) {
 		w.wroteHeader = true
 	}
 	if !w.decided {
-		if !w.canCompressHeader(data) {
-			w.decided = true
-			w.compress = false
-			w.ResponseWriter.WriteHeader(w.statusCode)
+		sample := data
+		if len(w.buf) > 0 {
+			sample = w.buf
+		}
+		if !w.canCompressHeader(sample) {
+			w.decide(false)
 			return w.writePlain(data)
 		}
 		w.buf = append(w.buf, data...)

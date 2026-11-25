@@ -59,6 +59,7 @@ type BooksHandler struct {
 	coverCacheClosed     bool
 	coverCacheSem        chan struct{}
 	coverCacheStop       chan struct{}
+	coverCacheDone       chan struct{}
 	coverCacheWG         sync.WaitGroup
 	extractBookPreviewFn func(*os.File, string) (*epubMetadata, []byte, string, error)
 }
@@ -354,11 +355,29 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	}
 	defer file.Close()
 	h.setBookCache(c, bookFileCacheMaxAge)
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
 	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
 		return
 	}
+	c.Header("Content-Type", bookFormatContentType(book.Format))
 	c.Header("Accept-Ranges", "bytes")
 	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
+}
+
+func bookFormatContentType(format string) string {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "epub":
+		return "application/epub+zip"
+	case "pdf":
+		return "application/pdf"
+	case "mobi":
+		return "application/x-mobipocket-ebook"
+	case "azw3":
+		return "application/vnd.amazon.ebook"
+	default:
+		return "application/octet-stream"
+	}
 }
 
 type optionalString struct {

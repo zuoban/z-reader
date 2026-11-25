@@ -56,9 +56,9 @@ func (worker *legacyHashBackfill) catchUp(userID string) error {
 	}
 }
 
-func (worker *legacyHashBackfill) close() {
+func (worker *legacyHashBackfill) stopAsync() <-chan struct{} {
 	worker.once.Do(func() { close(worker.stop) })
-	<-worker.done
+	return worker.done
 }
 
 func (worker *legacyHashBackfill) run() {

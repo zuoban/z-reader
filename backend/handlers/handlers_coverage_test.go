@@ -38,7 +38,9 @@ func newCoverageBooksHandler(t *testing.T) (*BooksHandler, *storage.DB, string) 
 	}
 	h := NewBooksHandler(cfg, db)
 	t.Cleanup(func() {
-		h.Close()
+		if err := h.Close(context.Background()); err != nil {
+			t.Errorf("BooksHandler.Close failed: %v", err)
+		}
 	})
 	return h, db, uploadDir
 }

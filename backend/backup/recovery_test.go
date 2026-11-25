@@ -2,6 +2,7 @@ package backup_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -111,7 +112,7 @@ func TestCreateVerifyRestoreAndReady(t *testing.T) {
 	}
 
 	bookHandler := handlers.NewBooksHandler(&config.Config{UploadDir: restoredUploads}, restoredDB)
-	t.Cleanup(bookHandler.Close)
+	t.Cleanup(func() { _ = bookHandler.Close(context.Background()) })
 	router := gin.New()
 	router.GET("/readyz", handlers.Ready(restoredDB, restoredUploads))
 	router.POST("/api/auth/login", handlers.NewAuthHandler(&config.Config{AccessPassword: testPassword}, restoredDB).Login)

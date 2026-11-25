@@ -55,7 +55,11 @@ func newCoverTestHandler(t *testing.T) (*BooksHandler, string) {
 	db := openHandlerTestDB(t)
 	uploadDir := t.TempDir()
 	h := NewBooksHandler(&config.Config{UploadDir: uploadDir, MaxUploadBytes: 10 << 20}, db)
-	t.Cleanup(h.Close)
+	t.Cleanup(func() {
+		if err := h.Close(context.Background()); err != nil {
+			t.Errorf("BooksHandler.Close failed: %v", err)
+		}
+	})
 	return h, uploadDir
 }
 
@@ -293,7 +297,7 @@ func TestCloseDrainsInFlightCoverCacheAndRejectsNewJobs(t *testing.T) {
 
 	closeDone := make(chan struct{})
 	go func() {
-		h.Close()
+		_ = h.Close(context.Background())
 		close(closeDone)
 	}()
 
@@ -329,7 +333,9 @@ func TestCloseDrainsInFlightCoverCacheAndRejectsNewJobs(t *testing.T) {
 	}
 
 	// Repeated Close() must remain safe and idempotent.
-	h.Close()
+	if err := h.Close(context.Background()); err != nil {
+		t.Fatalf("repeated Close returned error: %v", err)
+	}
 }
 
 func TestEnqueueCoverCacheBoundsConcurrencyAndDrainsExtractedCover(t *testing.T) {
@@ -407,7 +413,9 @@ func TestEnqueueCoverCacheBoundsConcurrencyAndDrainsExtractedCover(t *testing.T)
 		t.Fatalf("GetCover = %d, want 200", rec.Code)
 	}
 
-	h.Close()
+	if err := h.Close(context.Background()); err != nil {
+		t.Fatalf("Close returned error: %v", err)
+	}
 
 	stored, err := h.db.GetBook(book.ID)
 	if err != nil || stored == nil || stored.CoverPath == "" {
@@ -687,7 +695,9 @@ func TestCoverThumbnailRespectsCoverCacheSemAndFallsBackWhenBusyOrCanceled(t *te
 		if err := h.db.CreateBook(closedBook); err != nil {
 			t.Fatal(err)
 		}
-		h.Close()
+		if err := h.Close(context.Background()); err != nil {
+			t.Fatalf("Close returned error: %v", err)
+		}
 
 		got, err := h.cacheCoverThumbnail(context.Background(), closedBook)
 		if err != nil || got != closedBook || got.CoverThumbChecked || got.CoverThumbPath != "" {

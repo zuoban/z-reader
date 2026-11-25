@@ -123,6 +123,49 @@ func TestExtractPDFXMPMetadata(t *testing.T) {
 	}
 }
 
+func TestExtractPDFXMPMetadataSkipsUnclosedStartMarker(t *testing.T) {
+	validXMP := `<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Recovered XMP Title</rdf:li></rdf:Alt></dc:title>
+      <dc:creator><rdf:Seq><rdf:li>Recovered XMP Author</rdf:li></rdf:Seq></dc:creator>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>`
+
+	padding := bytes.Repeat([]byte(" "), pdfMaxXMPPacketBytes+1024)
+
+	t.Run("stray unclosed xmpmeta before valid xmpmeta packet", func(t *testing.T) {
+		var window bytes.Buffer
+		window.WriteString("<x:xmpmeta stray unclosed marker")
+		window.Write(padding)
+		window.WriteString(validXMP)
+
+		title, author := extractPDFXMPMetadata(window.Bytes())
+		if title != "Recovered XMP Title" || author != "Recovered XMP Author" {
+			t.Fatalf("extractPDFXMPMetadata() = (%q, %q), want (%q, %q)", title, author, "Recovered XMP Title", "Recovered XMP Author")
+		}
+	})
+
+	t.Run("stray unclosed xmpmeta before standalone rdf:RDF packet", func(t *testing.T) {
+		standaloneRDF := `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Standalone RDF Title</dc:title>
+    <dc:creator>Standalone RDF Author</dc:creator>
+  </rdf:Description>
+</rdf:RDF>`
+		var window bytes.Buffer
+		window.WriteString("<x:xmpmeta stray unclosed marker")
+		window.Write(padding)
+		window.WriteString(standaloneRDF)
+
+		title, author := extractPDFXMPMetadata(window.Bytes())
+		if title != "Standalone RDF Title" || author != "Standalone RDF Author" {
+			t.Fatalf("extractPDFXMPMetadata() = (%q, %q), want (%q, %q)", title, author, "Standalone RDF Title", "Standalone RDF Author")
+		}
+	})
+}
+
 func TestExtractPDFSkipsEncryptedInfoAndOutlineTitles(t *testing.T) {
 	t.Run("encrypted trailer skips /Info garbage", func(t *testing.T) {
 		pdf := buildSyntheticPDFWithXref([]string{

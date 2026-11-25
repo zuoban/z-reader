@@ -2,6 +2,7 @@ package backup
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -28,7 +29,7 @@ func TestSnapshotUploadsSurviveConcurrentLibraryChanges(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, cfg := newConsistencyFixture(t)
 	h := handlers.NewBooksHandler(&config.Config{UploadDir: cfg.UploadDir}, db)
-	t.Cleanup(h.Close)
+	t.Cleanup(func() { _ = h.Close(context.Background()) })
 	router := gin.New()
 	router.DELETE("/books/:id", h.Delete)
 	router.POST("/books/batch-delete", h.BatchDelete)
@@ -103,7 +104,7 @@ func TestSnapshotUploadsSurviveConcurrentLibraryChanges(t *testing.T) {
 		t.Fatalf("restored books = %+v, err = %v", books, err)
 	}
 	restoredHandler := handlers.NewBooksHandler(&config.Config{UploadDir: restoredUploads}, restored)
-	t.Cleanup(restoredHandler.Close)
+	t.Cleanup(func() { _ = restoredHandler.Close(context.Background()) })
 	restoredRouter := gin.New()
 	restoredRouter.GET("/books/:id/file", restoredHandler.GetFile)
 	for _, want := range originals {
@@ -194,7 +195,7 @@ func TestFailedSnapshotUploadCopyReleasesCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := handlers.NewBooksHandler(&config.Config{UploadDir: cfg.UploadDir}, db)
-	t.Cleanup(h.Close)
+	t.Cleanup(func() { _ = h.Close(context.Background()) })
 	router := gin.New()
 	router.DELETE("/books/:id", h.Delete)
 

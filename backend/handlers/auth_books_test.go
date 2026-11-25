@@ -3,6 +3,7 @@ package handlers
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"image"
 	"image/color"
@@ -47,7 +48,11 @@ func newBooksHandler(t *testing.T, cfg *config.Config, db *storage.DB) *BooksHan
 	t.Helper()
 
 	handler := NewBooksHandler(cfg, db)
-	t.Cleanup(handler.Close)
+	t.Cleanup(func() {
+		if err := handler.Close(context.Background()); err != nil {
+			t.Errorf("BooksHandler.Close failed: %v", err)
+		}
+	})
 	return handler
 }
 
@@ -441,6 +446,69 @@ func TestBooksGetFileServesRequestedByteRange(t *testing.T) {
 	}
 	if got := recorder.Header().Get("Accept-Ranges"); got != "bytes" {
 		t.Fatalf("expected Accept-Ranges header, got %q", got)
+	}
+}
+
+func TestBooksGetFileSetsExplicitContentTypeAndSecurityHeaders(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	uploadDir := t.TempDir()
+	db := openHandlerTestDB(t)
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
+
+	htmlPayload := []byte("<!doctype html><html><body><script>alert(1)</script></body></html>")
+	cases := []struct {
+		name        string
+		id          string
+		filename    string
+		format      string
+		wantContent string
+	}{
+		{name: "epub", id: "book-mime-epub", filename: "book.epub", format: "epub", wantContent: "application/epub+zip"},
+		{name: "pdf", id: "book-mime-pdf", filename: "book.pdf", format: "pdf", wantContent: "application/pdf"},
+		{name: "mobi", id: "book-mime-mobi", filename: "book.mobi", format: "mobi", wantContent: "application/x-mobipocket-ebook"},
+		{name: "azw3", id: "book-mime-azw3", filename: "book.azw3", format: "azw3", wantContent: "application/vnd.amazon.ebook"},
+		{name: "fallback", id: "book-mime-unknown", filename: "book.bin", format: "unknown", wantContent: "application/octet-stream"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := os.WriteFile(filepath.Join(uploadDir, tc.filename), htmlPayload, 0600); err != nil {
+				t.Fatalf("failed to write book file: %v", err)
+			}
+			book := &models.Book{
+				ID:        tc.id,
+				UserID:    storage.PersonalLibrary,
+				Title:     tc.name,
+				Filename:  tc.filename,
+				Format:    tc.format,
+				Size:      int64(len(htmlPayload)),
+				CreatedAt: time.Now().UTC(),
+			}
+			if err := db.SaveBook(book); err != nil {
+				t.Fatalf("failed to save book: %v", err)
+			}
+
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/file", nil)
+
+			handler.GetFile(ctx)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200 (body=%s)", recorder.Code, recorder.Body.String())
+			}
+			if got := recorder.Header().Get("Content-Type"); got != tc.wantContent {
+				t.Fatalf("Content-Type = %q, want %q", got, tc.wantContent)
+			}
+			if got := recorder.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+				t.Fatalf("X-Content-Type-Options = %q, want %q", got, "nosniff")
+			}
+			if got := recorder.Header().Get("Content-Security-Policy"); got != "default-src 'none'; sandbox" {
+				t.Fatalf("Content-Security-Policy = %q, want %q", got, "default-src 'none'; sandbox")
+			}
+		})
 	}
 }
 

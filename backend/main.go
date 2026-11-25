@@ -65,20 +65,10 @@ func main() {
 		}()
 	}
 
-	r := gin.New()
-	r.Use(
-		middleware.RequestID(),
-		middleware.RequestLogger(),
-		middleware.HTTPMetrics(),
-		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, _ any) {
-			logger.Error("Request panic", "request_id", logger.RequestID(c.Request.Context()),
-				"route", c.FullPath(), "stack", string(debug.Stack()))
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}),
-		middleware.Gzip(),
-		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes, "/api/books", "/api/books/:id/cover"),
-	)
-	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+	booksHandler := handlers.NewBooksHandler(cfg, db)
+	ttsHandler := handlers.NewTTSHandler()
+	r, err := newRouter(cfg, db, booksHandler, ttsHandler)
+	if err != nil {
 		logger.Error("Failed to configure trusted proxies", "error", err)
 		os.Exit(1)
 	}
@@ -90,26 +80,89 @@ func main() {
 		WriteTimeout:      10 * time.Minute,
 		IdleTimeout:       60 * time.Second,
 	}
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.AllowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Authorization", "Content-Type"},
-		ExposeHeaders:    []string{"X-Request-ID"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Server error", "error", err)
+		}
+	case sig := <-quit:
+		logger.Info("Received signal", "signal", sig)
+	}
+
+	cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("Failed to shut down server gracefully", "error", err)
+		if closeErr := server.Close(); closeErr != nil && !errors.Is(closeErr, http.ErrServerClosed) {
+			logger.Error("Failed to force close server", "error", closeErr)
+		}
+	}
+	booksCloseCtx, booksCloseCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer booksCloseCancel()
+	if err := booksHandler.Close(booksCloseCtx); err != nil {
+		logger.Warn("Timed out waiting for background book workers", "error", err)
+	}
+	ttsCloseCtx, ttsCloseCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer ttsCloseCancel()
+	if err := ttsHandler.Close(ttsCloseCtx); err != nil {
+		logger.Warn("Timed out waiting for TTS disk cache writes", "error", err)
+	}
+	wg.Wait()
+	if err := db.Close(); err != nil {
+		logger.Error("Failed to close database", "error", err)
+	}
+	logger.Info("Server stopped")
+}
+
+func newRouter(cfg *config.Config, db *storage.DB, booksHandler *handlers.BooksHandler, ttsHandler *handlers.TTSHandler) (*gin.Engine, error) {
+	r := gin.New()
+	r.Use(
+		middleware.RequestID(),
+		middleware.RequestLogger(),
+		middleware.HTTPMetrics(),
+		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, _ any) {
+			logger.Error("Request panic", "request_id", logger.RequestID(c.Request.Context()),
+				"route", c.FullPath(), "stack", string(debug.Stack()))
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}),
+		middleware.SecurityHeaders(),
+		cors.New(cors.Config{
+			AllowOrigins:     cfg.AllowedOrigins,
+			AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Authorization", "Content-Type"},
+			ExposeHeaders:    []string{"X-Request-ID"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}),
+		middleware.Gzip(),
+		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes, "/api/books", "/api/books/:id/cover"),
+	)
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		return nil, err
+	}
 
 	authHandler := handlers.NewAuthHandler(cfg, db)
-	booksHandler := handlers.NewBooksHandler(cfg, db)
 	progressHandler := handlers.NewProgressHandler(db)
 	bookmarksHandler := handlers.NewBookmarksHandler(db)
-	ttsHandler := handlers.NewTTSHandler()
 	clientErrorHandler := handlers.NewClientErrorHandler()
 
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
 	r.POST("/api/logout", middleware.RateLimit(middleware.NewRateLimiter(30, 5*time.Minute)), authHandler.Logout)
 	r.GET("/healthz", handlers.Health)
-	r.GET("/readyz", handlers.Ready(db, cfg.UploadDir))
+	r.HEAD("/healthz", handlers.Health)
+	readyHandler := handlers.Ready(db, cfg.UploadDir)
+	r.GET("/readyz", readyHandler)
+	r.HEAD("/readyz", readyHandler)
 	if cfg.MetricsEnabled {
 		r.GET("/metrics", middleware.MetricsHandler)
 	}
@@ -162,46 +215,9 @@ func main() {
 			ttsHandler.SSML,
 		)
 		api.GET("/voices", ttsHandler.VoiceList)
-
 	}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	serverErr := make(chan error, 1)
-	go func() {
-		serverErr <- server.ListenAndServe()
-	}()
-
-	select {
-	case err := <-serverErr:
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Server error", "error", err)
-		}
-	case sig := <-quit:
-		logger.Info("Received signal", "signal", sig)
-	}
-
-	cancel()
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
-	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("Failed to shut down server gracefully", "error", err)
-		if closeErr := server.Close(); closeErr != nil && !errors.Is(closeErr, http.ErrServerClosed) {
-			logger.Error("Failed to force close server", "error", closeErr)
-		}
-	}
-	booksHandler.Close()
-	ttsCloseCtx, ttsCloseCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer ttsCloseCancel()
-	if err := ttsHandler.Close(ttsCloseCtx); err != nil {
-		logger.Warn("Timed out waiting for TTS disk cache writes", "error", err)
-	}
-	wg.Wait()
-	if err := db.Close(); err != nil {
-		logger.Error("Failed to close database", "error", err)
-	}
-	logger.Info("Server stopped")
+	return r, nil
 }
 
 func startSessionCleaner(ctx context.Context, db *storage.DB) {

@@ -743,3 +743,98 @@ func TestGzipWeakensStrongETagOnlyWhenCompressed(t *testing.T) {
 		})
 	}
 }
+
+func TestGzipWriteSniffsInitialPrefixAcrossChunks(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(Gzip())
+
+	chunk1 := []byte("plain text initial prefix that sniffs as text/plain\n")
+	chunk2 := bytes.Repeat([]byte{0x00, 0x01, 0x02, 0x03}, 400)
+	want := append(append([]byte(nil), chunk1...), chunk2...)
+
+	router.GET("/mixed-chunks", func(c *gin.Context) {
+		if _, err := c.Writer.Write(chunk1); err != nil {
+			t.Errorf("first write failed: %v", err)
+		}
+		if _, err := c.Writer.Write(chunk2); err != nil {
+			t.Errorf("second write failed: %v", err)
+		}
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/mixed-chunks", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Encoding"); got != "gzip" {
+		t.Fatalf("Content-Encoding = %q, want gzip", got)
+	}
+
+	gz, err := gzip.NewReader(rec.Body)
+	if err != nil {
+		t.Fatalf("gzip.NewReader failed: %v", err)
+	}
+	defer gz.Close()
+	decoded, err := io.ReadAll(gz)
+	if err != nil {
+		t.Fatalf("io.ReadAll failed: %v", err)
+	}
+	if !bytes.Equal(decoded, want) {
+		t.Fatalf("decoded body length = %d, want %d (prefix/body mismatch)", len(decoded), len(want))
+	}
+}
+
+func TestGzipWriteFlushesBufferedBytesWhenHeadersBecomeNonCompressible(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	cases := []struct {
+		name   string
+		mutate func(c *gin.Context)
+	}{
+		{
+			name: "Content-Type changed to application/octet-stream",
+			mutate: func(c *gin.Context) {
+				c.Header("Content-Type", "application/octet-stream")
+			},
+		},
+		{
+			name: "Content-Encoding set between writes",
+			mutate: func(c *gin.Context) {
+				c.Header("Content-Encoding", "br")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			router.Use(Gzip())
+			router.GET("/mutate-headers", func(c *gin.Context) {
+				c.Header("Content-Type", "text/plain; charset=utf-8")
+				if _, err := c.Writer.Write([]byte("buffered-first-chunk-")); err != nil {
+					t.Errorf("first write failed: %v", err)
+				}
+				tc.mutate(c)
+				if _, err := c.Writer.Write([]byte("second-chunk")); err != nil {
+					t.Errorf("second write failed: %v", err)
+				}
+			})
+
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/mutate-headers", nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200", rec.Code)
+			}
+			if got := rec.Body.String(); got != "buffered-first-chunk-second-chunk" {
+				t.Fatalf("body = %q, want %q", got, "buffered-first-chunk-second-chunk")
+			}
+		})
+	}
+}

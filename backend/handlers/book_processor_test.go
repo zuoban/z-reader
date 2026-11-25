@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -236,9 +238,13 @@ func TestBookProcessorNonBlockingOverflowEnqueueAndDrain(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	handler.Close()
+	if err := handler.Close(context.Background()); err != nil {
+		t.Fatalf("handler.Close returned error: %v", err)
+	}
 	// Repeated Close and post-Close enqueue must be safe no-ops.
-	handler.Close()
+	if err := handler.Close(context.Background()); err != nil {
+		t.Fatalf("repeated handler.Close returned error: %v", err)
+	}
 	handler.enqueueBookProcessing(books[0])
 
 	for i, b := range books {
@@ -383,7 +389,9 @@ func TestBookProcessorCloseStopsOverflowAndLeavesPendingForRecovery(t *testing.T
 		t.Fatal(err)
 	}
 
-	handler.Close()
+	if err := handler.Close(context.Background()); err != nil {
+		t.Fatalf("handler.Close returned error: %v", err)
+	}
 
 	// Next startup recovers any book left pending during shutdown.
 	restarted := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
@@ -638,4 +646,42 @@ func TestBookProcessorSanitizesOversizedAndWhitespaceEPUBMetadata(t *testing.T) 
 			t.Fatalf("whitespace-only <dc:creator> = %q, want empty", saved.Author)
 		}
 	})
+}
+
+func TestBooksHandlerCloseRespectsContextTimeout(t *testing.T) {
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	handler := NewBooksHandler(&config.Config{UploadDir: uploadDir}, db)
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	if ok := handler.enqueueCoverCacheTask(func() {
+		close(started)
+		<-release
+	}); !ok {
+		t.Fatal("expected cover cache task to be accepted")
+	}
+	<-started
+
+	shortCtx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	err := handler.Close(shortCtx)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		close(release)
+		t.Fatalf("Close(shortCtx) = %v, want context.DeadlineExceeded", err)
+	}
+	if elapsed := time.Since(start); elapsed > time.Second {
+		close(release)
+		t.Fatalf("Close(shortCtx) took %v, expected bounded return", elapsed)
+	}
+
+	close(release)
+
+	drainCtx, drainCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer drainCancel()
+	if err := handler.Close(drainCtx); err != nil {
+		t.Fatalf("Close(drainCtx) after task released = %v, want nil", err)
+	}
 }

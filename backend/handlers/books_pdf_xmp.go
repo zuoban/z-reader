@@ -33,41 +33,45 @@ func extractPDFXMPMetadata(window []byte) (string, string) {
 }
 
 func nextXMPPacket(data []byte) ([]byte, []byte, bool) {
-	startIdx := -1
-	endMarker := []byte("</x:xmpmeta>")
-	if idx := bytes.Index(data, []byte("<x:xmpmeta")); idx >= 0 {
-		startIdx = idx
-	} else if idx := bytes.Index(data, []byte("<?xpacket")); idx >= 0 {
-		startIdx = idx
-		endMarker = []byte("<?xpacket end")
-	} else if idx := bytes.Index(data, []byte("<rdf:RDF")); idx >= 0 {
-		startIdx = idx
-		endMarker = []byte("</rdf:RDF>")
-	}
-	if startIdx < 0 {
-		return nil, nil, false
-	}
-
-	segment := data[startIdx:]
-	if len(segment) > pdfMaxXMPPacketBytes {
-		segment = segment[:pdfMaxXMPPacketBytes]
-	}
-
-	endIdx := bytes.Index(segment, endMarker)
-	if endIdx >= 0 {
-		packetEnd := endIdx + len(endMarker)
-		if bytes.Equal(endMarker, []byte("<?xpacket end")) {
-			if closeIdx := bytes.Index(segment[packetEnd:], []byte("?>")); closeIdx >= 0 {
-				packetEnd += closeIdx + 2
-			}
+	for len(data) > 0 {
+		startIdx := -1
+		endMarker := []byte("</x:xmpmeta>")
+		if idx := bytes.Index(data, []byte("<x:xmpmeta")); idx >= 0 {
+			startIdx = idx
+		} else if idx := bytes.Index(data, []byte("<?xpacket")); idx >= 0 {
+			startIdx = idx
+			endMarker = []byte("<?xpacket end")
+		} else if idx := bytes.Index(data, []byte("<rdf:RDF")); idx >= 0 {
+			startIdx = idx
+			endMarker = []byte("</rdf:RDF>")
 		}
-		return segment[:packetEnd], data[startIdx+packetEnd:], true
-	}
+		if startIdx < 0 {
+			return nil, nil, false
+		}
 
-	// If <x:xmpmeta> wasn't closed cleanly inside the window, try closing at </rdf:RDF>.
-	if rdfEnd := bytes.Index(segment, []byte("</rdf:RDF>")); rdfEnd >= 0 {
-		packetEnd := rdfEnd + len("</rdf:RDF>")
-		return segment[:packetEnd], data[startIdx+packetEnd:], true
+		segment := data[startIdx:]
+		if len(segment) > pdfMaxXMPPacketBytes {
+			segment = segment[:pdfMaxXMPPacketBytes]
+		}
+
+		endIdx := bytes.Index(segment, endMarker)
+		if endIdx >= 0 {
+			packetEnd := endIdx + len(endMarker)
+			if bytes.Equal(endMarker, []byte("<?xpacket end")) {
+				if closeIdx := bytes.Index(segment[packetEnd:], []byte("?>")); closeIdx >= 0 {
+					packetEnd += closeIdx + 2
+				}
+			}
+			return segment[:packetEnd], data[startIdx+packetEnd:], true
+		}
+
+		// If <x:xmpmeta> wasn't closed cleanly inside the window, try closing at </rdf:RDF>.
+		if rdfEnd := bytes.Index(segment, []byte("</rdf:RDF>")); rdfEnd >= 0 {
+			packetEnd := rdfEnd + len("</rdf:RDF>")
+			return segment[:packetEnd], data[startIdx+packetEnd:], true
+		}
+
+		data = data[startIdx+1:]
 	}
 	return nil, nil, false
 }

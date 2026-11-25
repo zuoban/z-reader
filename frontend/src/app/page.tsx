@@ -1,28 +1,60 @@
 import Link from 'next/link';
-import { ArrowRight, Bookmark, Cloud, Palette, Server, Smartphone, Upload } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { AppScreen, BrandLogo } from '@/components/AppShell';
-import { LibraryPreview } from '@/components/LibraryPreview';
+import { LandingThemeToggle } from '@/components/LandingThemeToggle';
+import { ReaderDeskPreview } from '@/components/ReaderDeskPreview';
 
 const features = [
-  { icon: Upload, title: '导入与分类', description: '批量导入 EPUB、MOBI、AZW3 和 PDF，按分类整理书库' },
-  { icon: Cloud, title: '进度同步', description: '保存读到的段落，换设备也能接着读' },
-  { icon: Palette, title: '主题与排版', description: '支持净白、旧书、苔纸和夜读主题，可调整字号、行距和中文缩进' },
-  { icon: Bookmark, title: '目录与书签', description: '按目录跳到章节，用书签标记想再读的段落' },
-  { icon: Smartphone, title: '跨设备与离线阅读', description: '支持键盘翻页与触控手势，缓存书籍后可离线阅读' },
-  { icon: Server, title: '开源自托管', description: '在自己的服务器上保存书籍和阅读记录' },
+  {
+    index: '01',
+    title: '多格式导入与整理',
+    description: '批量上传 EPUB、MOBI、AZW3 和 PDF，按自定义分类整理私人藏书。',
+  },
+  {
+    index: '02',
+    title: '段落级进度同步',
+    description: '自动记住停下的位置，手机、平板和电脑打开就能接着读。',
+  },
+  {
+    index: '03',
+    title: '四套纸面与中文排版',
+    description: '提供净白、旧书、苔纸与夜读纸面，支持字号、行距与首行缩进微调。',
+  },
+  {
+    index: '04',
+    title: '目录跳转与书签',
+    description: '按章节目录快速定位，用书签留住想反复重读的段落。',
+  },
+  {
+    index: '05',
+    title: '离线缓存与手势翻页',
+    description: '兼容键盘翻页与触控手势，提前缓存书籍后断网也能继续读。',
+  },
+  {
+    index: '06',
+    title: '开源自托管与语音朗读',
+    description: '藏书与阅读记录留在自有服务器，需要时也能开启朗读。',
+  },
+];
+
+const colophonItems = [
+  { label: '支持格式', value: 'EPUB · MOBI · AZW3 · PDF' },
+  { label: '阅读纸面', value: '净白 · 旧书 · 苔纸 · 夜读' },
+  { label: '数据归属', value: '开源自托管 · 离线缓存' },
 ];
 
 export default function LandingPage() {
   return (
     <AppScreen contentClassName="entry-screen flex flex-col">
       <header className="border-b border-border">
-        <div className="app-container flex h-14 items-center justify-between gap-4 sm:h-16">
+        <div className="app-container flex h-16 items-center justify-between gap-4">
           <BrandLogo compact />
-          <nav className="flex items-center gap-6" aria-label="主导航">
+          <nav className="flex items-center gap-2 sm:gap-3" aria-label="主导航">
             <a href="#features" className="entry-nav-link hidden sm:inline-flex">
-              功能一览
+              功能目录
             </a>
-            <Link href="/shelf" className="entry-nav-link inline-flex">
+            <LandingThemeToggle />
+            <Link href="/shelf" className="entry-header-cta">
               进入书架
             </Link>
           </nav>
@@ -36,11 +68,14 @@ export default function LandingPage() {
               <span className="sr-only">Z Reader </span>
               你的私人书库<br />打开就是上次那页
             </h1>
-            <p className="mt-4 max-w-[27rem] text-pretty text-base leading-7 text-muted-foreground sm:mt-5">
-              自托管 EPUB、MOBI、AZW3 和 PDF 书库，在手机、平板和电脑上接着读
+            <p className="mt-5 max-w-[30rem] text-pretty text-base leading-7 text-subtle-foreground sm:mt-6 sm:text-lg sm:leading-8">
+              自托管你的 EPUB、MOBI、AZW3 与 PDF 藏书，在手机、平板和电脑上随时接着读。
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-8">
-              <Link href="/shelf" className="app-primary-link entry-action group">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/shelf"
+                className="app-primary-link entry-action entry-primary-action group"
+              >
                 进入我的书架
                 <ArrowRight
                   size={16}
@@ -50,49 +85,76 @@ export default function LandingPage() {
                 />
               </Link>
               <a href="#features" className="app-secondary-link entry-action">
-                了解功能
+                查看功能目录
               </a>
             </div>
+
+            <dl className="landing-colophon">
+              {colophonItems.map((item) => (
+                <div key={item.label} className="min-w-0">
+                  <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                  <dd className="mt-1 whitespace-nowrap text-xs font-medium text-subtle-foreground">
+                    {item.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          <div className="w-full max-w-[34rem] lg:justify-self-end">
-            <LibraryPreview />
+          <div className="w-full max-w-[36rem] lg:justify-self-end">
+            <ReaderDeskPreview />
           </div>
         </section>
 
-        <section id="features" className="scroll-mt-8 border-y border-border bg-surface-subtle py-14 sm:py-16 lg:py-20">
-          <div className="app-container grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-16 xl:gap-20">
-            <div>
-              <h2 className="entry-title text-2xl sm:text-[1.75rem]">
+        <section
+          id="features"
+          className="scroll-mt-8 border-t border-border bg-surface-subtle py-20 sm:py-24 lg:py-28"
+        >
+          <div className="app-container grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16 xl:gap-20">
+            <div className="lg:sticky lg:top-24 lg:self-start">
+              <p className="font-mono text-xs text-muted-foreground">卷目 · 01—06</p>
+              <h2 className="entry-title mt-3 text-2xl sm:text-3xl">
                 书库与阅读功能
               </h2>
-              <p className="mt-3 max-w-sm text-pretty text-sm leading-6 text-muted-foreground">
-                整理藏书、调整排版，也可以开启朗读
+              <p className="mt-4 max-w-xs text-pretty text-sm leading-6 text-subtle-foreground">
+                从整理藏书到调整中文排版，把干扰留在书页之外。
               </p>
             </div>
-            <ul role="list" className="grid gap-x-8 sm:grid-cols-2">
-              {features.map(({ icon: Icon, title, description }) => (
-                <li key={title} className="entry-feature">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-primary/85 shadow-[var(--paper-shadow-control)]">
-                    <Icon size={15} strokeWidth={1.6} aria-hidden="true" />
-                  </div>
+
+            <ol className="grid gap-x-12 sm:grid-cols-2">
+              {features.map((item) => (
+                <li key={item.index} className="entry-catalog-item">
+                  <span
+                    aria-hidden="true"
+                    className="font-mono text-xs leading-6 text-muted-foreground tabular-nums"
+                  >
+                    {item.index}
+                  </span>
                   <div>
-                    <h3 className="text-[15px] font-medium text-foreground">{title}</h3>
-                    <p className="mt-1.5 text-pretty text-sm leading-6 text-muted-foreground">
-                      {description}
+                    <h3 className="text-base font-medium leading-6 text-foreground">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-pretty text-sm leading-6 text-subtle-foreground">
+                      {item.description}
                     </p>
                   </div>
                 </li>
               ))}
-            </ul>
+            </ol>
           </div>
         </section>
       </main>
 
-      <footer>
-        <div className="app-container flex flex-col gap-2 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-heading text-sm font-medium text-foreground">Z Reader</span>
-          <span>开源自托管私人书库</span>
+      <footer className="border-t border-border">
+        <div className="app-container flex flex-col gap-3 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="font-heading text-sm font-semibold text-foreground">Z Reader</span>
+            <span aria-hidden="true">·</span>
+            <span>安静的开源自托管私人书库</span>
+          </div>
+          <Link href="/shelf" className="text-subtle-foreground transition-colors hover:text-foreground">
+            进入书架
+          </Link>
         </div>
       </footer>
     </AppScreen>

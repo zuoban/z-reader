@@ -15,7 +15,7 @@ export function AppScreen({
   contentClassName,
 }: AppScreenProps) {
   return (
-    <div className={cn('relative min-h-dvh overflow-hidden bg-background text-foreground', className)}>
+    <div className={cn('relative min-h-dvh overflow-x-clip bg-background text-foreground', className)}>
       <div
         id="main-content"
         tabIndex={-1}
@@ -49,18 +49,45 @@ export function BrandLogo({
 }) {
   return (
     <div className={cn('inline-flex items-center gap-2.5 text-foreground', className)}>
-      <span
+      <svg
         aria-hidden="true"
-        className={cn(
-          'shrink-0 rounded-[23%] bg-cover bg-center shadow-[0_1px_3px_rgb(24_23_20/18%)]',
-          compact ? 'size-7' : 'size-8'
-        )}
-        style={{ backgroundImage: 'url(/icons/icon.svg)' }}
-      />
+        viewBox="0 0 24 24"
+        fill="none"
+        className={cn('shrink-0', compact ? 'size-6' : 'size-7')}
+      >
+        <rect
+          x="3"
+          y="2.5"
+          width="18"
+          height="19"
+          rx="3"
+          className="fill-card stroke-foreground/80 dark:fill-secondary dark:stroke-foreground/70"
+          strokeWidth="1.5"
+        />
+        <line
+          x1="7.5"
+          y1="3.25"
+          x2="7.5"
+          y2="20.75"
+          className="stroke-foreground/25"
+          strokeWidth="1.25"
+        />
+        <path
+          d="M14.25 3.25H17.75V10.5L16 9.1L14.25 10.5V3.25Z"
+          className="fill-primary"
+        />
+        <path
+          d="M10.5 13.5H16.25L10.75 18H16.5"
+          className="stroke-foreground"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
       <span
         className={cn(
-          'font-heading font-semibold leading-none tracking-[-0.02em] text-foreground',
-          compact ? 'text-[17px]' : 'text-[19px]'
+          'font-heading font-semibold leading-none tracking-normal text-foreground',
+          compact ? 'text-base' : 'text-lg'
         )}
       >
         Z Reader

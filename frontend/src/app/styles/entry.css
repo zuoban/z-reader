@@ -7,7 +7,7 @@
   }
 
   .entry-title {
-    @apply font-heading font-medium leading-tight text-foreground;
+    @apply font-heading font-normal leading-tight text-foreground;
   }
 
   .entry-nav-link,
@@ -17,17 +17,58 @@
   }
 
   .entry-nav-link {
-    @apply whitespace-nowrap px-1.5 hover:underline underline-offset-4;
+    @apply whitespace-nowrap px-2;
   }
 
-  .entry-nav-link:focus-visible {
+  .entry-nav-link:focus-visible,
+  .entry-icon-btn:focus-visible,
+  .entry-header-cta:focus-visible,
+  .reader-desk-swatch-btn:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+
+  .entry-icon-btn {
+    @apply inline-flex size-10 cursor-pointer items-center justify-center rounded-lg text-muted-foreground sm:size-9;
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .entry-icon-btn:hover {
+    @apply bg-secondary text-foreground;
+  }
+
+  .entry-header-cta {
+    @apply inline-flex h-9 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground;
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .entry-header-cta:hover {
+    @apply border-input bg-secondary;
   }
 
   .entry-action {
     height: var(--entry-control-size);
     box-shadow: none;
+  }
+
+  .entry-primary-action {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+  }
+
+  .dark .entry-primary-action {
+    background: #ededeb;
+    color: #141413;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 32%);
+  }
+
+  .dark .entry-primary-action:enabled:hover,
+  .dark a.entry-primary-action:hover {
+    background: #ffffff;
   }
 
   .entry-action:disabled {
@@ -88,26 +129,160 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .entry-password-toggle:enabled:active {
-      transform: scale(0.95);
+    .entry-password-toggle:enabled:active,
+    .entry-icon-btn:active,
+    .entry-header-cta:active {
+      transform: scale(0.97);
     }
   }
 
   .landing-hero {
-    @apply grid items-center gap-8 py-12 sm:gap-12 sm:py-16 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:py-20;
+    @apply grid items-center gap-10 pt-10 pb-14 sm:pt-12 sm:pb-16 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14 lg:py-12 xl:gap-16 xl:py-16;
   }
 
   .landing-title {
-    font-size: clamp(2rem, 4vw, 3.25rem);
+    font-size: clamp(2.25rem, 4.4vw, 3.75rem);
+    line-height: 1.12;
     letter-spacing: -0.025em;
   }
 
-  .entry-feature {
-    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3.5 border-t border-border py-4;
+  .landing-colophon {
+    @apply mt-8 flex flex-wrap gap-x-8 gap-y-4 border-t border-border pt-6 lg:mt-10;
   }
 
+  .entry-catalog-item {
+    @apply grid grid-cols-[2rem_minmax(0,1fr)] gap-4 border-t border-border py-6;
+  }
+
+  /* Interactive reading desk preview on landing page */
+  .reader-desk-shell {
+    @apply rounded-2xl border border-border bg-card p-5;
+    box-shadow: 0 1px 2px rgb(24 23 20 / 5%), 0 16px 36px -22px rgb(24 23 20 / 12%);
+  }
+
+  .dark .reader-desk-shell {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+  }
+
+  .reader-desk-swatch-btn {
+    @apply inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-transparent px-2 text-xs text-muted-foreground;
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-desk-swatch-btn:hover {
+    @apply bg-secondary text-foreground;
+  }
+
+  .reader-desk-swatch-btn-active,
+  html:not(.dark) [data-paper-mode="auto"] .reader-desk-swatch-btn[data-default-for="light"],
+  html.dark [data-paper-mode="auto"] .reader-desk-swatch-btn[data-default-for="dark"] {
+    @apply border-border bg-secondary font-medium text-foreground;
+  }
+
+  .reader-desk-page {
+    --paper-bg: #f8f7f4;
+    --paper-fg: #1c1b19;
+    --paper-muted: #6b6860;
+    --paper-border: #e6e4de;
+    --paper-accent: #8e4934;
+    @apply relative overflow-hidden rounded-lg border px-5 py-4 sm:px-6 sm:py-5;
+    background-color: var(--paper-bg);
+    color: var(--paper-fg);
+    border-color: var(--paper-border);
+    transition: background-color var(--paper-duration-base) var(--paper-ease-soft),
+      border-color var(--paper-duration-base) var(--paper-ease-soft),
+      color var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .dark .reader-desk-page[data-paper-preset="auto"],
+  .reader-desk-page[data-paper-preset="dark"] {
+    --paper-bg: #141413;
+    --paper-fg: #ededeb;
+    --paper-muted: #9a9891;
+    --paper-border: #2a2a27;
+    --paper-accent: #e4a186;
+  }
+
+  .reader-desk-page[data-paper-preset="light"] {
+    --paper-bg: #f8f7f4;
+    --paper-fg: #1c1b19;
+    --paper-muted: #6b6860;
+    --paper-border: #e6e4de;
+    --paper-accent: #8e4934;
+  }
+
+  .reader-desk-page[data-paper-preset="sepia"] {
+    --paper-bg: #f3ead7;
+    --paper-fg: #3f3124;
+    --paper-muted: #5c4a36;
+    --paper-border: #d8c4a0;
+    --paper-accent: #7a4e2a;
+  }
+
+  .reader-desk-page[data-paper-preset="green"] {
+    --paper-bg: #e6ede1;
+    --paper-fg: #1f2e25;
+    --paper-muted: #3d4f42;
+    --paper-border: #c8d6c3;
+    --paper-accent: #3d6349;
+  }
+
+  .reader-desk-bookmark {
+    position: absolute;
+    top: 0;
+    right: 1.5rem;
+    width: 8px;
+    height: 18px;
+    background-color: var(--paper-accent);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
+    opacity: 0.9;
+    transition: background-color var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .reader-desk-page-header {
+    @apply flex items-baseline justify-between gap-4 border-b pb-2.5 pr-5;
+    border-color: var(--paper-border);
+    color: var(--paper-muted);
+  }
+
+  .reader-desk-excerpt {
+    @apply mt-3.5 space-y-2.5 font-serif text-sm leading-[1.85];
+    color: var(--paper-fg);
+  }
+
+  .reader-desk-excerpt p {
+    text-indent: 2em;
+  }
+
+  .reader-desk-page-footer {
+    @apply mt-4 border-t pt-2.5;
+    border-color: var(--paper-border);
+    color: var(--paper-muted);
+  }
+
+  .reader-desk-progress-num {
+    color: var(--paper-accent);
+    font-weight: 500;
+  }
+
+  .reader-desk-progress-track {
+    @apply mt-2.5 h-[2px] overflow-hidden rounded-full;
+    background-color: var(--paper-border);
+  }
+
+  .reader-desk-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background-color: var(--paper-accent);
+    transition: width 240ms var(--paper-ease-soft),
+      background-color var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  /* Compact shelf preview (login) and shared book covers */
   .library-preview {
-    @apply rounded-2xl border border-border bg-card p-4 sm:p-6;
+    @apply rounded-2xl border border-border bg-card p-5 sm:p-6;
     box-shadow: var(--paper-shadow-panel);
   }
 
@@ -126,42 +301,84 @@
 
   .preview-cover {
     --cover-paper: #faf4e6;
-    @apply relative grid aspect-[5/7] grid-rows-[1fr_auto] items-center justify-items-center gap-1 overflow-hidden rounded-[4px] py-3 pl-2 pr-1 text-center;
+    --cover-bg: var(--cover-color-light, var(--cover-color, #37584b));
+    --cover-frame: color-mix(in srgb, var(--cover-paper) 34%, transparent);
+    @apply relative grid aspect-[5/7] grid-rows-[1fr_auto] items-center justify-items-center gap-1.5 overflow-hidden rounded-[4px] py-3.5 pl-3 pr-1.5 text-center;
     color: var(--cover-paper);
-    background: var(--cover-color);
+    background: var(--cover-bg);
     container-type: inline-size;
-    box-shadow: 0 2px 8px -2px rgb(15 20 17 / 22%), inset 0 0 0 1px rgb(255 255 255 / 10%);
-    transition: transform var(--paper-duration-base) var(--paper-ease-soft),
-      box-shadow var(--paper-duration-base) var(--paper-ease-soft);
+    box-shadow: 0 2px 8px -2px rgb(15 20 17 / 20%), inset 0 0 0 1px rgb(255 255 255 / 10%);
+  }
+
+  .dark .preview-cover {
+    --cover-bg: var(--cover-color-dark, var(--cover-color-light, #2d473d));
+    --cover-frame: color-mix(in srgb, var(--cover-paper) 22%, transparent);
+    box-shadow: 0 2px 10px -3px rgb(0 0 0 / 50%), inset 0 0 0 1px rgb(255 255 255 / 8%);
+  }
+
+  .preview-cover-interactive {
+    @apply aspect-[4/5] cursor-pointer border-0;
+    transition: transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .preview-cover-interactive:not(.preview-cover-active) {
+    opacity: 0.84;
+  }
+
+  .preview-cover-interactive:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    .preview-cover:hover {
+    .preview-cover-interactive:hover {
+      opacity: 1;
       transform: translateY(-2px);
       box-shadow: 0 8px 16px -6px rgb(15 20 17 / 28%), inset 0 0 0 1px rgb(255 255 255 / 14%);
     }
+
+    .dark .preview-cover-interactive:hover {
+      box-shadow: 0 10px 18px -6px rgb(0 0 0 / 62%), inset 0 0 0 1px rgb(255 255 255 / 12%);
+    }
+  }
+
+  .preview-cover-active {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--primary), 0 10px 20px -8px rgb(15 20 17 / 28%);
+  }
+
+  .dark .preview-cover-active {
+    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--primary), 0 12px 22px -8px rgb(0 0 0 / 62%);
   }
 
   .preview-cover::after {
     content: "";
     position: absolute;
-    inset: 6px 6px 6px 9px;
-    border: 1px solid color-mix(in srgb, var(--cover-paper) 34%, transparent);
+    inset: 6px 6px 6px 10px;
+    border: 1px solid var(--cover-frame);
     pointer-events: none;
   }
 
   .preview-cover-title {
-    @apply font-heading font-medium;
-    font-size: clamp(0.875rem, 24cqw, 1.875rem);
-    line-height: 1;
+    @apply font-heading font-normal;
+    font-size: clamp(0.875rem, 20cqw, 1.375rem);
+    line-height: 1.05;
+    padding-block: 2px;
     white-space: nowrap;
     writing-mode: vertical-rl;
+  }
+
+  .preview-cover-title[data-long="true"] {
+    font-size: clamp(0.75rem, 16.5cqw, 1.125rem);
   }
 
   .preview-cover-author {
     font-size: clamp(0.6875rem, 9cqw, 0.75rem);
     line-height: 1.25;
-    opacity: 0.88;
+    opacity: 0.86;
   }
 
   .auth-layout {

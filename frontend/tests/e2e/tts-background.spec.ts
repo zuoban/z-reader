@@ -149,7 +149,7 @@ test.describe('background TTS', () => {
       return Boolean(audio?.error);
     });
     const retry = page.getByRole('button', { name: '继续', exact: true })
-      .and(page.getByText('继续', { exact: true }));
+      .filter({ hasText: /^继续$/ });
     if (!(await retry.isVisible())) {
       const expand = page.getByRole('button', { name: '展开操作栏' });
       if (await expand.isVisible()) await expand.click();

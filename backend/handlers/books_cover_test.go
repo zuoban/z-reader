@@ -268,3 +268,147 @@ func TestGetCoverReturnsETagAndNotModified(t *testing.T) {
 		t.Fatalf("expected empty body on 304, got %d bytes", rec2.Body.Len())
 	}
 }
+
+func TestCloseDrainsInFlightCoverCacheAndRejectsNewJobs(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	h := NewBooksHandler(&config.Config{UploadDir: uploadDir, MaxUploadBytes: 10 << 20}, db)
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var completed atomic.Bool
+
+	if ok := h.enqueueCoverCacheTask(func() {
+		close(started)
+		<-release
+		completed.Store(true)
+	}); !ok {
+		t.Fatal("expected initial cover cache task to be accepted")
+	}
+
+	<-started
+
+	closeDone := make(chan struct{})
+	go func() {
+		h.Close()
+		close(closeDone)
+	}()
+
+	select {
+	case <-closeDone:
+		t.Fatal("Close() returned while cover cache task was still in flight")
+	case <-time.After(30 * time.Millisecond):
+	}
+
+	close(release)
+
+	select {
+	case <-closeDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Close() timed out waiting for in-flight cover cache task")
+	}
+	if !completed.Load() {
+		t.Fatal("expected in-flight cover cache task to finish before Close() returned")
+	}
+
+	// New jobs after Close() must be rejected/skipped and never run.
+	var postCloseRan atomic.Bool
+	if ok := h.enqueueCoverCacheTask(func() {
+		postCloseRan.Store(true)
+	}); ok {
+		t.Fatal("expected enqueueCoverCacheTask to return false after Close()")
+	}
+	if ok := h.enqueueCoverCache(&models.Book{ID: "after-close"}, []byte("jpeg"), "image/jpeg"); ok {
+		t.Fatal("expected enqueueCoverCache to return false after Close()")
+	}
+	if postCloseRan.Load() {
+		t.Fatal("post-Close cover cache task unexpectedly executed")
+	}
+
+	// Repeated Close() must remain safe and idempotent.
+	h.Close()
+}
+
+func TestEnqueueCoverCacheBoundsConcurrencyAndDrainsExtractedCover(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	h := NewBooksHandler(&config.Config{UploadDir: uploadDir, MaxUploadBytes: 10 << 20}, db)
+
+	started := make(chan struct{}, coverCacheMaxConcurrency)
+	release := make(chan struct{})
+	var active atomic.Int32
+	var maxActive atomic.Int32
+
+	for range coverCacheMaxConcurrency {
+		if ok := h.enqueueCoverCacheTask(func() {
+			cur := active.Add(1)
+			for {
+				prev := maxActive.Load()
+				if cur <= prev || maxActive.CompareAndSwap(prev, cur) {
+					break
+				}
+			}
+			started <- struct{}{}
+			<-release
+			active.Add(-1)
+		}); !ok {
+			t.Fatal("expected slot within coverCacheMaxConcurrency to be accepted")
+		}
+	}
+
+	for range coverCacheMaxConcurrency {
+		<-started
+	}
+
+	var overflowRan atomic.Bool
+	if ok := h.enqueueCoverCacheTask(func() {
+		overflowRan.Store(true)
+	}); ok {
+		t.Fatal("expected enqueueCoverCacheTask to drop job when semaphore is full")
+	}
+	if overflowRan.Load() {
+		t.Fatal("overflow cover cache task unexpectedly executed")
+	}
+
+	close(release)
+	h.coverCacheWG.Wait()
+	if got := maxActive.Load(); got > coverCacheMaxConcurrency {
+		t.Fatalf("max concurrent cover cache tasks = %d, want <= %d", got, coverCacheMaxConcurrency)
+	}
+
+	// End-to-end: GetCover extracts cover, enqueues background cache write,
+	// and Close() drains it so CoverPath is persisted before db.Close().
+	epubBytes := buildReparseTestEPUB(t, "With Cover", "Author", writebackCoverJPEG(t))
+	if err := os.WriteFile(filepath.Join(uploadDir, "with-cover.epub"), epubBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+	book := &models.Book{
+		ID:        "book-with-cover",
+		UserID:    storage.PersonalLibrary,
+		Title:     "With Cover",
+		Filename:  "with-cover.epub",
+		Format:    "epub",
+		CreatedAt: time.Now(),
+	}
+	if err := h.db.CreateBook(book); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/cover", nil)
+	h.GetCover(ctx)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GetCover = %d, want 200", rec.Code)
+	}
+
+	h.Close()
+
+	stored, err := h.db.GetBook(book.ID)
+	if err != nil || stored == nil || stored.CoverPath == "" {
+		t.Fatalf("expected extracted cover to be persisted before Close() returned, got %+v, err=%v", stored, err)
+	}
+}

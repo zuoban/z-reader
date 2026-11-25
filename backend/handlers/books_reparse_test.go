@@ -3,6 +3,7 @@ package handlers
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -657,6 +659,145 @@ func TestReparseMetadataBoundsRunesAndPreservesExistingOnEmpty(t *testing.T) {
 		}
 		if updated.Title != "Existing Title" || updated.Author != "Existing Author" || updated.CoverPath != manualCover {
 			t.Fatalf("expected existing fields preserved, got %+v", updated)
+		}
+	})
+}
+
+func TestBatchReparseMetadataRespectsContextCancellation(t *testing.T) {
+	t.Run("already canceled context skips all books", func(t *testing.T) {
+		h, uploadDir := newReparseTestHandler(t)
+		ids := make([]string, 0, 3)
+		for i := range 3 {
+			id := fmt.Sprintf("cancel-pre-%d", i)
+			filename := id + ".epub"
+			epubBytes := buildReparseTestEPUB(t, fmt.Sprintf("New Title %d", i), "New Author", encodeTestJPEG(t, color.RGBA{R: 10, G: 20, B: 30, A: 255}))
+			if err := os.WriteFile(filepath.Join(uploadDir, filename), epubBytes, 0644); err != nil {
+				t.Fatal(err)
+			}
+			if err := h.db.CreateBook(&models.Book{
+				ID:        id,
+				UserID:    storage.PersonalLibrary,
+				Title:     fmt.Sprintf("Original %d", i),
+				Filename:  filename,
+				Format:    "epub",
+				CreatedAt: time.Now(),
+			}); err != nil {
+				t.Fatal(err)
+			}
+			ids = append(ids, id)
+		}
+
+		var extractCalls atomic.Int32
+		h.extractBookPreviewFn = func(file *os.File, format string) (*epubMetadata, []byte, string, error) {
+			extractCalls.Add(1)
+			return extractBookPreview(file, format)
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		payload, _ := json.Marshal(batchBookIDsRequest{IDs: ids})
+		rec := httptest.NewRecorder()
+		ginCtx, _ := gin.CreateTestContext(rec)
+		req := httptest.NewRequest(http.MethodPost, "/api/books/batch/reparse", bytes.NewReader(payload)).WithContext(ctx)
+		req.Header.Set("Content-Type", "application/json")
+		ginCtx.Request = req
+		h.BatchReparseMetadata(ginCtx)
+
+		if rec.Body.Len() != 0 {
+			t.Fatalf("expected empty body on canceled context, got %s", rec.Body.String())
+		}
+		if got := extractCalls.Load(); got != 0 {
+			t.Fatalf("extractCalls = %d, want 0", got)
+		}
+		for i, id := range ids {
+			stored, err := h.db.GetBook(id)
+			if err != nil || stored == nil {
+				t.Fatalf("get book %s: %v", id, err)
+			}
+			if stored.Title != fmt.Sprintf("Original %d", i) || stored.CoverPath != "" {
+				t.Fatalf("book %s was modified despite canceled context: %+v", id, stored)
+			}
+		}
+
+		// Single ReparseMetadata also respects canceled request context.
+		recSingle := httptest.NewRecorder()
+		ginSingle, _ := gin.CreateTestContext(recSingle)
+		ginSingle.Params = gin.Params{{Key: "id", Value: ids[0]}}
+		ginSingle.Request = httptest.NewRequest(http.MethodPost, "/api/books/"+ids[0]+"/reparse", nil).WithContext(ctx)
+		h.ReparseMetadata(ginSingle)
+		if recSingle.Body.Len() != 0 {
+			t.Fatalf("expected empty body on canceled single reparse, got %s", recSingle.Body.String())
+		}
+		if got := extractCalls.Load(); got != 0 {
+			t.Fatalf("extractCalls after single canceled reparse = %d, want 0", got)
+		}
+	})
+
+	t.Run("mid-batch cancellation stops remaining books and skips writes", func(t *testing.T) {
+		h, uploadDir := newReparseTestHandler(t)
+		const totalBooks = 12
+		ids := make([]string, 0, totalBooks)
+		coverBytes := encodeTestJPEG(t, color.RGBA{R: 50, G: 100, B: 150, A: 255})
+		for i := range totalBooks {
+			id := fmt.Sprintf("cancel-mid-%02d", i)
+			filename := id + ".epub"
+			epubBytes := buildReparseTestEPUB(t, fmt.Sprintf("Reparsed %02d", i), "Author", coverBytes)
+			if err := os.WriteFile(filepath.Join(uploadDir, filename), epubBytes, 0644); err != nil {
+				t.Fatal(err)
+			}
+			if err := h.db.CreateBook(&models.Book{
+				ID:        id,
+				UserID:    storage.PersonalLibrary,
+				Title:     fmt.Sprintf("Initial %02d", i),
+				Filename:  filename,
+				Format:    "epub",
+				CreatedAt: time.Now(),
+			}); err != nil {
+				t.Fatal(err)
+			}
+			ids = append(ids, id)
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		var extractCalls atomic.Int32
+		h.extractBookPreviewFn = func(file *os.File, format string) (*epubMetadata, []byte, string, error) {
+			extractCalls.Add(1)
+			cancel()
+			return &epubMetadata{Title: "Should Not Persist", Author: "Canceled"}, coverBytes, "image/jpeg", nil
+		}
+
+		payload, _ := json.Marshal(batchBookIDsRequest{IDs: ids})
+		rec := httptest.NewRecorder()
+		ginCtx, _ := gin.CreateTestContext(rec)
+		req := httptest.NewRequest(http.MethodPost, "/api/books/batch/reparse", bytes.NewReader(payload)).WithContext(ctx)
+		req.Header.Set("Content-Type", "application/json")
+		ginCtx.Request = req
+		h.BatchReparseMetadata(ginCtx)
+
+		if rec.Body.Len() != 0 {
+			t.Fatalf("expected empty body on mid-batch canceled context, got %s", rec.Body.String())
+		}
+		if got := int(extractCalls.Load()); got == 0 || got > batchReparseMaxWorkers {
+			t.Fatalf("extractCalls = %d, want between 1 and %d", got, batchReparseMaxWorkers)
+		}
+		for i, id := range ids {
+			stored, err := h.db.GetBook(id)
+			if err != nil || stored == nil {
+				t.Fatalf("get book %s: %v", id, err)
+			}
+			if stored.Title != fmt.Sprintf("Initial %02d", i) || stored.CoverPath != "" {
+				t.Fatalf("book %s was updated after cancellation: %+v", id, stored)
+			}
+		}
+
+		// Ensure no cover files were written/left behind after cancellation.
+		entries, err := os.ReadDir(uploadDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(entries) != totalBooks {
+			t.Fatalf("expected only %d original book files in uploadDir, found %d", totalBooks, len(entries))
 		}
 	})
 }

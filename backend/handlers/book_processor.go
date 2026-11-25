@@ -235,10 +235,10 @@ func (h *BooksHandler) Close() {
 	if h.legacyHashes != nil {
 		h.legacyHashes.close()
 	}
-	if h.processor == nil {
-		return
+	if h.processor != nil {
+		h.processor.close()
 	}
-	h.processor.close()
+	h.closeCoverCache()
 }
 
 func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
@@ -261,7 +261,8 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 	}
 
 	startedAt := time.Now()
-	metadata, coverData, contentType, err := extractBookPreview(file, book.Format)
+	format := normalizeBookFormat(book.Format, book.Filename)
+	metadata, coverData, contentType, err := extractBookPreview(file, format)
 	file.Close()
 	telemetry.Observe("book_preview", time.Since(startedAt), 1)
 	if err != nil {
@@ -273,12 +274,12 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 	if len(coverData) > 0 && book.CoverPath == "" {
 		cover, err = h.prepareExtractedCover(book.ID, coverData, contentType)
 		if err != nil {
-			logger.Warn("Failed to cache EPUB cover during background processing",
+			logger.Warn("Failed to cache book cover during background processing",
 				slog.String("book_id", book.ID),
 				slog.Any("error", err),
 			)
 		}
-	} else if len(coverData) == 0 && book.CoverPath == "" && normalizeBookFormat(book.Format, book.Filename) == "epub" {
+	} else if len(coverData) == 0 && book.CoverPath == "" && supportsExtractedCoverFormat(format) {
 		cover.missing = true
 	}
 	h.completeBookPreview(job, book.Filename, *metadata, cover)
@@ -324,7 +325,7 @@ func (h *BooksHandler) completeBookPreview(job bookProcessingJob, filename strin
 }
 
 func (h *BooksHandler) markBookProcessingFailed(job bookProcessingJob, processingErr error) {
-	logger.Warn("Failed to process uploaded EPUB",
+	logger.Warn("Failed to process uploaded book",
 		slog.String("book_id", job.bookID),
 		slog.Any("error", processingErr),
 	)
@@ -339,7 +340,7 @@ func (h *BooksHandler) markBookProcessingFailed(job bookProcessingJob, processin
 		return true
 	})
 	if err != nil && err != storage.ErrNotFound {
-		logger.Error("Failed to save EPUB processing status",
+		logger.Error("Failed to save book processing status",
 			slog.String("book_id", job.bookID),
 			slog.Any("error", err),
 		)

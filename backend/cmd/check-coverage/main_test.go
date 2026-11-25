@@ -9,6 +9,7 @@ import (
 func TestModuleCoverage(t *testing.T) {
 	profilePath := filepath.Join(t.TempDir(), "coverage.out")
 	profile := `mode: set
+z-reader/backend/backup/backup.go:10.1,11.2 8 1
 z-reader/backend/handlers/books.go:10.1,12.2 3 1
 z-reader/backend/handlers/books.go:14.1,16.2 2 0
 z-reader/backend/middleware/auth.go:10.1,11.2 4 2
@@ -26,6 +27,7 @@ z-reader/backend/config/config.go:10.1,11.2 7 1
 	}
 
 	tests := map[string]coverageCount{
+		"backup":     {statements: 8, covered: 8},
 		"handlers":   {statements: 5, covered: 3},
 		"middleware": {statements: 4, covered: 4},
 		"services":   {statements: 5, covered: 0},

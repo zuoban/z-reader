@@ -15,7 +15,7 @@ import (
 
 const coverageMetric = "statements"
 
-var coreModules = []string{"handlers", "middleware", "services", "storage"}
+var coreModules = []string{"backup", "handlers", "middleware", "services", "storage"}
 
 type baseline struct {
 	Schema  int                `json:"schema"`

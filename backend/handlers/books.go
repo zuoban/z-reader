@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
@@ -30,29 +31,35 @@ var supportedBookFormats = map[string]string{
 }
 
 const (
-	maxEPUBMetadataBytes          = 2 * 1024 * 1024
-	maxEPUBCoverBytes             = 10 * 1024 * 1024
-	maxCoverUploadBytes           = 10 * 1024 * 1024
-	maxEPUBArchiveEntries         = 10000
-	maxEPUBExpandedBytes    int64 = 512 * 1024 * 1024
-	multipartOverhead             = 1 * 1024 * 1024
-	bookFileCacheMaxAge           = 60 * 60
-	bookCoverCacheMaxAge          = 24 * 60 * 60
-	coverThumbnailMaxWidth        = 320
-	coverThumbnailMaxPixels       = 40 * 1024 * 1024
-	maxBookTitleRunes             = 500
-	maxBookAuthorRunes            = 500
-	maxBatchBookIDs               = 500
-	maxBookSearchQueryRunes       = 200
+	maxEPUBMetadataBytes           = 2 * 1024 * 1024
+	maxEPUBCoverBytes              = 10 * 1024 * 1024
+	maxCoverUploadBytes            = 10 * 1024 * 1024
+	maxEPUBArchiveEntries          = 10000
+	maxEPUBExpandedBytes     int64 = 512 * 1024 * 1024
+	multipartOverhead              = 1 * 1024 * 1024
+	bookFileCacheMaxAge            = 60 * 60
+	bookCoverCacheMaxAge           = 24 * 60 * 60
+	coverThumbnailMaxWidth         = 320
+	coverThumbnailMaxPixels        = 40 * 1024 * 1024
+	coverCacheMaxConcurrency       = 4
+	maxBookTitleRunes              = 500
+	maxBookAuthorRunes             = 500
+	maxBatchBookIDs                = 500
+	maxBookSearchQueryRunes        = 200
 )
 
 type BooksHandler struct {
-	cfg                 *config.Config
-	db                  *storage.DB
-	processor           *bookProcessor
-	legacyHashes        *legacyHashBackfill
-	coverThumbFlights   coverFlightGroup[*models.Book]
-	coverExtractFlights coverFlightGroup[extractedCoverResult]
+	cfg                  *config.Config
+	db                   *storage.DB
+	processor            *bookProcessor
+	legacyHashes         *legacyHashBackfill
+	coverThumbFlights    coverFlightGroup[*models.Book]
+	coverExtractFlights  coverFlightGroup[extractedCoverResult]
+	coverCacheMu         sync.Mutex
+	coverCacheClosed     bool
+	coverCacheSem        chan struct{}
+	coverCacheWG         sync.WaitGroup
+	extractBookPreviewFn func(*os.File, string) (*epubMetadata, []byte, string, error)
 }
 
 type bookCursorPageResponse struct {
@@ -61,7 +68,11 @@ type bookCursorPageResponse struct {
 }
 
 func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
-	handler := &BooksHandler{cfg: cfg, db: db}
+	handler := &BooksHandler{
+		cfg:           cfg,
+		db:            db,
+		coverCacheSem: make(chan struct{}, coverCacheMaxConcurrency),
+	}
 	handler.legacyHashes = newLegacyHashBackfill(handler)
 	handler.processor = newBookProcessor(handler)
 	return handler

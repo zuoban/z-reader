@@ -398,3 +398,65 @@ func TestBookProcessorCloseStopsOverflowAndLeavesPendingForRecovery(t *testing.T
 	}
 	t.Fatal("timed out waiting for restarted handler to recover pending book")
 }
+
+func TestBookProcessorMarksCoverlessMOBIAndAZW3CoverMissing(t *testing.T) {
+	for _, format := range []string{"mobi", "azw3"} {
+		t.Run(format, func(t *testing.T) {
+			db := openHandlerTestDB(t)
+			uploadDir := t.TempDir()
+			handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
+
+			filename := "coverless." + format
+			content := buildSyntheticMOBI(syntheticMOBIOptions{
+				palmName: "Fallback Title",
+				encoding: mobiEncodingUTF8,
+				exthRecords: []syntheticEXTHRecord{
+					{recType: exthTypeUpdatedTitle, data: []byte("Coverless " + format)},
+					{recType: exthTypeAuthor, data: []byte("Kindle Author")},
+				},
+			})
+			if err := os.WriteFile(filepath.Join(uploadDir, filename), content, 0644); err != nil {
+				t.Fatal(err)
+			}
+
+			book := &models.Book{
+				ID:              "book-" + format,
+				UserID:          storage.PersonalLibrary,
+				Title:           "coverless",
+				Filename:        filename,
+				Format:          format,
+				ProcessingState: models.BookProcessingPending,
+				ContentHash:     "hash-" + format,
+				CreatedAt:       time.Now().UTC(),
+			}
+			if err := db.SaveBook(book); err != nil {
+				t.Fatal(err)
+			}
+
+			handler.enqueueBookProcessing(book)
+
+			deadline := time.Now().Add(3 * time.Second)
+			for time.Now().Before(deadline) {
+				saved, err := db.GetBookForUser(book.ID, storage.PersonalLibrary)
+				if err != nil {
+					t.Fatalf("failed to load processed %s book: %v", format, err)
+				}
+				if saved != nil && saved.ProcessingState == models.BookProcessingReady {
+					if !saved.CoverMissing {
+						t.Fatalf("expected CoverMissing=true for coverless %s, got %+v", format, saved)
+					}
+					if saved.CoverPath != "" {
+						t.Fatalf("expected empty CoverPath for coverless %s, got %q", format, saved.CoverPath)
+					}
+					if saved.Title != "Coverless "+format || saved.Author != "Kindle Author" {
+						t.Fatalf("unexpected extracted metadata for %s: %+v", format, saved)
+					}
+					return
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			t.Fatalf("timed out waiting for %s background preview processing", format)
+		})
+	}
+}

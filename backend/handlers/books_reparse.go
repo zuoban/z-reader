@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -27,6 +29,7 @@ type batchReparseResponse struct {
 type reparseBookError struct {
 	status  int
 	message string
+	err     error
 }
 
 func (e *reparseBookError) Error() string {
@@ -35,8 +38,12 @@ func (e *reparseBookError) Error() string {
 
 func (h *BooksHandler) ReparseMetadata(c *gin.Context) {
 	id := c.Param("id")
-	book, err := h.reparseBook(id, storage.PersonalLibrary)
+	ctx := c.Request.Context()
+	book, err := h.reparseBook(ctx, id, storage.PersonalLibrary)
 	if err != nil {
+		if ctx.Err() != nil {
+			return
+		}
 		switch err.status {
 		case http.StatusNotFound:
 			response.NotFound(c, err.message)
@@ -74,6 +81,11 @@ func (h *BooksHandler) BatchReparseMetadata(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+	if ctx.Err() != nil {
+		return
+	}
+
 	type batchReparseItem struct {
 		book *models.Book
 		ok   bool
@@ -92,21 +104,39 @@ func (h *BooksHandler) BatchReparseMetadata(c *gin.Context) {
 	for range workerCount {
 		go func() {
 			defer wg.Done()
-			for idx := range jobs {
-				book, err := h.reparseBook(ids[idx], storage.PersonalLibrary)
-				if err != nil {
-					logger.Warn("Failed to reparse book metadata in batch",
-						slog.String("book_id", ids[idx]),
-						slog.Int("status", err.status),
-						slog.String("reason", err.message),
-					)
-					continue
+			for {
+				if ctx.Err() != nil {
+					return
 				}
-				results[idx] = batchReparseItem{book: book, ok: true}
+				select {
+				case <-ctx.Done():
+					return
+				case idx, ok := <-jobs:
+					if !ok || ctx.Err() != nil {
+						return
+					}
+					book, err := h.reparseBook(ctx, ids[idx], storage.PersonalLibrary)
+					if err != nil {
+						if errors.Is(err.err, context.Canceled) || errors.Is(err.err, context.DeadlineExceeded) || ctx.Err() != nil {
+							return
+						}
+						logger.Warn("Failed to reparse book metadata in batch",
+							slog.String("book_id", ids[idx]),
+							slog.Int("status", err.status),
+							slog.String("reason", err.message),
+						)
+						continue
+					}
+					results[idx] = batchReparseItem{book: book, ok: true}
+				}
 			}
 		}()
 	}
 	wg.Wait()
+
+	if ctx.Err() != nil {
+		return
+	}
 
 	resp := batchReparseResponse{
 		UpdatedIDs: make([]string, 0, len(ids)),
@@ -125,13 +155,23 @@ func (h *BooksHandler) BatchReparseMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *BooksHandler) reparseBook(id, userID string) (*models.Book, *reparseBookError) {
+func (h *BooksHandler) reparseBook(ctx context.Context, id, userID string) (*models.Book, *reparseBookError) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, &reparseBookError{status: http.StatusRequestTimeout, message: "请求已取消", err: err}
+	}
+
 	book, err := h.db.GetBookForUser(id, userID)
 	if err != nil {
 		return nil, &reparseBookError{status: http.StatusInternalServerError, message: "获取书籍失败"}
 	}
 	if book == nil {
 		return nil, &reparseBookError{status: http.StatusNotFound, message: "书籍不存在"}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, &reparseBookError{status: http.StatusRequestTimeout, message: "请求已取消", err: err}
 	}
 
 	format := normalizeBookFormat(book.Format, book.Filename)
@@ -144,8 +184,13 @@ func (h *BooksHandler) reparseBook(id, userID string) (*models.Book, *reparseBoo
 		return nil, &reparseBookError{status: http.StatusForbidden, message: "文件访问被拒绝"}
 	}
 
+	extractFn := h.extractBookPreviewFn
+	if extractFn == nil {
+		extractFn = extractBookPreview
+	}
+
 	startedAt := time.Now()
-	metadata, coverData, contentType, extractErr := extractBookPreview(file, format)
+	metadata, coverData, contentType, extractErr := extractFn(file, format)
 	file.Close()
 	telemetry.Observe("book_reparse", time.Since(startedAt), 1)
 	if extractErr != nil {
@@ -153,6 +198,9 @@ func (h *BooksHandler) reparseBook(id, userID string) (*models.Book, *reparseBoo
 	}
 	if metadata == nil {
 		metadata = &epubMetadata{}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, &reparseBookError{status: http.StatusRequestTimeout, message: "请求已取消", err: err}
 	}
 
 	title := sanitizeExtractedMetadataValue(metadata.Title, maxBookTitleRunes)
@@ -164,6 +212,10 @@ func (h *BooksHandler) reparseBook(id, userID string) (*models.Book, *reparseBoo
 		cover, coverErr = h.prepareExtractedCover(book.ID, coverData, contentType)
 		if coverErr != nil {
 			return nil, &reparseBookError{status: http.StatusInternalServerError, message: "保存封面失败"}
+		}
+		if err := ctx.Err(); err != nil {
+			h.removeUploadFiles(cover.path, cover.thumb)
+			return nil, &reparseBookError{status: http.StatusRequestTimeout, message: "请求已取消", err: err}
 		}
 	}
 

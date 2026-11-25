@@ -131,7 +131,7 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 			return extractedCoverResult{status: http.StatusNotFound, message: "封面不存在"}, nil
 		}
 
-		go h.cacheExtractedCover(book, coverData, contentType)
+		h.enqueueCoverCache(book, coverData, contentType)
 		return extractedCoverResult{
 			data:        coverData,
 			contentType: contentType,
@@ -369,13 +369,60 @@ func (h *BooksHandler) markCoverMissing(snapshot *models.Book) {
 	}
 }
 
+func (h *BooksHandler) enqueueCoverCache(book *models.Book, coverData []byte, contentType string) bool {
+	if book == nil || len(coverData) == 0 {
+		return false
+	}
+	return h.enqueueCoverCacheTask(func() {
+		h.cacheExtractedCover(book, coverData, contentType)
+	})
+}
+
+func (h *BooksHandler) enqueueCoverCacheTask(task func()) bool {
+	if task == nil {
+		return false
+	}
+	h.coverCacheMu.Lock()
+	if h.coverCacheClosed {
+		h.coverCacheMu.Unlock()
+		return false
+	}
+	if h.coverCacheSem == nil {
+		h.coverCacheSem = make(chan struct{}, coverCacheMaxConcurrency)
+	}
+	select {
+	case h.coverCacheSem <- struct{}{}:
+	default:
+		h.coverCacheMu.Unlock()
+		return false
+	}
+	h.coverCacheWG.Add(1)
+	h.coverCacheMu.Unlock()
+
+	go func() {
+		defer func() {
+			<-h.coverCacheSem
+			h.coverCacheWG.Done()
+		}()
+		task()
+	}()
+	return true
+}
+
+func (h *BooksHandler) closeCoverCache() {
+	h.coverCacheMu.Lock()
+	h.coverCacheClosed = true
+	h.coverCacheMu.Unlock()
+	h.coverCacheWG.Wait()
+}
+
 func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {
 	cover, err := h.prepareExtractedCover(book.ID, coverData, contentType)
 	if err == nil {
 		_, err = h.commitCover(book, cover, false)
 	}
 	if err != nil && err != storage.ErrNotFound {
-		logger.Warn("Failed to cache EPUB cover",
+		logger.Warn("Failed to cache extracted cover",
 			slog.String("book_id", book.ID),
 			slog.Any("error", err),
 		)

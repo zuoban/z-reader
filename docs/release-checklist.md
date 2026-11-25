@@ -20,7 +20,7 @@ source of truth for the Docker image version and the GitHub Release.
   (
     cd backend
     go test ./...
-    go test ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
+    go test ./backup ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
     go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
   )
 

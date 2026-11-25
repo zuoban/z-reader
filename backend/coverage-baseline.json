@@ -2,6 +2,7 @@
   "schema": 1,
   "metric": "statements",
   "modules": {
+    "backup": 83.47107438016529,
     "handlers": 82.183908045977,
     "middleware": 94.27710843373494,
     "services": 89.47368421052632,

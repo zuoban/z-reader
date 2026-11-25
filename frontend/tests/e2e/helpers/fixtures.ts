@@ -320,16 +320,20 @@ export type MutableShelfMock = {
   books: Array<(typeof MOCK_BOOKS)[number]>;
   deleteCalls: string[][];
   categoryCalls: Array<{ ids: string[]; category: string | null }>;
+  reparseCalls: string[];
+  batchReparseCalls: string[][];
 };
 
 /**
- * Mutable catalog for batch delete / category e2e (POST handlers + live list).
+ * Mutable catalog for batch delete / category / reparse e2e (POST handlers + live list).
  */
 export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock> {
   const state: MutableShelfMock = {
     books: MOCK_BOOKS.map((book) => ({ ...book })),
     deleteCalls: [],
     categoryCalls: [],
+    reparseCalls: [],
+    batchReparseCalls: [],
   };
 
   await mockShelfCommon(page);
@@ -374,6 +378,58 @@ export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock
       );
       const updated = state.books.filter((book) => idSet.has(book.id));
       await json(route, { books: updated });
+      return;
+    }
+
+    if (method === 'POST' && path.includes('/batch/reparse')) {
+      let ids: string[] = [];
+      try {
+        const body = route.request().postDataJSON() as { ids?: string[] };
+        ids = body.ids ?? [];
+      } catch {
+        // ignore
+      }
+      state.batchReparseCalls.push(ids);
+      const idSet = new Set(ids);
+      state.books = state.books.map((book) =>
+        idSet.has(book.id)
+          ? {
+              ...book,
+              title: book.title.endsWith('（已重刷）')
+                ? book.title
+                : `${book.title}（已重刷）`,
+              author: book.author === '未知作者' ? '柏瑞尔·马卡姆' : book.author,
+            }
+          : book
+      );
+      const updated = state.books.filter((book) => idSet.has(book.id));
+      await json(route, {
+        updated_ids: updated.map((book) => book.id),
+        failed_ids: ids.filter((id) => !updated.some((book) => book.id === id)),
+        books: updated,
+      });
+      return;
+    }
+
+    const singleReparseMatch =
+      method === 'POST' ? path.match(/\/api\/books\/([^/]+)\/reparse$/) : null;
+    if (singleReparseMatch) {
+      const targetId = singleReparseMatch[1];
+      state.reparseCalls.push(targetId);
+      let updatedBook: (typeof MOCK_BOOKS)[number] | undefined;
+      state.books = state.books.map((book) => {
+        if (book.id !== targetId) return book;
+        updatedBook = {
+          ...book,
+          author: book.author === '未知作者' ? '柏瑞尔·马卡姆' : `${book.author}（已重刷）`,
+        };
+        return updatedBook;
+      });
+      if (updatedBook) {
+        await json(route, updatedBook);
+        return;
+      }
+      await json(route, { error: '书籍不存在' }, 404);
       return;
     }
 
@@ -639,14 +695,27 @@ export async function mockAuthVerifyHanging(page: Page) {
   });
 }
 
+export type ReaderMockBookmark = {
+  id: string;
+  book_id: string;
+  user_id: string;
+  cfi: string;
+  percentage: number;
+  chapter: string;
+  note: string;
+  created_at: string;
+};
+
 export type ReaderHappyPathMock = {
   book: (typeof MOCK_BOOKS)[number];
   progressSaves: Array<{ cfi: string; percentage: number }>;
+  bookmarks: ReaderMockBookmark[];
+  bookmarkUpdates: Array<{ id: string; note: string }>;
   fileHits: number;
 };
 
 /**
- * Reader happy-path APIs: real minimal EPUB bytes + empty progress/bookmarks.
+ * Reader happy-path APIs: real minimal EPUB bytes + stateful progress/bookmarks.
  * Catch-all so nothing falls through to a live backend.
  */
 export async function mockReaderHappyPath(
@@ -667,9 +736,12 @@ export async function mockReaderHappyPath(
   const state: ReaderHappyPathMock = {
     book,
     progressSaves: [],
+    bookmarks: [],
+    bookmarkUpdates: [],
     fileHits: 0,
   };
 
+  let bookmarkSeq = 0;
   const epubBytes = readFileSync(path.join(process.cwd(), 'tests/e2e/fixtures', fixture.filename));
 
   await page.route('**/api/**', async (route) => {
@@ -719,6 +791,7 @@ export async function mockReaderHappyPath(
     }
 
     if (pathName.includes('/bookmarks')) {
+      const bookmarkIdMatch = pathName.match(/\/bookmarks\/([^/]+)$/);
       if (method === 'POST') {
         let body: { cfi?: string; percentage?: number; chapter?: string; note?: string } =
           {};
@@ -727,8 +800,9 @@ export async function mockReaderHappyPath(
         } catch {
           // ignore
         }
-        await json(route, {
-          id: 'bm-e2e-1',
+        bookmarkSeq += 1;
+        const created: ReaderMockBookmark = {
+          id: `bm-e2e-${bookmarkSeq}`,
           book_id: book.id,
           user_id: MOCK_USER.id,
           cfi: body.cfi ?? 'epubcfi(/6/2!/4/2/2)',
@@ -736,10 +810,36 @@ export async function mockReaderHappyPath(
           chapter: body.chapter ?? '',
           note: body.note ?? '',
           created_at: new Date().toISOString(),
-        });
+        };
+        state.bookmarks.push(created);
+        await json(route, created, 201);
         return;
       }
-      await json(route, []);
+      if (method === 'PATCH' && bookmarkIdMatch) {
+        const bookmarkId = bookmarkIdMatch[1];
+        let body: { note?: string } = {};
+        try {
+          body = route.request().postDataJSON() as typeof body;
+        } catch {
+          // ignore
+        }
+        const target = state.bookmarks.find((item) => item.id === bookmarkId);
+        if (!target) {
+          await json(route, { error: '书签不存在' }, 404);
+          return;
+        }
+        target.note = (body.note ?? '').trim();
+        state.bookmarkUpdates.push({ id: bookmarkId, note: target.note });
+        await json(route, target);
+        return;
+      }
+      if (method === 'DELETE' && bookmarkIdMatch) {
+        const bookmarkId = bookmarkIdMatch[1];
+        state.bookmarks = state.bookmarks.filter((item) => item.id !== bookmarkId);
+        await route.fulfill({ status: 204, body: '' });
+        return;
+      }
+      await json(route, state.bookmarks);
       return;
     }
 

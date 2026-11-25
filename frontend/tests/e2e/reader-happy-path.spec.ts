@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import {
   gotoStable,
@@ -353,5 +354,74 @@ test.describe('reader happy path', () => {
     const last = mock.progressSaves[mock.progressSaves.length - 1];
     expect(typeof last.cfi).toBe('string');
     expect(last.percentage).toBeGreaterThanOrEqual(0);
+  });
+
+  test('searches full book text and jumps to a matching passage', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+    await ensureToolbarVisible(page);
+
+    await page.getByRole('button', { name: '书内搜索' }).first().click();
+    const searchDialog = page.getByRole('dialog', { name: '书内搜索' });
+    await expect(searchDialog).toBeVisible({ timeout: 10_000 });
+
+    const input = searchDialog.getByRole('searchbox', { name: '书内全文搜索' });
+    await input.fill('样例书第二章');
+    await input.press('Enter');
+
+    const resultButton = searchDialog
+      .getByRole('button')
+      .filter({ hasText: '样例书第二章' })
+      .first();
+    await expect(resultButton).toBeVisible({ timeout: 15_000 });
+    await resultButton.click();
+
+    await expect(searchDialog).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible();
+  });
+
+  test('creates a bookmark, edits its note inline, and exports Markdown', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    const mock = await mockReaderHappyPath(page, 'book-1');
+
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+    await ensureToolbarVisible(page);
+
+    await page.getByRole('button', { name: '书签', exact: true }).first().click();
+    const bookmarksDialog = page.getByRole('dialog', { name: '书签' });
+    await expect(bookmarksDialog).toBeVisible({ timeout: 10_000 });
+
+    await bookmarksDialog.getByRole('button', { name: '添加当前书签' }).click();
+    await expect.poll(() => mock.bookmarks.length, { timeout: 10_000 }).toBe(1);
+
+    const editButton = bookmarksDialog.getByRole('button', { name: /^编辑书签备注：/ }).first();
+    await expect(editButton).toBeVisible();
+    await editButton.click();
+
+    const noteInput = bookmarksDialog.getByRole('textbox', { name: '书签备注' });
+    await expect(noteInput).toBeVisible();
+    await noteInput.fill('这一段的伏笔很精彩');
+    await bookmarksDialog.getByRole('button', { name: '保存', exact: true }).click();
+
+    await expect.poll(() => mock.bookmarkUpdates.length, { timeout: 10_000 }).toBe(1);
+    expect(mock.bookmarkUpdates[0].note).toBe('这一段的伏笔很精彩');
+    await expect(bookmarksDialog.getByText('这一段的伏笔很精彩')).toBeVisible();
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      bookmarksDialog.getByRole('button', { name: '导出 Markdown' }).click(),
+    ]);
+    expect(download.suggestedFilename()).toContain('E2E Sample Book');
+    expect(download.suggestedFilename()).toMatch(/\.md$/);
+
+    const filePath = await download.path();
+    expect(filePath).toBeTruthy();
+    const content = await readFile(filePath!, 'utf8');
+    expect(content).toContain('# E2E Sample Book');
+    expect(content).toContain('> 这一段的伏笔很精彩');
   });
 });

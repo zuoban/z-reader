@@ -238,4 +238,37 @@ test.describe('shelf batch operations', () => {
     await expect(page.getByRole('button', { name: '取消选择《三体》' })).toBeVisible();
     await expect(page.getByText('已选中')).toBeVisible();
   });
+
+  test('reparses metadata for a single book and in batch', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    const mock = await mockMutableShelfApis(page);
+
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《夜航西飞》' })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Single-book reparse via card action menu
+    await page.getByRole('button', { name: '更多操作：《夜航西飞》' }).click();
+    await page.getByRole('menuitem', { name: '重新解析元数据' }).click();
+    await expect.poll(() => mock.reparseCalls.length, { timeout: 10_000 }).toBe(1);
+    expect(mock.reparseCalls[0]).toBe('book-4');
+    await expect(page.getByText('柏瑞尔·马卡姆')).toBeVisible({ timeout: 10_000 });
+
+    // Batch reparse via selection mode
+    await page.getByRole('button', { name: /批量操作/ }).click();
+    await page.getByRole('button', { name: '选择《红楼梦》' }).click();
+    await page.getByRole('button', { name: '选择《三体》' }).click();
+    await page.getByRole('button', { name: '重刷元数据', exact: true }).click();
+
+    await expect.poll(() => mock.batchReparseCalls.length, { timeout: 10_000 }).toBe(1);
+    expect(mock.batchReparseCalls[0].sort()).toEqual(['book-1', 'book-2']);
+    await expect(page.getByRole('button', { name: '阅读《红楼梦（已重刷）》' })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByRole('button', { name: '阅读《三体（已重刷）》' })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
 });

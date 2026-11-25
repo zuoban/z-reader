@@ -116,4 +116,79 @@ test.describe('accessibility', () => {
       exclude: ['foliate-view', '.reader-page-surface'],
     });
   });
+
+  test('reader search sheet has no serious violations', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+    await gotoStable(page, '/read/book-1');
+
+    await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible({
+      timeout: 45_000,
+    });
+
+    const collapse = page.getByRole('button', { name: '收起顶部操作栏' });
+    if (!(await collapse.isVisible().catch(() => false))) {
+      await page.getByRole('button', { name: '展开操作栏' }).click();
+    }
+
+    await page.getByRole('button', { name: '书内搜索' }).first().click();
+    const dialog = page.getByRole('dialog', { name: '书内搜索' });
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const input = dialog.getByRole('searchbox', { name: '书内全文搜索' });
+    await input.fill('样例书第二章');
+    await input.press('Enter');
+    await expect(dialog.getByRole('button').filter({ hasText: '样例书第二章' }).first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+      exclude: ['foliate-view', '.reader-page-surface'],
+    });
+  });
+
+  test('reader bookmarks sheet and inline note editor have no serious violations', async ({
+    page,
+  }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    const mock = await mockReaderHappyPath(page, 'book-1');
+    mock.bookmarks.push({
+      id: 'bm-a11y-1',
+      book_id: 'book-1',
+      user_id: 'user-visual-1',
+      cfi: 'epubcfi(/6/2!/4/2/2)',
+      percentage: 12.5,
+      chapter: '第一章 开篇',
+      note: '用于无障碍检查的书签备注',
+      created_at: '2026-11-25T08:00:00Z',
+    });
+    await gotoStable(page, '/read/book-1');
+
+    await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible({
+      timeout: 45_000,
+    });
+
+    const collapse = page.getByRole('button', { name: '收起顶部操作栏' });
+    if (!(await collapse.isVisible().catch(() => false))) {
+      await page.getByRole('button', { name: '展开操作栏' }).click();
+    }
+
+    await page.getByRole('button', { name: '书签', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: '书签' });
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.getByText('用于无障碍检查的书签备注')).toBeVisible();
+
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+      exclude: ['foliate-view', '.reader-page-surface'],
+    });
+
+    await dialog.getByRole('button', { name: /^编辑书签备注：/ }).first().click();
+    await expect(dialog.getByRole('textbox', { name: '书签备注' })).toBeVisible();
+
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+      exclude: ['foliate-view', '.reader-page-surface'],
+    });
+  });
 });

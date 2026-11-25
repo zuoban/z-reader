@@ -26,12 +26,17 @@ func SessionToken(c *gin.Context) string {
 }
 
 func SessionKey(password, token string) string {
-	mac := hmac.New(sha256.New, []byte(password))
+	return sessionKeyBytes([]byte(password), token)
+}
+
+func sessionKeyBytes(passwordKey []byte, token string) string {
+	mac := hmac.New(sha256.New, passwordKey)
 	mac.Write([]byte(token))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
 func AuthRequired(db *storage.DB, password string) gin.HandlerFunc {
+	passwordKey := []byte(password)
 	return func(c *gin.Context) {
 		if password != "" {
 			token := SessionToken(c)
@@ -40,7 +45,7 @@ func AuthRequired(db *storage.DB, password string) gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-			session, err := db.GetSession(SessionKey(password, token))
+			session, err := db.GetSession(sessionKeyBytes(passwordKey, token))
 			if err != nil {
 				response.InternalError(c, "验证访问权限失败")
 				c.Abort()

@@ -221,3 +221,50 @@ func TestResizeCoverThumbnailHandlesJPEGAndRGBA(t *testing.T) {
 		})
 	}
 }
+
+func TestGetCoverReturnsETagAndNotModified(t *testing.T) {
+	h, uploadDir := newCoverTestHandler(t)
+	coverName := "book-etag.cover.jpg"
+	if err := os.WriteFile(filepath.Join(uploadDir, coverName), writebackCoverJPEG(t), 0644); err != nil {
+		t.Fatal(err)
+	}
+	book := &models.Book{
+		ID:                "book-etag",
+		UserID:            storage.PersonalLibrary,
+		Title:             "ETag Book",
+		Filename:          "book-etag.epub",
+		Format:            "epub",
+		CoverPath:         coverName,
+		CoverThumbChecked: true,
+		CreatedAt:         time.Now(),
+	}
+	if err := h.db.CreateBook(book); err != nil {
+		t.Fatal(err)
+	}
+
+	rec1 := httptest.NewRecorder()
+	ctx1, _ := gin.CreateTestContext(rec1)
+	ctx1.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx1.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/cover", nil)
+	h.GetCover(ctx1)
+	if rec1.Code != http.StatusOK {
+		t.Fatalf("first GetCover = %d, want 200", rec1.Code)
+	}
+	etag := rec1.Header().Get("ETag")
+	if etag == "" {
+		t.Fatal("expected non-empty ETag on served cover")
+	}
+
+	rec2 := httptest.NewRecorder()
+	ctx2, _ := gin.CreateTestContext(rec2)
+	ctx2.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx2.Request = httptest.NewRequest(http.MethodGet, "/api/books/"+book.ID+"/cover", nil)
+	ctx2.Request.Header.Set("If-None-Match", etag)
+	h.GetCover(ctx2)
+	if rec2.Code != http.StatusNotModified {
+		t.Fatalf("conditional GetCover = %d, want 304", rec2.Code)
+	}
+	if rec2.Body.Len() != 0 {
+		t.Fatalf("expected empty body on 304, got %d bytes", rec2.Body.Len())
+	}
+}

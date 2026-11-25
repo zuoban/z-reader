@@ -138,3 +138,68 @@ func TestGzipSkipsSmallBinaryRangeHeadAndZeroQuality(t *testing.T) {
 		})
 	}
 }
+
+type readerFromRecorder struct {
+	*httptest.ResponseRecorder
+	readFromCalls int
+}
+
+func (r *readerFromRecorder) ReadFrom(src io.Reader) (int64, error) {
+	r.readFromCalls++
+	return io.Copy(r.ResponseRecorder, src)
+}
+
+func TestGzipReadFromDelegatesBinaryAndCompressesText(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(Gzip())
+
+	var binaryLoggedSize int
+	router.GET("/binary-stream", func(c *gin.Context) {
+		c.Header("Content-Type", "application/epub+zip")
+		_, err := io.Copy(c.Writer, io.LimitReader(strings.NewReader(strings.Repeat("b", 4096)), 4096))
+		if err != nil {
+			t.Errorf("binary io.Copy failed: %v", err)
+		}
+		binaryLoggedSize = c.Writer.Size()
+	})
+	router.GET("/text-stream", func(c *gin.Context) {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		payload := strings.Repeat("hello-world-", 300)
+		_, err := io.Copy(c.Writer, io.LimitReader(strings.NewReader(payload), int64(len(payload))))
+		if err != nil {
+			t.Errorf("text io.Copy failed: %v", err)
+		}
+	})
+
+	binRec := &readerFromRecorder{ResponseRecorder: httptest.NewRecorder()}
+	binReq := httptest.NewRequest(http.MethodGet, "/binary-stream", nil)
+	binReq.Header.Set("Accept-Encoding", "gzip")
+	router.ServeHTTP(binRec, binReq)
+	if binRec.Code != http.StatusOK {
+		t.Fatalf("binary status = %d, want 200", binRec.Code)
+	}
+	if binRec.readFromCalls != 1 {
+		t.Fatalf("expected underlying ReadFrom to be called once, got %d", binRec.readFromCalls)
+	}
+	if binRec.Body.Len() != 4096 || binaryLoggedSize != 4096 {
+		t.Fatalf("binary len=%d size=%d, want 4096", binRec.Body.Len(), binaryLoggedSize)
+	}
+	if got := binRec.Header().Get("Content-Encoding"); got != "" {
+		t.Fatalf("expected no Content-Encoding for binary stream, got %q", got)
+	}
+
+	txtRec := &readerFromRecorder{ResponseRecorder: httptest.NewRecorder()}
+	txtReq := httptest.NewRequest(http.MethodGet, "/text-stream", nil)
+	txtReq.Header.Set("Accept-Encoding", "gzip")
+	router.ServeHTTP(txtRec, txtReq)
+	if txtRec.Code != http.StatusOK {
+		t.Fatalf("text status = %d, want 200", txtRec.Code)
+	}
+	if txtRec.readFromCalls != 0 {
+		t.Fatalf("expected compressible stream to bypass direct ReadFrom, got %d", txtRec.readFromCalls)
+	}
+	if got := txtRec.Header().Get("Content-Encoding"); got != "gzip" {
+		t.Fatalf("expected gzip Content-Encoding for text stream, got %q", got)
+	}
+}

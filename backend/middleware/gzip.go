@@ -162,7 +162,53 @@ func (w *gzipResponseWriter) Write(data []byte) (int, error) {
 	return w.writePlain(data)
 }
 
+type writerOnly struct {
+	io.Writer
+}
+
+func unwrapReaderFrom(w http.ResponseWriter) io.ReaderFrom {
+	for w != nil {
+		if rf, ok := w.(io.ReaderFrom); ok {
+			return rf
+		}
+		u, ok := w.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			return nil
+		}
+		w = u.Unwrap()
+	}
+	return nil
+}
+
+// ReadFrom lets http.ServeContent use the underlying writer's zero-copy path
+// (e.g. sendfile) for binary responses such as EPUBs and cover images.
+func (w *gzipResponseWriter) ReadFrom(r io.Reader) (int64, error) {
+	if !w.wroteHeader {
+		w.statusCode = http.StatusOK
+		w.wroteHeader = true
+	}
+	if !w.decided && w.Header().Get("Content-Type") != "" && !w.canCompressHeader(nil) {
+		w.decided = true
+		w.compress = false
+		w.ResponseWriter.WriteHeader(w.statusCode)
+	}
+	if w.decided && !w.compress {
+		if rf := unwrapReaderFrom(w.ResponseWriter); rf != nil {
+			w.ResponseWriter.WriteHeaderNow()
+			n, err := rf.ReadFrom(r)
+			w.size += int(n)
+			return n, err
+		}
+	}
+	return io.Copy(writerOnly{w}, r)
+}
+
 func (w *gzipResponseWriter) WriteString(text string) (int, error) {
+	if w.decided && !w.compress {
+		n, err := w.ResponseWriter.WriteString(text)
+		w.size += n
+		return n, err
+	}
 	return w.Write([]byte(text))
 }
 
@@ -188,7 +234,10 @@ func (w *gzipResponseWriter) Size() int {
 		return w.ResponseWriter.Size()
 	}
 	if w.decided {
-		return w.ResponseWriter.Size()
+		if size := w.ResponseWriter.Size(); size > 0 {
+			return size
+		}
+		return w.size
 	}
 	return len(w.buf)
 }

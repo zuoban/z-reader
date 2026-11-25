@@ -167,6 +167,10 @@ func (h *BooksHandler) serveCover(c *gin.Context, name string) {
 	}
 	defer file.Close()
 	h.setBookCache(c, bookCoverCacheMaxAge)
+	etag := hashBytes([]byte(fmt.Sprintf("%s:%d:%d", name, info.Size(), info.ModTime().UnixNano())))
+	if writeNotModifiedIfETagMatches(c, etag) {
+		return
+	}
 	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
 }
 

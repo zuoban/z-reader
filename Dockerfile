@@ -1,5 +1,5 @@
 # Stage 1: Build Go backend
-FROM --platform=$BUILDPLATFORM golang:1.26.11-alpine AS backend-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine AS backend-builder
 
 WORKDIR /app/backend
 
@@ -14,7 +14,7 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /app/z-reader main.go
 
 # Stage 2: Build Next.js frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:26-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 

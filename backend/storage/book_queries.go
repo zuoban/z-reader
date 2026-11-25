@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -134,6 +135,106 @@ func (db *DB) ListBooksBySortedCursor(
 		return nil, "", err
 	}
 	return bookCursorPage(books, limit)
+}
+
+func (db *DB) ListBooks(userID string) ([]models.Book, error) {
+	return db.ListBooksPaginated(userID, 0, 0)
+}
+
+// ListBooksByCursor reads only one page of a user's books. The cursor is the
+// last returned book ID and follows the stable order of UserBooksIndex keys.
+func (db *DB) ListBooksByCursor(userID, cursor string, limit int) ([]models.Book, string, error) {
+	if userID == "" || limit <= 0 {
+		return []models.Book{}, "", nil
+	}
+
+	books := make([]models.Book, 0, limit+1)
+	prefix := []byte(userID + ":")
+	start := prefix
+	if cursor != "" {
+		start = []byte(userID + ":" + cursor)
+	}
+
+	err := db.View(func(tx *bbolt.Tx) error {
+		idxB := tx.Bucket(UserBooksIndex)
+		booksB := tx.Bucket(BooksBucket)
+		indexCursor := idxB.Cursor()
+
+		for k, _ := indexCursor.Seek(start); k != nil && bytes.HasPrefix(k, prefix); k, _ = indexCursor.Next() {
+			bookID := strings.TrimPrefix(string(k), string(prefix))
+			if bookID == cursor {
+				continue
+			}
+
+			data := booksB.Get([]byte(bookID))
+			if data == nil {
+				continue
+			}
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			books = append(books, book)
+			if len(books) > limit {
+				break
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	if len(books) <= limit {
+		return books, "", nil
+	}
+	nextCursor := books[limit-1].ID
+	return books[:limit], nextCursor, nil
+}
+
+func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {
+	books := []models.Book{}
+	paginated := page > 0 && pageSize > 0
+	skip := 0
+	if paginated {
+		if page-1 > math.MaxInt/pageSize {
+			// The page is beyond the end; still propagate database and decoding errors.
+			skip = math.MaxInt
+		} else {
+			skip = (page - 1) * pageSize
+		}
+	}
+	err := db.View(func(tx *bbolt.Tx) error {
+		if userID == "" {
+			return nil
+		}
+		prefix := []byte(userID + ":")
+		cursor := tx.Bucket(UserBooksIndex).Cursor()
+		booksB := tx.Bucket(BooksBucket)
+		for key, _ := cursor.Seek(prefix); bytes.HasPrefix(key, prefix); key, _ = cursor.Next() {
+			data := booksB.Get(key[len(prefix):])
+			if data == nil {
+				continue
+			}
+			var book models.Book
+			if err := book.UnmarshalDB(data); err != nil {
+				return err
+			}
+			if book.UserID != userID {
+				continue
+			}
+			if skip > 0 {
+				skip--
+				continue
+			}
+			books = append(books, book)
+			if paginated && len(books) == pageSize {
+				break
+			}
+		}
+		return nil
+	})
+	return books, err
 }
 
 func mostSelectiveBookSearchGram(gramBucket *bbolt.Bucket, userID string, grams []string) (string, int) {

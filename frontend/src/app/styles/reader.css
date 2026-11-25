@@ -1,4 +1,5 @@
 /* Reader palettes, Foliate host, chrome, and responsive sheets. */
+@reference "../globals.css";
 
 @layer components {
   .reader-chrome-btn {

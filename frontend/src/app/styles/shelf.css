@@ -1,4 +1,5 @@
 /* Shelf cards, category controls, and the settings menu. */
+@reference "../globals.css";
 
 @layer components {
   .category-chip-pill {

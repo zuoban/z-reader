@@ -22,6 +22,7 @@ interface BookCardProps {
   categories: string[];
   bookCounts: Record<string, number>;
   onRead: (bookId: string) => void;
+  onPrefetch?: (bookId: string) => void;
   onDelete: (bookId: string) => void | Promise<void>;
   onUpdate: () => void;
   isDeleting: boolean;
@@ -184,6 +185,7 @@ export const BookCard = memo(function BookCard({
   categories,
   bookCounts,
   onRead,
+  onPrefetch,
   onDelete,
   onUpdate,
   isDeleting,
@@ -245,6 +247,11 @@ export const BookCard = memo(function BookCard({
     onRead(book.id);
   }
 
+  function handlePrefetch() {
+    if (isDeleting || selectionMode) return;
+    onPrefetch?.(book.id);
+  }
+
   function handleSelectionToggle() {
     if (isDeleting) return;
     onSelectionToggle?.(book.id);
@@ -271,6 +278,8 @@ export const BookCard = memo(function BookCard({
           type="button"
           disabled={isDeleting}
           onClick={activateCard}
+          onPointerEnter={handlePrefetch}
+          onFocus={handlePrefetch}
           aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
           aria-pressed={selectionMode ? selected : undefined}
           className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-t-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"

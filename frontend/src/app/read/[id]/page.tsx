@@ -20,6 +20,8 @@ import {
   ReaderErrorState,
   ReaderLoadingOverlay,
 } from "@/components/reader/ReaderStateViews";
+import "../../styles/mantine-reader.css";
+import "../../styles/reader.css";
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderImageZoomOverlay } from "@/components/reader/ReaderImageZoomOverlay";
 import { DeferredTTSControls } from "@/components/DeferredTTSControls";
@@ -367,6 +369,7 @@ function Reader({ bookId }: { bookId: string }) {
     loadingMsg,
     loadingDetail,
     cleanupReader,
+    getLoadedBookFile,
   } = useFoliateView({
     bookId,
     containerRef,
@@ -404,9 +407,12 @@ function Reader({ bookId }: { bookId: string }) {
     setIsSavingOffline(true);
     setOfflineDownloadProgress(null);
     try {
+      const loadedFile = getLoadedBookFile();
       const [book, file] = await Promise.all([
         api.getBook(bookId),
-        api.fetchBook(bookId, { onProgress: setOfflineDownloadProgress }),
+        loadedFile
+          ? Promise.resolve(loadedFile)
+          : api.fetchBook(bookId, { onProgress: setOfflineDownloadProgress }),
       ]);
       if (library !== getOfflineLibrary()) return;
       await saveOfflineBook(library, book, file, () => library === getOfflineLibrary());
@@ -418,7 +424,7 @@ function Reader({ bookId }: { bookId: string }) {
       setOfflineDownloadProgress(null);
       setIsSavingOffline(false);
     }
-  }, [bookId, isSavingOffline, isAuthenticated, library]);
+  }, [bookId, getLoadedBookFile, isSavingOffline, isAuthenticated, library]);
 
   useEffect(() => {
     cleanupReaderRef.current = cleanupReader;

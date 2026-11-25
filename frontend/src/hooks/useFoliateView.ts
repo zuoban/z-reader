@@ -271,6 +271,7 @@ export function useFoliateView({
   const [library] = useState(getOfflineLibrary);
   const readerControllerRef = useRef<AbortController | null>(null);
   const openingViewsRef = useRef(new WeakSet<FoliateView>());
+  const loadedBookFileRef = useRef<{ bookId: string; file: File | Blob } | null>(null);
   const isAuthenticatedRef = useRef(isAuthenticated);
   const fallbackTitleRef = useRef("");
   const fallbackAuthorRef = useRef("");
@@ -549,6 +550,7 @@ export function useFoliateView({
 
     const view = viewRef.current;
     viewRef.current = null;
+    loadedBookFileRef.current = null;
     appliedStylesheetRef.current = null;
     appliedPreferencesRef.current = null;
     appliedInlinePresetRef.current = null;
@@ -672,6 +674,7 @@ export function useFoliateView({
       const file = await filePromise;
 
       if (cancelled()) return;
+      loadedBookFileRef.current = { bookId, file };
 
       // Soft-wait for progress so we open near the last location without blocking
       // cold starts when the progress API is slow.
@@ -770,6 +773,7 @@ export function useFoliateView({
     applyRendererPreferences,
     bindImageZoomDocument,
     bindReaderDocument,
+    bookId,
     cleanInlineStyles,
     cleanupReader,
     containerRef,
@@ -846,6 +850,11 @@ export function useFoliateView({
     };
   }, [cleanupReader, initReader, canLoad, bookId]);
 
+  const getLoadedBookFile = useCallback(
+    () => (loadedBookFileRef.current?.bookId === bookId ? loadedBookFileRef.current.file : null),
+    [bookId]
+  );
+
   return {
     toc,
     bookTitle,
@@ -860,5 +869,6 @@ export function useFoliateView({
     loadingMsg,
     loadingDetail,
     cleanupReader,
+    getLoadedBookFile,
   };
 }

@@ -1,0 +1,5 @@
+@import "./mantine-overlays.css";
+@import "@mantine/core/styles/Drawer.layer.css";
+@import "@mantine/core/styles/Slider.layer.css";
+@import "@mantine/core/styles/Tabs.layer.css";
+@import "@mantine/core/styles/Combobox.layer.css";

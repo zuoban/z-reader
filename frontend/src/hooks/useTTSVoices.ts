@@ -41,7 +41,6 @@ export function useTTSVoices(preferredVoiceName: string, enabled = false) {
         try {
           const response = await fetch(`${API_BASE}/api/voices`, {
             credentials: 'include',
-            cache: 'no-store',
             signal: controller.signal,
           });
 

@@ -203,7 +203,7 @@ test('real backend shelf, large EPUB worker, offline reuse and first audio', asy
   if (await expandBeforeSave.isVisible()) await expandBeforeSave.click();
   await page.getByTitle('保存到此设备，退出登录后会自动清除').click();
   await expect(page.getByText('图书已保存到此设备，可在断网时继续阅读')).toBeVisible();
-  expect(fileRequests).toBe(2);
+  expect(fileRequests).toBe(1);
   await page.reload();
   await page.waitForFunction(() => {
     const view = document.querySelector('foliate-view') as HTMLElement & {
@@ -213,7 +213,7 @@ test('real backend shelf, large EPUB worker, offline reuse and first audio', asy
       item.doc?.body?.textContent?.includes('首章正文已就绪'));
   });
   await expect(page.getByRole('heading', { name: 'Performance Reader' })).toBeVisible();
-  expect(fileRequests).toBe(2);
+  expect(fileRequests).toBe(1);
   // Only the external speech provider is deterministic; auth, upload, file and metadata use Go.
   await page.route('**/api/voices', route => route.fulfill({ json: [] }));
   await page.route('**/api/ssml', route => route.fulfill({ contentType: 'audio/wav', body: wave() }));

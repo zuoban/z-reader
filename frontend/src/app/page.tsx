@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { AppScreen, BrandLogo } from '@/components/AppShell';
 import { LandingThemeToggle } from '@/components/LandingThemeToggle';
 import { ReaderDeskPreview } from '@/components/ReaderDeskPreview';
+import './styles/entry.css';
 
 const featureGroups = [
   {

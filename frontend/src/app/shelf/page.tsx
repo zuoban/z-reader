@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ActionIcon, Button, Menu, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
+import '../styles/mantine-shelf.css';
+import '../styles/shelf.css';
 import {
   AlertCircle,
   BookOpen,
@@ -339,6 +341,17 @@ export default function ShelfPage() {
     [router]
   );
 
+  const prefetchedBookIdsRef = useRef<Set<string>>(new Set());
+
+  const handlePrefetchBook = useCallback(
+    (bookId: string) => {
+      if (prefetchedBookIdsRef.current.has(bookId)) return;
+      prefetchedBookIdsRef.current.add(bookId);
+      router.prefetch(`/read/${bookId}`);
+    },
+    [router]
+  );
+
   const renderBookCard = useCallback(
     (book: (typeof filteredBooks)[number], index: number) => (
       <BookCard
@@ -347,6 +360,7 @@ export default function ShelfPage() {
         categories={categories}
         bookCounts={bookCounts}
         onRead={handleReadBook}
+        onPrefetch={handlePrefetchBook}
         onDelete={handleDelete}
         onUpdate={refreshBooks}
         isDeleting={deletingId === book.id}
@@ -362,6 +376,7 @@ export default function ShelfPage() {
       categories,
       bookCounts,
       handleReadBook,
+      handlePrefetchBook,
       handleDelete,
       refreshBooks,
       deletingId,

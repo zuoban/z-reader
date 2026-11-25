@@ -79,9 +79,11 @@ const DEFAULT_SETTINGS: TTSSettings = {
   highlightMode: 'word',
 };
 
+const utf8Encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+
 function getUTF8ByteLength(value: string): number {
-  if (typeof TextEncoder !== 'undefined') {
-    return new TextEncoder().encode(value).length;
+  if (utf8Encoder) {
+    return utf8Encoder.encode(value).length;
   }
   return value.length;
 }

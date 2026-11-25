@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -185,4 +186,44 @@ func TestReadDiskTTSCacheSkipsFreshChtimesAndUpdatesStaleFile(t *testing.T) {
 	if !info.ModTime().After(staleTime) {
 		t.Fatalf("expected stale file mtime to refresh beyond %v, got %v", staleTime, info.ModTime())
 	}
+}
+
+func TestCleanupDiskTTSCacheEvictsOldestAndHandlesRemoveErrors(t *testing.T) {
+	dir := t.TempDir()
+	oldPath := filepath.Join(dir, "old.audio")
+	newPath := filepath.Join(dir, "new.audio")
+	if err := os.WriteFile(oldPath, []byte("123456"), 0o600); err != nil {
+		t.Fatalf("write old cache file failed: %v", err)
+	}
+	if err := os.WriteFile(newPath, []byte("abcdef"), 0o600); err != nil {
+		t.Fatalf("write new cache file failed: %v", err)
+	}
+	oldTime := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(oldPath, oldTime, oldTime); err != nil {
+		t.Fatalf("chtimes old file failed: %v", err)
+	}
+
+	cleanupDiskTTSCache(ttsCacheConfig{
+		Dir:      dir,
+		MaxItems: 1,
+		MaxBytes: 1024,
+		TTL:      time.Hour,
+	})
+
+	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
+		t.Fatalf("expected oldest disk cache entry to be evicted, err=%v", err)
+	}
+	if _, err := os.Stat(newPath); err != nil {
+		t.Fatalf("expected newest disk cache entry to remain, err=%v", err)
+	}
+
+	// Non-empty directory exercises the non-ErrNotExist error logging branch cleanly.
+	nonEmptyDir := filepath.Join(dir, "non-empty")
+	if err := os.MkdirAll(nonEmptyDir, 0o700); err != nil {
+		t.Fatalf("mkdir non-empty dir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nonEmptyDir, "child"), []byte("x"), 0o600); err != nil {
+		t.Fatalf("write child file failed: %v", err)
+	}
+	removeStaleDiskCache(nonEmptyDir)
 }

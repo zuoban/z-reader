@@ -14,16 +14,16 @@
       "lines": 94.96
     },
     "src/hooks/useShelfData.ts": {
-      "statements": 92.84,
-      "branches": 72.38,
-      "functions": 91.34,
-      "lines": 95.16
+      "statements": 93.31,
+      "branches": 73.31,
+      "functions": 91.81,
+      "lines": 95.49
     },
     "src/lib/api.ts": {
-      "statements": 72.45,
-      "branches": 66.47,
-      "functions": 71.92,
-      "lines": 73.77
+      "statements": 99.25,
+      "branches": 95.88,
+      "functions": 98.3,
+      "lines": 99.11
     },
     "src/lib/reader-page.ts": {
       "statements": 92.3,
@@ -44,10 +44,10 @@
       "lines": 88.88
     },
     "src/hooks/useTTS.ts": {
-      "statements": 80.87,
-      "branches": 66.45,
-      "functions": 78.12,
-      "lines": 86.83
+      "statements": 94.38,
+      "branches": 85.16,
+      "functions": 85.93,
+      "lines": 98.98
     },
     "src/hooks/useTTSMediaSession.ts": {
       "statements": 86.11,
@@ -56,15 +56,15 @@
       "lines": 100
     },
     "src/lib/tts.ts": {
-      "statements": 86.55,
-      "branches": 75.95,
-      "functions": 91.5,
-      "lines": 90.98
+      "statements": 95.12,
+      "branches": 90,
+      "functions": 97.72,
+      "lines": 96.52
     },
     "src/lib/tts-batch.ts": {
       "statements": 95.28,
       "branches": 90.35,
-      "functions": 87.5,
+      "functions": 90.62,
       "lines": 98.84
     }
   }

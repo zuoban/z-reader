@@ -2,9 +2,9 @@
   "schema": 1,
   "metric": "statements",
   "modules": {
-    "handlers": 74.90494296577947,
+    "handlers": 75.51988325428675,
     "middleware": 94.27710843373494,
-    "services": 89.07894736842105,
+    "services": 89.47368421052632,
     "storage": 74.95361781076066
   }
 }

@@ -73,10 +73,11 @@ Next.js。这样浏览器默认采用同源 API，部署时不必公开内部端
 1. 所有设备访问同一份书架、书签和阅读进度。升级旧数据库时，各账号的数据会合并到这个书库。
 2. 上传会校验文件格式和大小，先把原始文件与初始记录持久化，再通过后台队列异步提取
    `EPUB`、`MOBI`、`AZW3`、`PDF` 的书名与作者（以及 `EPUB`、`MOBI`、`AZW3` 的内嵌封面）；
-   也可以通过 `POST /api/books/:id/reparse` 或 `POST /api/books/batch/reparse` 按需重新解析。
+   支持按需重新解析（`POST /api/books/:id/reparse`、`POST /api/books/batch/reparse`）以及
+   自定义封面上传与移除（`POST`/`DELETE /api/books/:id/cover`）。
 3. 书签支持创建、编辑备注（`PATCH /api/books/:id/bookmarks/:bookmarkID`）与删除，并在客户端
    按需导出或复制为 Markdown。
-4. 书内全文搜索在浏览器端由 `foliate-js` 直接执行，不依赖服务端全文索引。
+4. 书内全文搜索、目录进度条跳转与返回原位均在浏览器端由 `foliate-js` 直接执行，不依赖服务端全文索引。
 5. 阅读器在本地可暂存离线进度；恢复联网后再与进度 API 同步。
 6. 进度写入更新进度时间索引和书架排序索引。性能基准和 HTTP 压测命令见
    [性能基线](performance-baseline.md)。

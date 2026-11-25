@@ -339,7 +339,11 @@ export const BookCard = memo(function BookCard({
                   )}
                 </p>
               </div>
-              <div className="h-[2px] overflow-hidden rounded-full bg-border" aria-hidden="true">
+              <div
+                className="h-[2px] overflow-hidden rounded-full bg-border"
+                aria-hidden="true"
+                data-book-progress=""
+              >
                 <div
                   className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
                   style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}

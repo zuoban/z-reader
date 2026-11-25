@@ -38,7 +38,7 @@ test.describe('responsive reading and shelf controls', () => {
       expect(labelBox!.height).toBeLessThanOrEqual(20);
       await expect(label.locator('..')).toContainText('1');
 
-      for (const name of ['选择已加载', '批量分类', '批量删除']) {
+      for (const name of ['全选', '批量分类', '批量删除']) {
         const action = page.getByRole('button', { name, exact: true });
         await expect(action).toBeVisible();
         const box = await action.boundingBox();
@@ -167,7 +167,7 @@ test.describe('responsive reading and shelf controls', () => {
       const geometry = await cards.evaluateAll((elements) => elements.map((card) => {
         const bounds = card.getBoundingClientRect();
         const footer = card.querySelector(':scope > div')!.getBoundingClientRect();
-        const progress = card.querySelector('.h-1')!.getBoundingClientRect();
+        const progress = card.querySelector('[data-book-progress]')!.getBoundingClientRect();
         const title = card.querySelector('h2')!.getBoundingClientRect();
         const cover = card.querySelector(':scope > button > div')!.getBoundingClientRect();
         return {

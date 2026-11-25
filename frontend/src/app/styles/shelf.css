@@ -211,7 +211,7 @@
 
   /* Details (100px) + actions (44px) match SHELF_CARD_BODY_HEIGHT_PX. */
   .shelf-book-details {
-    @apply flex h-25 w-full flex-col justify-between px-3 pt-3 pb-1.5;
+    @apply flex h-25 w-full flex-col justify-between px-3 pt-2 pb-1.5;
   }
 
   .shelf-book-actions {

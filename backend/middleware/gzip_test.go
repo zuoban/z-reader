@@ -1,8 +1,12 @@
 package middleware
 
 import (
+	"bufio"
+	"bytes"
 	"compress/gzip"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -202,4 +206,389 @@ func TestGzipReadFromDelegatesBinaryAndCompressesText(t *testing.T) {
 	if got := txtRec.Header().Get("Content-Encoding"); got != "gzip" {
 		t.Fatalf("expected gzip Content-Encoding for text stream, got %q", got)
 	}
+}
+
+func TestAcceptsGzipEncodingEdgeCases(t *testing.T) {
+	cases := []struct {
+		header string
+		want   bool
+	}{
+		{"", false},
+		{"   ", false},
+		{", , ", false},
+		{"br, deflate", false},
+		{"gzip", true},
+		{", , GZIP ; level=5 ; q=0.8", true},
+		{"gzip;q=0", false},
+		{"gzip; q = 0.000", false},
+		{"br, gzip;q=-0.5", false},
+		{"gzip;q=not-a-number", true},
+		{"gzip;foo", true},
+	}
+	for _, tc := range cases {
+		if got := acceptsGzipEncoding(tc.header); got != tc.want {
+			t.Errorf("acceptsGzipEncoding(%q) = %v, want %v", tc.header, got, tc.want)
+		}
+	}
+}
+
+func TestShouldAcceptGzipSkipsUpgrade(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/ws", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Upgrade", "websocket")
+	if shouldAcceptGzip(req) {
+		t.Fatal("expected Upgrade request to skip gzip")
+	}
+}
+
+func TestAppendVaryHeaderDeduplicatesCaseInsensitively(t *testing.T) {
+	headers := make(http.Header)
+	headers.Add("Vary", "Origin, accept-encoding")
+	appendVaryHeader(headers, "Accept-Encoding")
+	if got := headers.Values("Vary"); len(got) != 1 || got[0] != "Origin, accept-encoding" {
+		t.Fatalf("unexpected Vary headers after duplicate append: %v", got)
+	}
+
+	headers2 := make(http.Header)
+	headers2.Add("Vary", "Origin")
+	appendVaryHeader(headers2, "Accept-Encoding")
+	if got := headers2.Values("Vary"); len(got) != 2 || got[1] != "Accept-Encoding" {
+		t.Fatalf("unexpected Vary headers after distinct append: %v", got)
+	}
+}
+
+func TestIsCompressibleContentType(t *testing.T) {
+	cases := []struct {
+		contentType string
+		want        bool
+	}{
+		{"", false},
+		{"text/event-stream", false},
+		{"text/event-stream; charset=utf-8", false},
+		{"text/plain; charset=utf-8", true},
+		{"text/html", true},
+		{"application/json", true},
+		{"application/problem+json; charset=utf-8", true},
+		{"application/javascript", true},
+		{"application/xml", true},
+		{"application/atom+xml; charset=utf-8", true},
+		{"image/png", false},
+		{"application/octet-stream", false},
+	}
+	for _, tc := range cases {
+		if got := isCompressibleContentType(tc.contentType); got != tc.want {
+			t.Errorf("isCompressibleContentType(%q) = %v, want %v", tc.contentType, got, tc.want)
+		}
+	}
+}
+
+func TestCanCompressHeaderEdgeCases(t *testing.T) {
+	newWriter := func(status int, headers map[string]string) *gzipResponseWriter {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		for k, v := range headers {
+			ctx.Writer.Header().Set(k, v)
+		}
+		return &gzipResponseWriter{
+			ResponseWriter: ctx.Writer,
+			statusCode:     status,
+		}
+	}
+
+	if newWriter(http.StatusContinue, map[string]string{"Content-Type": "text/plain"}).canCompressHeader([]byte("hi")) {
+		t.Fatal("expected 1xx response not to compress")
+	}
+	if newWriter(http.StatusNoContent, map[string]string{"Content-Type": "text/plain"}).canCompressHeader([]byte("hi")) {
+		t.Fatal("expected 204 response not to compress")
+	}
+	if newWriter(http.StatusNotModified, map[string]string{"Content-Type": "text/plain"}).canCompressHeader([]byte("hi")) {
+		t.Fatal("expected 304 response not to compress")
+	}
+	if newWriter(http.StatusOK, map[string]string{"Content-Type": "text/plain", "Content-Encoding": "br"}).canCompressHeader([]byte("hi")) {
+		t.Fatal("expected pre-encoded response not to compress")
+	}
+	if !newWriter(http.StatusOK, nil).canCompressHeader([]byte("<html><body>hello world</body></html>")) {
+		t.Fatal("expected sniffed HTML content to be compressible")
+	}
+	if newWriter(http.StatusOK, nil).canCompressHeader([]byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")) {
+		t.Fatal("expected sniffed PNG content not to compress")
+	}
+	if newWriter(http.StatusOK, nil).canCompressHeader(nil) {
+		t.Fatal("expected empty Content-Type with no sample not to compress")
+	}
+}
+
+type stubHijackResponseWriter struct {
+	gin.ResponseWriter
+	hijackCalls int
+	hijackErr   error
+	forceSize   *int
+}
+
+func (s *stubHijackResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	s.hijackCalls++
+	return nil, nil, s.hijackErr
+}
+
+func (s *stubHijackResponseWriter) Size() int {
+	if s.forceSize != nil {
+		return *s.forceSize
+	}
+	return s.ResponseWriter.Size()
+}
+
+func TestGzipResponseWriterMethods(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("buffered plain WriteString Flush Status Size Written and decided WriteHeader", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		w := &gzipResponseWriter{ResponseWriter: ctx.Writer, statusCode: http.StatusOK}
+		defer w.finish()
+
+		if w.Written() {
+			t.Fatal("expected Written() to be false before any header/body write")
+		}
+		if w.Status() != http.StatusOK || w.Size() != 0 {
+			t.Fatalf("initial Status=%d Size=%d, want 200 and 0", w.Status(), w.Size())
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusCreated)
+		if !w.Written() {
+			t.Fatal("expected Written() to be true after WriteHeader")
+		}
+		if w.Status() != http.StatusCreated {
+			t.Fatalf("undecided Status() = %d, want 201", w.Status())
+		}
+
+		n, err := w.WriteString("hello")
+		if err != nil || n != 5 {
+			t.Fatalf("undecided WriteString = (%d, %v), want (5, nil)", n, err)
+		}
+		if w.Size() != 5 {
+			t.Fatalf("buffered Size() = %d, want 5", w.Size())
+		}
+
+		w.Flush()
+		if !w.decided || w.compress {
+			t.Fatalf("expected Flush on small buffer to decide plain, decided=%v compress=%v", w.decided, w.compress)
+		}
+		if !rec.Flushed {
+			t.Fatal("expected underlying ResponseRecorder to be flushed")
+		}
+		if w.Status() != http.StatusCreated {
+			t.Fatalf("decided Status() = %d, want 201", w.Status())
+		}
+
+		n, err = w.WriteString(" world")
+		if err != nil || n != 6 {
+			t.Fatalf("decided plain WriteString = (%d, %v), want (6, nil)", n, err)
+		}
+		n, err = w.Write([]byte("!"))
+		if err != nil || n != 1 {
+			t.Fatalf("decided plain Write = (%d, %v), want (1, nil)", n, err)
+		}
+		w.WriteHeader(http.StatusAccepted) // covers decided WriteHeader delegation
+		if w.Size() != 12 {
+			t.Fatalf("plain Size() = %d, want 12", w.Size())
+		}
+		if rec.Body.String() != "hello world!" {
+			t.Fatalf("body = %q, want %q", rec.Body.String(), "hello world!")
+		}
+	})
+
+	t.Run("WriteHeaderNow decides plain and writes header immediately", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		w := &gzipResponseWriter{ResponseWriter: ctx.Writer, statusCode: http.StatusOK}
+		defer w.finish()
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte("abc"))
+		w.WriteHeaderNow()
+		if !w.decided || w.compress || !w.Written() {
+			t.Fatalf("unexpected state after WriteHeaderNow: decided=%v compress=%v written=%v", w.decided, w.compress, w.Written())
+		}
+		if rec.Code != http.StatusAccepted || rec.Body.String() != "abc" {
+			t.Fatalf("got status=%d body=%q, want 202 and abc", rec.Code, rec.Body.String())
+		}
+		// Calling WriteHeaderNow when already decided should remain safe.
+		w.WriteHeaderNow()
+	})
+
+	t.Run("compressed WriteString Flush Size and finish", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		w := &gzipResponseWriter{ResponseWriter: ctx.Writer, statusCode: http.StatusOK}
+
+		w.Header().Set("Content-Type", "application/xml")
+		part1 := strings.Repeat("<item>value</item>", 100)
+		part2 := "<tail/>"
+		if n, err := w.WriteString(part1); err != nil || n != len(part1) {
+			t.Fatalf("first WriteString = (%d, %v)", n, err)
+		}
+		if !w.decided || !w.compress {
+			t.Fatal("expected gzip compression to be enabled")
+		}
+		if n, err := w.WriteString(part2); err != nil || n != len(part2) {
+			t.Fatalf("second WriteString = (%d, %v)", n, err)
+		}
+		w.Flush()
+		if !rec.Flushed {
+			t.Fatal("expected underlying writer to be flushed after compressed Flush")
+		}
+		if sz := w.Size(); sz <= 0 {
+			t.Fatalf("expected compressed Size() > 0 after Flush, got %d", sz)
+		}
+		w.finish()
+
+		gzReader, err := gzip.NewReader(bytes.NewReader(rec.Body.Bytes()))
+		if err != nil {
+			t.Fatalf("gzip.NewReader failed: %v", err)
+		}
+		defer gzReader.Close()
+		decoded, err := io.ReadAll(gzReader)
+		if err != nil {
+			t.Fatalf("io.ReadAll failed: %v", err)
+		}
+		if string(decoded) != part1+part2 {
+			t.Fatalf("decoded compressed payload mismatch: got %d bytes, want %d", len(decoded), len(part1+part2))
+		}
+	})
+
+	t.Run("decide with buffered large payload and idempotency", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		w := &gzipResponseWriter{
+			ResponseWriter: ctx.Writer,
+			statusCode:     http.StatusOK,
+			wroteHeader:    true,
+			buf:            []byte(strings.Repeat("data-", 300)),
+		}
+		w.Header().Set("Content-Type", "application/problem+json")
+		w.decide(true)
+		w.decide(false) // already decided -> no-op
+		w.finish()
+		if !w.compress || rec.Header().Get("Content-Encoding") != "gzip" {
+			t.Fatalf("expected decide(true) to start gzip, compress=%v encoding=%q", w.compress, rec.Header().Get("Content-Encoding"))
+		}
+	})
+
+	t.Run("Size falls back to tracked size and Hijack delegates", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		zero := 0
+		sentinelErr := errors.New("hijack sentinel")
+		stub := &stubHijackResponseWriter{
+			ResponseWriter: ctx.Writer,
+			hijackErr:      sentinelErr,
+			forceSize:      &zero,
+		}
+		w := &gzipResponseWriter{ResponseWriter: stub, statusCode: http.StatusOK}
+		defer w.finish()
+
+		w.Header().Set("Content-Type", "image/png")
+		if _, err := w.Write([]byte("png-bytes")); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if got := w.Size(); got != len("png-bytes") {
+			t.Fatalf("Size() fallback = %d, want %d", got, len("png-bytes"))
+		}
+
+		_, _, err := w.Hijack()
+		if !errors.Is(err, sentinelErr) || stub.hijackCalls != 1 {
+			t.Fatalf("Hijack() err=%v calls=%d, want sentinelErr and 1 call", err, stub.hijackCalls)
+		}
+	})
+}
+
+type unwrapResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (u *unwrapResponseWriter) Unwrap() http.ResponseWriter {
+	return u.ResponseWriter
+}
+
+func TestGzipReadFromFallbackWithoutReaderFromAndUnwrap(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("fallback when underlying writer does not implement ReaderFrom", func(t *testing.T) {
+		router := gin.New()
+		router.Use(Gzip())
+		var recordedSize int
+		router.GET("/plain-binary", func(c *gin.Context) {
+			c.Header("Content-Type", "application/octet-stream")
+			payload := strings.Repeat("z", 2048)
+			n, err := io.Copy(c.Writer, io.LimitReader(strings.NewReader(payload), int64(len(payload))))
+			if err != nil || n != int64(len(payload)) {
+				t.Errorf("io.Copy = (%d, %v), want (%d, nil)", n, err, len(payload))
+			}
+			recordedSize = c.Writer.Size()
+		})
+
+		// Plain httptest.ResponseRecorder does not implement io.ReaderFrom.
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/plain-binary", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK || rec.Body.Len() != 2048 || recordedSize != 2048 {
+			t.Fatalf("status=%d body=%d size=%d, want 200 and 2048", rec.Code, rec.Body.Len(), recordedSize)
+		}
+		if got := rec.Header().Get("Content-Encoding"); got != "" {
+			t.Fatalf("expected no Content-Encoding, got %q", got)
+		}
+	})
+
+	t.Run("unwrapReaderFrom traverses nested Unwrap wrappers", func(t *testing.T) {
+		inner := &readerFromRecorder{ResponseRecorder: httptest.NewRecorder()}
+		wrapped := &unwrapResponseWriter{ResponseWriter: inner}
+		if rf := unwrapReaderFrom(wrapped); rf != inner {
+			t.Fatalf("unwrapReaderFrom returned %T, want *readerFromRecorder", rf)
+		}
+		plainWrapped := &unwrapResponseWriter{ResponseWriter: httptest.NewRecorder()}
+		if rf := unwrapReaderFrom(plainWrapped); rf != nil {
+			t.Fatalf("unwrapReaderFrom on non-ReaderFrom chain = %v, want nil", rf)
+		}
+	})
+
+	t.Run("middleware skips 304 and pre-encoded responses and sniffs untyped text", func(t *testing.T) {
+		router := gin.New()
+		router.Use(Gzip())
+		router.GET("/not-modified", func(c *gin.Context) {
+			c.Status(http.StatusNotModified)
+		})
+		router.GET("/pre-encoded", func(c *gin.Context) {
+			c.Header("Content-Type", "text/plain")
+			c.Header("Content-Encoding", "br")
+			_, _ = c.Writer.WriteString(strings.Repeat("already-compressed-", 100))
+		})
+		router.GET("/sniff-text", func(c *gin.Context) {
+			_, _ = c.Writer.WriteString(strings.Repeat("plain-sniffed-body-", 100))
+		})
+
+		for _, tc := range []struct {
+			path     string
+			status   int
+			encoding string
+		}{
+			{"/not-modified", http.StatusNotModified, ""},
+			{"/pre-encoded", http.StatusOK, "br"},
+			{"/sniff-text", http.StatusOK, "gzip"},
+		} {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+			router.ServeHTTP(rec, req)
+			if rec.Code != tc.status {
+				t.Errorf("%s: status = %d, want %d", tc.path, rec.Code, tc.status)
+			}
+			if got := rec.Header().Get("Content-Encoding"); got != tc.encoding {
+				t.Errorf("%s: Content-Encoding = %q, want %q", tc.path, got, tc.encoding)
+			}
+		}
+	})
 }

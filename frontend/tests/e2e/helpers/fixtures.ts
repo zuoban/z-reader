@@ -318,6 +318,7 @@ export async function mockPopulatedShelfApis(page: Page) {
 
 export type MutableMockBook = (typeof MOCK_BOOKS)[number] & {
   cover_path?: string;
+  cover_thumb_path?: string;
   cover_missing?: boolean;
 };
 
@@ -329,6 +330,7 @@ export type MutableShelfMock = {
   batchReparseCalls: string[][];
   updateCalls: Array<{ id: string; title?: string; author?: string }>;
   coverUploadCalls: string[];
+  coverDeleteCalls: string[];
 };
 
 // Minimal valid 1x1 PNG bytes for custom cover upload E2E verification.
@@ -350,6 +352,7 @@ export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock
     batchReparseCalls: [],
     updateCalls: [],
     coverUploadCalls: [],
+    coverDeleteCalls: [],
   };
 
   await mockShelfCommon(page);
@@ -463,6 +466,32 @@ export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock
           ...book,
           cover_path: coverPath,
           cover_missing: false,
+        };
+        updatedBook = nextBook;
+        return nextBook;
+      });
+      if (updatedBook) {
+        await json(route, updatedBook);
+        return;
+      }
+      await json(route, { error: '书籍不存在' }, 404);
+      return;
+    }
+
+    const coverDeleteMatch =
+      method === 'DELETE' ? path.match(/\/api\/books\/([^/]+)\/cover$/) : null;
+    if (coverDeleteMatch) {
+      const targetId = coverDeleteMatch[1];
+      state.coverDeleteCalls.push(targetId);
+      uploadedCovers.delete(targetId);
+      let updatedBook: MutableMockBook | undefined;
+      state.books = state.books.map((book) => {
+        if (book.id !== targetId) return book;
+        const nextBook: MutableMockBook = {
+          ...book,
+          cover_path: '',
+          cover_thumb_path: '',
+          cover_missing: true,
         };
         updatedBook = nextBook;
         return nextBook;

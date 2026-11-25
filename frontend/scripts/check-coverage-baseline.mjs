@@ -4,8 +4,11 @@ const metrics = ['statements', 'branches', 'functions', 'lines'];
 const coreFiles = [
   'src/hooks/useCoverUrl.ts',
   'src/hooks/useProgress.ts',
+  'src/hooks/useReaderImageZoom.ts',
   'src/hooks/useShelfData.ts',
   'src/lib/api.ts',
+  'src/lib/book-download.ts',
+  'src/lib/shared-book-download.ts',
   'src/lib/reader-page.ts',
   'src/lib/shelf-grid.ts',
   'src/lib/tts-helpers.ts',

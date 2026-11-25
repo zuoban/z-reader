@@ -463,4 +463,36 @@ test.describe('reader happy path', () => {
     await expect(shortcutsDialog.getByText('书签')).toBeVisible();
     await expect(shortcutsDialog.getByText('排版与外观')).toBeVisible();
   });
+
+  test('scrubs reading progress in TOC and jumps back to previous location', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+
+    await page.keyboard.press('t');
+    const tocDialog = page.getByRole('dialog', { name: '目录' });
+    await expect(tocDialog).toBeVisible({ timeout: 10_000 });
+
+    const scrubber = tocDialog.getByRole('slider', { name: '跳转阅读进度' });
+    await expect(scrubber).toBeVisible();
+    const initialValue = Number(await scrubber.inputValue());
+
+    await scrubber.fill('75');
+
+    await expect
+      .poll(async () => Number(await scrubber.inputValue()), { timeout: 10_000 })
+      .toBeGreaterThan(initialValue + 10);
+
+    const returnButton = tocDialog.getByRole('button', { name: /返回原位/ });
+    await expect(returnButton).toBeVisible({ timeout: 10_000 });
+
+    await returnButton.click();
+
+    await expect(returnButton).toHaveCount(0, { timeout: 10_000 });
+    await expect
+      .poll(async () => Number(await scrubber.inputValue()), { timeout: 10_000 })
+      .toBeLessThanOrEqual(initialValue + 5);
+  });
 });

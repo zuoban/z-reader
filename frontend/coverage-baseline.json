@@ -13,6 +13,12 @@
       "functions": 100,
       "lines": 94.96
     },
+    "src/hooks/useReaderImageZoom.ts": {
+      "statements": 100,
+      "branches": 97.59,
+      "functions": 100,
+      "lines": 100
+    },
     "src/hooks/useShelfData.ts": {
       "statements": 93.31,
       "branches": 73.31,
@@ -20,10 +26,22 @@
       "lines": 95.49
     },
     "src/lib/api.ts": {
-      "statements": 99.25,
-      "branches": 95.88,
-      "functions": 98.33,
-      "lines": 99.12
+      "statements": 99.27,
+      "branches": 95.93,
+      "functions": 98.36,
+      "lines": 99.14
+    },
+    "src/lib/book-download.ts": {
+      "statements": 94.87,
+      "branches": 93.37,
+      "functions": 80,
+      "lines": 98.51
+    },
+    "src/lib/shared-book-download.ts": {
+      "statements": 100,
+      "branches": 92.85,
+      "functions": 100,
+      "lines": 100
     },
     "src/lib/reader-page.ts": {
       "statements": 92.3,

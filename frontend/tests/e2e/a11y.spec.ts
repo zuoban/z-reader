@@ -5,6 +5,7 @@ import {
   installBrowserStubs,
   mockAuthVerified,
   mockEmptyShelfApis,
+  mockMutableShelfApis,
   mockPopulatedShelfApis,
   mockReaderHappyPath,
 } from './helpers/fixtures';
@@ -108,9 +109,22 @@ test.describe('accessibility', () => {
     }
 
     await page.getByRole('button', { name: /目录/ }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('dialog').getByText('第一章 开篇')).toBeVisible();
+    const tocDialog = page.getByRole('dialog', { name: '目录' });
+    await expect(tocDialog).toBeVisible({ timeout: 10_000 });
+    await expect(tocDialog.getByText('第一章 开篇')).toBeVisible();
+    const scrubber = tocDialog.getByRole('slider', { name: '跳转阅读进度' });
+    await expect(scrubber).toBeVisible();
 
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+      exclude: ['foliate-view', '.reader-page-surface'],
+    });
+
+    // Also scan TOC drawer with the jump-back button visible after scrubbing
+    await scrubber.fill('75');
+    await expect(tocDialog.getByRole('button', { name: /返回原位/ })).toBeVisible({
+      timeout: 10_000,
+    });
     await expectNoSeriousA11yViolations(page, {
       include: ['[role="dialog"]'],
       exclude: ['foliate-view', '.reader-page-surface'],
@@ -195,7 +209,7 @@ test.describe('accessibility', () => {
   test('book metadata and cover upload dialog has no serious violations', async ({ page }) => {
     await installBrowserStubs(page, { preset: 'light', authenticated: true });
     await mockAuthVerified(page);
-    await mockPopulatedShelfApis(page);
+    await mockMutableShelfApis(page);
     await gotoStable(page, '/shelf');
 
     await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible({
@@ -207,6 +221,38 @@ test.describe('accessibility', () => {
     const dialog = page.getByRole('dialog', { name: '编辑书籍信息' });
     await expect(dialog).toBeVisible({ timeout: 10_000 });
     await expect(dialog.getByRole('button', { name: /选择封面|更换封面/ })).toBeVisible();
+
+    // Scan dialog without an existing cover
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+    });
+
+    // Upload a cover so existing-cover actions (更换封面 / 移除封面 / 恢复原封面) are scanned
+    const tinyPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64'
+    );
+    await dialog.getByLabel('选择封面图片').setInputFiles({
+      name: 'cover.png',
+      mimeType: 'image/png',
+      buffer: tinyPng,
+    });
+    await dialog.getByRole('button', { name: '保存' }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+    await expect(page.getByRole('img', { name: '红楼梦' })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole('button', { name: '更多操作：《红楼梦》' }).click();
+    await page.getByRole('menuitem', { name: '编辑信息' }).click();
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const removeButton = dialog.getByRole('button', { name: '移除封面' });
+    await expect(removeButton).toBeVisible();
+
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+    });
+
+    await removeButton.click();
+    await expect(dialog.getByRole('button', { name: '恢复原封面' })).toBeVisible();
 
     await expectNoSeriousA11yViolations(page, {
       include: ['[role="dialog"]'],

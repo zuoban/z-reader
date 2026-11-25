@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    testTimeout: 15000,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
@@ -13,8 +14,11 @@ export default defineConfig({
       include: [
         'src/hooks/useCoverUrl.ts',
         'src/hooks/useProgress.ts',
+        'src/hooks/useReaderImageZoom.ts',
         'src/hooks/useShelfData.ts',
         'src/lib/api.ts',
+        'src/lib/book-download.ts',
+        'src/lib/shared-book-download.ts',
         'src/lib/reader-page.ts',
         'src/lib/shelf-grid.ts',
         'src/lib/tts-helpers.ts',

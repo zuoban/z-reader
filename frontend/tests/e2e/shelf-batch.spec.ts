@@ -320,5 +320,26 @@ test.describe('shelf batch operations', () => {
     await expect(page.getByRole('button', { name: '阅读《夜航西飞（典藏版）》' })).toBeVisible({
       timeout: 10_000,
     });
+    const uploadedCoverImg = page.getByRole('img', { name: '夜航西飞（典藏版）' });
+    await expect(uploadedCoverImg).toBeVisible({ timeout: 10_000 });
+
+    // Reopen metadata dialog on the book with an existing cover and remove the cover
+    await page.getByRole('button', { name: '更多操作：《夜航西飞（典藏版）》' }).click();
+    await page.getByRole('menuitem', { name: '编辑信息' }).click();
+
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const removeCoverButton = dialog.getByRole('button', { name: '移除封面' });
+    await expect(removeCoverButton).toBeVisible();
+    await removeCoverButton.click();
+
+    await expect(dialog.getByRole('button', { name: '恢复原封面' })).toBeVisible();
+    await expect(dialog.getByText('待移除')).toBeVisible();
+
+    await dialog.getByRole('button', { name: '保存' }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+
+    await expect.poll(() => mock.coverDeleteCalls.length, { timeout: 10_000 }).toBe(1);
+    expect(mock.coverDeleteCalls).toContain('book-4');
+    await expect(uploadedCoverImg).toHaveCount(0, { timeout: 10_000 });
   });
 });

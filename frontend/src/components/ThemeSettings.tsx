@@ -6,6 +6,7 @@ import { ActionIcon, Button, Drawer, Slider, Tabs } from "@mantine/core";
 import { useUncontrolled } from "@mantine/hooks";
 import { Check, ChevronDown, ChevronUp, Minus, Plus, RotateCcw, Settings, X } from "lucide-react";
 
+import { ensureReaderFontPack } from "@/lib/reader-font-packs";
 import {
   getModernReaderSurface,
   getReaderPanelThemeVars,
@@ -307,6 +308,12 @@ export function ThemeSettings({
   const advancedPanelLabelId = useId();
   const surface = getModernReaderSurface(uiScheme);
   const panelThemeVars = getReaderPanelThemeVars(uiScheme);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void ensureReaderFontPack("editorial");
+    void ensureReaderFontPack("classic");
+  }, [isOpen]);
 
   useEffect(() => {
     return () => {

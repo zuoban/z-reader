@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, PasswordInput } from '@mantine/core';
+import '../styles/mantine-controls.css';
 import '@mantine/core/styles/PasswordInput.layer.css';
 import { ArrowLeft, CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';

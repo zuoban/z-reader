@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import '@fontsource/crimson-text/latin-700.css';
-import '@fontsource/lxgw-wenkai-tc/400.css';
-import '@fontsource/lxgw-wenkai-tc/700.css';
-import '@fontsource/noto-serif-sc/600.css';
-import '@fontsource/noto-serif-sc/700.css';
+import { AppToaster } from '@/components/AppToaster';
 
 export default function ReadLayout({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <>
+      {children}
+      <AppToaster />
+    </>
+  );
 }

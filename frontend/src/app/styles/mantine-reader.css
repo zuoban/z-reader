@@ -1,3 +1,4 @@
+@import "./mantine-controls.css";
 @import "./mantine-overlays.css";
 @import "@mantine/core/styles/Drawer.layer.css";
 @import "@mantine/core/styles/Slider.layer.css";

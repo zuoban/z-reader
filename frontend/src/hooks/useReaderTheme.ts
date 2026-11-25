@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
+import {
+  ensureReaderFontPack,
+  getReaderFontPacksVersion,
+  getServerReaderFontPacksVersion,
+  subscribeReaderFontPacks,
+} from "@/lib/reader-font-packs";
 import { getReaderFontFaces } from "@/lib/reader-fonts";
 
 export type ReaderFontFamily = "editorial" | "classic" | "humanist";
@@ -268,6 +274,15 @@ function getServerSnapshot(): ReaderTheme {
 
 export function useReaderTheme() {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const fontPackVersion = useSyncExternalStore(
+    subscribeReaderFontPacks,
+    getReaderFontPacksVersion,
+    getServerReaderFontPacksVersion,
+  );
+
+  useEffect(() => {
+    void ensureReaderFontPack(theme.fontFamily);
+  }, [theme.fontFamily]);
 
   const setTheme = useCallback(
     (newTheme: Partial<ReaderTheme>) => {
@@ -331,7 +346,7 @@ export function useReaderTheme() {
     const hrColor = withOpacity(preset.fg, isDark ? 0.14 : 0.12);
 
     const fontFaces =
-      typeof document === "undefined"
+      fontPackVersion < 0 || typeof document === "undefined"
         ? ""
         : getReaderFontFaces(document, BUNDLED_FONT_FAMILIES[theme.fontFamily]);
 
@@ -504,7 +519,7 @@ export function useReaderTheme() {
       ${indentStyle}
       ${punctuationStyle}
     `;
-  }, [theme]);
+  }, [theme, fontPackVersion]);
 
   const getContainerStyle = useCallback(() => {
     const preset = PRESET_STYLES[theme.preset];

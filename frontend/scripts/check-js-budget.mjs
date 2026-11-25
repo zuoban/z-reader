@@ -28,7 +28,7 @@ const budgetPath = budgetArg
 if (args.some((arg) => arg === '--help' || arg === '-h')) {
   console.log(`Usage: node scripts/check-js-budget.mjs [--print|--write] [--next-dir=PATH] [--budget=PATH]
 
-Measures first-screen JavaScript bytes from production prerender HTML under .next/
+Measures first-screen JavaScript and CSS bytes from production prerender HTML under .next/
 and compares them to performance-budget.json.
 
   --print   Print the measured budget JSON and exit
@@ -37,7 +37,7 @@ and compares them to performance-budget.json.
   process.exit(0);
 }
 
-const measured = await measureFirstScreenJs(nextDir);
+const measured = await measureFirstScreenAssets(nextDir);
 
 if (mode === '--print') {
   process.stdout.write(`${JSON.stringify(toBudgetDocument(measured), null, 2)}\n`);
@@ -47,13 +47,24 @@ if (mode === '--print') {
 if (mode === '--write') {
   const previous = JSON.parse(await readFile(budgetPath, 'utf8').catch(() => '{}'));
   const baseline = toBudgetDocument(measured);
-  // Updating JS measurements must retain independently configured browser budgets.
-  const document = { ...baseline, ...previous, firstScreenJs: baseline.firstScreenJs };
+  // Updating asset measurements must retain independently configured browser budgets.
+  const document = {
+    ...baseline,
+    ...previous,
+    description: baseline.description,
+    firstScreenJs: baseline.firstScreenJs,
+    firstScreenCss: baseline.firstScreenCss,
+  };
   await writeFile(budgetPath, `${JSON.stringify(document, null, 2)}\n`);
-  console.log(`Wrote frontend JS budget baseline to ${path.relative(frontendRoot, budgetPath)}`);
+  console.log(`Wrote frontend asset budget baseline to ${path.relative(frontendRoot, budgetPath)}`);
   for (const [route, entry] of Object.entries(document.firstScreenJs)) {
     console.log(
-      `  ${route}: ${formatBytes(entry.bytes)} (max ${formatBytes(entry.maxBytes)}, ${entry.files} files)`
+      `  JS  ${route}: ${formatBytes(entry.bytes)} (max ${formatBytes(entry.maxBytes)}, ${entry.files} files)`
+    );
+  }
+  for (const [route, entry] of Object.entries(document.firstScreenCss)) {
+    console.log(
+      `  CSS ${route}: ${formatBytes(entry.bytes)} (max ${formatBytes(entry.maxBytes)}, ${entry.files} files)`
     );
   }
   process.exit(0);
@@ -63,15 +74,25 @@ const expected = JSON.parse(await readFile(budgetPath, 'utf8'));
 validateBudget(expected, measured);
 
 console.log('Frontend first-screen JS budget check passed:');
-for (const [route, entry] of Object.entries(measured)) {
+for (const [route, entry] of Object.entries(measured.firstScreenJs)) {
   const maxBytes = expected.firstScreenJs[route].maxBytes;
   console.log(
     `  ${route}: ${formatBytes(entry.bytes)} / ${formatBytes(maxBytes)} (${entry.files} files)`
   );
 }
+if (expected.firstScreenCss) {
+  console.log('Frontend first-screen CSS budget check passed:');
+  for (const [route, entry] of Object.entries(measured.firstScreenCss)) {
+    const maxBytes = expected.firstScreenCss[route].maxBytes;
+    console.log(
+      `  ${route}: ${formatBytes(entry.bytes)} / ${formatBytes(maxBytes)} (${entry.files} files)`
+    );
+  }
+}
 
-async function measureFirstScreenJs(buildDir) {
-  const result = {};
+async function measureFirstScreenAssets(buildDir) {
+  const firstScreenJs = {};
+  const firstScreenCss = {};
   for (const [route, relativeHtml] of Object.entries(routes)) {
     const htmlPath = path.join(buildDir, relativeHtml);
     let html;
@@ -84,24 +105,34 @@ async function measureFirstScreenJs(buildDir) {
     }
 
     const scriptPaths = extractScriptPaths(html);
-    let bytes = 0;
-    for (const scriptPath of scriptPaths) {
-      const diskPath = resolveStaticPath(buildDir, scriptPath);
-      try {
-        const info = await stat(diskPath);
-        bytes += info.size;
-      } catch {
-        throw new Error(`Referenced script missing on disk: ${scriptPath} -> ${diskPath}`);
-      }
-    }
+    const stylesheetPaths = extractStylesheetPaths(html);
 
-    result[route] = {
-      bytes,
+    firstScreenJs[route] = {
+      bytes: await sumAssetBytes(buildDir, scriptPaths, 'script'),
       files: scriptPaths.length,
       scripts: scriptPaths,
     };
+    firstScreenCss[route] = {
+      bytes: await sumAssetBytes(buildDir, stylesheetPaths, 'stylesheet'),
+      files: stylesheetPaths.length,
+      stylesheets: stylesheetPaths,
+    };
   }
-  return result;
+  return { firstScreenJs, firstScreenCss };
+}
+
+async function sumAssetBytes(buildDir, assetPaths, kind) {
+  let bytes = 0;
+  for (const assetPath of assetPaths) {
+    const diskPath = resolveStaticPath(buildDir, assetPath);
+    try {
+      const info = await stat(diskPath);
+      bytes += info.size;
+    } catch {
+      throw new Error(`Referenced ${kind} missing on disk: ${assetPath} -> ${diskPath}`);
+    }
+  }
+  return bytes;
 }
 
 function extractScriptPaths(html) {
@@ -123,6 +154,28 @@ function extractScriptPaths(html) {
   return paths;
 }
 
+function extractStylesheetPaths(html) {
+  const paths = [];
+  const seen = new Set();
+  const pattern = /<link\b[^>]*href="(\/_next\/static\/[^"]+\.css)"[^>]*>/g;
+  for (const match of html.matchAll(pattern)) {
+    const tag = match[0];
+    const stylesheetPath = match[1];
+    if (!stylesheetPath || seen.has(stylesheetPath)) {
+      continue;
+    }
+    if (!/\brel="stylesheet"|\bas="style"/.test(tag)) {
+      continue;
+    }
+    seen.add(stylesheetPath);
+    paths.push(stylesheetPath);
+  }
+  if (paths.length === 0) {
+    throw new Error('No first-screen stylesheet tags found in prerender HTML');
+  }
+  return paths;
+}
+
 function resolveStaticPath(buildDir, scriptPath) {
   // /_next/static/... -> <buildDir>/static/...
   const relative = scriptPath.replace(/^\/_next\//, '');
@@ -131,8 +184,16 @@ function resolveStaticPath(buildDir, scriptPath) {
 
 function toBudgetDocument(measured) {
   const firstScreenJs = {};
-  for (const [route, entry] of Object.entries(measured)) {
+  const firstScreenCss = {};
+  for (const [route, entry] of Object.entries(measured.firstScreenJs)) {
     firstScreenJs[route] = {
+      bytes: entry.bytes,
+      maxBytes: Math.ceil(entry.bytes * 1.1),
+      files: entry.files,
+    };
+  }
+  for (const [route, entry] of Object.entries(measured.firstScreenCss)) {
+    firstScreenCss[route] = {
       bytes: entry.bytes,
       maxBytes: Math.ceil(entry.bytes * 1.1),
       files: entry.files,
@@ -141,8 +202,9 @@ function toBudgetDocument(measured) {
   return {
     schema: 1,
     description:
-      'First-screen JS budgets from production prerender HTML. maxBytes is ~10% headroom over the recorded baseline.',
+      'First-screen JS and CSS budgets from production prerender HTML. maxBytes is ~10% headroom over the recorded baseline.',
     firstScreenJs,
+    firstScreenCss,
     webVitals: {
       login: { lcpMsMax: 3500, clsMax: 0.1 },
       shelf: { lcpMsMax: 4000, clsMax: 0.15, inpMsMax: 300 },
@@ -160,11 +222,35 @@ function validateBudget(expected, measured) {
   }
 
   const failures = [];
+  validateAssetGroup('firstScreenJs', 'JS', expected.firstScreenJs, measured.firstScreenJs, failures);
+  if (expected.firstScreenCss) {
+    validateAssetGroup(
+      'firstScreenCss',
+      'CSS',
+      expected.firstScreenCss,
+      measured.firstScreenCss,
+      failures
+    );
+  }
+
+  if (failures.length > 0) {
+    console.error('Frontend first-screen asset budget check failed:');
+    for (const failure of failures) {
+      console.error(`  - ${failure}`);
+    }
+    console.error(
+      'Re-measure with "npm run test:js-budget:baseline" only after intentional size changes, and explain regressions >10% in the PR.'
+    );
+    process.exit(1);
+  }
+}
+
+function validateAssetGroup(groupKey, label, expectedGroup, measuredGroup, failures) {
   for (const route of Object.keys(routes)) {
-    const budget = expected.firstScreenJs[route];
-    const actual = measured[route];
+    const budget = expectedGroup[route];
+    const actual = measuredGroup[route];
     if (!budget || typeof budget.maxBytes !== 'number') {
-      failures.push(`Budget is missing firstScreenJs.${route}.maxBytes`);
+      failures.push(`Budget is missing ${groupKey}.${route}.maxBytes`);
       continue;
     }
     if (!actual) {
@@ -173,20 +259,9 @@ function validateBudget(expected, measured) {
     }
     if (actual.bytes > budget.maxBytes) {
       failures.push(
-        `${route} first-screen JS is ${formatBytes(actual.bytes)}, exceeds max ${formatBytes(budget.maxBytes)} (+${formatBytes(actual.bytes - budget.maxBytes)})`
+        `${route} first-screen ${label} is ${formatBytes(actual.bytes)}, exceeds max ${formatBytes(budget.maxBytes)} (+${formatBytes(actual.bytes - budget.maxBytes)})`
       );
     }
-  }
-
-  if (failures.length > 0) {
-    console.error('Frontend first-screen JS budget check failed:');
-    for (const failure of failures) {
-      console.error(`  - ${failure}`);
-    }
-    console.error(
-      'Re-measure with "npm run test:js-budget:baseline" only after intentional size changes, and explain regressions >10% in the PR.'
-    );
-    process.exit(1);
   }
 }
 

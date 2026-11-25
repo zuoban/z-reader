@@ -1,21 +1,38 @@
 {
   "schema": 1,
-  "description": "First-screen JS measured from production prerender HTML on 2026-10-18; existing maxBytes ceilings are preserved.",
+  "description": "First-screen JS and CSS budgets from production prerender HTML. maxBytes is ~10% headroom over the recorded baseline.",
   "firstScreenJs": {
     "home": {
-      "bytes": 683255,
-      "maxBytes": 751581,
-      "files": 12
+      "bytes": 621322,
+      "maxBytes": 683455,
+      "files": 9
     },
     "login": {
-      "bytes": 756911,
-      "maxBytes": 832603,
+      "bytes": 722337,
+      "maxBytes": 794571,
       "files": 15
     },
     "shelf": {
-      "bytes": 924373,
-      "maxBytes": 1016811,
-      "files": 18
+      "bytes": 934045,
+      "maxBytes": 1027450,
+      "files": 19
+    }
+  },
+  "firstScreenCss": {
+    "home": {
+      "bytes": 205366,
+      "maxBytes": 225903,
+      "files": 4
+    },
+    "login": {
+      "bytes": 257877,
+      "maxBytes": 283665,
+      "files": 6
+    },
+    "shelf": {
+      "bytes": 270246,
+      "maxBytes": 297271,
+      "files": 6
     }
   },
   "webVitals": {

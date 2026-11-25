@@ -103,7 +103,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		CreatedAt:   time.Now(),
 	}
 	book.Title = strings.TrimSuffix(file.Filename, ext)
-	if format == "epub" {
+	if supportsBookPreviewProcessing(format) {
 		book.ProcessingState = models.BookProcessingPending
 	} else {
 		book.ProcessingState = models.BookProcessingReady
@@ -125,8 +125,17 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, book)
-	if format == "epub" {
+	if book.ProcessingState == models.BookProcessingPending {
 		h.enqueueBookProcessing(book)
+	}
+}
+
+func supportsBookPreviewProcessing(format string) bool {
+	switch format {
+	case "epub", "mobi", "azw3", "pdf":
+		return true
+	default:
+		return false
 	}
 }
 

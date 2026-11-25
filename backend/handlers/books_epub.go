@@ -224,6 +224,10 @@ func extractBookPreview(file *os.File, format string) (*epubMetadata, []byte, st
 	switch format {
 	case "epub":
 		return extractEPUBPreview(file)
+	case "mobi", "azw3":
+		return extractMOBIPreview(file)
+	case "pdf":
+		return extractPDFPreview(file)
 	default:
 		return nil, nil, "", fmt.Errorf("metadata extraction not implemented for %s", format)
 	}

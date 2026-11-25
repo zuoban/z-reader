@@ -110,7 +110,7 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		return
 	}
 
-	if book.CoverMissing || book.Format != "epub" {
+	if book.CoverMissing || !supportsExtractedCoverFormat(book.Format) {
 		response.NotFound(c, "封面不存在")
 		return
 	}
@@ -125,7 +125,7 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		}
 		defer file.Close()
 
-		coverData, contentType, extractErr := extractEPUBCover(file)
+		coverData, contentType, extractErr := extractBookCover(file, book.Format)
 		if extractErr != nil {
 			h.markCoverMissing(book)
 			return extractedCoverResult{status: http.StatusNotFound, message: "封面不存在"}, nil
@@ -153,6 +153,26 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	}
 	c.Header("Content-Type", extracted.contentType)
 	c.Data(http.StatusOK, extracted.contentType, extracted.data)
+}
+
+func supportsExtractedCoverFormat(format string) bool {
+	switch format {
+	case "epub", "mobi", "azw3":
+		return true
+	default:
+		return false
+	}
+}
+
+func extractBookCover(file *os.File, format string) ([]byte, string, error) {
+	switch format {
+	case "epub":
+		return extractEPUBCover(file)
+	case "mobi", "azw3":
+		return extractMOBICover(file)
+	default:
+		return nil, "", fmt.Errorf("封面不存在")
+	}
 }
 
 func (h *BooksHandler) serveCover(c *gin.Context, name string) {

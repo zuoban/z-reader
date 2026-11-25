@@ -14,6 +14,7 @@ const coreModules = [
   'overlayer.js',
   'text-walker.js',
   'zip-loader.js',
+  'zip-worker.js',
   'epub.js',
   'paginator.js',
 ];
@@ -72,10 +73,17 @@ export async function buildFoliate({
   }
 
   const base = `/foliate/built/${version}`;
+  const preload = coreModules
+    .filter(name => names.includes(name))
+    .map(name => `${base}/${name}`);
+  const vendorEntries = await readdir(path.join(sourceDir, 'vendor')).catch(() => []);
+  if (vendorEntries.includes('zip.js')) {
+    preload.push(`/foliate/vendor/zip.js?v=${version}`);
+  }
   const manifest = {
     version,
     entry: `${base}/view.js`,
-    preload: coreModules.filter(name => names.includes(name)).map(name => `${base}/${name}`),
+    preload,
     sourceBytes,
     outputBytes,
   };

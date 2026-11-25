@@ -55,6 +55,8 @@ export const worker = () => new URL('./zip-worker.js', import.meta.url).pathname
     const first = await buildFoliate(options);
     assert.ok(first.outputBytes < first.sourceBytes);
     assert.equal(await readFile(path.join(sourceDir, 'view.js'), 'utf8'), source);
+    assert.ok(first.preload.includes(`/foliate/built/${first.version}/zip-worker.js`));
+    assert.ok(first.preload.includes(`/foliate/vendor/zip.js?v=${first.version}`));
     const view = await import(pathToFileURL(path.join(outputDir, first.version, 'view.js')));
     assert.equal(view.value, 42);
     assert.equal((await view.lazy()).number, 42);

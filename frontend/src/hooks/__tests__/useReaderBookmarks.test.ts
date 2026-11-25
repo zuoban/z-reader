@@ -142,4 +142,33 @@ describe('useReaderBookmarks', () => {
       expect(result.current.bookmarks).toEqual([existing]);
     });
   });
+
+  it('defers bookmark loading until deferLoad clears and fetches only once per book', async () => {
+    const existing = bookmark('first');
+    const list = vi.mocked(api.listBookmarks).mockResolvedValue([existing]);
+
+    const { result, rerender } = renderHook(
+      (deferLoad: boolean) => useReaderBookmarks({
+        ...options, bookId: 'first', isAuthenticated: true, deferLoad,
+      }),
+      { initialProps: true, wrapper: StrictMode },
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(list).not.toHaveBeenCalled();
+    expect(result.current.bookmarks).toEqual([]);
+
+    rerender(false);
+    await waitFor(() => expect(result.current.bookmarks).toEqual([existing]));
+    expect(list).toHaveBeenCalledTimes(1);
+
+    rerender(true);
+    rerender(false);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(list).toHaveBeenCalledTimes(1);
+  });
 });

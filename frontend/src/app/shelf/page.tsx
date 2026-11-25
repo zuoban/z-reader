@@ -33,6 +33,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
 import { ShelfHeader } from '@/components/ShelfHeader';
 import { SortSelector } from '@/components/SortSelector';
+import { prefetchFoliateEngine } from '@/lib/foliate-loader';
 import { VirtualBookGrid } from '@/components/VirtualBookGrid';
 import { cn } from '@/lib/utils';
 
@@ -345,6 +346,7 @@ export default function ShelfPage() {
 
   const handlePrefetchBook = useCallback(
     (bookId: string) => {
+      prefetchFoliateEngine();
       if (prefetchedBookIdsRef.current.has(bookId)) return;
       prefetchedBookIdsRef.current.add(bookId);
       router.prefetch(`/read/${bookId}`);

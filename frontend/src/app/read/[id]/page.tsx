@@ -394,6 +394,7 @@ function Reader({ bookId }: { bookId: string }) {
   } = useReaderBookmarks({
     bookId,
     isAuthenticated,
+    deferLoad: loading && !bookmarksOpen,
     currentCFI,
     percentage,
     currentChapter,

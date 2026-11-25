@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { toast } from 'sonner';
 import { api, type Bookmark } from '@/lib/api';
 import { getAccessGeneration } from '@/lib/library-access';
@@ -10,6 +10,7 @@ import type { FoliateView } from '@/lib/types';
 interface UseReaderBookmarksOptions {
   bookId: string;
   isAuthenticated: boolean;
+  deferLoad?: boolean;
   currentCFI: string;
   percentage: number;
   currentChapter: string;
@@ -30,6 +31,7 @@ function isCurrentBookmarkContext(context: BookmarkContext): boolean {
 export function useReaderBookmarks({
   bookId,
   isAuthenticated,
+  deferLoad = false,
   currentCFI,
   percentage,
   currentChapter,
@@ -39,6 +41,7 @@ export function useReaderBookmarks({
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
   const activeBookRef = useRef<BookmarkContext | null>(null);
+  const loadedBookRef = useRef<BookmarkContext | null>(null);
 
   const loadBookmarks = useCallback(async (context: BookmarkContext) => {
     if (!isCurrentBookmarkContext(context)) return;
@@ -55,16 +58,25 @@ export function useReaderBookmarks({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBookmarks((items) => items.length ? [] : items);
     setIsSavingBookmark(false);
+    loadedBookRef.current = null;
     if (!isAuthenticated) return;
     const controller = new AbortController();
     const context = { bookId, signal: controller.signal, generation: getAccessGeneration() };
     activeBookRef.current = context;
-    queueMicrotask(() => { void loadBookmarks(context); });
     return () => {
       activeBookRef.current = null;
+      loadedBookRef.current = null;
       controller.abort();
     };
-  }, [bookId, isAuthenticated, loadBookmarks]);
+  }, [bookId, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || deferLoad) return;
+    const context = activeBookRef.current;
+    if (!context || context.bookId !== bookId || loadedBookRef.current === context) return;
+    loadedBookRef.current = context;
+    queueMicrotask(() => { void loadBookmarks(context); });
+  }, [bookId, isAuthenticated, deferLoad, loadBookmarks]);
 
   const handleCreateBookmark = useCallback(async () => {
     const context = activeBookRef.current;

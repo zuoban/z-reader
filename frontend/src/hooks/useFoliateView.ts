@@ -116,12 +116,25 @@ function shouldUseReaderCompatibilityMode(): boolean {
   return isAndroidWebView || !(isChrome || isEdge || isFirefox || isSamsungBrowser);
 }
 
+const FOLIATE_VIEW_DEFINE_TIMEOUT_MS = 5000;
+
 async function waitForFoliateView() {
-  let retries = 0;
-  while (!customElements.get("foliate-view") && retries < 50) {
-    await sleep(100);
-    retries++;
+  if (customElements.get("foliate-view")) return;
+
+  let timeoutId: number | undefined;
+  try {
+    await Promise.race([
+      customElements.whenDefined("foliate-view"),
+      new Promise<void>((resolve) => {
+        timeoutId = window.setTimeout(resolve, FOLIATE_VIEW_DEFINE_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
   }
+
   if (!customElements.get("foliate-view")) {
     // Check if the script was loaded at all
     const script = document.querySelector('script[data-foliate-entry]');

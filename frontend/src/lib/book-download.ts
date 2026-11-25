@@ -166,26 +166,43 @@ async function downloadBookFile(
     initialBytes > 0
   );
   const parts = partialDownload?.chunks ?? [];
-  let writer = await createPartialBookDownloadWriter(
-    userId, id, totalBytes, contentType, partialDownload,
-    response.headers.get('ETag') ?? undefined
-  ).catch(() => null);
+  const responseEtag = response.headers.get('ETag') ?? undefined;
+  let writerPromise: Promise<Awaited<ReturnType<typeof createPartialBookDownloadWriter>> | null> | null = null;
+  let writerDisabled = false;
+  let completed = false;
+  let wrotePartialChunk = false;
   let pendingChunks: Uint8Array[] = [];
   let pendingBytes = 0;
   let writeChain = Promise.resolve();
   const pendingWrites: Promise<void>[] = [];
 
+  const getWriter = () => {
+    if (writerDisabled || completed) return Promise.resolve(null);
+    if (!writerPromise) {
+      writerPromise = createPartialBookDownloadWriter(
+        userId, id, totalBytes, contentType, partialDownload, responseEtag
+      ).catch(() => {
+        writerDisabled = true;
+        return null;
+      });
+    }
+    return writerPromise;
+  };
+
   const persistChunk = async (chunk: Blob) => {
     parts.push(chunk);
-    if (!writer) return;
+    if (writerDisabled || completed) return;
     writeChain = writeChain.then(async () => {
-      if (!writer || context.generation() !== generation) return;
+      if (completed || writerDisabled || context.generation() !== generation) return;
+      const writer = await getWriter();
+      if (!writer || completed || context.generation() !== generation) return;
       try {
+        wrotePartialChunk = true;
         await writer.append(chunk);
       } catch {
         // Keep the last committed prefix for retry, even when temporary
         // storage fails. The current read can still finish in memory.
-        writer = null;
+        writerDisabled = true;
       }
     });
     pendingWrites.push(writeChain);
@@ -208,7 +225,7 @@ async function downloadBookFile(
       throwIfAborted();
       if (file.size === 0) throw new Error('书籍文件为空');
       downloadedBytes += file.size;
-      await persistChunk(file);
+      parts.push(file);
     } else {
       const reader = response.body.getReader();
       const cancelReader = () => { void reader.cancel().catch(() => {}); };
@@ -232,18 +249,30 @@ async function downloadBookFile(
         options.signal?.removeEventListener('abort', cancelReader);
         reader.releaseLock();
       }
-      await persistPendingChunks();
     }
 
-    await writeChain;
     throwIfAborted();
     if (downloadedBytes === 0) throw new Error('书籍文件为空');
     if (totalBytes !== null && downloadedBytes < totalBytes) {
       throw new Error('书籍下载未完成，请重试以继续下载');
     }
 
+    completed = true;
+    if (pendingBytes > 0) {
+      parts.push(new Blob(pendingChunks as BlobPart[], { type: contentType }));
+      pendingChunks = [];
+      pendingBytes = 0;
+    }
+
     reportProgress(downloadedBytes, true);
-    await clearPartialBookDownload(userId, id).catch(() => {});
+    if (partialDownload !== null) {
+      await writeChain;
+      await clearPartialBookDownload(userId, id).catch(() => {});
+    } else if (wrotePartialChunk || pendingWrites.length > 0) {
+      void writeChain
+        .then(() => (wrotePartialChunk ? clearPartialBookDownload(userId, id) : undefined))
+        .catch(() => {});
+    }
     return new Blob(parts, { type: contentType });
   } catch (error) {
     // Include the final short batch before rejecting an interrupted read.

@@ -8,7 +8,15 @@ const require = createRequire(import.meta.url);
 const { minify } = require('next/dist/compiled/terser');
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const excluded = new Set(['eslint.config.js', 'rollup.config.js', 'reader.js']);
-const coreModules = ['epubcfi.js', 'progress.js', 'overlayer.js', 'text-walker.js', 'zip-loader.js'];
+const coreModules = [
+  'epubcfi.js',
+  'progress.js',
+  'overlayer.js',
+  'text-walker.js',
+  'zip-loader.js',
+  'epub.js',
+  'paginator.js',
+];
 
 export function rewriteVendorPaths(source, version) {
   return source.replace(/(['"`])(?:\.\/)?vendor\/([^'"`]+)\1/g,

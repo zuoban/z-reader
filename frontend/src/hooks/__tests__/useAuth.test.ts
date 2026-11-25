@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { useAuth } from '@/hooks/useAuth';
+import { clearAuthCache, useAuth } from '@/hooks/useAuth';
 import { ApiError, AUTH_EXPIRED_EVENT, api } from '@/lib/api';
 import { clearCoverUrlCache } from '@/hooks/useCoverUrl';
 
@@ -34,6 +34,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
 describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAuthCache();
     vi.useFakeTimers();
   });
 
@@ -226,5 +227,24 @@ describe('useAuth', () => {
 
     vi.runAllTimers();
     expect(api.verify).not.toHaveBeenCalled();
+  });
+
+  it('reuses recent verified auth state on remount while revalidating in background', async () => {
+    vi.mocked(api.verify).mockResolvedValue({
+      valid: true,
+      password_required: false,
+    });
+
+    const first = renderHook(() => useAuth());
+    await flushAuthCheck();
+    first.unmount();
+
+    const second = renderHook(() => useAuth());
+    expect(second.result.current.isLoading).toBe(false);
+    expect(second.result.current.isAuthenticated).toBe(true);
+    expect(second.result.current.passwordRequired).toBe(false);
+
+    await flushAuthCheck();
+    expect(api.verify).toHaveBeenCalledTimes(2);
   });
 });

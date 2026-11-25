@@ -8,11 +8,43 @@ import { ACCESS_GENERATION_KEY, getAccessGeneration } from '@/lib/library-access
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'offline';
 
+const AUTH_CACHE_TTL_MS = 60_000;
+
+interface CachedAuthState {
+  generation: string | null;
+  passwordRequired: boolean;
+  verifiedAt: number;
+}
+
+let cachedAuthState: CachedAuthState | null = null;
+
+export function clearAuthCache(): void {
+  cachedAuthState = null;
+}
+
+function getValidCachedAuth(): CachedAuthState | null {
+  if (typeof window === 'undefined' || !cachedAuthState) return null;
+  if (cachedAuthState.generation !== getAccessGeneration()) {
+    cachedAuthState = null;
+    return null;
+  }
+  if (Date.now() - cachedAuthState.verifiedAt > AUTH_CACHE_TTL_MS) {
+    cachedAuthState = null;
+    return null;
+  }
+  return cachedAuthState;
+}
+
 export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
   const { redirectOnExpire = true } = options;
   const router = useRouter();
-  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
-  const [passwordRequired, setPasswordRequired] = useState(true);
+  const [initialCachedAuth] = useState<CachedAuthState | null>(() => getValidCachedAuth());
+  const [authStatus, setAuthStatus] = useState<AuthStatus>(
+    initialCachedAuth ? 'authenticated' : 'loading'
+  );
+  const [passwordRequired, setPasswordRequired] = useState(
+    initialCachedAuth ? initialCachedAuth.passwordRequired : true
+  );
 
   const isLoading = authStatus === 'loading';
   const isAuthenticated = authStatus === 'authenticated';
@@ -23,16 +55,23 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
     try {
       const res = await api.verify();
       if (generation !== getAccessGeneration()) return 'unauthenticated';
+      cachedAuthState = {
+        generation,
+        passwordRequired: res.password_required,
+        verifiedAt: Date.now(),
+      };
       setAuthStatus('authenticated');
       setPasswordRequired(res.password_required);
       return 'authenticated';
     } catch (error) {
       if (generation !== getAccessGeneration()) return 'unauthenticated';
       if (error instanceof ApiError && error.status === 401) {
+        clearAuthCache();
         clearCoverUrlCache();
         setAuthStatus('unauthenticated');
         return 'unauthenticated';
       } else {
+        clearAuthCache();
         setAuthStatus('offline');
         return 'offline';
       }
@@ -49,6 +88,7 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
 
   useEffect(() => {
     function handleAuthExpired() {
+      clearAuthCache();
       clearCoverUrlCache();
       setAuthStatus('unauthenticated');
       if (redirectOnExpire) {
@@ -71,13 +111,19 @@ export function useAuth(options: { redirectOnExpire?: boolean } = {}) {
   }, [router, redirectOnExpire]);
 
   async function login(password: string) {
-    await api.login(password);
+    const res = await api.login(password);
     clearCoverUrlCache();
+    cachedAuthState = {
+      generation: getAccessGeneration(),
+      passwordRequired: res?.password_required ?? true,
+      verifiedAt: Date.now(),
+    };
     router.replace('/shelf');
   }
 
   async function logout() {
     await api.logout();
+    clearAuthCache();
     clearCoverUrlCache();
     setAuthStatus('unauthenticated');
     router.replace('/login');

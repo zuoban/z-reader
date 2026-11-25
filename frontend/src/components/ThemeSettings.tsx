@@ -3,6 +3,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ActionIcon, Button, Drawer, Slider, Tabs } from "@mantine/core";
+import "@mantine/core/styles/Slider.layer.css";
+import "@mantine/core/styles/Tabs.layer.css";
+import "@/app/styles/mantine-drawer.css";
 import { useUncontrolled } from "@mantine/hooks";
 import { Check, ChevronDown, ChevronUp, Minus, Plus, RotateCcw, Settings, X } from "lucide-react";
 

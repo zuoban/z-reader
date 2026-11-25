@@ -1,3 +1,2 @@
-@import "@mantine/core/styles/ActionIcon.layer.css";
+@import "./mantine-buttons.css";
 @import "@mantine/core/styles/Input.layer.css";
-@import "@mantine/core/styles/Button.layer.css";

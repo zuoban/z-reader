@@ -2,6 +2,9 @@
 
 import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { Combobox, InputBase, useCombobox } from '@mantine/core';
+import '@mantine/core/styles/Input.layer.css';
+import '@mantine/core/styles/Popover.layer.css';
+import '@mantine/core/styles/Combobox.layer.css';
 import { Check, ChevronDown, Loader2, RotateCw, Square, Volume2 } from 'lucide-react';
 import { buildAzureSSML } from '@/lib/tts';
 import { API_BASE, createAbortController } from '@/lib/config';

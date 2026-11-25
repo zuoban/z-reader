@@ -2,6 +2,7 @@
 
 import { useMemo, type CSSProperties } from "react";
 import { ActionIcon, Button, Drawer } from "@mantine/core";
+import "@/app/styles/mantine-drawer.css";
 import { Bookmark, BookmarkPlus, Loader2, Trash2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";

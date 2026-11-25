@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Modal } from "@mantine/core";
+import "@/app/styles/mantine-modal.css";
 import { Keyboard, X } from "lucide-react";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import { getModernReaderSurface, getReaderPanelThemeVars } from "@/lib/reader-ui";

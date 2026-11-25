@@ -3,6 +3,7 @@
 import type { FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
+import '@/app/styles/mantine-modal.css';
 import { Check, Loader2, Plus, Tag, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { ActionIcon, Button, Drawer } from "@mantine/core";
+import "@/app/styles/mantine-drawer.css";
 import { List, LocateFixed, Search, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";

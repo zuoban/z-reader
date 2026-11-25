@@ -1,5 +1,5 @@
 @import "./mantine-controls.css";
-@import "./mantine-overlays.css";
 @import "@mantine/core/styles/Loader.layer.css";
+@import "@mantine/core/styles/Popover.layer.css";
 @import "@mantine/core/styles/Menu.layer.css";
 @import "@mantine/core/styles/Skeleton.layer.css";

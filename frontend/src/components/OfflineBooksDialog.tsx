@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ActionIcon, Button, Modal } from '@mantine/core';
+import '@/app/styles/mantine-modal.css';
 import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/AppShell';

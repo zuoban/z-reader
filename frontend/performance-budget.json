@@ -3,35 +3,35 @@
   "description": "First-screen JS and CSS budgets from production prerender HTML. maxBytes is ~10% headroom over the recorded baseline.",
   "firstScreenJs": {
     "home": {
-      "bytes": 621322,
-      "maxBytes": 683455,
+      "bytes": 621505,
+      "maxBytes": 683656,
       "files": 9
     },
     "login": {
-      "bytes": 722337,
-      "maxBytes": 794571,
+      "bytes": 722559,
+      "maxBytes": 794815,
       "files": 15
     },
     "shelf": {
-      "bytes": 934045,
-      "maxBytes": 1027450,
+      "bytes": 938600,
+      "maxBytes": 1032461,
       "files": 19
     }
   },
   "firstScreenCss": {
     "home": {
-      "bytes": 205366,
-      "maxBytes": 225903,
+      "bytes": 204933,
+      "maxBytes": 225427,
       "files": 4
     },
     "login": {
-      "bytes": 257877,
-      "maxBytes": 283665,
+      "bytes": 257393,
+      "maxBytes": 283133,
       "files": 6
     },
     "shelf": {
-      "bytes": 270246,
-      "maxBytes": 297271,
+      "bytes": 259379,
+      "maxBytes": 285317,
       "files": 6
     }
   },

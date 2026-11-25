@@ -25,13 +25,17 @@ import {
   Settings,
 } from "lucide-react";
 
-import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
 import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const ReaderBookmarksSheet = dynamic(() =>
+  import("@/components/reader/ReaderBookmarksSheet").then(
+    (module) => module.ReaderBookmarksSheet
+  )
+);
 const ThemeSettings = dynamic(() => import("@/components/ThemeSettings")
   .then((module) => module.ThemeSettings));
 
@@ -148,6 +152,11 @@ export function ReaderToolbar({
       requestAnimationFrame(() => mobileActionsButtonRef.current?.focus());
     }
   }
+
+  useEffect(() => {
+    void import("@/components/reader/ReaderBookmarksSheet").catch(() => {});
+    void import("@/components/ThemeSettings").catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!mobileActionsOpen) return;

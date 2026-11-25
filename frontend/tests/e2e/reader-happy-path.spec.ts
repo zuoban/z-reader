@@ -495,4 +495,81 @@ test.describe('reader happy path', () => {
       .poll(async () => Number(await scrubber.inputValue()), { timeout: 10_000 })
       .toBeLessThanOrEqual(initialValue + 5);
   });
+
+  test('shows floating jump-back pill after search/TOC jump, returns to previous location, and dismisses cleanly', async ({
+    page,
+  }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+    await ensureToolbarVisible(page);
+
+    const readVisibleBodyText = () =>
+      page.locator('foliate-view').evaluate((element) => {
+        const view = element as HTMLElement & {
+          renderer?: { getContents(): Array<{ doc?: Document | null }> };
+        };
+        return (
+          view.renderer
+            ?.getContents()
+            .map((item) => item?.doc?.body?.textContent ?? '')
+            .join('\n') ?? ''
+        );
+      });
+
+    await expect.poll(readVisibleBodyText, { timeout: 15_000 }).toContain('Hello Z Reader.');
+
+    // 1. Jump via in-book search -> floating pill appears outside drawers.
+    await page.getByRole('button', { name: '书内搜索' }).first().click();
+    const searchDialog = page.getByRole('dialog', { name: '书内搜索' });
+    await expect(searchDialog).toBeVisible({ timeout: 10_000 });
+
+    const input = searchDialog.getByRole('searchbox', { name: '书内全文搜索' });
+    await input.fill('样例书第二章');
+    await input.press('Enter');
+
+    const resultButton = searchDialog
+      .getByRole('button')
+      .filter({ hasText: '样例书第二章' })
+      .first();
+    await expect(resultButton).toBeVisible({ timeout: 15_000 });
+    await resultButton.click();
+
+    await expect(searchDialog).toBeHidden({ timeout: 10_000 });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect.poll(readVisibleBodyText, { timeout: 15_000 }).toContain('样例书第二章');
+
+    const pillGroup = page.getByRole('group', { name: '返回原位' });
+    const returnButton = page.getByRole('button', { name: /^返回原位/ });
+    await expect(pillGroup).toBeVisible({ timeout: 10_000 });
+    await expect(returnButton).toBeVisible();
+
+    // 2. Clicking 返回原位 returns to the previous location and hides the pill.
+    await returnButton.click();
+    await expect(pillGroup).toHaveCount(0, { timeout: 10_000 });
+    await expect(returnButton).toHaveCount(0);
+    await expect.poll(readVisibleBodyText, { timeout: 15_000 }).toContain('Hello Z Reader.');
+
+    // 3. Jump again via TOC and dismiss the pill cleanly with 忽略返回原位.
+    await ensureToolbarVisible(page);
+    await page.getByRole('button', { name: /目录/ }).first().click();
+    const tocDialog = page.getByRole('dialog', { name: '目录', exact: true });
+    await expect(tocDialog).toBeVisible({ timeout: 10_000 });
+    await tocDialog.getByRole('button', { name: /^第二章 续篇/ }).click();
+    await expect(tocDialog).toBeHidden({ timeout: 10_000 });
+
+    await expect.poll(readVisibleBodyText, { timeout: 15_000 }).toContain('样例书第二章');
+    await expect(pillGroup).toBeVisible({ timeout: 10_000 });
+
+    const dismissButton = page.getByRole('button', { name: '忽略返回原位' });
+    await expect(dismissButton).toBeVisible();
+    await dismissButton.click();
+
+    await expect(pillGroup).toHaveCount(0, { timeout: 10_000 });
+    await expect(returnButton).toHaveCount(0);
+    // Dismissing keeps the current jumped location.
+    await expect.poll(readVisibleBodyText, { timeout: 10_000 }).toContain('样例书第二章');
+  });
 });

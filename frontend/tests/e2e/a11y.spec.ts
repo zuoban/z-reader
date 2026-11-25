@@ -258,4 +258,38 @@ test.describe('accessibility', () => {
       include: ['[role="dialog"]'],
     });
   });
+
+  for (const preset of ['light', 'dark'] as const) {
+    test(`reader jump-back pill has no serious violations in ${preset} theme`, async ({
+      page,
+    }) => {
+      await installBrowserStubs(page, { preset, authenticated: true });
+      await mockReaderHappyPath(page, 'book-1');
+      await gotoStable(page, '/read/book-1');
+
+      await expect(page.getByRole('heading', { name: 'E2E Sample Book' })).toBeVisible({
+        timeout: 45_000,
+      });
+
+      const collapse = page.getByRole('button', { name: '收起顶部操作栏' });
+      if (!(await collapse.isVisible().catch(() => false))) {
+        await page.getByRole('button', { name: '展开操作栏' }).click();
+      }
+
+      await page.getByRole('button', { name: /目录/ }).first().click();
+      const tocDialog = page.getByRole('dialog', { name: '目录', exact: true });
+      await expect(tocDialog).toBeVisible({ timeout: 10_000 });
+      await tocDialog.getByRole('button', { name: /^第二章 续篇/ }).click();
+      await expect(tocDialog).toBeHidden({ timeout: 10_000 });
+
+      const pillGroup = page.getByRole('group', { name: '返回原位' });
+      await expect(pillGroup).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('button', { name: /^返回原位/ })).toBeVisible();
+      await expect(page.getByRole('button', { name: '忽略返回原位' })).toBeVisible();
+
+      await expectNoSeriousA11yViolations(page, {
+        exclude: ['foliate-view', '.reader-page-surface'],
+      });
+    });
+  }
 });

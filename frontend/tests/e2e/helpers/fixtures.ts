@@ -825,22 +825,52 @@ export type ReaderHappyPathMock = {
   fileHits: number;
 };
 
+export type ReaderFixtureFormat = 'epub' | 'pdf' | 'mobi' | 'azw3';
+
+export type ReaderFixtureOptions = {
+  filename: string;
+  title: string;
+  author?: string;
+  format?: ReaderFixtureFormat;
+  contentType?: string;
+};
+
+const READER_FIXTURE_CONTENT_TYPES: Record<string, string> = {
+  epub: 'application/epub+zip',
+  pdf: 'application/pdf',
+  mobi: 'application/x-mobipocket-ebook',
+  azw3: 'application/vnd.amazon.ebook',
+};
+
 /**
- * Reader happy-path APIs: real minimal EPUB bytes + stateful progress/bookmarks.
- * Catch-all so nothing falls through to a live backend.
+ * Reader happy-path APIs: real minimal fixture bytes + stateful progress/bookmarks.
+ * Supports EPUB, PDF, MOBI, and AZW3 fixtures without a live backend.
  */
 export async function mockReaderHappyPath(
   page: Page,
   bookId = 'book-1',
-  fixture = { filename: 'sample.epub', title: 'E2E Sample Book' }
+  fixture: ReaderFixtureOptions = { filename: 'sample.epub', title: 'E2E Sample Book' }
 ): Promise<ReaderHappyPathMock> {
+  const inferredFormat = (
+    fixture.format ??
+    (path.extname(fixture.filename).slice(1).toLowerCase() || 'epub')
+  ) as ReaderFixtureFormat;
+  const contentType =
+    fixture.contentType ??
+    READER_FIXTURE_CONTENT_TYPES[inferredFormat] ??
+    'application/octet-stream';
+  const fileBytes = readFileSync(
+    path.join(process.cwd(), 'tests/e2e/fixtures', fixture.filename)
+  );
+
   const book = {
     ...(MOCK_BOOKS.find((item) => item.id === bookId) ?? MOCK_BOOKS[0]),
     id: bookId,
     title: fixture.title,
-    author: 'Fixture Author',
+    author: fixture.author ?? 'Fixture Author',
     filename: fixture.filename,
-    format: 'epub',
+    format: inferredFormat,
+    size: fileBytes.byteLength,
     processing_state: 'ready' as const,
   };
 
@@ -853,7 +883,6 @@ export async function mockReaderHappyPath(
   };
 
   let bookmarkSeq = 0;
-  const epubBytes = readFileSync(path.join(process.cwd(), 'tests/e2e/fixtures', fixture.filename));
 
   await page.route('**/api/**', async (route) => {
     const method = route.request().method();
@@ -958,12 +987,12 @@ export async function mockReaderHappyPath(
       state.fileHits += 1;
       await route.fulfill({
         status: 200,
-        contentType: 'application/epub+zip',
+        contentType,
         headers: {
-          'Content-Length': String(epubBytes.byteLength),
+          'Content-Length': String(fileBytes.byteLength),
           'Accept-Ranges': 'bytes',
         },
-        body: epubBytes,
+        body: fileBytes,
       });
       return;
     }

@@ -1,5 +1,7 @@
-import type { ReaderTheme } from '@/hooks/useReaderTheme';
-import { PRESET_STYLES } from '@/hooks/useReaderTheme';
+import {
+  PRESET_STYLES,
+  type ReaderThemePreset,
+} from '@/lib/reader-theme-presets';
 
 /** Browser chrome / PWA status bar colors aligned with paper themes */
 export const APP_THEME_COLORS = {
@@ -32,7 +34,7 @@ export function applyThemeColor(color: string) {
   meta.setAttribute('content', color);
 }
 
-export function themeColorForPreset(preset: ReaderTheme['preset']): string {
+export function themeColorForPreset(preset: ReaderThemePreset): string {
   return PRESET_STYLES[preset]?.bg ?? APP_THEME_COLORS.light;
 }
 

@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
-import { MantineProvider } from '@mantine/core';
 import { useShelfTheme } from '@/hooks/useShelfTheme';
-import {
-  mantineCssVariablesResolver,
-  mantineTheme,
-} from '@/lib/mantine-theme';
 import {
   applyThemeColor,
   themeColorForAppMode,
@@ -19,6 +14,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.classList.toggle('dark', isDark);
     root.dataset.readerPreset = preset;
+    root.setAttribute('data-mantine-color-scheme', isDark ? 'dark' : 'light');
     root.style.colorScheme = isDark ? 'dark' : 'light';
 
     // Shelf / login: follow app chrome (not full reader sepia/green surfaces).
@@ -28,13 +24,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isDark, preset]);
 
-  return (
-    <MantineProvider
-      theme={mantineTheme}
-      cssVariablesResolver={mantineCssVariablesResolver}
-      forceColorScheme={isDark ? 'dark' : 'light'}
-    >
-      {children}
-    </MantineProvider>
-  );
+  return <>{children}</>;
 }

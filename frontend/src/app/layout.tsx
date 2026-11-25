@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { mantineHtmlProps } from '@mantine/core';
 import '@fontsource/crimson-text/latin-400.css';
 import '@fontsource/crimson-text/latin-600.css';
 import '@fontsource/playfair-display/latin-400.css';
@@ -73,9 +72,9 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      {...mantineHtmlProps}
       lang="zh-CN"
       className="h-full antialiased"
+      data-mantine-color-scheme="light"
       suppressHydrationWarning
     >
       <head>

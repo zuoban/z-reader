@@ -424,4 +424,43 @@ test.describe('reader happy path', () => {
     expect(content).toContain('# E2E Sample Book');
     expect(content).toContain('> 这一段的伏笔很精彩');
   });
+
+  test('opens TOC, bookmarks, and theme settings via T/B/S keyboard shortcuts', async ({
+    page,
+  }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockReaderHappyPath(page, 'book-1');
+
+    await gotoStable(page, '/read/book-1');
+    await waitForReaderReady(page);
+
+    // T -> TOC sheet
+    await page.keyboard.press('t');
+    const tocDialog = page.getByRole('dialog', { name: '目录' });
+    await expect(tocDialog).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Escape');
+    await expect(tocDialog).toBeHidden({ timeout: 10_000 });
+
+    // B -> Bookmarks sheet
+    await page.keyboard.press('b');
+    const bookmarksDialog = page.getByRole('dialog', { name: '书签' });
+    await expect(bookmarksDialog).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Escape');
+    await expect(bookmarksDialog).toBeHidden({ timeout: 10_000 });
+
+    // S -> Theme settings drawer
+    await page.keyboard.press('s');
+    const themeDialog = page.getByRole('dialog', { name: '阅读偏好' });
+    await expect(themeDialog).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Escape');
+    await expect(themeDialog).toBeHidden({ timeout: 10_000 });
+
+    // ? -> Shortcuts dialog lists T/B/S
+    await page.keyboard.press('?');
+    const shortcutsDialog = page.getByRole('dialog', { name: '键盘快捷键' });
+    await expect(shortcutsDialog).toBeVisible({ timeout: 10_000 });
+    await expect(shortcutsDialog.getByText('目录')).toBeVisible();
+    await expect(shortcutsDialog.getByText('书签')).toBeVisible();
+    await expect(shortcutsDialog.getByText('排版与外观')).toBeVisible();
+  });
 });

@@ -191,4 +191,25 @@ test.describe('accessibility', () => {
       exclude: ['foliate-view', '.reader-page-surface'],
     });
   });
+
+  test('book metadata and cover upload dialog has no serious violations', async ({ page }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    await mockPopulatedShelfApis(page);
+    await gotoStable(page, '/shelf');
+
+    await expect(page.getByRole('button', { name: '阅读《红楼梦》' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByRole('button', { name: '更多操作：《红楼梦》' }).click();
+    await page.getByRole('menuitem', { name: '编辑信息' }).click();
+
+    const dialog = page.getByRole('dialog', { name: '编辑书籍信息' });
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.getByRole('button', { name: /选择封面|更换封面/ })).toBeVisible();
+
+    await expectNoSeriousA11yViolations(page, {
+      include: ['[role="dialog"]'],
+    });
+  });
 });

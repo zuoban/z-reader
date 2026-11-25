@@ -271,4 +271,54 @@ test.describe('shelf batch operations', () => {
       timeout: 10_000,
     });
   });
+
+  test('edits book metadata, uploads a custom cover, and focuses search with /', async ({
+    page,
+  }) => {
+    await installBrowserStubs(page, { preset: 'light', authenticated: true });
+    await mockAuthVerified(page);
+    const mock = await mockMutableShelfApis(page);
+
+    await gotoStable(page, '/shelf');
+    await expect(page.getByRole('button', { name: '阅读《夜航西飞》' })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Press / to focus the shelf search input
+    await page.keyboard.press('/');
+    const searchBox = page.getByRole('searchbox', { name: '搜索书库' });
+    await expect(searchBox).toBeFocused();
+    await searchBox.blur();
+
+    // Open metadata dialog via card menu and update title + upload custom PNG cover
+    await page.getByRole('button', { name: '更多操作：《夜航西飞》' }).click();
+    await page.getByRole('menuitem', { name: '编辑信息' }).click();
+
+    const dialog = page.getByRole('dialog', { name: '编辑书籍信息' });
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+
+    const tinyPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64'
+    );
+    await dialog.getByLabel('选择封面图片').setInputFiles({
+      name: 'night-flight.png',
+      mimeType: 'image/png',
+      buffer: tinyPng,
+    });
+    await expect(dialog.getByText('待保存')).toBeVisible();
+    await dialog.getByRole('textbox', { name: '书名' }).fill('夜航西飞（典藏版）');
+
+    await dialog.getByRole('button', { name: '保存' }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+
+    await expect.poll(() => mock.updateCalls.length, { timeout: 10_000 }).toBe(1);
+    await expect.poll(() => mock.coverUploadCalls.length, { timeout: 10_000 }).toBe(1);
+    expect(mock.updateCalls[0]).toEqual({ id: 'book-4', title: '夜航西飞（典藏版）' });
+    expect(mock.coverUploadCalls[0]).toBe('book-4');
+
+    await expect(page.getByRole('button', { name: '阅读《夜航西飞（典藏版）》' })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
 });

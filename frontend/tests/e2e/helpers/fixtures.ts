@@ -316,24 +316,40 @@ export async function mockPopulatedShelfApis(page: Page) {
   });
 }
 
+export type MutableMockBook = (typeof MOCK_BOOKS)[number] & {
+  cover_path?: string;
+  cover_missing?: boolean;
+};
+
 export type MutableShelfMock = {
-  books: Array<(typeof MOCK_BOOKS)[number]>;
+  books: MutableMockBook[];
   deleteCalls: string[][];
   categoryCalls: Array<{ ids: string[]; category: string | null }>;
   reparseCalls: string[];
   batchReparseCalls: string[][];
+  updateCalls: Array<{ id: string; title?: string; author?: string }>;
+  coverUploadCalls: string[];
 };
 
+// Minimal valid 1x1 PNG bytes for custom cover upload E2E verification.
+const TINY_PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64'
+);
+
 /**
- * Mutable catalog for batch delete / category / reparse e2e (POST handlers + live list).
+ * Mutable catalog for batch delete / category / reparse / metadata / cover e2e.
  */
 export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock> {
+  const uploadedCovers = new Map<string, Buffer>();
   const state: MutableShelfMock = {
     books: MOCK_BOOKS.map((book) => ({ ...book })),
     deleteCalls: [],
     categoryCalls: [],
     reparseCalls: [],
     batchReparseCalls: [],
+    updateCalls: [],
+    coverUploadCalls: [],
   };
 
   await mockShelfCommon(page);
@@ -433,6 +449,62 @@ export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock
       return;
     }
 
+    const coverUploadMatch =
+      method === 'POST' ? path.match(/\/api\/books\/([^/]+)\/cover$/) : null;
+    if (coverUploadMatch) {
+      const targetId = coverUploadMatch[1];
+      state.coverUploadCalls.push(targetId);
+      const coverPath = `${targetId}.custom-${state.coverUploadCalls.length}.cover.png`;
+      uploadedCovers.set(targetId, TINY_PNG_BYTES);
+      let updatedBook: MutableMockBook | undefined;
+      state.books = state.books.map((book) => {
+        if (book.id !== targetId) return book;
+        const nextBook: MutableMockBook = {
+          ...book,
+          cover_path: coverPath,
+          cover_missing: false,
+        };
+        updatedBook = nextBook;
+        return nextBook;
+      });
+      if (updatedBook) {
+        await json(route, updatedBook);
+        return;
+      }
+      await json(route, { error: '书籍不存在' }, 404);
+      return;
+    }
+
+    const patchBookMatch =
+      method === 'PATCH' ? path.match(/\/api\/books\/([^/]+)$/) : null;
+    if (patchBookMatch) {
+      const targetId = patchBookMatch[1];
+      let payload: { title?: string; author?: string } = {};
+      try {
+        payload = route.request().postDataJSON() as { title?: string; author?: string };
+      } catch {
+        // ignore
+      }
+      state.updateCalls.push({ id: targetId, ...payload });
+      let updatedBook: MutableMockBook | undefined;
+      state.books = state.books.map((book) => {
+        if (book.id !== targetId) return book;
+        const nextBook: MutableMockBook = {
+          ...book,
+          ...(payload.title !== undefined ? { title: payload.title } : {}),
+          ...(payload.author !== undefined ? { author: payload.author } : {}),
+        };
+        updatedBook = nextBook;
+        return nextBook;
+      });
+      if (updatedBook) {
+        await json(route, updatedBook);
+        return;
+      }
+      await json(route, { error: '书籍不存在' }, 404);
+      return;
+    }
+
     if (method !== 'GET') {
       await route.fallback();
       return;
@@ -446,7 +518,17 @@ export async function mockMutableShelfApis(page: Page): Promise<MutableShelfMock
       });
       return;
     }
-    if (path.includes('/cover')) {
+    const getCoverMatch = path.match(/\/api\/books\/([^/]+)\/cover$/);
+    if (getCoverMatch) {
+      const customCover = uploadedCovers.get(getCoverMatch[1]);
+      if (customCover) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'image/png',
+          body: customCover,
+        });
+        return;
+      }
       await route.fulfill({ status: 404, body: 'not found' });
       return;
     }

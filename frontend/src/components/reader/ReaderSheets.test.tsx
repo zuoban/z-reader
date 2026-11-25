@@ -242,6 +242,83 @@ describe('ReaderTOCSheet', () => {
     expect(searchInput).toHaveFocus();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+
+  it('renders the progress scrubber, previews during pointer drag, commits fraction, and supports jump-back', () => {
+    const onGoToFraction = vi.fn();
+    const onReturnToPreviousLocation = vi.fn();
+
+    const { rerender } = render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={vi.fn()}
+        toc={[{ label: '第一章 开篇', href: 'ch-1.xhtml' }]}
+        bookTitle="进度测试"
+        bookAuthor=""
+        tocListRef={{ current: null }}
+        currentChapter="第一章 开篇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.sepia}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        onLocateCurrent={vi.fn()}
+        onGoTo={vi.fn()}
+        percentage={32.5}
+        onGoToFraction={onGoToFraction}
+      />,
+    );
+
+    expect(screen.getByText('阅读进度')).toBeInTheDocument();
+    expect(screen.getByText('32.5%')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /返回原位/ })).not.toBeInTheDocument();
+
+    const slider = screen.getByRole('slider', { name: '跳转阅读进度' });
+    expect(slider).toHaveValue('32.5');
+    expect(slider).toHaveAttribute('aria-valuetext', '32.5%');
+
+    // Pointer drag updates live preview without committing until pointer release
+    fireEvent.pointerDown(slider);
+    fireEvent.change(slider, { target: { value: '68' } });
+    expect(screen.getByText('68.0%')).toBeInTheDocument();
+    expect(slider).toHaveAttribute('aria-valuetext', '68.0%');
+    expect(onGoToFraction).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(slider);
+    expect(onGoToFraction).toHaveBeenCalledTimes(1);
+    expect(onGoToFraction).toHaveBeenCalledWith(0.68);
+
+    // Keyboard / direct change commits immediately with 0..1 fraction
+    fireEvent.change(slider, { target: { value: '45.5' } });
+    expect(onGoToFraction).toHaveBeenCalledTimes(2);
+    expect(onGoToFraction).toHaveBeenLastCalledWith(0.455);
+
+    // Jump-back button renders when previous location is available
+    rerender(
+      <ReaderTOCSheet
+        open
+        onOpenChange={vi.fn()}
+        toc={[{ label: '第一章 开篇', href: 'ch-1.xhtml' }]}
+        bookTitle="进度测试"
+        bookAuthor=""
+        tocListRef={{ current: null }}
+        currentChapter="第一章 开篇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.dark}
+        triggerClassName="reader-chrome-btn"
+        triggerStyle={{}}
+        onLocateCurrent={vi.fn()}
+        onGoTo={vi.fn()}
+        percentage={68}
+        onGoToFraction={onGoToFraction}
+        jumpBackPercentage={32.5}
+        onReturnToPreviousLocation={onReturnToPreviousLocation}
+      />,
+    );
+
+    const returnButton = screen.getByRole('button', { name: /返回原位/ });
+    expect(returnButton).toHaveAttribute('title', '返回跳转前位置 (32.5%)');
+    fireEvent.click(returnButton);
+    expect(onReturnToPreviousLocation).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('ReaderBookmarksSheet', () => {

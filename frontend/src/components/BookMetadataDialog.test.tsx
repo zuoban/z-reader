@@ -15,6 +15,7 @@ vi.mock('@/lib/api', () => ({
   api: {
     updateBook: vi.fn(),
     uploadCover: vi.fn(),
+    deleteBookCover: vi.fn(),
   },
 }));
 
@@ -285,6 +286,119 @@ describe('BookMetadataDialog', () => {
         expect(toast.success).toHaveBeenCalledWith('已更新书籍信息与封面');
       });
       expect(onOpenChange).toHaveBeenCalledWith(false);
+    } finally {
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
+    }
+  });
+
+  it('removes an existing cover with undo support and saves via deleteBookCover', async () => {
+    vi.mocked(api.deleteBookCover).mockResolvedValueOnce({} as never);
+    const onUpdate = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <BookMetadataDialog
+        bookId="book-remove"
+        currentTitle="红楼梦"
+        currentAuthor="曹雪芹"
+        currentCoverUrl="blob:existing-cover"
+        onUpdate={onUpdate}
+        open
+        onOpenChange={onOpenChange}
+      />
+    );
+
+    const saveButton = screen.getByRole('button', { name: '保存' });
+    expect(saveButton).toBeDisabled();
+    expect(screen.getByAltText('红楼梦 封面预览')).toHaveAttribute('src', 'blob:existing-cover');
+
+    // Mark cover for removal
+    fireEvent.click(screen.getByRole('button', { name: '移除封面' }));
+    expect(screen.queryByAltText('红楼梦 封面预览')).not.toBeInTheDocument();
+    expect(screen.getByText('待移除')).toBeInTheDocument();
+    expect(saveButton).toBeEnabled();
+
+    // Undo removal restores preview and resets dirty state
+    fireEvent.click(screen.getByRole('button', { name: '恢复原封面' }));
+    expect(screen.getByAltText('红楼梦 封面预览')).toHaveAttribute('src', 'blob:existing-cover');
+    expect(screen.queryByText('待移除')).not.toBeInTheDocument();
+    expect(saveButton).toBeDisabled();
+
+    // Mark again and save
+    fireEvent.click(screen.getByRole('button', { name: '移除封面' }));
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(api.deleteBookCover).toHaveBeenCalledWith('book-remove');
+    });
+    expect(api.updateBook).not.toHaveBeenCalled();
+    expect(api.uploadCover).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('封面已移除');
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('supports drag-and-drop cover upload with validation on the cover preview area', async () => {
+    vi.mocked(api.uploadCover).mockResolvedValueOnce({} as never);
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:dropped-cover');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const onUpdate = vi.fn();
+    const onOpenChange = vi.fn();
+
+    try {
+      const { unmount } = render(
+        <BookMetadataDialog
+          bookId="book-drop"
+          currentTitle="红楼梦"
+          currentAuthor="曹雪芹"
+          currentCoverUrl="blob:existing-cover"
+          onUpdate={onUpdate}
+          open
+          onOpenChange={onOpenChange}
+        />
+      );
+
+      const dropzone = document.querySelector('[data-cover-dropzone="true"]') as HTMLElement;
+      const preview = document.querySelector('[data-cover-preview="true"]') as HTMLElement;
+      const saveButton = screen.getByRole('button', { name: '保存' });
+
+      // Drag highlight toggles on dragOver / dragLeave
+      fireEvent.dragOver(preview, { dataTransfer: { files: [] } });
+      expect(dropzone).toHaveAttribute('data-dragging', 'true');
+      fireEvent.dragLeave(dropzone, { relatedTarget: document.body });
+      expect(dropzone).not.toHaveAttribute('data-dragging');
+
+      // Invalid file type shows validation error
+      const invalidFile = new File(['bad'], 'readme.txt', { type: 'text/plain' });
+      fireEvent.drop(preview, { dataTransfer: { files: [invalidFile] } });
+      expect(screen.getByRole('alert')).toHaveTextContent('仅支持 JPG、PNG 或 WebP 格式的封面图片');
+      expect(saveButton).toBeDisabled();
+
+      // Mark for removal then drop a valid image — clears removal and stages new cover
+      fireEvent.click(screen.getByRole('button', { name: '移除封面' }));
+      expect(screen.getByText('待移除')).toBeInTheDocument();
+
+      const validFile = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'dropped.png', {
+        type: 'image/png',
+      });
+      fireEvent.drop(preview, { dataTransfer: { files: [validFile] } });
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.queryByText('待移除')).not.toBeInTheDocument();
+      expect(screen.getByText('待保存')).toBeInTheDocument();
+      expect(screen.getByAltText('红楼梦 封面预览')).toHaveAttribute('src', 'blob:dropped-cover');
+      expect(saveButton).toBeEnabled();
+
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(api.uploadCover).toHaveBeenCalledWith('book-drop', validFile, 'dropped.png');
+      });
+      expect(api.deleteBookCover).not.toHaveBeenCalled();
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      unmount();
     } finally {
       createObjectURL.mockRestore();
       revokeObjectURL.mockRestore();

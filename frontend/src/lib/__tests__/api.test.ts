@@ -1244,6 +1244,43 @@ describe('api.uploadBook, api.uploadCover, and api.fetchCover', () => {
     });
   });
 
+  it('deletes a book cover and handles errors and empty responses', async () => {
+    globalThis.fetch = mockFetch({
+      body: { ...sampleBook, cover_path: '', cover_missing: true },
+    });
+
+    const updated = await api.deleteBookCover('book/1');
+    expect(updated.cover_missing).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book%2F1/cover'),
+      expect.objectContaining({ method: 'DELETE', credentials: 'include' }),
+    );
+
+    globalThis.fetch = mockFetch({ ok: false, status: 404, body: { error: '书籍不存在' } });
+    await expect(api.deleteBookCover('book/1')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 404,
+      message: '书籍不存在',
+    });
+
+    globalThis.fetch = mockFetch({ ok: false, status: 500, body: {} });
+    await expect(api.deleteBookCover('book/1')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 500,
+      message: '移除封面失败',
+    });
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(''),
+    } as Response);
+    await expect(api.deleteBookCover('book/1')).rejects.toMatchObject({
+      name: 'ApiError',
+      message: '移除封面成功但响应为空',
+    });
+  });
+
   it('fetches covers with thumb query, multi-base fallback, 404/500, and abort handling', async () => {
     vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['http://primary', 'http://fallback']);
     const coverBlob = new Blob(['img']);

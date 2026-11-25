@@ -494,6 +494,22 @@ export const api = {
     return book;
   },
 
+  deleteBookCover: async (id: string): Promise<Book> => {
+    const generation = getAccessGeneration();
+    const res = await authedFetch(`/api/books/${encodeURIComponent(id)}/cover`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!res.ok) {
+      throw await parseApiError(res, '移除封面失败');
+    }
+
+    const book = await parseJsonResponse<Book>(res, '移除封面成功但响应为空');
+    assertCurrentAccess(generation);
+    return book;
+  },
+
   fetchCover: async (
     id: string,
     size?: 'thumb',

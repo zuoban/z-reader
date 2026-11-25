@@ -61,6 +61,7 @@ export interface FoliateView {
   getTTSPreviousCFI?: (cfi: string) => Promise<string | null>;
   resolveCFI?: (cfi: string) => { index: number; anchor: (doc: Document) => Range };
   goTo?: (target: string | number) => Promise<void>;
+  goToFraction?: (fraction: number) => Promise<void>;
   prev?: () => Promise<void>;
   next?: () => Promise<void>;
   open?: (file: string | File | Blob) => Promise<void>;

@@ -1,11 +1,11 @@
 'use client';
 
-import type { ChangeEvent, FormEvent } from 'react';
+import type { ChangeEvent, DragEvent, FormEvent } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
 import '@/app/styles/mantine-modal.css';
 import { toast } from 'sonner';
-import { ImagePlus, Loader2, Pencil, RotateCcw, X } from 'lucide-react';
+import { ImagePlus, Loader2, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -77,25 +77,28 @@ export function BookMetadataDialog({
   const [title, setTitle] = useState(normalizedCurrentTitle);
   const [author, setAuthor] = useState(normalizedCurrentAuthor);
   const [pendingCover, setPendingCover] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [pendingRemoveCover, setPendingRemoveCover] = useState(false);
+  const [isDraggingCover, setIsDraggingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const wasOpenRef = useRef(open);
   const pendingCoverRef = useRef<{ file: File; previewUrl: string } | null>(null);
 
   const pendingCoverFile = pendingCover?.file ?? null;
+  const hasExistingCover = Boolean(currentCoverUrl);
   const trimmedTitle = title.trim();
   const trimmedAuthor = author.trim();
   const titleRunes = countRunes(title);
   const authorRunes = countRunes(author);
   const titleChanged = trimmedTitle !== normalizedCurrentTitle;
   const authorChanged = trimmedAuthor !== normalizedCurrentAuthor;
-  const hasCoverChange = pendingCoverFile !== null;
+  const hasCoverChange = pendingCoverFile !== null || pendingRemoveCover;
   const isUnchanged = !titleChanged && !authorChanged && !hasCoverChange;
   const isTitleMissing = trimmedTitle.length === 0;
   const isTitleTooLong = countRunes(trimmedTitle) > MAX_METADATA_RUNES;
   const isAuthorTooLong = countRunes(trimmedAuthor) > MAX_METADATA_RUNES;
   const canSubmit = !saving && !isUnchanged && !isTitleMissing && !isTitleTooLong && !isAuthorTooLong;
-  const previewCoverUrl = pendingCover?.previewUrl ?? currentCoverUrl ?? null;
+  const previewCoverUrl = pendingCover?.previewUrl ?? (pendingRemoveCover ? null : currentCoverUrl ?? null);
 
   useEffect(() => {
     pendingCoverRef.current = pendingCover;
@@ -123,6 +126,8 @@ export function BookMetadataDialog({
         if (prev) URL.revokeObjectURL(prev.previewUrl);
         return null;
       });
+      setPendingRemoveCover(false);
+      setIsDraggingCover(false);
       setCoverError(null);
       setSaving(false);
     });
@@ -149,11 +154,7 @@ export function BookMetadataDialog({
     onOpenChange(false);
   }
 
-  function handleCoverFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
+  function stageCoverFile(file: File) {
     const validationError = validateCoverFile(file);
     if (validationError) {
       setCoverError(validationError);
@@ -162,10 +163,18 @@ export function BookMetadataDialog({
 
     const previewUrl = URL.createObjectURL(file);
     setCoverError(null);
+    setPendingRemoveCover(false);
     setPendingCover((prev) => {
       if (prev) URL.revokeObjectURL(prev.previewUrl);
       return { file, previewUrl };
     });
+  }
+
+  function handleCoverFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    stageCoverFile(file);
   }
 
   function handleClearPendingCover() {
@@ -175,6 +184,43 @@ export function BookMetadataDialog({
       return null;
     });
     setCoverError(null);
+  }
+
+  function handleRemoveCover() {
+    if (saving) return;
+    setPendingRemoveCover(true);
+    setCoverError(null);
+  }
+
+  function handleRestoreCover() {
+    if (saving) return;
+    setPendingRemoveCover(false);
+    setCoverError(null);
+  }
+
+  function handleCoverDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    if (saving) return;
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    if (!isDraggingCover) {
+      setIsDraggingCover(true);
+    }
+  }
+
+  function handleCoverDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setIsDraggingCover(false);
+  }
+
+  function handleCoverDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingCover(false);
+    if (saving) return;
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    stageCoverFile(file);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -202,6 +248,7 @@ export function BookMetadataDialog({
     if (authorChanged) payload.author = trimmedAuthor;
     const hasMetadataChange = titleChanged || authorChanged;
     const coverToUpload = pendingCoverFile;
+    const shouldRemoveCover = !coverToUpload && pendingRemoveCover;
 
     setSaving(true);
     let metadataSaved = false;
@@ -212,11 +259,15 @@ export function BookMetadataDialog({
       }
       if (coverToUpload) {
         await api.uploadCover(bookId, coverToUpload, coverToUpload.name || 'cover.png');
+      } else if (shouldRemoveCover) {
+        await api.deleteBookCover(bookId);
       }
-      if (hasMetadataChange && coverToUpload) {
+      if (hasMetadataChange && (coverToUpload || shouldRemoveCover)) {
         toast.success('已更新书籍信息与封面');
       } else if (coverToUpload) {
         toast.success('已更新书籍封面');
+      } else if (shouldRemoveCover) {
+        toast.success('封面已移除');
       } else {
         toast.success('已更新书籍信息');
       }
@@ -229,8 +280,10 @@ export function BookMetadataDialog({
       toast.error(
         err instanceof Error
           ? err.message
-          : metadataSaved || (!hasMetadataChange && coverToUpload)
-            ? '上传封面失败'
+          : metadataSaved || (!hasMetadataChange && (coverToUpload || shouldRemoveCover))
+            ? shouldRemoveCover
+              ? '移除封面失败'
+              : '上传封面失败'
             : '保存书籍信息失败'
       );
     } finally {
@@ -289,17 +342,37 @@ export function BookMetadataDialog({
 
         <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
           <div className="custom-scrollbar min-h-0 flex-1 space-y-3.5 overflow-y-auto px-5 py-4 sm:px-6">
-            <div className="app-surface-panel rounded-xl px-4 py-3.5">
+            <div
+              data-cover-dropzone="true"
+              data-dragging={isDraggingCover ? 'true' : undefined}
+              onDragOver={handleCoverDragOver}
+              onDragLeave={handleCoverDragLeave}
+              onDrop={handleCoverDrop}
+              className={cn(
+                'app-surface-panel rounded-xl px-4 py-3.5 transition-[border-color,background-color,box-shadow] duration-150',
+                isDraggingCover && 'border-primary bg-primary/5 ring-2 ring-primary/20'
+              )}
+            >
               <div className="mb-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-muted-foreground">封面</span>
-                {pendingCoverFile && (
+                {pendingCoverFile ? (
                   <span className="rounded-md bg-primary/12 px-1.5 py-0.5 text-[11px] font-medium text-primary">
                     待保存
                   </span>
-                )}
+                ) : pendingRemoveCover ? (
+                  <span className="rounded-md border border-destructive/30 bg-card px-1.5 py-0.5 text-[11px] font-medium text-destructive">
+                    待移除
+                  </span>
+                ) : null}
               </div>
               <div className="flex items-center gap-3.5">
-                <div className="relative flex h-[4.5rem] w-[3rem] shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/80 bg-secondary/50">
+                <div
+                  data-cover-preview="true"
+                  className={cn(
+                    'relative flex h-[4.5rem] w-[3rem] shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/80 bg-secondary/50 transition-colors',
+                    isDraggingCover && 'border-primary bg-primary/10'
+                  )}
+                >
                   {previewCoverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -320,7 +393,11 @@ export function BookMetadataDialog({
                   <p className="truncate text-xs text-muted-foreground" title={pendingCoverFile?.name}>
                     {pendingCoverFile
                       ? `${pendingCoverFile.name}（${formatCoverSize(pendingCoverFile.size)}）`
-                      : '支持 JPG、PNG、WebP，不超过 10 MB'}
+                      : pendingRemoveCover
+                        ? '保存后将移除当前封面'
+                        : isDraggingCover
+                          ? '松开以替换封面图片'
+                          : '支持 JPG、PNG、WebP，可拖拽上传，不超过 10 MB'}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <input
@@ -361,6 +438,38 @@ export function BookMetadataDialog({
                         className="h-8 rounded-lg px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
                       >
                         取消更换
+                      </Button>
+                    )}
+                    {hasExistingCover && !pendingCoverFile && !pendingRemoveCover && (
+                      <Button
+                        type="button"
+                        variant="subtle"
+                        color="gray"
+                        size="xs"
+                        disabled={saving}
+                        onClick={handleRemoveCover}
+                        leftSection={
+                          <Trash2 className="h-3 w-3" strokeWidth={1.6} aria-hidden="true" />
+                        }
+                        className="h-8 rounded-lg px-2 text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        移除封面
+                      </Button>
+                    )}
+                    {hasExistingCover && !pendingCoverFile && pendingRemoveCover && (
+                      <Button
+                        type="button"
+                        variant="subtle"
+                        color="gray"
+                        size="xs"
+                        disabled={saving}
+                        onClick={handleRestoreCover}
+                        leftSection={
+                          <RotateCcw className="h-3 w-3" strokeWidth={1.6} aria-hidden="true" />
+                        }
+                        className="h-8 rounded-lg px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        恢复原封面
                       </Button>
                     )}
                   </div>

@@ -380,6 +380,15 @@ export function useFoliateView({
     clearFoliateSearch(viewRef.current as SearchableFoliateView | null);
   }, [viewRef]);
 
+  const goToFraction = useCallback(
+    (fraction: number) => {
+      if (!Number.isFinite(fraction)) return;
+      const clamped = Math.min(1, Math.max(0, fraction));
+      return viewRef.current?.goToFraction?.(clamped);
+    },
+    [viewRef],
+  );
+
   return {
     toc,
     bookTitle,
@@ -397,5 +406,6 @@ export function useFoliateView({
     getLoadedBookFile,
     searchBook,
     clearSearch,
+    goToFraction,
   };
 }

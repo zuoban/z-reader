@@ -68,6 +68,10 @@ interface ReaderToolbarProps {
   currentChapterHref: string;
   onLocateCurrentChapter: () => void;
   onGoTo: (href: string) => void;
+  percentage?: number;
+  onGoToFraction?: (fraction: number) => void;
+  jumpBackPercentage?: number | null;
+  onReturnToPreviousLocation?: () => void;
   onBack: () => void;
   uiScheme: ThemeColors;
   headerSafeAreaPaddingTop: string;
@@ -112,6 +116,10 @@ export function ReaderToolbar({
   currentChapterHref,
   onLocateCurrentChapter,
   onGoTo,
+  percentage,
+  onGoToFraction,
+  jumpBackPercentage,
+  onReturnToPreviousLocation,
   onBack,
   uiScheme,
   headerSafeAreaPaddingTop,
@@ -497,6 +505,10 @@ export function ReaderToolbar({
                   triggerStyle={{}}
                   onLocateCurrent={onLocateCurrentChapter}
                   onGoTo={onGoTo}
+                  percentage={percentage}
+                  onGoToFraction={onGoToFraction}
+                  jumpBackPercentage={jumpBackPercentage}
+                  onReturnToPreviousLocation={onReturnToPreviousLocation}
                   trigger={
                     <>
                       <List className="size-4" strokeWidth={1.5} aria-hidden="true" />

@@ -217,7 +217,53 @@ function Reader({ bookId }: { bookId: string }) {
   });
 
   const { saveBookOffline } = offline;
-  const { getLoadedBookFile } = reader;
+  const { getLoadedBookFile, goToFraction, currentCFI, percentage } = reader;
+  const [jumpBackLocation, setJumpBackLocation] = useState<{
+    cfi: string;
+    percentage: number;
+  } | null>(null);
+  const [prevBookId, setPrevBookId] = useState(bookId);
+
+  if (prevBookId !== bookId) {
+    setPrevBookId(bookId);
+    if (jumpBackLocation !== null) {
+      setJumpBackLocation(null);
+    }
+  }
+
+  const captureJumpBackLocation = useCallback(() => {
+    if (!currentCFI) return;
+    setJumpBackLocation((prev) =>
+      prev ?? {
+        cfi: currentCFI,
+        percentage,
+      },
+    );
+  }, [currentCFI, percentage]);
+
+  const handleJumpToTOC = useCallback(
+    (href: string) => {
+      captureJumpBackLocation();
+      goTo(href);
+    },
+    [captureJumpBackLocation, goTo],
+  );
+
+  const handleGoToFraction = useCallback(
+    (fraction: number) => {
+      captureJumpBackLocation();
+      void goToFraction(fraction);
+    },
+    [captureJumpBackLocation, goToFraction],
+  );
+
+  const handleReturnToPreviousLocation = useCallback(() => {
+    if (!jumpBackLocation) return;
+    const targetCfi = jumpBackLocation.cfi;
+    setJumpBackLocation(null);
+    goTo(targetCfi);
+  }, [goTo, jumpBackLocation]);
+
   const handleSaveOffline = useCallback(
     () => saveBookOffline(getLoadedBookFile()),
     [getLoadedBookFile, saveBookOffline],
@@ -322,7 +368,13 @@ function Reader({ bookId }: { bookId: string }) {
           currentChapter={reader.currentChapter}
           currentChapterHref={reader.currentChapterHref}
           onLocateCurrentChapter={() => chrome.scrollToCurrentChapter("smooth")}
-          onGoTo={goTo}
+          onGoTo={handleJumpToTOC}
+          percentage={reader.percentage}
+          onGoToFraction={handleGoToFraction}
+          jumpBackPercentage={jumpBackLocation?.percentage ?? null}
+          onReturnToPreviousLocation={
+            jumpBackLocation ? handleReturnToPreviousLocation : undefined
+          }
           onBack={handleBack}
           uiScheme={uiScheme}
           headerSafeAreaPaddingTop={HEADER_SAFE_AREA_PADDING_TOP}

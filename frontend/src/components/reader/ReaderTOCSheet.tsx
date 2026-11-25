@@ -11,7 +11,7 @@ import {
 } from "react";
 import { ActionIcon, Button, Drawer } from "@mantine/core";
 import "@/app/styles/mantine-drawer.css";
-import { List, LocateFixed, Search, X } from "lucide-react";
+import { List, LocateFixed, Search, Undo2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
@@ -66,6 +66,10 @@ interface ReaderTOCSheetProps {
   triggerStyle: CSSProperties;
   onLocateCurrent: () => void;
   onGoTo: (href: string) => void;
+  percentage?: number;
+  onGoToFraction?: (fraction: number) => void;
+  jumpBackPercentage?: number | null;
+  onReturnToPreviousLocation?: () => void;
   trigger?: React.ReactNode;
 }
 
@@ -84,21 +88,38 @@ export function ReaderTOCSheet({
   triggerStyle,
   onLocateCurrent,
   onGoTo,
+  percentage = 0,
+  onGoToFraction,
+  jumpBackPercentage = null,
+  onReturnToPreviousLocation,
   trigger,
 }: ReaderTOCSheetProps) {
   const surface = getModernReaderSurface(uiScheme);
   const panelThemeVars = getReaderPanelThemeVars(uiScheme);
   const [searchQuery, setSearchQuery] = useState("");
+  const [draftPercentage, setDraftPercentage] = useState<number | null>(null);
   const [prevOpen, setPrevOpen] = useState(open);
   const pendingLocateFrameRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const isDraggingRef = useRef(false);
 
   if (open !== prevOpen) {
     setPrevOpen(open);
-    if (!open && searchQuery) {
-      setSearchQuery("");
+    if (!open) {
+      if (searchQuery) {
+        setSearchQuery("");
+      }
+      if (draftPercentage !== null) {
+        setDraftPercentage(null);
+      }
     }
   }
+
+  useEffect(() => {
+    if (!open) {
+      isDraggingRef.current = false;
+    }
+  }, [open]);
 
   useEffect(() => {
     return () => {
@@ -139,13 +160,55 @@ export function ReaderTOCSheet({
       ? "定位到当前章节"
       : "暂未识别当前章节";
 
+  const clampedPercentage = Number.isFinite(percentage)
+    ? Math.min(100, Math.max(0, percentage))
+    : 0;
+  const displayPercentage = draftPercentage ?? clampedPercentage;
+  const hasJumpBackPercentage =
+    jumpBackPercentage !== null &&
+    jumpBackPercentage !== undefined &&
+    Number.isFinite(jumpBackPercentage);
+
   function handleClose() {
     if (pendingLocateFrameRef.current !== null) {
       window.cancelAnimationFrame(pendingLocateFrameRef.current);
       pendingLocateFrameRef.current = null;
     }
+    isDraggingRef.current = false;
+    setDraftPercentage(null);
     setSearchQuery("");
     onOpenChange(false);
+  }
+
+  function handleScrubPointerDown() {
+    isDraggingRef.current = true;
+  }
+
+  function handleScrubChange(value: number) {
+    if (!Number.isFinite(value)) return;
+    const clamped = Math.min(100, Math.max(0, value));
+    if (isDraggingRef.current) {
+      setDraftPercentage(clamped);
+      return;
+    }
+    setDraftPercentage(null);
+    onGoToFraction?.(clamped / 100);
+  }
+
+  function commitScrub() {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    if (draftPercentage !== null) {
+      const target = draftPercentage;
+      setDraftPercentage(null);
+      onGoToFraction?.(target / 100);
+    }
+  }
+
+  function handleReturnToPrevious() {
+    isDraggingRef.current = false;
+    setDraftPercentage(null);
+    onReturnToPreviousLocation?.();
   }
 
   function handleClearSearch() {
@@ -457,6 +520,83 @@ export function ReaderTOCSheet({
               )}
             </div>
           </div>
+
+          {onGoToFraction ? (
+            <div
+              className="shrink-0 border-t px-4 py-3 sm:px-6"
+              style={{
+                borderColor: surface.hairline,
+                background: uiScheme.cardBg,
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: surface.muted }}
+                  >
+                    阅读进度
+                  </span>
+                  <span
+                    className="font-mono text-xs font-medium tabular-nums"
+                    style={{ color: surface.fg }}
+                  >
+                    {displayPercentage.toFixed(1)}%
+                  </span>
+                </div>
+
+                {onReturnToPreviousLocation ? (
+                  <button
+                    type="button"
+                    onClick={handleReturnToPrevious}
+                    title={
+                      hasJumpBackPercentage
+                        ? `返回跳转前位置 (${jumpBackPercentage.toFixed(1)}%)`
+                        : "返回跳转前位置"
+                    }
+                    aria-label={
+                      hasJumpBackPercentage
+                        ? `返回原位（跳转前 ${jumpBackPercentage.toFixed(1)}%）`
+                        : "返回原位"
+                    }
+                    className="reader-panel-action !h-7 !px-2.5 !text-xs"
+                  >
+                    <Undo2
+                      className="h-3.5 w-3.5 shrink-0"
+                      strokeWidth={1.7}
+                      aria-hidden="true"
+                    />
+                    <span>返回原位</span>
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mt-1.5 flex min-h-8 items-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={displayPercentage}
+                  aria-label="跳转阅读进度"
+                  aria-valuetext={`${displayPercentage.toFixed(1)}%`}
+                  onPointerDown={handleScrubPointerDown}
+                  onChange={(event) =>
+                    handleScrubChange(Number(event.currentTarget.value))
+                  }
+                  onPointerUp={commitScrub}
+                  onPointerCancel={commitScrub}
+                  onTouchEnd={commitScrub}
+                  onBlur={commitScrub}
+                  className="h-1.5 w-full cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4"
+                  style={{
+                    accentColor: uiScheme.link,
+                    outlineColor: uiScheme.link,
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
           </div>
         </Drawer.Content>
       </Drawer.Root>

@@ -10,7 +10,7 @@ Compose 部署使用以下持久化目录；升级、重建容器和清理镜像
 | 路径 | 内容 | 处理原则 |
 | --- | --- | --- |
 | `./data/` | 主数据库、会话数据库和自动备份 | 不要用 `docker compose down -v` 或清理脚本删除 |
-| `./uploads/` | 原始图书与封面 | 与 `data/` 一起备份和恢复 |
+| `./uploads/` | 原始图书（EPUB、PDF、MOBI、AZW3）与提取/上传的封面及缩略图 | 与 `data/` 一起备份和恢复 |
 | Caddy named volumes | HTTPS 证书和 Caddy 运行状态 | 域名部署时保留 |
 
 先确认 Compose 实际解析出的挂载和环境变量：
@@ -40,9 +40,10 @@ curl --fail --show-error http://127.0.0.1/readyz
 
 ## 备份与恢复演练
 
-服务会在启动时创建已校验的备份，之后按 `BACKUP_INTERVAL_HOURS`（默认 24）执行。Compose
+服务启动时会检查已有备份：若磁盘上没有在 `BACKUP_INTERVAL_HOURS`（默认 24）内的已校验备份，则立即创建一份；否则等待剩余周期后再执行，之后按 `BACKUP_INTERVAL_HOURS` 定时运行。Compose
 下备份位于 `./data/backups/`，其中包含数据库、会话、书籍记录引用的原书和封面文件，以及 SHA-256 清单。
 每次升级前和每月至少一次，都应校验最近备份。校验会核对文件摘要，并确认数据库快照里的文件引用都有对应副本。
+正常停机（`SIGINT`/`SIGTERM`）时，后端会在 10 秒超时内优雅结束在途 HTTP 请求，排空图书后台处理与 TTS 磁盘缓存写入后再关闭数据库；若此时有备份正在进行，会主动取消并记录 `Backup canceled during shutdown`（不计为备份失败）。
 
 ```bash
 backup_dir="$(find data/backups -mindepth 1 -maxdepth 1 -type d -name 'backup-*' | sort | tail -n 1)"

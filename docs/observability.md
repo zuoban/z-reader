@@ -36,6 +36,7 @@ HTTP 指标以请求方法、路由模板和状态码聚合，不包含用户、
 
 - `book_search`
 - `book_preview`
+- `book_reparse`
 - `book_upload_write`
 - `cover_thumbnail`
 - `progress_save`
@@ -61,12 +62,13 @@ HTTP 指标以请求方法、路由模板和状态码聚合，不包含用户、
 标签不包含文本、SSML、缓存键、声音名称、输出格式、用户、凭证或上游响应正文。
 
 
-自动备份启用后，还会输出以下 backup 指标。它们只记录聚合状态，不包含备份路径或错误详情：
+`/metrics` 始终输出以下 backup 指标（未启用自动备份时 `z_reader_backup_enabled` 为 `0`）；它们只记录聚合状态，不包含备份路径或错误详情：
 
 - `z_reader_backup_enabled`、`z_reader_backup_interval_seconds`：是否启用及其配置间隔。
-- `z_reader_backup_attempts_total`、`z_reader_backup_failures_total`：已完成尝试与失败次数。
+- `z_reader_backup_attempts_total`、`z_reader_backup_failures_total`：已完成尝试与失败次数（停机取消中的备份不计入失败）。
 - `z_reader_backup_last_success_timestamp_seconds`、`z_reader_backup_last_duration_seconds`：最近一次
-  已校验备份的完成时间与耗时。
+  已校验备份的完成时间与耗时；启动时若磁盘上已有周期内的已校验备份，会先以该备份时间初始化
+  `z_reader_backup_last_success_timestamp_seconds`。
 
 限流拒绝会输出 `z_reader_rate_limit_rejections_total`，其中 `scope` 只可能是 `client_ip`、`user`
 或 `custom`。它不包含真实 IP 或用户标识；如需定位具体接口，请结合 HTTP 指标中的 429 路由聚合。

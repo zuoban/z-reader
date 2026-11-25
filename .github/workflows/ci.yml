@@ -106,7 +106,7 @@ jobs:
             if grep -Eq '^(backend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
               backend=true
             fi
-            if grep -Eq '^(frontend/|\.github/workflows/ci\.yml$)' <<<"$files"; then
+            if grep -Eq '^(frontend/|scripts/|\.github/workflows/ci\.yml$)' <<<"$files"; then
               frontend=true
             fi
             if grep -Eq '^(docker/|Dockerfile$|\.dockerignore$|Caddyfile$|docker-compose\.yml$|\.env\.example$|\.github/workflows/(ci|docker-publish)\.yml$)' <<<"$files"; then
@@ -142,11 +142,21 @@ jobs:
 
       - name: Run Go tests
         working-directory: backend
-        run: go test ./...
+        run: go test -race ./...
 
       - name: Run Go vet
         working-directory: backend
         run: go vet ./...
+
+      - name: Verify Go formatting
+        working-directory: backend
+        run: |
+          unformatted="$(find . -name '*.go' -type f -exec gofmt -l {} +)"
+          if [ -n "$unformatted" ]; then
+            echo "The following Go files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
 
   frontend:
     name: Frontend Check
@@ -178,6 +188,12 @@ jobs:
         working-directory: frontend
         run: npm run test:unit
 
+      - name: Run script unit tests
+        run: |
+          node --test scripts/dev.test.mjs
+          node --test frontend/scripts/build-foliate.test.mjs
+          (cd frontend && npm run test:tts:provider:cli)
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
@@ -208,16 +224,6 @@ jobs:
         run: |
           go test ./backup ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
           go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
-
-      - name: Verify Go formatting
-        working-directory: backend
-        run: |
-          unformatted="$(find . -name '*.go' -type f -exec gofmt -l {} +)"
-          if [ -n "$unformatted" ]; then
-            echo "The following Go files need gofmt:"
-            echo "$unformatted"
-            exit 1
-          fi
 
       - name: Scan Go dependencies for known vulnerabilities
         working-directory: backend
@@ -254,7 +260,6 @@ jobs:
         run: |
           npm run build
           npm run test:js-budget
-          node --test scripts/build-foliate.test.mjs
 
       - name: Build vendored Foliate assets
         working-directory: frontend/public/foliate

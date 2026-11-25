@@ -19,15 +19,21 @@ source of truth for the Docker image version and the GitHub Release.
   ```bash
   (
     cd backend
-    go test ./...
+    go test -race ./...
+    go vet ./...
+    test -z "$(find . -name '*.go' -type f -exec gofmt -l {} +)"
     go test ./backup ./handlers ./middleware ./services ./storage -coverprofile=coverage.out
     go run ./cmd/check-coverage --profile coverage.out --baseline coverage-baseline.json
   )
+
+  node --test scripts/dev.test.mjs
+  node --test frontend/scripts/build-foliate.test.mjs
 
   (
     cd frontend
     npm ci
     npm run lint:strict
+    npm run test:tts:provider:cli
     npm run test:coverage:check
     npm run build
     npm run test:js-budget

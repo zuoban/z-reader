@@ -34,6 +34,10 @@ type BookmarkRequest struct {
 	Note       string  `json:"note"`
 }
 
+type BookmarkUpdateRequest struct {
+	Note string `json:"note"`
+}
+
 func (h *BookmarksHandler) List(c *gin.Context) {
 	bookID := c.Param("id")
 
@@ -109,6 +113,39 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, bookmark)
+}
+
+func (h *BookmarksHandler) Update(c *gin.Context) {
+	bookID := c.Param("id")
+	bookmarkID := c.Param("bookmarkID")
+
+	var req BookmarkUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return
+		}
+		response.BadRequest(c, "请求内容无效")
+		return
+	}
+
+	req.Note = strings.TrimSpace(req.Note)
+	if len([]rune(req.Note)) > maxBookmarkNoteRunes {
+		response.BadRequest(c, "书签备注过长")
+		return
+	}
+
+	bookmark, err := h.db.UpdateBookmarkNote(bookID, bookmarkID, storage.PersonalLibrary, req.Note)
+	if err != nil {
+		if err == storage.ErrNotFound {
+			response.NotFound(c, "书签不存在")
+			return
+		}
+		response.InternalError(c, "更新书签失败")
+		return
+	}
+
+	c.JSON(http.StatusOK, bookmark)
 }
 
 func (h *BookmarksHandler) Delete(c *gin.Context) {

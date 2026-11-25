@@ -143,6 +143,7 @@ func main() {
 		api.GET("/books/:id/cover", booksHandler.GetCover)
 		api.GET("/books/:id/bookmarks", bookmarksHandler.List)
 		api.POST("/books/:id/bookmarks", bookmarksHandler.Create)
+		api.PATCH("/books/:id/bookmarks/:bookmarkID", bookmarksHandler.Update)
 		api.DELETE("/books/:id/bookmarks/:bookmarkID", bookmarksHandler.Delete)
 
 		api.GET("/progress", progressHandler.List)

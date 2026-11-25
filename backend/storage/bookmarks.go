@@ -105,6 +105,44 @@ func (db *DB) SaveBookmark(bookmark *models.Bookmark, userID string) error {
 	})
 }
 
+func (db *DB) UpdateBookmarkNote(bookID, bookmarkID, userID, note string) (*models.Bookmark, error) {
+	var updated models.Bookmark
+	err := db.Update(func(tx *bbolt.Tx) error {
+		booksBucket := tx.Bucket(BooksBucket)
+		bookData := booksBucket.Get([]byte(bookID))
+		if bookData == nil {
+			return ErrNotFound
+		}
+		var book models.Book
+		if err := book.UnmarshalDB(bookData); err != nil {
+			return err
+		}
+		if book.UserID != userID {
+			return ErrNotFound
+		}
+
+		b := tx.Bucket(BookmarksBucket)
+		key := bookmarkKey(userID, bookID, bookmarkID)
+		data := b.Get(key)
+		if data == nil {
+			return ErrNotFound
+		}
+		if err := json.Unmarshal(data, &updated); err != nil {
+			return err
+		}
+		updated.Note = note
+		encoded, err := json.Marshal(&updated)
+		if err != nil {
+			return err
+		}
+		return b.Put(key, encoded)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
 func (db *DB) DeleteBookmark(bookID string, bookmarkID string, userID string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		booksBucket := tx.Bucket(BooksBucket)

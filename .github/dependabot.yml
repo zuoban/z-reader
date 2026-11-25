@@ -39,3 +39,13 @@ updates:
       frontend-dependencies:
         patterns:
           - "*"
+
+  - package-ecosystem: npm
+    directory: /frontend/public/foliate
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      foliate-dependencies:
+        patterns:
+          - "*"

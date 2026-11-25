@@ -58,15 +58,16 @@ COPY --from=frontend-builder /app/frontend/public /app/frontend/public
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY docker/start.sh /app/start.sh
 RUN chmod +x /app/start.sh && \
-    chown -R zreader:zreader /app /data /config /etc/caddy
+    chown -R zreader:zreader /app/data /app/uploads /data /config
 
 WORKDIR /app
 
 ENV APP_PORT=8080
+ENV GIN_MODE=release
 ENV UPLOAD_DIR=/app/uploads
 ENV DB_PATH=/app/data/data.db
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV HOSTNAME="127.0.0.1"
 ENV XDG_DATA_HOME=/data
 ENV XDG_CONFIG_HOME=/config
 
@@ -77,7 +78,7 @@ VOLUME ["/app/uploads", "/app/data"]
 # Entrypoint repairs mounted volume ownership from legacy root installs,
 # then drops privileges to zreader (1000:1000) via su-exec before starting services.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz && wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/login || exit 1
+    CMD wget -qO- --tries=1 http://127.0.0.1:8080/readyz >/dev/null && wget -qO- --tries=1 http://127.0.0.1:3000/login >/dev/null || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/app/start.sh"]

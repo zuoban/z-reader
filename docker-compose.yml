@@ -6,8 +6,10 @@ services:
     image: ghcr.io/zuoban/z-reader:latest
     container_name: z-reader
     restart: unless-stopped
+    stop_grace_period: 30s
     env_file:
-      - .env
+      - path: .env
+        required: false
     ports:
       - "80:80"
       - "443:443"
@@ -19,6 +21,7 @@ services:
     environment:
       - ACCESS_PASSWORD=${ACCESS_PASSWORD:-}
       - APP_PORT=8080
+      - GIN_MODE=${GIN_MODE:-release}
       - UPLOAD_DIR=/app/uploads
       - DB_PATH=/app/data/data.db
       - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-268435456}
@@ -39,7 +42,7 @@ services:
       # The local default (:80) remains convenient for development.
       - CADDY_SITE=${CADDY_SITE:-:80}
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz && wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/login"]
+      test: ["CMD-SHELL", "wget -qO- --tries=1 http://127.0.0.1:8080/readyz >/dev/null && wget -qO- --tries=1 http://127.0.0.1:3000/login >/dev/null"]
       interval: 30s
       timeout: 5s
       retries: 3

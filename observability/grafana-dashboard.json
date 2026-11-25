@@ -295,7 +295,7 @@
       },
       "targets": [
         {
-          "expr": "(time() - z_reader_backup_last_success_timestamp_seconds) and (z_reader_backup_enabled == 1)",
+          "expr": "(time() - z_reader_backup_last_success_timestamp_seconds) and (z_reader_backup_enabled == 1) and z_reader_backup_last_success_timestamp_seconds > 0",
           "legendFormat": "age since verified backup",
           "refId": "A"
         },
@@ -315,7 +315,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "ops"
+          "unit": "short"
         },
         "overrides": []
       },

@@ -35,7 +35,9 @@ run_as_user=()
 if [[ "$(id -u)" -eq 0 ]]; then
   for dir in /app/data /app/uploads /data /config; do
     mkdir -p "${dir}"
-    find "${dir}" \( ! -user zreader -o ! -group zreader \) -exec chown zreader:zreader {} +
+    if [[ "${REPAIR_VOLUME_OWNERSHIP:-false}" == "true" || "$(stat -c '%u:%g' "${dir}")" != "1000:1000" ]]; then
+      find "${dir}" \( ! -user zreader -o ! -group zreader \) -exec chown -h zreader:zreader {} +
+    fi
   done
   run_as_user=(su-exec zreader)
 fi
@@ -51,10 +53,7 @@ frontend_pid=$!
 "${run_as_user[@]}" caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &
 caddy_pid=$!
 
-wait -n "${backend_pid}" "${frontend_pid}" "${caddy_pid}"
-exit_code=$?
-
-terminate_children
-wait || true
+exit_code=0
+wait -n "${backend_pid}" "${frontend_pid}" "${caddy_pid}" || exit_code=$?
 
 exit "${exit_code}"

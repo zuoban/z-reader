@@ -1,12 +1,18 @@
+{
+	admin off
+}
+
 {$CADDY_SITE::80} {
 	encode zstd gzip
 
-	# These headers are safe for both local HTTP development and HTTPS
-	# deployments. Browsers only honor HSTS when the response is HTTPS.
+	# Security headers for both local HTTP development and HTTPS deployments.
+	# Emit HSTS only on HTTPS responses.
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000"
+
 	header {
 		-Server
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline' blob:; img-src 'self' blob: data:; font-src 'self' blob: data:; media-src 'self' blob: data:; connect-src 'self' blob: data:; frame-src 'self' blob:; worker-src 'self' blob:; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'"
+		?Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline' blob:; img-src 'self' blob: data:; font-src 'self' blob: data:; media-src 'self' blob: data:; connect-src 'self' blob: data:; frame-src 'self' blob:; worker-src 'self' blob:; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -15,22 +21,45 @@
 
 	# API routes -> Go backend
 	handle /api/* {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up -Accept-Encoding
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 120s
+			}
+		}
 	}
 
 	# Health endpoints stay reachable through the public proxy so deployment
 	# probes and the documented recovery check do not bypass Caddy.
 	handle /healthz {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up -Accept-Encoding
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 120s
+			}
+		}
 	}
 
 	handle /readyz {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up -Accept-Encoding
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 120s
+			}
+		}
 	}
 
 	# All other requests -> Next.js frontend
 	handle {
-		reverse_proxy localhost:3000
+		reverse_proxy 127.0.0.1:3000 {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 120s
+			}
+		}
 	}
 
 	# Logging

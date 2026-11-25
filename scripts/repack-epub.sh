@@ -76,6 +76,5 @@ trap cleanup EXIT
 )
 
 mv "$tmp_output" "$output_path"
-trap - EXIT
 
 echo "Created EPUB: $output_path"

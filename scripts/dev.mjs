@@ -22,6 +22,7 @@ export function getDefaultServices(rootDir = defaultRootDir, platform = process.
       command: npmCommand,
       args: ['run', 'dev'],
       cwd: path.join(rootDir, 'frontend'),
+      ...(platform === 'win32' ? { shell: true } : {}),
     },
   ];
 }
@@ -155,6 +156,7 @@ export async function runDev(options = {}) {
         env: service.env ?? process.env,
         stdio: service.stdio ?? ['ignore', 'inherit', 'inherit'],
         detached: platform !== 'win32',
+        shell: service.shell ?? (platform === 'win32' && /\.(?:cmd|bat)$/i.test(service.command)),
       });
 
       let resolveExit;

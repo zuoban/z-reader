@@ -1,0 +1,11 @@
+export const SUPPORTED_FORMATS_ACCEPT = [
+  '.epub',
+  '.mobi',
+  '.azw3',
+  '.pdf',
+  'application/epub+zip',
+  'application/pdf',
+  'application/x-mobipocket-ebook',
+].join(',');
+
+export const UNCATEGORIZED_FILTER_ID = 'uncategorized';

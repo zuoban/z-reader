@@ -13,9 +13,27 @@
       "functions": 100,
       "lines": 94.96
     },
+    "src/hooks/useReaderChrome.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    },
     "src/hooks/useReaderImageZoom.ts": {
       "statements": 100,
       "branches": 97.59,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/hooks/useReaderOffline.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/hooks/useReaderSheets.ts": {
+      "statements": 100,
+      "branches": 100,
       "functions": 100,
       "lines": 100
     },
@@ -24,6 +42,24 @@
       "branches": 73.31,
       "functions": 91.81,
       "lines": 95.49
+    },
+    "src/hooks/foliate/search.ts": {
+      "statements": 100,
+      "branches": 98.75,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/components/shelf/useShelfFileDrop.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/components/shelf/useShelfSelection.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
     },
     "src/lib/api.ts": {
       "statements": 99.27,
@@ -36,6 +72,12 @@
       "branches": 93.37,
       "functions": 80,
       "lines": 98.51
+    },
+    "src/lib/offline-progress-storage.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
     },
     "src/lib/shared-book-download.ts": {
       "statements": 100,
@@ -67,6 +109,12 @@
       "functions": 85.93,
       "lines": 98.98
     },
+    "src/hooks/useTTSSession.ts": {
+      "statements": 88.88,
+      "branches": 85.36,
+      "functions": 100,
+      "lines": 94.11
+    },
     "src/hooks/useTTSMediaSession.ts": {
       "statements": 100,
       "branches": 100,
@@ -84,6 +132,30 @@
       "branches": 90.35,
       "functions": 90.62,
       "lines": 98.84
+    },
+    "src/lib/tts-request.ts": {
+      "statements": 92.3,
+      "branches": 91.37,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/lib/tts-text.ts": {
+      "statements": 95.27,
+      "branches": 85.71,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/lib/tts-audio-focus.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    },
+    "src/lib/tts-diagnostics.ts": {
+      "statements": 94.73,
+      "branches": 94.11,
+      "functions": 100,
+      "lines": 100
     }
   }
 }

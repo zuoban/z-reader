@@ -4,6 +4,7 @@ import LoginPage from '@/app/login/page';
 
 const mockReplace = vi.fn();
 const mockLogin = vi.fn();
+const mockUseAuth = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -12,16 +13,17 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({
-    isLoading: false,
-    isAuthenticated: false,
-    login: mockLogin,
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
+      isAuthenticated: false,
+      login: mockLogin,
+    });
   });
 
   it('shows inline validation error and focuses password input on empty submit', () => {
@@ -87,5 +89,31 @@ describe('LoginPage', () => {
 
     fireEvent.blur(input);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('renders login form immediately while auth verification is still loading', () => {
+    mockUseAuth.mockReturnValue({
+      isLoading: true,
+      isAuthenticated: false,
+      login: mockLogin,
+    });
+
+    render(<LoginPage />);
+
+    expect(screen.getByRole('heading', { name: '解锁书库' })).toBeInTheDocument();
+    expect(screen.getByLabelText('访问密码')).toBeInTheDocument();
+  });
+
+  it('shows loading state and redirects to shelf when already authenticated', () => {
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
+      isAuthenticated: true,
+      login: mockLogin,
+    });
+
+    render(<LoginPage />);
+
+    expect(screen.queryByRole('heading', { name: '解锁书库' })).not.toBeInTheDocument();
+    expect(mockReplace).toHaveBeenCalledWith('/shelf');
   });
 });

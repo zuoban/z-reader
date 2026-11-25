@@ -8,9 +8,14 @@ import type { TTSControlsProps } from '@/components/TTSControls';
 
 export function DeferredTTSControls({
   onRequest,
+  runtimeReady = true,
   loadingContent,
   ...props
-}: TTSControlsProps & { onRequest: () => void; loadingContent?: ReactNode }) {
+}: TTSControlsProps & {
+  onRequest: () => void;
+  runtimeReady?: boolean;
+  loadingContent?: ReactNode;
+}) {
   const [LoadedTTSControls, setLoadedTTSControls] =
     useState<ComponentType<TTSControlsProps> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +28,7 @@ export function DeferredTTSControls({
     };
   }, []);
 
-  if (LoadedTTSControls) {
+  if (LoadedTTSControls && runtimeReady) {
     return <LoadedTTSControls {...props} initialExpanded />;
   }
 

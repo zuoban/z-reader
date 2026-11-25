@@ -61,4 +61,27 @@ describe('DeferredTTSControls', () => {
     expect(screen.queryByText('加载中…')).not.toBeInTheDocument();
     expect(await screen.findByRole('dialog')).toHaveTextContent('打开朗读控制');
   });
+
+  it('waits until runtimeReady is true before mounting TTSControls', async () => {
+    const onRequest = vi.fn();
+    const props = {
+      state: 'stopped',
+      triggerClassName: 'reader-trigger',
+    } as TTSControlsProps;
+
+    const { rerender } = render(
+      <DeferredTTSControls {...props} onRequest={onRequest} runtimeReady={false} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: '朗读控制' }));
+
+    await Promise.resolve();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '正在加载朗读控制' })).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    rerender(<DeferredTTSControls {...props} onRequest={onRequest} runtimeReady />);
+    expect(await screen.findByRole('dialog')).toHaveTextContent('打开朗读控制');
+  });
 });

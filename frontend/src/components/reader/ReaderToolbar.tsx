@@ -25,25 +25,13 @@ import {
   Settings,
 } from "lucide-react";
 
+import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
+import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ReaderBookmarksSheet = dynamic(
-  () =>
-    import("@/components/reader/ReaderBookmarksSheet").then(
-      (module) => module.ReaderBookmarksSheet
-    ),
-  { ssr: false }
-);
-const ReaderTOCSheet = dynamic(
-  () =>
-    import("@/components/reader/ReaderTOCSheet").then(
-      (module) => module.ReaderTOCSheet
-    ),
-  { ssr: false }
-);
 const ThemeSettings = dynamic(() => import("@/components/ThemeSettings")
   .then((module) => module.ThemeSettings));
 

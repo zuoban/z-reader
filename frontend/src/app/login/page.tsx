@@ -58,7 +58,7 @@ export default function LoginPage() {
     }
   }
 
-  if (isLoading || isAuthenticated) {
+  if (isAuthenticated) {
     return (
       <AppScreen>
         <LoadingState title="加载中..." />

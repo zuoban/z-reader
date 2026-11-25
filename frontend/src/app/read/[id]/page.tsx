@@ -12,7 +12,6 @@ import { useReaderControls } from "@/hooks/useReaderControls";
 import { useReaderChrome } from "@/hooks/useReaderChrome";
 import { useReaderBookmarks } from "@/hooks/useReaderBookmarks";
 import { useReaderImageZoom } from "@/hooks/useReaderImageZoom";
-import { useTTS } from "@/hooks/useTTS";
 import { useFoliateView } from "@/hooks/useFoliateView";
 import { ReaderResumePrompt } from "@/components/reader/ReaderResumePrompt";
 import { ReaderStatusBar } from "@/components/reader/ReaderStatusBar";
@@ -33,6 +32,8 @@ import {
   themeColorForAppMode,
   themeColorForPreset,
 } from "@/lib/theme-color";
+import type { ReaderTTSRuntimeState } from "@/components/reader/ReaderTTSRuntime";
+import type { TTSSettings, Voice } from "@/lib/tts";
 import type { FoliateView } from "@/lib/types";
 
 const ReaderShortcutsDialog = dynamic(
@@ -42,6 +43,28 @@ const ReaderShortcutsDialog = dynamic(
     ),
   { ssr: false }
 );
+
+const ReaderTTSRuntime = dynamic(
+  () =>
+    import("@/components/reader/ReaderTTSRuntime").then(
+      (module) => module.ReaderTTSRuntime
+    ),
+  { ssr: false }
+);
+
+const IDLE_TTS_SETTINGS: TTSSettings = {
+  rate: 1.0,
+  voiceName: "",
+  highlightMode: "sentence",
+};
+const IDLE_VOICES: Voice[] = [];
+const IDLE_TTS_STATUS = {
+  headline: "准备朗读",
+  detail: "选择开始后从当前位置朗读",
+  tone: "idle" as const,
+};
+const IDLE_SLEEP_TIMER = { mode: "off" as const, label: "关闭" };
+const NOOP_TTS = () => {};
 
 export default function ReadPage() {
   const { id } = useParams<{ id: string }>();
@@ -107,6 +130,9 @@ function Reader({ bookId }: { bookId: string }) {
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
   const [ttsRequested, setTTSRequested] = useState(false);
   const [ttsOpen, setTtsOpen] = useState(false);
+  const [ttsRuntime, setTtsRuntime] = useState<ReaderTTSRuntimeState | null>(
+    null
+  );
   const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(
     null
   );
@@ -115,6 +141,7 @@ function Reader({ bookId }: { bookId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
   const cleanupReaderRef = useRef<() => void>(() => {});
+  const ttsRuntimeRef = useRef<ReaderTTSRuntimeState | null>(null);
 
   const handlePageRef = useCallback((node: HTMLDivElement | null) => {
     pageRef.current = node;
@@ -136,29 +163,45 @@ function Reader({ bookId }: { bookId: string }) {
     syncChromeState,
   } = useReaderChrome();
 
-  const {
-    state: ttsState,
-    preparing: ttsPreparing,
-    settings: ttsSettings,
-    updateSettings: updateTTSSettings,
-    start: startTTS,
-    stop: stopTTS,
-    next: nextTTS,
-    prev: prevTTS,
-    voices,
-    voicesLoading,
-    voicesError,
-    reloadVoices,
-    resumePromptVisible,
-    resumePromptMessage,
-    ttsStatus,
-    sleepTimer,
-    setSleepTimerForMinutes,
-    clearSleepTimer,
-    resume: resumeTTS,
-    pause: pauseTTS,
-    restoreCurrentHighlight: restoreTTSHighlight,
-  } = useTTS({ viewRef, onHighlight: handleHighlight, bookId, voicesEnabled: ttsRequested });
+  const handleSyncTTSRuntime = useCallback(
+    (runtime: ReaderTTSRuntimeState | null) => {
+      ttsRuntimeRef.current = runtime;
+      setTtsRuntime(runtime);
+    },
+    []
+  );
+
+  const ttsState = ttsRuntime?.state ?? "stopped";
+  const ttsPreparing = ttsRuntime?.preparing ?? false;
+  const ttsSettings = ttsRuntime?.settings ?? IDLE_TTS_SETTINGS;
+  const voices = ttsRuntime?.voices ?? IDLE_VOICES;
+  const voicesLoading = ttsRuntime?.voicesLoading ?? false;
+  const voicesError = ttsRuntime?.voicesError ?? null;
+  const resumePromptVisible = ttsRuntime?.resumePromptVisible ?? false;
+  const resumePromptMessage = ttsRuntime?.resumePromptMessage ?? "";
+  const ttsStatus = ttsRuntime?.ttsStatus ?? IDLE_TTS_STATUS;
+  const sleepTimer = ttsRuntime?.sleepTimer ?? IDLE_SLEEP_TIMER;
+  const updateTTSSettings = ttsRuntime?.updateSettings ?? NOOP_TTS;
+  const startTTS = ttsRuntime?.start ?? NOOP_TTS;
+  const nextTTS = ttsRuntime?.next ?? NOOP_TTS;
+  const prevTTS = ttsRuntime?.prev ?? NOOP_TTS;
+  const reloadVoices = ttsRuntime?.reloadVoices ?? NOOP_TTS;
+  const setSleepTimerForMinutes =
+    ttsRuntime?.setSleepTimerForMinutes ?? NOOP_TTS;
+  const clearSleepTimer = ttsRuntime?.clearSleepTimer ?? NOOP_TTS;
+  const pauseTTS = ttsRuntime?.pause ?? NOOP_TTS;
+
+  const stopTTS = useCallback(() => {
+    ttsRuntimeRef.current?.stop();
+  }, []);
+
+  const resumeTTS = useCallback(() => {
+    void ttsRuntimeRef.current?.resume();
+  }, []);
+
+  const restoreTTSHighlight = useCallback(() => {
+    ttsRuntimeRef.current?.restoreCurrentHighlight();
+  }, []);
 
   const handleTTSExpandedChange = useCallback(
     (expanded: boolean) => {
@@ -440,6 +483,7 @@ function Reader({ bookId }: { bookId: string }) {
 
   const sharedTTSControlsProps = {
     onRequest: () => setTTSRequested(true),
+    runtimeReady: ttsRuntime !== null,
     state: ttsState,
     preparing: ttsPreparing,
     onPreviewStart: () => {
@@ -478,6 +522,14 @@ function Reader({ bookId }: { bookId: string }) {
       }}
     >
       <div className="relative flex h-full min-h-0 flex-col">
+        {isAuthenticated && ttsRequested && (
+          <ReaderTTSRuntime
+            viewRef={viewRef}
+            onHighlight={handleHighlight}
+            bookId={bookId}
+            onSync={handleSyncTTSRuntime}
+          />
+        )}
         <ReaderToolbar
           visible={isHeaderVisible}
           bookTitle={bookTitle}

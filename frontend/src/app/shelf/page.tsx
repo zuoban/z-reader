@@ -55,6 +55,7 @@ export default function ShelfPage() {
     deletingId,
     isDeletingMany,
     isUpdatingManyCategories,
+    isReparsingMany,
     filteredBooks,
     bookCounts,
     refreshBooks,
@@ -64,6 +65,7 @@ export default function ShelfPage() {
     handleDeleteMany,
     handleUpdateCategoryMany,
     handleRenameCategory,
+    handleReparseMany,
     searchQuery,
     setSearchQuery,
     uploadFiles,
@@ -91,7 +93,7 @@ export default function ShelfPage() {
       : undefined;
   const showCategoryFilters = !isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty;
   const showShelfControlsSkeleton = !isOffline && !loadError && isLoadingBooks;
-  const isBatchBusy = isDeletingMany || isUpdatingManyCategories;
+  const isBatchBusy = isDeletingMany || isUpdatingManyCategories || isReparsingMany;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isOffline) {
@@ -151,7 +153,7 @@ export default function ShelfPage() {
 
   const getBookItemKey = useCallback(
     (book: (typeof filteredBooks)[number]) =>
-      `${book.id}:${book.cover_path ?? ''}:${book.format}`,
+      `${book.id}:${book.cover_path ?? ''}:${book.cover_thumb_path ?? ''}:${book.format}`,
     []
   );
 
@@ -239,6 +241,21 @@ export default function ShelfPage() {
 
   async function saveManagedCategory(category: string, nextCategory: string | null) {
     await handleRenameCategory(category, nextCategory);
+  }
+
+  async function handleBatchReparse() {
+    const selectedIds = filteredBookIds.filter((id) => selectedBookIds.has(id));
+    if (selectedIds.length === 0 || isBatchBusy) return;
+    const result = await handleReparseMany(selectedIds);
+    if (result.successCount > 0) {
+      if (result.failedCount === 0) {
+        toggleSelectionMode();
+      } else if (result.updatedIds?.length) {
+        result.updatedIds.forEach((id) => toggleBookSelection(id));
+      } else {
+        clearSelectionWhenFiltering();
+      }
+    }
   }
 
   function handleLogout() {
@@ -354,9 +371,13 @@ export default function ShelfPage() {
                 isBatchBusy={isBatchBusy}
                 isDeletingMany={isDeletingMany}
                 isUpdatingManyCategories={isUpdatingManyCategories}
+                isReparsingMany={isReparsingMany}
                 onToggleSelectionMode={toggleSelectionMode}
                 onToggleVisibleSelection={toggleVisibleSelection}
                 onOpenBatchCategory={() => setBatchCategoryOpen(true)}
+                onBatchReparse={() => {
+                  void handleBatchReparse();
+                }}
                 onOpenBatchDelete={() => setBatchDeleteOpen(true)}
               />
             )}

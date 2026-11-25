@@ -2,7 +2,7 @@
 
 import { useState, type KeyboardEvent } from 'react';
 import { ActionIcon, Menu } from '@mantine/core';
-import { Loader2, MoreVertical, Pencil, Tag, Trash2 } from 'lucide-react';
+import { Loader2, MoreVertical, Pencil, RefreshCw, Tag, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BookCardDropdownProps {
@@ -12,8 +12,10 @@ interface BookCardDropdownProps {
   sizeLabel: string;
   uploadedAtLabel: string;
   isDeleting: boolean;
+  isReparsing?: boolean;
   onEditClick: () => void;
   onCategoryClick: () => void;
+  onReparseClick: () => void;
   onDeleteClick: () => void;
   triggerClassName?: string;
 }
@@ -36,23 +38,35 @@ export function BookCardDropdown({
   sizeLabel,
   uploadedAtLabel,
   isDeleting,
+  isReparsing = false,
   onEditClick,
   onCategoryClick,
+  onReparseClick,
   onDeleteClick,
   triggerClassName,
 }: BookCardDropdownProps) {
   const [menuMounted, setMenuMounted] = useState(false);
   const [opened, setOpened] = useState(false);
+  const isBusy = isDeleting || isReparsing;
   const triggerLabel = bookTitle ? `更多操作：《${bookTitle}》` : '更多操作';
   const currentCategoryText = categoryLabel || '未分类';
   const triggerClasses = cn(
     'flex h-10 w-10 min-h-0 min-w-0 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent bg-transparent text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground data-[expanded]:bg-secondary data-[expanded]:text-foreground focus-visible:outline-2 focus-visible:outline-ring active:scale-95 motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-45 sm:h-8 sm:w-8',
     triggerClassName
   );
+  const triggerIcon = isReparsing ? (
+    <Loader2
+      className="size-4 animate-spin motion-reduce:animate-none"
+      strokeWidth={1.5}
+      aria-hidden="true"
+    />
+  ) : (
+    <MoreVertical className="size-4" strokeWidth={1.5} aria-hidden="true" />
+  );
 
   if (!menuMounted) {
     const openLazyMenu = () => {
-      if (isDeleting) return;
+      if (isBusy) return;
       setMenuMounted(true);
       setOpened(true);
     };
@@ -71,8 +85,8 @@ export function BookCardDropdown({
         color="gray"
         size="sm"
         radius="md"
-        disabled={isDeleting}
-        aria-busy={isDeleting || undefined}
+        disabled={isBusy}
+        aria-busy={isBusy || undefined}
         aria-label={triggerLabel}
         aria-haspopup="menu"
         aria-expanded={false}
@@ -84,7 +98,7 @@ export function BookCardDropdown({
         }}
         onKeyDown={handleKeyDown}
       >
-        <MoreVertical className="size-4" strokeWidth={1.5} aria-hidden="true" />
+        {triggerIcon}
       </ActionIcon>
     );
   }
@@ -107,14 +121,14 @@ export function BookCardDropdown({
           color="gray"
           size="sm"
           radius="md"
-          disabled={isDeleting}
-          aria-busy={isDeleting || undefined}
+          disabled={isBusy}
+          aria-busy={isBusy || undefined}
           aria-label={triggerLabel}
           title="更多操作"
           className={triggerClasses}
           onClick={(e) => e.stopPropagation()}
         >
-          <MoreVertical className="size-4" strokeWidth={1.5} aria-hidden="true" />
+          {triggerIcon}
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown
@@ -149,7 +163,7 @@ export function BookCardDropdown({
               e.stopPropagation();
               onEditClick();
             }}
-            disabled={isDeleting}
+            disabled={isBusy}
             leftSection={
               <Pencil
                 className="h-4 w-4 text-muted-foreground transition-colors"
@@ -167,7 +181,7 @@ export function BookCardDropdown({
               e.stopPropagation();
               onCategoryClick();
             }}
-            disabled={isDeleting}
+            disabled={isBusy}
             leftSection={
               <Tag
                 className="h-4 w-4 text-muted-foreground transition-colors"
@@ -188,6 +202,33 @@ export function BookCardDropdown({
             <span className="shrink-0">设置分类</span>
           </Menu.Item>
 
+          <Menu.Item
+            onClick={(e) => {
+              e.stopPropagation();
+              onReparseClick();
+            }}
+            disabled={isBusy}
+            aria-busy={isReparsing || undefined}
+            leftSection={
+              isReparsing ? (
+                <Loader2
+                  className="h-4 w-4 animate-spin text-muted-foreground motion-reduce:animate-none"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
+              ) : (
+                <RefreshCw
+                  className="h-4 w-4 text-muted-foreground transition-colors"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
+              )
+            }
+            className="min-h-11 cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium text-foreground transition-colors data-[hovered]:bg-secondary data-[hovered]:text-foreground sm:min-h-9 sm:py-1.5"
+          >
+            <span className="shrink-0">{isReparsing ? '解析中…' : '重新解析元数据'}</span>
+          </Menu.Item>
+
           <Menu.Divider className="mx-1.5 my-1 border-border/65" />
 
           <Menu.Item
@@ -196,7 +237,7 @@ export function BookCardDropdown({
               e.stopPropagation();
               onDeleteClick();
             }}
-            disabled={isDeleting}
+            disabled={isBusy}
             aria-busy={isDeleting || undefined}
             leftSection={
               isDeleting ? (

@@ -61,7 +61,7 @@ export function ShelfBookGrid({
     <section
       className={cn(
         'relative border-t border-border pt-4 sm:pt-5',
-        selectionMode && filteredBooks.length > 0 && 'mb-32 sm:mb-28'
+        selectionMode && filteredBooks.length > 0 && 'mb-44 sm:mb-28'
       )}
     >
       {!isLoadingBooks && isFiltered && (

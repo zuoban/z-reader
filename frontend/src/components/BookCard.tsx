@@ -4,7 +4,8 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { memo, useState, type CSSProperties, type ReactNode } from 'react';
 import { BookOpen, Check, Loader2 } from 'lucide-react';
-import type { Book } from '@/lib/api';
+import { toast } from 'sonner';
+import { api, type Book } from '@/lib/api';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
@@ -199,6 +200,7 @@ export const BookCard = memo(function BookCard({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isReparsing, setIsReparsing] = useState(false);
   const hasPotentialCover = Boolean(
     book.cover_thumb_path
     || book.cover_path
@@ -266,13 +268,27 @@ export const BookCard = memo(function BookCard({
     }
   }
 
+  async function handleReparse() {
+    if (isDeleting || isReparsing) return;
+    setIsReparsing(true);
+    try {
+      await api.reparseBook(book.id);
+      toast.success('已重新解析元数据');
+      onUpdate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '重新解析元数据失败');
+    } finally {
+      setIsReparsing(false);
+    }
+  }
+
   return (
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
       <article
         className="shelf-book-card flex min-w-0 flex-1 flex-col"
         data-selected={selected}
         data-deleting={isDeleting || undefined}
-        aria-busy={isDeleting || undefined}
+        aria-busy={isDeleting || isReparsing || undefined}
       >
         <button
           type="button"
@@ -402,8 +418,12 @@ export const BookCard = memo(function BookCard({
               sizeLabel={sizeLabel}
               uploadedAtLabel={uploadedAtLabel}
               isDeleting={isDeleting}
+              isReparsing={isReparsing}
               onEditClick={() => setEditDialogOpen(true)}
               onCategoryClick={() => setCategoryDialogOpen(true)}
+              onReparseClick={() => {
+                void handleReparse();
+              }}
               onDeleteClick={() => setDeleteConfirmOpen(true)}
               triggerClassName="size-11 sm:size-9"
             />

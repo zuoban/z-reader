@@ -1,7 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@/test/render';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
 import { BookCard } from '@/components/BookCard';
-import type { Book } from '@/lib/api';
+import { api, type Book } from '@/lib/api';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 const useCoverUrlMock = vi.fn<
   (...args: unknown[]) => { coverUrl: string | null; ref: { current: null } }
@@ -51,6 +59,10 @@ function renderCard(
 }
 
 describe('BookCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('opens a book from the visible footer action', () => {
     const { onRead } = renderCard();
     fireEvent.click(screen.getByRole('button', { name: '继续阅读：红楼梦' }));
@@ -208,5 +220,111 @@ describe('BookCard', () => {
 
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
     expect(await screen.findByRole('menuitem', { name: '编辑信息' })).toBeInTheDocument();
+  });
+
+  it('reparses book metadata with loading state, success toast, and refresh callback', async () => {
+    let resolveReparse!: (value: Book) => void;
+    const reparseSpy = vi.spyOn(api, 'reparseBook').mockImplementation(
+      () => new Promise<Book>((resolve) => {
+        resolveReparse = resolve;
+      }),
+    );
+    const onUpdate = vi.fn();
+
+    const { rerender } = render(
+      <BookCard
+        book={book}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={onUpdate}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: '更多操作：《红楼梦》' });
+    fireEvent.click(trigger);
+
+    const reparseItem = screen.getByRole('menuitem', { name: '重新解析元数据' });
+    fireEvent.click(reparseItem);
+
+    expect(reparseSpy).toHaveBeenCalledWith('book-1');
+    await waitFor(() => {
+      expect(screen.getByRole('article')).toHaveAttribute('aria-busy', 'true');
+      expect(screen.getByRole('button', { name: '更多操作：《红楼梦》' })).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: '更多操作：《红楼梦》' }).querySelector('svg'),
+      ).toHaveClass('animate-spin');
+    });
+
+    const updatedBook: Book = {
+      ...book,
+      title: '红楼梦（重刷）',
+      author: '曹雪芹 著',
+      cover_path: 'covers/book-1-new.jpg',
+      cover_thumb_path: 'covers/book-1-new-thumb.jpg',
+    };
+    resolveReparse(updatedBook);
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('已重新解析元数据');
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: '更多操作：《红楼梦》' })).toBeEnabled();
+    });
+
+    rerender(
+      <BookCard
+        book={updatedBook}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={onUpdate}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+      />,
+    );
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith(
+      'book-1',
+      'covers/book-1-new-thumb.jpg',
+      'thumb',
+      true,
+    );
+    reparseSpy.mockRestore();
+  });
+
+  it('shows an error toast when single-book metadata reparse fails', async () => {
+    const reparseSpy = vi
+      .spyOn(api, 'reparseBook')
+      .mockRejectedValue(new Error('解析书籍元数据失败'));
+    const onUpdate = vi.fn();
+
+    render(
+      <BookCard
+        book={book}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={onUpdate}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '更多操作：《红楼梦》' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '重新解析元数据' }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('解析书籍元数据失败');
+      expect(onUpdate).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: '更多操作：《红楼梦》' })).toBeEnabled();
+    });
+    reparseSpy.mockRestore();
   });
 });

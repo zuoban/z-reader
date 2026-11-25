@@ -89,6 +89,7 @@ export function useShelfData(isAuthenticated: boolean) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeletingMany, setIsDeletingMany] = useState(false);
   const [isUpdatingManyCategories, setIsUpdatingManyCategories] = useState(false);
+  const [isReparsingMany, setIsReparsingMany] = useState(false);
   const [sortBy, setSortByState] = useState<SortOption>(readShelfSort);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Book[] | null>(null);
@@ -649,6 +650,51 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, [refreshBooks, selectedCategoryId]);
 
+  const handleReparseMany = useCallback(async (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+    if (uniqueIds.length === 0) {
+      return { successCount: 0, failedCount: 0, updatedIds: [] as string[] };
+    }
+
+    setIsReparsingMany(true);
+    try {
+      const result = await api.batchReparseBooks(uniqueIds);
+      const updatedBooks = result.books ?? [];
+      const updatedIds = result.updated_ids ?? [];
+      const failedIds = result.failed_ids ?? [];
+      const updatedById = new Map(updatedBooks.map((book) => [book.id, book]));
+
+      if (updatedById.size > 0) {
+        setBooks((prev) => prev.map((book) => updatedById.get(book.id) ?? book));
+        setSearchResults((prev) =>
+          prev === null ? null : prev.map((book) => updatedById.get(book.id) ?? book)
+        );
+      }
+
+      const successCount = updatedIds.length;
+      const failedCount = failedIds.length;
+
+      if (successCount > 0 && failedCount === 0) {
+        toast.success(`已重新解析 ${successCount} 本图书元数据`);
+      } else if (successCount > 0 && failedCount > 0) {
+        toast.error(`已解析 ${successCount} 本，${failedCount} 本失败`);
+      } else {
+        toast.error('重新解析元数据失败');
+      }
+
+      if (successCount > 0) {
+        refreshBooks();
+      }
+
+      return { successCount, failedCount, updatedIds };
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '重新解析元数据失败');
+      return { successCount: 0, failedCount: uniqueIds.length, updatedIds: [] as string[] };
+    } finally {
+      setIsReparsingMany(false);
+    }
+  }, [refreshBooks]);
+
   return {
     books,
     progressByBookId,
@@ -667,6 +713,7 @@ export function useShelfData(isAuthenticated: boolean) {
     deletingId,
     isDeletingMany,
     isUpdatingManyCategories,
+    isReparsingMany,
     filteredBooks,
     bookCounts,
     refreshBooks,
@@ -680,6 +727,7 @@ export function useShelfData(isAuthenticated: boolean) {
     handleDeleteMany,
     handleUpdateCategoryMany,
     handleRenameCategory,
+    handleReparseMany,
     formatFileSize,
     sortBy,
     setSortBy,

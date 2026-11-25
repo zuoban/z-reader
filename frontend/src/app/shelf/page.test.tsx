@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { fireEvent, render, screen } from '@/test/render';
+import { fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Book } from '@/lib/api';
 import ShelfPage from '@/app/shelf/page';
@@ -47,6 +47,7 @@ const createShelfDataState = () => ({
   deletingId: null as string | null,
   isDeletingMany: false,
   isUpdatingManyCategories: false,
+  isReparsingMany: false,
   filteredBooks: [sampleBook],
   bookCounts: { all: 1, uncategorized: 0, 文学: 1 },
   refreshBooks: vi.fn(),
@@ -56,6 +57,11 @@ const createShelfDataState = () => ({
   handleDeleteMany: vi.fn().mockResolvedValue({ successCount: 1, failureCount: 0 }),
   handleUpdateCategoryMany: vi.fn().mockResolvedValue({ successCount: 1, failureCount: 0 }),
   handleRenameCategory: vi.fn().mockResolvedValue(undefined),
+  handleReparseMany: vi.fn().mockResolvedValue({
+    successCount: 1,
+    failedCount: 0,
+    updatedIds: ['book-1'],
+  }),
   searchQuery: '',
   setSearchQuery: vi.fn(),
   uploadFiles: mockUploadFiles,
@@ -310,5 +316,60 @@ describe('ShelfPage', () => {
     expect(latestBook2?.onRead).toBe(initialBook1?.onRead);
     expect(latestBook2?.onDelete).toBe(initialBook1?.onDelete);
     expect(latestBook2?.onSelectionToggle).toBe(initialBook1?.onSelectionToggle);
+  });
+
+  it('triggers batch reparse and exits selection mode on full success', async () => {
+    render(<ShelfPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: '批量操作' }));
+    fireEvent.click(screen.getByRole('button', { name: '选择 百年孤独' }));
+    fireEvent.click(screen.getByRole('button', { name: '重刷元数据' }));
+
+    await waitFor(() => {
+      expect(mockShelfData.handleReparseMany).toHaveBeenCalledWith(['book-1']);
+      expect(screen.queryByRole('region', { name: '书籍批量操作' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps failed books selected on partial batch reparse failure and locks bar while reparsing', async () => {
+    const secondBook: Book = {
+      ...sampleBook,
+      id: 'book-2',
+      title: '红楼梦',
+      filename: '2.epub',
+    };
+    const handleReparseMany = vi.fn().mockResolvedValue({
+      successCount: 1,
+      failedCount: 1,
+      updatedIds: ['book-1'],
+    });
+    mockShelfData = {
+      ...mockShelfData,
+      books: [sampleBook, secondBook],
+      filteredBooks: [sampleBook, secondBook],
+      bookCounts: { all: 2, uncategorized: 0, 文学: 2 },
+      handleReparseMany,
+    };
+
+    const { rerender } = render(<ShelfPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: '批量操作' }));
+    fireEvent.click(screen.getByRole('button', { name: '全选' }));
+    fireEvent.click(screen.getByRole('button', { name: '重刷元数据' }));
+
+    await waitFor(() => {
+      expect(handleReparseMany).toHaveBeenCalledWith(['book-1', 'book-2']);
+      expect(screen.getByRole('region', { name: '书籍批量操作' })).toBeInTheDocument();
+      expect(screen.getByText('1 本')).toBeInTheDocument();
+    });
+
+    mockShelfData = { ...mockShelfData, isReparsingMany: true };
+    rerender(<ShelfPage />);
+
+    const reparseButton = screen.getByRole('button', { name: '重刷元数据' });
+    expect(reparseButton).toBeDisabled();
+    expect(reparseButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: '批量分类' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '批量删除' })).toBeDisabled();
   });
 });

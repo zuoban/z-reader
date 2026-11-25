@@ -21,6 +21,7 @@ vi.mock('@/lib/api', () => ({
     updateBook: vi.fn(),
     updateBooksCategory: vi.fn(),
     renameBookCategory: vi.fn(),
+    batchReparseBooks: vi.fn(),
     uploadCover: vi.fn(),
   },
 }));
@@ -1186,5 +1187,124 @@ describe('useShelfData', () => {
     expect(result.current.bookCounts.all).toBe(0);
     await act(async () => resolveSummary({ total: 1, uncategorized: 1, categories: {} }));
     expect(result.current.bookCounts.all).toBe(0);
+  });
+
+  it('handles batch metadata reparse for full success, partial failure, and total failure', async () => {
+    const book1 = mockBook({ id: 'book-1', title: 'Old 1' });
+    const book2 = mockBook({ id: 'book-2', title: 'Old 2' });
+    const updatedBook1 = mockBook({
+      id: 'book-1',
+      title: 'New 1',
+      cover_path: 'covers/new-1.jpg',
+    });
+    const updatedBook2 = mockBook({ id: 'book-2', title: 'New 2' });
+
+    vi.mocked(api.listBooks).mockResolvedValue([book1, book2]);
+    vi.mocked(api.listProgress).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useShelfData(true));
+    await waitFor(() => expect(result.current.isLoadingBooks).toBe(false));
+
+    // Full success with pending loading state check
+    const pendingReparse = deferred<Awaited<ReturnType<typeof api.batchReparseBooks>>>();
+    vi.mocked(api.batchReparseBooks).mockReturnValueOnce(pendingReparse.promise);
+    vi.mocked(api.listBooks).mockResolvedValue([updatedBook1, updatedBook2]);
+
+    let reparsePromise!: ReturnType<typeof result.current.handleReparseMany>;
+    act(() => {
+      reparsePromise = result.current.handleReparseMany(['book-1', 'book-2']);
+    });
+    expect(result.current.isReparsingMany).toBe(true);
+
+    let fullResult: Awaited<ReturnType<typeof result.current.handleReparseMany>> | undefined;
+    await act(async () => {
+      pendingReparse.resolve({
+        updated_ids: ['book-1', 'book-2'],
+        failed_ids: [],
+        books: [updatedBook1, updatedBook2],
+      });
+      fullResult = await reparsePromise;
+    });
+
+    expect(result.current.isReparsingMany).toBe(false);
+    expect(fullResult).toEqual({
+      successCount: 2,
+      failedCount: 0,
+      updatedIds: ['book-1', 'book-2'],
+    });
+    expect(toast.success).toHaveBeenCalledWith('已重新解析 2 本图书元数据');
+    expect(result.current.books[0].title).toBe('New 1');
+
+    // Partial failure
+    vi.mocked(api.batchReparseBooks).mockResolvedValueOnce({
+      updated_ids: ['book-1'],
+      failed_ids: ['book-2'],
+      books: [{ ...updatedBook1, title: 'New 1 v2' }],
+    });
+    let partialResult: Awaited<ReturnType<typeof result.current.handleReparseMany>> | undefined;
+    await act(async () => {
+      partialResult = await result.current.handleReparseMany(['book-1', 'book-2']);
+    });
+    expect(partialResult).toEqual({
+      successCount: 1,
+      failedCount: 1,
+      updatedIds: ['book-1'],
+    });
+    expect(toast.error).toHaveBeenCalledWith('已解析 1 本，1 本失败');
+
+    // All failed response
+    vi.mocked(api.batchReparseBooks).mockResolvedValueOnce({
+      updated_ids: [],
+      failed_ids: ['book-1'],
+      books: [],
+    });
+    let failedResult: Awaited<ReturnType<typeof result.current.handleReparseMany>> | undefined;
+    await act(async () => {
+      failedResult = await result.current.handleReparseMany(['book-1']);
+    });
+    expect(failedResult).toEqual({
+      successCount: 0,
+      failedCount: 1,
+      updatedIds: [],
+    });
+    expect(toast.error).toHaveBeenCalledWith('重新解析元数据失败');
+
+    // Empty IDs no-op
+    let emptyResult: Awaited<ReturnType<typeof result.current.handleReparseMany>> | undefined;
+    await act(async () => {
+      emptyResult = await result.current.handleReparseMany(['']);
+    });
+    expect(emptyResult).toEqual({ successCount: 0, failedCount: 0, updatedIds: [] });
+
+    // Network/API rejection
+    vi.mocked(api.batchReparseBooks).mockRejectedValueOnce(new Error('服务不可用'));
+    let errResult: Awaited<ReturnType<typeof result.current.handleReparseMany>> | undefined;
+    await act(async () => {
+      errResult = await result.current.handleReparseMany(['book-1']);
+    });
+    expect(errResult).toEqual({
+      successCount: 0,
+      failedCount: 1,
+      updatedIds: [],
+    });
+    expect(toast.error).toHaveBeenCalledWith('服务不可用');
+
+    // Also updates active searchResults when search query is active
+    vi.mocked(api.searchBooks).mockResolvedValueOnce({ books: [book1], next_cursor: undefined });
+    act(() => {
+      result.current.setSearchQuery('Old');
+    });
+    await waitFor(() => {
+      expect(result.current.filteredBooks.map((b) => b.id)).toEqual(['book-1']);
+    });
+    vi.mocked(api.batchReparseBooks).mockResolvedValueOnce({
+      updated_ids: ['book-1'],
+      failed_ids: [],
+      books: [{ ...book1, title: 'Search Refreshed' }],
+    });
+    await act(async () => {
+      await result.current.handleReparseMany(['book-1']);
+    });
+    expect(result.current.filteredBooks[0].title).toBe('Search Refreshed');
   });
 });

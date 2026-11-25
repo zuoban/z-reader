@@ -885,3 +885,492 @@ describe('api.verify', () => {
     expect(await api.verify()).toEqual({ valid: true, password_required: false });
   });
 });
+
+describe('api error handling, retries, and aborts', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('uses body.message or fallback message when server returns non-JSON error', async () => {
+    globalThis.fetch = mockFetch({
+      body: { message: 'Custom server message' },
+      ok: false,
+      status: 422,
+    });
+    await expect(api.listBooks()).rejects.toMatchObject({
+      name: 'ApiError',
+      message: 'Custom server message',
+      status: 422,
+    });
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+    } as Response);
+    await expect(api.listBooks()).rejects.toMatchObject({
+      name: 'ApiError',
+      message: '请求失败',
+      status: 500,
+    });
+  });
+
+  it('returns null when an ok response has an empty body', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      text: () => Promise.resolve(''),
+    } as Response);
+
+    const result = await api.deleteBookmark('book/1', 'bm/1');
+    expect(result).toBeUndefined();
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book%2F1/bookmarks/bm%2F1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('respects an already-aborted signal without retrying', async () => {
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['http://primary', 'http://fallback']);
+    const controller = new AbortController();
+    controller.abort(new DOMException('Aborted', 'AbortError'));
+    globalThis.fetch = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+
+    await expect(api.getBook('book-1', controller.signal)).rejects.toThrow('请求超时');
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries with the next API base on 502/503/504 and TypeError in fetchApi', async () => {
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['http://primary', 'http://fallback']);
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 502 }))
+      .mockResolvedValueOnce(Response.json([]));
+
+    await expect(api.listBooks()).resolves.toEqual([]);
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(1, 'http://primary/api/books', expect.any(Object));
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(2, 'http://fallback/api/books', expect.any(Object));
+
+    globalThis.fetch = vi.fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(Response.json({ total: 1, uncategorized: 0, categories: {} }));
+
+    await expect(api.getBookLibrarySummary()).resolves.toEqual({
+      total: 1,
+      uncategorized: 0,
+      categories: {},
+    });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores non-401 or stale-generation responses in handleAuthResponse', () => {
+    const listener = vi.fn();
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener);
+    try {
+      handleAuthResponse(new Response(null, { status: 200 }));
+      handleAuthResponse(new Response(null, { status: 401 }), 'stale-generation');
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, listener);
+    }
+  });
+});
+
+describe('api book queries, categories, and CRUD', () => {
+  const sampleBook: Book = {
+    id: 'book-1',
+    user_id: 'reader',
+    title: '三体',
+    author: '刘慈欣',
+    filename: 'santi.epub',
+    format: 'epub',
+    size: 2048,
+    created_at: '2026-01-01T00:00:00Z',
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('passes cursor, sort, category, and uncategorized options in listBooksPage and searchBooks', async () => {
+    globalThis.fetch = mockFetch({ body: { books: [sampleBook], next_cursor: 'c2' } });
+
+    const page1 = await api.listBooksPage('c1', 30, 'title', { category: '科幻' });
+    expect(page1.books).toEqual([sampleBook]);
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books?limit=30&cursor=c1&sort=title&category=%E7%A7%91%E5%B9%BB'),
+      expect.any(Object),
+    );
+
+    await api.listBooksPage(undefined, 20, 'recent_read', { uncategorized: true });
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books?limit=20&sort=recent_read&uncategorized=true'),
+      expect.any(Object),
+    );
+
+    const searchRes = await api.searchBooks('三体', 'c1', 10, 'author', { category: '科幻' });
+    expect(searchRes.books).toEqual([sampleBook]);
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books/search?q=%E4%B8%89%E4%BD%93&limit=10&cursor=c1&sort=author&category=%E7%A7%91%E5%B9%BB'),
+      expect.any(Object),
+    );
+
+    await api.searchBooks('三体', undefined, 20, 'recent_read', { uncategorized: true });
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books/search?q=%E4%B8%89%E4%BD%93&limit=20&sort=recent_read&uncategorized=true'),
+      expect.any(Object),
+    );
+  });
+
+  it('chunks getBooksStatus requests into batches of 100 IDs', async () => {
+    const ids = Array.from({ length: 105 }, (_, i) => `b-${i}`);
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({ books: [sampleBook] }))
+      .mockResolvedValueOnce(Response.json({ books: [{ ...sampleBook, id: 'b-100' }] }));
+
+    const result = await api.getBooksStatus(ids);
+    expect(result).toHaveLength(2);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(globalThis.fetch).mock.calls[0][0]).toContain('/api/books/status?book_ids=');
+    expect(vi.mocked(globalThis.fetch).mock.calls[1][0]).toContain('b-100');
+  });
+
+  it('calls summary, updateBook, renameBookCategory, updateBooksCategory, deleteBook, and deleteBooks', async () => {
+    globalThis.fetch = mockFetch({
+      body: { total: 5, uncategorized: 1, categories: { 科幻: 4 } },
+    });
+    expect(await api.getBookLibrarySummary()).toEqual({
+      total: 5,
+      uncategorized: 1,
+      categories: { 科幻: 4 },
+    });
+
+    globalThis.fetch = mockFetch({ body: { ...sampleBook, title: '三体 II' } });
+    const updated = await api.updateBook('book/1', { title: '三体 II', author: '刘慈欣' });
+    expect(updated.title).toBe('三体 II');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book%2F1'),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ title: '三体 II', author: '刘慈欣' }),
+      }),
+    );
+
+    globalThis.fetch = mockFetch({ body: { updated_ids: ['book-1'], category: '文学' } });
+    expect(await api.renameBookCategory('科幻', '文学')).toEqual({
+      updated_ids: ['book-1'],
+      category: '文学',
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/categories'),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ from: '科幻', to: '文学' }),
+      }),
+    );
+
+    globalThis.fetch = mockFetch({ body: { books: [sampleBook] } });
+    expect(await api.updateBooksCategory(['book-1'], '科幻')).toEqual({ books: [sampleBook] });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/batch/category'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ ids: ['book-1'], category: '科幻' }),
+      }),
+    );
+
+    globalThis.fetch = mockFetch({ body: null });
+    await api.deleteBook('book/1');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book%2F1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+
+    globalThis.fetch = mockFetch({ body: { deleted_ids: ['book-1', 'book-2'] } });
+    expect(await api.deleteBooks(['book-1', 'book-2'])).toEqual({
+      deleted_ids: ['book-1', 'book-2'],
+    });
+
+    globalThis.fetch = mockFetch({ body: {} });
+    await api.deleteBooks(['book-3']);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/batch/delete'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ ids: ['book-3'] }),
+      }),
+    );
+  });
+
+  it('reparses a single book and batch reparses books with exact backend contract', async () => {
+    const reparsed: Book = {
+      ...sampleBook,
+      title: '三体（重刷）',
+      cover_path: 'covers/book-1-v2.jpg',
+      cover_thumb_path: 'covers/book-1-v2-thumb.jpg',
+    };
+    globalThis.fetch = mockFetch({ body: reparsed });
+
+    const single = await api.reparseBook('book/1');
+    expect(single).toEqual(reparsed);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book%2F1/reparse'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+
+    const batchPayload = {
+      updated_ids: ['book-1'],
+      failed_ids: ['book-2'],
+      books: [reparsed],
+    };
+    globalThis.fetch = mockFetch({ body: batchPayload });
+
+    const batch = await api.batchReparseBooks(['book-1', 'book-2']);
+    expect(batch).toEqual(batchPayload);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/batch/reparse'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ ids: ['book-1', 'book-2'] }),
+      }),
+    );
+  });
+});
+
+describe('api.uploadBook, api.uploadCover, and api.fetchCover', () => {
+  const sampleBook: Book = {
+    id: 'book-up',
+    user_id: 'reader',
+    title: 'Uploaded',
+    author: 'Author',
+    filename: 'uploaded.epub',
+    format: 'epub',
+    size: 512,
+    created_at: '2026-01-01T00:00:00Z',
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('uploads a book successfully and handles 409 duplicate recovery', async () => {
+    const file = new File(['epub-data'], 'uploaded.epub', { type: 'application/epub+zip' });
+    globalThis.fetch = mockFetch({ body: sampleBook, ok: true });
+
+    await expect(api.uploadBook(file)).resolves.toEqual(sampleBook);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books'),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+    );
+
+    // 409 with valid duplicate book returns existing book instead of throwing
+    globalThis.fetch = mockFetch({
+      ok: false,
+      status: 409,
+      body: { error: 'Duplicate', book: sampleBook },
+    });
+    await expect(api.uploadBook(file)).resolves.toEqual(sampleBook);
+
+    // 409 without valid book details still rejects with ApiError
+    globalThis.fetch = mockFetch({
+      ok: false,
+      status: 409,
+      body: { error: 'Conflict without book', book: { id: 123 } },
+    });
+    await expect(api.uploadBook(file)).rejects.toMatchObject({
+      status: 409,
+      message: 'Conflict without book',
+    });
+  });
+
+  it('retries uploadBook once on transient failure and rejects on empty response or persistent error', async () => {
+    vi.useFakeTimers();
+    const file = new File(['epub-data'], 'uploaded.epub');
+
+    // Transient network error succeeds on second attempt
+    globalThis.fetch = vi.fn()
+      .mockRejectedValueOnce(new TypeError('network reset'))
+      .mockResolvedValueOnce(Response.json(sampleBook));
+
+    const retryPromise = api.uploadBook(file);
+    await vi.advanceTimersByTimeAsync(500);
+    await expect(retryPromise).resolves.toEqual(sampleBook);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+
+    // Empty body throws ApiError without retrying
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(''),
+    } as Response);
+    await expect(api.uploadBook(file)).rejects.toMatchObject({
+      name: 'ApiError',
+      message: '上传成功但响应为空',
+    });
+
+    // Non-409 API error throws immediately without retry
+    globalThis.fetch = mockFetch({ ok: false, status: 400, body: {} });
+    await expect(api.uploadBook(file)).rejects.toMatchObject({
+      status: 400,
+      message: '上传失败',
+    });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('uploads a cover and handles errors and empty responses', async () => {
+    const blob = new Blob(['png-bytes'], { type: 'image/png' });
+    globalThis.fetch = mockFetch({ body: { ...sampleBook, cover_path: 'covers/new.png' } });
+
+    const updated = await api.uploadCover('book/1', blob, 'custom.png');
+    expect(updated.cover_path).toBe('covers/new.png');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/book%2F1/cover'),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+    );
+
+    globalThis.fetch = mockFetch({ ok: false, status: 413, body: {} });
+    await expect(api.uploadCover('book/1', blob)).rejects.toMatchObject({
+      status: 413,
+      message: '上传封面失败',
+    });
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(''),
+    } as Response);
+    await expect(api.uploadCover('book/1', blob)).rejects.toMatchObject({
+      message: '上传封面成功但响应为空',
+    });
+  });
+
+  it('fetches covers with thumb query, multi-base fallback, 404/500, and abort handling', async () => {
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['http://primary', 'http://fallback']);
+    const coverBlob = new Blob(['img']);
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        blob: () => Promise.resolve(coverBlob),
+      } as Response);
+
+    await expect(api.fetchCover('book/1', 'thumb')).resolves.toBe(coverBlob);
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      1,
+      'http://primary/api/books/book%2F1/cover?size=thumb',
+      expect.any(Object),
+    );
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      2,
+      'http://fallback/api/books/book%2F1/cover?size=thumb',
+      expect.any(Object),
+    );
+
+    // 404 returns null
+    vi.spyOn(config, 'getApiBaseCandidates').mockReturnValue(['']);
+    globalThis.fetch = mockFetch({ ok: false, status: 404 });
+    await expect(api.fetchCover('book-1')).resolves.toBeNull();
+
+    // 500 throws error
+    globalThis.fetch = mockFetch({ ok: false, status: 500 });
+    await expect(api.fetchCover('book-1')).rejects.toThrow('Cover fetch failed with status 500');
+
+    // Caller abort signal returns null
+    const controller = new AbortController();
+    controller.abort();
+    globalThis.fetch = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+    await expect(api.fetchCover('book-1', 'thumb', controller.signal)).resolves.toBeNull();
+
+    // Non-abort error rethrows
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('offline'));
+    await expect(api.fetchCover('book-1')).rejects.toThrow('offline');
+  });
+});
+
+describe('api progress options and bookmarks CRUD', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('passes query parameters in listProgress and all fields in saveProgressOnUnload', async () => {
+    globalThis.fetch = mockFetch({ body: [] });
+    const controller = new AbortController();
+    await api.listProgress({
+      bookIds: ['b1', 'b2'],
+      updatedSince: '2026-01-01T00:00:00Z',
+      signal: controller.signal,
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/progress?book_ids=b1%2Cb2&updated_since=2026-01-01T00%3A00%3A00Z'),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('unload aborted'));
+    api.saveProgressOnUnload('book/1', 'cfi-1', 55, {
+      expectedUpdatedAt: '2026-01-01T00:00:00Z',
+      deviceId: 'dev-1',
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/progress/book%2F1'),
+      expect.objectContaining({
+        method: 'POST',
+        keepalive: true,
+        body: JSON.stringify({
+          cfi: 'cfi-1',
+          percentage: 55,
+          expected_updated_at: '2026-01-01T00:00:00Z',
+          device_id: 'dev-1',
+        }),
+      }),
+    );
+  });
+
+  it('lists, creates, and deletes bookmarks', async () => {
+    const bookmark = {
+      id: 'bm-1',
+      book_id: 'book-1',
+      user_id: 'reader',
+      cfi: 'epubcfi(/6/2)',
+      percentage: 12.5,
+      chapter: '第一章',
+      note: '好句',
+      created_at: '2026-01-01T00:00:00Z',
+    };
+
+    globalThis.fetch = mockFetch({ body: [bookmark] });
+    expect(await api.listBookmarks('book/1')).toEqual([bookmark]);
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books/book%2F1/bookmarks'),
+      expect.any(Object),
+    );
+
+    globalThis.fetch = mockFetch({ body: bookmark });
+    const created = await api.createBookmark('book/1', {
+      cfi: bookmark.cfi,
+      percentage: bookmark.percentage,
+      chapter: bookmark.chapter,
+      note: bookmark.note,
+    });
+    expect(created).toEqual(bookmark);
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books/book%2F1/bookmarks'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          cfi: bookmark.cfi,
+          percentage: bookmark.percentage,
+          chapter: bookmark.chapter,
+          note: bookmark.note,
+        }),
+      }),
+    );
+
+    globalThis.fetch = mockFetch({ body: null });
+    await api.deleteBookmark('book/1', 'bm/1');
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/books/book%2F1/bookmarks/bm%2F1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+});

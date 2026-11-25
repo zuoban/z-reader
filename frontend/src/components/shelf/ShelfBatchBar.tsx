@@ -1,7 +1,7 @@
 'use client';
 
 import { ActionIcon, Button } from '@mantine/core';
-import { CheckSquare, Loader2, Tag, Trash2, X } from 'lucide-react';
+import { CheckSquare, Loader2, RefreshCw, Tag, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ShelfBatchBarProps {
@@ -11,9 +11,11 @@ export interface ShelfBatchBarProps {
   isBatchBusy: boolean;
   isDeletingMany: boolean;
   isUpdatingManyCategories: boolean;
+  isReparsingMany: boolean;
   onToggleSelectionMode: () => void;
   onToggleVisibleSelection: () => void;
   onOpenBatchCategory: () => void;
+  onBatchReparse: () => void;
   onOpenBatchDelete: () => void;
 }
 
@@ -24,13 +26,15 @@ export function ShelfBatchBar({
   isBatchBusy,
   isDeletingMany,
   isUpdatingManyCategories,
+  isReparsingMany,
   onToggleSelectionMode,
   onToggleVisibleSelection,
   onOpenBatchCategory,
+  onBatchReparse,
   onOpenBatchDelete,
 }: ShelfBatchBarProps) {
   return (
-    <div className="pointer-events-none fixed left-[max(1rem,env(safe-area-inset-left,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:left-[max(2rem,env(safe-area-inset-left,0px))] sm:right-[max(2rem,env(safe-area-inset-right,0px))] lg:left-auto lg:right-[max(2.5rem,env(safe-area-inset-right,0px))] lg:max-w-[44rem]">
+    <div className="pointer-events-none fixed left-[max(1rem,env(safe-area-inset-left,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-50 mx-auto max-w-[52rem] sm:left-[max(2rem,env(safe-area-inset-left,0px))] sm:right-[max(2rem,env(safe-area-inset-right,0px))] lg:left-auto lg:right-[max(2.5rem,env(safe-area-inset-right,0px))] lg:max-w-[48rem]">
       <div
         role="region"
         aria-label="书籍批量操作"
@@ -71,7 +75,7 @@ export function ShelfBatchBar({
           </ActionIcon>
         </div>
 
-        <div className="grid w-full min-w-0 grid-cols-3 gap-2 border-t border-border/70 pt-2.5 sm:flex sm:w-auto sm:flex-1 sm:items-center sm:justify-end sm:border-t-0 sm:pt-0">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2 border-t border-border/70 pt-2.5 sm:flex sm:w-auto sm:flex-1 sm:flex-wrap sm:items-center sm:justify-end sm:border-t-0 sm:pt-0 md:flex-nowrap">
           <Button
             type="button"
             variant="default"
@@ -108,6 +112,30 @@ export function ShelfBatchBar({
               {isUpdatingManyCategories ? '更新中…' : '批量分类'}
             </span>
             <span className="sm:hidden">{isUpdatingManyCategories ? '更新中' : '分类'}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="default"
+            size="xs"
+            aria-label="重刷元数据"
+            aria-busy={isReparsingMany || undefined}
+            leftSection={
+              isReparsingMany ? (
+                <Loader2
+                  className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+              )
+            }
+            className="min-h-11 min-w-0 cursor-pointer rounded-lg border-border px-2 text-xs font-medium text-foreground transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 sm:min-h-9 sm:px-3 sm:text-[13px]"
+            disabled={selectedCount === 0 || isBatchBusy}
+            onClick={onBatchReparse}
+          >
+            <span>{isReparsingMany ? '解析中…' : '重刷元数据'}</span>
           </Button>
 
           <Button

@@ -148,6 +148,7 @@
   }
 
   .shelf-book-card[data-selected="true"] {
+    --muted-foreground: var(--subtle-foreground);
     background: var(--shelf-surface-selected);
     outline: 2px solid var(--primary);
     outline-offset: -1px;

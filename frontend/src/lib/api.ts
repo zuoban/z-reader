@@ -63,6 +63,12 @@ export interface BookLibrarySummary {
 	categories: Record<string, number>;
 }
 
+export interface BatchReparseBooksResponse {
+  updated_ids: string[];
+  failed_ids: string[];
+  books: Book[];
+}
+
 export interface Progress {
   book_id: string;
   user_id: string;
@@ -439,6 +445,19 @@ export const api = {
     return fetchApi<{ books: Book[] }>('/api/books/batch/category', {
       method: 'POST',
       body: JSON.stringify({ ids, category }),
+    });
+  },
+
+  reparseBook: async (id: string): Promise<Book> => {
+    return fetchApi<Book>(`/api/books/${encodeURIComponent(id)}/reparse`, {
+      method: 'POST',
+    });
+  },
+
+  batchReparseBooks: async (ids: string[]): Promise<BatchReparseBooksResponse> => {
+    return fetchApi<BatchReparseBooksResponse>('/api/books/batch/reparse', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
     });
   },
 

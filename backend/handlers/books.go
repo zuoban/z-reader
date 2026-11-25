@@ -58,6 +58,7 @@ type BooksHandler struct {
 	coverCacheMu         sync.Mutex
 	coverCacheClosed     bool
 	coverCacheSem        chan struct{}
+	coverCacheStop       chan struct{}
 	coverCacheWG         sync.WaitGroup
 	extractBookPreviewFn func(*os.File, string) (*epubMetadata, []byte, string, error)
 }
@@ -69,9 +70,10 @@ type bookCursorPageResponse struct {
 
 func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
 	handler := &BooksHandler{
-		cfg:           cfg,
-		db:            db,
-		coverCacheSem: make(chan struct{}, coverCacheMaxConcurrency),
+		cfg:            cfg,
+		db:             db,
+		coverCacheSem:  make(chan struct{}, coverCacheMaxConcurrency),
+		coverCacheStop: make(chan struct{}),
 	}
 	handler.legacyHashes = newLegacyHashBackfill(handler)
 	handler.processor = newBookProcessor(handler)
@@ -463,12 +465,76 @@ func (h *BooksHandler) setBookCache(c *gin.Context, maxAgeSeconds int) {
 func writeNotModifiedIfETagMatches(c *gin.Context, rawETag string) bool {
 	etag := `"` + rawETag + `"`
 	c.Header("ETag", etag)
-	if c.GetHeader("If-None-Match") != etag {
+	if c.Request == nil || !ifNoneMatchMatches(c.Request.Header.Values("If-None-Match"), etag) {
 		return false
 	}
 	c.Status(http.StatusNotModified)
 	c.Writer.WriteHeaderNow()
 	return true
+}
+
+func ifNoneMatchMatches(headers []string, etag string) bool {
+	if etag == "" {
+		return false
+	}
+	for _, raw := range headers {
+		buf := strings.Trim(raw, " \t")
+		if buf == "" {
+			continue
+		}
+		if buf == "*" {
+			return true
+		}
+		for len(buf) > 0 {
+			buf = strings.TrimLeft(buf, " \t")
+			if len(buf) == 0 {
+				break
+			}
+			if buf[0] == ',' {
+				buf = buf[1:]
+				continue
+			}
+			candidate, remain := scanETag(buf)
+			if candidate == "" {
+				break
+			}
+			remain = strings.TrimLeft(remain, " \t")
+			if len(remain) > 0 && remain[0] != ',' {
+				break
+			}
+			if etagWeakMatch(candidate, etag) {
+				return true
+			}
+			buf = remain
+		}
+	}
+	return false
+}
+
+func scanETag(s string) (etag string, remain string) {
+	s = strings.TrimLeft(s, " \t")
+	start := 0
+	if strings.HasPrefix(s, "W/") {
+		start = 2
+	}
+	if len(s[start:]) < 2 || s[start] != '"' {
+		return "", ""
+	}
+	for i := start + 1; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == 0x21 || (c >= 0x23 && c <= 0x7E) || c >= 0x80:
+		case c == '"':
+			return s[:i+1], s[i+1:]
+		default:
+			return "", ""
+		}
+	}
+	return "", ""
+}
+
+func etagWeakMatch(a, b string) bool {
+	return strings.TrimPrefix(a, "W/") == strings.TrimPrefix(b, "W/")
 }
 
 func hashBytes(data []byte) string {

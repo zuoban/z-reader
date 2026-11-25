@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.etcd.io/bbolt"
 
 	"z-reader/backend/config"
 	"z-reader/backend/middleware"
@@ -270,5 +271,88 @@ func TestAccessCookieSecureFlagRespectsTrustedProxiesAndTLS(t *testing.T) {
 				t.Fatalf("logout cookie mismatch: %+v, want Secure=%v", logoutCookies, tc.wantSecure)
 			}
 		})
+	}
+}
+
+func TestAuthLogoutSkipsWriteTxForUnknownTokens(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	const password = "library-password"
+	db := openHandlerTestDB(t)
+	handler := NewAuthHandler(&config.Config{AccessPassword: password}, db)
+	router := gin.New()
+	router.POST("/login", handler.Login)
+	router.POST("/logout", handler.Logout)
+	router.GET("/verify", middleware.AuthRequired(db, password), handler.Verify)
+
+	sessionTxID := func() int {
+		t.Helper()
+		var id int
+		if err := db.SessionDB().View(func(tx *bbolt.Tx) error {
+			id = tx.ID()
+			return nil
+		}); err != nil {
+			t.Fatalf("read session db txid: %v", err)
+		}
+		return id
+	}
+
+	// Create one active session so we can confirm unknown logouts don't touch it or trigger writes.
+	loginReq := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"password":"library-password"}`))
+	loginRec := httptest.NewRecorder()
+	router.ServeHTTP(loginRec, loginReq)
+	if loginRec.Code != http.StatusOK || len(loginRec.Result().Cookies()) != 1 {
+		t.Fatalf("login failed: status=%d cookies=%d", loginRec.Code, len(loginRec.Result().Cookies()))
+	}
+	activeCookie := loginRec.Result().Cookies()[0]
+
+	txBeforeUnknown := sessionTxID()
+
+	// Unauthenticated logout with random cookie & bearer must succeed, clear cookie, and skip bbolt write tx.
+	unknownReq := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	unknownReq.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: "random-unknown-cookie"})
+	unknownReq.Header.Set("Authorization", "Bearer random-unknown-bearer")
+	unknownRec := httptest.NewRecorder()
+	router.ServeHTTP(unknownRec, unknownReq)
+
+	if unknownRec.Code != http.StatusOK {
+		t.Fatalf("unknown logout status = %d, want 200: %s", unknownRec.Code, unknownRec.Body.String())
+	}
+	if unknownRec.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("expected Cache-Control: no-store, got %q", unknownRec.Header().Get("Cache-Control"))
+	}
+	unknownCookies := unknownRec.Result().Cookies()
+	if len(unknownCookies) != 1 || unknownCookies[0].Name != middleware.SessionCookieName || unknownCookies[0].MaxAge >= 0 {
+		t.Fatalf("expected expired session cookie on unknown logout, got %+v", unknownCookies)
+	}
+	if txAfterUnknown := sessionTxID(); txAfterUnknown != txBeforeUnknown {
+		t.Fatalf("session db write txid advanced from %d to %d on unknown logout", txBeforeUnknown, txAfterUnknown)
+	}
+
+	// Active session must still verify, then be revoked when logged out.
+	verifyReq := httptest.NewRequest(http.MethodGet, "/verify", nil)
+	verifyReq.AddCookie(activeCookie)
+	verifyRec := httptest.NewRecorder()
+	router.ServeHTTP(verifyRec, verifyReq)
+	if verifyRec.Code != http.StatusOK {
+		t.Fatalf("active session verify status = %d, want 200", verifyRec.Code)
+	}
+
+	revokeReq := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	revokeReq.AddCookie(activeCookie)
+	revokeRec := httptest.NewRecorder()
+	router.ServeHTTP(revokeRec, revokeReq)
+	if revokeRec.Code != http.StatusOK {
+		t.Fatalf("active logout status = %d, want 200", revokeRec.Code)
+	}
+	if txAfterRevoke := sessionTxID(); txAfterRevoke <= txBeforeUnknown {
+		t.Fatalf("expected session db write txid to advance when revoking active session: before=%d after=%d", txBeforeUnknown, txAfterRevoke)
+	}
+
+	verifyAfterReq := httptest.NewRequest(http.MethodGet, "/verify", nil)
+	verifyAfterReq.AddCookie(activeCookie)
+	verifyAfterRec := httptest.NewRecorder()
+	router.ServeHTTP(verifyAfterRec, verifyAfterReq)
+	if verifyAfterRec.Code != http.StatusUnauthorized {
+		t.Fatalf("revoked session verify status = %d, want 401", verifyAfterRec.Code)
 	}
 }

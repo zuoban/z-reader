@@ -133,3 +133,36 @@ func TestMetricsHandlerReportsRateLimitRejections(t *testing.T) {
 		}
 	}
 }
+
+func TestHTTPMetricsDecrementsInFlightOnUncaughtPanic(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	previous := httpMetrics
+	httpMetrics = &httpMetricsRegistry{requests: make(map[string]*httpMetric)}
+	t.Cleanup(func() { httpMetrics = previous })
+
+	router := gin.New()
+	router.Use(HTTPMetrics())
+	router.GET("/panic", func(c *gin.Context) {
+		panic("uncaught handler panic")
+	})
+
+	panicked := false
+	func() {
+		defer func() {
+			if recover() != nil {
+				panicked = true
+			}
+		}()
+		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/panic", nil))
+	}()
+
+	if !panicked {
+		t.Fatal("expected uncaught panic to propagate")
+	}
+	httpMetrics.mu.Lock()
+	inFlight := httpMetrics.inFlight
+	httpMetrics.mu.Unlock()
+	if inFlight != 0 {
+		t.Fatalf("inFlight = %d after panic, want 0", inFlight)
+	}
+}

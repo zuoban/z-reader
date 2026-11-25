@@ -85,24 +85,35 @@ func HTTPMetrics() gin.HandlerFunc {
 		httpMetrics.inFlight++
 		httpMetrics.mu.Unlock()
 
-		c.Next()
+		completed := false
+		defer func() {
+			if !completed {
+				httpMetrics.mu.Lock()
+				httpMetrics.inFlight--
+				httpMetrics.mu.Unlock()
+				return
+			}
+			path := c.FullPath()
+			if path == "" {
+				path = "unmatched"
+			}
+			method := metricHTTPMethod(c.Request.Method)
+			key := strings.Join([]string{method, path, strconv.Itoa(c.Writer.Status())}, "\x00")
+			duration := time.Since(startedAt).Seconds()
+			httpMetrics.mu.Lock()
+			httpMetrics.inFlight--
+			metric := httpMetrics.requests[key]
+			if metric == nil {
+				metric = &httpMetric{}
+				httpMetrics.requests[key] = metric
+			}
+			metric.count++
+			metric.durationSec += duration
+			httpMetrics.mu.Unlock()
+		}()
 
-		path := c.FullPath()
-		if path == "" {
-			path = "unmatched"
-		}
-		method := metricHTTPMethod(c.Request.Method)
-		key := strings.Join([]string{method, path, strconv.Itoa(c.Writer.Status())}, "\x00")
-		httpMetrics.mu.Lock()
-		httpMetrics.inFlight--
-		metric := httpMetrics.requests[key]
-		if metric == nil {
-			metric = &httpMetric{}
-			httpMetrics.requests[key] = metric
-		}
-		metric.count++
-		metric.durationSec += time.Since(startedAt).Seconds()
-		httpMetrics.mu.Unlock()
+		c.Next()
+		completed = true
 	}
 }
 

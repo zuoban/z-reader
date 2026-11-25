@@ -251,3 +251,166 @@ func TestVoiceListSanitizesUpstreamErrors(t *testing.T) {
 		t.Fatalf("expected structured TTS error response, got %v", body)
 	}
 }
+
+func TestTTSQueryParameterValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var called int
+	handler := &TTSHandler{
+		generateTextAudio: func(_ context.Context, _, _, _, _, _, _ string) ([]byte, error) {
+			called++
+			return []byte("audio"), nil
+		},
+	}
+
+	validQueries := []struct {
+		name  string
+		query string
+	}{
+		{
+			name:  "defaults",
+			query: "t=hello",
+		},
+		{
+			name:  "valid prosody percent and units",
+			query: "t=hello&v=zh-CN-Xiaoxiao:DragonHDFlashLatestNeural&r=" + url.QueryEscape("+10%") + "&p=" + url.QueryEscape("-2st") + "&s=narration-professional&o=audio-24khz-48kbitrate-mono-mp3",
+		},
+		{
+			name:  "valid decimal rate and Hz pitch",
+			query: "t=hello&v=custom_voice.v1&r=1.2&p=" + url.QueryEscape("+5Hz") + "&s=chat_casual.1&o=webm-24khz-16bit-mono-opus",
+		},
+		{
+			name:  "negative percent rate and zero pitch",
+			query: "t=hello&r=" + url.QueryEscape("-20%") + "&p=0&s=cheerful",
+		},
+	}
+
+	for _, tc := range validQueries {
+		t.Run("valid/"+tc.name, func(t *testing.T) {
+			before := called
+			rec := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(rec)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/tts?"+tc.query, nil)
+			handler.TTS(ctx)
+			if rec.Code != http.StatusOK || called != before+1 {
+				t.Fatalf("expected 200 and synthesis call, got status=%d calledDelta=%d body=%s", rec.Code, called-before, rec.Body.String())
+			}
+		})
+	}
+
+	invalidQueries := []struct {
+		name  string
+		query string
+	}{
+		{"invalid voice chars", "t=hello&v=" + url.QueryEscape(`zh-CN" onclick="x`)},
+		{"voice too long", "t=hello&v=" + strings.Repeat("a", maxTTSVoiceLen+1)},
+		{"empty voice", "t=hello&v="},
+		{"invalid rate chars", "t=hello&r=" + url.QueryEscape("+10%;drop")},
+		{"rate slash rejected", "t=hello&r=" + url.QueryEscape("10/2")},
+		{"rate too long", "t=hello&r=" + strings.Repeat("1", maxTTSProsodyLen+1)},
+		{"invalid pitch chars", "t=hello&p=" + url.QueryEscape("+5Hz<bad>")},
+		{"pitch too long", "t=hello&p=" + strings.Repeat("1", maxTTSProsodyLen+1)},
+		{"invalid style chars", "t=hello&s=" + url.QueryEscape("cheerful space")},
+		{"style too long", "t=hello&s=" + strings.Repeat("s", maxTTSStyleLen+1)},
+		{"output format with CRLF", "t=hello&o=" + url.QueryEscape("mp3\r\nX-Injected: 1")},
+		{"output format with spaces", "t=hello&o=" + url.QueryEscape("audio mp3")},
+		{"output format with underscore", "t=hello&o=audio_mp3"},
+		{"output format too long", "t=hello&o=" + strings.Repeat("a", maxTTSOutputFormatLen+1)},
+	}
+
+	for _, tc := range invalidQueries {
+		t.Run("invalid/"+tc.name, func(t *testing.T) {
+			before := called
+			rec := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(rec)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/tts?"+tc.query, nil)
+			handler.TTS(ctx)
+			if rec.Code != http.StatusBadRequest || called != before {
+				t.Fatalf("expected 400 without synthesis call, got status=%d calledDelta=%d body=%s", rec.Code, called-before, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestSSMLParameterAndSanitizedSizeValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var called int
+	handler := &TTSHandler{
+		generateSSMLAudio: func(_ context.Context, _, _ string, _ bool) ([]byte, error) {
+			called++
+			return []byte("audio"), nil
+		},
+	}
+
+	t.Run("rejects invalid output_format with header injection chars", func(t *testing.T) {
+		for _, badFormat := range []string{
+			"mp3\r\nX-Evil: 1",
+			"audio mp3",
+			"audio/mpeg",
+			strings.Repeat("a", maxTTSOutputFormatLen+1),
+		} {
+			payload, err := json.Marshal(SSMLRequest{
+				Ssml:         "<speak>hello</speak>",
+				OutputFormat: badFormat,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			rec := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(rec)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/ssml", bytes.NewReader(payload))
+			ctx.Request.Header.Set("Content-Type", "application/json")
+			handler.SSML(ctx)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("format %q: status = %d, want 400 body=%s", badFormat, rec.Code, rec.Body.String())
+			}
+		}
+		if called != 0 {
+			t.Fatalf("expected 0 synthesis calls for invalid output_format, got %d", called)
+		}
+	})
+
+	t.Run("rejects SSML expanding beyond sanitized byte limit", func(t *testing.T) {
+		// 15KB of `'` fits within maxSSMLBytes (32KB) and maxSSMLRequestBody (64KB),
+		// but expands 6x to 90KB of `&apos;` (> maxSanitizedSSMLBytes = 64KB).
+		raw := "<speak>" + strings.Repeat("'", 15*1024) + "</speak>"
+		payload, err := json.Marshal(SSMLRequest{
+			Ssml:         raw,
+			OutputFormat: "audio-24khz-48kbitrate-mono-mp3",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/api/ssml", bytes.NewReader(payload))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		handler.SSML(ctx)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400 body=%s", rec.Code, rec.Body.String())
+		}
+		if called != 0 {
+			t.Fatalf("expected 0 synthesis calls for oversized sanitized SSML, got %d", called)
+		}
+	})
+
+	t.Run("accepts valid near-limit SSML", func(t *testing.T) {
+		raw := "<speak>" + strings.Repeat("a", maxSSMLBytes-20) + "</speak>"
+		payload, err := json.Marshal(SSMLRequest{
+			Ssml:         raw,
+			OutputFormat: "audio-24khz-48kbitrate-mono-mp3",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/api/ssml", bytes.NewReader(payload))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		handler.SSML(ctx)
+		if rec.Code != http.StatusOK || called != 1 {
+			t.Fatalf("status = %d called = %d, want 200 and 1 body=%s", rec.Code, called, rec.Body.String())
+		}
+	})
+}

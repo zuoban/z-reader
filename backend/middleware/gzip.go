@@ -31,15 +31,25 @@ func Gzip() gin.HandlerFunc {
 			return
 		}
 
-		appendVaryHeader(c.Writer.Header(), "Accept-Encoding")
+		origWriter := c.Writer
+		appendVaryHeader(origWriter.Header(), "Accept-Encoding")
 		writer := &gzipResponseWriter{
-			ResponseWriter: c.Writer,
+			ResponseWriter: origWriter,
 			statusCode:     http.StatusOK,
 		}
 		c.Writer = writer
-		defer writer.finish()
+		completed := false
+		defer func() {
+			if !completed {
+				writer.discard()
+				c.Writer = origWriter
+				return
+			}
+			writer.finish()
+		}()
 
 		c.Next()
+		completed = true
 	}
 }
 
@@ -270,6 +280,9 @@ func (w *gzipResponseWriter) startGzip() error {
 	w.compress = true
 	headers := w.Header()
 	headers.Del("Content-Length")
+	if etag := strings.TrimSpace(headers.Get("ETag")); etag != "" && !strings.HasPrefix(etag, "W/") {
+		headers.Set("ETag", "W/"+etag)
+	}
 	headers.Set("Content-Encoding", "gzip")
 	w.ResponseWriter.WriteHeader(w.statusCode)
 	gz := gzipWriterPool.Get().(*gzip.Writer)
@@ -308,6 +321,16 @@ func (w *gzipResponseWriter) writePlain(data []byte) (int, error) {
 	n, err := w.ResponseWriter.Write(data)
 	w.size += n
 	return n, err
+}
+
+func (w *gzipResponseWriter) discard() {
+	w.buf = nil
+	if w.gz != nil {
+		_ = w.gz.Close()
+		w.gz.Reset(io.Discard)
+		gzipWriterPool.Put(w.gz)
+		w.gz = nil
+	}
 }
 
 func (w *gzipResponseWriter) finish() {

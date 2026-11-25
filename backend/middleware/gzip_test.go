@@ -592,3 +592,154 @@ func TestGzipReadFromFallbackWithoutReaderFromAndUnwrap(t *testing.T) {
 		}
 	})
 }
+
+func TestGzipPanicSafetyWithRecovery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("panic after buffering less than threshold returns clean 500 without partial body", func(t *testing.T) {
+		router := gin.New()
+		router.Use(
+			gin.CustomRecoveryWithWriter(io.Discard, func(c *gin.Context, _ any) {
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}),
+			Gzip(),
+		)
+		router.GET("/panic-buffered", func(c *gin.Context) {
+			c.Header("Content-Type", "application/json; charset=utf-8")
+			_, _ = c.Writer.WriteString(`{"partial":`)
+			panic("downstream boom")
+		})
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/panic-buffered", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", rec.Code)
+		}
+		if rec.Body.Len() != 0 {
+			t.Fatalf("expected empty body on recovered panic, got %q", rec.Body.String())
+		}
+		if got := rec.Header().Get("Content-Encoding"); got != "" {
+			t.Fatalf("expected no Content-Encoding on recovered panic, got %q", got)
+		}
+	})
+
+	t.Run("panic after starting gzip releases pooled writer safely", func(t *testing.T) {
+		router := gin.New()
+		router.Use(
+			gin.CustomRecoveryWithWriter(io.Discard, func(c *gin.Context, _ any) {
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}),
+			Gzip(),
+		)
+		router.GET("/panic-streaming", func(c *gin.Context) {
+			c.Header("Content-Type", "text/plain")
+			_, _ = c.Writer.WriteString(strings.Repeat("chunk-", 300))
+			panic("streaming boom")
+		})
+		router.GET("/healthy", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"payload": strings.Repeat("ok-", 500)})
+		})
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/panic-streaming", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		router.ServeHTTP(rec, req)
+
+		// Follow-up gzipped request verifies pool integrity.
+		okRec := httptest.NewRecorder()
+		okReq := httptest.NewRequest(http.MethodGet, "/healthy", nil)
+		okReq.Header.Set("Accept-Encoding", "gzip")
+		router.ServeHTTP(okRec, okReq)
+		if okRec.Code != http.StatusOK || okRec.Header().Get("Content-Encoding") != "gzip" {
+			t.Fatalf("follow-up request failed: status=%d encoding=%q", okRec.Code, okRec.Header().Get("Content-Encoding"))
+		}
+		gz, err := gzip.NewReader(okRec.Body)
+		if err != nil {
+			t.Fatalf("gzip.NewReader failed: %v", err)
+		}
+		defer gz.Close()
+		decoded, err := io.ReadAll(gz)
+		if err != nil || !strings.Contains(string(decoded), strings.Repeat("ok-", 500)) {
+			t.Fatalf("follow-up decoded payload invalid: err=%v len=%d", err, len(decoded))
+		}
+	})
+}
+
+func TestGzipWeakensStrongETagOnlyWhenCompressed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(Gzip())
+	router.GET("/strong-large", func(c *gin.Context) {
+		c.Header("ETag", `"abc123"`)
+		c.JSON(http.StatusOK, gin.H{"payload": strings.Repeat("etag-body-", 200)})
+	})
+	router.GET("/strong-small", func(c *gin.Context) {
+		c.Header("ETag", `"small123"`)
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	router.GET("/weak-large", func(c *gin.Context) {
+		c.Header("ETag", `W/"already-weak"`)
+		c.JSON(http.StatusOK, gin.H{"payload": strings.Repeat("etag-body-", 200)})
+	})
+
+	cases := []struct {
+		name           string
+		path           string
+		acceptEncoding string
+		wantEncoding   string
+		wantETag       string
+	}{
+		{
+			name:           "strong ETag weakened when gzipped",
+			path:           "/strong-large",
+			acceptEncoding: "gzip",
+			wantEncoding:   "gzip",
+			wantETag:       `W/"abc123"`,
+		},
+		{
+			name:           "strong ETag preserved when client does not accept gzip",
+			path:           "/strong-large",
+			acceptEncoding: "",
+			wantEncoding:   "",
+			wantETag:       `"abc123"`,
+		},
+		{
+			name:           "strong ETag preserved when payload below gzip threshold",
+			path:           "/strong-small",
+			acceptEncoding: "gzip",
+			wantEncoding:   "",
+			wantETag:       `"small123"`,
+		},
+		{
+			name:           "already-weak ETag not double-prefixed when gzipped",
+			path:           "/weak-large",
+			acceptEncoding: "gzip",
+			wantEncoding:   "gzip",
+			wantETag:       `W/"already-weak"`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			if tc.acceptEncoding != "" {
+				req.Header.Set("Accept-Encoding", tc.acceptEncoding)
+			}
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200", rec.Code)
+			}
+			if got := rec.Header().Get("Content-Encoding"); got != tc.wantEncoding {
+				t.Fatalf("Content-Encoding = %q, want %q", got, tc.wantEncoding)
+			}
+			if got := rec.Header().Get("ETag"); got != tc.wantETag {
+				t.Fatalf("ETag = %q, want %q", got, tc.wantETag)
+			}
+		})
+	}
+}

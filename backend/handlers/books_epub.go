@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -425,14 +424,14 @@ func readEPUBImageEntry(f *zip.File) ([]byte, string, bool) {
 	}
 	defer rc.Close()
 
-	const sniffBytes = 512 // http.DetectContentType only examines this prefix.
+	const sniffBytes = 512 // Sniff leading bytes for safe image magic detection.
 	reader := bufio.NewReaderSize(rc, sniffBytes)
 	prefix, err := reader.Peek(sniffBytes)
 	if len(prefix) == 0 || (err != nil && err != io.EOF) {
 		return nil, "", false
 	}
-	contentType := http.DetectContentType(prefix)
-	if !strings.HasPrefix(contentType, "image/") {
+	contentType := detectSafeCoverImageType(prefix)
+	if contentType == "" {
 		return nil, "", false
 	}
 	if err == io.EOF {
@@ -461,8 +460,8 @@ func metadataFromEPUBPackage(pkg *epubPackage) *epubMetadata {
 		return &epubMetadata{}
 	}
 	return &epubMetadata{
-		Title:  pkg.Metadata.Title,
-		Author: joinUniqueMetadataValues(pkg.Metadata.Authors),
+		Title:  sanitizeExtractedMetadataValue(pkg.Metadata.Title, maxBookTitleRunes),
+		Author: sanitizeExtractedMetadataValue(joinUniqueMetadataValues(pkg.Metadata.Authors), maxBookAuthorRunes),
 	}
 }
 

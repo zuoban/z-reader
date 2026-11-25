@@ -83,3 +83,132 @@ func TestSaveProgressIfCurrentAllowsOnlyOneConcurrentWriter(t *testing.T) {
 		t.Fatalf("book last_read_at = %+v, progress = %+v, err = %v", book, progress, err)
 	}
 }
+
+func TestSaveProgressAssignsStrictlyMonotonicTimestamps(t *testing.T) {
+	t.Run("rapid sequential saves stay strictly monotonic even when clock is behind previous timestamp", func(t *testing.T) {
+		db := openTestDB(t)
+		const userID = "monotonic-user"
+		const bookID = "monotonic-book"
+
+		if err := db.SaveBook(&models.Book{
+			ID:        bookID,
+			UserID:    userID,
+			Title:     "Monotonic book",
+			Filename:  "monotonic.epub",
+			Format:    "epub",
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		// Seed a timestamp ahead of wall clock to simulate clock skew or same-tick writes.
+		future := time.Now().UTC().Add(time.Hour)
+		if err := db.SaveProgress(&models.Progress{
+			BookID:     bookID,
+			CFI:        "epubcfi(/6/2)",
+			Percentage: 10,
+			UpdatedAt:  future,
+		}, userID); err != nil {
+			t.Fatal(err)
+		}
+
+		prev := future
+		for i := range 20 {
+			p := &models.Progress{
+				BookID:     bookID,
+				CFI:        fmt.Sprintf("epubcfi(/6/%d)", i+4),
+				Percentage: float64(11 + i),
+			}
+			if err := db.SaveProgress(p, userID); err != nil {
+				t.Fatalf("save %d failed: %v", i, err)
+			}
+			if !p.UpdatedAt.After(prev) {
+				t.Fatalf("save %d UpdatedAt=%v is not strictly after prev=%v", i, p.UpdatedAt, prev)
+			}
+			book, err := db.GetBook(bookID)
+			if err != nil || book == nil || book.LastReadAt == nil || !book.LastReadAt.Equal(p.UpdatedAt) {
+				t.Fatalf("save %d book.LastReadAt=%v, want %v (err=%v)", i, book.LastReadAt, p.UpdatedAt, err)
+			}
+			changed, err := db.ListProgressUpdatedSince(userID, p.UpdatedAt)
+			if err != nil || len(changed) != 1 || !changed[0].UpdatedAt.Equal(p.UpdatedAt) {
+				t.Fatalf("save %d ListProgressUpdatedSince = %+v, err=%v", i, changed, err)
+			}
+			prev = p.UpdatedAt
+		}
+	})
+
+	t.Run("concurrent zero-timestamp saves produce strictly unique monotonic timestamps", func(t *testing.T) {
+		db := openTestDB(t)
+		const userID = "monotonic-concurrent-user"
+		const bookID = "monotonic-concurrent-book"
+
+		if err := db.SaveBook(&models.Book{
+			ID:        bookID,
+			UserID:    userID,
+			Title:     "Concurrent monotonic book",
+			Filename:  "monotonic-concurrent.epub",
+			Format:    "epub",
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		const writers = 24
+		start := make(chan struct{})
+		timestamps := make(chan time.Time, writers)
+		errs := make(chan error, writers)
+		var ready sync.WaitGroup
+		ready.Add(writers)
+
+		for i := range writers {
+			go func(index int) {
+				ready.Done()
+				<-start
+				p := &models.Progress{
+					BookID:     bookID,
+					CFI:        fmt.Sprintf("epubcfi(/6/%d)", index+2),
+					Percentage: float64(index + 1),
+				}
+				if err := db.SaveProgress(p, userID); err != nil {
+					errs <- err
+					return
+				}
+				timestamps <- p.UpdatedAt
+			}(i)
+		}
+		ready.Wait()
+		close(start)
+
+		seen := make(map[int64]struct{}, writers)
+		var maxTS time.Time
+		for range writers {
+			select {
+			case err := <-errs:
+				t.Fatalf("unexpected SaveProgress error: %v", err)
+			case ts := <-timestamps:
+				if ts.IsZero() {
+					t.Fatal("expected non-zero UpdatedAt")
+				}
+				if _, dup := seen[ts.UnixNano()]; dup {
+					t.Fatalf("duplicate UpdatedAt %v across concurrent saves", ts)
+				}
+				seen[ts.UnixNano()] = struct{}{}
+				if ts.After(maxTS) {
+					maxTS = ts
+				}
+			}
+		}
+
+		stored, err := db.GetProgress(bookID, userID)
+		if err != nil || stored == nil {
+			t.Fatalf("GetProgress = %+v, err=%v", stored, err)
+		}
+		if !stored.UpdatedAt.Equal(maxTS) {
+			t.Fatalf("final stored UpdatedAt=%v, want max %v", stored.UpdatedAt, maxTS)
+		}
+		book, err := db.GetBook(bookID)
+		if err != nil || book == nil || book.LastReadAt == nil || !book.LastReadAt.Equal(maxTS) {
+			t.Fatalf("final book LastReadAt=%v, want %v (err=%v)", book, maxTS, err)
+		}
+	})
+}

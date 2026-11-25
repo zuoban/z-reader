@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"image"
@@ -30,9 +31,11 @@ import (
 )
 
 type coverFlightCall[T any] struct {
-	done  chan struct{}
-	value T
-	err   error
+	done    chan struct{}
+	cancel  context.CancelFunc
+	waiters int
+	value   T
+	err     error
 }
 
 type coverFlightGroup[T any] struct {
@@ -56,13 +59,78 @@ func (g *coverFlightGroup[T]) Do(key string, fn func() (T, error)) (T, error) {
 
 	defer func() {
 		g.mu.Lock()
-		delete(g.calls, key)
+		if g.calls[key] == call {
+			delete(g.calls, key)
+		}
 		g.mu.Unlock()
 		close(call.done)
 	}()
 
 	call.value, call.err = fn()
 	return call.value, call.err
+}
+
+func (g *coverFlightGroup[T]) DoContext(
+	ctx context.Context,
+	key string,
+	fn func(context.Context) (T, error),
+) (T, error, bool) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if ctx.Err() != nil {
+		var zero T
+		return zero, ctx.Err(), false
+	}
+
+	g.mu.Lock()
+	if g.calls == nil {
+		g.calls = make(map[string]*coverFlightCall[T])
+	}
+	call, ok := g.calls[key]
+	if ok {
+		call.waiters++
+		g.mu.Unlock()
+	} else {
+		flightCtx, cancel := context.WithCancel(context.Background())
+		call = &coverFlightCall[T]{
+			done:    make(chan struct{}),
+			cancel:  cancel,
+			waiters: 1,
+		}
+		g.calls[key] = call
+		g.mu.Unlock()
+
+		go func() {
+			defer func() {
+				g.mu.Lock()
+				if g.calls[key] == call {
+					delete(g.calls, key)
+				}
+				g.mu.Unlock()
+				cancel()
+				close(call.done)
+			}()
+			call.value, call.err = fn(flightCtx)
+		}()
+	}
+
+	select {
+	case <-call.done:
+		return call.value, call.err, true
+	case <-ctx.Done():
+		g.mu.Lock()
+		call.waiters--
+		if call.waiters == 0 {
+			if g.calls[key] == call {
+				delete(g.calls, key)
+			}
+			call.cancel()
+		}
+		g.mu.Unlock()
+		var zero T
+		return zero, ctx.Err(), false
+	}
 }
 
 type extractedCoverResult struct {
@@ -86,7 +154,11 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	}
 	thumbnailRequested := c.Query("size") == "thumb"
 	if thumbnailRequested && book.CoverThumbPath == "" && !book.CoverThumbChecked && book.CoverPath != "" {
-		latest, err := h.cacheCoverThumbnail(book)
+		reqCtx := context.Background()
+		if c.Request != nil {
+			reqCtx = c.Request.Context()
+		}
+		latest, err := h.cacheCoverThumbnail(reqCtx, book)
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
 			return
@@ -409,9 +481,75 @@ func (h *BooksHandler) enqueueCoverCacheTask(task func()) bool {
 	return true
 }
 
+func (h *BooksHandler) isCoverCacheClosed() bool {
+	h.coverCacheMu.Lock()
+	closed := h.coverCacheClosed
+	h.coverCacheMu.Unlock()
+	return closed
+}
+
+func (h *BooksHandler) acquireCoverCacheSlot(ctx context.Context) (func(), bool) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if ctx.Err() != nil {
+		return nil, false
+	}
+
+	h.coverCacheMu.Lock()
+	if h.coverCacheClosed {
+		h.coverCacheMu.Unlock()
+		return nil, false
+	}
+	if h.coverCacheSem == nil {
+		h.coverCacheSem = make(chan struct{}, coverCacheMaxConcurrency)
+	}
+	if h.coverCacheStop == nil {
+		h.coverCacheStop = make(chan struct{})
+	}
+	sem := h.coverCacheSem
+	stop := h.coverCacheStop
+	h.coverCacheMu.Unlock()
+
+	select {
+	case sem <- struct{}{}:
+	case <-ctx.Done():
+		return nil, false
+	case <-stop:
+		return nil, false
+	}
+
+	if ctx.Err() != nil {
+		<-sem
+		return nil, false
+	}
+
+	h.coverCacheMu.Lock()
+	if h.coverCacheClosed {
+		h.coverCacheMu.Unlock()
+		<-sem
+		return nil, false
+	}
+	h.coverCacheWG.Add(1)
+	h.coverCacheMu.Unlock()
+
+	var releaseOnce sync.Once
+	return func() {
+		releaseOnce.Do(func() {
+			<-sem
+			h.coverCacheWG.Done()
+		})
+	}, true
+}
+
 func (h *BooksHandler) closeCoverCache() {
 	h.coverCacheMu.Lock()
-	h.coverCacheClosed = true
+	if !h.coverCacheClosed {
+		h.coverCacheClosed = true
+		if h.coverCacheStop != nil {
+			close(h.coverCacheStop)
+		}
+	}
 	h.coverCacheMu.Unlock()
 	h.coverCacheWG.Wait()
 }
@@ -432,7 +570,7 @@ func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, 
 func (h *BooksHandler) commitCover(snapshot *models.Book, cover bookCover, replace bool) (*models.Book, error) {
 	var previous bookCover
 	book, err := h.db.UpdateBook(snapshot.ID, snapshot.UserID, func(book *models.Book) bool {
-		if !replace && (book.CoverPath != "" || book.Filename != snapshot.Filename) {
+		if !replace && (book.CoverPath != "" || book.CoverMissing || book.Filename != snapshot.Filename) {
 			return false
 		}
 		previous = bookCover{path: book.CoverPath, thumb: book.CoverThumbPath}
@@ -440,7 +578,7 @@ func (h *BooksHandler) commitCover(snapshot *models.Book, cover bookCover, repla
 		book.Format = normalizeBookFormat(book.Format, book.Filename)
 		return true
 	})
-	if err != nil || book.CoverPath != cover.path {
+	if err != nil || book == nil || book.CoverPath != cover.path {
 		h.removeUploadFiles(cover.path, cover.thumb)
 	} else {
 		h.removePublishedUploadFiles(previous.path, previous.thumb)
@@ -448,14 +586,33 @@ func (h *BooksHandler) commitCover(snapshot *models.Book, cover bookCover, repla
 	return book, err
 }
 
-func (h *BooksHandler) cacheCoverThumbnail(snapshot *models.Book) (*models.Book, error) {
-	return h.coverThumbFlights.Do(snapshot.ID+":"+snapshot.CoverPath, func() (*models.Book, error) {
+func (h *BooksHandler) cacheCoverThumbnail(ctx context.Context, snapshot *models.Book) (*models.Book, error) {
+	if snapshot == nil {
+		return nil, nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if ctx.Err() != nil || h.isCoverCacheClosed() {
+		return snapshot, nil
+	}
+	book, err, completed := h.coverThumbFlights.DoContext(ctx, snapshot.ID+":"+snapshot.CoverPath, func(flightCtx context.Context) (*models.Book, error) {
+		release, ok := h.acquireCoverCacheSlot(flightCtx)
+		if !ok {
+			return snapshot, nil
+		}
+		defer release()
+
 		thumb, ok := h.prepareCoverThumbnailChecked(snapshot.ID, snapshot.CoverPath)
 		if !ok {
 			return snapshot, nil
 		}
 		return h.commitCoverThumbnail(snapshot, thumb)
 	})
+	if !completed {
+		return snapshot, nil
+	}
+	return book, err
 }
 
 func (h *BooksHandler) commitCoverThumbnail(snapshot *models.Book, thumb string) (*models.Book, error) {

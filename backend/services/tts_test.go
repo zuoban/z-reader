@@ -1067,3 +1067,116 @@ func TestTTSServicesDrainErrorResponseBodies(t *testing.T) {
 		}
 	})
 }
+
+func TestRefreshEndpointCacheDoesNotReturnExpiredFallback(t *testing.T) {
+	t.Run("upstream error does not return expired cached endpoint", func(t *testing.T) {
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusInternalServerError, "upstream down"), nil
+		})
+		expired := &EndpointCache{
+			Endpoint:  "expired-region",
+			Token:     "expired-token",
+			ExpiredAt: time.Now().Unix() - 1,
+		}
+		endpointCache.mutex.Lock()
+		endpointCache.data = expired
+		endpointCache.mutex.Unlock()
+
+		got, err := refreshEndpointCacheContext(context.Background())
+		if err == nil || got != nil {
+			t.Fatalf("refreshEndpointCacheContext() = (%+v, %v), want (nil, error)", got, err)
+		}
+	})
+
+	t.Run("invalid JWT response does not return expired cached endpoint", func(t *testing.T) {
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusOK, `{"r":"eastus","t":"invalid-jwt"}`), nil
+		})
+		expired := &EndpointCache{
+			Endpoint:  "expired-region",
+			Token:     "expired-token",
+			ExpiredAt: time.Now().Unix(),
+		}
+		endpointCache.mutex.Lock()
+		endpointCache.data = expired
+		endpointCache.mutex.Unlock()
+
+		got, err := refreshEndpointCacheContext(context.Background())
+		if err == nil || got != nil {
+			t.Fatalf("refreshEndpointCacheContext() = (%+v, %v), want (nil, error)", got, err)
+		}
+	})
+
+	t.Run("unexpired cached endpoint is still used as fallback on refresh error", func(t *testing.T) {
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusInternalServerError, "upstream down"), nil
+		})
+		unexpired := &EndpointCache{
+			Endpoint:  "valid-region",
+			Token:     "valid-token",
+			ExpiredAt: time.Now().Unix() + 60,
+		}
+		endpointCache.mutex.Lock()
+		endpointCache.data = unexpired
+		endpointCache.mutex.Unlock()
+
+		got, err := refreshEndpointCacheContext(context.Background())
+		if err != nil || got != unexpired {
+			t.Fatalf("refreshEndpointCacheContext() = (%+v, %v), want (%+v, nil)", got, err, unexpired)
+		}
+	})
+}
+
+func TestWaitDiskWritesDoesNotHoldDiskMutexWhileWaiting(t *testing.T) {
+	runtime := installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+		return ttsResponse(http.StatusOK, "audio-bytes"), nil
+	})
+	runtime.config.Dir = t.TempDir()
+
+	if !runtime.tryStartDiskWrite() {
+		t.Fatal("initial tryStartDiskWrite() failed")
+	}
+	firstReleased := false
+	defer func() {
+		if !firstReleased {
+			runtime.diskWG.Done()
+		}
+	}()
+
+	waitStarted := make(chan struct{})
+	waitDone := make(chan struct{})
+	go func() {
+		close(waitStarted)
+		runtime.waitDiskWrites()
+		close(waitDone)
+	}()
+	<-waitStarted
+	time.Sleep(10 * time.Millisecond)
+
+	secondResult := make(chan bool, 1)
+	go func() {
+		ok := runtime.tryStartDiskWrite()
+		if ok {
+			runtime.diskWG.Done()
+		}
+		secondResult <- ok
+	}()
+
+	select {
+	case ok := <-secondResult:
+		if !ok {
+			t.Fatal("concurrent tryStartDiskWrite() returned false while waitDiskWrites() waited")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("tryStartDiskWrite() blocked on diskMu while waitDiskWrites() was waiting")
+	}
+
+	firstReleased = true
+	runtime.diskWG.Done()
+
+	select {
+	case <-waitDone:
+	case <-time.After(time.Second):
+		t.Fatal("waitDiskWrites() did not return after in-flight disk writes completed")
+	}
+}

@@ -551,6 +551,32 @@ func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
 	return closeErr
 }
 
+// copyToBackupFile copies input to destination as a read-only (0400) backup file.
+func copyToBackupFile(ctx context.Context, input io.Reader, destination string, readBuffer []byte) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
+	if err != nil {
+		return err
+	}
+	// Wrap input in contextReader so a file's WriteTo cannot bypass readBuffer
+	// and cancellation is checked before each chunk read. Hide ReadFrom so the
+	// destination file uses the supplied buffer.
+	_, copyErr := io.CopyBuffer(struct{ io.Writer }{output}, contextReader{ctx: ctx, r: input}, readBuffer)
+	if copyErr == nil {
+		copyErr = ctx.Err()
+	}
+	closeErr := output.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
+}
+
 // copyToBackupFileWithDigest copies input to destination as a read-only (0400)
 // backup file and returns its SHA-256 hex digest in a single pass.
 func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destination string, readBuffer []byte) (string, error) {
@@ -654,6 +680,32 @@ func safeRelativePath(path string) bool {
 	return clean != "." && clean != ".." && !strings.HasPrefix(clean, ".."+string(filepath.Separator))
 }
 
+func backupCreatedAt(dirPath string, entry fs.DirEntry) (time.Time, bool) {
+	if manifest, ok := readManifest(dirPath); ok && !manifest.CreatedAt.IsZero() {
+		return manifest.CreatedAt, true
+	}
+	if ts, ok := parseBackupDirTime(entry.Name()); ok {
+		return ts, true
+	}
+	info, err := entry.Info()
+	if err != nil {
+		return time.Time{}, false
+	}
+	return info.ModTime(), true
+}
+
+func parseBackupDirTime(name string) (time.Time, bool) {
+	raw, ok := strings.CutPrefix(name, "backup-")
+	if !ok || raw == "" {
+		return time.Time{}, false
+	}
+	ts, err := time.Parse("20060102T150405.999999999Z", raw)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return ts, true
+}
+
 func removeExpired(root string, retentionDays int) error {
 	if retentionDays <= 0 {
 		return nil
@@ -668,16 +720,17 @@ func removeExpired(root string, retentionDays int) error {
 		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "backup-") {
 			continue
 		}
-		info, err := entry.Info()
-		if err == nil && info.ModTime().Before(cutoff) {
-			expired = append(expired, filepath.Join(root, entry.Name()))
+		dirPath := filepath.Join(root, entry.Name())
+		if createdAt, ok := backupCreatedAt(dirPath, entry); ok && createdAt.Before(cutoff) {
+			expired = append(expired, dirPath)
 		}
 	}
 	sort.Strings(expired)
+	var errs []error
 	for _, path := range expired {
 		if err := os.RemoveAll(path); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }

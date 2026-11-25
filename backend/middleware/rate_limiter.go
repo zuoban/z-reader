@@ -140,8 +140,7 @@ func rateLimitByKey(
 		}
 		if allowed, retryAfter := rl.allow(key); !allowed {
 			recordRateLimitRejection(scope)
-			seconds := 1 + (retryAfter-time.Nanosecond)/time.Second
-			c.Header("Retry-After", strconv.FormatInt(int64(seconds), 10))
+			c.Header("Retry-After", strconv.FormatInt(retryAfterSeconds(retryAfter), 10))
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "请求过于频繁，请稍后再试",
 			})
@@ -149,6 +148,13 @@ func rateLimitByKey(
 		}
 		c.Next()
 	}
+}
+
+func retryAfterSeconds(retryAfter time.Duration) int64 {
+	if retryAfter <= 0 {
+		return 1
+	}
+	return int64(1 + (retryAfter-time.Nanosecond)/time.Second)
 }
 
 func recordRateLimitRejection(scope string) {

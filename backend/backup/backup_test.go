@@ -832,3 +832,251 @@ func TestCopyVerifiedFileAndManifestHelpers(t *testing.T) {
 		t.Fatalf("expected non-backup dir preserved, stat err=%v", err)
 	}
 }
+
+func TestRemoveExpiredUsesManifestAndDirTimestampAndContinuesOnError(t *testing.T) {
+	retDir := t.TempDir()
+	now := time.Now().UTC()
+	expiredAt := now.AddDate(0, 0, -30)
+	recentAt := now.Add(-time.Hour)
+
+	writeManifest := func(dir string, createdAt time.Time) {
+		t.Helper()
+		m := Manifest{
+			CreatedAt: createdAt,
+			Files: map[string]string{
+				"data.db":          "abc",
+				"data.db.sessions": "def",
+			},
+		}
+		raw, err := json.Marshal(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, manifestName), raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 1. Expired by manifest.CreatedAt even though ModTime was touched to "now"
+	//    and the directory name itself looks recent.
+	touchedManifestBk := filepath.Join(retDir, "backup-20990101T000000.000000000Z")
+	if err := os.MkdirAll(touchedManifestBk, 0700); err != nil {
+		t.Fatal(err)
+	}
+	writeManifest(touchedManifestBk, expiredAt)
+	if err := os.Chtimes(touchedManifestBk, now, now); err != nil {
+		t.Fatal(err)
+	}
+
+	// 2. Recent manifest.CreatedAt is preserved even if ModTime is old.
+	recentManifestBk := filepath.Join(retDir, "backup-recent-manifest")
+	if err := os.MkdirAll(recentManifestBk, 0700); err != nil {
+		t.Fatal(err)
+	}
+	writeManifest(recentManifestBk, recentAt)
+	if err := os.Chtimes(recentManifestBk, expiredAt, expiredAt); err != nil {
+		t.Fatal(err)
+	}
+
+	// 3. No manifest, ModTime touched to "now", still expired by parsed directory timestamp.
+	parsedNameBk := filepath.Join(retDir, "backup-20200101T000000.000000000Z")
+	if err := os.MkdirAll(parsedNameBk, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(parsedNameBk, now, now); err != nil {
+		t.Fatal(err)
+	}
+
+	// 4. No manifest and unparseable dir name falls back to ModTime.
+	modTimeFallbackBk := filepath.Join(retDir, "backup-legacy-modtime")
+	if err := os.MkdirAll(modTimeFallbackBk, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(modTimeFallbackBk, expiredAt, expiredAt); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := removeExpired(retDir, 7); err != nil {
+		t.Fatalf("removeExpired failed: %v", err)
+	}
+
+	for _, removed := range []string{touchedManifestBk, parsedNameBk, modTimeFallbackBk} {
+		if _, err := os.Stat(removed); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("expected expired backup %s to be removed, stat err=%v", filepath.Base(removed), err)
+		}
+	}
+	if _, err := os.Stat(recentManifestBk); err != nil {
+		t.Fatalf("expected recent backup to be preserved, stat err=%v", err)
+	}
+
+	t.Run("continues pruning remaining expired backups when one RemoveAll fails", func(t *testing.T) {
+		if os.Geteuid() == 0 {
+			t.Skip("root ignores directory permission restrictions")
+		}
+		errDir := t.TempDir()
+		// Sorted first: locked expired backup that fails os.RemoveAll.
+		lockedBk := filepath.Join(errDir, "backup-20200101T000000.000000000Z")
+		lockedSub := filepath.Join(lockedBk, "locked")
+		if err := os.MkdirAll(lockedSub, 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(lockedSub, "file.bin"), []byte("x"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(lockedSub, 0500); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(lockedSub, 0700) })
+
+		// Sorted second: another expired backup that must still be pruned.
+		removableBk := filepath.Join(errDir, "backup-20200102T000000.000000000Z")
+		if err := os.MkdirAll(removableBk, 0700); err != nil {
+			t.Fatal(err)
+		}
+
+		err := removeExpired(errDir, 7)
+		if err == nil {
+			t.Fatal("expected error from locked expired backup")
+		}
+		if _, statErr := os.Stat(removableBk); !errors.Is(statErr, os.ErrNotExist) {
+			t.Fatalf("expected sibling expired backup to still be removed, stat err=%v", statErr)
+		}
+	})
+}
+
+func TestDedupSinglePassAndSameSizeFallbackCopy(t *testing.T) {
+	root := t.TempDir()
+	uploadDir := filepath.Join(root, "uploads")
+	backupRoot := filepath.Join(root, "backups")
+	if err := os.MkdirAll(uploadDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	unchangedPath := filepath.Join(uploadDir, "unchanged.epub")
+	changedPath := filepath.Join(uploadDir, "changed.epub")
+	if err := os.WriteFile(unchangedPath, []byte("same-content-forever"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(changedPath, []byte("version-1-exact-size"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := storage.Open(filepath.Join(root, "data.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	now := time.Now().UTC()
+	for _, b := range []*models.Book{
+		{ID: "b1", UserID: "u1", Title: "Unchanged", Filename: "unchanged.epub", Format: "epub", CreatedAt: now},
+		{ID: "b2", UserID: "u1", Title: "Changed", Filename: "changed.epub", Format: "epub", CreatedAt: now},
+	} {
+		if err := db.CreateBook(b); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	cfg := Config{Dir: backupRoot, UploadDir: uploadDir, RetentionDays: 7}
+	firstDir, err := Create(db, cfg)
+	if err != nil {
+		t.Fatalf("first Create error: %v", err)
+	}
+
+	// Modify live changed.epub to different bytes of the EXACT same length, and add a new book.
+	updatedContent := []byte("version-2-exact-size")
+	if len(updatedContent) != len("version-1-exact-size") {
+		t.Fatal("test setup error: content lengths must match")
+	}
+	if err := os.WriteFile(changedPath, updatedContent, 0600); err != nil {
+		t.Fatal(err)
+	}
+	newPath := filepath.Join(uploadDir, "new.epub")
+	if err := os.WriteFile(newPath, []byte("brand-new-upload"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.CreateBook(&models.Book{
+		ID:        "b3",
+		UserID:    "u1",
+		Title:     "New",
+		Filename:  "new.epub",
+		Format:    "epub",
+		CreatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(2 * time.Millisecond)
+	secondDir, err := Create(db, cfg)
+	if err != nil {
+		t.Fatalf("second Create error: %v", err)
+	}
+	if err := Verify(secondDir); err != nil {
+		t.Fatalf("second Verify error: %v", err)
+	}
+
+	// Unchanged file must be hard-linked from firstDir.
+	firstUnchanged, err := os.Stat(filepath.Join(firstDir, "uploads", "unchanged.epub"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondUnchanged, err := os.Stat(filepath.Join(secondDir, "uploads", "unchanged.epub"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(firstUnchanged, secondUnchanged) {
+		t.Fatal("expected unchanged.epub to be hard-linked from previous backup")
+	}
+
+	// Same-size modified file must NOT be hard-linked, must have mode 0400, updated bytes, and accurate manifest digest.
+	firstChanged, err := os.Stat(filepath.Join(firstDir, "uploads", "changed.epub"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondChangedPath := filepath.Join(secondDir, "uploads", "changed.epub")
+	secondChanged, err := os.Stat(secondChangedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if os.SameFile(firstChanged, secondChanged) {
+		t.Fatal("expected modified same-size upload not to be hard-linked")
+	}
+	if secondChanged.Mode().Perm() != 0400 {
+		t.Fatalf("fallback copy mode = %o, want 0400", secondChanged.Mode().Perm())
+	}
+	gotChanged, err := os.ReadFile(secondChangedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotChanged) != string(updatedContent) {
+		t.Fatalf("changed.epub content = %q, want %q", gotChanged, updatedContent)
+	}
+
+	manifest, ok := readManifest(secondDir)
+	if !ok {
+		t.Fatal("expected valid manifest in secondDir")
+	}
+	for _, rel := range []string{"uploads/unchanged.epub", "uploads/changed.epub", "uploads/new.epub"} {
+		wantDigest, err := fileSHA256(context.Background(), filepath.Join(secondDir, filepath.FromSlash(rel)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if manifest.Files[rel] != wantDigest {
+			t.Fatalf("manifest digest for %s = %q, want %q", rel, manifest.Files[rel], wantDigest)
+		}
+	}
+
+	// Direct copyToBackupFile edge cases: nil ctx, canceled ctx, unwritable destination.
+	buf := make([]byte, 1024)
+	dstDir := t.TempDir()
+	if err := copyToBackupFile(nil, strings.NewReader("payload"), filepath.Join(dstDir, "ok.bin"), buf); err != nil {
+		t.Fatalf("copyToBackupFile(nil) error: %v", err)
+	}
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := copyToBackupFile(canceledCtx, strings.NewReader("x"), filepath.Join(dstDir, "cancel.bin"), buf); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if err := copyToBackupFile(context.Background(), strings.NewReader("x"), filepath.Join(dstDir, "missing-dir", "fail.bin"), buf); err == nil {
+		t.Fatal("expected error for unwritable destination")
+	}
+}

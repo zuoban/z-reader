@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -665,5 +666,40 @@ func TestProgressSaveWithZeroPercentage(t *testing.T) {
 	}
 	if resp.Percentage != 0 {
 		t.Fatalf("expected percentage 0, got %f", resp.Percentage)
+	}
+}
+
+func TestProgressSaveRejectsNaNAndInfFormPercentage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	for _, rawPercentage := range []string{"NaN", "nan", "Inf", "+Inf", "-Inf"} {
+		t.Run(rawPercentage, func(t *testing.T) {
+			db, userID := setupProgressTestDB(t)
+			handler := NewProgressHandler(db)
+
+			form := url.Values{
+				"cfi":        {"epubcfi(/6/2)"},
+				"percentage": {rawPercentage},
+			}
+			body := strings.NewReader(form.Encode())
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Params = gin.Params{{Key: "id", Value: "book-progress"}}
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/progress/book-progress", body)
+			ctx.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			handler.Save(ctx)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("percentage=%q status = %d, want 400 body=%s", rawPercentage, recorder.Code, recorder.Body.String())
+			}
+			if !strings.Contains(recorder.Body.String(), "阅读进度必须在 0 到 100 之间") {
+				t.Fatalf("percentage=%q unexpected error body: %s", rawPercentage, recorder.Body.String())
+			}
+			saved, err := db.GetProgress("book-progress", userID)
+			if err != nil || saved != nil {
+				t.Fatalf("percentage=%q should not persist progress, got %+v, err=%v", rawPercentage, saved, err)
+			}
+		})
 	}
 }

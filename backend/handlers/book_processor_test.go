@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -462,4 +463,179 @@ func TestBookProcessorMarksCoverlessMOBIAndAZW3CoverMissing(t *testing.T) {
 			t.Fatalf("timed out waiting for %s background preview processing", format)
 		})
 	}
+}
+
+func TestBookProcessorDoesNotResurrectDeletedCover(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := openHandlerTestDB(t)
+	uploadDir := t.TempDir()
+	handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
+
+	book := &models.Book{
+		ID:              "pending-del-cover",
+		UserID:          storage.PersonalLibrary,
+		Title:           "pending-del-cover",
+		Filename:        "pending-del-cover.epub",
+		Format:          "epub",
+		ProcessingState: models.BookProcessingPending,
+		ContentHash:     "hash-pending-del-cover",
+		CreatedAt:       time.Now().UTC(),
+	}
+	if err := db.SaveBook(book); err != nil {
+		t.Fatal(err)
+	}
+
+	// Prepare candidate cover extracted by background processing.
+	candidate, err := handler.prepareExtractedCover(book.ID, writebackCoverJPEG(t), "image/jpeg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if candidate.path == "" {
+		t.Fatal("expected prepared candidate cover")
+	}
+
+	// User deletes the cover while background preview processing is in flight.
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Params = gin.Params{{Key: "id", Value: book.ID}}
+	ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/books/"+book.ID+"/cover", nil)
+	handler.DeleteCover(ctx)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("DeleteCover = %d %s", rec.Code, rec.Body.String())
+	}
+
+	job := bookProcessingJob{
+		bookID:       book.ID,
+		userID:       book.UserID,
+		initialTitle: book.Title,
+	}
+	handler.completeBookPreview(job, book.Filename, epubMetadata{Title: "Extracted Title", Author: "Extracted Author"}, candidate)
+
+	saved, err := db.GetBookForUser(book.ID, book.UserID)
+	if err != nil || saved == nil {
+		t.Fatalf("GetBookForUser = %+v, err = %v", saved, err)
+	}
+	if saved.ProcessingState != models.BookProcessingReady {
+		t.Fatalf("ProcessingState = %q, want ready", saved.ProcessingState)
+	}
+	if saved.Title != "Extracted Title" || saved.Author != "Extracted Author" {
+		t.Fatalf("unexpected metadata after completeBookPreview: %+v", saved)
+	}
+	if saved.CoverPath != "" || saved.CoverThumbPath != "" || !saved.CoverMissing {
+		t.Fatalf("completeBookPreview resurrected deleted cover: %+v", saved)
+	}
+	if _, err := os.Stat(filepath.Join(uploadDir, candidate.path)); !os.IsNotExist(err) {
+		t.Fatalf("expected unused candidate cover %q to be deleted, stat err=%v", candidate.path, err)
+	}
+	if candidate.thumb != "" {
+		if _, err := os.Stat(filepath.Join(uploadDir, candidate.thumb)); !os.IsNotExist(err) {
+			t.Fatalf("expected unused candidate thumb %q to be deleted, stat err=%v", candidate.thumb, err)
+		}
+	}
+}
+
+func TestBookProcessorSanitizesOversizedAndWhitespaceEPUBMetadata(t *testing.T) {
+	t.Run("oversized >32KiB title and author are bounded and reach ready state", func(t *testing.T) {
+		db := openHandlerTestDB(t)
+		uploadDir := t.TempDir()
+		handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
+
+		hugeTitle := strings.Repeat("A", 40*1024)
+		hugeAuthor := strings.Repeat("B", 40*1024)
+		content := zipBytes(t, map[string][]byte{
+			"mimetype":               []byte("application/epub+zip"),
+			"META-INF/container.xml": []byte("<container/>"),
+			"OEBPS/content.opf": []byte(fmt.Sprintf(
+				`<?xml version="1.0"?><package><metadata><title>%s</title><creator>%s</creator></metadata></package>`,
+				hugeTitle, hugeAuthor,
+			)),
+		})
+		if err := os.WriteFile(filepath.Join(uploadDir, "huge-meta.epub"), content, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		book := &models.Book{
+			ID:              "book-huge-meta",
+			UserID:          storage.PersonalLibrary,
+			Title:           "huge-meta",
+			Filename:        "huge-meta.epub",
+			Format:          "epub",
+			ProcessingState: models.BookProcessingPending,
+			ContentHash:     "hash-huge-meta",
+			CreatedAt:       time.Now().UTC(),
+		}
+		if err := db.SaveBook(book); err != nil {
+			t.Fatal(err)
+		}
+
+		handler.processBookPreview(bookProcessingJob{
+			bookID:       book.ID,
+			userID:       book.UserID,
+			initialTitle: book.Title,
+		})
+
+		saved, err := db.GetBookForUser(book.ID, book.UserID)
+		if err != nil || saved == nil {
+			t.Fatalf("GetBookForUser = %+v, err = %v", saved, err)
+		}
+		if saved.ProcessingState != models.BookProcessingReady {
+			t.Fatalf("ProcessingState = %q, want ready (must not stay pending on >32KiB title)", saved.ProcessingState)
+		}
+		if got := len([]rune(saved.Title)); got != maxBookTitleRunes {
+			t.Fatalf("saved.Title rune len = %d, want %d", got, maxBookTitleRunes)
+		}
+		if got := len([]rune(saved.Author)); got != maxBookAuthorRunes {
+			t.Fatalf("saved.Author rune len = %d, want %d", got, maxBookAuthorRunes)
+		}
+	})
+
+	t.Run("whitespace-only title does not clobber filename fallback title", func(t *testing.T) {
+		db := openHandlerTestDB(t)
+		uploadDir := t.TempDir()
+		handler := newBooksHandler(t, &config.Config{UploadDir: uploadDir}, db)
+
+		content := zipBytes(t, map[string][]byte{
+			"mimetype":               []byte("application/epub+zip"),
+			"META-INF/container.xml": []byte("<container/>"),
+			"OEBPS/content.opf":      []byte("<?xml version=\"1.0\"?><package><metadata><title>  \n\t  </title><creator> \t </creator></metadata></package>"),
+		})
+		if err := os.WriteFile(filepath.Join(uploadDir, "fallback-name.epub"), content, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		book := &models.Book{
+			ID:              "book-whitespace-title",
+			UserID:          storage.PersonalLibrary,
+			Title:           "fallback-name",
+			Filename:        "fallback-name.epub",
+			Format:          "epub",
+			ProcessingState: models.BookProcessingPending,
+			ContentHash:     "hash-whitespace-title",
+			CreatedAt:       time.Now().UTC(),
+		}
+		if err := db.SaveBook(book); err != nil {
+			t.Fatal(err)
+		}
+
+		handler.processBookPreview(bookProcessingJob{
+			bookID:       book.ID,
+			userID:       book.UserID,
+			initialTitle: book.Title,
+		})
+
+		saved, err := db.GetBookForUser(book.ID, book.UserID)
+		if err != nil || saved == nil {
+			t.Fatalf("GetBookForUser = %+v, err = %v", saved, err)
+		}
+		if saved.ProcessingState != models.BookProcessingReady {
+			t.Fatalf("ProcessingState = %q, want ready", saved.ProcessingState)
+		}
+		if saved.Title != "fallback-name" {
+			t.Fatalf("whitespace-only <dc:title> clobbered fallback title: got %q", saved.Title)
+		}
+		if saved.Author != "" {
+			t.Fatalf("whitespace-only <dc:creator> = %q, want empty", saved.Author)
+		}
+	})
 }

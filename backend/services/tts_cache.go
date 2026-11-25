@@ -78,7 +78,7 @@ func (r *ttsRuntimeState) tryStartDiskWrite() bool {
 
 func (r *ttsRuntimeState) waitDiskWrites() {
 	r.diskMu.Lock()
-	defer r.diskMu.Unlock()
+	r.diskMu.Unlock()
 	r.diskWG.Wait()
 }
 

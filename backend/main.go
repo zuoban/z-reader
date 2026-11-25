@@ -107,7 +107,7 @@ func main() {
 	clientErrorHandler := handlers.NewClientErrorHandler()
 
 	r.POST("/api/login", middleware.RateLimit(middleware.NewRateLimiter(5, 5*time.Minute)), authHandler.Login)
-	r.POST("/api/logout", authHandler.Logout)
+	r.POST("/api/logout", middleware.RateLimit(middleware.NewRateLimiter(30, 5*time.Minute)), authHandler.Logout)
 	r.GET("/healthz", handlers.Health)
 	r.GET("/readyz", handlers.Ready(db, cfg.UploadDir))
 	if cfg.MetricsEnabled {
@@ -187,13 +187,20 @@ func main() {
 	defer shutdownCancel()
 	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("Failed to shut down server gracefully", "error", err)
+		if closeErr := server.Close(); closeErr != nil && !errors.Is(closeErr, http.ErrServerClosed) {
+			logger.Error("Failed to force close server", "error", closeErr)
+		}
 	}
 	booksHandler.Close()
-	if err := ttsHandler.Close(shutdownCtx); err != nil {
+	ttsCloseCtx, ttsCloseCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer ttsCloseCancel()
+	if err := ttsHandler.Close(ttsCloseCtx); err != nil {
 		logger.Warn("Timed out waiting for TTS disk cache writes", "error", err)
 	}
 	wg.Wait()
-	db.Close()
+	if err := db.Close(); err != nil {
+		logger.Error("Failed to close database", "error", err)
+	}
 	logger.Info("Server stopped")
 }
 

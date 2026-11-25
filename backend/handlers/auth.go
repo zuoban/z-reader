@@ -69,12 +69,23 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.Header("Cache-Control", "no-store")
 	token := middleware.SessionToken(c)
 	cookie, _ := c.Cookie(middleware.SessionCookieName)
-	var keys []string
+	var candidates []string
 	if token != "" {
-		keys = append(keys, middleware.SessionKey(h.cfg.AccessPassword, token))
+		candidates = append(candidates, middleware.SessionKey(h.cfg.AccessPassword, token))
 	}
 	if cookie != "" && cookie != token {
-		keys = append(keys, middleware.SessionKey(h.cfg.AccessPassword, cookie))
+		candidates = append(candidates, middleware.SessionKey(h.cfg.AccessPassword, cookie))
+	}
+	var keys []string
+	for _, key := range candidates {
+		session, err := h.db.GetSession(key)
+		if err != nil {
+			response.InternalError(c, "退出失败")
+			return
+		}
+		if session != nil {
+			keys = append(keys, key)
+		}
 	}
 	if len(keys) > 0 {
 		if err := h.db.DeleteSessions(keys...); err != nil {

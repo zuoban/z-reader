@@ -21,9 +21,14 @@ type TTSHandler struct {
 }
 
 const (
-	maxTTSTextRunes    = 2000
-	maxSSMLBytes       = 32 * 1024
-	maxSSMLRequestBody = 64 * 1024
+	maxTTSTextRunes       = 2000
+	maxSSMLBytes          = 32 * 1024
+	maxSanitizedSSMLBytes = maxSSMLBytes * 2
+	maxSSMLRequestBody    = 64 * 1024
+	maxTTSVoiceLen        = 128
+	maxTTSProsodyLen      = 32
+	maxTTSStyleLen        = 64
+	maxTTSOutputFormatLen = 64
 )
 
 func NewTTSHandler() *TTSHandler {
@@ -52,6 +57,27 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 	style := c.DefaultQuery("s", "general")
 	outputFormat := c.DefaultQuery("o", "audio-24khz-48kbitrate-mono-mp3")
 	download := c.DefaultQuery("d", "false")
+
+	if !isValidTTSVoice(voiceName) {
+		response.BadRequest(c, "参数 'v' 无效")
+		return
+	}
+	if !isValidTTSProsody(rate) {
+		response.BadRequest(c, "参数 'r' 无效")
+		return
+	}
+	if !isValidTTSProsody(pitch) {
+		response.BadRequest(c, "参数 'p' 无效")
+		return
+	}
+	if !isValidTTSStyle(style) {
+		response.BadRequest(c, "参数 's' 无效")
+		return
+	}
+	if !isValidTTSOutputFormat(outputFormat) {
+		response.BadRequest(c, "参数 'o' 无效")
+		return
+	}
 
 	generateText := h.generateTextAudio
 	if generateText == nil {
@@ -109,13 +135,21 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		return
 	}
 
-	// Sanitize SSML to prevent injection of unsafe tags.
-	// Only known-safe SSML tags are preserved; everything else is escaped.
-	sanitizedSsml := utils.EscapeSSML(req.Ssml)
-
 	outputFormat := req.OutputFormat
 	if outputFormat == "" {
 		outputFormat = "audio-24khz-48kbitrate-mono-mp3"
+	}
+	if !isValidTTSOutputFormat(outputFormat) {
+		response.BadRequest(c, "参数 'output_format' 无效")
+		return
+	}
+
+	// Sanitize SSML to prevent injection of unsafe tags.
+	// Only known-safe SSML tags are preserved; everything else is escaped.
+	sanitizedSsml := utils.EscapeSSML(req.Ssml)
+	if len(sanitizedSsml) > maxSanitizedSSMLBytes {
+		response.BadRequest(c, "SSML 内容过长")
+		return
 	}
 
 	var (
@@ -203,4 +237,44 @@ func (h *TTSHandler) VoiceList(c *gin.Context) {
 
 	c.Header("Cache-Control", "private, max-age=300")
 	c.JSON(http.StatusOK, voices)
+}
+
+func isASCIIToken(value string, maxLen int, allow func(byte) bool) bool {
+	if len(value) == 0 || len(value) > maxLen {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if !allow(value[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func isASCIIAlphaNum(b byte) bool {
+	return (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z') || (b >= '0' && b <= '9')
+}
+
+func isValidTTSVoice(value string) bool {
+	return isASCIIToken(value, maxTTSVoiceLen, func(b byte) bool {
+		return isASCIIAlphaNum(b) || b == '.' || b == '_' || b == ':' || b == '-'
+	})
+}
+
+func isValidTTSProsody(value string) bool {
+	return isASCIIToken(value, maxTTSProsodyLen, func(b byte) bool {
+		return isASCIIAlphaNum(b) || b == '.' || b == '+' || b == '-' || b == '_' || b == '%'
+	})
+}
+
+func isValidTTSStyle(value string) bool {
+	return isASCIIToken(value, maxTTSStyleLen, func(b byte) bool {
+		return isASCIIAlphaNum(b) || b == '.' || b == '_' || b == '-'
+	})
+}
+
+func isValidTTSOutputFormat(value string) bool {
+	return isASCIIToken(value, maxTTSOutputFormatLen, func(b byte) bool {
+		return isASCIIAlphaNum(b) || b == '-'
+	})
 }

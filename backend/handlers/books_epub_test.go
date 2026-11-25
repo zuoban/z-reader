@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -463,5 +464,94 @@ func TestMetadataFromEPUBPackageJoinsUniqueCreators(t *testing.T) {
 	const wantAuthor = "Ada Lovelace, Charles Babbage, Grace Hopper"
 	if meta.Author != wantAuthor {
 		t.Fatalf("meta.Author = %q, want %q", meta.Author, wantAuthor)
+	}
+}
+
+func TestEPUBMetadataFromPackageSanitizesOversizedAndWhitespace(t *testing.T) {
+	pkg := &epubPackage{}
+	pkg.Metadata.Title = "  \n\t " + strings.Repeat("书", 16000) + "  "
+	pkg.Metadata.Authors = []string{
+		"   ",
+		"\t" + strings.Repeat("作", 16000) + "\r\n",
+	}
+
+	meta := metadataFromEPUBPackage(pkg)
+	if got := len([]rune(meta.Title)); got != maxBookTitleRunes {
+		t.Fatalf("meta.Title rune len = %d, want %d", got, maxBookTitleRunes)
+	}
+	if got := len([]rune(meta.Author)); got != maxBookAuthorRunes {
+		t.Fatalf("meta.Author rune len = %d, want %d", got, maxBookAuthorRunes)
+	}
+
+	wsPkg := &epubPackage{}
+	wsPkg.Metadata.Title = " \r\n\t\uFEFF "
+	wsPkg.Metadata.Authors = []string{" \n\t "}
+	wsMeta := metadataFromEPUBPackage(wsPkg)
+	if wsMeta.Title != "" || wsMeta.Author != "" {
+		t.Fatalf("expected whitespace-only metadata to sanitize to empty, got %+v", wsMeta)
+	}
+}
+
+func TestEPUBCoverRejectsUnsupportedBMPAndICO(t *testing.T) {
+	// Valid BMP header (http.DetectContentType returns image/bmp).
+	bmpData := append([]byte{'B', 'M', 0x36, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00}, make([]byte, 48)...)
+	// Valid ICO header (http.DetectContentType returns image/x-icon).
+	icoData := append([]byte{0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x00, 0x00, 0x01, 0x00, 0x20, 0x00}, make([]byte, 48)...)
+	svgData := []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>`)
+
+	zr := buildTestZipReader(t, []struct {
+		name string
+		data []byte
+	}{
+		{name: "OEBPS/cover.bmp", data: bmpData},
+		{name: "OEBPS/cover.ico", data: icoData},
+		{name: "OEBPS/cover.svg", data: svgData},
+	})
+
+	for _, entry := range zr.File {
+		if data, mime, ok := readEPUBImageEntry(entry); ok {
+			t.Fatalf("readEPUBImageEntry(%s) unexpectedly accepted %q (%d bytes)", entry.Name, mime, len(data))
+		}
+	}
+
+	if _, _, err := extractEPUBCoverFromReader(zr); err == nil {
+		t.Fatal("expected extractEPUBCoverFromReader to reject EPUB containing only BMP/ICO/SVG covers")
+	}
+
+	// When manifest points to BMP/ICO first and a valid PNG fallback exists, skip unsafe cover and use safe PNG.
+	safePNG := encodeTestPNG(t, color.RGBA{R: 10, G: 200, B: 90, A: 255})
+	containerXML := `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+	opfXML := `<?xml version="1.0" encoding="UTF-8"?>
+<package version="3.0" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Safe Cover</dc:title></metadata>
+  <manifest>
+    <item id="bmp-cover" href="cover.bmp" media-type="image/bmp" properties="cover-image"/>
+    <item id="ico-cover" href="cover.ico" media-type="image/x-icon"/>
+    <item id="png-cover" href="cover.png" media-type="image/png"/>
+  </manifest>
+</package>`
+
+	zrWithFallback := buildTestZipReader(t, []struct {
+		name string
+		data []byte
+	}{
+		{name: "META-INF/container.xml", data: []byte(containerXML)},
+		{name: "OEBPS/content.opf", data: []byte(opfXML)},
+		{name: "OEBPS/cover.bmp", data: bmpData},
+		{name: "OEBPS/cover.ico", data: icoData},
+		{name: "OEBPS/cover.png", data: safePNG},
+	})
+
+	gotData, gotType, err := extractEPUBCoverFromReader(zrWithFallback)
+	if err != nil {
+		t.Fatalf("expected fallback to safe PNG cover, got err=%v", err)
+	}
+	if gotType != "image/png" || !bytes.Equal(gotData, safePNG) {
+		t.Fatalf("got contentType=%q len=%d, want image/png len=%d", gotType, len(gotData), len(safePNG))
 	}
 }

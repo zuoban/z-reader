@@ -92,10 +92,7 @@ func (db *DB) CreateProgress(progress *models.Progress, userID string) error {
 func (db *DB) saveProgress(progress *models.Progress, userID string, expectedUpdatedAt *time.Time, createOnly bool) error {
 	progress.UserID = userID
 	key := progressKey(userID, progress.BookID)
-	data, err := json.Marshal(progress)
-	if err != nil {
-		return err
-	}
+	assignTimestamp := progress.UpdatedAt.IsZero()
 	return db.Update(func(tx *bbolt.Tx) error {
 		booksBucket, progressBucket := tx.Bucket(BooksBucket), tx.Bucket(ProgressBucket)
 		bookData := booksBucket.Get([]byte(progress.BookID))
@@ -123,6 +120,22 @@ func (db *DB) saveProgress(progress *models.Progress, userID string, expectedUpd
 		}
 		if expectedUpdatedAt != nil && (previous == nil || !previous.UpdatedAt.Equal(*expectedUpdatedAt)) {
 			return ErrProgressConflict
+		}
+
+		if assignTimestamp {
+			now := time.Now().UTC()
+			if previous != nil && !now.After(previous.UpdatedAt) {
+				now = previous.UpdatedAt.Add(time.Nanosecond)
+			}
+			if book.LastReadAt != nil && !now.After(*book.LastReadAt) {
+				now = book.LastReadAt.Add(time.Nanosecond)
+			}
+			progress.UpdatedAt = now
+		}
+
+		data, err := json.Marshal(progress)
+		if err != nil {
+			return err
 		}
 
 		if book.LastReadAt == nil || !book.LastReadAt.Equal(progress.UpdatedAt) {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -220,5 +221,50 @@ func TestRateLimitByKeyRecordsCustomScope(t *testing.T) {
 	}
 	if got := rateLimitRejections.custom.Load(); got != 1 {
 		t.Fatalf("custom rejections = %d, want 1", got)
+	}
+}
+
+func TestRateLimiterRetryAfterFloor(t *testing.T) {
+	for _, tc := range []struct {
+		retryAfter time.Duration
+		want       int64
+	}{
+		{-5 * time.Second, 1},
+		{-time.Second, 1},
+		{-time.Nanosecond, 1},
+		{0, 1},
+		{time.Nanosecond, 1},
+		{time.Second, 1},
+		{time.Second + time.Nanosecond, 2},
+	} {
+		if got := retryAfterSeconds(tc.retryAfter); got != tc.want {
+			t.Fatalf("retryAfterSeconds(%v) = %d, want %d", tc.retryAfter, got, tc.want)
+		}
+	}
+
+	previous := rateLimitRejections.custom.Load()
+	t.Cleanup(func() { rateLimitRejections.custom.Store(previous) })
+
+	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
+	rl := NewRateLimiter(1, time.Duration(math.MaxInt64))
+	rl.now = func() time.Time { return start }
+	rl.visitors["key"] = &visitor{count: 1, windowStart: start.Add(time.Second)}
+
+	if allowed, retryAfter := rl.allow("key"); allowed || retryAfter > 0 {
+		t.Fatalf("expected setup to produce non-positive retryAfter, got allowed=%v retryAfter=%v", allowed, retryAfter)
+	}
+
+	gin.SetMode(gin.TestMode)
+	handler := RateLimitByKey(rl, func(*gin.Context) string { return "key" })
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/limited", nil)
+	handler(c)
+
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", w.Code)
+	}
+	if got := w.Header().Get("Retry-After"); got != "1" {
+		t.Fatalf("Retry-After = %q, want %q", got, "1")
 	}
 }

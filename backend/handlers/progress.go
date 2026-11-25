@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -131,7 +132,7 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		return
 	}
 
-	if req.Percentage < 0 || req.Percentage > 100 {
+	if math.IsNaN(req.Percentage) || math.IsInf(req.Percentage, 0) || req.Percentage < 0 || req.Percentage > 100 {
 		response.BadRequest(c, "阅读进度必须在 0 到 100 之间")
 		return
 	}
@@ -147,7 +148,6 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		CFI:        req.CFI,
 		Percentage: req.Percentage,
 		DeviceID:   req.DeviceID,
-		UpdatedAt:  time.Now(),
 	}
 
 	writeStartedAt := time.Now()

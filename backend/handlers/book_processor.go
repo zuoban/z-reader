@@ -271,7 +271,7 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 	}
 
 	var cover bookCover
-	if len(coverData) > 0 && book.CoverPath == "" {
+	if len(coverData) > 0 && book.CoverPath == "" && !book.CoverMissing {
 		cover, err = h.prepareExtractedCover(book.ID, coverData, contentType)
 		if err != nil {
 			logger.Warn("Failed to cache book cover during background processing",
@@ -286,18 +286,21 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 }
 
 func (h *BooksHandler) completeBookPreview(job bookProcessingJob, filename string, metadata epubMetadata, cover bookCover) {
+	title := sanitizeExtractedMetadataValue(metadata.Title, maxBookTitleRunes)
+	author := sanitizeExtractedMetadataValue(metadata.Author, maxBookAuthorRunes)
+
 	var previousThumb string
 	book, err := h.db.UpdateBook(job.bookID, job.userID, func(book *models.Book) bool {
 		if book.ProcessingState != models.BookProcessingPending || book.Filename != filename {
 			return false
 		}
-		if metadata.Title != "" && !book.PendingTitleEdited && book.Title == job.initialTitle {
-			book.Title = metadata.Title
+		if title != "" && !book.PendingTitleEdited && book.Title == job.initialTitle {
+			book.Title = title
 		}
-		if metadata.Author != "" && !book.PendingAuthorEdited && book.Author == "" {
-			book.Author = metadata.Author
+		if author != "" && !book.PendingAuthorEdited && book.Author == "" {
+			book.Author = author
 		}
-		if cover.path != "" && book.CoverPath == "" {
+		if cover.path != "" && book.CoverPath == "" && !book.CoverMissing {
 			previousThumb = book.CoverThumbPath
 			cover.apply(book)
 		} else if cover.missing && book.CoverPath == "" {
@@ -310,7 +313,7 @@ func (h *BooksHandler) completeBookPreview(job bookProcessingJob, filename strin
 		return true
 	})
 	if cover.path != "" {
-		if err != nil || book.CoverPath != cover.path {
+		if err != nil || book == nil || book.CoverPath != cover.path {
 			h.removeUploadFiles(cover.path, cover.thumb)
 		} else if previousThumb != "" {
 			h.removePublishedUploadFiles(previousThumb)

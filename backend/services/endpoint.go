@@ -114,18 +114,18 @@ func refreshEndpointCacheContext(ctx context.Context) (*EndpointCache, error) {
 
 	resp, err := callEndpointAPIContext(ctx)
 	if err != nil {
-		// Retain the existing best-effort endpoint fallback, but never bypass cancellation.
+		// Retain the existing best-effort endpoint fallback while still unexpired, but never bypass cancellation.
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if previous != nil {
+		if previous != nil && previous.ExpiredAt > time.Now().Unix() {
 			return previous, nil
 		}
 		return nil, err
 	}
 	exp, err := parseJWTExp(resp.T)
 	if err != nil {
-		if previous != nil {
+		if previous != nil && previous.ExpiredAt > time.Now().Unix() {
 			return previous, nil
 		}
 		return nil, TTSHTTPError(err)

@@ -99,6 +99,13 @@ func copySnapshotUploadsWithDedup(
 		return err
 	}
 	defer snapshotRoot.Close()
+	var prevRoot *os.Root
+	if prevBackupDir != "" {
+		if opened, err := os.OpenRoot(prevBackupDir); err == nil {
+			prevRoot = opened
+			defer prevRoot.Close()
+		}
+	}
 	var readBuffer []byte
 	return visitSnapshotUploads(snapshotRoot, filepath.Base(snapshot), func(name string) error {
 		if err := ctx.Err(); err != nil {
@@ -121,9 +128,11 @@ func copySnapshotUploadsWithDedup(
 		if readBuffer == nil {
 			readBuffer = make([]byte, hashBufferSize)
 		}
-		if digest, ok, err := tryHardLinkFromPreviousBackup(ctx, input, info.Size(), name, target, prevBackupDir, prevManifest, readBuffer); err != nil {
+		digest, linked, err := tryHardLinkFromPreviousBackup(ctx, input, info.Size(), name, target, prevRoot, prevBackupDir, prevManifest, readBuffer)
+		if err != nil {
 			return err
-		} else if ok {
+		}
+		if linked {
 			if digests != nil {
 				digests[manifestKey] = digest
 			}
@@ -135,9 +144,15 @@ func copySnapshotUploadsWithDedup(
 		if _, err := input.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		digest, err := copyToBackupFileWithDigest(ctx, input, target, readBuffer)
-		if err != nil {
-			return err
+		if digest != "" {
+			if err := copyToBackupFile(ctx, input, target, readBuffer); err != nil {
+				return err
+			}
+		} else {
+			digest, err = copyToBackupFileWithDigest(ctx, input, target, readBuffer)
+			if err != nil {
+				return err
+			}
 		}
 		if digests != nil {
 			digests[manifestKey] = digest
@@ -150,14 +165,16 @@ func tryHardLinkFromPreviousBackup(
 	ctx context.Context,
 	input *os.File,
 	size int64,
-	name, target, prevBackupDir string,
+	name, target string,
+	prevRoot *os.Root,
+	prevBackupDir string,
 	prevManifest Manifest,
 	digestBuffer []byte,
 ) (string, bool, error) {
 	if err := ctx.Err(); err != nil {
 		return "", false, err
 	}
-	if prevBackupDir == "" || len(prevManifest.Files) == 0 {
+	if prevRoot == nil || prevBackupDir == "" || len(prevManifest.Files) == 0 {
 		return "", false, nil
 	}
 	manifestKey := filepath.ToSlash(filepath.Join("uploads", name))
@@ -165,12 +182,7 @@ func tryHardLinkFromPreviousBackup(
 	if !ok || expectedDigest == "" {
 		return "", false, nil
 	}
-	root, err := os.OpenRoot(prevBackupDir)
-	if err != nil {
-		return "", false, nil
-	}
-	defer root.Close()
-	previous, err := openRegularBackupFile(root, manifestKey)
+	previous, err := openRegularBackupFile(prevRoot, manifestKey)
 	if err != nil {
 		return "", false, nil
 	}
@@ -187,21 +199,21 @@ func tryHardLinkFromPreviousBackup(
 		return "", false, nil
 	}
 	if sourceDigest != expectedDigest {
-		return "", false, nil
+		return sourceDigest, false, nil
 	}
 	prevDigest, err := hashBackupReaderWithBuffer(ctx, previous, digestBuffer)
 	if err != nil {
 		if ctx.Err() != nil {
 			return "", false, ctx.Err()
 		}
-		return "", false, nil
+		return sourceDigest, false, nil
 	}
 	if prevDigest != sourceDigest {
-		return "", false, nil
+		return sourceDigest, false, nil
 	}
 	// The digest of the resulting staged file is verified before publication.
 	if err := os.Link(filepath.Join(prevBackupDir, manifestKey), target); err != nil {
-		return "", false, nil
+		return sourceDigest, false, nil
 	}
 	return sourceDigest, true, nil
 }

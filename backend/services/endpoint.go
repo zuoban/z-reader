@@ -204,6 +204,7 @@ func callEndpointAPIContext(ctx context.Context) (*EndpointResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		drainResponseBody(resp.Body)
 		return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), false)
 	}
 

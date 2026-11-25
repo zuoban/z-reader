@@ -244,6 +244,7 @@ func doVoiceListRequest(req *http.Request) ([]Voice, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		drainResponseBody(resp.Body)
 		return nil, fmt.Errorf("声音列表服务返回状态码 %d", resp.StatusCode)
 	}
 

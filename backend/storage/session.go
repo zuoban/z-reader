@@ -21,8 +21,10 @@ const maxSessionCacheEntries = 256
 // 与主 DB（图书、进度等）分离后，session 验证不再与业务数据争抢 bbolt 全局写锁。
 type SessionDB struct {
 	*bbolt.DB
-	cacheMu sync.RWMutex
-	cache   map[string]models.Session
+	cacheMu             sync.RWMutex
+	cache               map[string]models.Session
+	cacheEpoch          uint64
+	beforeCacheFillHook func()
 }
 
 // OpenSession 打开或创建独立的 session 数据库文件。
@@ -66,9 +68,7 @@ func hashToken(token string) string {
 	return hex.EncodeToString(h[:])
 }
 
-func (sdb *SessionDB) cachePut(hashed string, session models.Session, now time.Time) {
-	sdb.cacheMu.Lock()
-	defer sdb.cacheMu.Unlock()
+func (sdb *SessionDB) cachePutLocked(hashed string, session models.Session, now time.Time) {
 	if sdb.cache == nil {
 		sdb.cache = make(map[string]models.Session)
 	}
@@ -89,11 +89,23 @@ func (sdb *SessionDB) cachePut(hashed string, session models.Session, now time.T
 	sdb.cache[hashed] = session
 }
 
+func (sdb *SessionDB) cachePutIfEpoch(hashed string, session models.Session, now time.Time, epoch uint64) {
+	sdb.cacheMu.Lock()
+	defer sdb.cacheMu.Unlock()
+	if sdb.cacheEpoch != epoch {
+		return
+	}
+	sdb.cachePutLocked(hashed, session, now)
+}
+
 // SaveSession 保存 session 到独立 session 数据库。
 func (sdb *SessionDB) SaveSession(session *models.Session) error {
 	sCopy := *session
 	hashed := hashToken(session.Token)
 	sCopy.Token = hashed
+	sdb.cacheMu.RLock()
+	epoch := sdb.cacheEpoch
+	sdb.cacheMu.RUnlock()
 	err := sdb.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
 		data, err := json.Marshal(&sCopy)
@@ -105,7 +117,7 @@ func (sdb *SessionDB) SaveSession(session *models.Session) error {
 	if err != nil {
 		return err
 	}
-	sdb.cachePut(hashed, sCopy, time.Now())
+	sdb.cachePutIfEpoch(hashed, sCopy, time.Now(), epoch)
 	return nil
 }
 
@@ -117,14 +129,21 @@ func (sdb *SessionDB) GetSession(token string) (*models.Session, error) {
 
 	sdb.cacheMu.RLock()
 	cached, ok := sdb.cache[hashed]
+	epoch := sdb.cacheEpoch
+	hook := sdb.beforeCacheFillHook
 	sdb.cacheMu.RUnlock()
 	if ok {
 		if !now.After(cached.ExpiresAt) {
 			return &cached, nil
 		}
 		sdb.cacheMu.Lock()
-		if current, stillPresent := sdb.cache[hashed]; stillPresent && now.After(current.ExpiresAt) {
+		if current, stillPresent := sdb.cache[hashed]; stillPresent {
+			if !now.After(current.ExpiresAt) {
+				sdb.cacheMu.Unlock()
+				return &current, nil
+			}
 			delete(sdb.cache, hashed)
+			sdb.cacheEpoch++
 		}
 		sdb.cacheMu.Unlock()
 		return nil, nil
@@ -144,10 +163,14 @@ func (sdb *SessionDB) GetSession(token string) (*models.Session, error) {
 		}
 		return nil, err
 	}
+	if hook != nil {
+		hook()
+	}
+	now = time.Now()
 	if now.After(session.ExpiresAt) {
 		return nil, nil
 	}
-	sdb.cachePut(hashed, session, now)
+	sdb.cachePutIfEpoch(hashed, session, now, epoch)
 	return &session, nil
 }
 
@@ -175,8 +198,11 @@ func (sdb *SessionDB) DeleteSessions(tokens ...string) error {
 		return err
 	}
 	sdb.cacheMu.Lock()
-	for _, hashed := range hashedTokens {
-		delete(sdb.cache, hashed)
+	if len(hashedTokens) > 0 {
+		sdb.cacheEpoch++
+		for _, hashed := range hashedTokens {
+			delete(sdb.cache, hashed)
+		}
 	}
 	sdb.cacheMu.Unlock()
 	return nil
@@ -195,6 +221,7 @@ func (sdb *SessionDB) ClearSessions() error {
 		return err
 	}
 	sdb.cacheMu.Lock()
+	sdb.cacheEpoch++
 	clear(sdb.cache)
 	sdb.cacheMu.Unlock()
 	return nil
@@ -203,6 +230,7 @@ func (sdb *SessionDB) ClearSessions() error {
 // CleanExpiredSessions 清理独立 session 数据库中已过期的 session。
 func (sdb *SessionDB) CleanExpiredSessions() error {
 	now := time.Now()
+	deletedFromDB := false
 	err := sdb.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(SessionsBucket)
 		var toDelete [][]byte
@@ -225,16 +253,22 @@ func (sdb *SessionDB) CleanExpiredSessions() error {
 				return err
 			}
 		}
+		deletedFromDB = len(toDelete) > 0
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 	sdb.cacheMu.Lock()
+	deletedFromCache := false
 	for key, entry := range sdb.cache {
 		if now.After(entry.ExpiresAt) {
 			delete(sdb.cache, key)
+			deletedFromCache = true
 		}
+	}
+	if deletedFromDB || deletedFromCache {
+		sdb.cacheEpoch++
 	}
 	sdb.cacheMu.Unlock()
 	return nil

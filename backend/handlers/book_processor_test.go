@@ -79,7 +79,7 @@ func TestSaveUploadedBookFileHashesWrittenBytes(t *testing.T) {
 	defer root.Close()
 	const name = "book.pdf"
 
-	contentHash, err := saveUploadedBookFile(
+	contentHash, writtenSize, err := saveUploadedBookFile(
 		newMultipartFileHeader(t, "book.pdf", content),
 		"pdf",
 		root,
@@ -88,6 +88,9 @@ func TestSaveUploadedBookFileHashesWrittenBytes(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatalf("saveUploadedBookFile returned error: %v", err)
+	}
+	if writtenSize != int64(len(content)) {
+		t.Fatalf("writtenSize = %d, want %d", writtenSize, len(content))
 	}
 
 	file, err := root.Open(name)

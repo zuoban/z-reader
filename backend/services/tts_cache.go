@@ -57,6 +57,8 @@ type ttsRuntimeState struct {
 	queue     chan struct{}
 	metrics   ttsMetrics
 
+	diskMu         sync.Mutex
+	diskClosing    bool
 	diskWG         sync.WaitGroup
 	diskWrites     atomic.Uint64
 	cleanupMu      sync.Mutex
@@ -64,11 +66,27 @@ type ttsRuntimeState struct {
 	lastCleanup    time.Time
 }
 
+func (r *ttsRuntimeState) tryStartDiskWrite() bool {
+	r.diskMu.Lock()
+	defer r.diskMu.Unlock()
+	if r.diskClosing {
+		return false
+	}
+	r.diskWG.Add(1)
+	return true
+}
+
 func (r *ttsRuntimeState) waitDiskWrites() {
+	r.diskMu.Lock()
+	defer r.diskMu.Unlock()
 	r.diskWG.Wait()
 }
 
 func (r *ttsRuntimeState) waitDiskWritesContext(ctx context.Context) error {
+	r.diskMu.Lock()
+	r.diskClosing = true
+	r.diskMu.Unlock()
+
 	if ctx == nil {
 		r.diskWG.Wait()
 		return nil

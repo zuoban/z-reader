@@ -95,8 +95,7 @@ func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh 
 			// the shared cache alone and runs under the same synthesis limits.
 			if call.err == nil && !refresh {
 				runtime.cache.set(key, call.data)
-				if shouldPersistDiskTTSCache(runtime.config, call.data) {
-					runtime.diskWG.Add(1)
+				if shouldPersistDiskTTSCache(runtime.config, call.data) && runtime.tryStartDiskWrite() {
 					persisting = true
 					persistData = call.data
 				}

@@ -28,9 +28,9 @@ type epubContainer struct {
 
 type epubPackage struct {
 	Metadata struct {
-		Title  string `xml:"title"`
-		Author string `xml:"creator"`
-		Metas  []struct {
+		Title   string   `xml:"title"`
+		Authors []string `xml:"creator"`
+		Metas   []struct {
 			Name    string `xml:"name,attr"`
 			Content string `xml:"content,attr"`
 		} `xml:"meta"`
@@ -57,29 +57,23 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, dst io.Writer, maxE
 	}()
 	var copiedBytes int64
 	var copyBuffer []byte
-	for _, entry := range reader.File {
-		normalizedName, ok := stripEPUBPackageRoot(entry.Name, root)
-		if !ok || normalizedName == "" || strings.HasSuffix(normalizedName, "/") {
-			continue
-		}
-		if strings.HasPrefix(normalizedName, "../") || strings.Contains(normalizedName, "/../") {
-			continue
-		}
 
+	writeEntry := func(entry *zip.File, normalizedName string) error {
 		header := entry.FileHeader
 		header.Name = normalizedName
 		if header.Name == "mimetype" {
 			header.Method = zip.Store
+			header.Extra = nil
 		}
 
-		entryReader, err := entry.Open()
-		if err != nil {
-			return err
+		entryReader, openErr := entry.Open()
+		if openErr != nil {
+			return openErr
 		}
-		target, err := writer.CreateHeader(&header)
-		if err != nil {
+		target, createErr := writer.CreateHeader(&header)
+		if createErr != nil {
 			entryReader.Close()
-			return err
+			return createErr
 		}
 		remaining := maxExpandedBytes - copiedBytes
 		if remaining < 0 {
@@ -89,22 +83,57 @@ func writeNormalizedEPUBZip(reader *zip.Reader, root string, dst io.Writer, maxE
 		if copyBuffer == nil {
 			copyBuffer = make([]byte, 32*1024)
 		}
-		copied, err := io.CopyBuffer(target, io.LimitReader(entryReader, remaining+1), copyBuffer)
-		if err != nil {
+		copied, copyErr := io.CopyBuffer(target, io.LimitReader(entryReader, remaining+1), copyBuffer)
+		if copyErr != nil {
 			entryReader.Close()
-			return err
+			return copyErr
 		}
 		if copied > remaining {
 			entryReader.Close()
 			return fmt.Errorf("EPUB 解压后的内容超过大小限制")
 		}
 		copiedBytes += copied
-		if err := entryReader.Close(); err != nil {
+		return entryReader.Close()
+	}
+
+	// Pass 1: EPUB OCF requires the uncompressed mimetype entry to be first.
+	mimetypeWritten := false
+	for _, entry := range reader.File {
+		normalizedName, ok := normalizedEPUBEntryForWrite(entry.Name, root)
+		if !ok || !strings.EqualFold(normalizedName, "mimetype") {
+			continue
+		}
+		if !mimetypeWritten {
+			if err = writeEntry(entry, "mimetype"); err != nil {
+				return err
+			}
+			mimetypeWritten = true
+		}
+	}
+
+	// Pass 2: write all remaining entries, skipping mimetype so it is never duplicated.
+	for _, entry := range reader.File {
+		normalizedName, ok := normalizedEPUBEntryForWrite(entry.Name, root)
+		if !ok || strings.EqualFold(normalizedName, "mimetype") {
+			continue
+		}
+		if err = writeEntry(entry, normalizedName); err != nil {
 			return err
 		}
 	}
 
 	return writer.Close()
+}
+
+func normalizedEPUBEntryForWrite(name, root string) (string, bool) {
+	normalizedName, ok := stripEPUBPackageRoot(name, root)
+	if !ok || normalizedName == "" || strings.HasSuffix(normalizedName, "/") {
+		return "", false
+	}
+	if strings.HasPrefix(normalizedName, "../") || strings.Contains(normalizedName, "/../") {
+		return "", false
+	}
+	return normalizedName, true
 }
 
 func isValidEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) bool {
@@ -431,7 +460,30 @@ func metadataFromEPUBPackage(pkg *epubPackage) *epubMetadata {
 	if pkg == nil {
 		return &epubMetadata{}
 	}
-	return &epubMetadata{Title: pkg.Metadata.Title, Author: pkg.Metadata.Author}
+	return &epubMetadata{
+		Title:  pkg.Metadata.Title,
+		Author: joinUniqueMetadataValues(pkg.Metadata.Authors),
+	}
+}
+
+func joinUniqueMetadataValues(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	seen := make(map[string]struct{}, len(values))
+	unique := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if _, exists := seen[trimmed]; exists {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		unique = append(unique, trimmed)
+	}
+	return strings.Join(unique, ", ")
 }
 
 func readEPUBPackage(reader *zip.Reader, lookup func(string) *zip.File) (*epubPackage, string) {

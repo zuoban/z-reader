@@ -1,9 +1,19 @@
 package services
 
 import (
+	"io"
 	"net/http"
 	"time"
 )
+
+const maxDrainErrorBodyBytes int64 = 4096
+
+func drainResponseBody(body io.Reader) {
+	if body == nil {
+		return
+	}
+	_, _ = io.Copy(io.Discard, io.LimitReader(body, maxDrainErrorBodyBytes))
+}
 
 var sharedHTTPClient = &http.Client{
 	Timeout: 120 * time.Second,

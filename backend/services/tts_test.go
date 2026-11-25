@@ -3,8 +3,11 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"net/http/httptrace"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -803,6 +806,264 @@ func TestWaitTTSDiskWrites(t *testing.T) {
 		err := WaitTTSDiskWrites(ctx)
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("WaitTTSDiskWrites(timeout) = %v, want context.DeadlineExceeded", err)
+		}
+	})
+
+	t.Run("rejects new disk writes safely while shutting down under concurrency", func(t *testing.T) {
+		runtime := installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusOK, "audio-bytes"), nil
+		})
+		runtime.config.Dir = t.TempDir()
+		runtime.config.MaxConcurrent = 8
+		runtime.config.MaxQueued = 32
+		runtime.semaphore = make(chan struct{}, runtime.config.MaxConcurrent)
+		runtime.queue = make(chan struct{}, runtime.config.MaxConcurrent+runtime.config.MaxQueued)
+
+		start := make(chan struct{})
+		var writers sync.WaitGroup
+		for i := 0; i < 16; i++ {
+			writers.Add(1)
+			go func(idx int) {
+				defer writers.Done()
+				<-start
+				for j := 0; j < 20; j++ {
+					if runtime.tryStartDiskWrite() {
+						runtime.diskWG.Done()
+					}
+					ssml := fmt.Sprintf("<speak>race-%d-%d</speak>", idx, j)
+					_, _ = GenerateAudioFromSsmlContext(context.Background(), ssml, "mp3")
+				}
+			}(i)
+		}
+
+		waitErr := make(chan error, 1)
+		go func() {
+			<-start
+			time.Sleep(time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			waitErr <- WaitTTSDiskWrites(ctx)
+		}()
+
+		close(start)
+		writers.Wait()
+		if err := <-waitErr; err != nil {
+			t.Fatalf("WaitTTSDiskWrites() during concurrent writes = %v, want nil", err)
+		}
+		if runtime.tryStartDiskWrite() {
+			runtime.diskWG.Done()
+			t.Fatal("tryStartDiskWrite() succeeded after WaitTTSDiskWrites shutdown")
+		}
+	})
+
+	t.Run("waitDiskWrites test barrier remains reusable across writes", func(t *testing.T) {
+		runtime := installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return ttsResponse(http.StatusOK, "audio-bytes"), nil
+		})
+		runtime.config.Dir = t.TempDir()
+
+		if !runtime.tryStartDiskWrite() {
+			t.Fatal("first tryStartDiskWrite() failed")
+		}
+		runtime.diskWG.Done()
+		runtime.waitDiskWrites()
+
+		if !runtime.tryStartDiskWrite() {
+			t.Fatal("second tryStartDiskWrite() after waitDiskWrites() failed")
+		}
+		runtime.diskWG.Done()
+		runtime.waitDiskWrites()
+	})
+}
+
+type trackingReadCloser struct {
+	reader           io.Reader
+	bytesRead        int
+	bytesReadAtClose int
+	eofReached       bool
+	closed           bool
+}
+
+func newTrackingBody(body string) *trackingReadCloser {
+	return &trackingReadCloser{reader: strings.NewReader(body)}
+}
+
+func (b *trackingReadCloser) Read(p []byte) (int, error) {
+	n, err := b.reader.Read(p)
+	b.bytesRead += n
+	if errors.Is(err, io.EOF) {
+		b.eofReached = true
+	}
+	return n, err
+}
+
+func (b *trackingReadCloser) Close() error {
+	if !b.closed {
+		b.closed = true
+		b.bytesReadAtClose = b.bytesRead
+	}
+	return nil
+}
+
+func TestTTSServicesDrainErrorResponseBodies(t *testing.T) {
+	t.Run("callMicrosoftTranslatorTTS drains 401 retry and non-200 bodies before close", func(t *testing.T) {
+		t.Setenv("TTS_CUSTOM_ENDPOINT", "")
+		t.Setenv("AZURE_TTS_KEY", "")
+		t.Setenv("AZURE_TTS_REGION", "")
+
+		first401Body := newTrackingBody("unauthorized error details")
+		retry500Body := newTrackingBody("upstream server failure")
+		var synthCalls atomic.Int32
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			if strings.Contains(r.URL.Host, "dev.microsofttranslator.com") {
+				return ttsResponse(http.StatusOK, `{"r":"eastus","t":"eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDI0NDQ4MDB9.sig"}`), nil
+			}
+			if synthCalls.Add(1) == 1 {
+				return &http.Response{
+					StatusCode: http.StatusUnauthorized,
+					Header:     make(http.Header),
+					Body:       first401Body,
+				}, nil
+			}
+			return &http.Response{
+				StatusCode: http.StatusInternalServerError,
+				Header:     make(http.Header),
+				Body:       retry500Body,
+			}, nil
+		})
+
+		_, err := callMicrosoftTranslatorTTS(context.Background(), "<speak>hi</speak>", "mp3", false)
+		if err == nil {
+			t.Fatal("expected error from callMicrosoftTranslatorTTS")
+		}
+		if !first401Body.closed || !first401Body.eofReached || first401Body.bytesReadAtClose != len("unauthorized error details") {
+			t.Fatalf("first 401 body not drained before close: closed=%v eof=%v readAtClose=%d",
+				first401Body.closed, first401Body.eofReached, first401Body.bytesReadAtClose)
+		}
+		if !retry500Body.closed || !retry500Body.eofReached || retry500Body.bytesReadAtClose != len("upstream server failure") {
+			t.Fatalf("retry 500 body not drained before close: closed=%v eof=%v readAtClose=%d",
+				retry500Body.closed, retry500Body.eofReached, retry500Body.bytesReadAtClose)
+		}
+	})
+
+	t.Run("doSynthesisRequest drains bounded error body before close", func(t *testing.T) {
+		largeBody := newTrackingBody(strings.Repeat("x", int(maxDrainErrorBodyBytes)+1024))
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusBadGateway,
+				Header:     make(http.Header),
+				Body:       largeBody,
+			}, nil
+		})
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://tts.example.test/synth", strings.NewReader("<speak>hi</speak>"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := doSynthesisRequest(req); err == nil {
+			t.Fatal("expected error from doSynthesisRequest")
+		}
+		if !largeBody.closed || largeBody.bytesReadAtClose != int(maxDrainErrorBodyBytes) {
+			t.Fatalf("expected bounded drain of %d bytes before close, got closed=%v readAtClose=%d",
+				maxDrainErrorBodyBytes, largeBody.closed, largeBody.bytesReadAtClose)
+		}
+	})
+
+	t.Run("doVoiceListRequest drains non-200 error body before close", func(t *testing.T) {
+		errBody := newTrackingBody("voice service temporarily unavailable")
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusServiceUnavailable,
+				Header:     make(http.Header),
+				Body:       errBody,
+			}, nil
+		})
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://tts.example.test/voices", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := doVoiceListRequest(req); err == nil {
+			t.Fatal("expected error from doVoiceListRequest")
+		}
+		if !errBody.closed || !errBody.eofReached || errBody.bytesReadAtClose != len("voice service temporarily unavailable") {
+			t.Fatalf("voice list error body not drained before close: closed=%v eof=%v readAtClose=%d",
+				errBody.closed, errBody.eofReached, errBody.bytesReadAtClose)
+		}
+	})
+
+	t.Run("callEndpointAPIContext drains non-200 error body before close", func(t *testing.T) {
+		errBody := newTrackingBody("endpoint auth failure")
+		installTTSTestRuntime(t, func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusForbidden,
+				Header:     make(http.Header),
+				Body:       errBody,
+			}, nil
+		})
+
+		if _, err := callEndpointAPIContext(context.Background()); err == nil {
+			t.Fatal("expected error from callEndpointAPIContext")
+		}
+		if !errBody.closed || !errBody.eofReached || errBody.bytesReadAtClose != len("endpoint auth failure") {
+			t.Fatalf("endpoint error body not drained before close: closed=%v eof=%v readAtClose=%d",
+				errBody.closed, errBody.eofReached, errBody.bytesReadAtClose)
+		}
+	})
+
+	t.Run("draining non-200 body allows HTTP keep-alive connection reuse", func(t *testing.T) {
+		var reqNum atomic.Int32
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if reqNum.Add(1) == 1 {
+				w.WriteHeader(http.StatusBadGateway)
+				_, _ = w.Write([]byte("upstream error payload"))
+				return
+			}
+			w.Header().Set("Content-Type", "audio/mpeg")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ID3-audio-payload"))
+		}))
+		defer srv.Close()
+
+		previousClient := sharedHTTPClient
+		sharedHTTPClient = &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        4,
+				MaxIdleConnsPerHost: 4,
+			},
+		}
+		t.Cleanup(func() {
+			sharedHTTPClient.CloseIdleConnections()
+			sharedHTTPClient = previousClient
+		})
+
+		req1, err := http.NewRequestWithContext(context.Background(), http.MethodPost, srv.URL, strings.NewReader("<speak>1</speak>"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := doSynthesisRequest(req1); err == nil {
+			t.Fatal("expected error on first request")
+		}
+
+		var reused atomic.Bool
+		traceCtx := httptrace.WithClientTrace(context.Background(), &httptrace.ClientTrace{
+			GotConn: func(info httptrace.GotConnInfo) {
+				if info.Reused {
+					reused.Store(true)
+				}
+			},
+		})
+		req2, err := http.NewRequestWithContext(traceCtx, http.MethodPost, srv.URL, strings.NewReader("<speak>2</speak>"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := doSynthesisRequest(req2)
+		if err != nil || string(data) != "ID3-audio-payload" {
+			t.Fatalf("second request = (%q, %v), want audio payload", string(data), err)
+		}
+		if !reused.Load() {
+			t.Fatal("expected HTTP keep-alive connection to be reused after drained non-200 error response")
 		}
 	})
 }

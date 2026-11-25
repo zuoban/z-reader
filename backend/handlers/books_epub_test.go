@@ -378,3 +378,90 @@ func TestOpenUploadFileReadsRegularNestedUpload(t *testing.T) {
 		t.Fatal("expected upload reads to require a regular file")
 	}
 }
+
+func TestWriteNormalizedEPUBZipWritesMimetypeFirstAndUncompressed(t *testing.T) {
+	entries := []struct {
+		name string
+		data []byte
+	}{
+		{name: "book.epub/META-INF/container.xml", data: []byte("<container/>")},
+		{name: "book.epub/OEBPS/chapter1.xhtml", data: []byte("<html>chapter</html>")},
+		{name: "book.epub/mimetype", data: []byte("application/epub+zip")},
+	}
+	reader := buildTestZipReader(t, entries)
+
+	var output bytes.Buffer
+	if err := writeNormalizedEPUBZip(reader, "book.epub/", &output, maxEPUBExpandedBytes); err != nil {
+		t.Fatalf("writeNormalizedEPUBZip failed: %v", err)
+	}
+
+	normalized, err := zip.NewReader(bytes.NewReader(output.Bytes()), int64(output.Len()))
+	if err != nil {
+		t.Fatalf("zip.NewReader failed: %v", err)
+	}
+	if len(normalized.File) != 3 {
+		t.Fatalf("got %d entries, want 3", len(normalized.File))
+	}
+	first := normalized.File[0]
+	if first.Name != "mimetype" {
+		t.Fatalf("first entry = %q, want %q", first.Name, "mimetype")
+	}
+	if first.Method != zip.Store {
+		t.Fatalf("mimetype compression method = %d, want zip.Store (%d)", first.Method, zip.Store)
+	}
+	firstData, err := readZipFileWithLimit(first, 128)
+	if err != nil || string(firstData) != "application/epub+zip" {
+		t.Fatalf("mimetype content = (%q, %v), want application/epub+zip", string(firstData), err)
+	}
+
+	mimetypeCount := 0
+	for _, entry := range normalized.File {
+		if entry.Name == "mimetype" {
+			mimetypeCount++
+		}
+	}
+	if mimetypeCount != 1 {
+		t.Fatalf("expected exactly 1 mimetype entry, got %d", mimetypeCount)
+	}
+	if normalized.File[1].Name != "META-INF/container.xml" || normalized.File[2].Name != "OEBPS/chapter1.xhtml" {
+		t.Fatalf("unexpected remaining entry order: %q, %q", normalized.File[1].Name, normalized.File[2].Name)
+	}
+}
+
+func TestMetadataFromEPUBPackageJoinsUniqueCreators(t *testing.T) {
+	containerXML := `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+	opfXML := `<?xml version="1.0" encoding="UTF-8"?>
+<package version="3.0" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Multi Author Book</dc:title>
+    <dc:creator>  Ada Lovelace </dc:creator>
+    <dc:creator>   </dc:creator>
+    <dc:creator>Charles Babbage</dc:creator>
+    <dc:creator>Ada Lovelace</dc:creator>
+    <dc:creator>Grace Hopper</dc:creator>
+  </metadata>
+</package>`
+
+	zr := buildTestZipReader(t, []struct {
+		name string
+		data []byte
+	}{
+		{name: "META-INF/container.xml", data: []byte(containerXML)},
+		{name: "OEBPS/content.opf", data: []byte(opfXML)},
+	})
+
+	pkg, _ := readEPUBPackage(zr, indexEPUBEntries(zr))
+	meta := metadataFromEPUBPackage(pkg)
+	if meta.Title != "Multi Author Book" {
+		t.Fatalf("meta.Title = %q, want %q", meta.Title, "Multi Author Book")
+	}
+	const wantAuthor = "Ada Lovelace, Charles Babbage, Grace Hopper"
+	if meta.Author != wantAuthor {
+		t.Fatalf("meta.Author = %q, want %q", meta.Author, wantAuthor)
+	}
+}

@@ -74,7 +74,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	defer root.Close()
 
 	writeStartedAt := time.Now()
-	contentHash, err := saveUploadedBookStream(src, epubArchive, epubRoot, root, filename, maxExpandedBytes)
+	contentHash, writtenSize, err := saveUploadedBookStream(src, epubArchive, epubRoot, root, filename, maxExpandedBytes)
 	telemetry.Observe("book_upload_write", time.Since(writeStartedAt), 1)
 	if err != nil {
 		response.InternalError(c, "保存文件失败")
@@ -98,11 +98,11 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		UserID:      storage.PersonalLibrary,
 		Filename:    filename,
 		Format:      format,
-		Size:        file.Size,
+		Size:        writtenSize,
 		ContentHash: contentHash,
 		CreatedAt:   time.Now(),
 	}
-	book.Title = strings.TrimSuffix(file.Filename, ext)
+	book.Title = fallbackBookTitle(file.Filename)
 	if supportsBookPreviewProcessing(format) {
 		book.ProcessingState = models.BookProcessingPending
 	} else {
@@ -225,10 +225,20 @@ func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, e
 	return readStreamHeader(src, maxBytes)
 }
 
+func fallbackBookTitle(filename string) string {
+	trimmed := strings.TrimSpace(filename)
+	title := strings.TrimSpace(strings.TrimSuffix(trimmed, filepath.Ext(trimmed)))
+	runes := []rune(title)
+	if len(runes) > maxBookTitleRunes {
+		return strings.TrimSpace(string(runes[:maxBookTitleRunes]))
+	}
+	return title
+}
+
 func readStreamHeader(src io.Reader, maxBytes int) ([]byte, error) {
 	buf := make([]byte, maxBytes)
-	n, err := src.Read(buf)
-	if err != nil && err != io.EOF {
+	n, err := io.ReadFull(src, buf)
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return nil, err
 	}
 
@@ -243,12 +253,21 @@ func hashBook(src io.Reader) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+type countingWriter struct {
+	n int64
+}
+
+func (w *countingWriter) Write(p []byte) (int, error) {
+	w.n += int64(len(p))
+	return len(p), nil
+}
+
 func saveUploadedBookFile(
 	file *multipart.FileHeader, format string, root *os.Root, name string, expandedLimit int64,
-) (string, error) {
+) (string, int64, error) {
 	src, err := file.Open()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer src.Close()
 
@@ -257,7 +276,7 @@ func saveUploadedBookFile(
 	if format == "epub" {
 		archive, err = zip.NewReader(src, file.Size)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 		packageRoot, _ = epubPackageRoot(archive)
 	}
@@ -266,13 +285,14 @@ func saveUploadedBookFile(
 
 func saveUploadedBookStream(
 	src multipart.File, archive *zip.Reader, packageRoot string, root *os.Root, name string, expandedLimit int64,
-) (string, error) {
+) (string, int64, error) {
 	dst, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	hash := sha256.New()
-	output := io.MultiWriter(dst, hash)
+	var written countingWriter
+	output := io.MultiWriter(dst, hash, &written)
 	if packageRoot != "" {
 		err = writeNormalizedEPUBZip(archive, packageRoot, output, expandedLimit)
 	} else {
@@ -283,9 +303,9 @@ func saveUploadedBookStream(
 		}
 	}
 	if err := errors.Join(err, dst.Close()); err != nil {
-		return "", errors.Join(err, root.Remove(name))
+		return "", 0, errors.Join(err, root.Remove(name))
 	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return hex.EncodeToString(hash.Sum(nil)), written.n, nil
 }
 
 func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*models.Book, error) {

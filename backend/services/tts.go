@@ -211,6 +211,7 @@ func readTTSAudioResponse(resp *http.Response) ([]byte, error) {
 	contentType = strings.ToLower(strings.TrimSpace(contentType))
 	if contentType == "application/json" || contentType == "text/json" ||
 		strings.HasSuffix(contentType, "+json") || contentType == "text/html" || contentType == "application/xhtml+xml" {
+		drainResponseBody(resp.Body)
 		return nil, TTSHTTPError(errors.New("upstream returned a non-audio content type"))
 	}
 
@@ -281,6 +282,7 @@ func callMicrosoftTranslatorTTS(ctx context.Context, ssml, outputFormat string, 
 	if resp.StatusCode == http.StatusOK {
 		return readTTSAudioResponse(resp)
 	}
+	drainResponseBody(resp.Body)
 	if !isRetry && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden) {
 		// Invalidate only the rejected credentials, preserving a refresh another call completed.
 		endpointCache.mutex.Lock()
@@ -393,5 +395,6 @@ func doSynthesisRequest(req *http.Request) ([]byte, error) {
 	if resp.StatusCode == http.StatusOK {
 		return readTTSAudioResponse(resp)
 	}
+	drainResponseBody(resp.Body)
 	return nil, ttsProviderError(resp.StatusCode, resp.Header.Get("Retry-After"), true)
 }

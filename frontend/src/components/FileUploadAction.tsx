@@ -65,7 +65,7 @@ export function FileUploadAction({
             <Loader2
               aria-hidden="true"
               className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
-              strokeWidth={1.75}
+              strokeWidth={1.5}
             />
           ) : (
             <Upload
@@ -75,7 +75,7 @@ export function FileUploadAction({
                 emphasis === 'secondary' &&
                   'text-muted-foreground transition-colors group-hover:text-foreground'
               )}
-              strokeWidth={1.75}
+              strokeWidth={1.5}
             />
           )}
           <span className="truncate tabular-nums">{statusLabel ?? label}</span>

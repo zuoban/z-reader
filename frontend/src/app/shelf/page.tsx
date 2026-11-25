@@ -143,6 +143,7 @@ export default function ShelfPage() {
   }, [isLoading, isAuthenticated, isOffline, router]);
 
   const showCategoryFilters = !isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty;
+  const showShelfControlsSkeleton = !isOffline && !loadError && isLoadingBooks;
 
   useEffect(() => {
     const strip = categoryStripRef.current;
@@ -331,6 +332,48 @@ export default function ShelfPage() {
     []
   );
 
+  const handleReadBook = useCallback(
+    (bookId: string) => {
+      router.push(`/read/${bookId}`);
+    },
+    [router]
+  );
+
+  const renderBookCard = useCallback(
+    (book: (typeof filteredBooks)[number], index: number) => (
+      <BookCard
+        book={book}
+        index={index}
+        categories={categories}
+        bookCounts={bookCounts}
+        onRead={handleReadBook}
+        onDelete={handleDelete}
+        onUpdate={refreshBooks}
+        isDeleting={deletingId === book.id}
+        formatSize={formatFileSize}
+        progressPercentage={progressByBookId[book.id] ?? null}
+        searchQuery={searchQuery}
+        selectionMode={selectionMode}
+        selected={selectedBookIds.has(book.id)}
+        onSelectionToggle={toggleBookSelection}
+      />
+    ),
+    [
+      categories,
+      bookCounts,
+      handleReadBook,
+      handleDelete,
+      refreshBooks,
+      deletingId,
+      formatFileSize,
+      progressByBookId,
+      searchQuery,
+      selectionMode,
+      selectedBookIds,
+      toggleBookSelection,
+    ]
+  );
+
   function toggleVisibleSelection() {
     setSelectedBookIds((current) => {
       const next = new Set(current);
@@ -446,26 +489,32 @@ export default function ShelfPage() {
       <main
         id="shelf-main"
         aria-label="书库"
-        className="app-container relative z-10 flex-1 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
+        className="app-container relative z-10 flex-1 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:pt-5 sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
         onDragEnter={handleShelfDragEnter}
         onDragOver={handleShelfDragOver}
         onDragLeave={handleShelfDragLeave}
         onDrop={handleShelfDrop}
       >
-        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="font-heading text-2xl font-medium leading-tight tracking-[-0.02em] text-foreground sm:text-[28px]">
+            <h1 className="font-heading text-2xl font-normal leading-tight tracking-[-0.02em] text-foreground sm:text-[28px]">
               我的书库
             </h1>
             {!isOffline && !isLoadingBooks && !loadError && (
-              <p className="shrink-0 text-sm tabular-nums text-muted-foreground" aria-label={`藏书共 ${bookCounts.all} 本`}>
-                {bookCounts.all} 本
+              <p
+                className="inline-flex shrink-0 items-baseline gap-2 font-mono text-xs tabular-nums text-muted-foreground"
+                aria-label={`藏书共 ${bookCounts.all} 本`}
+              >
+                <span>{bookCounts.all} 本</span>
+                {(selectedCategoryId !== null || hasSearchQuery) && (
+                  <span className="text-subtle-foreground">· 显示 {filteredBooks.length} 本</span>
+                )}
               </p>
             )}
           </div>
 
-          {showCategoryFilters && (
-            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {showCategoryFilters ? (
+            <div className="flex min-w-0 items-center gap-2">
               <div className="min-w-0 flex-1 sm:w-56 lg:w-72">
                 <TextInput
                   ref={searchInputRef}
@@ -484,7 +533,7 @@ export default function ShelfPage() {
                     isSearching ? (
                       <Loader2
                         className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none"
-                        strokeWidth={1.75}
+                        strokeWidth={1.5}
                         aria-hidden="true"
                       />
                     ) : (
@@ -508,23 +557,32 @@ export default function ShelfPage() {
                         title="清除搜索"
                         className="size-9 min-h-0 min-w-0 cursor-pointer rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary/70 hover:text-foreground active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:size-7"
                       >
-                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        <X className="size-4" strokeWidth={1.5} aria-hidden="true" />
                       </ActionIcon>
                     ) : null
                   }
                   rightSectionPointerEvents="all"
                   rightSectionWidth={36}
                   classNames={{
-                    input: 'shelf-search app-field pl-9 pr-9 sm:h-10 sm:text-sm',
+                    input: 'shelf-search app-field pl-9 pr-9 sm:h-9 sm:text-sm',
                   }}
                 />
               </div>
 
               <div className="w-11 shrink-0 sm:w-36">
-                <SortSelector value={sortBy} onChange={setSortBy} className="sm:h-10" />
+                <SortSelector value={sortBy} onChange={setSortBy} className="sm:h-9" />
               </div>
             </div>
-          )}
+          ) : showShelfControlsSkeleton ? (
+            <div
+              className="flex min-w-0 items-center gap-2"
+              aria-hidden="true"
+              data-testid="shelf-controls-skeleton"
+            >
+              <div className="skeleton-shimmer h-11 min-w-0 flex-1 rounded-lg bg-secondary/70 sm:h-9 sm:w-56 lg:w-72" />
+              <div className="skeleton-shimmer h-11 w-11 shrink-0 rounded-lg bg-secondary/70 sm:h-9 sm:w-36" />
+            </div>
+          ) : null}
         </div>
         {isOffline ? (
           <div className="border-t border-border">
@@ -610,9 +668,9 @@ export default function ShelfPage() {
             />
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-3">
-            {showCategoryFilters && (
-              <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
+          <div className="flex min-w-0 flex-col gap-4">
+            {showCategoryFilters ? (
+              <div className="flex min-w-0 items-center justify-between gap-2 border-y border-border/80 py-2 sm:gap-3">
                 <div className="shelf-category-strip relative min-w-0 flex-1">
                   <div
                     ref={categoryStripRef}
@@ -734,7 +792,26 @@ export default function ShelfPage() {
                   </Menu>
                 </div>
               </div>
-            )}
+            ) : showShelfControlsSkeleton ? (
+              <div
+                className="flex min-w-0 items-center justify-between gap-2 border-y border-border/80 py-2 sm:gap-3"
+                aria-hidden="true"
+                data-testid="shelf-category-skeleton"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+                  <div className="skeleton-shimmer h-11 w-14 shrink-0 rounded-lg bg-secondary/70 sm:h-8" />
+                  <div className="skeleton-shimmer h-11 w-16 shrink-0 rounded-lg bg-secondary/70 sm:h-8" />
+                  <div className="skeleton-shimmer h-11 w-20 shrink-0 rounded-lg bg-secondary/70 sm:h-8" />
+                </div>
+                <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">
+                  <div className="skeleton-shimmer h-8 w-16 rounded-lg bg-secondary/70" />
+                  <div className="skeleton-shimmer h-8 w-20 rounded-lg bg-secondary/70" />
+                </div>
+                <div className="shrink-0 sm:hidden">
+                  <div className="skeleton-shimmer h-11 w-11 rounded-lg bg-secondary/70" />
+                </div>
+              </div>
+            ) : null}
 
             <section
               className={cn(
@@ -813,24 +890,7 @@ export default function ShelfPage() {
                     isLoadingMore={isLoadingMoreBooks}
                     onEndReached={handleEndReached}
                     getItemKey={getBookItemKey}
-                    renderItem={(book, index) => (
-                      <BookCard
-                        book={book}
-                        index={index}
-                        categories={categories}
-                        bookCounts={bookCounts}
-                        onRead={() => router.push(`/read/${book.id}`)}
-                        onDelete={() => handleDelete(book.id)}
-                        onUpdate={refreshBooks}
-                        isDeleting={deletingId === book.id}
-                        formatSize={formatFileSize}
-                        progressPercentage={progressByBookId[book.id] ?? null}
-                        searchQuery={searchQuery}
-                        selectionMode={selectionMode}
-                        selected={selectedBookIds.has(book.id)}
-                        onSelectionToggle={() => toggleBookSelection(book.id)}
-                      />
-                    )}
+                    renderItem={renderBookCard}
                   />
                 </div>
               )}

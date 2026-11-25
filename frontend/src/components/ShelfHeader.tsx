@@ -35,16 +35,16 @@ export function ShelfHeader({
 
   return (
     <header className="shelf-header sticky top-0 z-50 w-full border-b border-border pt-[env(safe-area-inset-top,0px)]">
-      <div className="app-container flex h-16 items-center justify-between gap-2 sm:gap-3">
+      <div className="app-container flex h-14 items-center justify-between gap-2 sm:gap-3">
         <BrandLogo compact className="shrink-0 whitespace-nowrap" />
 
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {isOffline ? (
             <span
               role="status"
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-2.5 text-xs font-medium text-muted-foreground"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-secondary px-2.5 text-xs font-medium text-muted-foreground"
             >
-              <WifiOff aria-hidden="true" className="size-3.5 shrink-0" strokeWidth={1.75} />
+              <WifiOff aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
               <span>离线模式</span>
             </span>
           ) : (
@@ -83,11 +83,11 @@ export function ShelfHeader({
                 aria-label="书架设置"
                 title="书架设置"
               >
-                <MoreHorizontal aria-hidden="true" className="size-5" strokeWidth={1.75} />
+                <MoreHorizontal aria-hidden="true" className="size-[18px]" strokeWidth={1.5} />
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown className="paper-menu max-w-[calc(100vw-1.5rem)] rounded-xl p-1.5">
-              <Menu.Label className="px-2.5 pb-1.5 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground">
+              <Menu.Label className="px-2.5 pb-1.5 pt-1 text-xs font-normal text-muted-foreground">
                 书架设置
               </Menu.Label>
               <Menu.Item

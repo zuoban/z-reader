@@ -1,5 +1,13 @@
 const READER_FONT_FAMILIES = new Set(['noto serif sc', 'crimson text', 'lxgw wenkai tc']);
 
+interface DocumentFontCache {
+  sheets: CSSStyleSheet[];
+  ruleCounts: number[];
+  byFamily: Map<string, string>;
+}
+
+const documentFontCache = new WeakMap<Document, DocumentFontCache>();
+
 function absoluteFontFace(rule: CSSFontFaceRule, baseURL: string, origin: string) {
   let isSelfHosted = true;
   const css = rule.cssText.replace(
@@ -20,9 +28,28 @@ function absoluteFontFace(rule: CSSFontFaceRule, baseURL: string, origin: string
   return isSelfHosted ? css : '';
 }
 
-/** Reuse the app's bundled faces in blob chapters without importing app styles. */
-export function getReaderFontFaces(doc: Document): string {
-  const faces = new Set<string>();
+function getSheetRuleCount(sheet: CSSStyleSheet): number {
+  try {
+    return sheet.cssRules.length;
+  } catch {
+    return -1;
+  }
+}
+
+function collectDocumentFontFacesByFamily(doc: Document): Map<string, string> {
+  const currentSheets = Array.from(doc.styleSheets);
+  const currentRuleCounts = currentSheets.map(getSheetRuleCount);
+  const cached = documentFontCache.get(doc);
+  if (
+    cached
+    && cached.sheets.length === currentSheets.length
+    && cached.sheets.every((sheet, index) => sheet === currentSheets[index])
+    && cached.ruleCounts.every((count, index) => count === currentRuleCounts[index])
+  ) {
+    return cached.byFamily;
+  }
+
+  const facesByFamily = new Map<string, Set<string>>();
   const visited = new Set<CSSStyleSheet>();
   const origin = new URL(doc.baseURI).origin;
 
@@ -34,7 +61,13 @@ export function getReaderFontFaces(doc: Document): string {
           .trim().replace(/^(['"])(.*)\1$/, '$2').toLowerCase();
         if (!READER_FONT_FAMILIES.has(family)) continue;
         const css = absoluteFontFace(face, baseURL, origin);
-        if (css) faces.add(css);
+        if (!css) continue;
+        let bucket = facesByFamily.get(family);
+        if (!bucket) {
+          bucket = new Set<string>();
+          facesByFamily.set(family, bucket);
+        }
+        bucket.add(css);
       } else if (rule.type === CSSRule.IMPORT_RULE) {
         const imported = (rule as CSSImportRule).styleSheet;
         if (imported) collectSheet(imported, baseURL);
@@ -54,6 +87,35 @@ export function getReaderFontFaces(doc: Document): string {
     }
   }
 
-  for (const sheet of Array.from(doc.styleSheets)) collectSheet(sheet, doc.baseURI);
-  return Array.from(faces).join('\n');
+  for (const sheet of currentSheets) collectSheet(sheet, doc.baseURI);
+
+  const byFamily = new Map<string, string>();
+  for (const [family, faces] of facesByFamily) {
+    byFamily.set(family, Array.from(faces).join('\n'));
+  }
+
+  documentFontCache.set(doc, {
+    sheets: currentSheets,
+    ruleCounts: currentRuleCounts,
+    byFamily,
+  });
+  return byFamily;
+}
+
+/** Reuse the app's bundled faces in blob chapters without importing app styles. */
+export function getReaderFontFaces(doc: Document, families?: Iterable<string>): string {
+  const requested = families === undefined
+    ? Array.from(READER_FONT_FAMILIES)
+    : Array.from(families, (family) => family.trim().toLowerCase()).filter((family) =>
+      READER_FONT_FAMILIES.has(family),
+    );
+  if (requested.length === 0) return '';
+
+  const byFamily = collectDocumentFontFacesByFamily(doc);
+  const chunks: string[] = [];
+  for (const family of new Set(requested)) {
+    const css = byFamily.get(family);
+    if (css) chunks.push(css);
+  }
+  return chunks.join('\n');
 }

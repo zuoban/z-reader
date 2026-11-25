@@ -3,8 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { BookCard } from '@/components/BookCard';
 import type { Book } from '@/lib/api';
 
+const useCoverUrlMock = vi.fn<
+  (...args: unknown[]) => { coverUrl: string | null; ref: { current: null } }
+>(() => ({ coverUrl: null, ref: { current: null } }));
 vi.mock('@/hooks/useCoverUrl', () => ({
-  useCoverUrl: () => ({ coverUrl: null, ref: { current: null } }),
+  useCoverUrl: (...args: unknown[]) => useCoverUrlMock(...args),
 }));
 
 const book: Book = {
@@ -51,7 +54,7 @@ describe('BookCard', () => {
   it('opens a book from the visible footer action', () => {
     const { onRead } = renderCard();
     fireEvent.click(screen.getByRole('button', { name: '继续阅读：红楼梦' }));
-    expect(onRead).toHaveBeenCalledOnce();
+    expect(onRead).toHaveBeenCalledWith('book-1');
   });
 
   it('shows the fallback author only once with tooltip', () => {
@@ -64,7 +67,7 @@ describe('BookCard', () => {
   it('selects a book from the footer without opening it in selection mode', () => {
     const { onRead, onSelectionToggle } = renderCard({ selectionMode: true });
     fireEvent.click(screen.getByRole('button', { name: '选择图书' }));
-    expect(onSelectionToggle).toHaveBeenCalledOnce();
+    expect(onSelectionToggle).toHaveBeenCalledWith('book-1');
     expect(onRead).not.toHaveBeenCalled();
   });
 
@@ -106,7 +109,7 @@ describe('BookCard', () => {
     expect(screen.getByText('确定删除《红楼梦》吗？删除后将无法恢复。')).toBeInTheDocument();
 
     fireEvent.click(confirmButton);
-    expect(onDelete).toHaveBeenCalledOnce();
+    expect(onDelete).toHaveBeenCalledWith('book-1');
 
     rerender(
       <BookCard
@@ -155,5 +158,55 @@ describe('BookCard', () => {
     const badgeText = screen.getByText('正在生成封面');
     expect(badgeText).toBeVisible();
     expect(badgeText.parentElement?.querySelector('svg')).toHaveClass('animate-spin');
+  });
+
+  it('disables cover fetching for coverless ready/non-epub/missing books and enables it when a cover exists', () => {
+    useCoverUrlMock.mockClear();
+    const baseProps = {
+      index: 0,
+      categories: [] as string[],
+      bookCounts: {},
+      onRead: vi.fn(),
+      onDelete: vi.fn(),
+      onUpdate: vi.fn(),
+      isDeleting: false,
+      formatSize: () => '100 B',
+    };
+
+    render(<BookCard {...baseProps} book={{ ...book, processing_state: 'ready' }} />);
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', undefined, 'thumb', false);
+
+    render(<BookCard {...baseProps} book={{ ...book, cover_missing: true }} />);
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', undefined, 'thumb', false);
+
+    render(<BookCard {...baseProps} book={{ ...book, format: 'pdf' }} />);
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', undefined, 'thumb', false);
+
+    render(<BookCard {...baseProps} book={{ ...book, processing_state: 'ready', cover_path: 'c.jpg' }} />);
+    expect(useCoverUrlMock).toHaveBeenLastCalledWith('book-1', 'c.jpg', 'thumb', true);
+  });
+
+  it('lazily mounts the action menu on first click or ArrowDown keypress', async () => {
+    render(
+      <BookCard
+        book={book}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={vi.fn()}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: '更多操作：《红楼梦》' });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menuitem', { name: '编辑信息' })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    expect(await screen.findByRole('menuitem', { name: '编辑信息' })).toBeInTheDocument();
   });
 });

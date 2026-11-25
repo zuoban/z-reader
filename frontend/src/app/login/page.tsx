@@ -81,7 +81,14 @@ export default function LoginPage() {
         <main className="auth-layout mt-10 sm:mt-12 lg:mt-0">
           <aside className="auth-editorial">
             <div>
-              <h2 className="entry-title text-2xl xl:text-[1.75rem]">
+              <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-3 w-1 rounded-[1px] bg-primary"
+                />
+                <span>私人书库</span>
+              </p>
+              <h2 className="entry-title mt-3 text-2xl xl:text-[1.75rem]">
                 私人书库，随时续读
               </h2>
               <p className="mt-3 max-w-[23em] text-pretty text-sm leading-6 text-muted-foreground">

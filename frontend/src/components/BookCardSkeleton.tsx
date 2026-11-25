@@ -27,7 +27,7 @@ export function BookCardSkeleton() {
             <Skeleton height={12} width={40} radius="xs" aria-hidden="true" />
             <Skeleton height={12} width={32} radius="xs" aria-hidden="true" />
           </div>
-          <Skeleton height={4} width="100%" radius="xl" aria-hidden="true" />
+          <Skeleton height={2} width="100%" radius="xl" aria-hidden="true" />
         </div>
       </div>
       <div className="shelf-book-actions">

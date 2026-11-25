@@ -270,6 +270,9 @@ export function useFoliateView({
   const appliedRemoteProgressRef = useRef<string | null>(null);
   const chapterCleanupsRef = useRef<Map<Document, () => void>>(new Map());
   const compatibilityModeRef = useRef(false);
+  const appliedStylesheetRef = useRef<{ view: FoliateView; stylesheet: string } | null>(null);
+  const appliedPreferencesRef = useRef<{ view: FoliateView; key: string } | null>(null);
+  const appliedInlinePresetRef = useRef<{ view: FoliateView; preset: ReaderTheme["preset"] } | null>(null);
 
   useEffect(() => {
     if (currentCFI || !progress?.cfi) return;
@@ -345,10 +348,18 @@ export function useFoliateView({
     [bookId, library]
   );
 
-  const applyRendererPreferences = useCallback((renderer?: FoliateView["renderer"] | null) => {
+  const applyRendererPreferences = useCallback((
+    renderer?: FoliateView["renderer"] | null,
+    view?: FoliateView | null,
+  ) => {
     if (!renderer) return;
     const currentTheme = themeRef.current;
     const compatibilityMode = compatibilityModeRef.current;
+    const key = `${compatibilityMode}|${currentTheme.flow}|${currentTheme.gap}|${currentTheme.maxInlineSize}|${currentTheme.animated}`;
+    if (view && appliedPreferencesRef.current?.view === view && appliedPreferencesRef.current.key === key) {
+      return;
+    }
+    if (view) appliedPreferencesRef.current = { view, key };
     renderer.setAttribute("margin", "0");
     renderer.setAttribute("flow", compatibilityMode ? "scrolled" : currentTheme.flow);
     renderer.setAttribute("gap", `${compatibilityMode ? 0 : currentTheme.gap}%`);
@@ -525,6 +536,9 @@ export function useFoliateView({
 
     const view = viewRef.current;
     viewRef.current = null;
+    appliedStylesheetRef.current = null;
+    appliedPreferencesRef.current = null;
+    appliedInlinePresetRef.current = null;
 
     if (view) {
       try {
@@ -601,6 +615,7 @@ export function useFoliateView({
             });
           }
           cleanInlineStyles(doc);
+          appliedInlinePresetRef.current = { view, preset: themeRef.current.preset };
         } catch (err) {
           console.error("Failed to handle book load event:", err);
         }
@@ -690,8 +705,10 @@ export function useFoliateView({
 
       if (cancelled()) return;
 
-      view.renderer?.setStyles?.(getStylesheetRef.current());
-      applyRendererPreferences(view.renderer);
+      const initialStylesheet = getStylesheetRef.current();
+      view.renderer?.setStyles?.(initialStylesheet);
+      appliedStylesheetRef.current = { view, stylesheet: initialStylesheet };
+      applyRendererPreferences(view.renderer, view);
 
       const savedProgress = progressRef.current;
       appliedRemoteProgressRef.current = savedProgress?.updated_at ?? null;
@@ -750,9 +767,14 @@ export function useFoliateView({
   ]);
 
   useEffect(() => {
-    if (viewRef.current && readerReady) {
-      viewRef.current.renderer?.setStyles?.(getStylesheet());
-      applyRendererPreferences(viewRef.current.renderer);
+    const view = viewRef.current;
+    if (view && readerReady) {
+      const stylesheet = getStylesheet();
+      if (appliedStylesheetRef.current?.view !== view || appliedStylesheetRef.current.stylesheet !== stylesheet) {
+        view.renderer?.setStyles?.(stylesheet);
+        appliedStylesheetRef.current = { view, stylesheet };
+      }
+      applyRendererPreferences(view.renderer, view);
     }
   }, [applyRendererPreferences, getStylesheet, readerReady, theme, viewRef]);
 
@@ -765,13 +787,28 @@ export function useFoliateView({
   }, [progress, readerReady, viewRef]);
 
   useEffect(() => {
-    if (!readerReady) return;
-    const contents = viewRef.current?.renderer?.getContents?.() ?? [];
+    const view = viewRef.current;
+    if (!readerReady || !view) return;
+    if (
+      appliedInlinePresetRef.current?.view === view
+      && appliedInlinePresetRef.current.preset === theme.preset
+    ) {
+      return;
+    }
+    appliedInlinePresetRef.current = { view, preset: theme.preset };
+    const contents = view.renderer?.getContents?.() ?? [];
     contents.forEach(({ doc }) => {
       if (!doc) return;
       cleanInlineStyles(doc);
     });
-  }, [cleanInlineStyles, readerReady, theme, viewRef]);
+  }, [cleanInlineStyles, readerReady, theme.preset, viewRef]);
+
+  useEffect(() => {
+    if (!bookId) return;
+    void ensureFoliateScript().catch(() => {
+      // initReader will retry and surface any script-loading error once auth/offline completes.
+    });
+  }, [bookId]);
 
   useEffect(() => {
     // Start as soon as auth or offline copy is ready — do not wait for progress API.

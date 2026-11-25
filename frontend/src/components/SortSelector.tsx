@@ -37,7 +37,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
           aria-expanded={open}
           title={currentOption ? `排序：${currentOption.label}` : '书籍排序方式'}
           className={cn(
-            'app-field group min-h-0 w-full cursor-pointer px-0 text-sm font-medium text-foreground transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 data-[expanded]:border-primary/40 data-[expanded]:bg-secondary/80 sm:pl-3 sm:pr-2.5 sm:text-[13px]',
+            'app-field group min-h-0 w-full cursor-pointer px-0 text-sm font-medium text-foreground transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 data-[expanded]:border-primary/40 data-[expanded]:bg-secondary/80 sm:pl-3 sm:pr-2.5 sm:text-sm',
             className
           )}
           classNames={{
@@ -47,8 +47,8 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
           onClick={(e) => e.stopPropagation()}
         >
           <ArrowDownWideNarrow
-            className="h-4.5 w-4.5 sm:hidden"
-            strokeWidth={1.6}
+            className="size-4 sm:hidden"
+            strokeWidth={1.5}
             aria-hidden="true"
           />
           <span className="hidden min-w-0 truncate text-foreground sm:block">
@@ -59,13 +59,13 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
               'hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 motion-reduce:transition-none sm:block',
               open && 'rotate-180 text-foreground'
             )}
-            strokeWidth={1.6}
+            strokeWidth={1.5}
             aria-hidden="true"
           />
         </Button>
       </Menu.Target>
       <Menu.Dropdown className="paper-menu min-w-[11rem] max-w-[calc(100vw-1.5rem)] rounded-xl p-1.5">
-        <Menu.Label className="px-2.5 pb-1.5 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground">
+        <Menu.Label className="px-2.5 pb-1.5 pt-1 text-xs font-normal text-muted-foreground">
           排序方式
         </Menu.Label>
         {SORT_OPTIONS.map((option) => {
@@ -84,8 +84,8 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
               rightSection={
                 isSelected ? (
                   <Check
-                    className="h-3.5 w-3.5 text-primary"
-                    strokeWidth={2}
+                    className="size-4 text-primary"
+                    strokeWidth={1.5}
                     aria-hidden="true"
                   />
                 ) : null

@@ -101,7 +101,7 @@ export function ReaderErrorState({
             color: "var(--reader-panel-danger)",
           }}
         >
-          <AlertCircle className="h-5 w-5" strokeWidth={1.7} aria-hidden="true" />
+          <AlertCircle className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
         </div>
         <div className="mt-4 w-full max-w-xs">
           <p
@@ -132,7 +132,7 @@ export function ReaderErrorState({
                     ? "h-4 w-4 animate-spin motion-reduce:animate-none"
                     : "h-4 w-4"
                 }
-                strokeWidth={1.7}
+                strokeWidth={1.5}
                 aria-hidden="true"
               />
               <span>{isRetrying ? "正在重新连接..." : retryLabel}</span>
@@ -142,7 +142,7 @@ export function ReaderErrorState({
               onClick={onBack}
               className="reader-panel-secondary h-10 px-4 lg:h-10"
             >
-              <ArrowLeft className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
+              <ArrowLeft className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
               <span>返回书库</span>
             </button>
           </div>
@@ -152,7 +152,7 @@ export function ReaderErrorState({
             onClick={onBack}
             className="reader-panel-secondary mt-6 h-10 px-4 lg:h-10"
           >
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
             <span>返回书库</span>
           </button>
         )}
@@ -196,7 +196,7 @@ export function ReaderLoadingOverlay({
     >
       {/* Page skeleton for perceived readiness */}
       <div
-        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl animate-pulse opacity-35 motion-reduce:animate-none sm:inset-x-16"
+        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl opacity-35 sm:inset-x-16"
         aria-hidden="true"
       >
         <div

@@ -9,8 +9,17 @@ import type { FoliateView } from '@/lib/types';
 const open = vi.fn<(view: TestFoliateView, file: File) => Promise<void>>();
 const close = vi.fn<(view: TestFoliateView) => void>();
 const goTo = vi.fn<(view: TestFoliateView, location: string | number) => Promise<unknown>>();
+const setStyles = vi.fn<(css: string) => void>();
+const setRendererAttribute = vi.fn<(name: string, value: string) => void>();
+const removeRendererAttribute = vi.fn<(name: string) => void>();
 
 class TestFoliateView extends HTMLElement {
+  renderer = {
+    setStyles: (css: string) => setStyles(css),
+    setAttribute: (name: string, value: string) => setRendererAttribute(name, value),
+    removeAttribute: (name: string) => removeRendererAttribute(name),
+    getContents: () => [],
+  };
   open(file: File) { return open(this, file); }
   close() { close(this); }
   goTo(location: string | number) { return goTo(this, location); }
@@ -28,23 +37,23 @@ function renderReader(cfi?: string) {
   const container = document.createElement('div');
   const containerRef = { current: container };
   const viewRef = { current: null as FoliateView | null };
-  const getStylesheet = () => '';
+  const getStylesheet = vi.fn((fontSize = DEFAULT_READER_THEME.fontSize) => `body { font-size: ${fontSize}px; }`);
   const updateProgress = vi.fn();
   const bindReaderDocument = vi.fn();
   const progress = cfi ? { cfi, percentage: 10 } : null;
-  const hook = renderHook(({ bookId }) => useFoliateView({
+  const hook = renderHook(({ bookId, theme }) => useFoliateView({
     bookId,
     containerRef,
     viewRef,
     isAuthenticated: true,
     progressLoading: false,
     progress,
-    theme: DEFAULT_READER_THEME,
-    getStylesheet,
+    theme,
+    getStylesheet: () => getStylesheet(theme.fontSize),
     updateProgress,
     bindReaderDocument,
-  }), { initialProps: { bookId: 'first' } });
-  return { ...hook, container, viewRef, updateProgress, bindReaderDocument };
+  }), { initialProps: { bookId: 'first', theme: DEFAULT_READER_THEME } });
+  return { ...hook, container, viewRef, updateProgress, bindReaderDocument, getStylesheet };
 }
 
 beforeEach(() => {
@@ -52,6 +61,9 @@ beforeEach(() => {
   close.mockReset();
   goTo.mockReset().mockImplementation(async (view, target) =>
     loadSection(view, typeof target === 'number' ? target : 1));
+  setStyles.mockReset();
+  setRendererAttribute.mockReset();
+  removeRendererAttribute.mockReset();
   vi.spyOn(api, 'createBookFile').mockImplementation(async (id) =>
     new File(['book'], `${id}.epub`));
 });
@@ -66,7 +78,7 @@ it('releases a book that finishes opening after the reader switched books', asyn
   const firstView = container.firstElementChild!;
   const firstDownloadSignal = vi.mocked(api.createBookFile).mock.calls[0][1]?.signal;
 
-  rerender({ bookId: 'second' });
+  rerender({ bookId: 'second', theme: DEFAULT_READER_THEME });
   await waitFor(() => expect(result.current.loading).toBe(false));
   const secondView = container.firstElementChild;
   expect(firstDownloadSignal?.aborted).toBe(true);
@@ -113,7 +125,7 @@ it('ignores a late download failure after switching books', async () => {
     expect(viewRef.current).not.toBeNull();
   });
 
-  rerender({ bookId: 'second' });
+  rerender({ bookId: 'second', theme: DEFAULT_READER_THEME });
   await waitFor(() => expect(result.current.loading).toBe(false));
   await act(async () => firstDownload.reject(new Error('late download failure')));
 
@@ -169,4 +181,22 @@ it('reports failure and closes the view if the first section never loads', async
   expect(result.current.error).toMatch(/无法加载书籍的首个章节/);
   expect(viewRef.current).toBeNull();
   expect(close).toHaveBeenCalledTimes(1);
+});
+
+it('applies initial stylesheet once on open and reapplies only when stylesheet changes', async () => {
+  const { result, rerender } = renderReader();
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  expect(setStyles).toHaveBeenCalledTimes(1);
+  expect(setStyles).toHaveBeenCalledWith(`body { font-size: ${DEFAULT_READER_THEME.fontSize}px; }`);
+  const initialAttrCalls = setRendererAttribute.mock.calls.length;
+
+  rerender({
+    bookId: 'first',
+    theme: { ...DEFAULT_READER_THEME, fontSize: DEFAULT_READER_THEME.fontSize + 2 },
+  });
+
+  expect(setStyles).toHaveBeenCalledTimes(2);
+  expect(setStyles).toHaveBeenLastCalledWith(`body { font-size: ${DEFAULT_READER_THEME.fontSize + 2}px; }`);
+  expect(setRendererAttribute.mock.calls.length).toBe(initialAttrCalls);
 });

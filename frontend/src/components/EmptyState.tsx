@@ -33,11 +33,11 @@ export function EmptyState({
               : 'border-border/80 bg-accent/80 text-accent-foreground'
           )}
         >
-          <Icon className="size-5" strokeWidth={1.6} />
+          <Icon className="size-5" strokeWidth={1.5} />
         </div>
         <div className="min-w-0 flex-1">
           <div role={tone === 'error' ? 'alert' : undefined}>
-            <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">
+            <h2 className="font-heading text-xl font-normal leading-tight text-foreground sm:text-2xl">
               {title}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>

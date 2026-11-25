@@ -26,6 +26,7 @@ export interface Book {
   content_hash?: string;
   cover_path?: string;
   cover_thumb_path?: string;
+  cover_missing?: boolean;
 	processing_state?: 'pending' | 'ready' | 'failed';
   category?: string;
   created_at: string;
@@ -493,6 +494,9 @@ export const api = {
         signal ? null : DEFAULT_TIMEOUT
       );
       if (!res.ok) {
+        if (res.status >= 500) {
+          throw new Error(`Cover fetch failed with status ${res.status}`);
+        }
         return null;
       }
       const blob = await res.blob();

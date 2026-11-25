@@ -25,13 +25,25 @@ import {
   Settings,
 } from "lucide-react";
 
-import { ReaderBookmarksSheet } from "@/components/reader/ReaderBookmarksSheet";
-import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import type { ReaderTheme, ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark } from "@/lib/api";
 import type { TOCItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const ReaderBookmarksSheet = dynamic(
+  () =>
+    import("@/components/reader/ReaderBookmarksSheet").then(
+      (module) => module.ReaderBookmarksSheet
+    ),
+  { ssr: false }
+);
+const ReaderTOCSheet = dynamic(
+  () =>
+    import("@/components/reader/ReaderTOCSheet").then(
+      (module) => module.ReaderTOCSheet
+    ),
+  { ssr: false }
+);
 const ThemeSettings = dynamic(() => import("@/components/ThemeSettings")
   .then((module) => module.ThemeSettings));
 
@@ -121,6 +133,8 @@ export function ReaderToolbar({
   const anySheetOpen = tocOpen || bookmarksOpen || themeSettingsOpen || ttsOpen;
   const [prevAnySheetOpen, setPrevAnySheetOpen] = useState(anySheetOpen);
   const [settingsRequested, setSettingsRequested] = useState(false);
+  const [tocRequested, setTocRequested] = useState(false);
+  const [bookmarksRequested, setBookmarksRequested] = useState(false);
   const mobileActionsButtonRef = useRef<HTMLButtonElement>(null);
   const mobileActionsMenuRef = useRef<HTMLDivElement>(null);
   const mobileActionsMenuId = useId();
@@ -271,7 +285,7 @@ export function ReaderToolbar({
               aria-label="返回书库"
               className="reader-chrome-icon reader-toolbar-edge"
             >
-              <ArrowLeft className="size-4" strokeWidth={1.6} aria-hidden="true" />
+              <ArrowLeft className="size-4" strokeWidth={1.5} aria-hidden="true" />
             </ActionIcon>
             <div className="flex min-w-0 items-baseline gap-2">
               <h1
@@ -304,7 +318,7 @@ export function ReaderToolbar({
                 size={44}
                 radius="md"
               >
-                <MoreHorizontal className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                <MoreHorizontal className="size-4" strokeWidth={1.5} aria-hidden="true" />
               </ActionIcon>
               <div
                 ref={mobileActionsMenuRef}
@@ -446,52 +460,98 @@ export function ReaderToolbar({
               data-reader-toolbar-actions="desktop"
               className="reader-toolbar-actions hidden items-center gap-0.5 lg:flex"
             >
-              <ReaderTOCSheet
-                open={tocOpen}
-                onOpenChange={onTocOpenChange}
-                toc={toc}
-                bookTitle={bookTitle}
-                bookAuthor={bookAuthor}
-                tocListRef={tocListRef}
-                currentChapter={currentChapter}
-                currentChapterHref={currentChapterHref}
-                uiScheme={uiScheme}
-                overlayContainer={overlayContainer}
-                triggerClassName={chromeBtnClass}
-                triggerStyle={{}}
-                onLocateCurrent={onLocateCurrentChapter}
-                onGoTo={onGoTo}
-                trigger={
-                  <>
-                    <List className="size-4" strokeWidth={1.6} aria-hidden="true" />
-                    <span className="sr-only">目录</span>
-                  </>
-                }
-              />
+              {tocRequested || tocOpen ? (
+                <ReaderTOCSheet
+                  open={tocOpen}
+                  onOpenChange={(open) => {
+                    setTocRequested(true);
+                    onTocOpenChange(open);
+                  }}
+                  toc={toc}
+                  bookTitle={bookTitle}
+                  bookAuthor={bookAuthor}
+                  tocListRef={tocListRef}
+                  currentChapter={currentChapter}
+                  currentChapterHref={currentChapterHref}
+                  uiScheme={uiScheme}
+                  overlayContainer={overlayContainer}
+                  triggerClassName={chromeBtnClass}
+                  triggerStyle={{}}
+                  onLocateCurrent={onLocateCurrentChapter}
+                  onGoTo={onGoTo}
+                  trigger={
+                    <>
+                      <List className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                      <span className="sr-only">目录</span>
+                    </>
+                  }
+                />
+              ) : (
+                <Button
+                  type="button"
+                  variant="subtle"
+                  size="sm"
+                  title="目录"
+                  aria-expanded={tocOpen}
+                  aria-haspopup="dialog"
+                  className={chromeBtnClass}
+                  classNames={{ label: "flex items-center justify-center" }}
+                  onClick={() => {
+                    setTocRequested(true);
+                    onTocOpenChange(true);
+                  }}
+                >
+                  <List className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                  <span className="sr-only">目录</span>
+                </Button>
+              )}
 
               {showBookmarks && (
                 <>
-                  <ReaderBookmarksSheet
-                    open={bookmarksOpen}
-                    onOpenChange={onBookmarksOpenChange}
-                    bookmarks={bookmarks}
-                    bookTitle={bookTitle}
-                    uiScheme={uiScheme}
-                    overlayContainer={overlayContainer}
-                    triggerClassName={chromeBtnClass}
-                    triggerStyle={{}}
-                    canCreate={canCreateBookmark}
-                    isSaving={isSavingBookmark}
-                    onCreate={onCreateBookmark}
-                    onGoTo={onGoToBookmark}
-                    onDelete={onDeleteBookmark}
-                    trigger={
-                      <>
-                        <BookmarkIcon className="size-4" strokeWidth={1.6} aria-hidden="true" />
-                        <span className="sr-only">书签</span>
-                      </>
-                    }
-                  />
+                  {bookmarksRequested || bookmarksOpen ? (
+                    <ReaderBookmarksSheet
+                      open={bookmarksOpen}
+                      onOpenChange={(open) => {
+                        setBookmarksRequested(true);
+                        onBookmarksOpenChange(open);
+                      }}
+                      bookmarks={bookmarks}
+                      bookTitle={bookTitle}
+                      uiScheme={uiScheme}
+                      overlayContainer={overlayContainer}
+                      triggerClassName={chromeBtnClass}
+                      triggerStyle={{}}
+                      canCreate={canCreateBookmark}
+                      isSaving={isSavingBookmark}
+                      onCreate={onCreateBookmark}
+                      onGoTo={onGoToBookmark}
+                      onDelete={onDeleteBookmark}
+                      trigger={
+                        <>
+                          <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                          <span className="sr-only">书签</span>
+                        </>
+                      }
+                    />
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="subtle"
+                      size="sm"
+                      title="书签"
+                      aria-expanded={bookmarksOpen}
+                      aria-haspopup="dialog"
+                      className={chromeBtnClass}
+                      classNames={{ label: "flex items-center justify-center" }}
+                      onClick={() => {
+                        setBookmarksRequested(true);
+                        onBookmarksOpenChange(true);
+                      }}
+                    >
+                      <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                      <span className="sr-only">书签</span>
+                    </Button>
+                  )}
 
                   <Button
                     type="button"
@@ -507,11 +567,11 @@ export function ReaderToolbar({
                     {isSavingBookmark ? (
                       <Loader2
                         className="size-4 animate-spin motion-reduce:animate-none"
-                        strokeWidth={1.6}
+                        strokeWidth={1.5}
                         aria-hidden="true"
                       />
                     ) : (
-                      <BookmarkPlus className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                      <BookmarkPlus className="size-4" strokeWidth={1.5} aria-hidden="true" />
                     )}
                     <span className="sr-only">
                       {isSavingBookmark ? "添加中..." : "添加"}
@@ -538,11 +598,11 @@ export function ReaderToolbar({
                   {isSavingOffline ? (
                     <Loader2
                       className="size-4 animate-spin motion-reduce:animate-none"
-                      strokeWidth={1.6}
+                      strokeWidth={1.5}
                       aria-hidden="true"
                     />
                   ) : (
-                    <Download className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <Download className="size-4" strokeWidth={1.5} aria-hidden="true" />
                   )}
                   <span className={isSavingOffline ? "text-[11px]" : "sr-only"}>
                     {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}
@@ -569,9 +629,9 @@ export function ReaderToolbar({
                   classNames={{ label: "flex items-center justify-center" }}
                 >
                   {isFullscreen ? (
-                    <Minimize className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <Minimize className="size-4" strokeWidth={1.5} aria-hidden="true" />
                   ) : (
-                    <Maximize className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <Maximize className="size-4" strokeWidth={1.5} aria-hidden="true" />
                   )}
                   <span className="sr-only">{isFullscreen ? "退出全屏" : "全屏"}</span>
                 </Button>
@@ -591,7 +651,7 @@ export function ReaderToolbar({
                 triggerStyle={{}}
                 trigger={
                   <>
-                    <Settings className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                    <Settings className="size-4" strokeWidth={1.5} aria-hidden="true" />
                     <span className="sr-only">设置</span>
                   </>
                 }
@@ -610,7 +670,7 @@ export function ReaderToolbar({
                     onThemeSettingsOpenChange(true);
                   }}
                 >
-                  <Settings className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  <Settings className="size-4" strokeWidth={1.5} aria-hidden="true" />
                   <span className="sr-only">设置</span>
                 </Button>
               )}
@@ -626,7 +686,7 @@ export function ReaderToolbar({
                   aria-label="快捷键"
                   className={chromeBtnClass}
                 >
-                  <KeyboardIcon className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                  <KeyboardIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
                 </ActionIcon>
               )}
             </div>

@@ -1,7 +1,7 @@
 @layer theme, base, mantine, components, utilities;
 
 @import "tailwindcss";
-@import "@mantine/core/styles.layer.css";
+@import "./styles/mantine.css";
 
 /* Keep app styles in one ordered import graph and retain their cascade layers. */
 @import "./styles/theme.css";

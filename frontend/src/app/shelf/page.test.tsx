@@ -5,6 +5,7 @@ import type { Book } from '@/lib/api';
 import ShelfPage from '@/app/shelf/page';
 
 const mockPush = vi.fn();
+const mockRouter = { push: mockPush };
 const mockUploadFiles = vi.fn();
 
 const mockAuthState = {
@@ -66,9 +67,7 @@ const createShelfDataState = () => ({
 let mockShelfData = createShelfDataState();
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
+  useRouter: () => mockRouter,
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -101,32 +100,52 @@ vi.mock('@/components/VirtualBookGrid', () => ({
   }) => <div>{items.map((item, index) => <div key={item.id}>{renderItem(item, index)}</div>)}</div>,
 }));
 
+const bookCardRenderProps: Array<{
+  bookId: string;
+  onRead: (bookId: string) => void;
+  onDelete: (bookId: string) => void | Promise<void>;
+  onSelectionToggle?: (bookId: string) => void;
+}> = [];
+
 vi.mock('@/components/BookCard', () => ({
   BookCard: ({
     book,
+    onRead,
+    onDelete,
     selectionMode,
     selected,
     onSelectionToggle,
   }: {
     book: Book;
+    onRead: (bookId: string) => void;
+    onDelete: (bookId: string) => void | Promise<void>;
     selectionMode?: boolean;
     selected?: boolean;
-    onSelectionToggle?: () => void;
-  }) => (
-    <div>
-      <span>{book.title}</span>
-      {selectionMode && (
-        <button type="button" onClick={onSelectionToggle}>
-          {selected ? `已选 ${book.title}` : `选择 ${book.title}`}
-        </button>
-      )}
-    </div>
-  ),
+    onSelectionToggle?: (bookId: string) => void;
+  }) => {
+    bookCardRenderProps.push({
+      bookId: book.id,
+      onRead,
+      onDelete,
+      onSelectionToggle,
+    });
+    return (
+      <div>
+        <span>{book.title}</span>
+        {selectionMode && (
+          <button type="button" onClick={() => onSelectionToggle?.(book.id)}>
+            {selected ? `已选 ${book.title}` : `选择 ${book.title}`}
+          </button>
+        )}
+      </div>
+    );
+  },
 }));
 
 describe('ShelfPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    bookCardRenderProps.length = 0;
     mockAuthState.isLoading = false;
     mockAuthState.isAuthenticated = true;
     mockAuthState.isOffline = false;
@@ -241,5 +260,55 @@ describe('ShelfPage', () => {
     }
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('region', { name: '书籍批量操作' })).not.toBeInTheDocument();
+  });
+
+  it('reserves search, sort, and category bar space while books are loading to avoid CLS', () => {
+    mockShelfData = {
+      ...mockShelfData,
+      books: [],
+      filteredBooks: [],
+      isLoadingBooks: true,
+    };
+    const { rerender } = render(<ShelfPage />);
+
+    expect(screen.getByTestId('shelf-controls-skeleton')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId('shelf-category-skeleton')).toHaveAttribute('aria-hidden', 'true');
+
+    mockShelfData = createShelfDataState();
+    rerender(<ShelfPage />);
+
+    expect(screen.queryByTestId('shelf-controls-skeleton')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('shelf-category-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: '搜索书库' })).toBeInTheDocument();
+  });
+
+  it('passes referentially stable callbacks to BookCard across selection toggles', () => {
+    const secondBook: Book = {
+      ...sampleBook,
+      id: 'book-2',
+      title: '红楼梦',
+      filename: '2.epub',
+    };
+    mockShelfData = {
+      ...mockShelfData,
+      books: [sampleBook, secondBook],
+      filteredBooks: [sampleBook, secondBook],
+      bookCounts: { all: 2, uncategorized: 0, 文学: 2 },
+    };
+    render(<ShelfPage />);
+    const initialBook1 = bookCardRenderProps.find((entry) => entry.bookId === 'book-1');
+    expect(initialBook1).toBeDefined();
+
+    bookCardRenderProps.length = 0;
+    fireEvent.click(screen.getByRole('button', { name: '批量操作' }));
+    fireEvent.click(screen.getByRole('button', { name: '选择 百年孤独' }));
+
+    const latestBook2 = [...bookCardRenderProps]
+      .reverse()
+      .find((entry) => entry.bookId === 'book-2');
+    expect(latestBook2).toBeDefined();
+    expect(latestBook2?.onRead).toBe(initialBook1?.onRead);
+    expect(latestBook2?.onDelete).toBe(initialBook1?.onDelete);
+    expect(latestBook2?.onSelectionToggle).toBe(initialBook1?.onSelectionToggle);
   });
 });

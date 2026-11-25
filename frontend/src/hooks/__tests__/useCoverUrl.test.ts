@@ -40,7 +40,10 @@ function installIntersectionObserverMock() {
     observe = vi.fn((el: Element) => {
       this.elements.push(el);
     });
-    unobserve = vi.fn();
+    unobserve = vi.fn((el: Element) => {
+      const index = this.elements.indexOf(el);
+      if (index >= 0) this.elements.splice(index, 1);
+    });
     disconnect = vi.fn();
     takeRecords = vi.fn(() => []);
 
@@ -58,6 +61,13 @@ function installIntersectionObserverMock() {
         this,
       );
     }
+
+    triggerElement(target: Element, isIntersecting: boolean) {
+      this.callback(
+        [{ isIntersecting, target } as IntersectionObserverEntry],
+        this,
+      );
+    }
   }
 
   vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
@@ -67,12 +77,14 @@ function CoverProbe({
   bookId,
   coverVersion,
   size,
+  enabled = true,
 }: {
   bookId: string;
   coverVersion?: string;
   size?: 'thumb';
+  enabled?: boolean;
 }) {
-  const { coverUrl, ref } = useCoverUrl(bookId, coverVersion, size);
+  const { coverUrl, ref } = useCoverUrl(bookId, coverVersion, size, enabled);
   return React.createElement(
     'div',
     { ref, 'data-testid': 'cover-probe', 'data-cover-url': coverUrl ?? '' },
@@ -332,14 +344,15 @@ describe('useCoverUrl hook', () => {
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
   });
 
-  it('handles missing cover (null) and fetch rejection gracefully, allowing retry', async () => {
+  it('caches missing cover (null) across remounts while retrying transient rejections', async () => {
     vi.mocked(api.fetchCover)
-      .mockResolvedValueOnce(null)
       .mockRejectedValueOnce(new Error('temporary error'))
-      .mockResolvedValueOnce(new Blob(['ok']));
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(new Blob(['uploaded']));
 
-    render(React.createElement(CoverProbe, { bookId: 'book-retry' }));
+    const firstRender = render(React.createElement(CoverProbe, { bookId: 'book-retry' }));
 
+    // Transient rejection is not cached and retries on next intersection
     await act(async () => {
       observers[0].trigger(true);
       await Promise.resolve();
@@ -348,19 +361,54 @@ describe('useCoverUrl hook', () => {
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('empty');
     expect(getCoverCacheSizeForTests()).toBe(0);
 
+    // Definitive missing cover (null) is cached for this cacheKey
     await act(async () => {
       observers[0].trigger(true);
       await Promise.resolve();
       await Promise.resolve();
     });
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('empty');
+    expect(api.fetchCover).toHaveBeenCalledTimes(2);
+    firstRender.unmount();
 
+    // Remounting with the same key does not observe or refetch
+    const observerCountAfterFirst = observers.length;
+    const secondRender = render(React.createElement(CoverProbe, { bookId: 'book-retry' }));
+    expect(observers).toHaveLength(observerCountAfterFirst);
+    expect(api.fetchCover).toHaveBeenCalledTimes(2);
+    secondRender.unmount();
+
+    // New coverVersion invalidates the missing cache key and fetches the uploaded cover
+    render(React.createElement(CoverProbe, { bookId: 'book-retry', coverVersion: 'v2' }));
     await act(async () => {
-      observers[0].trigger(true);
+      observers[observers.length - 1].trigger(true);
       await Promise.resolve();
       await Promise.resolve();
     });
     expect(screen.getByTestId('cover-probe')).toHaveTextContent('blob:cover-1');
+    expect(api.fetchCover).toHaveBeenCalledTimes(3);
+  });
+
+  it('shares one IntersectionObserver across concurrent cards and skips observation when disabled', async () => {
+    vi.mocked(api.fetchCover).mockResolvedValue(new Blob(['img']));
+
+    const { unmount } = render(
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(CoverProbe, { bookId: 'shared-1', size: 'thumb' }),
+        React.createElement(CoverProbe, { bookId: 'shared-2', size: 'thumb' }),
+        React.createElement(CoverProbe, { bookId: 'disabled-3', size: 'thumb', enabled: false }),
+      ),
+    );
+
+    expect(observers).toHaveLength(1);
+    expect(observers[0].observe).toHaveBeenCalledTimes(2);
+    expect(api.fetchCover).not.toHaveBeenCalled();
+
+    unmount();
+    expect(observers[0].unobserve).toHaveBeenCalledTimes(2);
+    expect(observers[0].disconnect).toHaveBeenCalledTimes(1);
   });
 
   it('disconnects observer and aborts in-flight fetch on unmount without leaking state', async () => {

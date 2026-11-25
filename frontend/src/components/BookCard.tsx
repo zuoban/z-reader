@@ -21,8 +21,8 @@ interface BookCardProps {
   index: number;
   categories: string[];
   bookCounts: Record<string, number>;
-  onRead: () => void;
-  onDelete: () => void | Promise<void>;
+  onRead: (bookId: string) => void;
+  onDelete: (bookId: string) => void | Promise<void>;
   onUpdate: () => void;
   isDeleting: boolean;
   formatSize: (bytes: number) => string;
@@ -30,7 +30,7 @@ interface BookCardProps {
   searchQuery?: string;
   selectionMode?: boolean;
   selected?: boolean;
-  onSelectionToggle?: () => void;
+  onSelectionToggle?: (bookId: string) => void;
 }
 
 function HighlightedText({
@@ -57,7 +57,7 @@ function HighlightedText({
     parts.push(
       <mark
         key={`${matchIndex}-${matchEnd}`}
-        className="rounded-[0.35rem] bg-primary/14 px-0.5 text-inherit decoration-primary/40"
+        className="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
       >
         {text.slice(matchIndex, matchEnd)}
       </mark>
@@ -95,17 +95,19 @@ function formatRelativeTime(dateString: string): string {
   return `${diffYears}年前`;
 }
 
+const BOOK_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
 function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return '未知';
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
+  return BOOK_DATE_TIME_FORMATTER.format(date);
 }
 
 /** Match shelf grid density: 2 cols mobile, ~3–4 sm, denser on desktop. */
@@ -166,7 +168,7 @@ function BookCoverFace({
       style={{ '--cover-color': coverColor } as CSSProperties}
     >
       <span className="mx-auto h-px w-5 bg-current/35" />
-      <p className="line-clamp-4 min-h-0 max-h-full [overflow-wrap:anywhere] text-balance font-heading text-base font-semibold leading-[1.38] sm:text-[18px]">
+      <p className="line-clamp-4 min-h-0 max-h-full [overflow-wrap:anywhere] text-balance font-heading text-base font-normal leading-[1.38] sm:text-lg">
         {titleLabel}
       </p>
       <span className="mx-auto max-w-full truncate border-t border-current/20 px-2 pt-1 text-[11px] leading-4 opacity-80">
@@ -195,10 +197,20 @@ export const BookCard = memo(function BookCard({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const hasPotentialCover = Boolean(
+    book.cover_thumb_path
+    || book.cover_path
+    || (
+      !book.cover_missing
+      && !book.processing_state
+      && (!book.format || book.format.toLowerCase() === 'epub')
+    )
+  );
   const { coverUrl, ref: coverRef } = useCoverUrl(
     book.id,
     book.cover_thumb_path || book.cover_path,
-    'thumb'
+    'thumb',
+    hasPotentialCover
   );
 
   const formatLabel = book.format ? book.format.toUpperCase() : '电子书';
@@ -221,17 +233,27 @@ export const BookCard = memo(function BookCard({
   function activateCard() {
     if (isDeleting) return;
     if (selectionMode) {
-      onSelectionToggle?.();
+      onSelectionToggle?.(book.id);
       return;
     }
 
-    onRead();
+    onRead(book.id);
+  }
+
+  function handleRead() {
+    if (isDeleting) return;
+    onRead(book.id);
+  }
+
+  function handleSelectionToggle() {
+    if (isDeleting) return;
+    onSelectionToggle?.(book.id);
   }
 
   async function handleConfirmDelete() {
     if (isDeleting) return;
     try {
-      await onDelete();
+      await onDelete(book.id);
     } finally {
       setDeleteConfirmOpen(false);
     }
@@ -263,14 +285,14 @@ export const BookCard = memo(function BookCard({
             />
             {selectionMode && (
               <div className="shelf-book-selection" aria-hidden="true">
-                {selected && <Check className="h-4 w-4" strokeWidth={2.25} />}
+                {selected && <Check className="h-4 w-4" strokeWidth={1.75} />}
               </div>
             )}
             {book.processing_state === 'pending' && (
               <span className="absolute left-2 top-2 z-10 inline-flex max-w-[calc(100%-3rem)] items-center gap-1 rounded-md border border-border/80 bg-card/92 px-2 py-1 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-xs">
                 <Loader2
                   className="h-3 w-3 shrink-0 animate-spin text-primary motion-reduce:animate-none"
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   aria-hidden="true"
                 />
                 <span className="truncate">正在生成封面</span>
@@ -281,34 +303,34 @@ export const BookCard = memo(function BookCard({
           <div className="shelf-book-details">
             <div className="min-w-0">
               <h2
-                className="line-clamp-2 wrap-anywhere font-heading text-base font-semibold leading-5 text-foreground transition-colors sm:text-[17px]"
+                className="line-clamp-2 wrap-anywhere font-sans text-sm font-medium leading-5 text-foreground transition-colors sm:text-[15px]"
                 title={titleLabel}
               >
                 <HighlightedText text={titleLabel} query={searchQuery} />
               </h2>
               <p
-                className="mt-0.5 truncate text-xs leading-4 text-subtle-foreground"
+                className="mt-1 truncate text-xs leading-4 text-muted-foreground"
                 title={authorLabel}
               >
                 <HighlightedText text={authorLabel} query={searchQuery} />
               </p>
             </div>
 
-            <div className="min-w-0 space-y-1">
-              <div className="flex items-center justify-between gap-2 text-xs leading-4 text-subtle-foreground">
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
                 <span className="min-w-0 flex-1 truncate" title={categoryLabel}>
                   {categoryLabel}
                 </span>
                 <p className="flex min-w-0 max-w-[65%] items-baseline gap-1" title={progressMetaLabel}>
                   {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
                   {progressValue > 0 && (
-                    <span className="shrink-0 font-semibold tabular-nums text-primary">
+                    <span className="shrink-0 font-mono text-xs font-medium tabular-nums text-primary">
                       {progressDisplay}
                     </span>
                   )}
                 </p>
               </div>
-              <div className="h-1 overflow-hidden rounded-full bg-foreground/10 dark:bg-foreground/15" aria-hidden="true">
+              <div className="h-[2px] overflow-hidden rounded-full bg-border" aria-hidden="true">
                 <div
                   className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
                   style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}
@@ -323,14 +345,15 @@ export const BookCard = memo(function BookCard({
             <button
               type="button"
               disabled={isDeleting}
-              onClick={onSelectionToggle}
+              onClick={handleSelectionToggle}
               aria-pressed={selected}
               className="shelf-book-action"
             >
               <Check
                 aria-hidden="true"
+                strokeWidth={1.5}
                 className={cn(
-                  'h-3.5 w-3.5 shrink-0',
+                  'size-4 shrink-0',
                   selected ? 'text-primary' : 'opacity-50'
                 )}
               />
@@ -341,18 +364,18 @@ export const BookCard = memo(function BookCard({
               type="button"
               disabled={isDeleting}
               aria-busy={isDeleting || undefined}
-              onClick={onRead}
+              onClick={handleRead}
               aria-label={isDeleting ? `正在删除：${titleLabel}` : `${readActionLabel}：${titleLabel}`}
               className="shelf-book-action"
             >
               {isDeleting ? (
                 <Loader2
-                  className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
-                  strokeWidth={1.75}
+                  className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
+                  strokeWidth={1.5}
                   aria-hidden="true"
                 />
               ) : (
-                <BookOpen className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                <BookOpen className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
               )}
               <span className="truncate">{isDeleting ? '删除中…' : readActionLabel}</span>
             </button>

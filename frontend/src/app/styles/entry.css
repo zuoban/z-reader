@@ -23,7 +23,8 @@
   .entry-nav-link:focus-visible,
   .entry-icon-btn:focus-visible,
   .entry-header-cta:focus-visible,
-  .reader-desk-swatch-btn:focus-visible {
+  .reader-desk-swatch-btn:focus-visible,
+  .reader-desk-book-tab:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -53,22 +54,14 @@
 
   .entry-action {
     height: var(--entry-control-size);
-    box-shadow: none;
   }
 
   .entry-primary-action {
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%), var(--paper-shadow-control);
   }
 
   .dark .entry-primary-action {
-    background: #ededeb;
-    color: #141413;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 32%);
-  }
-
-  .dark .entry-primary-action:enabled:hover,
-  .dark a.entry-primary-action:hover {
-    background: #ffffff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
   }
 
   .entry-action:disabled {
@@ -137,12 +130,12 @@
   }
 
   .landing-hero {
-    @apply grid items-center gap-10 pt-10 pb-14 sm:pt-12 sm:pb-16 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14 lg:py-12 xl:gap-16 xl:py-16;
+    @apply grid items-center gap-10 py-10 sm:py-14 lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14 lg:py-16 xl:gap-20;
   }
 
   .landing-title {
     font-size: clamp(2.25rem, 4.4vw, 3.75rem);
-    line-height: 1.12;
+    line-height: 1.1;
     letter-spacing: -0.025em;
   }
 
@@ -150,44 +143,45 @@
     @apply mt-8 flex flex-wrap gap-x-8 gap-y-4 border-t border-border pt-6 lg:mt-10;
   }
 
-  .entry-catalog-item {
-    @apply grid grid-cols-[2rem_minmax(0,1fr)] gap-4 border-t border-border py-6;
+  .entry-catalog-row {
+    @apply grid grid-cols-[2rem_minmax(0,1fr)] gap-x-4 gap-y-1.5 border-b border-border py-5 lg:grid-cols-[2.25rem_minmax(0,12rem)_minmax(0,1fr)] lg:items-baseline lg:gap-x-6 lg:py-6;
   }
 
   /* Interactive reading desk preview on landing page */
   .reader-desk-shell {
-    @apply rounded-2xl border border-border bg-card p-5;
-    box-shadow: 0 1px 2px rgb(24 23 20 / 5%), 0 16px 36px -22px rgb(24 23 20 / 12%);
+    @apply rounded-2xl border border-border bg-card p-4 sm:p-5;
+    box-shadow: var(--paper-shadow-panel), 0 16px 36px -24px rgb(28 26 23 / 10%);
   }
 
   .dark .reader-desk-shell {
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
   }
 
   .reader-desk-swatch-btn {
-    @apply inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-transparent px-2 text-xs text-muted-foreground;
+    @apply inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-[6px] border border-transparent px-2 text-xs text-muted-foreground;
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
       color var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-desk-swatch-btn:hover {
-    @apply bg-secondary text-foreground;
+    @apply text-foreground;
   }
 
   .reader-desk-swatch-btn-active,
   html:not(.dark) [data-paper-mode="auto"] .reader-desk-swatch-btn[data-default-for="light"],
   html.dark [data-paper-mode="auto"] .reader-desk-swatch-btn[data-default-for="dark"] {
-    @apply border-border bg-secondary font-medium text-foreground;
+    @apply border-border bg-card font-medium text-foreground;
+    box-shadow: var(--paper-shadow-control);
   }
 
   .reader-desk-page {
-    --paper-bg: #f8f7f4;
-    --paper-fg: #1c1b19;
-    --paper-muted: #6b6860;
-    --paper-border: #e6e4de;
+    --paper-bg: #f7f5f0;
+    --paper-fg: #1c1a17;
+    --paper-muted: #6b675e;
+    --paper-border: #e5e1d8;
     --paper-accent: #8e4934;
-    @apply relative overflow-hidden rounded-lg border px-5 py-4 sm:px-6 sm:py-5;
+    @apply relative overflow-hidden rounded-lg border px-5 py-5 sm:px-7 sm:py-6;
     background-color: var(--paper-bg);
     color: var(--paper-fg);
     border-color: var(--paper-border);
@@ -198,18 +192,18 @@
 
   .dark .reader-desk-page[data-paper-preset="auto"],
   .reader-desk-page[data-paper-preset="dark"] {
-    --paper-bg: #141413;
-    --paper-fg: #ededeb;
-    --paper-muted: #9a9891;
-    --paper-border: #2a2a27;
+    --paper-bg: #141312;
+    --paper-fg: #edeae3;
+    --paper-muted: #9b978d;
+    --paper-border: #2a2926;
     --paper-accent: #e4a186;
   }
 
   .reader-desk-page[data-paper-preset="light"] {
-    --paper-bg: #f8f7f4;
-    --paper-fg: #1c1b19;
-    --paper-muted: #6b6860;
-    --paper-border: #e6e4de;
+    --paper-bg: #f7f5f0;
+    --paper-fg: #1c1a17;
+    --paper-muted: #6b675e;
+    --paper-border: #e5e1d8;
     --paper-accent: #8e4934;
   }
 
@@ -248,7 +242,7 @@
   }
 
   .reader-desk-excerpt {
-    @apply mt-3.5 space-y-2.5 font-serif text-sm leading-[1.85];
+    @apply mt-4 space-y-3 font-serif text-[15px] leading-[1.9];
     color: var(--paper-fg);
   }
 
@@ -278,6 +272,43 @@
     background-color: var(--paper-accent);
     transition: width 240ms var(--paper-ease-soft),
       background-color var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .reader-desk-book-tab {
+    @apply flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-transparent bg-surface-subtle/60 p-2;
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-desk-book-tab:hover {
+    @apply border-border bg-secondary/80;
+  }
+
+  .reader-desk-book-tab-active {
+    @apply border-border bg-secondary;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
+  }
+
+  .dark .reader-desk-book-tab-active {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reader-desk-book-tab:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .reader-desk-book-swatch {
+    --cover-bg: var(--cover-color-light, #37584b);
+    @apply relative h-9 w-6 shrink-0 overflow-hidden rounded-[3px];
+    background: var(--cover-bg);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+  }
+
+  .dark .reader-desk-book-swatch {
+    --cover-bg: var(--cover-color-dark, #2d473d);
   }
 
   /* Compact shelf preview (login) and shared book covers */

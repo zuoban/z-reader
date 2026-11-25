@@ -48,7 +48,7 @@
   }
 
   .shelf-filter-chip {
-    @apply inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-9;
+    @apply inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-lg border border-transparent px-3 text-[13px] font-medium sm:min-h-8;
     color: var(--muted-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -74,11 +74,9 @@
   }
 
   .shelf-batch-bar {
-    background: color-mix(in srgb, var(--popover) 94%, transparent);
+    background: var(--popover);
     border: 1px solid var(--border);
     box-shadow: var(--paper-shadow-floating);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .shelf-dropzone-overlay {
@@ -124,9 +122,7 @@
   }
 
   .shelf-header {
-    background: color-mix(in srgb, var(--shelf-app-bg) 92%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--shelf-app-bg) 96%, transparent);
   }
 
   .shelf-book-card {
@@ -145,12 +141,8 @@
 
   @media (hover: hover) {
     .shelf-book-card:not([data-deleting="true"]):hover {
-      --book-card-edge: color-mix(in srgb, var(--primary) 32%, var(--border));
-      box-shadow: inset 0 0 0 1px var(--book-card-edge), 0 5px 14px -6px var(--paper-shadow);
-    }
-
-    .shelf-book-open:enabled:hover h2 {
-      color: var(--primary);
+      --book-card-edge: color-mix(in srgb, var(--foreground) 18%, var(--border));
+      box-shadow: inset 0 0 0 1px var(--book-card-edge), var(--paper-shadow-panel);
     }
   }
 
@@ -172,7 +164,7 @@
 
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .shelf-book-open:enabled:hover .shelf-book-cover-media {
-      transform: scale(1.025);
+      transform: scale(1.015);
     }
   }
 
@@ -218,17 +210,16 @@
 
   /* Details (100px) + actions (44px) match SHELF_CARD_BODY_HEIGHT_PX. */
   .shelf-book-details {
-    @apply flex h-25 w-full flex-col justify-between px-2.5 pt-2.5 pb-2 sm:px-3;
+    @apply flex h-25 w-full flex-col justify-between px-3 pt-3 pb-1.5;
   }
 
   .shelf-book-actions {
-    @apply flex h-11 items-center justify-between gap-0.5 rounded-b-xl px-1.5 sm:gap-1 sm:px-2;
-    box-shadow: inset 0 1px var(--book-card-edge);
+    @apply flex h-11 items-center justify-between gap-1 rounded-b-xl px-2 pb-1;
   }
 
   .shelf-book-action {
-    @apply inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-lg px-1 text-xs font-semibold sm:h-9 sm:gap-1.5 sm:px-2;
-    color: var(--primary);
+    @apply inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-xs font-medium sm:h-8 sm:px-2;
+    color: var(--subtle-foreground);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       color var(--paper-duration-fast) var(--paper-ease-soft),
       transform var(--paper-duration-fast) var(--paper-ease-soft);
@@ -236,8 +227,8 @@
 
   .shelf-book-action:enabled:hover,
   .shelf-book-action:focus-visible {
-    background: var(--accent);
-    color: var(--accent-foreground);
+    background: var(--secondary);
+    color: var(--primary);
   }
 
   .shelf-book-action:focus-visible {

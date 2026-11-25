@@ -8,6 +8,7 @@ import { getAccessGeneration } from '@/lib/library-access';
 // the browser with parallel HTTP requests (browser limit ~6 per domain).
 const MAX_CONCURRENT = 6;
 const MAX_CACHED_COVERS = 200;
+const MAX_CACHED_MISSING_COVERS = 500;
 /** Start loading slightly before cards enter the viewport. */
 const COVER_ROOT_MARGIN = '240px 0px';
 
@@ -68,6 +69,52 @@ function processQueue() {
 // data until explicitly revoked, so an unbounded cache leaks memory on large
 // libraries.
 const coverUrlCache = new Map<string, string>();
+const missingCoverCache = new Set<string>();
+
+type ObserverCallback = (isIntersecting: boolean) => void;
+let sharedObserver: IntersectionObserver | null = null;
+const observedElements = new Map<Element, ObserverCallback>();
+
+function observeCoverElement(element: Element, callback: ObserverCallback): () => void {
+  if (!sharedObserver) {
+    sharedObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          observedElements.get(entry.target)?.(entry.isIntersecting);
+        }
+      },
+      { root: null, rootMargin: COVER_ROOT_MARGIN, threshold: 0 }
+    );
+  }
+  observedElements.set(element, callback);
+  sharedObserver.observe(element);
+
+  return () => {
+    observedElements.delete(element);
+    sharedObserver?.unobserve(element);
+    if (observedElements.size === 0 && sharedObserver) {
+      sharedObserver.disconnect();
+      sharedObserver = null;
+    }
+  };
+}
+
+function isMissingCoverCached(cacheKey: string): boolean {
+  if (!missingCoverCache.has(cacheKey)) return false;
+  missingCoverCache.delete(cacheKey);
+  missingCoverCache.add(cacheKey);
+  return true;
+}
+
+function markMissingCoverCached(cacheKey: string) {
+  missingCoverCache.delete(cacheKey);
+  missingCoverCache.add(cacheKey);
+  while (missingCoverCache.size > MAX_CACHED_MISSING_COVERS) {
+    const oldest = missingCoverCache.values().next().value as string | undefined;
+    if (!oldest) break;
+    missingCoverCache.delete(oldest);
+  }
+}
 
 function getCachedCoverUrl(cacheKey: string): string | undefined {
   const url = coverUrlCache.get(cacheKey);
@@ -78,6 +125,11 @@ function getCachedCoverUrl(cacheKey: string): string | undefined {
 }
 
 function setCachedCoverUrl(bookKeyPrefix: string, cacheKey: string, url: string) {
+  for (const key of missingCoverCache) {
+    if (key.startsWith(bookKeyPrefix)) {
+      missingCoverCache.delete(key);
+    }
+  }
   for (const [key, cachedUrl] of coverUrlCache) {
     if (key !== cacheKey && key.startsWith(bookKeyPrefix)) {
       coverUrlCache.delete(key);
@@ -103,6 +155,7 @@ export function clearCoverUrlCache() {
     URL.revokeObjectURL(url);
   }
   coverUrlCache.clear();
+  missingCoverCache.clear();
 }
 
 export function getCoverCacheSizeForTests() {
@@ -117,7 +170,8 @@ export function getCoverCacheSizeForTests() {
 export function useCoverUrl(
   bookId: string,
   coverVersion?: string,
-  size?: 'thumb'
+  size?: 'thumb',
+  enabled = true
 ): {
   coverUrl: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
@@ -130,12 +184,12 @@ export function useCoverUrl(
     url: string;
   } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
-  const coverUrl = generation === getAccessGeneration()
+  const coverUrl = enabled && generation === getAccessGeneration()
     ? getCachedCoverUrl(cacheKey) ?? (fetchedCover?.cacheKey === cacheKey ? fetchedCover.url : null)
     : null;
 
   useEffect(() => {
-    if (getCachedCoverUrl(cacheKey)) {
+    if (!enabled || getCachedCoverUrl(cacheKey) || isMissingCoverCached(cacheKey)) {
       return;
     }
 
@@ -154,14 +208,18 @@ export function useCoverUrl(
 
     const startFetch = () => {
       if (disposed || generation !== getAccessGeneration() || pendingRequest) return;
-      if (getCachedCoverUrl(cacheKey)) return;
+      if (getCachedCoverUrl(cacheKey) || isMissingCoverCached(cacheKey)) return;
 
       const request: CoverRequest = {};
       pendingRequest = request;
       request.cancel = scheduleCoverFetch(async (signal) => {
         try {
           const blob = await api.fetchCover(bookId, size, signal);
-          if (!blob || disposed || signal.aborted || generation !== getAccessGeneration()) return;
+          if (disposed || signal.aborted || generation !== getAccessGeneration()) return;
+          if (!blob) {
+            markMissingCoverCached(cacheKey);
+            return;
+          }
 
           const url = URL.createObjectURL(blob);
           setCachedCoverUrl(bookKeyPrefix, cacheKey, url);
@@ -174,28 +232,23 @@ export function useCoverUrl(
       });
     };
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          startFetch();
-          return;
-        }
-        // Left the prefetch band before the cover was cached — free the slot.
-        if (!getCachedCoverUrl(cacheKey)) {
-          stopFetch();
-        }
-      },
-      { root: null, rootMargin: COVER_ROOT_MARGIN, threshold: 0 }
-    );
-
-    observer.observe(element);
+    const unobserve = observeCoverElement(element, (isIntersecting) => {
+      if (isIntersecting) {
+        startFetch();
+        return;
+      }
+      // Left the prefetch band before the cover was cached — free the slot.
+      if (!getCachedCoverUrl(cacheKey) && !isMissingCoverCached(cacheKey)) {
+        stopFetch();
+      }
+    });
 
     return () => {
       disposed = true;
-      observer.disconnect();
+      unobserve();
       stopFetch();
     };
-  }, [bookId, bookKeyPrefix, cacheKey, generation, size]);
+  }, [bookId, bookKeyPrefix, cacheKey, enabled, generation, size]);
 
   return { coverUrl, ref };
 }

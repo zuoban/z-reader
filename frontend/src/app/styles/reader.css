@@ -144,10 +144,8 @@
   }
 
   .reader-chrome-surface {
-    background: color-mix(in srgb, var(--reader-chrome-bg) 90%, transparent);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-color: color-mix(in srgb, var(--reader-chrome-rule) 42%, transparent);
+    background: color-mix(in srgb, var(--reader-chrome-bg) 96%, transparent);
+    border-color: color-mix(in srgb, var(--reader-chrome-rule) 48%, transparent);
     color: var(--reader-chrome-ink);
     box-shadow: none;
   }
@@ -374,12 +372,10 @@
   }
 
   .reader-resume-card {
-    background: color-mix(in srgb, var(--reader-panel-bg) 94%, transparent);
+    background: color-mix(in srgb, var(--reader-panel-bg) 98%, transparent);
     border: 1px solid var(--reader-panel-border);
     color: var(--reader-panel-fg);
     box-shadow: var(--paper-shadow-floating);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .reader-tts-primary {
@@ -776,7 +772,7 @@
   }
 
   .reader-status-trigger {
-    @apply relative flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-full px-2.5 text-[11px] font-normal tracking-[0.04em] tabular-nums;
+    @apply relative flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-full px-2.5 font-mono text-xs font-normal tracking-normal tabular-nums;
     color: var(--reader-status-muted);
     transition: color var(--paper-duration-fast) var(--paper-ease-soft),
       transform var(--paper-duration-fast) var(--paper-ease-soft);
@@ -831,9 +827,7 @@
   }
 
   .reader-status-bar {
-    background: color-mix(in srgb, var(--reader-status-bg) 90%, transparent);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: color-mix(in srgb, var(--reader-status-bg) 96%, transparent);
     border-color: color-mix(in srgb, var(--reader-status-rule) 55%, transparent);
     color: var(--reader-status-muted);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),

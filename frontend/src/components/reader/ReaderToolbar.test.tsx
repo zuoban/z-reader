@@ -406,6 +406,18 @@ describe('ReaderToolbar', () => {
     expect(settingsButton).toHaveAttribute('aria-expanded', 'false');
     expect(settingsButton).toHaveAttribute('aria-haspopup', 'dialog');
 
+    const tocButton = desktop.getByTitle('目录');
+    expect(tocButton).toHaveAttribute('aria-expanded', 'false');
+    expect(tocButton).toHaveAttribute('aria-haspopup', 'dialog');
+    fireEvent.click(tocButton);
+    expect(baseProps.onTocOpenChange).toHaveBeenCalledWith(true);
+
+    const bookmarksButton = desktop.getByTitle('书签');
+    expect(bookmarksButton).toHaveAttribute('aria-expanded', 'false');
+    expect(bookmarksButton).toHaveAttribute('aria-haspopup', 'dialog');
+    fireEvent.click(bookmarksButton);
+    expect(baseProps.onBookmarksOpenChange).toHaveBeenCalledWith(true);
+
     const mobileMenu = container.querySelector('.reader-toolbar-menu') as HTMLElement;
     expect(mobileMenu).toHaveAttribute('inert');
 

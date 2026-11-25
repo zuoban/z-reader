@@ -1,7 +1,8 @@
 import { renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FONT_FAMILY_OPTIONS, useReaderTheme } from '@/hooks/useReaderTheme';
+import { getReaderFontFaces } from '@/lib/reader-fonts';
 
 describe('reader font stylesheets', () => {
   const styles: HTMLStyleElement[] = [];
@@ -74,15 +75,9 @@ describe('reader font stylesheets', () => {
     expect(css).toContain(`${origin}/_next/static/media/noto-400.woff2?v=4#face`);
     expect(css).toContain(`${origin}/_next/static/media/noto-compat.woff2`);
     expect(css).toContain(`${origin}/_next/static/media/crimson.woff2`);
-    expect(css).toContain(`${origin}/_next/static/media/wenkai-tc-400.woff2`);
-    expect(css).toContain(`${origin}/_next/static/media/wenkai-tc-700.woff2`);
+    expect(css).not.toContain('wenkai-tc-400.woff2');
+    expect(css).not.toContain('wenkai-tc-700.woff2');
     expect(css).not.toContain('wenkai-full.woff2');
-    const wenkaiFaces = (css.match(/@font-face\s*\{[^}]*\}/g) ?? [])
-      .filter((rule) => rule.includes("'LXGW WenKai TC'"));
-    expect(wenkaiFaces).toHaveLength(2);
-    for (const face of wenkaiFaces) expect(face).toContain('unicode-range: U+4E00-4EFF');
-    expect(wenkaiFaces[0]).toContain('font-weight: 400');
-    expect(wenkaiFaces[1]).toContain('font-weight: 700');
     expect(css).toContain('unicode-range: U+4E00-4EFF');
     expect(css).toContain('unicode-range: U+3018-301B');
     expect(css).toContain('font-display: swap');
@@ -136,8 +131,57 @@ describe('reader font stylesheets', () => {
     expect(FONT_FAMILY_OPTIONS.classic.stack.split(',')[0]).toBe('"LXGW WenKai TC"');
     expect(classicFace).toContain('unicode-range: U+4E00-9FFF');
     expect(classicFace).toContain('/_next/static/media/wenkai-tc-cjk.woff2');
-    expect(editorialFace).toContain('/_next/static/media/noto-cjk.woff2');
+    expect(editorialFace).toBeUndefined();
     expect(css).toContain('font-family: "LXGW WenKai TC", "Kaiti SC", KaiTi, serif !important');
+  });
+
+  it('omits bundled @font-face rules when humanist font family is active', () => {
+    localStorage.setItem('z-reader-theme', JSON.stringify({ fontFamily: 'humanist' }));
+    addStyles(`
+      @font-face {
+        font-family: 'Noto Serif SC'; font-weight: 400;
+        src: url('/_next/static/media/noto-cjk.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'LXGW WenKai TC'; font-weight: 400;
+        src: url('/_next/static/media/wenkai-tc-cjk.woff2') format('woff2');
+      }
+    `);
+    const { result } = renderHook(() => useReaderTheme());
+    const css = result.current.getStylesheet();
+
+    expect(css).not.toContain('@font-face');
+    expect(css).toContain('font-family: "Noto Sans SC"');
+  });
+
+  it('caches parsed document font faces until stylesheets change', () => {
+    const sheet = addStyles(`
+      @font-face {
+        font-family: 'Noto Serif SC'; font-weight: 400;
+        src: url('/_next/static/media/noto-cache.woff2') format('woff2');
+      }
+    `);
+    const faceRule = sheet.cssRules[0];
+    const getPropertyValueSpy = vi.spyOn(
+      (faceRule as CSSFontFaceRule).style,
+      'getPropertyValue',
+    );
+
+    const first = getReaderFontFaces(document, ['noto serif sc']);
+    const second = getReaderFontFaces(document, ['noto serif sc']);
+
+    expect(first).toContain('noto-cache.woff2');
+    expect(second).toBe(first);
+    expect(getPropertyValueSpy).toHaveBeenCalledTimes(1);
+
+    addStyles(`
+      @font-face {
+        font-family: 'LXGW WenKai TC'; font-weight: 400;
+        src: url('/_next/static/media/wenkai-added.woff2') format('woff2');
+      }
+    `);
+    const classic = getReaderFontFaces(document, ['lxgw wenkai tc']);
+    expect(classic).toContain('wenkai-added.woff2');
   });
 
   it('syncs iframe color-scheme and link focus-visible outline with the active reader preset', () => {

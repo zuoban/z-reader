@@ -10,10 +10,10 @@ export function LibraryPreview({ compact = false }: { compact?: boolean }) {
   return (
     <figure className={compact ? 'library-preview library-preview-compact' : 'library-preview'}>
       <figcaption className="preview-caption">
-        书架示例
-        <span>{books.length} 本</span>
+        <span>藏书示例</span>
+        <span className="font-mono text-xs tabular-nums">{books.length} 卷</span>
       </figcaption>
-      <ul role="list" className="mt-4 grid grid-cols-3 gap-3 sm:gap-4">
+      <ul role="list" className="mt-5 grid grid-cols-3 gap-3 sm:gap-4">
         {books.map((book) => (
           <li
             key={book.title}
@@ -35,22 +35,17 @@ export function LibraryPreview({ compact = false }: { compact?: boolean }) {
           </li>
         ))}
       </ul>
-      {!compact && (
-        <div className="mt-5 border-t border-border pt-4">
-          <div className="flex items-baseline justify-between gap-3">
-            <div>
-              <p className="text-xs text-muted-foreground">阅读进度示例</p>
-              <p className="mt-1 font-heading text-base font-semibold">
-                西游记 · 第十四回
-              </p>
-            </div>
-            <span className="text-sm font-medium text-primary tabular-nums">54%</span>
-          </div>
-          <div aria-hidden="true" className="mt-3 h-[2px] overflow-hidden rounded-full bg-border">
-            <div className="h-full w-[54%] rounded-full bg-primary" />
-          </div>
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="truncate text-xs text-subtle-foreground">
+            西游记 · 第十四回
+          </p>
+          <span className="shrink-0 font-mono text-xs font-medium text-primary tabular-nums">54%</span>
         </div>
-      )}
+        <div aria-hidden="true" className="mt-2 h-[2px] overflow-hidden rounded-full bg-border">
+          <div className="h-full w-[54%] rounded-full bg-primary" />
+        </div>
+      </div>
     </figure>
   );
 }

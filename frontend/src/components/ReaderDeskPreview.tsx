@@ -68,7 +68,7 @@ const PAPER_PRESETS: readonly {
   swatch: string;
   border: string;
 }[] = [
-  { id: 'light', label: '净白', swatch: '#f8f7f4', border: '#d8d5cd' },
+  { id: 'light', label: '净白', swatch: '#f7f5f0', border: '#d6d1c6' },
   { id: 'sepia', label: '旧书', swatch: '#f3ead7', border: '#cbb58d' },
   { id: 'green', label: '苔纸', swatch: '#e6ede1', border: '#b6c7b0' },
   { id: 'dark', label: '夜读', swatch: '#1c1b19', border: '#5a5852' },
@@ -86,18 +86,18 @@ export function ReaderDeskPreview() {
       className="reader-desk-shell"
       aria-label="书页排版与书架续读示例"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-        <figcaption className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">上次续读</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+        <figcaption className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{activeBook.title}</span>
           <span aria-hidden="true">·</span>
-          <span className="tabular-nums">{activeBook.title}</span>
+          <span className="truncate">{activeBook.author}</span>
         </figcaption>
 
         <div
           role="group"
           aria-label="切换书页纸面"
           data-paper-mode={selectedPreset ?? 'auto'}
-          className="flex items-center gap-1"
+          className="flex items-center gap-0.5 rounded-lg bg-surface-subtle p-0.5"
         >
           {PAPER_PRESETS.map((preset) => {
             const isSelected = selectedPreset === preset.id;
@@ -163,13 +163,8 @@ export function ReaderDeskPreview() {
         </div>
       </div>
 
-      <div className="mt-4 border-t border-border pt-4">
-        <div className="mb-2.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>在读书架</span>
-          <span>点击书封切换</span>
-        </div>
-
-        <ul role="list" className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="mt-4 pt-1">
+        <ul role="list" className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="示例藏书切换">
           {PREVIEW_BOOKS.map((book) => {
             const isActive = book.id === activeBook.id;
             return (
@@ -179,42 +174,39 @@ export function ReaderDeskPreview() {
                   aria-pressed={isActive}
                   onClick={() => setActiveBookId(book.id)}
                   className={cn(
-                    'preview-cover preview-cover-interactive book-cover-spine w-full text-left',
-                    isActive && 'preview-cover-active'
+                    'reader-desk-book-tab',
+                    isActive && 'reader-desk-book-tab-active'
                   )}
-                  style={
-                    {
-                      '--cover-color-light': book.colorLight,
-                      '--cover-color-dark': book.colorDark,
-                    } as CSSProperties
-                  }
                 >
                   <span
-                    className="preview-cover-title"
-                    data-long={book.title.length >= 4 ? 'true' : undefined}
-                  >
-                    {book.title}
+                    aria-hidden="true"
+                    className="reader-desk-book-swatch book-cover-spine"
+                    style={
+                      {
+                        '--cover-color-light': book.colorLight,
+                        '--cover-color-dark': book.colorDark,
+                      } as CSSProperties
+                    }
+                  />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span
+                      className={cn(
+                        'block truncate text-xs leading-4 transition-colors',
+                        isActive ? 'font-medium text-foreground' : 'text-subtle-foreground'
+                      )}
+                    >
+                      {book.title}
+                    </span>
+                    <span
+                      className={cn(
+                        'mt-0.5 block text-[11px] leading-4 tabular-nums transition-colors',
+                        isActive ? 'font-medium text-primary' : 'text-muted-foreground'
+                      )}
+                    >
+                      {book.progress}%
+                    </span>
                   </span>
-                  <span className="preview-cover-author">{book.author}</span>
                 </button>
-                <div className="mt-2 flex items-center justify-between gap-1 px-0.5 text-xs">
-                  <span
-                    className={cn(
-                      'truncate transition-colors',
-                      isActive ? 'font-medium text-foreground' : 'text-muted-foreground'
-                    )}
-                  >
-                    {book.title}
-                  </span>
-                  <span
-                    className={cn(
-                      'shrink-0 tabular-nums transition-colors',
-                      isActive ? 'font-medium text-primary' : 'text-muted-foreground'
-                    )}
-                  >
-                    {book.progress}%
-                  </span>
-                </div>
               </li>
             );
           })}

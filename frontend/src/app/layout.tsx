@@ -2,17 +2,12 @@ import type { Metadata, Viewport } from 'next';
 import { mantineHtmlProps } from '@mantine/core';
 import '@fontsource/crimson-text/latin-400.css';
 import '@fontsource/crimson-text/latin-600.css';
-import '@fontsource/crimson-text/latin-700.css';
 import '@fontsource/playfair-display/latin-400.css';
 import '@fontsource/playfair-display/latin-500.css';
 import '@fontsource/playfair-display/latin-600.css';
 import '@fontsource/playfair-display/latin-700.css';
 // Unicode ranges keep arbitrary book titles covered without downloading the full CJK font.
 import '@fontsource/noto-serif-sc/400.css';
-import '@fontsource/noto-serif-sc/600.css';
-import '@fontsource/noto-serif-sc/700.css';
-import '@fontsource/lxgw-wenkai-tc/400.css';
-import '@fontsource/lxgw-wenkai-tc/700.css';
 import './fonts/noto-serif-sc-compat.css';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -26,8 +21,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8f7f4' },
-    { media: '(prefers-color-scheme: dark)', color: '#141413' },
+    { media: '(prefers-color-scheme: light)', color: '#f7f5f0' },
+    { media: '(prefers-color-scheme: dark)', color: '#141312' },
   ],
 };
 
@@ -91,7 +86,7 @@ export default function RootLayout({
         <ThemeProvider>
           <a
             href="#main-content"
-            className="fixed left-[max(1rem,env(safe-area-inset-left,0px))] top-[max(1rem,env(safe-area-inset-top,0px))] z-[var(--z-skip-link)] -translate-y-24 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_-16px_var(--paper-shadow)] transition-transform motion-reduce:transition-none focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="fixed left-[max(1rem,env(safe-area-inset-left,0px))] top-[max(1rem,env(safe-area-inset-top,0px))] z-[var(--z-skip-link)] -translate-y-24 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_28px_-16px_var(--paper-shadow)] transition-transform motion-reduce:transition-none focus:translate-y-0 focus-visible:translate-y-0 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             跳到主内容
           </a>

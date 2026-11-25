@@ -83,7 +83,7 @@ export function ReaderStatusBar({
     >
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] overflow-hidden"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[2px] overflow-hidden"
       >
         <span
           className="reader-status-progress-fill block h-full"
@@ -91,17 +91,17 @@ export function ReaderStatusBar({
         />
       </span>
       <div className="grid min-h-[calc(2.75rem-1px)] w-full max-w-6xl grid-cols-[minmax(4.25rem,1fr)_minmax(0,3fr)_minmax(4.25rem,1fr)] items-center gap-3 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
-        <span className="text-[11px] font-normal tracking-[0.04em] tabular-nums">
+        <span className="font-mono text-xs font-normal tracking-normal tabular-nums">
           {formattedPercentage}
         </span>
         <span
-          className="reader-status-chapter truncate text-center text-xs font-normal tracking-[0.01em]"
+          className="reader-status-chapter truncate text-center text-xs font-normal tracking-normal"
           title={currentChapter || undefined}
         >
           {currentChapter || "—"}
         </span>
         <span
-          className="truncate text-right text-[11px] font-normal tracking-[0.04em] tabular-nums"
+          className="truncate text-right font-mono text-xs font-normal tracking-normal tabular-nums"
           title={currentPageLabel || undefined}
         >
           {currentPageLabel || "—"}

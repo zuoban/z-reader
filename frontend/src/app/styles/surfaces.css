@@ -62,7 +62,11 @@
 
   .app-primary-link {
     @apply bg-primary text-primary-foreground;
-    box-shadow: var(--paper-shadow-control);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%), var(--paper-shadow-control);
+  }
+
+  .dark .app-primary-link {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
   }
 
   .app-primary-link:enabled:hover,
@@ -270,7 +274,11 @@
   .upload-action-surface[data-emphasis="primary"] {
     background: var(--primary);
     color: var(--primary-foreground);
-    box-shadow: var(--paper-shadow-control);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%), var(--paper-shadow-control);
+  }
+
+  .dark .upload-action-surface[data-emphasis="primary"] {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
   }
 
   .upload-action-trigger:enabled:hover .upload-action-surface[data-emphasis="primary"] {

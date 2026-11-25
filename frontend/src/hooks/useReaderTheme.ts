@@ -47,6 +47,12 @@ export const FONT_FAMILY_OPTIONS: Record<
   },
 };
 
+const BUNDLED_FONT_FAMILIES: Record<ReaderFontFamily, readonly string[]> = {
+  editorial: ["crimson text", "noto serif sc"],
+  classic: ["lxgw wenkai tc"],
+  humanist: [],
+};
+
 export interface ThemeColors {
   bg: string;
   fg: string;
@@ -324,7 +330,10 @@ export function useReaderTheme() {
     const scrollbarThumbHover = withOpacity(preset.fg, isDark ? 0.34 : 0.26);
     const hrColor = withOpacity(preset.fg, isDark ? 0.14 : 0.12);
 
-    const fontFaces = typeof document === "undefined" ? "" : getReaderFontFaces(document);
+    const fontFaces =
+      typeof document === "undefined"
+        ? ""
+        : getReaderFontFaces(document, BUNDLED_FONT_FAMILIES[theme.fontFamily]);
 
     return `
       ${fontFaces}

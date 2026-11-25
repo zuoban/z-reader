@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/gif"
 	"image/jpeg"
 	_ "image/png"
@@ -15,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +28,49 @@ import (
 	"z-reader/backend/storage"
 	"z-reader/backend/telemetry"
 )
+
+type coverFlightCall[T any] struct {
+	done  chan struct{}
+	value T
+	err   error
+}
+
+type coverFlightGroup[T any] struct {
+	mu    sync.Mutex
+	calls map[string]*coverFlightCall[T]
+}
+
+func (g *coverFlightGroup[T]) Do(key string, fn func() (T, error)) (T, error) {
+	g.mu.Lock()
+	if g.calls == nil {
+		g.calls = make(map[string]*coverFlightCall[T])
+	}
+	if call, ok := g.calls[key]; ok {
+		g.mu.Unlock()
+		<-call.done
+		return call.value, call.err
+	}
+	call := &coverFlightCall[T]{done: make(chan struct{})}
+	g.calls[key] = call
+	g.mu.Unlock()
+
+	defer func() {
+		g.mu.Lock()
+		delete(g.calls, key)
+		g.mu.Unlock()
+		close(call.done)
+	}()
+
+	call.value, call.err = fn()
+	return call.value, call.err
+}
+
+type extractedCoverResult struct {
+	data        []byte
+	contentType string
+	status      int
+	message     string
+}
 
 func (h *BooksHandler) GetCover(c *gin.Context) {
 	id := c.Param("id")
@@ -40,7 +85,7 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		return
 	}
 	thumbnailRequested := c.Query("size") == "thumb"
-	if thumbnailRequested && book.CoverThumbPath == "" && book.CoverPath != "" {
+	if thumbnailRequested && book.CoverThumbPath == "" && !book.CoverThumbChecked && book.CoverPath != "" {
 		latest, err := h.cacheCoverThumbnail(book)
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "书籍不存在")
@@ -51,7 +96,7 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 				slog.String("book_id", book.ID),
 				slog.Any("error", err),
 			)
-		} else {
+		} else if latest != nil {
 			book = latest
 		}
 	}
@@ -65,38 +110,49 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 		return
 	}
 
-	if book.Format != "epub" {
+	if book.CoverMissing || book.Format != "epub" {
 		response.NotFound(c, "封面不存在")
 		return
 	}
 
-	file, _, err := openUploadFile(h.cfg.UploadDir, book.Filename)
-	if os.IsNotExist(err) {
-		response.NotFound(c, "封面不存在")
-		return
-	}
-	if err != nil {
-		response.Forbidden(c, "文件访问被拒绝")
-		return
-	}
+	extracted, _ := h.coverExtractFlights.Do(book.ID+":"+book.Filename, func() (extractedCoverResult, error) {
+		file, _, openErr := openUploadFile(h.cfg.UploadDir, book.Filename)
+		if os.IsNotExist(openErr) {
+			return extractedCoverResult{status: http.StatusNotFound, message: "封面不存在"}, nil
+		}
+		if openErr != nil {
+			return extractedCoverResult{status: http.StatusForbidden, message: "文件访问被拒绝"}, nil
+		}
+		defer file.Close()
 
-	// Try to extract and cache the cover to disk on first request
-	defer file.Close()
-	coverData, contentType, err := extractEPUBCover(file)
-	if err != nil {
-		response.NotFound(c, "封面不存在")
+		coverData, contentType, extractErr := extractEPUBCover(file)
+		if extractErr != nil {
+			h.markCoverMissing(book)
+			return extractedCoverResult{status: http.StatusNotFound, message: "封面不存在"}, nil
+		}
+
+		go h.cacheExtractedCover(book, coverData, contentType)
+		return extractedCoverResult{
+			data:        coverData,
+			contentType: contentType,
+			status:      http.StatusOK,
+		}, nil
+	})
+	if extracted.status != http.StatusOK {
+		if extracted.status == http.StatusForbidden {
+			response.Forbidden(c, extracted.message)
+			return
+		}
+		response.NotFound(c, extracted.message)
 		return
 	}
-
-	// Cache the extracted cover to disk for future requests
-	go h.cacheExtractedCover(book, coverData, contentType)
 
 	h.setBookCache(c, bookCoverCacheMaxAge)
-	if writeNotModifiedIfETagMatches(c, hashBytes(coverData)) {
+	if writeNotModifiedIfETagMatches(c, hashBytes(extracted.data)) {
 		return
 	}
-	c.Header("Content-Type", contentType)
-	c.Data(http.StatusOK, contentType, coverData)
+	c.Header("Content-Type", extracted.contentType)
+	c.Data(http.StatusOK, extracted.contentType, extracted.data)
 }
 
 func (h *BooksHandler) serveCover(c *gin.Context, name string) {
@@ -225,13 +281,36 @@ func validateUploadedCover(file *multipart.FileHeader, ext string) error {
 }
 
 type bookCover struct {
-	path  string
-	thumb string
+	path         string
+	thumb        string
+	thumbChecked bool
+	missing      bool
 }
 
 func (cover bookCover) apply(book *models.Book) {
 	book.CoverPath = cover.path
 	book.CoverThumbPath = cover.thumb
+	book.CoverThumbChecked = cover.thumbChecked
+	if cover.path != "" {
+		book.CoverMissing = false
+	}
+}
+
+func (h *BooksHandler) markCoverMissing(snapshot *models.Book) {
+	_, err := h.db.UpdateBook(snapshot.ID, snapshot.UserID, func(book *models.Book) bool {
+		if book.CoverPath != "" || book.Filename != snapshot.Filename || book.CoverMissing {
+			return false
+		}
+		book.CoverMissing = true
+		book.Format = normalizeBookFormat(book.Format, book.Filename)
+		return true
+	})
+	if err != nil && err != storage.ErrNotFound {
+		logger.Warn("Failed to persist missing cover state",
+			slog.String("book_id", snapshot.ID),
+			slog.Any("error", err),
+		)
+	}
 }
 
 func (h *BooksHandler) cacheExtractedCover(book *models.Book, coverData []byte, contentType string) {
@@ -267,23 +346,26 @@ func (h *BooksHandler) commitCover(snapshot *models.Book, cover bookCover, repla
 }
 
 func (h *BooksHandler) cacheCoverThumbnail(snapshot *models.Book) (*models.Book, error) {
-	thumb := h.prepareCoverThumbnail(snapshot.ID, snapshot.CoverPath)
-	if thumb == "" {
-		return snapshot, nil
-	}
-	return h.commitCoverThumbnail(snapshot, thumb)
+	return h.coverThumbFlights.Do(snapshot.ID+":"+snapshot.CoverPath, func() (*models.Book, error) {
+		thumb, ok := h.prepareCoverThumbnailChecked(snapshot.ID, snapshot.CoverPath)
+		if !ok {
+			return snapshot, nil
+		}
+		return h.commitCoverThumbnail(snapshot, thumb)
+	})
 }
 
 func (h *BooksHandler) commitCoverThumbnail(snapshot *models.Book, thumb string) (*models.Book, error) {
 	book, err := h.db.UpdateBook(snapshot.ID, snapshot.UserID, func(book *models.Book) bool {
-		if book.CoverPath != snapshot.CoverPath || book.CoverThumbPath != "" {
+		if book.CoverPath != snapshot.CoverPath || book.CoverThumbPath != "" || (thumb == "" && book.CoverThumbChecked) {
 			return false
 		}
 		book.CoverThumbPath = thumb
+		book.CoverThumbChecked = true
 		book.Format = normalizeBookFormat(book.Format, book.Filename)
 		return true
 	})
-	if err != nil || book.CoverThumbPath != thumb {
+	if thumb != "" && (err != nil || book == nil || book.CoverThumbPath != thumb) {
 		h.removeUploadFiles(thumb)
 	}
 	return book, err
@@ -310,7 +392,8 @@ func (h *BooksHandler) prepareCover(bookID, ext string, source io.Reader) (bookC
 	if err != nil {
 		return bookCover{}, err
 	}
-	return bookCover{path: filename, thumb: h.prepareCoverThumbnail(bookID, filename)}, nil
+	thumb, thumbChecked := h.prepareCoverThumbnailChecked(bookID, filename)
+	return bookCover{path: filename, thumb: thumb, thumbChecked: thumbChecked}, nil
 }
 
 // Each candidate owns its files until a transaction publishes their paths.
@@ -365,21 +448,171 @@ func (h *BooksHandler) createCoverThumbnail(bookID, coverFilename string) (strin
 	}
 	bounds := decoded.Bounds()
 	thumbnailHeight := max(1, bounds.Dy()*coverThumbnailMaxWidth/bounds.Dx())
-	thumbnail := image.NewRGBA(image.Rect(0, 0, coverThumbnailMaxWidth, thumbnailHeight))
-	for y := 0; y < thumbnailHeight; y++ {
-		sourceY := bounds.Min.Y + y*bounds.Dy()/thumbnailHeight
-		for x := 0; x < coverThumbnailMaxWidth; x++ {
-			sourceX := bounds.Min.X + x*bounds.Dx()/coverThumbnailMaxWidth
-			thumbnail.Set(x, y, decoded.At(sourceX, sourceY))
-		}
-	}
+	thumbnail := resizeCoverThumbnail(decoded, coverThumbnailMaxWidth, thumbnailHeight)
 
 	return h.writeCoverFile(bookID, ".thumb.jpg", func(target io.Writer) error {
 		return jpeg.Encode(target, thumbnail, &jpeg.Options{Quality: 82})
 	})
 }
 
-func (h *BooksHandler) prepareCoverThumbnail(bookID, coverPath string) string {
+func resizeCoverThumbnail(src image.Image, dstWidth, dstHeight int) *image.RGBA {
+	bounds := src.Bounds()
+	srcWidth := bounds.Dx()
+	srcHeight := bounds.Dy()
+	dst := image.NewRGBA(image.Rect(0, 0, dstWidth, dstHeight))
+	if srcWidth <= 0 || srcHeight <= 0 || dstWidth <= 0 || dstHeight <= 0 {
+		return dst
+	}
+
+	x0 := make([]int, dstWidth)
+	x1 := make([]int, dstWidth)
+	wx := make([]int, dstWidth)
+	for x := 0; x < dstWidth; x++ {
+		// Fixed-point 8-bit fractional coordinates mapping destination centers to source centers.
+		pos := ((2*x+1)*srcWidth*256)/(2*dstWidth) - 128
+		if pos < 0 {
+			pos = 0
+		}
+		maxPos := (srcWidth - 1) * 256
+		if pos > maxPos {
+			pos = maxPos
+		}
+		ix := pos >> 8
+		x0[x] = bounds.Min.X + ix
+		if ix+1 < srcWidth {
+			x1[x] = bounds.Min.X + ix + 1
+		} else {
+			x1[x] = bounds.Min.X + ix
+		}
+		wx[x] = pos & 0xff
+	}
+
+	blendChannel := func(c00, c10, c01, c11, fx, fy int) uint8 {
+		invX := 256 - fx
+		invY := 256 - fy
+		top := c00*invX + c10*fx
+		bot := c01*invX + c11*fx
+		return uint8((top*invY + bot*fy + 32768) >> 16)
+	}
+
+	switch img := src.(type) {
+	case *image.YCbCr:
+		for y := 0; y < dstHeight; y++ {
+			posY := ((2*y+1)*srcHeight*256)/(2*dstHeight) - 128
+			if posY < 0 {
+				posY = 0
+			}
+			if maxPosY := (srcHeight - 1) * 256; posY > maxPosY {
+				posY = maxPosY
+			}
+			iy := posY >> 8
+			sy0 := bounds.Min.Y + iy
+			sy1 := sy0
+			if iy+1 < srcHeight {
+				sy1 = sy0 + 1
+			}
+			fy := posY & 0xff
+			dstRow := dst.Pix[y*dst.Stride:]
+			for x := 0; x < dstWidth; x++ {
+				sx0, sx1, fx := x0[x], x1[x], wx[x]
+				r00, g00, b00 := ycbcrPixel(img, sx0, sy0)
+				r10, g10, b10 := ycbcrPixel(img, sx1, sy0)
+				r01, g01, b01 := ycbcrPixel(img, sx0, sy1)
+				r11, g11, b11 := ycbcrPixel(img, sx1, sy1)
+				off := x * 4
+				dstRow[off] = blendChannel(r00, r10, r01, r11, fx, fy)
+				dstRow[off+1] = blendChannel(g00, g10, g01, g11, fx, fy)
+				dstRow[off+2] = blendChannel(b00, b10, b01, b11, fx, fy)
+				dstRow[off+3] = 255
+			}
+		}
+	case *image.RGBA:
+		for y := 0; y < dstHeight; y++ {
+			posY := ((2*y+1)*srcHeight*256)/(2*dstHeight) - 128
+			if posY < 0 {
+				posY = 0
+			}
+			if maxPosY := (srcHeight - 1) * 256; posY > maxPosY {
+				posY = maxPosY
+			}
+			iy := posY >> 8
+			sy0 := bounds.Min.Y + iy
+			sy1 := sy0
+			if iy+1 < srcHeight {
+				sy1 = sy0 + 1
+			}
+			fy := posY & 0xff
+			dstRow := dst.Pix[y*dst.Stride:]
+			for x := 0; x < dstWidth; x++ {
+				o00 := img.PixOffset(x0[x], sy0)
+				o10 := img.PixOffset(x1[x], sy0)
+				o01 := img.PixOffset(x0[x], sy1)
+				o11 := img.PixOffset(x1[x], sy1)
+				fx := wx[x]
+				off := x * 4
+				dstRow[off] = blendChannel(int(img.Pix[o00]), int(img.Pix[o10]), int(img.Pix[o01]), int(img.Pix[o11]), fx, fy)
+				dstRow[off+1] = blendChannel(int(img.Pix[o00+1]), int(img.Pix[o10+1]), int(img.Pix[o01+1]), int(img.Pix[o11+1]), fx, fy)
+				dstRow[off+2] = blendChannel(int(img.Pix[o00+2]), int(img.Pix[o10+2]), int(img.Pix[o01+2]), int(img.Pix[o11+2]), fx, fy)
+				dstRow[off+3] = blendChannel(int(img.Pix[o00+3]), int(img.Pix[o10+3]), int(img.Pix[o01+3]), int(img.Pix[o11+3]), fx, fy)
+			}
+		}
+	case *image.NRGBA:
+		for y := 0; y < dstHeight; y++ {
+			posY := ((2*y+1)*srcHeight*256)/(2*dstHeight) - 128
+			if posY < 0 {
+				posY = 0
+			}
+			if maxPosY := (srcHeight - 1) * 256; posY > maxPosY {
+				posY = maxPosY
+			}
+			iy := posY >> 8
+			sy0 := bounds.Min.Y + iy
+			sy1 := sy0
+			if iy+1 < srcHeight {
+				sy1 = sy0 + 1
+			}
+			fy := posY & 0xff
+			dstRow := dst.Pix[y*dst.Stride:]
+			for x := 0; x < dstWidth; x++ {
+				o00 := img.PixOffset(x0[x], sy0)
+				o10 := img.PixOffset(x1[x], sy0)
+				o01 := img.PixOffset(x0[x], sy1)
+				o11 := img.PixOffset(x1[x], sy1)
+				fx := wx[x]
+				off := x * 4
+				dstRow[off] = blendChannel(int(img.Pix[o00]), int(img.Pix[o10]), int(img.Pix[o01]), int(img.Pix[o11]), fx, fy)
+				dstRow[off+1] = blendChannel(int(img.Pix[o00+1]), int(img.Pix[o10+1]), int(img.Pix[o01+1]), int(img.Pix[o11+1]), fx, fy)
+				dstRow[off+2] = blendChannel(int(img.Pix[o00+2]), int(img.Pix[o10+2]), int(img.Pix[o01+2]), int(img.Pix[o11+2]), fx, fy)
+				dstRow[off+3] = blendChannel(int(img.Pix[o00+3]), int(img.Pix[o10+3]), int(img.Pix[o01+3]), int(img.Pix[o11+3]), fx, fy)
+			}
+		}
+	default:
+		for y := 0; y < dstHeight; y++ {
+			sourceY := bounds.Min.Y + y*srcHeight/dstHeight
+			dstRow := dst.Pix[y*dst.Stride:]
+			for x := 0; x < dstWidth; x++ {
+				sourceX := bounds.Min.X + x*srcWidth/dstWidth
+				r, g, b, a := src.At(sourceX, sourceY).RGBA()
+				off := x * 4
+				dstRow[off] = uint8(r >> 8)
+				dstRow[off+1] = uint8(g >> 8)
+				dstRow[off+2] = uint8(b >> 8)
+				dstRow[off+3] = uint8(a >> 8)
+			}
+		}
+	}
+
+	return dst
+}
+
+func ycbcrPixel(img *image.YCbCr, x, y int) (int, int, int) {
+	yi := img.YOffset(x, y)
+	ci := img.COffset(x, y)
+	r, g, b := color.YCbCrToRGB(img.Y[yi], img.Cb[ci], img.Cr[ci])
+	return int(r), int(g), int(b)
+}
+
+func (h *BooksHandler) prepareCoverThumbnailChecked(bookID, coverPath string) (string, bool) {
 	startedAt := time.Now()
 	thumbnailPath, err := h.createCoverThumbnail(bookID, coverPath)
 	telemetry.Observe("cover_thumbnail", time.Since(startedAt), 1)
@@ -388,6 +621,12 @@ func (h *BooksHandler) prepareCoverThumbnail(bookID, coverPath string) string {
 			slog.String("book_id", bookID),
 			slog.Any("error", err),
 		)
+		return "", false
 	}
+	return thumbnailPath, true
+}
+
+func (h *BooksHandler) prepareCoverThumbnail(bookID, coverPath string) string {
+	thumbnailPath, _ := h.prepareCoverThumbnailChecked(bookID, coverPath)
 	return thumbnailPath
 }

@@ -51,7 +51,15 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		response.BadRequest(c, "支持的格式：EPUB、MOBI、AZW3、PDF")
 		return
 	}
-	if err := validateUploadedBook(file, format, maxExpandedBytes); err != nil {
+	src, err := file.Open()
+	if err != nil {
+		response.BadRequest(c, "读取上传文件失败")
+		return
+	}
+	defer src.Close()
+
+	epubArchive, epubRoot, err := validateUploadedBookStream(src, file.Size, format, maxExpandedBytes)
+	if err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
@@ -66,7 +74,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	defer root.Close()
 
 	writeStartedAt := time.Now()
-	contentHash, err := saveUploadedBookFile(file, format, root, filename, maxExpandedBytes)
+	contentHash, err := saveUploadedBookStream(src, epubArchive, epubRoot, root, filename, maxExpandedBytes)
 	telemetry.Observe("book_upload_write", time.Since(writeStartedAt), 1)
 	if err != nil {
 		response.InternalError(c, "保存文件失败")
@@ -163,27 +171,39 @@ func inferBookFormatFromContentType(contentType string) (string, string, bool) {
 }
 
 func validateUploadedBook(file *multipart.FileHeader, format string, maxExpandedBytes int64) error {
-	header, err := readUploadedFileHeader(file, 512)
+	src, err := file.Open()
 	if err != nil {
 		return fmt.Errorf("读取上传文件失败")
+	}
+	defer src.Close()
+	_, _, err = validateUploadedBookStream(src, file.Size, format, maxExpandedBytes)
+	return err
+}
+
+func validateUploadedBookStream(
+	src multipart.File, size int64, format string, maxExpandedBytes int64,
+) (*zip.Reader, string, error) {
+	if format == "epub" {
+		return openValidatedEPUB(src, size, maxExpandedBytes)
+	}
+
+	header, err := readStreamHeader(src, 512)
+	if err != nil {
+		return nil, "", fmt.Errorf("读取上传文件失败")
 	}
 
 	switch format {
 	case "pdf":
 		if !bytes.HasPrefix(header, []byte("%PDF-")) {
-			return fmt.Errorf("上传文件与 PDF 格式不匹配")
-		}
-	case "epub":
-		if err := validateEPUBFile(file, maxExpandedBytes); err != nil {
-			return err
+			return nil, "", fmt.Errorf("上传文件与 PDF 格式不匹配")
 		}
 	case "mobi", "azw3":
 		if !hasMobiSignature(header) {
-			return fmt.Errorf("上传文件与 %s 格式不匹配", strings.ToUpper(format))
+			return nil, "", fmt.Errorf("上传文件与 %s 格式不匹配", strings.ToUpper(format))
 		}
 	}
 
-	return nil
+	return nil, "", nil
 }
 
 func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, error) {
@@ -193,6 +213,10 @@ func readUploadedFileHeader(file *multipart.FileHeader, maxBytes int) ([]byte, e
 	}
 	defer src.Close()
 
+	return readStreamHeader(src, maxBytes)
+}
+
+func readStreamHeader(src io.Reader, maxBytes int) ([]byte, error) {
 	buf := make([]byte, maxBytes)
 	n, err := src.Read(buf)
 	if err != nil && err != io.EOF {
@@ -228,7 +252,12 @@ func saveUploadedBookFile(
 		}
 		packageRoot, _ = epubPackageRoot(archive)
 	}
+	return saveUploadedBookStream(src, archive, packageRoot, root, name, expandedLimit)
+}
 
+func saveUploadedBookStream(
+	src multipart.File, archive *zip.Reader, packageRoot string, root *os.Root, name string, expandedLimit int64,
+) (string, error) {
 	dst, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return "", err
@@ -238,7 +267,11 @@ func saveUploadedBookFile(
 	if packageRoot != "" {
 		err = writeNormalizedEPUBZip(archive, packageRoot, output, expandedLimit)
 	} else {
-		_, err = io.Copy(output, src)
+		if _, seekErr := src.Seek(0, io.SeekStart); seekErr != nil {
+			err = seekErr
+		} else {
+			_, err = io.Copy(output, src)
+		}
 	}
 	if err := errors.Join(err, dst.Close()); err != nil {
 		return "", errors.Join(err, root.Remove(name))

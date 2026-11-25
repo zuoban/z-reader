@@ -118,12 +118,17 @@ func validateEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) error 
 	}
 	defer src.Close()
 
-	reader, err := zip.NewReader(src, file.Size)
+	_, _, err = openValidatedEPUB(src, file.Size, maxExpandedBytes)
+	return err
+}
+
+func openValidatedEPUB(src io.ReaderAt, size int64, maxExpandedBytes int64) (*zip.Reader, string, error) {
+	reader, err := zip.NewReader(src, size)
 	if err != nil {
-		return fmt.Errorf("上传文件与 EPUB 格式不匹配")
+		return nil, "", fmt.Errorf("上传文件与 EPUB 格式不匹配")
 	}
 	if err := validateEPUBArchive(reader, maxExpandedBytes); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	hasMimetype := false
@@ -134,7 +139,7 @@ func validateEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) error 
 		case "mimetype":
 			data, err := readZipFileWithLimit(entry, 128)
 			if err != nil {
-				return fmt.Errorf("上传文件与 EPUB 格式不匹配")
+				return nil, "", fmt.Errorf("上传文件与 EPUB 格式不匹配")
 			}
 			hasMimetype = strings.TrimSpace(string(data)) == "application/epub+zip"
 		case "meta-inf/container.xml":
@@ -143,9 +148,10 @@ func validateEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) error 
 	}
 
 	if !hasMimetype && !hasContainer {
-		return fmt.Errorf("上传文件与 EPUB 格式不匹配")
+		return nil, "", fmt.Errorf("上传文件与 EPUB 格式不匹配")
 	}
-	return nil
+	packageRoot, _ := epubPackageRoot(reader)
+	return reader, packageRoot, nil
 }
 
 func validateEPUBArchive(reader *zip.Reader, maxExpandedBytes int64) error {

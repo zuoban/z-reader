@@ -75,6 +75,7 @@ func main() {
 				"route", c.FullPath(), "stack", string(debug.Stack()))
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}),
+		middleware.Gzip(),
 		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes, "/api/books", "/api/books/:id/cover"),
 	)
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {

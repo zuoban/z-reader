@@ -47,10 +47,12 @@ const (
 )
 
 type BooksHandler struct {
-	cfg          *config.Config
-	db           *storage.DB
-	processor    *bookProcessor
-	legacyHashes *legacyHashBackfill
+	cfg                 *config.Config
+	db                  *storage.DB
+	processor           *bookProcessor
+	legacyHashes        *legacyHashBackfill
+	coverThumbFlights   coverFlightGroup[*models.Book]
+	coverExtractFlights coverFlightGroup[extractedCoverResult]
 }
 
 type bookCursorPageResponse struct {

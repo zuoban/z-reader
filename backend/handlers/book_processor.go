@@ -278,6 +278,8 @@ func (h *BooksHandler) processBookPreview(job bookProcessingJob) {
 				slog.Any("error", err),
 			)
 		}
+	} else if len(coverData) == 0 && book.CoverPath == "" && normalizeBookFormat(book.Format, book.Filename) == "epub" {
+		cover.missing = true
 	}
 	h.completeBookPreview(job, book.Filename, *metadata, cover)
 }
@@ -297,6 +299,8 @@ func (h *BooksHandler) completeBookPreview(job bookProcessingJob, filename strin
 		if cover.path != "" && book.CoverPath == "" {
 			previousThumb = book.CoverThumbPath
 			cover.apply(book)
+		} else if cover.missing && book.CoverPath == "" {
+			book.CoverMissing = true
 		}
 		book.ProcessingState = models.BookProcessingReady
 		book.PendingTitleEdited = false

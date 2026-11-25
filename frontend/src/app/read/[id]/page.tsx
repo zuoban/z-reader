@@ -15,6 +15,7 @@ import { useReaderOffline } from "@/hooks/useReaderOffline";
 import { useReaderSheets } from "@/hooks/useReaderSheets";
 import { useReaderTTSBridge } from "@/hooks/useReaderTTSBridge";
 import { useFoliateView } from "@/hooks/useFoliateView";
+import { ReaderJumpBackPill } from "@/components/reader/ReaderJumpBackPill";
 import { ReaderStatusBar } from "@/components/reader/ReaderStatusBar";
 import {
   ReaderAuthLoading,
@@ -25,6 +26,7 @@ import { ReaderTTSControlTrigger } from "@/components/reader/ReaderTTSControlTri
 import { ReaderViewport } from "@/components/reader/ReaderViewport";
 import "../../styles/mantine-reader.css";
 import "../../styles/reader.css";
+import type { Bookmark } from "@/lib/api";
 import { getOfflineLibrary } from "@/lib/library-access";
 import type { FoliateView } from "@/lib/types";
 
@@ -249,6 +251,22 @@ function Reader({ bookId }: { bookId: string }) {
     [captureJumpBackLocation, goTo],
   );
 
+  const handleSelectSearchResult = useCallback(
+    (cfi: string) => {
+      captureJumpBackLocation();
+      goTo(cfi);
+    },
+    [captureJumpBackLocation, goTo],
+  );
+
+  const handleJumpToBookmark = useCallback(
+    (bookmark: Bookmark) => {
+      captureJumpBackLocation();
+      handleGoToBookmark(bookmark);
+    },
+    [captureJumpBackLocation, handleGoToBookmark],
+  );
+
   const handleGoToFraction = useCallback(
     (fraction: number) => {
       captureJumpBackLocation();
@@ -263,6 +281,10 @@ function Reader({ bookId }: { bookId: string }) {
     setJumpBackLocation(null);
     goTo(targetCfi);
   }, [goTo, jumpBackLocation]);
+
+  const handleDismissJumpBack = useCallback(() => {
+    setJumpBackLocation(null);
+  }, []);
 
   const handleSaveOffline = useCallback(
     () => saveBookOffline(getLoadedBookFile()),
@@ -281,6 +303,7 @@ function Reader({ bookId }: { bookId: string }) {
       bookmarksOpen: sheets.bookmarksOpen,
       shortcutsOpen: sheets.shortcutsOpen,
       themeSettingsOpen: sheets.themeSettingsOpen,
+      searchOpen: sheets.showSearch,
       currentChapter: reader.currentChapter,
       currentChapterHref: reader.currentChapterHref,
     });
@@ -290,6 +313,7 @@ function Reader({ bookId }: { bookId: string }) {
     reader.loading,
     sheets.bookmarksOpen,
     sheets.shortcutsOpen,
+    sheets.showSearch,
     sheets.themeSettingsOpen,
     sheets.tocOpen,
     syncChromeState,
@@ -358,7 +382,7 @@ function Reader({ bookId }: { bookId: string }) {
           canCreateBookmark={isAuthenticated && Boolean(reader.currentCFI)}
           isSavingBookmark={isSavingBookmark}
           onCreateBookmark={handleCreateBookmark}
-          onGoToBookmark={handleGoToBookmark}
+          onGoToBookmark={handleJumpToBookmark}
           onDeleteBookmark={handleDeleteBookmark}
           onUpdateBookmarkNote={handleUpdateBookmarkNote}
           isSavingOffline={offline.isSavingOffline}
@@ -417,7 +441,7 @@ function Reader({ bookId }: { bookId: string }) {
             overlayContainer={overlayContainer}
             onSearch={reader.searchBook}
             onClearSearch={reader.clearSearch}
-            onSelectResult={goTo}
+            onSelectResult={handleSelectSearchResult}
           />
         )}
 
@@ -441,6 +465,17 @@ function Reader({ bookId }: { bookId: string }) {
             isFullscreenSupported={controls.isFullscreenSupported}
             showBookmarksShortcut={isAuthenticated}
           />
+
+          {!reader.loading && !reader.error && !sheets.hasSheetOpen && (
+            <ReaderJumpBackPill
+              percentage={jumpBackLocation?.percentage ?? null}
+              uiScheme={uiScheme}
+              safeAreaPaddingBottom={STATUS_BAR_SAFE_AREA_PADDING_BOTTOM}
+              isToolbarVisible={chrome.isHeaderVisible}
+              onReturn={handleReturnToPreviousLocation}
+              onDismiss={handleDismissJumpBack}
+            />
+          )}
 
           <ReaderStatusBar
             percentage={reader.percentage}

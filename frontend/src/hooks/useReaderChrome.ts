@@ -8,6 +8,7 @@ interface ReaderChromeState {
   bookmarksOpen: boolean;
   shortcutsOpen: boolean;
   themeSettingsOpen: boolean;
+  searchOpen: boolean;
   currentChapter: string;
   currentChapterHref: string;
 }
@@ -20,6 +21,7 @@ export function useReaderChrome() {
     bookmarksOpen: false,
     shortcutsOpen: false,
     themeSettingsOpen: false,
+    searchOpen: false,
     currentChapter: "",
     currentChapterHref: "",
   });
@@ -95,7 +97,8 @@ export function useReaderChrome() {
         nextState.tocOpen ||
         nextState.bookmarksOpen ||
         nextState.shortcutsOpen ||
-        nextState.themeSettingsOpen
+        nextState.themeSettingsOpen ||
+        nextState.searchOpen
       ) {
         scheduleHeaderShow();
       }
@@ -114,7 +117,8 @@ export function useReaderChrome() {
       state.tocOpen ||
       state.bookmarksOpen ||
       state.shortcutsOpen ||
-      state.themeSettingsOpen
+      state.themeSettingsOpen ||
+      state.searchOpen
     ) return;
 
     setIsHeaderVisible(false);

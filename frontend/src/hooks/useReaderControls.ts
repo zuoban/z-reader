@@ -60,6 +60,9 @@ interface UseReaderControlsOptions {
   onToggleShortcuts?: () => void;
   onCloseShortcuts?: () => void;
   onOpenSearch?: () => void;
+  onOpenTOC?: () => void;
+  onOpenBookmarks?: () => void;
+  onOpenThemeSettings?: () => void;
 }
 
 export function useReaderControls({
@@ -73,6 +76,9 @@ export function useReaderControls({
   onToggleShortcuts,
   onCloseShortcuts,
   onOpenSearch,
+  onOpenTOC,
+  onOpenBookmarks,
+  onOpenThemeSettings,
 }: UseReaderControlsOptions) {
   const [isTouchReader] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -99,6 +105,9 @@ export function useReaderControls({
   const toggleShortcutsRef = useRef(onToggleShortcuts);
   const closeShortcutsRef = useRef(onCloseShortcuts);
   const openSearchRef = useRef(onOpenSearch);
+  const openTOCRef = useRef(onOpenTOC);
+  const openBookmarksRef = useRef(onOpenBookmarks);
+  const openThemeSettingsRef = useRef(onOpenThemeSettings);
 
   useEffect(() => {
     prevRef.current = onPrev;
@@ -135,6 +144,18 @@ export function useReaderControls({
   useEffect(() => {
     openSearchRef.current = onOpenSearch;
   }, [onOpenSearch]);
+
+  useEffect(() => {
+    openTOCRef.current = onOpenTOC;
+  }, [onOpenTOC]);
+
+  useEffect(() => {
+    openBookmarksRef.current = onOpenBookmarks;
+  }, [onOpenBookmarks]);
+
+  useEffect(() => {
+    openThemeSettingsRef.current = onOpenThemeSettings;
+  }, [onOpenThemeSettings]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -265,6 +286,27 @@ export function useReaderControls({
       case 'f':
       case 'F':
         void toggleFullscreen();
+        break;
+      case 't':
+      case 'T':
+        if (!e.shiftKey && !isPagingControl && openTOCRef.current) {
+          e.preventDefault();
+          openTOCRef.current();
+        }
+        break;
+      case 'b':
+      case 'B':
+        if (!e.shiftKey && !isPagingControl && openBookmarksRef.current) {
+          e.preventDefault();
+          openBookmarksRef.current();
+        }
+        break;
+      case 's':
+      case 'S':
+        if (!e.shiftKey && !isPagingControl && openThemeSettingsRef.current) {
+          e.preventDefault();
+          openThemeSettingsRef.current();
+        }
         break;
     }
   }, [pageRef, toggleFullscreen]);

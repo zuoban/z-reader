@@ -1,10 +1,26 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActionIcon, TextInput } from '@mantine/core';
 import { Loader2, Search, X } from 'lucide-react';
 import { SortSelector } from '@/components/SortSelector';
 import type { SortOption } from '@/hooks/useShelfData';
+
+const OPEN_DIALOG_SELECTOR = [
+  '[role="dialog"]:not([aria-hidden="true"]):not([hidden])',
+  '[role="alertdialog"]:not([aria-hidden="true"]):not([hidden])',
+].join(', ');
+
+function hasOpenDialog(): boolean {
+  const dialogs = document.querySelectorAll<HTMLElement>(OPEN_DIALOG_SELECTOR);
+  for (const dialog of dialogs) {
+    if (dialog.closest('[aria-hidden="true"], [hidden], [data-hidden="true"]')) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
 
 export interface ShelfToolbarProps {
   isOffline: boolean;
@@ -40,6 +56,47 @@ export function ShelfToolbar({
   onSortChange,
 }: ShelfToolbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!showCategoryFilters) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing) return;
+
+      const isSlashShortcut =
+        event.key === '/' &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.shiftKey;
+      const isCommandKShortcut =
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        (event.key === 'k' || event.key === 'K');
+
+      if (!isSlashShortcut && !isCommandKShortcut) return;
+
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        target?.matches('input, textarea, select') ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+      if (hasOpenDialog()) return;
+
+      const input = searchInputRef.current;
+      if (!input) return;
+
+      event.preventDefault();
+      input.focus();
+      input.select();
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCategoryFilters]);
 
   return (
     <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

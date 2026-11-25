@@ -434,6 +434,7 @@ export const BookCard = memo(function BookCard({
         bookId={book.id}
         currentTitle={book.title}
         currentAuthor={book.author}
+        currentCoverUrl={coverUrl}
         onUpdate={onUpdate}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}

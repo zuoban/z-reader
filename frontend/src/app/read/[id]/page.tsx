@@ -154,6 +154,19 @@ function Reader({ bookId }: { bookId: string }) {
     router.push("/shelf");
   }, [saveNow, router]);
 
+  const { setTocOpen, setBookmarksOpen, setThemeSettingsOpen } = sheets;
+  const handleOpenTOC = useCallback(() => {
+    setTocOpen(true);
+  }, [setTocOpen]);
+
+  const handleOpenBookmarks = useCallback(() => {
+    setBookmarksOpen(true);
+  }, [setBookmarksOpen]);
+
+  const handleOpenThemeSettings = useCallback(() => {
+    setThemeSettingsOpen(true);
+  }, [setThemeSettingsOpen]);
+
   const controls = useReaderControls({
     pageRef,
     onPrev: handlePrev,
@@ -165,6 +178,9 @@ function Reader({ bookId }: { bookId: string }) {
     onToggleShortcuts: sheets.handleToggleShortcuts,
     onCloseShortcuts: sheets.handleCloseShortcuts,
     onOpenSearch: handleOpenSearch,
+    onOpenTOC: handleOpenTOC,
+    onOpenBookmarks: isAuthenticated ? handleOpenBookmarks : undefined,
+    onOpenThemeSettings: handleOpenThemeSettings,
   });
 
   const reader = useFoliateView({
@@ -371,6 +387,7 @@ function Reader({ bookId }: { bookId: string }) {
             onShortcutsOpenChange={sheets.setShortcutsOpen}
             overlayContainer={overlayContainer}
             isFullscreenSupported={controls.isFullscreenSupported}
+            showBookmarksShortcut={isAuthenticated}
           />
 
           <ReaderStatusBar

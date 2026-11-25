@@ -158,7 +158,7 @@ export function BatchCategorySheet({
                     'font-mono text-[11px] tabular-nums transition-colors',
                     categoryName.length >= 45
                       ? 'font-medium text-primary'
-                      : 'text-muted-foreground/75'
+                      : 'text-muted-foreground'
                   )}
                 >
                   {categoryName.length}/50
@@ -216,7 +216,7 @@ export function BatchCategorySheet({
                   <p className="text-xs font-medium text-muted-foreground">
                     已有分类
                   </p>
-                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground/75">
+                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     {normalizedCategories.length} 个
                   </span>
                 </div>

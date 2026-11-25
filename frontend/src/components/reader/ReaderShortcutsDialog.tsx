@@ -17,8 +17,14 @@ interface ShortcutGroup {
   items: ShortcutItem[];
 }
 
-function getReaderShortcutGroups(isFullscreenSupported: boolean): ShortcutGroup[] {
+function getReaderShortcutGroups(
+  isFullscreenSupported: boolean,
+  showBookmarksShortcut: boolean,
+): ShortcutGroup[] {
   const overlayItems: ShortcutItem[] = [
+    { label: "目录", keys: ["T"] },
+    ...(showBookmarksShortcut ? [{ label: "书签", keys: ["B"] }] : []),
+    { label: "排版与外观", keys: ["S"] },
     { label: "书内搜索", keys: ["⌘/Ctrl + F"] },
     ...(isFullscreenSupported ? [{ label: "切换全屏", keys: ["F"] }] : []),
     { label: "图片预览缩放", keys: ["+", "-", "0"] },
@@ -52,6 +58,7 @@ interface ReaderShortcutsDialogProps {
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
   isFullscreenSupported?: boolean;
+  showBookmarksShortcut?: boolean;
 }
 
 export function ReaderShortcutsDialog({
@@ -60,11 +67,15 @@ export function ReaderShortcutsDialog({
   uiScheme,
   overlayContainer,
   isFullscreenSupported = true,
+  showBookmarksShortcut = true,
 }: ReaderShortcutsDialogProps) {
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const surface = getModernReaderSurface(uiScheme);
   const panelThemeVars = getReaderPanelThemeVars(uiScheme);
-  const shortcutGroups = getReaderShortcutGroups(isFullscreenSupported);
+  const shortcutGroups = getReaderShortcutGroups(
+    isFullscreenSupported,
+    showBookmarksShortcut,
+  );
 
   useLayoutEffect(() => {
     if (!open) return;

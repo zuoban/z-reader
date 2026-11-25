@@ -40,6 +40,7 @@ interface ReaderViewportProps {
   onShortcutsOpenChange: (open: boolean) => void;
   overlayContainer: HTMLDivElement | null;
   isFullscreenSupported: boolean;
+  showBookmarksShortcut?: boolean;
 }
 
 export function ReaderViewport({
@@ -59,6 +60,7 @@ export function ReaderViewport({
   onShortcutsOpenChange,
   overlayContainer,
   isFullscreenSupported,
+  showBookmarksShortcut = true,
 }: ReaderViewportProps) {
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -126,6 +128,7 @@ export function ReaderViewport({
           uiScheme={uiScheme}
           overlayContainer={overlayContainer}
           isFullscreenSupported={isFullscreenSupported}
+          showBookmarksShortcut={showBookmarksShortcut}
         />
       )}
     </div>

@@ -14,6 +14,7 @@ vi.mock('sonner', () => ({
 vi.mock('@/lib/api', () => ({
   api: {
     updateBook: vi.fn(),
+    uploadCover: vi.fn(),
   },
 }));
 
@@ -166,5 +167,127 @@ describe('BookMetadataDialog', () => {
 
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('validates and uploads a custom cover image with live preview and revocation', async () => {
+    vi.mocked(api.uploadCover).mockResolvedValue({} as never);
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview-cover');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const onUpdate = vi.fn();
+    const onOpenChange = vi.fn();
+
+    try {
+      const { unmount } = render(
+        <BookMetadataDialog
+          bookId="book-cover"
+          currentTitle="红楼梦"
+          currentAuthor="曹雪芹"
+          onUpdate={onUpdate}
+          open
+          onOpenChange={onOpenChange}
+        />
+      );
+
+      const fileInput = screen.getByLabelText('选择封面图片') as HTMLInputElement;
+      const saveButton = screen.getByRole('button', { name: '保存' });
+      expect(saveButton).toBeDisabled();
+
+      // Reject unsupported format
+      const badFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput, { target: { files: [badFile] } });
+      expect(screen.getByRole('alert')).toHaveTextContent('仅支持 JPG、PNG 或 WebP 格式的封面图片');
+      expect(saveButton).toBeDisabled();
+
+      // Reject empty file
+      const emptyFile = new File([], 'empty.png', { type: 'image/png' });
+      fireEvent.change(fileInput, { target: { files: [emptyFile] } });
+      expect(screen.getByRole('alert')).toHaveTextContent('所选封面文件为空');
+
+      // Stage valid PNG cover
+      const coverFile = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'custom.png', {
+        type: 'image/png',
+      });
+      fireEvent.change(fileInput, { target: { files: [coverFile] } });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText('待保存')).toBeInTheDocument();
+      expect(screen.getByAltText('红楼梦 封面预览')).toHaveAttribute('src', 'blob:preview-cover');
+      expect(saveButton).toBeEnabled();
+
+      // Cancel staged cover and verify preview URL is revoked
+      fireEvent.click(screen.getByRole('button', { name: '取消更换' }));
+      expect(saveButton).toBeDisabled();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:preview-cover');
+
+      // Re-stage and save cover only
+      fireEvent.change(fileInput, { target: { files: [coverFile] } });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(api.uploadCover).toHaveBeenCalledWith('book-cover', coverFile, 'custom.png');
+      });
+      expect(api.updateBook).not.toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith('已更新书籍封面');
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      unmount();
+    } finally {
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
+    }
+  });
+
+  it('saves metadata and cover together and refreshes shelf when cover upload fails after metadata save', async () => {
+    vi.mocked(api.updateBook).mockResolvedValue({} as never);
+    vi.mocked(api.uploadCover).mockRejectedValueOnce(new Error('封面格式无效'));
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview-2');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const onUpdate = vi.fn();
+    const onOpenChange = vi.fn();
+
+    try {
+      render(
+        <BookMetadataDialog
+          bookId="book-both"
+          currentTitle="红楼梦"
+          currentAuthor="曹雪芹"
+          currentCoverUrl="blob:existing-cover"
+          onUpdate={onUpdate}
+          open
+          onOpenChange={onOpenChange}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: '更换封面' })).toBeInTheDocument();
+      fireEvent.change(screen.getByRole('textbox', { name: '书名' }), {
+        target: { value: '脂砚斋重评石头记' },
+      });
+      const coverFile = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'cover.jpg', {
+        type: 'image/jpeg',
+      });
+      fireEvent.change(screen.getByLabelText('选择封面图片'), {
+        target: { files: [coverFile] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '保存' }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('封面格式无效');
+      });
+      expect(api.updateBook).toHaveBeenCalledWith('book-both', { title: '脂砚斋重评石头记' });
+      expect(api.uploadCover).toHaveBeenCalledWith('book-both', coverFile, 'cover.jpg');
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onOpenChange).not.toHaveBeenCalled();
+
+      // Retry cover upload succeeds
+      vi.mocked(api.uploadCover).mockResolvedValueOnce({} as never);
+      fireEvent.click(screen.getByRole('button', { name: '保存' }));
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('已更新书籍信息与封面');
+      });
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    } finally {
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
+    }
   });
 });

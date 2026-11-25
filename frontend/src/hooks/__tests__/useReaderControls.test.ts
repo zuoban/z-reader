@@ -386,4 +386,69 @@ describe('reader controls', () => {
     expect(iframeEvent.defaultPrevented).toBe(true);
     expect(onOpenSearch).toHaveBeenCalledTimes(3);
   });
+
+  it('opens TOC (T), bookmarks (B), and theme settings (S) while ignoring inputs, modifiers, and open overlays', () => {
+    const page = document.createElement('div');
+    document.body.append(page);
+    const onOpenTOC = vi.fn();
+    const onOpenBookmarks = vi.fn();
+    const onOpenThemeSettings = vi.fn();
+
+    const { rerender } = renderHook(
+      ({ overlayOpen }) =>
+        useReaderControls({
+          pageRef: { current: page },
+          onPrev: vi.fn(),
+          onNext: vi.fn(),
+          onBack: vi.fn(),
+          overlayOpen,
+          onOpenTOC,
+          onOpenBookmarks,
+          onOpenThemeSettings,
+        }),
+      { initialProps: { overlayOpen: false } },
+    );
+
+    const tEvent = new KeyboardEvent('keydown', { key: 't', bubbles: true, cancelable: true });
+    page.dispatchEvent(tEvent);
+    expect(tEvent.defaultPrevented).toBe(true);
+    expect(onOpenTOC).toHaveBeenCalledTimes(1);
+
+    const bEvent = new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true });
+    page.dispatchEvent(bEvent);
+    expect(bEvent.defaultPrevented).toBe(true);
+    expect(onOpenBookmarks).toHaveBeenCalledTimes(1);
+
+    const sEvent = new KeyboardEvent('keydown', { key: 's', bubbles: true, cancelable: true });
+    page.dispatchEvent(sEvent);
+    expect(sEvent.defaultPrevented).toBe(true);
+    expect(onOpenThemeSettings).toHaveBeenCalledTimes(1);
+
+    // Shift/Ctrl/Meta modifiers must not trigger single-key sheet shortcuts
+    page.dispatchEvent(new KeyboardEvent('keydown', { key: 'T', shiftKey: true, bubbles: true, cancelable: true }));
+    page.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true }));
+    page.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true, cancelable: true }));
+    expect(onOpenTOC).toHaveBeenCalledTimes(1);
+    expect(onOpenBookmarks).toHaveBeenCalledTimes(1);
+    expect(onOpenThemeSettings).toHaveBeenCalledTimes(1);
+
+    // Blocked when an overlay is already open
+    rerender({ overlayOpen: true });
+    page.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true, cancelable: true }));
+    page.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }));
+    page.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true, cancelable: true }));
+    expect(onOpenTOC).toHaveBeenCalledTimes(1);
+    expect(onOpenBookmarks).toHaveBeenCalledTimes(1);
+    expect(onOpenThemeSettings).toHaveBeenCalledTimes(1);
+
+    // Also blocked inside input controls
+    rerender({ overlayOpen: false });
+    page.innerHTML = '<input type="text" /><button type="button">Action</button>';
+    const input = page.querySelector('input')!;
+    const button = page.querySelector('button')!;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true, cancelable: true }));
+    button.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }));
+    expect(onOpenTOC).toHaveBeenCalledTimes(1);
+    expect(onOpenBookmarks).toHaveBeenCalledTimes(1);
+  });
 });

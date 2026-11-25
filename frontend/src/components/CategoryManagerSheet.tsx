@@ -319,7 +319,7 @@ export function CategoryManagerSheet({
                                 'shrink-0 font-mono tabular-nums transition-colors',
                                 editValue.length >= 45
                                   ? 'font-medium text-primary'
-                                  : 'text-muted-foreground/75'
+                                  : 'text-muted-foreground'
                               )}
                             >
                               {editValue.length}/50

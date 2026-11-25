@@ -46,6 +46,12 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByText('视图与浮层')).toBeInTheDocument();
     expect(screen.getByText('上一页')).toBeInTheDocument();
     expect(screen.getByText('下一页')).toBeInTheDocument();
+    expect(screen.getByText('目录')).toBeInTheDocument();
+    expect(screen.getByText('T')).toBeInTheDocument();
+    expect(screen.getByText('书签')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.getByText('排版与外观')).toBeInTheDocument();
+    expect(screen.getByText('S')).toBeInTheDocument();
     expect(screen.getByText('书内搜索')).toBeInTheDocument();
     expect(screen.getByText('⌘/Ctrl + F')).toBeInTheDocument();
     expect(screen.getByText('切换全屏')).toBeInTheDocument();
@@ -67,11 +73,14 @@ describe('ReaderShortcutsDialog', () => {
         onOpenChange={vi.fn()}
         uiScheme={uiScheme}
         isFullscreenSupported={false}
+        showBookmarksShortcut={false}
       />,
     );
 
     expect(screen.queryByText('切换全屏')).not.toBeInTheDocument();
     expect(screen.queryByText('F')).not.toBeInTheDocument();
+    expect(screen.queryByText('书签')).not.toBeInTheDocument();
+    expect(screen.queryByText('B')).not.toBeInTheDocument();
     expect(screen.queryByText('退出全屏 / 关闭浮层 / 返回书库')).not.toBeInTheDocument();
     expect(screen.getByText('关闭浮层 / 返回书库')).toBeInTheDocument();
   });

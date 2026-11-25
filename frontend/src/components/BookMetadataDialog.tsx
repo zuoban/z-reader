@@ -1,21 +1,26 @@
 'use client';
 
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
 import '@/app/styles/mantine-modal.css';
 import { toast } from 'sonner';
-import { Loader2, Pencil, X } from 'lucide-react';
+import { ImagePlus, Loader2, Pencil, RotateCcw, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const MAX_METADATA_RUNES = 500;
 const WARN_METADATA_RUNES = 450;
+const MAX_COVER_BYTES = 10 * 1024 * 1024;
+const COVER_ACCEPT = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+const ACCEPTED_COVER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ACCEPTED_COVER_EXTENSIONS = /\.(jpe?g|png|webp)$/i;
 
 interface BookMetadataDialogProps {
   bookId: string;
   currentTitle?: string;
   currentAuthor?: string;
+  currentCoverUrl?: string | null;
   onUpdate: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,44 +30,100 @@ function countRunes(value: string): number {
   return Array.from(value).length;
 }
 
+function formatCoverSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+  return `${bytes} B`;
+}
+
+function validateCoverFile(file: File): string | null {
+  if (file.size <= 0) {
+    return '所选封面文件为空';
+  }
+  if (file.size > MAX_COVER_BYTES) {
+    return '封面图片不能超过 10 MB';
+  }
+  const normalizedType = file.type.trim().toLowerCase();
+  const hasAllowedType = normalizedType !== '' && ACCEPTED_COVER_TYPES.has(normalizedType);
+  const hasAllowedExt = ACCEPTED_COVER_EXTENSIONS.test(file.name);
+  if (!hasAllowedType && !hasAllowedExt) {
+    return '仅支持 JPG、PNG 或 WebP 格式的封面图片';
+  }
+  return null;
+}
+
 export function BookMetadataDialog({
   bookId,
   currentTitle,
   currentAuthor,
+  currentCoverUrl,
   onUpdate,
   open,
   onOpenChange,
 }: BookMetadataDialogProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const authorInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const titleErrorId = useId();
+  const coverErrorId = useId();
 
   const normalizedCurrentTitle = currentTitle?.trim() ?? '';
   const normalizedCurrentAuthor = currentAuthor?.trim() ?? '';
 
   const [title, setTitle] = useState(normalizedCurrentTitle);
   const [author, setAuthor] = useState(normalizedCurrentAuthor);
+  const [pendingCover, setPendingCover] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const wasOpenRef = useRef(open);
+  const pendingCoverRef = useRef<{ file: File; previewUrl: string } | null>(null);
 
+  const pendingCoverFile = pendingCover?.file ?? null;
   const trimmedTitle = title.trim();
   const trimmedAuthor = author.trim();
   const titleRunes = countRunes(title);
   const authorRunes = countRunes(author);
   const titleChanged = trimmedTitle !== normalizedCurrentTitle;
   const authorChanged = trimmedAuthor !== normalizedCurrentAuthor;
-  const isUnchanged = !titleChanged && !authorChanged;
+  const hasCoverChange = pendingCoverFile !== null;
+  const isUnchanged = !titleChanged && !authorChanged && !hasCoverChange;
   const isTitleMissing = trimmedTitle.length === 0;
   const isTitleTooLong = countRunes(trimmedTitle) > MAX_METADATA_RUNES;
   const isAuthorTooLong = countRunes(trimmedAuthor) > MAX_METADATA_RUNES;
   const canSubmit = !saving && !isUnchanged && !isTitleMissing && !isTitleTooLong && !isAuthorTooLong;
+  const previewCoverUrl = pendingCover?.previewUrl ?? currentCoverUrl ?? null;
 
   useEffect(() => {
-    if (!open) return;
+    pendingCoverRef.current = pendingCover;
+  }, [pendingCover]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingCoverRef.current) {
+        URL.revokeObjectURL(pendingCoverRef.current.previewUrl);
+        pendingCoverRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const justOpened = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (!justOpened) return;
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       setTitle(normalizedCurrentTitle);
       setAuthor(normalizedCurrentAuthor);
+      setPendingCover((prev) => {
+        if (prev) URL.revokeObjectURL(prev.previewUrl);
+        return null;
+      });
+      setCoverError(null);
       setSaving(false);
     });
     return () => {
@@ -88,6 +149,34 @@ export function BookMetadataDialog({
     onOpenChange(false);
   }
 
+  function handleCoverFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const validationError = validateCoverFile(file);
+    if (validationError) {
+      setCoverError(validationError);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setCoverError(null);
+    setPendingCover((prev) => {
+      if (prev) URL.revokeObjectURL(prev.previewUrl);
+      return { file, previewUrl };
+    });
+  }
+
+  function handleClearPendingCover() {
+    if (saving) return;
+    setPendingCover((prev) => {
+      if (prev) URL.revokeObjectURL(prev.previewUrl);
+      return null;
+    });
+    setCoverError(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving || isUnchanged) return;
@@ -111,15 +200,39 @@ export function BookMetadataDialog({
     const payload: { title?: string; author?: string } = {};
     if (titleChanged) payload.title = trimmedTitle;
     if (authorChanged) payload.author = trimmedAuthor;
+    const hasMetadataChange = titleChanged || authorChanged;
+    const coverToUpload = pendingCoverFile;
 
     setSaving(true);
+    let metadataSaved = false;
     try {
-      await api.updateBook(bookId, payload);
-      toast.success('已更新书籍信息');
+      if (hasMetadataChange) {
+        await api.updateBook(bookId, payload);
+        metadataSaved = true;
+      }
+      if (coverToUpload) {
+        await api.uploadCover(bookId, coverToUpload, coverToUpload.name || 'cover.png');
+      }
+      if (hasMetadataChange && coverToUpload) {
+        toast.success('已更新书籍信息与封面');
+      } else if (coverToUpload) {
+        toast.success('已更新书籍封面');
+      } else {
+        toast.success('已更新书籍信息');
+      }
       onUpdate();
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '保存书籍信息失败');
+      if (metadataSaved) {
+        onUpdate();
+      }
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : metadataSaved || (!hasMetadataChange && coverToUpload)
+            ? '上传封面失败'
+            : '保存书籍信息失败'
+      );
     } finally {
       setSaving(false);
     }
@@ -140,7 +253,7 @@ export function BookMetadataDialog({
         inner:
           'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
         content:
-          'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
+          'app-dialog-shell flex max-h-[min(86svh,40rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
       }}
     >
       <Modal.Overlay backgroundOpacity={0.42} blur={3} />
@@ -155,7 +268,7 @@ export function BookMetadataDialog({
                 编辑书籍信息
               </Modal.Title>
               <p className="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
-                修改书名或作者，便于书架检索与整理
+                修改书名、作者或自定义封面，便于书架检索与整理
               </p>
             </div>
           </div>
@@ -177,6 +290,90 @@ export function BookMetadataDialog({
         <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
           <div className="custom-scrollbar min-h-0 flex-1 space-y-3.5 overflow-y-auto px-5 py-4 sm:px-6">
             <div className="app-surface-panel rounded-xl px-4 py-3.5">
+              <div className="mb-2.5 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-muted-foreground">封面</span>
+                {pendingCoverFile && (
+                  <span className="rounded-md bg-primary/12 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                    待保存
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3.5">
+                <div className="relative flex h-[4.5rem] w-[3rem] shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/80 bg-secondary/50">
+                  {previewCoverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={previewCoverUrl}
+                      alt={trimmedTitle ? `${trimmedTitle} 封面预览` : '封面预览'}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <ImagePlus
+                      className="h-4 w-4 text-muted-foreground/70"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="truncate text-xs text-muted-foreground" title={pendingCoverFile?.name}>
+                    {pendingCoverFile
+                      ? `${pendingCoverFile.name}（${formatCoverSize(pendingCoverFile.size)}）`
+                      : '支持 JPG、PNG、WebP，不超过 10 MB'}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={coverInputRef}
+                      type="file"
+                      accept={COVER_ACCEPT}
+                      aria-label="选择封面图片"
+                      aria-describedby={coverError ? coverErrorId : undefined}
+                      tabIndex={-1}
+                      disabled={saving}
+                      onChange={handleCoverFileChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="xs"
+                      disabled={saving}
+                      onClick={() => coverInputRef.current?.click()}
+                      leftSection={
+                        <ImagePlus className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
+                      }
+                      className="h-8 rounded-lg border-border/80 bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary/75"
+                    >
+                      {previewCoverUrl ? '更换封面' : '选择封面'}
+                    </Button>
+                    {pendingCoverFile && (
+                      <Button
+                        type="button"
+                        variant="subtle"
+                        color="gray"
+                        size="xs"
+                        disabled={saving}
+                        onClick={handleClearPendingCover}
+                        leftSection={
+                          <RotateCcw className="h-3 w-3" strokeWidth={1.6} aria-hidden="true" />
+                        }
+                        className="h-8 rounded-lg px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        取消更换
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {coverError && (
+                <p id={coverErrorId} role="alert" className="mt-2 text-xs font-medium text-destructive">
+                  {coverError}
+                </p>
+              )}
+            </div>
+
+            <div className="app-surface-panel rounded-xl px-4 py-3.5">
               <div className="mb-2 flex items-center justify-between">
                 <label htmlFor={`${titleErrorId}-input`} className="text-xs font-medium text-muted-foreground">
                   书名
@@ -188,7 +385,7 @@ export function BookMetadataDialog({
                       ? 'font-medium text-destructive'
                       : titleRunes >= WARN_METADATA_RUNES
                         ? 'font-medium text-primary'
-                        : 'text-muted-foreground/75'
+                        : 'text-muted-foreground'
                   )}
                 >
                   {titleRunes}/{MAX_METADATA_RUNES}
@@ -254,7 +451,7 @@ export function BookMetadataDialog({
                       ? 'font-medium text-destructive'
                       : authorRunes >= WARN_METADATA_RUNES
                         ? 'font-medium text-primary'
-                        : 'text-muted-foreground/75'
+                        : 'text-muted-foreground'
                   )}
                 >
                   {authorRunes}/{MAX_METADATA_RUNES}

@@ -27,7 +27,10 @@ type SessionDB struct {
 
 // OpenSession 打开或创建独立的 session 数据库文件。
 func OpenSession(path string) (*SessionDB, error) {
-	db, err := bbolt.Open(path, 0600, &bbolt.Options{Timeout: 1 * time.Second})
+	db, err := bbolt.Open(path, 0600, &bbolt.Options{
+		Timeout:      1 * time.Second,
+		FreelistType: bbolt.FreelistMapType,
+	})
 	if err != nil {
 		return nil, err
 	}

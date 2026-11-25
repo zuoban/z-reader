@@ -146,3 +146,43 @@ func TestSharedHTTPClientStopsAtProviderRedirect(t *testing.T) {
 		t.Fatal("expected the original provider response without a second request")
 	}
 }
+
+func TestReadDiskTTSCacheSkipsFreshChtimesAndUpdatesStaleFile(t *testing.T) {
+	config := ttsCacheConfig{Dir: t.TempDir(), MaxBytes: 4096, MaxItems: 8, TTL: time.Hour}
+	const key = "fresh-touch"
+	payload := []byte("cached-audio-bytes")
+	if err := writeDiskTTSCacheFile(config, key, payload); err != nil {
+		t.Fatalf("write disk cache failed: %v", err)
+	}
+
+	path := diskTTSCachePath(config, key)
+	freshTime := time.Now().Add(-30 * time.Second).Truncate(time.Second)
+	if err := os.Chtimes(path, freshTime, freshTime); err != nil {
+		t.Fatalf("set fresh mtime failed: %v", err)
+	}
+	if got, ok := readDiskTTSCache(config, key); !ok || string(got) != string(payload) {
+		t.Fatalf("expected fresh disk cache hit, got %q ok=%v", got, ok)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat fresh file failed: %v", err)
+	}
+	if !info.ModTime().Equal(freshTime) {
+		t.Fatalf("expected fresh file mtime to stay %v, got %v", freshTime, info.ModTime())
+	}
+
+	staleTime := time.Now().Add(-15 * time.Minute).Truncate(time.Second)
+	if err := os.Chtimes(path, staleTime, staleTime); err != nil {
+		t.Fatalf("set stale mtime failed: %v", err)
+	}
+	if got, ok := readDiskTTSCache(config, key); !ok || string(got) != string(payload) {
+		t.Fatalf("expected stale disk cache hit, got %q ok=%v", got, ok)
+	}
+	info, err = os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat stale file failed: %v", err)
+	}
+	if !info.ModTime().After(staleTime) {
+		t.Fatalf("expected stale file mtime to refresh beyond %v, got %v", staleTime, info.ModTime())
+	}
+}

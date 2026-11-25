@@ -171,6 +171,38 @@ func (db *DB) GetProgress(bookID string, userID string) (*models.Progress, error
 	return &progress, nil
 }
 
+// GetProgressForBook verifies book ownership and loads reading progress in a
+// single read transaction. It returns ErrNotFound if the book does not exist
+// for the user, and (nil, nil) if the book has no saved progress yet.
+func (db *DB) GetProgressForBook(bookID string, userID string) (*models.Progress, error) {
+	var progress *models.Progress
+	err := db.View(func(tx *bbolt.Tx) error {
+		idxB := tx.Bucket(UserBooksIndex)
+		if idxB.Get([]byte(userID+":"+bookID)) == nil {
+			return ErrNotFound
+		}
+		if tx.Bucket(BooksBucket).Get([]byte(bookID)) == nil {
+			return ErrNotFound
+		}
+
+		b := tx.Bucket(ProgressBucket)
+		data := b.Get(progressKey(userID, bookID))
+		if data == nil {
+			return nil
+		}
+		var item models.Progress
+		if err := json.Unmarshal(data, &item); err != nil {
+			return err
+		}
+		progress = &item
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return progress, nil
+}
+
 func (db *DB) ListProgress(userID string) ([]models.Progress, error) {
 	items := []models.Progress{}
 	prefix := []byte(userID + ":")

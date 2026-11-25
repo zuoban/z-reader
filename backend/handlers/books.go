@@ -200,16 +200,6 @@ func (h *BooksHandler) Get(c *gin.Context) {
 func (h *BooksHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-
 	var req bookUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		if isRequestBodyTooLarge(err) {
@@ -245,7 +235,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		req.Category.Value = category
 	}
 
-	book, err = h.db.UpdateBook(id, storage.PersonalLibrary, func(book *models.Book) bool {
+	book, err := h.db.UpdateBook(id, storage.PersonalLibrary, func(book *models.Book) bool {
 		pending := book.ProcessingState == models.BookProcessingPending
 		if req.Title.Value != nil {
 			book.Title = *req.Title.Value

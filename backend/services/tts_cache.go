@@ -27,6 +27,8 @@ const (
 	defaultTTSMaxQueued          = 12
 	defaultTTSQueueWait          = 30 * time.Second
 	defaultTTSSynthesisTimeout   = 55 * time.Second
+	diskTTSCleanupMinInterval    = 30 * time.Second
+	diskTTSTouchMaxInterval      = 10 * time.Minute
 )
 
 var ErrTTSBusy = errors.New("tts service is busy")
@@ -62,6 +64,16 @@ type ttsRuntimeState struct {
 	semaphore chan struct{}
 	queue     chan struct{}
 	metrics   ttsMetrics
+
+	diskWG         sync.WaitGroup
+	diskWrites     atomic.Uint64
+	cleanupMu      sync.Mutex
+	cleanupRunning bool
+	lastCleanup    time.Time
+}
+
+func (r *ttsRuntimeState) waitDiskWrites() {
+	r.diskWG.Wait()
 }
 
 // Buckets and labels are fixed so content and provider identifiers never affect cardinality.
@@ -434,33 +446,48 @@ func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh 
 
 	go func() {
 		defer cancel()
-		defer func() {
-			ttsInflight.mutex.Lock()
-			if ttsInflight.calls[key] == call {
-				delete(ttsInflight.calls, key)
+		var persistData []byte
+		persisting := false
+		func() {
+			defer func() {
+				ttsInflight.mutex.Lock()
+				if ttsInflight.calls[key] == call {
+					delete(ttsInflight.calls, key)
+				}
+				ttsInflight.mutex.Unlock()
+				close(call.done)
+			}()
+
+			logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml))
+			call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
+			// A browser decode failure can be local to that client. Recovery leaves
+			// the shared cache alone and runs under the same synthesis limits.
+			if call.err == nil && !refresh {
+				runtime.cache.set(key, call.data)
+				if shouldPersistDiskTTSCache(runtime.config, call.data) {
+					runtime.diskWG.Add(1)
+					persisting = true
+					persistData = call.data
+				}
 			}
-			ttsInflight.mutex.Unlock()
-			close(call.done)
+
+			logger.Info(
+				"TTS request completed",
+				"key", key,
+				"bytes", len(call.data),
+				"waiters", call.waiters.Load(),
+				"error", ttsFailureKind(call.err),
+			)
 		}()
 
-		logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml))
-		call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
-		// A browser decode failure can be local to that client. Recovery leaves
-		// the shared cache alone and runs under the same synthesis limits.
-		if call.err == nil && !refresh {
-			runtime.cache.set(key, call.data)
-			if err := writeDiskTTSCache(runtime.config, key, call.data); err != nil {
+		if persisting {
+			defer runtime.diskWG.Done()
+			if err := writeDiskTTSCacheFile(runtime.config, key, persistData); err != nil {
 				logger.Warn("Failed to write TTS disk cache", "key", key, "error", err)
+				return
 			}
+			runtime.maybeCleanupDiskTTSCache()
 		}
-
-		logger.Info(
-			"TTS request completed",
-			"key", key,
-			"bytes", len(call.data),
-			"waiters", call.waiters.Load(),
-			"error", ttsFailureKind(call.err),
-		)
 	}()
 
 	return waitForTTSCall(ctx, call)
@@ -571,20 +598,33 @@ func readDiskTTSCache(config ttsCacheConfig, key string) ([]byte, bool) {
 	if err != nil || len(data) == 0 {
 		return nil, false
 	}
-	_ = os.Chtimes(path, time.Now(), time.Now())
+	touchInterval := config.TTL / 4
+	if touchInterval > diskTTSTouchMaxInterval {
+		touchInterval = diskTTSTouchMaxInterval
+	}
+	if touchInterval <= 0 || time.Since(info.ModTime()) >= touchInterval {
+		now := time.Now()
+		_ = os.Chtimes(path, now, now)
+	}
 	return data, true
 }
 
-func writeDiskTTSCache(config ttsCacheConfig, key string, data []byte) error {
-	if config.Dir == "" || len(data) == 0 || len(data) > config.MaxBytes {
+func shouldPersistDiskTTSCache(config ttsCacheConfig, data []byte) bool {
+	return config.Dir != "" && len(data) > 0 && len(data) <= config.MaxBytes
+}
+
+func writeDiskTTSCacheFile(config ttsCacheConfig, key string, data []byte) error {
+	if !shouldPersistDiskTTSCache(config, data) {
 		return nil
 	}
 
-	if err := os.MkdirAll(config.Dir, 0700); err != nil {
-		return err
-	}
-
 	tmp, err := os.CreateTemp(config.Dir, ".tts-audio-*")
+	if errors.Is(err, os.ErrNotExist) {
+		if mkErr := os.MkdirAll(config.Dir, 0700); mkErr != nil {
+			return mkErr
+		}
+		tmp, err = os.CreateTemp(config.Dir, ".tts-audio-*")
+	}
 	if err != nil {
 		return err
 	}
@@ -593,12 +633,48 @@ func writeDiskTTSCache(config ttsCacheConfig, key string, data []byte) error {
 	if err := errors.Join(writeErr, tmp.Close()); err != nil {
 		return err
 	}
-	if err := os.Rename(tmp.Name(), diskTTSCachePath(config, key)); err != nil {
+	return os.Rename(tmp.Name(), diskTTSCachePath(config, key))
+}
+
+func writeDiskTTSCache(config ttsCacheConfig, key string, data []byte) error {
+	if err := writeDiskTTSCacheFile(config, key, data); err != nil {
 		return err
 	}
-
-	cleanupDiskTTSCache(config)
+	if shouldPersistDiskTTSCache(config, data) {
+		cleanupDiskTTSCache(config)
+	}
 	return nil
+}
+
+func (r *ttsRuntimeState) maybeCleanupDiskTTSCache() {
+	if r.config.Dir == "" {
+		return
+	}
+	stride := uint64(max(1, r.config.MaxItems/8))
+	writes := r.diskWrites.Add(1)
+
+	r.cleanupMu.Lock()
+	if r.cleanupRunning {
+		r.cleanupMu.Unlock()
+		return
+	}
+	dueByCount := writes%stride == 0
+	dueByTime := r.lastCleanup.IsZero() || time.Since(r.lastCleanup) >= diskTTSCleanupMinInterval
+	if !dueByCount && !dueByTime {
+		r.cleanupMu.Unlock()
+		return
+	}
+	r.cleanupRunning = true
+	r.cleanupMu.Unlock()
+
+	defer func() {
+		r.cleanupMu.Lock()
+		r.lastCleanup = time.Now()
+		r.cleanupRunning = false
+		r.cleanupMu.Unlock()
+	}()
+
+	cleanupDiskTTSCache(r.config)
 }
 
 func cleanupDiskTTSCache(config ttsCacheConfig) {

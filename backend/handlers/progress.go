@@ -80,17 +80,11 @@ func (h *ProgressHandler) List(c *gin.Context) {
 func (h *ProgressHandler) Get(c *gin.Context) {
 	id := c.Param("id")
 
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
+	progress, err := h.db.GetProgressForBook(id, storage.PersonalLibrary)
+	if err == storage.ErrNotFound {
 		response.NotFound(c, "书籍不存在")
 		return
 	}
-
-	progress, err := h.db.GetProgress(id, storage.PersonalLibrary)
 	if err != nil {
 		response.InternalError(c, "获取阅读进度失败")
 		return

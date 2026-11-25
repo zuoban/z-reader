@@ -196,5 +196,6 @@ func (h *TTSHandler) VoiceList(c *gin.Context) {
 		voices = filtered
 	}
 
+	c.Header("Cache-Control", "private, max-age=300")
 	c.JSON(http.StatusOK, voices)
 }

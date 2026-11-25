@@ -35,7 +35,10 @@ type DB struct {
 // Open 打开主数据库和独立 session 数据库。
 // session 数据库文件路径为 path + ".sessions"。
 func Open(path string) (*DB, error) {
-	db, err := bbolt.Open(path, 0600, &bbolt.Options{Timeout: 1 * time.Second})
+	db, err := bbolt.Open(path, 0600, &bbolt.Options{
+		Timeout:      1 * time.Second,
+		FreelistType: bbolt.FreelistMapType,
+	})
 	if err != nil {
 		return nil, err
 	}

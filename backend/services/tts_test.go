@@ -28,6 +28,7 @@ func installTTSTestRuntime(t *testing.T, transport ttsRoundTripFunc) *ttsRuntime
 	endpointCache.data = &EndpointCache{Endpoint: "test", Token: "secret", ExpiredAt: time.Now().Add(time.Hour).Unix()}
 	endpointCache.mutex.Unlock()
 	t.Cleanup(func() {
+		runtime.waitDiskWrites()
 		sharedHTTPClient = previousClient
 		ttsRuntime.state.Store(previousRuntime)
 		endpointCache.mutex.Lock()
@@ -259,6 +260,7 @@ func TestTTSPrometheusReportsCacheHitsAndDurations(t *testing.T) {
 	runtime.config.Dir = t.TempDir()
 	for i := 0; i < 3; i++ {
 		if i == 2 {
+			runtime.waitDiskWrites()
 			runtime.cache = newTTSAudioCache(runtime.config)
 		}
 		if _, err := GenerateAudioFromSsmlContext(context.Background(), "metric cache", "mp3"); err != nil {
@@ -688,6 +690,7 @@ func TestTTSRejectsNonAudioSuccessBeforeCaching(t *testing.T) {
 					if got := calls.Load(); got != 2 {
 						t.Fatalf("provider calls = %d, want 2", got)
 					}
+					runtime.waitDiskWrites()
 					if data, ok := readDiskTTSCache(runtime.config, key); !ok || string(data) != pcm {
 						t.Fatalf("binary PCM disk cache: got %q, found %v", data, ok)
 					}

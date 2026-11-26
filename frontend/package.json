@@ -29,7 +29,7 @@
     "test:js-budget": "node scripts/check-js-budget.mjs",
     "test:js-budget:baseline": "node scripts/check-js-budget.mjs --write",
     "test:visual": "playwright test tests/e2e/visual-regression.spec.ts",
-    "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
+    "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots=all",
     "test:visual:update:linux": "bash scripts/update-visual-linux.sh",
     "test:visual:ui": "playwright test tests/e2e/visual-regression.spec.ts --ui",
     "test:perf:production": "node scripts/run-production-performance.mjs",

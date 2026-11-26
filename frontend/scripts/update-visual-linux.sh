@@ -31,7 +31,7 @@ docker run --rm \
     else
       npm install
     fi
-    npx playwright test tests/e2e/visual-regression.spec.ts --update-snapshots --workers=1
+    npx playwright test tests/e2e/visual-regression.spec.ts --update-snapshots=all --workers=1
   '
 
 echo "Linux snapshots updated under tests/e2e/visual-regression.spec.ts-snapshots/linux/"

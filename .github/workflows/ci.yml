@@ -387,6 +387,7 @@ jobs:
           fi
 
       - name: Run visual regression
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.update_visual_snapshots && !inputs.publish_image) }}
         working-directory: frontend
         env:
           CI: true

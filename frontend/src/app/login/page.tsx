@@ -133,7 +133,19 @@ export default function LoginPage() {
                   if (passwordError) setPasswordError('');
                   if (error) setError('');
                 }}
-                onKeyDown={updateCapsLockState}
+                onKeyDown={(e) => {
+                  updateCapsLockState(e);
+                  if (
+                    e.key === 'Escape' &&
+                    !e.nativeEvent.isComposing &&
+                    (password || error || passwordError)
+                  ) {
+                    e.preventDefault();
+                    setPassword('');
+                    setError('');
+                    setPasswordError('');
+                  }
+                }}
                 onKeyUp={updateCapsLockState}
                 onBlur={() => setCapsLockOn(false)}
                 visible={showPassword}

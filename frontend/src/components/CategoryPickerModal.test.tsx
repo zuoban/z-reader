@@ -184,6 +184,7 @@ describe('CategoryPickerModal (batch mode)', () => {
     fireEvent.change(input, { target: { value: 'sci' } });
 
     expect(screen.getByText('匹配 1 / 3 个')).toBeInTheDocument();
+    expect(screen.getByText('Sci').tagName).toBe('MARK');
     expect(screen.getByRole('button', { name: /Sci-Fi/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /历史随笔/ })).not.toBeInTheDocument();
 

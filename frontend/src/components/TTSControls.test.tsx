@@ -256,26 +256,36 @@ describe('TTSControls', () => {
     expect(screen.getByText('已暂停')).toBeInTheDocument();
   });
 
-  it('shows live speed multiplier and active sleep timer section badges', () => {
+  it('shows live speed multiplier with one-click reset and active sleep timer badge', () => {
+    const onUpdateSettings = vi.fn();
     const { container, rerender, props } = renderControls({
       expanded: true,
+      onUpdateSettings,
       settings: { ...settings, rate: 50 },
       sleepTimer: { mode: 'minutes', minutes: 30, label: '30分钟后停止' },
     });
 
-    expect(container.querySelector('[data-tts-rate-badge="true"]')).toHaveTextContent('1.5×');
+    const rateBadge = container.querySelector('[data-tts-rate-badge="true"]') as HTMLElement;
+    expect(rateBadge.tagName).toBe('BUTTON');
+    expect(rateBadge).toHaveTextContent('1.5×');
     expect(container.querySelector('[data-tts-timer-badge="true"]')).toHaveTextContent('已开启');
+
+    fireEvent.click(rateBadge);
+    expect(onUpdateSettings).toHaveBeenCalledWith({ rate: 0 });
 
     rerender(
       <TTSControls
         {...props}
         expanded
+        onUpdateSettings={onUpdateSettings}
         settings={{ ...settings, rate: 0 }}
         sleepTimer={undefined}
       />,
     );
 
-    expect(container.querySelector('[data-tts-rate-badge="true"]')).toHaveTextContent('1×');
+    const normalRateBadge = container.querySelector('[data-tts-rate-badge="true"]') as HTMLElement;
+    expect(normalRateBadge.tagName).toBe('SPAN');
+    expect(normalRateBadge).toHaveTextContent('1×');
     expect(container.querySelector('[data-tts-timer-badge="true"]')).not.toBeInTheDocument();
   });
 });

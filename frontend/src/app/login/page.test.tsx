@@ -133,4 +133,29 @@ describe('LoginPage', () => {
     expect(screen.getByText('水浒传 · 第十回')).toBeInTheDocument();
     expect(screen.getByText('28%')).toBeInTheDocument();
   });
+
+  it('clears typed password and active validation error on Escape when not composing', () => {
+    render(<LoginPage />);
+
+    const input = screen.getByLabelText('访问密码');
+    fireEvent.click(screen.getByRole('button', { name: '进入书架' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('请输入访问密码');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'secret-123' } });
+
+    const composingEscape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEscape, 'isComposing', { value: true });
+    fireEvent(input, composingEscape);
+    expect(input).toHaveValue('secret-123');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).toHaveValue('');
+  });
 });

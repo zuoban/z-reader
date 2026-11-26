@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActionIcon, Button, TextInput } from '@mantine/core';
 import { Check, Loader2, Plus, Tag, Trash2, X } from 'lucide-react';
 import { AppModal } from '@/components/AppModal';
+import { HighlightedText } from '@/components/HighlightedText';
 import { cn } from '@/lib/utils';
 
 export interface CategoryPickerModalProps {
@@ -224,7 +225,13 @@ export function CategoryPickerModal({
                         ) : (
                           <Tag className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={1.5} aria-hidden="true" />
                         )}
-                        <span className="truncate">{cat}</span>
+                        <span className="truncate">
+                          <HighlightedText
+                            text={cat}
+                            query={isFilteringExisting ? trimmedCategoryName : ''}
+                            markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+                          />
+                        </span>
                         <span className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums opacity-75">
                           {bookCounts[cat] || 0}
                         </span>
@@ -266,7 +273,11 @@ export function CategoryPickerModal({
                               isSelected ? 'text-primary' : 'text-foreground'
                             )}
                           >
-                            {cat}
+                            <HighlightedText
+                              text={cat}
+                              query={isFilteringExisting ? trimmedCategoryName : ''}
+                              markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+                            />
                           </span>
                           <span className="shrink-0 rounded-full border border-border/75 bg-card px-2 py-0.5 font-mono text-[11px] font-medium leading-4 tabular-nums text-muted-foreground">
                             {bookCounts[cat] || 0} 本

@@ -213,17 +213,36 @@ export function TTSControls({
           title="播放控制"
           description="从当前位置开始、暂停或切换到相邻句子。"
           badge={
-            <span
-              data-tts-rate-badge="true"
-              className="rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums"
-              style={{
-                borderColor: 'var(--reader-panel-rule)',
-                background: 'color-mix(in srgb, var(--reader-panel-hover) 65%, transparent)',
-                color: 'var(--reader-panel-fg)',
-              }}
-            >
-              {formattedRate}
-            </span>
+            settings.rate !== 0 ? (
+              <button
+                type="button"
+                data-tts-rate-badge="true"
+                onClick={() => onUpdateSettings({ rate: 0 })}
+                title="点击恢复 1× 常速"
+                aria-label={`当前语速 ${formattedRate}，点击恢复 1×`}
+                className="cursor-pointer rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--reader-panel-accent) 32%, transparent)',
+                  background: 'color-mix(in srgb, var(--reader-panel-accent) 12%, transparent)',
+                  color: 'var(--reader-panel-accent)',
+                  outlineColor: 'var(--reader-panel-accent)',
+                }}
+              >
+                {formattedRate}
+              </button>
+            ) : (
+              <span
+                data-tts-rate-badge="true"
+                className="rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums"
+                style={{
+                  borderColor: 'var(--reader-panel-rule)',
+                  background: 'color-mix(in srgb, var(--reader-panel-hover) 65%, transparent)',
+                  color: 'var(--reader-panel-fg)',
+                }}
+              >
+                {formattedRate}
+              </span>
+            )
           }
         >
           <div className="space-y-3">

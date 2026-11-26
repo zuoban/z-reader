@@ -108,7 +108,7 @@ vi.mock('@/components/VirtualBookGrid', () => ({
     getItemKey: (item: Book, index: number) => string;
     renderItem: (item: Book, index: number) => ReactNode;
   }) => (
-    <div>
+    <div data-testid="mock-virtual-grid">
       {items.map((item, index) => {
         const key = getItemKey(item, index);
         capturedItemKeys.push(key);
@@ -133,6 +133,7 @@ vi.mock('@/components/BookCard', () => ({
     selectionMode,
     selected,
     onSelectionToggle,
+    layout = 'grid',
   }: {
     book: Book;
     onRead: (bookId: string) => void;
@@ -140,6 +141,7 @@ vi.mock('@/components/BookCard', () => ({
     selectionMode?: boolean;
     selected?: boolean;
     onSelectionToggle?: (bookId: string) => void;
+    layout?: 'grid' | 'list';
   }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     bookCardRenderProps.push({
@@ -149,7 +151,7 @@ vi.mock('@/components/BookCard', () => ({
       onSelectionToggle,
     });
     return (
-      <div>
+      <div data-testid={`mock-book-card-${book.id}`} data-layout={layout}>
         <span>{book.title}</span>
         <button type="button" onClick={() => setDialogOpen(true)}>
           {`打开弹窗 ${book.id}`}
@@ -168,6 +170,7 @@ vi.mock('@/components/BookCard', () => ({
 describe('ShelfPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.removeItem('z-reader-shelf-view-mode');
     capturedItemKeys.length = 0;
     bookCardRenderProps.length = 0;
     mockAuthState.isLoading = false;
@@ -427,5 +430,36 @@ describe('ShelfPage', () => {
 
     expect(capturedItemKeys).toEqual(['book-1']);
     expect(screen.getByRole('dialog')).toHaveTextContent('已打开 book-1');
+  });
+
+  it('switches between grid and list view modes and persists the choice', () => {
+    const { container, unmount } = render(<ShelfPage />);
+
+    const gridButton = screen.getByRole('button', { name: '网格视图' });
+    const listButton = screen.getByRole('button', { name: '列表视图' });
+
+    expect(gridButton).toHaveAttribute('aria-pressed', 'true');
+    expect(listButton).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('mock-virtual-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-book-card-book-1')).toHaveAttribute('data-layout', 'grid');
+
+    fireEvent.click(listButton);
+
+    expect(gridButton).toHaveAttribute('aria-pressed', 'false');
+    expect(listButton).toHaveAttribute('aria-pressed', 'true');
+    expect(window.localStorage.getItem('z-reader-shelf-view-mode')).toBe('list');
+    expect(screen.queryByTestId('mock-virtual-grid')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-shelf-grid="list"]')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-book-card-book-1')).toHaveAttribute('data-layout', 'list');
+
+    unmount();
+
+    const remounted = render(<ShelfPage />);
+    expect(remounted.getByRole('button', { name: '列表视图' })).toHaveAttribute('aria-pressed', 'true');
+    expect(remounted.container.querySelector('[data-shelf-grid="list"]')).toBeInTheDocument();
+
+    fireEvent.click(remounted.getByRole('button', { name: '网格视图' }));
+    expect(window.localStorage.getItem('z-reader-shelf-view-mode')).toBe('grid');
+    expect(remounted.getByTestId('mock-virtual-grid')).toBeInTheDocument();
   });
 });

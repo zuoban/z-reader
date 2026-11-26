@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import '../styles/mantine-shelf.css';
@@ -29,9 +29,57 @@ import { useShelfFileDrop } from '@/components/shelf/useShelfFileDrop';
 import { useShelfSelection } from '@/components/shelf/useShelfSelection';
 import { prefetchFoliateEngine } from '@/lib/foliate-loader';
 
+type ShelfViewMode = 'grid' | 'list';
+
+const SHELF_VIEW_MODE_STORAGE_KEY = 'z-reader-shelf-view-mode';
+const SHELF_VIEW_MODE_EVENT = 'z-reader-shelf-view-mode-change';
+
+function getServerShelfViewModeSnapshot(): ShelfViewMode {
+  return 'grid';
+}
+
+function getShelfViewModeSnapshot(): ShelfViewMode {
+  if (typeof window === 'undefined') return 'grid';
+  try {
+    return window.localStorage.getItem(SHELF_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'grid';
+  } catch {
+    return 'grid';
+  }
+}
+
+function subscribeShelfViewMode(onStoreChange: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === SHELF_VIEW_MODE_STORAGE_KEY) {
+      onStoreChange();
+    }
+  };
+  window.addEventListener(SHELF_VIEW_MODE_EVENT, onStoreChange);
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    window.removeEventListener(SHELF_VIEW_MODE_EVENT, onStoreChange);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function persistShelfViewMode(mode: ShelfViewMode) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(SHELF_VIEW_MODE_STORAGE_KEY, mode);
+  } catch {
+    // Ignore storage quota / privacy mode failures and still notify listeners if needed.
+  }
+  window.dispatchEvent(new Event(SHELF_VIEW_MODE_EVENT));
+}
+
 export default function ShelfPage() {
   const router = useRouter();
   const prefetchedBookIdsRef = useRef<Set<string>>(new Set());
+  const viewMode = useSyncExternalStore(
+    subscribeShelfViewMode,
+    getShelfViewModeSnapshot,
+    getServerShelfViewModeSnapshot
+  );
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const [offlineBooksOpen, setOfflineBooksOpen] = useState(false);
   const [isRetryingAuth, setIsRetryingAuth] = useState(false);
@@ -192,6 +240,7 @@ export default function ShelfPage() {
         selectionMode={selectionMode}
         selected={selectedBookIds.has(book.id)}
         onSelectionToggle={toggleBookSelection}
+        layout={viewMode}
       />
     ),
     [
@@ -208,6 +257,7 @@ export default function ShelfPage() {
       selectionMode,
       selectedBookIds,
       toggleBookSelection,
+      viewMode,
     ]
   );
 
@@ -308,6 +358,8 @@ export default function ShelfPage() {
           onSearchQueryChange={changeSearchQuery}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={persistShelfViewMode}
         />
 
         {isOffline ? (
@@ -355,6 +407,7 @@ export default function ShelfPage() {
               hasMoreBooks={hasMoreBooks}
               isLoadingMoreBooks={isLoadingMoreBooks}
               selectionMode={selectionMode}
+              viewMode={viewMode}
               onRetrySearch={retrySearch}
               onClearFilters={clearShelfFilters}
               onLoadMore={loadMoreBooks}

@@ -98,6 +98,112 @@
     -webkit-backdrop-filter: blur(10px) saturate(130%);
   }
 
+  .shelf-command-bar {
+    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    border-radius: var(--radius-2xl);
+    background: color-mix(in srgb, var(--card) 78%, transparent);
+    box-shadow: var(--paper-shadow-control);
+    backdrop-filter: blur(12px) saturate(125%);
+    -webkit-backdrop-filter: blur(12px) saturate(125%);
+  }
+
+  .shelf-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.1875rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--secondary) 78%, transparent);
+  }
+
+  .shelf-view-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 0.4375rem;
+    color: var(--muted-foreground);
+    transition:
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .shelf-view-toggle-btn:hover {
+      color: var(--foreground);
+    }
+  }
+
+  .shelf-view-toggle-btn[data-active='true'] {
+    color: var(--foreground);
+    background: var(--card);
+    box-shadow: var(--paper-shadow-control);
+  }
+
+  .shelf-book-row {
+    --book-card-edge: color-mix(in srgb, var(--foreground) 9%, transparent);
+    border-radius: var(--radius-2xl);
+    background: var(--card);
+    box-shadow: inset 0 0 0 1px var(--book-card-edge), var(--paper-shadow-card);
+    transition:
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-base) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .shelf-book-row:not([data-deleting="true"]):hover {
+      --book-card-edge: color-mix(in srgb, var(--primary) 26%, var(--border));
+      box-shadow: inset 0 0 0 1px var(--book-card-edge), var(--paper-shadow-card-hover);
+    }
+  }
+
+  .shelf-book-row[data-selected='true'] {
+    --muted-foreground: var(--subtle-foreground);
+    background: var(--shelf-surface-selected);
+    outline: 2px solid var(--primary);
+    outline-offset: -1px;
+  }
+
+  .shelf-book-row[data-selected='true'] .shelf-book-selection {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .shelf-book-row[data-deleting='true'] {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .shelf-book-row-cover {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--shelf-card-media);
+  }
+
+  .shelf-book-row-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgb(24 23 20 / 11%);
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shelf-view-toggle-btn,
+    .shelf-book-row {
+      transition: none;
+    }
+  }
+
   @media (width < 40rem) {
     .shelf-category-strip[data-prev-categories]:not(:has(:focus-visible))::before {
       content: "";

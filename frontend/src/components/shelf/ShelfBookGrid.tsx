@@ -26,6 +26,7 @@ export interface ShelfBookGridProps {
   hasMoreBooks: boolean;
   isLoadingMoreBooks: boolean;
   selectionMode: boolean;
+  viewMode?: 'grid' | 'list';
   onRetrySearch: () => void;
   onClearFilters: () => void;
   onLoadMore: () => void | Promise<void>;
@@ -50,6 +51,7 @@ export function ShelfBookGrid({
   hasMoreBooks,
   isLoadingMoreBooks,
   selectionMode,
+  viewMode = 'grid',
   onRetrySearch,
   onClearFilters,
   onLoadMore,
@@ -139,6 +141,14 @@ export function ShelfBookGrid({
             </Button>
           }
         />
+      ) : viewMode === 'list' ? (
+        <div data-shelf-grid="list" className="relative z-0 space-y-2.5">
+          {filteredBooks.map((book, index) => (
+            <div key={getBookItemKey(book)} className="min-w-0">
+              {renderBookCard(book, index)}
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="relative z-0">
           <VirtualBookGrid

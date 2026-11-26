@@ -34,6 +34,7 @@ interface BookCardProps {
   selectionMode?: boolean;
   selected?: boolean;
   onSelectionToggle?: (bookId: string) => void;
+  layout?: 'grid' | 'list';
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -160,6 +161,7 @@ export const BookCard = memo(function BookCard({
   selectionMode = false,
   selected = false,
   onSelectionToggle,
+  layout = 'grid',
 }: BookCardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -246,182 +248,303 @@ export const BookCard = memo(function BookCard({
     }
   }
 
+  const isListLayout = layout === 'list';
+
+  const cardAriaLabel = selectionMode
+    ? `${selected ? '取消选择' : '选择'}《${titleLabel}》`
+    : `阅读《${titleLabel}》`;
+
+  const highlightedTitle = (
+    <HighlightedText
+      text={titleLabel}
+      query={searchQuery}
+      markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+    />
+  );
+
+  const highlightedAuthor = (
+    <HighlightedText
+      text={authorLabel}
+      query={searchQuery}
+      markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+    />
+  );
+
+  const progressMeta = (
+    <p
+      className={cn('flex min-w-0 items-center gap-1', !isListLayout && 'max-w-[65%]')}
+      title={progressMetaLabel}
+    >
+      {progressValue === 100 && (
+        <Check
+          aria-hidden="true"
+          className="size-3 shrink-0 text-primary"
+          strokeWidth={2.2}
+        />
+      )}
+      {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
+      {progressValue > 0 && (
+        <span className="shrink-0 font-mono text-xs font-medium tabular-nums text-primary">
+          {progressDisplay}
+        </span>
+      )}
+    </p>
+  );
+
+  const progressBar = (
+    <div
+      className={cn('h-[3px] overflow-hidden rounded-full bg-border/80', isListLayout && 'max-w-xs')}
+      aria-hidden="true"
+      data-book-progress=""
+    >
+      <div
+        className="h-full w-full origin-left rounded-full bg-gradient-to-r from-primary to-primary/80 transition-transform duration-300 motion-reduce:transition-none"
+        style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}
+      />
+    </div>
+  );
+
+  const listActionClass =
+    'inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-secondary/75 px-3.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed sm:h-9';
+
+  const actionButton = selectionMode ? (
+    <button
+      type="button"
+      disabled={isDeleting}
+      onClick={handleSelectionToggle}
+      aria-pressed={selected}
+      className={isListLayout ? listActionClass : 'shelf-book-action'}
+    >
+      <Check
+        aria-hidden="true"
+        strokeWidth={1.5}
+        className={cn(
+          'size-4 shrink-0',
+          selected ? 'text-primary' : 'opacity-50'
+        )}
+      />
+      <span className="truncate">{selected ? '已选择' : '选择图书'}</span>
+    </button>
+  ) : (
+    <button
+      type="button"
+      disabled={isDeleting}
+      aria-busy={isDeleting || undefined}
+      onClick={handleRead}
+      aria-label={isDeleting ? `正在删除：${titleLabel}` : `${readActionLabel}：${titleLabel}`}
+      className={isListLayout ? listActionClass : 'shelf-book-action'}
+    >
+      {isDeleting ? (
+        <Loader2
+          className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
+          strokeWidth={1.5}
+          aria-hidden="true"
+        />
+      ) : (
+        <BookOpen className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+      )}
+      <span className="truncate">{isDeleting ? '删除中…' : readActionLabel}</span>
+    </button>
+  );
+
+  const dropdownMenu = !selectionMode && (
+    <BookCardDropdown
+      bookTitle={titleLabel}
+      categoryLabel={categoryLabel}
+      formatLabel={formatLabel}
+      sizeLabel={sizeLabel}
+      uploadedAtLabel={uploadedAtLabel}
+      isDeleting={isDeleting}
+      isReparsing={isReparsing}
+      onEditClick={() => setEditDialogOpen(true)}
+      onCategoryClick={() => setCategoryDialogOpen(true)}
+      onReparseClick={() => {
+        void handleReparse();
+      }}
+      onDeleteClick={() => setDeleteConfirmOpen(true)}
+      triggerClassName="size-11 sm:size-9"
+    />
+  );
+
   return (
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
-      <article
-        className="shelf-book-card group/article flex min-w-0 flex-1 flex-col"
-        data-selected={selected}
-        data-deleting={isDeleting || undefined}
-        aria-busy={isDeleting || isReparsing || undefined}
-      >
-        <button
-          type="button"
-          disabled={isDeleting}
-          onClick={activateCard}
-          onPointerEnter={handlePrefetch}
-          onFocus={handlePrefetch}
-          aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
-          aria-pressed={selectionMode ? selected : undefined}
-          className="shelf-book-open group/card flex min-w-0 cursor-pointer flex-col rounded-t-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
+      {isListLayout ? (
+        <article
+          className="shelf-book-row group/article flex min-w-0 flex-1 items-center gap-3.5 p-3 sm:gap-4 sm:p-3.5"
+          data-selected={selected}
+          data-deleting={isDeleting || undefined}
+          aria-busy={isDeleting || isReparsing || undefined}
         >
-          <div className="shelf-book-cover book-cover-spine">
-            <BookCoverFace
-              coverUrl={coverUrl}
-              titleLabel={titleLabel}
-              bookId={book.id}
-              formatLabel={formatLabel}
-              priority={index < SHELF_COVER_PRIORITY_COUNT}
-            />
-            {selectionMode && (
-              <div className="shelf-book-selection" aria-hidden="true">
-                {selected && <Check className="h-4 w-4" strokeWidth={1.75} />}
-              </div>
-            )}
-            {!selectionMode && progressValue > 0 && progressValue < 100 && (
-              <span aria-hidden="true" className="shelf-book-ribbon" />
-            )}
-            {!selectionMode && book.processing_state !== 'pending' && (
-              <span aria-hidden="true" className="shelf-book-format-badge">
-                {formatLabel}
-              </span>
-            )}
-            {book.processing_state === 'pending' && (
-              <span className="absolute left-2 top-2 z-10 inline-flex max-w-[calc(100%-3rem)] items-center gap-1 rounded-md border border-border/80 bg-card/92 px-2 py-1 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-xs">
-                <Loader2
-                  className="h-3 w-3 shrink-0 animate-spin text-primary motion-reduce:animate-none"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
-                <span className="truncate">正在生成封面</span>
-              </span>
-            )}
-          </div>
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={activateCard}
+            onPointerEnter={handlePrefetch}
+            onFocus={handlePrefetch}
+            aria-label={cardAriaLabel}
+            aria-pressed={selectionMode ? selected : undefined}
+            className="group/card flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed sm:gap-4"
+          >
+            <div className="shelf-book-row-cover book-cover-spine h-[76px] w-[54px] shrink-0 sm:h-[84px] sm:w-[60px]">
+              <BookCoverFace
+                coverUrl={coverUrl}
+                titleLabel={titleLabel}
+                bookId={book.id}
+                formatLabel={formatLabel}
+                priority={index < SHELF_COVER_PRIORITY_COUNT}
+              />
+              {selectionMode && (
+                <div className="shelf-book-selection" aria-hidden="true">
+                  {selected && <Check className="h-4 w-4" strokeWidth={1.75} />}
+                </div>
+              )}
+              {!selectionMode && progressValue > 0 && progressValue < 100 && (
+                <span aria-hidden="true" className="shelf-book-ribbon" />
+              )}
+            </div>
 
-          <div className="shelf-book-details">
-            <div className="min-w-0">
-              <h2
-                className="line-clamp-2 wrap-anywhere font-sans text-sm font-medium leading-5 text-foreground transition-colors group-hover/card:text-primary sm:text-[15px]"
-                title={titleLabel}
-              >
-                <HighlightedText
-                  text={titleLabel}
-                  query={searchQuery}
-                  markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
-                />
-              </h2>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div className="flex min-w-0 items-baseline gap-2">
+                <h2
+                  className="min-w-0 flex-1 truncate font-sans text-sm font-medium leading-5 text-foreground transition-colors group-hover/card:text-primary sm:text-[15px]"
+                  title={titleLabel}
+                >
+                  {highlightedTitle}
+                </h2>
+                {book.processing_state === 'pending' ? (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border/80 bg-secondary/80 px-1.5 py-0.5 text-[11px] font-medium text-foreground">
+                    <Loader2
+                      className="h-3 w-3 shrink-0 animate-spin text-primary motion-reduce:animate-none"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                    <span>生成封面</span>
+                  </span>
+                ) : (
+                  <span className="hidden shrink-0 rounded bg-secondary/85 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:inline-block">
+                    {formatLabel}
+                  </span>
+                )}
+              </div>
+
               <p
-                className="mt-1 truncate text-xs leading-4 text-muted-foreground"
+                className="truncate text-xs leading-4 text-muted-foreground"
                 title={authorLabel}
               >
-                <HighlightedText
-                  text={authorLabel}
-                  query={searchQuery}
-                  markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
-                />
+                {highlightedAuthor}
               </p>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-4 text-muted-foreground">
+                <span
+                  className="inline-block max-w-[140px] truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"
+                  title={categoryLabel}
+                >
+                  {categoryLabel}
+                </span>
+                <span className="hidden text-[11px] text-muted-foreground/80 sm:inline">
+                  {sizeLabel}
+                </span>
+                {progressMeta}
+              </div>
+
+              {progressBar}
+            </div>
+          </button>
+
+          <div className="flex shrink-0 items-center gap-1">
+            {actionButton}
+            {dropdownMenu}
+          </div>
+        </article>
+      ) : (
+        <article
+          className="shelf-book-card group/article flex min-w-0 flex-1 flex-col"
+          data-selected={selected}
+          data-deleting={isDeleting || undefined}
+          aria-busy={isDeleting || isReparsing || undefined}
+        >
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={activateCard}
+            onPointerEnter={handlePrefetch}
+            onFocus={handlePrefetch}
+            aria-label={cardAriaLabel}
+            aria-pressed={selectionMode ? selected : undefined}
+            className="shelf-book-open group/card flex min-w-0 cursor-pointer flex-col rounded-t-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
+          >
+            <div className="shelf-book-cover book-cover-spine">
+              <BookCoverFace
+                coverUrl={coverUrl}
+                titleLabel={titleLabel}
+                bookId={book.id}
+                formatLabel={formatLabel}
+                priority={index < SHELF_COVER_PRIORITY_COUNT}
+              />
+              {selectionMode && (
+                <div className="shelf-book-selection" aria-hidden="true">
+                  {selected && <Check className="h-4 w-4" strokeWidth={1.75} />}
+                </div>
+              )}
+              {!selectionMode && progressValue > 0 && progressValue < 100 && (
+                <span aria-hidden="true" className="shelf-book-ribbon" />
+              )}
+              {!selectionMode && book.processing_state !== 'pending' && (
+                <span aria-hidden="true" className="shelf-book-format-badge">
+                  {formatLabel}
+                </span>
+              )}
+              {book.processing_state === 'pending' && (
+                <span className="absolute left-2 top-2 z-10 inline-flex max-w-[calc(100%-3rem)] items-center gap-1 rounded-md border border-border/80 bg-card/92 px-2 py-1 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-xs">
+                  <Loader2
+                    className="h-3 w-3 shrink-0 animate-spin text-primary motion-reduce:animate-none"
+                    strokeWidth={1.5}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">正在生成封面</span>
+                </span>
+              )}
             </div>
 
-            <div className="min-w-0 space-y-1.5">
-              <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
-                <span className="min-w-0 flex-1 truncate">
-                  <span
-                    className="inline-block max-w-full truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"
-                    title={categoryLabel}
-                  >
-                    {categoryLabel}
-                  </span>
-                </span>
-                <p className="flex min-w-0 max-w-[65%] items-center gap-1" title={progressMetaLabel}>
-                  {progressValue === 100 && (
-                    <Check
-                      aria-hidden="true"
-                      className="size-3 shrink-0 text-primary"
-                      strokeWidth={2.2}
-                    />
-                  )}
-                  {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
-                  {progressValue > 0 && (
-                    <span className="shrink-0 font-mono text-xs font-medium tabular-nums text-primary">
-                      {progressDisplay}
-                    </span>
-                  )}
+            <div className="shelf-book-details">
+              <div className="min-w-0">
+                <h2
+                  className="line-clamp-2 wrap-anywhere font-sans text-sm font-medium leading-5 text-foreground transition-colors group-hover/card:text-primary sm:text-[15px]"
+                  title={titleLabel}
+                >
+                  {highlightedTitle}
+                </h2>
+                <p
+                  className="mt-1 truncate text-xs leading-4 text-muted-foreground"
+                  title={authorLabel}
+                >
+                  {highlightedAuthor}
                 </p>
               </div>
-              <div
-                className="h-[3px] overflow-hidden rounded-full bg-border/80"
-                aria-hidden="true"
-                data-book-progress=""
-              >
-                <div
-                  className="h-full w-full origin-left rounded-full bg-gradient-to-r from-primary to-primary/80 transition-transform duration-300 motion-reduce:transition-none"
-                  style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}
-                />
+
+              <div className="min-w-0 space-y-1.5">
+                <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
+                  <span className="min-w-0 flex-1 truncate">
+                    <span
+                      className="inline-block max-w-full truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"
+                      title={categoryLabel}
+                    >
+                      {categoryLabel}
+                    </span>
+                  </span>
+                  {progressMeta}
+                </div>
+                {progressBar}
               </div>
             </div>
+          </button>
+
+          <div className="shelf-book-actions">
+            {actionButton}
+            {dropdownMenu}
           </div>
-        </button>
-
-        <div className="shelf-book-actions">
-          {selectionMode ? (
-            <button
-              type="button"
-              disabled={isDeleting}
-              onClick={handleSelectionToggle}
-              aria-pressed={selected}
-              className="shelf-book-action"
-            >
-              <Check
-                aria-hidden="true"
-                strokeWidth={1.5}
-                className={cn(
-                  'size-4 shrink-0',
-                  selected ? 'text-primary' : 'opacity-50'
-                )}
-              />
-              <span className="truncate">{selected ? '已选择' : '选择图书'}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={isDeleting}
-              aria-busy={isDeleting || undefined}
-              onClick={handleRead}
-              aria-label={isDeleting ? `正在删除：${titleLabel}` : `${readActionLabel}：${titleLabel}`}
-              className="shelf-book-action"
-            >
-              {isDeleting ? (
-                <Loader2
-                  className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
-              ) : (
-                <BookOpen className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-              )}
-              <span className="truncate">{isDeleting ? '删除中…' : readActionLabel}</span>
-            </button>
-          )}
-
-          {!selectionMode && (
-            <BookCardDropdown
-              bookTitle={titleLabel}
-              categoryLabel={categoryLabel}
-              formatLabel={formatLabel}
-              sizeLabel={sizeLabel}
-              uploadedAtLabel={uploadedAtLabel}
-              isDeleting={isDeleting}
-              isReparsing={isReparsing}
-              onEditClick={() => setEditDialogOpen(true)}
-              onCategoryClick={() => setCategoryDialogOpen(true)}
-              onReparseClick={() => {
-                void handleReparse();
-              }}
-              onDeleteClick={() => setDeleteConfirmOpen(true)}
-              triggerClassName="size-11 sm:size-9"
-            />
-          )}
-        </div>
-      </article>
+        </article>
+      )}
       {editDialogOpen && <BookMetadataDialog
         bookId={book.id}
         currentTitle={book.title}

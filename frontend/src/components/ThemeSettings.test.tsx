@@ -92,4 +92,45 @@ describe('ThemeSettings preview', () => {
     expect(screen.getByRole('button', { name: '增大字号大小' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '增大行间距' })).toBeDisabled();
   });
+
+  it('applies quick typography presets in the layout tab', () => {
+    const { setTheme, rerender } = renderSettings({
+      fontSize: 17,
+      lineHeight: 1.7,
+      paragraphSpacing: 1.15,
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: '排版' }));
+
+    const standardButton = screen.getByRole('button', { name: /标准/ });
+    const compactButton = screen.getByRole('button', { name: /紧凑/ });
+    const relaxedButton = screen.getByRole('button', { name: /舒适/ });
+
+    expect(standardButton).toHaveAttribute('aria-pressed', 'true');
+    expect(compactButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(compactButton);
+    expect(setTheme).toHaveBeenCalledWith({
+      fontSize: 15,
+      lineHeight: 1.55,
+      paragraphSpacing: 0.95,
+    });
+
+    rerender(
+      <ThemeSettings
+        theme={{
+          ...DEFAULT_READER_THEME,
+          fontSize: 19,
+          lineHeight: 1.85,
+          paragraphSpacing: 1.35,
+        }}
+        setTheme={setTheme}
+        uiScheme={PRESET_STYLES.light}
+        open
+      />,
+    );
+
+    expect(relaxedButton).toHaveAttribute('aria-pressed', 'true');
+    expect(standardButton).toHaveAttribute('aria-pressed', 'false');
+  });
 });

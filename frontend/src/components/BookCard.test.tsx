@@ -442,4 +442,55 @@ describe('BookCard', () => {
     );
     expect(container.querySelector('.shelf-book-ribbon')).not.toBeInTheDocument();
   });
+
+  it('renders horizontal list layout with read action and selection toggle', () => {
+    const onRead = vi.fn();
+    const onSelectionToggle = vi.fn();
+    const { container, rerender } = render(
+      <BookCard
+        book={book}
+        index={0}
+        categories={['文学']}
+        bookCounts={{}}
+        onRead={onRead}
+        onDelete={vi.fn()}
+        onUpdate={vi.fn()}
+        isDeleting={false}
+        formatSize={() => '2.4 MB'}
+        progressPercentage={42}
+        layout="list"
+      />,
+    );
+
+    const row = container.querySelector('.shelf-book-row');
+    expect(row).toBeInTheDocument();
+    expect(container.querySelector('.shelf-book-card')).not.toBeInTheDocument();
+    expect(screen.getByText('2.4 MB')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '继续阅读：红楼梦' }));
+    expect(onRead).toHaveBeenCalledWith(book.id);
+
+    rerender(
+      <BookCard
+        book={book}
+        index={0}
+        categories={['文学']}
+        bookCounts={{}}
+        onRead={onRead}
+        onDelete={vi.fn()}
+        onUpdate={vi.fn()}
+        isDeleting={false}
+        formatSize={() => '2.4 MB'}
+        progressPercentage={42}
+        layout="list"
+        selectionMode
+        selected
+        onSelectionToggle={onSelectionToggle}
+      />,
+    );
+
+    expect(row).toHaveAttribute('data-selected', 'true');
+    fireEvent.click(screen.getByRole('button', { name: '取消选择《红楼梦》' }));
+    expect(onSelectionToggle).toHaveBeenCalledWith(book.id);
+  });
 });

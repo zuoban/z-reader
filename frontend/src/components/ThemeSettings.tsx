@@ -29,6 +29,33 @@ const FONT_ORDER: ReaderTheme["fontFamily"][] = [
   "humanist",
 ];
 
+const TYPOGRAPHY_PRESETS = [
+  {
+    id: "compact",
+    label: "紧凑",
+    summary: "15px · 1.55",
+    fontSize: 15,
+    lineHeight: 1.55,
+    paragraphSpacing: 0.95,
+  },
+  {
+    id: "standard",
+    label: "标准",
+    summary: "17px · 1.70",
+    fontSize: 17,
+    lineHeight: 1.7,
+    paragraphSpacing: 1.15,
+  },
+  {
+    id: "relaxed",
+    label: "舒适",
+    summary: "19px · 1.85",
+    fontSize: 19,
+    lineHeight: 1.85,
+    paragraphSpacing: 1.35,
+  },
+] as const;
+
 const PRESETS = [
   {
     key: "light",
@@ -502,6 +529,48 @@ export function ThemeSettings({
                 className="space-y-5"
               >
                 <span id={layoutPanelLabelId} className="sr-only">排版设置</span>
+                <section className="space-y-2">
+                  <h3 className="text-sm font-medium">快捷版式</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {TYPOGRAPHY_PRESETS.map((preset) => {
+                      const isActive =
+                        Math.abs(theme.fontSize - preset.fontSize) < 0.01 &&
+                        Math.abs(theme.lineHeight - preset.lineHeight) < 0.01 &&
+                        Math.abs(theme.paragraphSpacing - preset.paragraphSpacing) < 0.01;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() =>
+                            setTheme({
+                              fontSize: preset.fontSize,
+                              lineHeight: preset.lineHeight,
+                              paragraphSpacing: preset.paragraphSpacing,
+                            })
+                          }
+                          aria-pressed={isActive}
+                          className="reader-settings-option flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[var(--paper-radius-control)] border px-2 py-2 text-center"
+                          style={{
+                            borderColor: isActive ? uiScheme.link : surface.hairline,
+                            background: isActive ? withOpacity(uiScheme.link, 0.08) : "transparent",
+                            color: isActive ? uiScheme.link : surface.fg,
+                          }}
+                        >
+                          <span className={cn("text-sm", isActive ? "font-semibold" : "font-medium")}>
+                            {preset.label}
+                          </span>
+                          <span
+                            className="font-mono text-[11px] tabular-nums"
+                            style={{ color: isActive ? uiScheme.link : surface.muted }}
+                          >
+                            {preset.summary}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
                 <section className="space-y-2">
                   <h3 className="text-sm font-medium">字型选择</h3>
                   <div

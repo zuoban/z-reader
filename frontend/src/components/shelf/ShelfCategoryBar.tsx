@@ -59,7 +59,7 @@ export function ShelfCategoryBar({
 
   if (showCategoryFilters) {
     return (
-      <div className="flex min-w-0 items-center justify-between gap-2 pb-1 pt-0.5 sm:gap-3">
+      <div className="shelf-command-bar flex min-w-0 items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-3.5">
         <div className="shelf-category-strip relative min-w-0 flex-1">
           <div
             ref={categoryStripRef}
@@ -188,7 +188,7 @@ export function ShelfCategoryBar({
   if (showShelfControlsSkeleton) {
     return (
       <div
-        className="flex min-w-0 items-center justify-between gap-2 pb-1 pt-0.5 sm:gap-3"
+        className="shelf-command-bar flex min-w-0 items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-3.5"
         aria-hidden="true"
         data-testid="shelf-category-skeleton"
       >

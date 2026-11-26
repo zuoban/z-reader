@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { ActionIcon, TextInput } from '@mantine/core';
-import { Loader2, Search, X } from 'lucide-react';
+import { LayoutGrid, List, Loader2, Search, X } from 'lucide-react';
 import { SortSelector } from '@/components/SortSelector';
 import type { SortOption } from '@/hooks/useShelfData';
 
@@ -37,6 +37,8 @@ export interface ShelfToolbarProps {
   onSearchQueryChange: (value: string) => void;
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
+  viewMode?: 'grid' | 'list';
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
 }
 
 export function ShelfToolbar({
@@ -54,6 +56,8 @@ export function ShelfToolbar({
   onSearchQueryChange,
   sortBy,
   onSortChange,
+  viewMode = 'grid',
+  onViewModeChange,
 }: ShelfToolbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -190,6 +194,37 @@ export function ShelfToolbar({
           <div className="w-11 shrink-0 sm:w-36">
             <SortSelector value={sortBy} onChange={onSortChange} className="sm:h-9" />
           </div>
+
+          {onViewModeChange && (
+            <div
+              role="group"
+              aria-label="书架视图切换"
+              className="shelf-view-toggle hidden shrink-0 sm:inline-flex"
+            >
+              <button
+                type="button"
+                onClick={() => onViewModeChange('grid')}
+                aria-label="网格视图"
+                title="网格视图"
+                aria-pressed={viewMode === 'grid'}
+                data-active={viewMode === 'grid'}
+                className="shelf-view-toggle-btn cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <LayoutGrid className="size-4" strokeWidth={1.6} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewModeChange('list')}
+                aria-label="列表视图"
+                title="列表视图"
+                aria-pressed={viewMode === 'list'}
+                data-active={viewMode === 'list'}
+                className="shelf-view-toggle-btn cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <List className="size-4" strokeWidth={1.6} aria-hidden="true" />
+              </button>
+            </div>
+          )}
         </div>
       ) : showShelfControlsSkeleton ? (
         <div
@@ -199,6 +234,7 @@ export function ShelfToolbar({
         >
           <div className="skeleton-shimmer h-11 min-w-0 flex-1 rounded-lg bg-secondary/70 sm:h-9 sm:w-56 lg:w-72" />
           <div className="skeleton-shimmer h-11 w-11 shrink-0 rounded-lg bg-secondary/70 sm:h-9 sm:w-36" />
+          <div className="skeleton-shimmer hidden h-9 w-[70px] shrink-0 rounded-lg bg-secondary/70 sm:block" />
         </div>
       ) : null}
     </div>

@@ -2,19 +2,18 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { ActionIcon, Button, Drawer, Slider, Tabs } from "@mantine/core";
+import { ActionIcon, Slider, Tabs } from "@mantine/core";
 import "@mantine/core/styles/Slider.layer.css";
 import "@mantine/core/styles/Tabs.layer.css";
-import "@/app/styles/mantine-drawer.css";
 import { useUncontrolled } from "@mantine/hooks";
-import { Check, ChevronDown, ChevronUp, Minus, Plus, RotateCcw, Settings, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Minus, Plus, RotateCcw } from "lucide-react";
 
 import { ensureReaderFontPack } from "@/lib/reader-font-packs";
 import {
   getModernReaderSurface,
-  getReaderPanelThemeVars,
   withOpacity,
 } from "@/lib/reader-ui";
+import { ReaderSheet } from "@/components/reader/ReaderSheet";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_READER_THEME,
@@ -77,9 +76,6 @@ interface ThemeSettingsProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   overlayContainer?: HTMLElement | null;
-  triggerClassName?: string;
-  triggerStyle?: CSSProperties;
-  trigger?: React.ReactNode;
 }
 
 interface SliderFieldProps {
@@ -292,9 +288,6 @@ export function ThemeSettings({
   open,
   onOpenChange,
   overlayContainer,
-  triggerClassName,
-  triggerStyle,
-  trigger,
 }: ThemeSettingsProps) {
   const [isOpen, setIsOpen] = useUncontrolled({
     value: open,
@@ -310,7 +303,6 @@ export function ThemeSettings({
   const layoutPanelLabelId = useId();
   const advancedPanelLabelId = useId();
   const surface = getModernReaderSurface(uiScheme);
-  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -344,125 +336,67 @@ export function ThemeSettings({
   ).every((key) => theme[key] === DEFAULT_READER_THEME[key]);
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="subtle"
-        title="阅读设置"
-        aria-label={trigger ? undefined : "阅读设置"}
-        aria-expanded={isOpen}
-        aria-haspopup="dialog"
-        className={triggerClassName}
-        style={triggerStyle}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {trigger || <Settings className="h-4 w-4" aria-hidden="true" />}
-      </Button>
-
-      <Drawer.Root
-        opened={isOpen}
-        onClose={() => setIsOpen(false)}
-        position="bottom"
-        size="auto"
-        padding={0}
-        zIndex={90}
-        returnFocus={false}
-        portalProps={{ target: overlayContainer ?? undefined }}
-        classNames={{
-          inner:
-            "items-end justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
-          content:
-            "reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:w-[480px] sm:max-w-[calc(100vw-2rem)]",
-        }}
-        styles={{
-          content: {
-            ...panelThemeVars,
-            flex: "0 1 auto",
-            height: "auto",
-            background: uiScheme.cardBg,
-            borderColor: surface.border,
-            color: surface.fg,
-            boxShadow: "var(--paper-shadow-floating)",
-          },
-        }}
-      >
-        <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
-        <Drawer.Content data-reader-interactive="true">
-          <div className="shrink-0 bg-transparent px-4 py-3.5 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <Drawer.Title
-                    className="font-heading text-lg font-medium leading-tight"
-                    style={{ color: surface.fg }}
-                  >
-                    阅读偏好
-                  </Drawer.Title>
-                  {isResetFeedbackVisible ? (
-                    <span
-                      role="status"
-                      aria-live="polite"
-                      className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                      style={{
-                        background: withOpacity(uiScheme.link, 0.12),
-                        color: uiScheme.link,
-                      }}
-                    >
-                      已恢复默认
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-0.5 text-xs" style={{ color: surface.muted }}>
-                  调整纸色、字号与版式细节
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <ActionIcon
-                  type="button"
-                  variant="subtle"
-                  size={44}
-                  radius="md"
-                  onClick={handleResetTheme}
-                  disabled={isDefaultTheme}
-                  title="重置阅读偏好"
-                  aria-label="重置阅读偏好"
-                  className="reader-panel-icon"
-                >
-                  <RotateCcw
-                    className="h-4 w-4 transition-transform duration-300 ease-out motion-reduce:transition-none"
-                    aria-hidden="true"
-                    style={{
-                      transform: `rotate(${resetFeedbackCount * 360}deg)`,
-                    }}
-                  />
-                </ActionIcon>
-                <ActionIcon
-                  type="button"
-                  variant="subtle"
-                  size={44}
-                  radius="md"
-                  onClick={() => setIsOpen(false)}
-                  className="reader-panel-icon"
-                  aria-label="关闭阅读偏好"
-                  title="关闭"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </ActionIcon>
-              </div>
-            </div>
-          </div>
-
-          <Tabs
-            value={activeSection}
-            onChange={(value) => {
-              if (value) setActiveSection(value as SettingsSection);
+    <ReaderSheet
+      open={isOpen}
+      onClose={() => setIsOpen(false)}
+      headerClassName=""
+      title="阅读偏好"
+      titleAddon={
+        isResetFeedbackVisible ? (
+          <span
+            role="status"
+            aria-live="polite"
+            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+            style={{
+              background: withOpacity(uiScheme.link, 0.12),
+              color: uiScheme.link,
             }}
-            keepMounted={false}
-            className="flex min-h-0 flex-1 flex-col overflow-hidden"
-            styles={{
-              list: {
-                "--tabs-list-border-width": "0px",
-              },
+          >
+            已恢复默认
+          </span>
+        ) : null
+      }
+      subtitle={
+        <p className="mt-0.5 text-xs" style={{ color: surface.muted }}>
+          调整纸色、字号与版式细节
+        </p>
+      }
+      headerActions={
+        <ActionIcon
+          type="button"
+          variant="subtle"
+          size={44}
+          radius="md"
+          onClick={handleResetTheme}
+          disabled={isDefaultTheme}
+          title="重置阅读偏好"
+          aria-label="重置阅读偏好"
+          className="reader-panel-icon"
+        >
+          <RotateCcw
+            className="h-4 w-4 transition-transform duration-300 ease-out motion-reduce:transition-none"
+            aria-hidden="true"
+            style={{
+              transform: `rotate(${resetFeedbackCount * 360}deg)`,
+            }}
+          />
+        </ActionIcon>
+      }
+      closeLabel="关闭阅读偏好"
+      uiScheme={uiScheme}
+      overlayContainer={overlayContainer}
+    >
+      <Tabs
+        value={activeSection}
+        onChange={(value) => {
+          if (value) setActiveSection(value as SettingsSection);
+        }}
+        keepMounted={false}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        styles={{
+          list: {
+            "--tabs-list-border-width": "0px",
+          },
             }}
           >
             <Tabs.List
@@ -693,8 +627,6 @@ export function ThemeSettings({
               </Tabs.Panel>
             </div>
           </Tabs>
-        </Drawer.Content>
-      </Drawer.Root>
-    </>
+    </ReaderSheet>
   );
 }

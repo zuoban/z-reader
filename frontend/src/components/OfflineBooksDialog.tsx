@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ActionIcon, Button, Modal } from '@mantine/core';
-import '@/app/styles/mantine-modal.css';
-import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Trash2, X } from 'lucide-react';
+import { Button } from '@mantine/core';
+import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AppModal } from '@/components/AppModal';
 import { LoadingSpinner } from '@/components/AppShell';
 import { getOfflineLibrary } from '@/lib/library-access';
 import {
@@ -160,55 +160,20 @@ export function OfflineBooksDialog({
       : `已缓存 ${books.length} 本 · 共 ${formatStorageSize(totalBytes)}`;
 
   return (
-    <Modal.Root
-      opened={open}
+    <AppModal
+      open={open}
       onClose={handleClose}
-      closeOnClickOutside={!isBusy}
-      closeOnEscape={!isBusy && !confirmingClear}
-      centered
+      title="离线图书管理"
+      subtitle={headerSubtitle}
+      subtitleClassName="font-mono tabular-nums"
+      icon={<HardDrive className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />}
       size={512}
-      radius="lg"
-      padding={0}
-      zIndex={80}
-      classNames={{
-        inner:
-          'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
-        content:
-          'app-dialog-shell flex max-h-[min(82svh,36rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0 text-sm text-popover-foreground outline-none',
-      }}
+      closeDisabled={isBusy}
+      closeOnEscape={!isBusy && !confirmingClear}
+      closeLabel="关闭离线图书管理"
+      contentClassName="max-h-[min(82svh,36rem)] text-sm text-popover-foreground outline-none"
     >
-      <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-      <Modal.Content>
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
-              <HardDrive className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
-                离线图书管理
-              </Modal.Title>
-              <p className="mt-0.5 truncate font-mono text-xs leading-5 tabular-nums text-muted-foreground">
-                {headerSubtitle}
-              </p>
-            </div>
-          </div>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size={36}
-            radius="md"
-            disabled={isBusy}
-            className="dialog-close-btn -mr-1 h-9 w-9 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
-            onClick={handleClose}
-            aria-label="关闭离线图书管理"
-            title="关闭 (Esc)"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </ActionIcon>
-        </div>
-
-        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
           {isLoading ? (
             <div
               role="status"
@@ -418,7 +383,6 @@ export function OfflineBooksDialog({
             </>
           )}
         </div>
-      </Modal.Content>
-    </Modal.Root>
+    </AppModal>
   );
 }

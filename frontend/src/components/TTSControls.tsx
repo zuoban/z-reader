@@ -5,11 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactNode,
 } from 'react';
-import '@/app/styles/mantine-drawer.css';
-import { getModernReaderSurface, getReaderPanelThemeVars } from '@/lib/reader-ui';
 import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 import { TTSToolbarDrawer } from '@/components/tts/TTSToolbarDrawer';
@@ -30,9 +26,6 @@ export interface TTSControlsProps {
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   onPreviewStart?: () => void;
   uiScheme: ThemeColors;
-  triggerContent?: ReactNode;
-  triggerClassName?: string;
-  triggerStyle?: CSSProperties;
   onExpandedChange?: (expanded: boolean) => void;
   showSettingsPanel?: boolean;
   resumePromptVisible?: boolean;
@@ -62,9 +55,6 @@ export function TTSControls({
   onUpdateSettings,
   onPreviewStart,
   uiScheme,
-  triggerContent,
-  triggerClassName,
-  triggerStyle,
   onExpandedChange,
   showSettingsPanel = true,
   resumePromptVisible = false,
@@ -93,8 +83,6 @@ export function TTSControls({
   const onExpandedChangeRef = useRef(onExpandedChange);
 
   const isBusy = isPending || preparing;
-  const surface = getModernReaderSurface(uiScheme);
-  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
@@ -190,14 +178,9 @@ export function TTSControls({
     setExpanded(false);
   }, [setExpanded]);
 
-  const toggleExpanded = useCallback(() => {
-    setExpanded((value) => !value);
-  }, [setExpanded]);
-
   return (
     <TTSToolbarDrawer
       expanded={expanded}
-      onToggleExpanded={toggleExpanded}
       onClose={closePanel}
       isActive={isActive}
       isPlaying={isPlaying}
@@ -219,11 +202,6 @@ export function TTSControls({
       onHighlightModeChange={handleHighlightModeChange}
       onPreviewStart={onPreviewStart}
       uiScheme={uiScheme}
-      surface={surface}
-      panelThemeVars={panelThemeVars}
-      triggerContent={triggerContent}
-      triggerClassName={triggerClassName}
-      triggerStyle={triggerStyle}
       showSettingsPanel={showSettingsPanel}
       resumePromptVisible={resumePromptVisible}
       resumePromptMessage={resumePromptMessage}

@@ -1,17 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
 import type { ReaderTTSRuntimeState } from "@/components/reader/ReaderTTSRuntime";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import type { TTSSettings, Voice } from "@/lib/tts";
-import type { FoliateView } from "@/lib/types";
+import type { Voice } from "@/lib/tts";
+import { DEFAULT_SETTINGS } from "@/lib/tts/types";
 
-const IDLE_TTS_SETTINGS: TTSSettings = {
-  rate: 1.0,
-  voiceName: "",
-  highlightMode: "sentence",
-};
 const IDLE_VOICES: Voice[] = [];
 const IDLE_TTS_STATUS = {
   headline: "准备朗读",
@@ -21,48 +15,24 @@ const IDLE_TTS_STATUS = {
 const IDLE_SLEEP_TIMER = { mode: "off" as const, label: "关闭" };
 const NOOP_TTS = () => {};
 
-export type ReaderTTSSlot = "desktop-toolbar" | "mobile-menu" | "status-bar";
-
 interface UseReaderTTSBridgeOptions {
-  viewRef: RefObject<FoliateView | null>;
   uiScheme: ThemeColors;
   overlayContainer: HTMLDivElement | null;
   hideHeader: () => void;
-  ttsOpen?: boolean;
-  onTtsOpenChange?: (open: boolean) => void;
+  ttsOpen: boolean;
+  onTtsOpenChange: (open: boolean) => void;
 }
 
 export function useReaderTTSBridge({
-  viewRef,
   uiScheme,
   overlayContainer,
   hideHeader,
-  ttsOpen: controlledTtsOpen,
+  ttsOpen,
   onTtsOpenChange,
 }: UseReaderTTSBridgeOptions) {
   const [ttsRequested, setTTSRequested] = useState(false);
-  const [uncontrolledTtsOpen, setUncontrolledTtsOpen] = useState(false);
-  const [activeSlot, setActiveSlot] = useState<ReaderTTSSlot | null>(null);
   const [ttsRuntime, setTtsRuntime] = useState<ReaderTTSRuntimeState | null>(null);
   const ttsRuntimeRef = useRef<ReaderTTSRuntimeState | null>(null);
-  const activeSlotRef = useRef<ReaderTTSSlot | null>(null);
-
-  const ttsOpen = controlledTtsOpen ?? uncontrolledTtsOpen;
-  const setTtsOpen = onTtsOpenChange ?? setUncontrolledTtsOpen;
-  const resolvedActiveSlot = ttsOpen ? activeSlot : null;
-
-  useEffect(() => {
-    activeSlotRef.current = resolvedActiveSlot;
-  }, [resolvedActiveSlot]);
-
-  const handleHighlight = useCallback(
-    (range: Range) => {
-      if (viewRef.current?.renderer) {
-        viewRef.current.renderer.scrollToAnchor?.(range, true);
-      }
-    },
-    [viewRef],
-  );
 
   const handleSyncTTSRuntime = useCallback(
     (runtime: ReaderTTSRuntimeState | null) => {
@@ -74,7 +44,7 @@ export function useReaderTTSBridge({
 
   const ttsState = ttsRuntime?.state ?? "stopped";
   const ttsPreparing = ttsRuntime?.preparing ?? false;
-  const ttsSettings = ttsRuntime?.settings ?? IDLE_TTS_SETTINGS;
+  const ttsSettings = ttsRuntime?.settings ?? DEFAULT_SETTINGS;
   const voices = ttsRuntime?.voices ?? IDLE_VOICES;
   const voicesLoading = ttsRuntime?.voicesLoading ?? false;
   const voicesError = ttsRuntime?.voicesError ?? null;
@@ -112,32 +82,19 @@ export function useReaderTTSBridge({
     prevTtsOpenRef.current = ttsOpen;
   }, [restoreTTSHighlight, ttsOpen]);
 
-  const requestTTSSlot = useCallback(
-    (slot: ReaderTTSSlot) => {
-      setTTSRequested(true);
-      activeSlotRef.current = slot;
-      setActiveSlot(slot);
-      setTtsOpen(true);
-    },
-    [setTtsOpen],
-  );
+  const requestTTS = useCallback(() => {
+    setTTSRequested(true);
+    onTtsOpenChange(true);
+  }, [onTtsOpenChange]);
 
-  const handleSlotExpandedChange = useCallback(
-    (slot: ReaderTTSSlot, expanded: boolean) => {
+  const handleTTSExpandedChange = useCallback(
+    (expanded: boolean) => {
       if (expanded) {
-        activeSlotRef.current = slot;
-        setActiveSlot(slot);
-        setTtsOpen(true);
-        return;
+        setTTSRequested(true);
       }
-
-      if (activeSlotRef.current === slot) {
-        activeSlotRef.current = null;
-        setActiveSlot(null);
-        setTtsOpen(false);
-      }
+      onTtsOpenChange(expanded);
     },
-    [setTtsOpen],
+    [onTtsOpenChange],
   );
 
   useEffect(() => {
@@ -146,16 +103,18 @@ export function useReaderTTSBridge({
     }
   }, [hideHeader, ttsState]);
 
-  const sharedTTSControlsProps = {
-    activeSlot: resolvedActiveSlot,
-    onRequestSlot: requestTTSSlot,
-    onSlotExpandedChange: handleSlotExpandedChange,
-    runtimeReady: ttsRuntime !== null,
+  const handlePreviewStart = useCallback(() => {
+    if (ttsState === "playing" || ttsPreparing) {
+      pauseTTS();
+    }
+  }, [pauseTTS, ttsPreparing, ttsState]);
+
+  const drawerProps = {
+    expanded: ttsOpen,
+    onExpandedChange: handleTTSExpandedChange,
     state: ttsState,
     preparing: ttsPreparing,
-    onPreviewStart: () => {
-      if (ttsState === "playing" || ttsPreparing) pauseTTS();
-    },
+    onPreviewStart: handlePreviewStart,
     settings: ttsSettings,
     voices,
     voicesLoading,
@@ -179,18 +138,15 @@ export function useReaderTTSBridge({
 
   return {
     ttsRequested,
+    runtimeReady: ttsRuntime !== null,
     ttsOpen,
     ttsState,
     resumePromptVisible,
     resumePromptMessage,
-    handleHighlight,
+    requestTTS,
     handleSyncTTSRuntime,
     stopTTS,
     resumeTTS,
-    sharedTTSControlsProps,
+    drawerProps,
   };
 }
-
-export type SharedTTSControlsProps = ReturnType<
-  typeof useReaderTTSBridge
->["sharedTTSControlsProps"];

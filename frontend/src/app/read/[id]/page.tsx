@@ -30,6 +30,33 @@ import type { Bookmark } from "@/lib/api";
 import { getOfflineLibrary } from "@/lib/library-access";
 import type { FoliateView } from "@/lib/types";
 
+const ReaderTOCSheet = dynamic(
+  () =>
+    import("@/components/reader/ReaderTOCSheet").then(
+      (module) => module.ReaderTOCSheet,
+    ),
+  { ssr: false },
+);
+
+const ReaderBookmarksSheet = dynamic(
+  () =>
+    import("@/components/reader/ReaderBookmarksSheet").then(
+      (module) => module.ReaderBookmarksSheet,
+    ),
+  { ssr: false },
+);
+
+const ThemeSettings = dynamic(
+  () =>
+    import("@/components/ThemeSettings").then((module) => module.ThemeSettings),
+  { ssr: false },
+);
+
+const TTSControls = dynamic(
+  () => import("@/components/TTSControls").then((module) => module.TTSControls),
+  { ssr: false },
+);
+
 const ReaderTTSRuntime = dynamic(
   () =>
     import("@/components/reader/ReaderTTSRuntime").then(
@@ -90,8 +117,42 @@ function Reader({ bookId }: { bookId: string }) {
   }, []);
 
   const sheets = useReaderSheets();
-  const { openSearch, closeSearch } = sheets;
+  const {
+    openSearch,
+    closeSearch,
+    setTocOpen,
+    setBookmarksOpen,
+    setThemeSettingsOpen,
+    setTtsOpen,
+  } = sheets;
+  const [tocMounted, setTocMounted] = useState(false);
+  const [bookmarksMounted, setBookmarksMounted] = useState(false);
+  const [themeSettingsMounted, setThemeSettingsMounted] = useState(false);
   const [searchMounted, setSearchMounted] = useState(false);
+
+  const handleTocOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) setTocMounted(true);
+      setTocOpen(open);
+    },
+    [setTocOpen],
+  );
+
+  const handleBookmarksOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) setBookmarksMounted(true);
+      setBookmarksOpen(open);
+    },
+    [setBookmarksOpen],
+  );
+
+  const handleThemeSettingsOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) setThemeSettingsMounted(true);
+      setThemeSettingsOpen(open);
+    },
+    [setThemeSettingsOpen],
+  );
 
   const handleOpenSearch = useCallback(() => {
     setSearchMounted(true);
@@ -109,14 +170,14 @@ function Reader({ bookId }: { bookId: string }) {
     },
     [closeSearch, openSearch],
   );
+
   const chrome = useReaderChrome();
   const tts = useReaderTTSBridge({
-    viewRef,
     uiScheme,
     overlayContainer,
     hideHeader: chrome.hideHeader,
     ttsOpen: sheets.ttsOpen,
-    onTtsOpenChange: sheets.setTtsOpen,
+    onTtsOpenChange: setTtsOpen,
   });
   const offline = useReaderOffline({
     bookId,
@@ -126,6 +187,12 @@ function Reader({ bookId }: { bookId: string }) {
     isOffline,
     checkAuth,
   });
+
+  useEffect(() => {
+    void import("@/components/reader/ReaderTOCSheet").catch(() => {});
+    void import("@/components/reader/ReaderBookmarksSheet").catch(() => {});
+    void import("@/components/ThemeSettings").catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated && !isOffline) {
@@ -158,18 +225,17 @@ function Reader({ bookId }: { bookId: string }) {
     router.push("/shelf");
   }, [saveNow, router]);
 
-  const { setTocOpen, setBookmarksOpen, setThemeSettingsOpen } = sheets;
   const handleOpenTOC = useCallback(() => {
-    setTocOpen(true);
-  }, [setTocOpen]);
+    handleTocOpenChange(true);
+  }, [handleTocOpenChange]);
 
   const handleOpenBookmarks = useCallback(() => {
-    setBookmarksOpen(true);
-  }, [setBookmarksOpen]);
+    handleBookmarksOpenChange(true);
+  }, [handleBookmarksOpenChange]);
 
   const handleOpenThemeSettings = useCallback(() => {
-    setThemeSettingsOpen(true);
-  }, [setThemeSettingsOpen]);
+    handleThemeSettingsOpenChange(true);
+  }, [handleThemeSettingsOpenChange]);
 
   const controls = useReaderControls({
     pageRef,
@@ -217,7 +283,7 @@ function Reader({ bookId }: { bookId: string }) {
     percentage: reader.percentage,
     currentChapter: reader.currentChapter,
     viewRef,
-    onBookmarksOpenChange: sheets.setBookmarksOpen,
+    onBookmarksOpenChange: handleBookmarksOpenChange,
   });
 
   const { saveBookOffline } = offline;
@@ -226,14 +292,6 @@ function Reader({ bookId }: { bookId: string }) {
     cfi: string;
     percentage: number;
   } | null>(null);
-  const [prevBookId, setPrevBookId] = useState(bookId);
-
-  if (prevBookId !== bookId) {
-    setPrevBookId(bookId);
-    if (jumpBackLocation !== null) {
-      setJumpBackLocation(null);
-    }
-  }
 
   const captureJumpBackLocation = useCallback(() => {
     if (!currentCFI) return;
@@ -245,18 +303,10 @@ function Reader({ bookId }: { bookId: string }) {
     );
   }, [currentCFI, percentage]);
 
-  const handleJumpToTOC = useCallback(
-    (href: string) => {
+  const handleJumpToLocation = useCallback(
+    (target: string) => {
       captureJumpBackLocation();
-      goTo(href);
-    },
-    [captureJumpBackLocation, goTo],
-  );
-
-  const handleSelectSearchResult = useCallback(
-    (cfi: string) => {
-      captureJumpBackLocation();
-      goTo(cfi);
+      goTo(target);
     },
     [captureJumpBackLocation, goTo],
   );
@@ -351,6 +401,8 @@ function Reader({ bookId }: { bookId: string }) {
     );
   }
 
+  const ttsLoading = tts.ttsOpen && !tts.runtimeReady;
+
   return (
     <div
       id="main-content"
@@ -365,7 +417,6 @@ function Reader({ bookId }: { bookId: string }) {
         {isAuthenticated && tts.ttsRequested && (
           <ReaderTTSRuntime
             viewRef={viewRef}
-            onHighlight={tts.handleHighlight}
             bookId={bookId}
             onSync={tts.handleSyncTTSRuntime}
           />
@@ -374,41 +425,22 @@ function Reader({ bookId }: { bookId: string }) {
           visible={chrome.isHeaderVisible}
           bookTitle={reader.bookTitle}
           bookAuthor={reader.bookAuthor}
-          toc={reader.toc}
           tocOpen={sheets.tocOpen}
-          onTocOpenChange={sheets.setTocOpen}
+          onTocOpenChange={handleTocOpenChange}
           bookmarksOpen={sheets.bookmarksOpen}
-          onBookmarksOpenChange={sheets.setBookmarksOpen}
-          bookmarks={bookmarks}
+          onBookmarksOpenChange={handleBookmarksOpenChange}
           showBookmarks={isAuthenticated}
           canCreateBookmark={isAuthenticated && Boolean(reader.currentCFI)}
           isSavingBookmark={isSavingBookmark}
           onCreateBookmark={handleCreateBookmark}
-          onGoToBookmark={handleJumpToBookmark}
-          onDeleteBookmark={handleDeleteBookmark}
-          onUpdateBookmarkNote={handleUpdateBookmarkNote}
           isSavingOffline={offline.isSavingOffline}
           offlineDownloadLabel={offline.offlineDownloadLabel}
           onSaveOffline={isAuthenticated ? handleSaveOffline : undefined}
-          tocListRef={chrome.tocListRef}
-          currentChapter={reader.currentChapter}
-          currentChapterHref={reader.currentChapterHref}
-          onLocateCurrentChapter={() => chrome.scrollToCurrentChapter("smooth")}
-          onGoTo={handleJumpToTOC}
-          percentage={reader.percentage}
-          onGoToFraction={handleGoToFraction}
-          jumpBackPercentage={jumpBackLocation?.percentage ?? null}
-          onReturnToPreviousLocation={
-            jumpBackLocation ? handleReturnToPreviousLocation : undefined
-          }
           onBack={handleBack}
           uiScheme={uiScheme}
           headerSafeAreaPaddingTop={HEADER_SAFE_AREA_PADDING_TOP}
-          overlayContainer={overlayContainer}
-          theme={theme}
-          setTheme={setTheme}
           themeSettingsOpen={sheets.themeSettingsOpen}
-          onThemeSettingsOpenChange={sheets.setThemeSettingsOpen}
+          onThemeSettingsOpenChange={handleThemeSettingsOpenChange}
           isFullscreenSupported={controls.isFullscreenSupported}
           isFullscreen={controls.isFullscreen}
           onToggleFullscreen={controls.toggleFullscreen}
@@ -420,7 +452,11 @@ function Reader({ bookId }: { bookId: string }) {
             isAuthenticated ? (
               <ReaderTTSControlTrigger
                 slot="desktop-toolbar"
-                sharedProps={tts.sharedTTSControlsProps}
+                expanded={tts.ttsOpen}
+                state={tts.ttsState}
+                isLoading={ttsLoading}
+                uiScheme={uiScheme}
+                onClick={tts.requestTTS}
               />
             ) : undefined
           }
@@ -428,11 +464,67 @@ function Reader({ bookId }: { bookId: string }) {
             isAuthenticated ? (
               <ReaderTTSControlTrigger
                 slot="mobile-menu"
-                sharedProps={tts.sharedTTSControlsProps}
+                expanded={tts.ttsOpen}
+                state={tts.ttsState}
+                isLoading={ttsLoading}
+                uiScheme={uiScheme}
+                onClick={tts.requestTTS}
               />
             ) : undefined
           }
         />
+
+        {(tocMounted || sheets.tocOpen) && (
+          <ReaderTOCSheet
+            open={sheets.tocOpen}
+            onOpenChange={handleTocOpenChange}
+            toc={reader.toc}
+            bookTitle={reader.bookTitle}
+            bookAuthor={reader.bookAuthor}
+            tocListRef={chrome.tocListRef}
+            currentChapter={reader.currentChapter}
+            currentChapterHref={reader.currentChapterHref}
+            uiScheme={uiScheme}
+            overlayContainer={overlayContainer}
+            onLocateCurrent={() => chrome.scrollToCurrentChapter("smooth")}
+            onGoTo={handleJumpToLocation}
+            percentage={reader.percentage}
+            onGoToFraction={handleGoToFraction}
+            jumpBackPercentage={jumpBackLocation?.percentage ?? null}
+            onReturnToPreviousLocation={
+              jumpBackLocation ? handleReturnToPreviousLocation : undefined
+            }
+          />
+        )}
+
+        {isAuthenticated && (bookmarksMounted || sheets.bookmarksOpen) && (
+          <ReaderBookmarksSheet
+            open={sheets.bookmarksOpen}
+            onOpenChange={handleBookmarksOpenChange}
+            bookmarks={bookmarks}
+            bookTitle={reader.bookTitle}
+            bookAuthor={reader.bookAuthor}
+            uiScheme={uiScheme}
+            overlayContainer={overlayContainer}
+            canCreate={Boolean(reader.currentCFI)}
+            isSaving={isSavingBookmark}
+            onCreate={handleCreateBookmark}
+            onGoTo={handleJumpToBookmark}
+            onDelete={handleDeleteBookmark}
+            onUpdateNote={handleUpdateBookmarkNote}
+          />
+        )}
+
+        {(themeSettingsMounted || sheets.themeSettingsOpen) && (
+          <ThemeSettings
+            theme={theme}
+            setTheme={setTheme}
+            uiScheme={uiScheme}
+            open={sheets.themeSettingsOpen}
+            onOpenChange={handleThemeSettingsOpenChange}
+            overlayContainer={overlayContainer}
+          />
+        )}
 
         {(searchMounted || sheets.showSearch) && (
           <ReaderSearchSheet
@@ -443,8 +535,12 @@ function Reader({ bookId }: { bookId: string }) {
             overlayContainer={overlayContainer}
             onSearch={reader.searchBook}
             onClearSearch={reader.clearSearch}
-            onSelectResult={handleSelectSearchResult}
+            onSelectResult={handleJumpToLocation}
           />
+        )}
+
+        {isAuthenticated && tts.ttsRequested && tts.runtimeReady && (
+          <TTSControls {...tts.drawerProps} />
         )}
 
         <div className="flex min-h-0 flex-1 flex-col">
@@ -493,7 +589,11 @@ function Reader({ bookId }: { bookId: string }) {
               isAuthenticated ? (
                 <ReaderTTSControlTrigger
                   slot="status-bar"
-                  sharedProps={tts.sharedTTSControlsProps}
+                  expanded={tts.ttsOpen}
+                  state={tts.ttsState}
+                  isLoading={ttsLoading}
+                  uiScheme={uiScheme}
+                  onClick={tts.requestTTS}
                 />
               ) : undefined
             }

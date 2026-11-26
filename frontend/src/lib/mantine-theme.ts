@@ -107,8 +107,6 @@ export const mantineCssVariablesResolver: CSSVariablesResolver = () => ({
     '--mantine-font-family': 'var(--font-sans)',
     '--mantine-font-family-headings': 'var(--font-heading)',
     '--mantine-font-family-monospace': 'var(--font-mono)',
-  },
-  light: {
     '--mantine-color-body': 'var(--background)',
     '--mantine-color-text': 'var(--foreground)',
     '--mantine-color-dimmed': 'var(--muted-foreground)',
@@ -118,14 +116,6 @@ export const mantineCssVariablesResolver: CSSVariablesResolver = () => ({
     '--mantine-color-default-color': 'var(--foreground)',
     '--mantine-color-default-border': 'var(--border)',
   },
-  dark: {
-    '--mantine-color-body': 'var(--background)',
-    '--mantine-color-text': 'var(--foreground)',
-    '--mantine-color-dimmed': 'var(--muted-foreground)',
-    '--mantine-color-placeholder': 'var(--muted-foreground)',
-    '--mantine-color-default': 'var(--card)',
-    '--mantine-color-default-hover': 'var(--secondary)',
-    '--mantine-color-default-color': 'var(--foreground)',
-    '--mantine-color-default-border': 'var(--border)',
-  },
+  light: {},
+  dark: {},
 });

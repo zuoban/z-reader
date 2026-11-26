@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { TTSControls } from '@/components/TTSControls';
 import { ReaderTTSControlTrigger } from '@/components/reader/ReaderTTSControlTrigger';
 import type { ReaderTTSRuntimeState } from '@/components/reader/ReaderTTSRuntime';
 import { useReaderControls } from '@/hooks/useReaderControls';
 import { useReaderSheets } from '@/hooks/useReaderSheets';
 import { useReaderTTSBridge } from '@/hooks/useReaderTTSBridge';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
-import type { FoliateView } from '@/lib/types';
 
 const uiScheme: ThemeColors = {
   bg: '#ffffff',
@@ -37,8 +37,6 @@ function createRuntime(
     voicesError: null,
     resumePromptVisible: false,
     resumePromptMessage: '',
-    currentMark: null,
-    markIndex: -1,
     ttsStatus: { headline: '准备朗读', detail: '选择开始', tone: 'idle' },
     sleepTimer: { mode: 'off', label: '关闭' },
     updateSettings: vi.fn(),
@@ -64,11 +62,9 @@ function ReaderTTSIntegrationHarness({
   restoreCurrentHighlight: () => void;
 }) {
   const pageRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<FoliateView | null>(null);
   const [showStatusBarSlot, setShowStatusBarSlot] = useState(true);
   const sheets = useReaderSheets();
   const tts = useReaderTTSBridge({
-    viewRef,
     uiScheme,
     overlayContainer: null,
     hideHeader: vi.fn(),
@@ -102,7 +98,6 @@ function ReaderTTSIntegrationHarness({
           showSearch: sheets.showSearch,
           tocOpen: sheets.tocOpen,
           hasSheetOpen: sheets.hasSheetOpen,
-          activeSlot: tts.sharedTTSControlsProps.activeSlot,
         })}
       </div>
 
@@ -125,22 +120,35 @@ function ReaderTTSIntegrationHarness({
       <div data-testid="slot-desktop">
         <ReaderTTSControlTrigger
           slot="desktop-toolbar"
-          sharedProps={tts.sharedTTSControlsProps}
+          expanded={tts.ttsOpen}
+          state={tts.ttsState}
+          uiScheme={uiScheme}
+          onClick={tts.requestTTS}
         />
       </div>
       <div data-testid="slot-mobile">
         <ReaderTTSControlTrigger
           slot="mobile-menu"
-          sharedProps={tts.sharedTTSControlsProps}
+          expanded={tts.ttsOpen}
+          state={tts.ttsState}
+          uiScheme={uiScheme}
+          onClick={tts.requestTTS}
         />
       </div>
       {showStatusBarSlot && (
         <div data-testid="slot-status-bar">
           <ReaderTTSControlTrigger
             slot="status-bar"
-            sharedProps={tts.sharedTTSControlsProps}
+            expanded={tts.ttsOpen}
+            state={tts.ttsState}
+            uiScheme={uiScheme}
+            onClick={tts.requestTTS}
           />
         </div>
+      )}
+
+      {tts.ttsRequested && tts.runtimeReady && (
+        <TTSControls {...tts.drawerProps} />
       )}
     </div>
   );
@@ -165,11 +173,10 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
       showSearch: boolean;
       tocOpen: boolean;
       hasSheetOpen: boolean;
-      activeSlot: string | null;
     };
   }
 
-  it('opens only the clicked slot, closes TTS when Search opens via Cmd/Ctrl+F, and restores keyboard shortcuts afterwards', async () => {
+  it('opens the TTS drawer, closes TTS when Search opens via Cmd/Ctrl+F, and restores keyboard shortcuts afterwards', async () => {
     const onNext = vi.fn();
     const restoreCurrentHighlight = vi.fn();
 
@@ -182,7 +189,6 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'mount-runtime' }));
 
-    // Open TTS from desktop toolbar slot
     const desktopTrigger = screen
       .getByTestId('slot-desktop')
       .querySelector('button[data-reader-tts-trigger="true"]') as HTMLButtonElement;
@@ -195,14 +201,11 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
       ttsOpen: true,
       showSearch: false,
       hasSheetOpen: true,
-      activeSlot: 'desktop-toolbar',
     });
 
-    // Reader navigation shortcuts are suppressed while TTS sheet is open
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(onNext).not.toHaveBeenCalled();
 
-    // Press Ctrl+F to open Search -> TTS closes cleanly and highlight restores
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true });
 
     await waitFor(() => {
@@ -212,24 +215,21 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
       ttsOpen: false,
       showSearch: true,
       hasSheetOpen: true,
-      activeSlot: null,
     });
     expect(restoreCurrentHighlight).toHaveBeenCalledTimes(1);
 
-    // Closing Search leaves all overlays closed so reader keyboard shortcuts work again
     fireEvent.click(screen.getByRole('button', { name: 'close-search' }));
     expect(readSummary()).toMatchObject({
       ttsOpen: false,
       showSearch: false,
       hasSheetOpen: false,
-      activeSlot: null,
     });
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
-  it('resets ttsOpen and restores keyboard shortcuts if an expanded status-bar TTS trigger unmounts', async () => {
+  it('keeps the TTS dialog open when a status-bar trigger unmounts and restores shortcuts on close', async () => {
     const onNext = vi.fn();
     const restoreCurrentHighlight = vi.fn();
 
@@ -242,7 +242,6 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'mount-runtime' }));
 
-    // Open TTS from status-bar slot
     const statusTrigger = screen
       .getByTestId('slot-status-bar')
       .querySelector('button[data-reader-tts-trigger="true"]') as HTMLButtonElement;
@@ -254,23 +253,29 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
     expect(readSummary()).toMatchObject({
       ttsOpen: true,
       hasSheetOpen: true,
-      activeSlot: 'status-bar',
     });
 
-    // Unmount status-bar trigger (as happens when header chrome becomes visible)
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'toggle-status-bar' }));
     });
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Trigger unmount no longer closes the page-level TTS drawer unexpectedly
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(readSummary()).toMatchObject({
+      ttsOpen: true,
+      hasSheetOpen: true,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭朗读控制' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
     expect(readSummary()).toMatchObject({
       ttsOpen: false,
       hasSheetOpen: false,
-      activeSlot: null,
     });
     expect(restoreCurrentHighlight).toHaveBeenCalledTimes(1);
 
-    // Reader shortcuts must work again instead of remaining locked out
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(onNext).toHaveBeenCalledTimes(1);
   });

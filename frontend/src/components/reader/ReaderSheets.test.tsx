@@ -52,8 +52,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter="第一章 开篇"
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.sepia}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={vi.fn()}
         onGoTo={onGoTo}
       />,
@@ -84,8 +82,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter="第一章 初遇"
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.dark}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={onLocateCurrent}
         onGoTo={vi.fn()}
       />,
@@ -145,8 +141,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter=""
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.light}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={onLocateCurrent}
         onGoTo={vi.fn()}
       />,
@@ -170,8 +164,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter="第一章 初遇"
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.light}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={vi.fn()}
         onGoTo={vi.fn()}
       />,
@@ -212,8 +204,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter="第一章 初遇"
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.light}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={vi.fn()}
         onGoTo={vi.fn()}
       />,
@@ -258,8 +248,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter="第一章 开篇"
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.sepia}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={vi.fn()}
         onGoTo={vi.fn()}
         percentage={32.5}
@@ -303,8 +291,6 @@ describe('ReaderTOCSheet', () => {
         currentChapter="第一章 开篇"
         currentChapterHref="ch-1.xhtml"
         uiScheme={PRESET_STYLES.dark}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         onLocateCurrent={vi.fn()}
         onGoTo={vi.fn()}
         percentage={68}
@@ -332,8 +318,6 @@ describe('ReaderBookmarksSheet', () => {
         bookmarks={[]}
         bookTitle="测试书籍"
         uiScheme={PRESET_STYLES.green}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={onCreate}
@@ -360,8 +344,6 @@ describe('ReaderBookmarksSheet', () => {
         bookmarks={[]}
         bookTitle="测试书籍"
         uiScheme={PRESET_STYLES.sepia}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving
         onCreate={vi.fn()}
@@ -400,8 +382,6 @@ describe('ReaderBookmarksSheet', () => {
         bookmarks={bookmarks}
         bookTitle="测试书籍"
         uiScheme={PRESET_STYLES.dark}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={vi.fn()}
@@ -434,8 +414,6 @@ describe('ReaderBookmarksSheet', () => {
         bookTitle="测试书籍"
         bookAuthor="测试作者"
         uiScheme={PRESET_STYLES.light}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={vi.fn()}
@@ -479,8 +457,6 @@ describe('ReaderBookmarksSheet', () => {
         bookTitle="红楼梦"
         bookAuthor="曹雪芹"
         uiScheme={PRESET_STYLES.sepia}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={vi.fn()}
@@ -538,8 +514,6 @@ describe('ReaderBookmarksSheet', () => {
         bookmarks={bookmarks}
         bookTitle="测试书籍"
         uiScheme={PRESET_STYLES.sepia}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={vi.fn()}
@@ -559,8 +533,6 @@ describe('ReaderBookmarksSheet', () => {
         bookmarks={bookmarks}
         bookTitle="测试书籍"
         uiScheme={PRESET_STYLES.sepia}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={vi.fn()}
@@ -628,8 +600,6 @@ describe('ReaderBookmarksSheet', () => {
         bookmarks={bookmarks}
         bookTitle="测试书籍"
         uiScheme={PRESET_STYLES.dark}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
         canCreate
         isSaving={false}
         onCreate={vi.fn()}

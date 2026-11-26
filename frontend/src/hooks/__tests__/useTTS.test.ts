@@ -464,7 +464,6 @@ describe('continuous TTS session', () => {
     const range = document.createRange();
     const removeAllRanges = vi.fn();
     const mockDoc = { getSelection: () => ({ removeAllRanges }) } as unknown as Document;
-    const onHighlight = vi.fn();
     let loaded = false;
     const view = createView();
     view.renderer!.getContents = vi.fn(() => (loaded ? [{ index: 0, doc: mockDoc }] : []));
@@ -477,18 +476,19 @@ describe('continuous TTS session', () => {
     }));
 
     const viewRef = { current: view };
-    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book', onHighlight }));
+    const { result } = renderHook(() => useTTS({ viewRef, bookId: 'book' }));
     await act(() => result.current.start());
-    await waitFor(() => expect(onHighlight).toHaveBeenCalledWith(range));
+    await waitFor(() =>
+      expect(view.renderer?.scrollToAnchor).toHaveBeenCalledWith(range, true),
+    );
     expect(view.goTo).toHaveBeenCalledWith('cfi-0');
-    expect(view.renderer?.scrollToAnchor).toHaveBeenCalledWith(range, true);
 
-    onHighlight.mockClear();
+    vi.mocked(view.renderer!.scrollToAnchor!).mockClear();
     await act(async () => {
       result.current.restoreCurrentHighlight();
       await flushMediaEvents();
     });
-    expect(onHighlight).toHaveBeenCalledWith(range);
+    expect(view.renderer?.scrollToAnchor).toHaveBeenCalledWith(range, true);
 
     vi.mocked(view.resolveCFI).mockImplementationOnce(() => {
       throw new Error('broken cfi');

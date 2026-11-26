@@ -2,102 +2,65 @@
 
 import { useCallback, useState } from "react";
 
+type ReaderSheetKey =
+  | "toc"
+  | "bookmarks"
+  | "shortcuts"
+  | "theme"
+  | "search"
+  | "tts";
+
 /** Manages mutually coordinated open state for reader drawers, settings, search, shortcuts, and TTS overlays. */
 export function useReaderSheets() {
-  const [tocOpen, setTocOpenState] = useState(false);
-  const [bookmarksOpen, setBookmarksOpenState] = useState(false);
-  const [shortcutsOpen, setShortcutsOpenState] = useState(false);
-  const [themeSettingsOpen, setThemeSettingsOpenState] = useState(false);
-  const [showSearch, setShowSearchState] = useState(false);
-  const [ttsOpen, setTtsOpenState] = useState(false);
+  const [activeSheet, setActiveSheet] = useState<ReaderSheetKey | null>(null);
 
-  const setTocOpen = useCallback((open: boolean) => {
-    if (open) {
-      setBookmarksOpenState(false);
-      setThemeSettingsOpenState(false);
-      setShortcutsOpenState(false);
-      setShowSearchState(false);
-      setTtsOpenState(false);
-    }
-    setTocOpenState(open);
+  const setSheetOpen = useCallback((sheet: ReaderSheetKey, open: boolean) => {
+    setActiveSheet((current) => (open ? sheet : current === sheet ? null : current));
   }, []);
 
-  const setBookmarksOpen = useCallback((open: boolean) => {
-    if (open) {
-      setTocOpenState(false);
-      setThemeSettingsOpenState(false);
-      setShortcutsOpenState(false);
-      setShowSearchState(false);
-      setTtsOpenState(false);
-    }
-    setBookmarksOpenState(open);
-  }, []);
+  const setTocOpen = useCallback(
+    (open: boolean) => setSheetOpen("toc", open),
+    [setSheetOpen],
+  );
+  const setBookmarksOpen = useCallback(
+    (open: boolean) => setSheetOpen("bookmarks", open),
+    [setSheetOpen],
+  );
+  const setThemeSettingsOpen = useCallback(
+    (open: boolean) => setSheetOpen("theme", open),
+    [setSheetOpen],
+  );
+  const setShortcutsOpen = useCallback(
+    (open: boolean) => setSheetOpen("shortcuts", open),
+    [setSheetOpen],
+  );
+  const setTtsOpen = useCallback(
+    (open: boolean) => setSheetOpen("tts", open),
+    [setSheetOpen],
+  );
 
-  const setThemeSettingsOpen = useCallback((open: boolean) => {
-    if (open) {
-      setTocOpenState(false);
-      setBookmarksOpenState(false);
-      setShortcutsOpenState(false);
-      setShowSearchState(false);
-      setTtsOpenState(false);
-    }
-    setThemeSettingsOpenState(open);
-  }, []);
+  const openSearch = useCallback(() => setActiveSheet("search"), []);
+  const closeSearch = useCallback(
+    () => setActiveSheet((current) => (current === "search" ? null : current)),
+    [],
+  );
+  const handleOpenShortcuts = useCallback(() => setActiveSheet("shortcuts"), []);
+  const handleCloseShortcuts = useCallback(
+    () => setActiveSheet((current) => (current === "shortcuts" ? null : current)),
+    [],
+  );
+  const handleToggleShortcuts = useCallback(
+    () => setActiveSheet((current) => (current === "shortcuts" ? null : "shortcuts")),
+    [],
+  );
 
-  const setShortcutsOpen = useCallback((open: boolean) => {
-    if (open) {
-      setTocOpenState(false);
-      setBookmarksOpenState(false);
-      setThemeSettingsOpenState(false);
-      setShowSearchState(false);
-      setTtsOpenState(false);
-    }
-    setShortcutsOpenState(open);
-  }, []);
-
-  const setTtsOpen = useCallback((open: boolean) => {
-    if (open) {
-      setTocOpenState(false);
-      setBookmarksOpenState(false);
-      setThemeSettingsOpenState(false);
-      setShortcutsOpenState(false);
-      setShowSearchState(false);
-    }
-    setTtsOpenState(open);
-  }, []);
-
-  const openSearch = useCallback(() => {
-    setTocOpenState(false);
-    setBookmarksOpenState(false);
-    setThemeSettingsOpenState(false);
-    setShortcutsOpenState(false);
-    setTtsOpenState(false);
-    setShowSearchState(true);
-  }, []);
-
-  const closeSearch = useCallback(() => {
-    setShowSearchState(false);
-  }, []);
-
-  const handleOpenShortcuts = useCallback(() => {
-    setShortcutsOpen(true);
-  }, [setShortcutsOpen]);
-
-  const handleCloseShortcuts = useCallback(() => {
-    setShortcutsOpenState(false);
-  }, []);
-
-  const handleToggleShortcuts = useCallback(() => {
-    setShortcutsOpen(!shortcutsOpen);
-  }, [setShortcutsOpen, shortcutsOpen]);
-
-  const hasSheetOpen =
-    tocOpen ||
-    bookmarksOpen ||
-    themeSettingsOpen ||
-    shortcutsOpen ||
-    showSearch ||
-    ttsOpen;
+  const tocOpen = activeSheet === "toc";
+  const bookmarksOpen = activeSheet === "bookmarks";
+  const shortcutsOpen = activeSheet === "shortcuts";
+  const themeSettingsOpen = activeSheet === "theme";
+  const showSearch = activeSheet === "search";
+  const ttsOpen = activeSheet === "tts";
+  const hasSheetOpen = activeSheet !== null;
 
   return {
     tocOpen,

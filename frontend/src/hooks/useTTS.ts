@@ -23,19 +23,17 @@ import type { FoliateView } from '@/lib/types';
 
 interface UseTTSOptions {
   viewRef: React.RefObject<FoliateView | null>;
-  onHighlight?: (range: Range) => void;
   bookId?: string;
   voicesEnabled?: boolean;
 }
 
-export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: UseTTSOptions) {
+export function useTTS({ viewRef, bookId, voicesEnabled = false }: UseTTSOptions) {
   const [state, setState] = useState<TTSState>('stopped');
   const stateRef = useRef<TTSState>('stopped');
   const [settings, setSettings] = useState<TTSSettings>(loadTTSSettings);
   const settingsRef = useRef(settings);
   const [currentMark, setCurrentMark] = useState<TTSMark | null>(null);
   const currentMarkRef = useRef<TTSMark | null>(null);
-  const [markIndex, setMarkIndex] = useState(0);
   const [preparing, setPreparing] = useState(false);
   const [resumePrompt, setResumePrompt] = useState<{
     message?: string;
@@ -130,12 +128,11 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       mark.range = range;
       lastHighlightCFIRef.current = cfi;
       view.renderer?.scrollToAnchor?.(range, true);
-      onHighlight?.(range);
       setCurrentMark({ ...mark });
     } catch (error) {
       logTTS('highlight-unavailable', { message: error instanceof Error ? error.message : 'unknown' });
     }
-  }, [logTTS, onHighlight, viewRef]);
+  }, [logTTS, viewRef]);
   useEffect(() => { highlightRef.current = syncHighlight; }, [syncHighlight]);
   const restoreCurrentHighlight = useCallback(() => {
     lastHighlightCFIRef.current = null;
@@ -170,7 +167,6 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
     dismissResumePrompt();
     currentMarkRef.current = null;
     setCurrentMark(null);
-    setMarkIndex(0);
     window.getSelection()?.removeAllRanges();
     viewRef.current?.renderer?.getContents?.().forEach(({ doc }) => {
       doc.getSelection?.()?.removeAllRanges();
@@ -487,7 +483,6 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
       saveTTSSession(index === 0);
       if (document.visibilityState === 'visible') {
         setCurrentMark({ ...mark });
-        setMarkIndex(index);
         void highlightRef.current();
       }
     });
@@ -563,7 +558,7 @@ export function useTTS({ viewRef, onHighlight, bookId, voicesEnabled = false }: 
   return {
     state, preparing, settings, updateSettings, start, stop, next, prev, resume, pause,
     voices, voicesLoading, voicesError, reloadVoices: loadVoices,
-    currentMark, markIndex, ttsStatus, sleepTimer, setSleepTimerForMinutes, clearSleepTimer,
+    currentMark, ttsStatus, sleepTimer, setSleepTimerForMinutes, clearSleepTimer,
     resumePromptVisible, resumePromptMessage, restoreCurrentHighlight,
   };
 }

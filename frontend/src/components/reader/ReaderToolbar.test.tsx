@@ -2,25 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@/test/render';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ReaderToolbar } from '@/components/reader/ReaderToolbar';
-import type { ReaderTheme, ThemeColors } from '@/hooks/useReaderTheme';
-
-vi.mock('@/components/ThemeSettings', () => ({
-  ThemeSettings: ({ trigger }: { trigger: React.ReactNode }) => (
-    <button type="button">{trigger}</button>
-  ),
-}));
-
-vi.mock('@/components/reader/ReaderBookmarksSheet', () => ({
-  ReaderBookmarksSheet: ({ trigger }: { trigger: React.ReactNode }) => (
-    <button type="button">{trigger}</button>
-  ),
-}));
-
-vi.mock('@/components/reader/ReaderTOCSheet', () => ({
-  ReaderTOCSheet: ({ trigger }: { trigger: React.ReactNode }) => (
-    <button type="button">{trigger}</button>
-  ),
-}));
+import type { ThemeColors } from '@/hooks/useReaderTheme';
 
 const uiScheme: ThemeColors = {
   bg: '#ffffff',
@@ -38,54 +20,31 @@ const uiScheme: ThemeColors = {
   accentText: '#0066cc',
 };
 
-const theme: ReaderTheme = {
-  preset: 'light',
-  fontFamily: 'classic',
-  fontSize: 18,
-  lineHeight: 1.7,
-  pagePaddingX: 24,
-  pagePaddingY: 24,
-  paragraphSpacing: 1,
-  flow: 'paginated',
-  maxInlineSize: 720,
-  gap: 24,
-  animated: true,
-  chineseIndent: true,
-  punctuationSqueeze: true,
+const baseToolbarProps = {
+  visible: true,
+  bookTitle: '测试书籍',
+  bookAuthor: '',
+  tocOpen: false,
+  onTocOpenChange: vi.fn(),
+  bookmarksOpen: false,
+  onBookmarksOpenChange: vi.fn(),
+  canCreateBookmark: true,
+  isSavingBookmark: false,
+  onCreateBookmark: vi.fn(),
+  onBack: vi.fn(),
+  uiScheme,
+  headerSafeAreaPaddingTop: '0px',
+  themeSettingsOpen: false,
+  onThemeSettingsOpenChange: vi.fn(),
+  isFullscreen: false,
+  onToggleFullscreen: vi.fn(),
 };
 
 describe('ReaderToolbar', () => {
   it('places the read-aloud control immediately before settings', () => {
     render(
       <ReaderToolbar
-        visible
-        bookTitle="测试书籍"
-        bookAuthor=""
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={uiScheme}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
+        {...baseToolbarProps}
         ttsControls={
           <button type="button">
             <span>朗读</span>
@@ -109,34 +68,7 @@ describe('ReaderToolbar', () => {
   it('collapses reader actions behind a mobile overflow trigger', async () => {
     const { container } = render(
       <ReaderToolbar
-        visible
-        bookTitle="测试书籍"
-        bookAuthor=""
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={uiScheme}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
+        {...baseToolbarProps}
         ttsControls={
           <button type="button">
             <span>朗读</span>
@@ -168,39 +100,15 @@ describe('ReaderToolbar', () => {
   });
 
   it('blends the header into the paper background and keeps desktop actions icon-quiet until offline saving', () => {
-    const { container, rerender } = render(
-      <ReaderToolbar
-        visible
-        bookTitle="中国近代史"
-        bookAuthor="徐中约"
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        onSaveOffline={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={{ ...uiScheme, bg: '#f8f7f4', cardBg: '#ffffff' }}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
-      />,
-    );
+    const props = {
+      ...baseToolbarProps,
+      bookTitle: '中国近代史',
+      bookAuthor: '徐中约',
+      onSaveOffline: vi.fn(),
+      uiScheme: { ...uiScheme, bg: '#f8f7f4', cardBg: '#ffffff' },
+    };
+
+    const { container, rerender } = render(<ReaderToolbar {...props} />);
 
     const header = container.querySelector('header.reader-chrome') as HTMLElement;
     expect(header.style.getPropertyValue('--reader-chrome-bg')).toBe('#f8f7f4');
@@ -214,37 +122,9 @@ describe('ReaderToolbar', () => {
 
     rerender(
       <ReaderToolbar
-        visible
-        bookTitle="中国近代史"
-        bookAuthor="徐中约"
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        onSaveOffline={vi.fn()}
+        {...props}
         isSavingOffline
         offlineDownloadLabel="42%"
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={{ ...uiScheme, bg: '#f8f7f4', cardBg: '#ffffff' }}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
       />,
     );
 
@@ -253,38 +133,12 @@ describe('ReaderToolbar', () => {
   });
 
   it('closes the mobile actions menu and makes the header inert when hidden', () => {
-    const baseProps = {
-      visible: true,
-      bookTitle: '测试书籍',
-      bookAuthor: '',
-      toc: [],
-      tocOpen: false,
-      onTocOpenChange: vi.fn(),
-      bookmarksOpen: false,
-      onBookmarksOpenChange: vi.fn(),
-      bookmarks: [],
-      canCreateBookmark: true,
-      isSavingBookmark: false,
-      onCreateBookmark: vi.fn(),
-      onGoToBookmark: vi.fn(),
-      onDeleteBookmark: vi.fn(),
-      tocListRef: { current: null },
-      currentChapter: '',
-      currentChapterHref: '',
-      onLocateCurrentChapter: vi.fn(),
-      onGoTo: vi.fn(),
-      onBack: vi.fn(),
-      uiScheme,
-      headerSafeAreaPaddingTop: '0px',
-      theme,
-      setTheme: vi.fn(),
-      themeSettingsOpen: false,
-      onThemeSettingsOpenChange: vi.fn(),
+    const props = {
+      ...baseToolbarProps,
       isFullscreen: true,
-      onToggleFullscreen: vi.fn(),
     };
 
-    const { container, rerender } = render(<ReaderToolbar {...baseProps} />);
+    const { container, rerender } = render(<ReaderToolbar {...props} />);
     const desktop = within(
       document.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
     );
@@ -293,14 +147,14 @@ describe('ReaderToolbar', () => {
     fireEvent.click(screen.getByTitle('更多阅读操作'));
     expect(screen.getByRole('dialog', { name: '阅读操作' })).toBeInTheDocument();
 
-    rerender(<ReaderToolbar {...baseProps} visible={false} />);
+    rerender(<ReaderToolbar {...props} visible={false} />);
 
     const header = container.querySelector('header.reader-chrome') as HTMLElement;
     expect(header).toHaveAttribute('aria-hidden', 'true');
     expect(header).toHaveAttribute('inert');
     expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
 
-    rerender(<ReaderToolbar {...baseProps} visible />);
+    rerender(<ReaderToolbar {...props} visible />);
     expect(header).not.toHaveAttribute('aria-hidden');
     expect(header).not.toHaveAttribute('inert');
     expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
@@ -309,35 +163,8 @@ describe('ReaderToolbar', () => {
   it('hides fullscreen actions when unsupported and supports arrow-key navigation in the mobile menu', async () => {
     render(
       <ReaderToolbar
-        visible
-        bookTitle="测试书籍"
-        bookAuthor=""
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={uiScheme}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
+        {...baseToolbarProps}
         isFullscreenSupported={false}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
       />,
     );
 
@@ -365,39 +192,16 @@ describe('ReaderToolbar', () => {
   });
 
   it('marks the closed mobile menu inert, closes on document Escape and TTS open, and exposes settings dialog ARIA', () => {
-    const baseProps = {
-      visible: true,
-      bookTitle: '测试书籍',
-      bookAuthor: '',
-      toc: [],
-      tocOpen: false,
-      onTocOpenChange: vi.fn(),
-      bookmarksOpen: false,
-      onBookmarksOpenChange: vi.fn(),
-      bookmarks: [],
-      canCreateBookmark: true,
-      isSavingBookmark: false,
-      onCreateBookmark: vi.fn(),
-      onGoToBookmark: vi.fn(),
-      onDeleteBookmark: vi.fn(),
-      tocListRef: { current: null },
-      currentChapter: '',
-      currentChapterHref: '',
-      onLocateCurrentChapter: vi.fn(),
-      onGoTo: vi.fn(),
-      onBack: vi.fn(),
-      uiScheme,
-      headerSafeAreaPaddingTop: '0px',
-      theme,
-      setTheme: vi.fn(),
-      themeSettingsOpen: false,
-      onThemeSettingsOpenChange: vi.fn(),
-      isFullscreen: false,
-      onToggleFullscreen: vi.fn(),
+    const onTocOpenChange = vi.fn();
+    const onBookmarksOpenChange = vi.fn();
+    const props = {
+      ...baseToolbarProps,
+      onTocOpenChange,
+      onBookmarksOpenChange,
       ttsOpen: false,
     };
 
-    const { container, rerender } = render(<ReaderToolbar {...baseProps} />);
+    const { container, rerender } = render(<ReaderToolbar {...props} />);
 
     const desktop = within(
       container.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
@@ -410,13 +214,13 @@ describe('ReaderToolbar', () => {
     expect(tocButton).toHaveAttribute('aria-expanded', 'false');
     expect(tocButton).toHaveAttribute('aria-haspopup', 'dialog');
     fireEvent.click(tocButton);
-    expect(baseProps.onTocOpenChange).toHaveBeenCalledWith(true);
+    expect(onTocOpenChange).toHaveBeenCalledWith(true);
 
     const bookmarksButton = desktop.getByTitle('书签');
     expect(bookmarksButton).toHaveAttribute('aria-expanded', 'false');
     expect(bookmarksButton).toHaveAttribute('aria-haspopup', 'dialog');
     fireEvent.click(bookmarksButton);
-    expect(baseProps.onBookmarksOpenChange).toHaveBeenCalledWith(true);
+    expect(onBookmarksOpenChange).toHaveBeenCalledWith(true);
 
     const mobileMenu = container.querySelector('.reader-toolbar-menu') as HTMLElement;
     expect(mobileMenu).toHaveAttribute('inert');
@@ -425,51 +229,18 @@ describe('ReaderToolbar', () => {
     fireEvent.click(moreButton);
     expect(mobileMenu).not.toHaveAttribute('inert');
 
-    // Escape closes the menu even if focus returned to the trigger button
     moreButton.focus();
     fireEvent.keyDown(moreButton, { key: 'Escape' });
     expect(mobileMenu).toHaveAttribute('inert');
 
-    // Opening TTS closes the mobile overflow menu cleanly
     fireEvent.click(moreButton);
     expect(mobileMenu).not.toHaveAttribute('inert');
-    rerender(<ReaderToolbar {...baseProps} ttsOpen />);
+    rerender(<ReaderToolbar {...props} ttsOpen />);
     expect(mobileMenu).toHaveAttribute('inert');
   });
 
   it('closes the mobile menu on outside pointerdown without stealing focus back to the trigger', async () => {
-    const { container } = render(
-      <ReaderToolbar
-        visible
-        bookTitle="测试书籍"
-        bookAuthor=""
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={uiScheme}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
-      />,
-    );
+    const { container } = render(<ReaderToolbar {...baseToolbarProps} />);
 
     const mobileMenu = container.querySelector('.reader-toolbar-menu') as HTMLElement;
     const moreButton = screen.getByTitle('更多阅读操作');
@@ -491,40 +262,13 @@ describe('ReaderToolbar', () => {
 
   it('renders desktop and mobile in-book search triggers when onOpenSearch is provided', () => {
     const onOpenSearch = vi.fn();
-    const { container, rerender } = render(
-      <ReaderToolbar
-        visible
-        bookTitle="测试书籍"
-        bookAuthor=""
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={uiScheme}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
-        searchOpen={false}
-        onOpenSearch={onOpenSearch}
-      />,
-    );
+    const props = {
+      ...baseToolbarProps,
+      searchOpen: false,
+      onOpenSearch,
+    };
+
+    const { container, rerender } = render(<ReaderToolbar {...props} />);
 
     const desktop = within(
       container.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
@@ -545,40 +289,7 @@ describe('ReaderToolbar', () => {
 
     fireEvent.click(screen.getByTitle('更多阅读操作'));
     expect(screen.getByRole('dialog', { name: '阅读操作' })).toBeInTheDocument();
-    rerender(
-      <ReaderToolbar
-        visible
-        bookTitle="测试书籍"
-        bookAuthor=""
-        toc={[]}
-        tocOpen={false}
-        onTocOpenChange={vi.fn()}
-        bookmarksOpen={false}
-        onBookmarksOpenChange={vi.fn()}
-        bookmarks={[]}
-        canCreateBookmark
-        isSavingBookmark={false}
-        onCreateBookmark={vi.fn()}
-        onGoToBookmark={vi.fn()}
-        onDeleteBookmark={vi.fn()}
-        tocListRef={{ current: null }}
-        currentChapter=""
-        currentChapterHref=""
-        onLocateCurrentChapter={vi.fn()}
-        onGoTo={vi.fn()}
-        onBack={vi.fn()}
-        uiScheme={uiScheme}
-        headerSafeAreaPaddingTop="0px"
-        theme={theme}
-        setTheme={vi.fn()}
-        themeSettingsOpen={false}
-        onThemeSettingsOpenChange={vi.fn()}
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
-        searchOpen
-        onOpenSearch={onOpenSearch}
-      />,
-    );
+    rerender(<ReaderToolbar {...props} searchOpen />);
     expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
   });
 });

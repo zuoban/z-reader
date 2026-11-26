@@ -2,10 +2,10 @@
 
 import type { ChangeEvent, DragEvent, FormEvent } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
-import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
-import '@/app/styles/mantine-modal.css';
+import { ActionIcon, Button, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
 import { ImagePlus, Loader2, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
+import { AppModal } from '@/components/AppModal';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -135,19 +135,6 @@ export function BookMetadataDialog({
       cancelled = true;
     };
   }, [normalizedCurrentAuthor, normalizedCurrentTitle, open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleComposingEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape' && event.isComposing) {
-        event.stopPropagation();
-      }
-    }
-
-    window.addEventListener('keydown', handleComposingEscape, true);
-    return () => window.removeEventListener('keydown', handleComposingEscape, true);
-  }, [open]);
 
   function handleClose() {
     if (saving) return;
@@ -292,55 +279,16 @@ export function BookMetadataDialog({
   }
 
   return (
-    <Modal.Root
-      opened={open}
+    <AppModal
+      open={open}
       onClose={handleClose}
-      centered
-      size={440}
-      radius="lg"
-      padding={0}
-      zIndex={80}
-      closeOnClickOutside={!saving}
-      closeOnEscape={!saving}
-      classNames={{
-        inner:
-          'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
-        content:
-          'app-dialog-shell flex max-h-[min(86svh,40rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
-      }}
+      title="编辑书籍信息"
+      subtitle="修改书名、作者或自定义封面，便于书架检索与整理"
+      icon={<Pencil className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />}
+      closeDisabled={saving}
+      contentClassName="max-h-[min(86svh,40rem)]"
     >
-      <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-      <Modal.Content>
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
-              <Pencil className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
-                编辑书籍信息
-              </Modal.Title>
-              <p className="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
-                修改书名、作者或自定义封面，便于书架检索与整理
-              </p>
-            </div>
-          </div>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size={36}
-            radius="md"
-            onClick={handleClose}
-            disabled={saving}
-            className="dialog-close-btn -mr-1 h-9 w-9"
-            aria-label="关闭"
-            title="关闭 (Esc)"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </ActionIcon>
-        </div>
-
-        <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
+      <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
           <div className="custom-scrollbar min-h-0 flex-1 space-y-3.5 overflow-y-auto px-5 py-4 sm:px-6">
             <div
               data-cover-dropzone="true"
@@ -639,7 +587,6 @@ export function BookMetadataDialog({
             </Button>
           </div>
         </form>
-      </Modal.Content>
-    </Modal.Root>
+    </AppModal>
   );
 }

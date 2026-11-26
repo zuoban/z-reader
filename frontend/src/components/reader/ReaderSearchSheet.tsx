@@ -9,8 +9,6 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { ActionIcon, Drawer } from "@mantine/core";
-import "@/app/styles/mantine-drawer.css";
 import { Eraser, Loader2, Search, Square, X } from "lucide-react";
 
 import {
@@ -20,10 +18,8 @@ import {
   type BookSearchResultItem,
 } from "@/hooks/useFoliateView";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import {
-  getModernReaderSurface,
-  getReaderPanelThemeVars,
-} from "@/lib/reader-ui";
+import { getModernReaderSurface } from "@/lib/reader-ui";
+import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 
 export interface ReaderSearchSheetProps {
   open: boolean;
@@ -75,7 +71,6 @@ export function ReaderSearchSheet({
   onSelectResult,
 }: ReaderSearchSheetProps) {
   const surface = getModernReaderSurface(uiScheme);
-  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<BookSearchResultItem[]>([]);
@@ -111,20 +106,6 @@ export function ReaderSearchSheet({
       inputRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleComposingEscape(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape" && event.isComposing) {
-        event.stopPropagation();
-      }
-    }
-
-    window.addEventListener("keydown", handleComposingEscape, true);
-    return () =>
-      window.removeEventListener("keydown", handleComposingEscape, true);
   }, [open]);
 
   const groupedResults = useMemo(
@@ -295,414 +276,306 @@ export function ReaderSearchSheet({
     : `找到 ${results.length} 处匹配`;
 
   return (
-    <Drawer.Root
-      opened={open}
+    <ReaderSheet
+      open={open}
       onClose={handleClose}
-      position="bottom"
-      size="auto"
-      padding={0}
-      zIndex={90}
-      returnFocus={false}
       closeOnEscape={!query}
-      portalProps={{ target: overlayContainer ?? undefined }}
-      classNames={{
-        inner:
-          "items-end justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
-        content:
-          "reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:w-[560px] sm:max-w-[calc(100vw-2rem)]",
-      }}
-      styles={{
-        content: {
-          ...panelThemeVars,
-          flex: "0 1 auto",
-          height: "auto",
-          background: uiScheme.cardBg,
-          borderColor: surface.border,
-          color: surface.fg,
-          boxShadow: "var(--paper-shadow-floating)",
-        },
-      }}
-    >
-      <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
-      <Drawer.Content data-reader-interactive="true">
-        <div
-          className="flex min-h-0 flex-1 flex-col"
-          onKeyDown={(event) => {
-            if (
-              event.key === "Escape" &&
-              !event.nativeEvent.isComposing &&
-              query
-            ) {
-              event.preventDefault();
-              event.stopPropagation();
-              handleClearQuery();
-            }
-          }}
+      guardComposingEscape
+      widthClassName="sm:w-[560px]"
+      uiScheme={uiScheme}
+      overlayContainer={overlayContainer}
+      closeLabel="关闭书内搜索"
+      title="书内搜索"
+      titleAddon={
+        results.length > 0 ? (
+          <span
+            className="text-xs font-medium tabular-nums"
+            style={{ color: surface.muted }}
+            aria-live="polite"
+          >
+            {results.length}
+          </span>
+        ) : null
+      }
+      subtitle={
+        <p
+          className="mt-1 truncate text-xs leading-5"
+          style={{ color: surface.muted }}
+          title={bookTitle || "当前书籍"}
         >
-          <div className="reader-panel-header shrink-0 bg-transparent px-4 py-3.5 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <Drawer.Title
-                    className="font-heading text-lg font-medium leading-tight"
-                    style={{ color: surface.fg }}
-                  >
-                    书内搜索
-                  </Drawer.Title>
-                  {results.length > 0 && (
-                    <span
-                      className="text-xs font-medium tabular-nums"
-                      style={{ color: surface.muted }}
-                      aria-live="polite"
-                    >
-                      {results.length}
-                    </span>
-                  )}
-                </div>
-                <p
-                  className="mt-1 truncate text-xs leading-5"
-                  style={{ color: surface.muted }}
-                  title={bookTitle || "当前书籍"}
+          {bookTitle || "当前书籍"}
+        </p>
+      }
+      headerExtra={
+        <>
+          <form
+            onSubmit={handleSubmit}
+            className="mt-3 flex items-center gap-2"
+            role="search"
+          >
+            <div className="reader-panel-search min-w-0 flex-1">
+              <Search
+                className="h-4 w-4 shrink-0 opacity-60"
+                strokeWidth={1.6}
+                aria-hidden="true"
+              />
+              <input
+                ref={inputRef}
+                data-autofocus
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "ArrowDown" &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    const firstItem =
+                      listRef.current?.querySelector<HTMLButtonElement>(
+                        "button:not(:disabled)",
+                      );
+                    if (firstItem) {
+                      event.preventDefault();
+                      firstItem.focus();
+                    }
+                  }
+                }}
+                placeholder="输入关键词搜索全书"
+                aria-label="书内全文搜索"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={handleClearQuery}
+                  aria-label="清空搜索词"
+                  title="清空"
+                  className="reader-panel-icon !size-7"
                 >
-                  {bookTitle || "当前书籍"}
-                </p>
-              </div>
-              <ActionIcon
-                variant="subtle"
-                size={44}
-                radius="md"
-                onClick={handleClose}
-                className="reader-panel-icon"
-                aria-label="关闭书内搜索"
-                title="关闭"
-              >
-                <X className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
-              </ActionIcon>
+                  <X
+                    className="h-3.5 w-3.5"
+                    strokeWidth={1.6}
+                    aria-hidden="true"
+                  />
+                </button>
+              ) : null}
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="mt-3 flex items-center gap-2"
-              role="search"
-            >
-              <div className="reader-panel-search min-w-0 flex-1">
-                <Search
-                  className="h-4 w-4 shrink-0 opacity-60"
-                  strokeWidth={1.6}
-                  aria-hidden="true"
-                />
-                <input
-                  ref={inputRef}
-                  data-autofocus
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === "ArrowDown" &&
-                      !event.nativeEvent.isComposing
-                    ) {
-                      const firstItem =
-                        listRef.current?.querySelector<HTMLButtonElement>(
-                          "button:not(:disabled)",
-                        );
-                      if (firstItem) {
-                        event.preventDefault();
-                        firstItem.focus();
-                      }
-                    }
-                  }}
-                  placeholder="输入关键词搜索全书"
-                  aria-label="书内全文搜索"
-                />
-                {query ? (
-                  <button
-                    type="button"
-                    onClick={handleClearQuery}
-                    aria-label="清空搜索词"
-                    title="清空"
-                    className="reader-panel-icon !size-7"
-                  >
-                    <X
-                      className="h-3.5 w-3.5"
-                      strokeWidth={1.6}
-                      aria-hidden="true"
-                    />
-                  </button>
-                ) : null}
-              </div>
-
-              {isSearching ? (
-                <button
-                  type="button"
-                  onClick={handleStopSearch}
-                  className="reader-panel-secondary !h-10 px-3 text-xs lg:!h-9"
-                >
-                  <Square
-                    className="h-3.5 w-3.5 shrink-0 fill-current"
-                    strokeWidth={1.6}
-                    aria-hidden="true"
-                  />
-                  <span>停止</span>
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={!query.trim()}
-                  className="reader-panel-action !h-10 px-3 text-xs lg:!h-9"
-                >
-                  <span>搜索</span>
-                </button>
-              )}
-            </form>
-
-            {isSearching && (
-              <div className="mt-2.5 space-y-1.5" aria-live="polite">
-                <div
-                  className="flex items-center justify-between text-xs"
-                  style={{ color: surface.muted }}
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <Loader2
-                      className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
-                      strokeWidth={1.6}
-                      aria-hidden="true"
-                    />
-                    <span>
-                      正在搜索…{" "}
-                      {results.length > 0 ? `已找到 ${results.length} 处` : ""}
-                    </span>
-                  </span>
-                  <span className="tabular-nums">{progressPercent}%</span>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-label="搜索进度"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressPercent}
-                  className="h-1 w-full overflow-hidden rounded-full"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--reader-panel-hover) 80%, transparent)",
-                  }}
-                >
-                  <div
-                    className="h-full rounded-full transition-[width] duration-150 ease-out"
-                    style={{
-                      width: `${progressPercent}%`,
-                      background: "var(--reader-panel-accent)",
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!isSearching && results.length > 0 && (
-              <div className="mt-2.5 flex items-center justify-between gap-2">
-                <span
-                  className="text-xs font-medium tabular-nums"
-                  style={{ color: surface.muted }}
-                  aria-live="polite"
-                >
-                  {summaryText}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleClearHighlights}
-                  className="reader-panel-secondary !h-7 px-2.5 text-xs"
-                >
-                  <Eraser
-                    className="h-3.5 w-3.5 shrink-0"
-                    strokeWidth={1.6}
-                    aria-hidden="true"
-                  />
-                  <span>清除高亮</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">
-            {results.length > 0 ? (
-              <div
-                ref={listRef}
-                onKeyDown={handleListKeyDown}
-                className="space-y-3 pb-3"
+            {isSearching ? (
+              <button
+                type="button"
+                onClick={handleStopSearch}
+                className="reader-panel-secondary !h-10 px-3 text-xs lg:!h-9"
               >
-                {groupedResults.map((group, groupIndex) => (
-                  <section
-                    key={`${group.sectionLabel}-${groupIndex}`}
-                    className="space-y-1"
-                  >
-                    {group.sectionLabel ? (
-                      <h3
-                        className="truncate px-2.5 pt-1 text-xs font-medium"
-                        style={{ color: surface.muted }}
-                        title={group.sectionLabel}
-                      >
-                        {group.sectionLabel}
-                      </h3>
-                    ) : null}
-                    <div className="space-y-0.5">
-                      {group.items.map(({ item, index }) => {
-                        const isActive = activeCfi === item.cfi;
-                        const excerptText = `${item.excerpt.pre}${item.excerpt.match}${item.excerpt.post}`;
-                        const ariaLabel = item.sectionLabel
-                          ? `跳转到 ${item.sectionLabel}：${excerptText}`
-                          : `跳转到匹配结果 ${index + 1}：${excerptText}`;
-
-                        return (
-                          <button
-                            key={`${item.cfi}-${index}`}
-                            type="button"
-                            aria-label={ariaLabel}
-                            aria-current={isActive ? "true" : undefined}
-                            data-current-chapter={isActive ? "true" : undefined}
-                            className="reader-panel-item w-full flex-col items-stretch px-3 py-2"
-                            onClick={() => {
-                              setActiveCfi(item.cfi);
-                              onSelectResult(item.cfi);
-                              onOpenChange(false);
-                            }}
-                          >
-                            <p
-                              className="text-sm leading-6 break-words"
-                              style={{ color: surface.fg }}
-                            >
-                              {item.excerpt.pre}
-                              {item.excerpt.match ? (
-                                <mark className="reader-search-mark">
-                                  {item.excerpt.match}
-                                </mark>
-                              ) : null}
-                              {item.excerpt.post}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            ) : isSearching ? (
-              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                <Loader2
-                  className="mb-3 h-5 w-5 animate-spin motion-reduce:animate-none"
-                  style={{ color: surface.muted }}
+                <Square
+                  className="h-3.5 w-3.5 shrink-0 fill-current"
                   strokeWidth={1.6}
                   aria-hidden="true"
                 />
-                <p
-                  className="text-sm font-medium tracking-tight"
-                  style={{ color: surface.fg }}
-                >
-                  正在全书范围内搜索…
-                </p>
-              </div>
-            ) : unsupported ? (
-              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                <div
-                  className="mb-3 flex size-10 items-center justify-center rounded-xl border"
-                  style={{
-                    borderColor: surface.hairline,
-                    background:
-                      "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
-                    color: surface.muted,
-                  }}
-                >
-                  <Search
-                    className="h-4.5 w-4.5"
-                    strokeWidth={1.6}
-                    aria-hidden="true"
-                  />
-                </div>
-                <p
-                  className="text-sm font-medium tracking-tight"
-                  style={{ color: surface.fg }}
-                >
-                  当前书籍暂不支持全文搜索
-                </p>
-                <p
-                  className="mt-1.5 max-w-[18rem] text-xs leading-5"
-                  style={{ color: surface.muted }}
-                >
-                  部分扫描版或非文本格式暂无法索引正文内容
-                </p>
-              </div>
-            ) : searchError ? (
-              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                <p
-                  className="text-sm font-medium tracking-tight"
-                  style={{ color: surface.fg }}
-                >
-                  {searchError}
-                </p>
-              </div>
-            ) : hasSearched ? (
-              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                <div
-                  className="mb-3 flex size-10 items-center justify-center rounded-xl border"
-                  style={{
-                    borderColor: surface.hairline,
-                    background:
-                      "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
-                    color: surface.muted,
-                  }}
-                >
-                  <Search
-                    className="h-4.5 w-4.5"
-                    strokeWidth={1.6}
-                    aria-hidden="true"
-                  />
-                </div>
-                <p
-                  className="text-sm font-medium tracking-tight"
-                  style={{ color: surface.fg }}
-                >
-                  未找到匹配内容
-                </p>
-                <p
-                  className="mt-1.5 max-w-[16rem] text-xs leading-5"
-                  style={{ color: surface.muted }}
-                >
-                  试试更换其他关键词，或缩短搜索词组
-                </p>
-              </div>
+                <span>停止</span>
+              </button>
             ) : (
-              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                <div
-                  className="mb-3 flex size-10 items-center justify-center rounded-xl border"
-                  style={{
-                    borderColor: surface.hairline,
-                    background:
-                      "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
-                    color: surface.fg,
-                  }}
-                >
-                  <Search
-                    className="h-4.5 w-4.5"
+              <button
+                type="submit"
+                disabled={!query.trim()}
+                className="reader-panel-action !h-10 px-3 text-xs lg:!h-9"
+              >
+                <span>搜索</span>
+              </button>
+            )}
+          </form>
+
+          {isSearching && (
+            <div className="mt-2.5 space-y-1.5" aria-live="polite">
+              <div
+                className="flex items-center justify-between text-xs"
+                style={{ color: surface.muted }}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
                     strokeWidth={1.6}
                     aria-hidden="true"
                   />
-                </div>
-                <p
-                  className="text-sm font-medium tracking-tight"
-                  style={{ color: surface.fg }}
-                >
-                  输入关键词在全书范围内搜索
-                </p>
-                <p
-                  className="mt-1.5 max-w-[18rem] text-xs leading-5"
-                  style={{ color: surface.muted }}
-                >
-                  按回车开始搜索，点击结果即可跳转并高亮正文
-                </p>
+                  <span>
+                    正在搜索…{" "}
+                    {results.length > 0 ? `已找到 ${results.length} 处` : ""}
+                  </span>
+                </span>
+                <span className="tabular-nums">{progressPercent}%</span>
               </div>
-            )}
+              <div
+                role="progressbar"
+                aria-label="搜索进度"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progressPercent}
+                className="h-1 w-full overflow-hidden rounded-full"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--reader-panel-hover) 80%, transparent)",
+                }}
+              >
+                <div
+                  className="h-full rounded-full transition-[width] duration-150 ease-out"
+                  style={{
+                    width: `${progressPercent}%`,
+                    background: "var(--reader-panel-accent)",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {!isSearching && results.length > 0 && (
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+              <span
+                className="text-xs font-medium tabular-nums"
+                style={{ color: surface.muted }}
+                aria-live="polite"
+              >
+                {summaryText}
+              </span>
+              <button
+                type="button"
+                onClick={handleClearHighlights}
+                className="reader-panel-secondary !h-7 px-2.5 text-xs"
+              >
+                <Eraser
+                  className="h-3.5 w-3.5 shrink-0"
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                />
+                <span>清除高亮</span>
+              </button>
+            </div>
+          )}
+        </>
+      }
+      onContentKeyDown={(event) => {
+        if (
+          event.key === "Escape" &&
+          !event.nativeEvent.isComposing &&
+          query
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleClearQuery();
+        }
+      }}
+    >
+      <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">
+        {results.length > 0 ? (
+          <div
+            ref={listRef}
+            onKeyDown={handleListKeyDown}
+            className="space-y-3 pb-3"
+          >
+            {groupedResults.map((group, groupIndex) => (
+              <section
+                key={`${group.sectionLabel}-${groupIndex}`}
+                className="space-y-1"
+              >
+                {group.sectionLabel ? (
+                  <h3
+                    className="truncate px-2.5 pt-1 text-xs font-medium"
+                    style={{ color: surface.muted }}
+                    title={group.sectionLabel}
+                  >
+                    {group.sectionLabel}
+                  </h3>
+                ) : null}
+                <div className="space-y-0.5">
+                  {group.items.map(({ item, index }) => {
+                    const isActive = activeCfi === item.cfi;
+                    const excerptText = `${item.excerpt.pre}${item.excerpt.match}${item.excerpt.post}`;
+                    const ariaLabel = item.sectionLabel
+                      ? `跳转到 ${item.sectionLabel}：${excerptText}`
+                      : `跳转到匹配结果 ${index + 1}：${excerptText}`;
+
+                    return (
+                      <button
+                        key={`${item.cfi}-${index}`}
+                        type="button"
+                        aria-label={ariaLabel}
+                        aria-current={isActive ? "true" : undefined}
+                        data-current-chapter={isActive ? "true" : undefined}
+                        className="reader-panel-item w-full flex-col items-stretch px-3 py-2"
+                        onClick={() => {
+                          setActiveCfi(item.cfi);
+                          onSelectResult(item.cfi);
+                          onOpenChange(false);
+                        }}
+                      >
+                        <p
+                          className="text-sm leading-6 break-words"
+                          style={{ color: surface.fg }}
+                        >
+                          {item.excerpt.pre}
+                          {item.excerpt.match ? (
+                            <mark className="reader-search-mark">
+                              {item.excerpt.match}
+                            </mark>
+                          ) : null}
+                          {item.excerpt.post}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
-        </div>
-      </Drawer.Content>
-    </Drawer.Root>
+        ) : isSearching ? (
+          <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+            <Loader2
+              className="mb-3 h-5 w-5 animate-spin motion-reduce:animate-none"
+              style={{ color: surface.muted }}
+              strokeWidth={1.6}
+              aria-hidden="true"
+            />
+            <p
+              className="text-sm font-medium tracking-tight"
+              style={{ color: surface.fg }}
+            >
+              正在全书范围内搜索…
+            </p>
+          </div>
+        ) : unsupported ? (
+          <ReaderEmptyState
+            icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+            iconTone="muted"
+            descriptionWidthClassName="max-w-[18rem]"
+            title="当前书籍暂不支持全文搜索"
+            description="部分扫描版或非文本格式暂无法索引正文内容"
+            uiScheme={uiScheme}
+          />
+        ) : searchError ? (
+          <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+            <p
+              className="text-sm font-medium tracking-tight"
+              style={{ color: surface.fg }}
+            >
+              {searchError}
+            </p>
+          </div>
+        ) : hasSearched ? (
+          <ReaderEmptyState
+            icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+            iconTone="muted"
+            title="未找到匹配内容"
+            description="试试更换其他关键词，或缩短搜索词组"
+            uiScheme={uiScheme}
+          />
+        ) : (
+          <ReaderEmptyState
+            icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+            descriptionWidthClassName="max-w-[18rem]"
+            title="输入关键词在全书范围内搜索"
+            description="按回车开始搜索，点击结果即可跳转并高亮正文"
+            uiScheme={uiScheme}
+          />
+        )}
+      </div>
+    </ReaderSheet>
   );
 }

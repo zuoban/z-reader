@@ -41,31 +41,6 @@ describe('TTSControls', () => {
     });
   });
 
-  it('uses text-button sizing for a custom toolbar trigger', async () => {
-    render(
-      <TTSControls
-        state="stopped"
-        settings={settings}
-        voices={[]}
-        onStart={vi.fn()}
-        onStop={vi.fn()}
-        onNext={vi.fn()}
-        onPrev={vi.fn()}
-        onUpdateSettings={vi.fn()}
-        uiScheme={uiScheme}
-        triggerClassName="toolbar-trigger"
-        triggerStyle={{}}
-        triggerContent={<span>朗读</span>}
-      />,
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(screen.getByRole('button', { name: '朗读控制' })).not.toHaveClass('size-11');
-  });
-
   function renderControls(overrides: Partial<TTSControlsProps> = {}) {
     const props = {
       state: 'stopped' as const, settings, voices: [],

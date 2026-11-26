@@ -1,50 +1,54 @@
 "use client";
 
-import { useCallback } from "react";
+import { ActionIcon, UnstyledButton } from "@mantine/core";
 import { Loader2, Volume2 } from "lucide-react";
-import { DeferredTTSControls } from "@/components/DeferredTTSControls";
-import type {
-  ReaderTTSSlot,
-  SharedTTSControlsProps,
-} from "@/hooks/useReaderTTSBridge";
+import type { ThemeColors } from "@/hooks/useReaderTheme";
+import type { TTSState } from "@/lib/tts";
+
+export type ReaderTTSSlot = "desktop-toolbar" | "mobile-menu" | "status-bar";
 
 interface ReaderTTSControlTriggerProps {
   slot: ReaderTTSSlot;
-  sharedProps: SharedTTSControlsProps;
+  expanded: boolean;
+  state: TTSState;
+  isLoading?: boolean;
+  uiScheme: ThemeColors;
+  onClick: () => void;
 }
 
 export function ReaderTTSControlTrigger({
   slot,
-  sharedProps,
+  expanded,
+  state,
+  isLoading = false,
+  uiScheme,
+  onClick,
 }: ReaderTTSControlTriggerProps) {
-  const { activeSlot, onRequestSlot, onSlotExpandedChange, ...ttsProps } =
-    sharedProps;
-
-  const handleRequest = useCallback(() => {
-    onRequestSlot(slot);
-  }, [onRequestSlot, slot]);
-
-  const handleExpandedChange = useCallback(
-    (expanded: boolean) => {
-      onSlotExpandedChange(slot, expanded);
-    },
-    [onSlotExpandedChange, slot],
-  );
-
-  const slotProps = {
-    ...ttsProps,
-    expanded: activeSlot === slot,
-    onRequest: handleRequest,
-    onExpandedChange: handleExpandedChange,
-  };
+  const isActive = state !== "stopped";
+  const label = isLoading
+    ? "正在加载朗读控制"
+    : isActive
+      ? "朗读控制（正在播放）"
+      : "朗读控制";
+  const title = isLoading ? "正在加载朗读控制…" : label;
 
   if (slot === "desktop-toolbar") {
     return (
-      <DeferredTTSControls
-        {...slotProps}
-        triggerClassName="reader-chrome-btn"
-        triggerStyle={{}}
-        loadingContent={
+      <UnstyledButton
+        type="button"
+        disabled={isLoading}
+        data-reader-interactive="true"
+        data-reader-tts-trigger="true"
+        data-reader-tts-active={isActive ? "true" : undefined}
+        title={title}
+        aria-label={label}
+        aria-busy={isLoading || undefined}
+        aria-expanded={expanded}
+        aria-haspopup="dialog"
+        onClick={onClick}
+        className="reader-chrome-btn"
+      >
+        {isLoading ? (
           <>
             <Loader2
               className="size-4 animate-spin motion-reduce:animate-none"
@@ -53,42 +57,77 @@ export function ReaderTTSControlTrigger({
             />
             <span className="sr-only">正在加载朗读控制</span>
           </>
-        }
-        triggerContent={
+        ) : (
           <>
             <Volume2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
             <span className="sr-only">朗读</span>
           </>
-        }
-      />
+        )}
+      </UnstyledButton>
     );
   }
 
   if (slot === "mobile-menu") {
     return (
-      <DeferredTTSControls
-        {...slotProps}
-        triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
-        triggerStyle={{}}
-        triggerContent={
+      <UnstyledButton
+        type="button"
+        disabled={isLoading}
+        data-reader-interactive="true"
+        data-reader-tts-trigger="true"
+        data-reader-tts-active={isActive ? "true" : undefined}
+        title={title}
+        aria-label={label}
+        aria-busy={isLoading || undefined}
+        aria-expanded={expanded}
+        aria-haspopup="dialog"
+        onClick={onClick}
+        className="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
+      >
+        {isLoading ? (
+          <>
+            <Loader2
+              className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            <span>加载中…</span>
+          </>
+        ) : (
           <>
             <Volume2 className="size-4 opacity-80" aria-hidden="true" />
             <span>朗读</span>
           </>
-        }
-      />
+        )}
+      </UnstyledButton>
     );
   }
 
   return (
-    <DeferredTTSControls
-      {...slotProps}
-      triggerClassName="reader-status-action [&_svg]:size-3.5"
-      triggerStyle={
-        slotProps.state !== "stopped"
-          ? { color: slotProps.uiScheme.link }
-          : {}
-      }
-    />
+    <ActionIcon
+      type="button"
+      variant="subtle"
+      size={44}
+      radius="md"
+      disabled={isLoading}
+      data-reader-interactive="true"
+      data-reader-tts-trigger="true"
+      data-reader-tts-active={isActive ? "true" : undefined}
+      title={title}
+      aria-label={label}
+      aria-busy={isLoading || undefined}
+      aria-expanded={expanded}
+      aria-haspopup="dialog"
+      onClick={onClick}
+      className="min-h-0 min-w-0 reader-status-action [&_svg]:size-3.5"
+      style={isActive ? { color: uiScheme.link } : {}}
+    >
+      {isLoading ? (
+        <Loader2
+          className="relative z-10 h-4 w-4 animate-spin motion-reduce:animate-none"
+          aria-hidden="true"
+        />
+      ) : (
+        <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
+      )}
+    </ActionIcon>
   );
 }

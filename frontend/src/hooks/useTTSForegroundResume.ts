@@ -26,7 +26,6 @@ export function useTTSForegroundResume({
     if (typeof document === 'undefined') return;
 
     const handleVisibilityChange = () => {
-      recordTTSDiagnostic('visibility-change', { state: stateRef.current });
       logTTS('visibility-change', {
         state: document.visibilityState,
         ttsState: stateRef.current,

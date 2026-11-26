@@ -4,18 +4,16 @@ import { useEffect } from 'react';
 import { useTTS } from '@/hooks/useTTS';
 import type { FoliateView } from '@/lib/types';
 
-export type ReaderTTSRuntimeState = ReturnType<typeof useTTS>;
+export type ReaderTTSRuntimeState = Omit<ReturnType<typeof useTTS>, 'currentMark'>;
 
 export interface ReaderTTSRuntimeProps {
   viewRef: React.RefObject<FoliateView | null>;
-  onHighlight: (range: Range) => void;
   bookId: string;
   onSync: (runtime: ReaderTTSRuntimeState | null) => void;
 }
 
 export function ReaderTTSRuntime({
   viewRef,
-  onHighlight,
   bookId,
   onSync,
 }: ReaderTTSRuntimeProps) {
@@ -34,8 +32,6 @@ export function ReaderTTSRuntime({
     voicesLoading,
     voicesError,
     reloadVoices,
-    currentMark,
-    markIndex,
     ttsStatus,
     sleepTimer,
     setSleepTimerForMinutes,
@@ -45,7 +41,6 @@ export function ReaderTTSRuntime({
     restoreCurrentHighlight,
   } = useTTS({
     viewRef,
-    onHighlight,
     bookId,
     voicesEnabled: true,
   });
@@ -66,8 +61,6 @@ export function ReaderTTSRuntime({
       voicesLoading,
       voicesError,
       reloadVoices,
-      currentMark,
-      markIndex,
       ttsStatus,
       sleepTimer,
       setSleepTimerForMinutes,
@@ -92,8 +85,6 @@ export function ReaderTTSRuntime({
     voicesLoading,
     voicesError,
     reloadVoices,
-    currentMark,
-    markIndex,
     ttsStatus,
     sleepTimer,
     setSleepTimerForMinutes,

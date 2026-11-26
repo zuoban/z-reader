@@ -1,5 +1,3 @@
-import type { ThemeColors } from '@/hooks/useReaderTheme';
-
 export type TTSStatusTone = 'idle' | 'active' | 'warning' | 'error';
 
 export interface TTSStatusInfo {
@@ -29,14 +27,6 @@ export const HIGHLIGHT_MODE_OPTIONS = [
 ] as const;
 
 export const SLEEP_TIMER_MINUTES = [15, 30, 60] as const;
-
-export function getTriggerSurface(uiScheme: ThemeColors, active: boolean) {
-  return {
-    background: uiScheme.cardBg,
-    border: `1px solid ${active ? uiScheme.link : uiScheme.cardBorder}`,
-    boxShadow: 'var(--paper-shadow-control)',
-  };
-}
 
 export function getStatusColor(tone: TTSStatusTone): string {
   switch (tone) {

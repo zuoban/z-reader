@@ -96,66 +96,50 @@ export function useReaderControls({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const boundDocsRef = useRef(new WeakSet<Document>());
-  const prevRef = useRef(onPrev);
-  const nextRef = useRef(onNext);
-  const backRef = useRef(onBack);
-  const stopTTSRef = useRef(onStopTTS);
-  const overlayOpenRef = useRef(overlayOpen);
-  const shortcutsOpenRef = useRef(shortcutsOpen);
-  const toggleShortcutsRef = useRef(onToggleShortcuts);
-  const closeShortcutsRef = useRef(onCloseShortcuts);
-  const openSearchRef = useRef(onOpenSearch);
-  const openTOCRef = useRef(onOpenTOC);
-  const openBookmarksRef = useRef(onOpenBookmarks);
-  const openThemeSettingsRef = useRef(onOpenThemeSettings);
+  const optionsRef = useRef({
+    onPrev,
+    onNext,
+    onBack,
+    onStopTTS,
+    overlayOpen,
+    shortcutsOpen,
+    onToggleShortcuts,
+    onCloseShortcuts,
+    onOpenSearch,
+    onOpenTOC,
+    onOpenBookmarks,
+    onOpenThemeSettings,
+  });
 
   useEffect(() => {
-    prevRef.current = onPrev;
-  }, [onPrev]);
-
-  useEffect(() => {
-    nextRef.current = onNext;
-  }, [onNext]);
-
-  useEffect(() => {
-    backRef.current = onBack;
-  }, [onBack]);
-
-  useEffect(() => {
-    stopTTSRef.current = onStopTTS;
-  }, [onStopTTS]);
-
-  useEffect(() => {
-    overlayOpenRef.current = overlayOpen;
-  }, [overlayOpen]);
-
-  useEffect(() => {
-    shortcutsOpenRef.current = shortcutsOpen;
-  }, [shortcutsOpen]);
-
-  useEffect(() => {
-    toggleShortcutsRef.current = onToggleShortcuts;
-  }, [onToggleShortcuts]);
-
-  useEffect(() => {
-    closeShortcutsRef.current = onCloseShortcuts;
-  }, [onCloseShortcuts]);
-
-  useEffect(() => {
-    openSearchRef.current = onOpenSearch;
-  }, [onOpenSearch]);
-
-  useEffect(() => {
-    openTOCRef.current = onOpenTOC;
-  }, [onOpenTOC]);
-
-  useEffect(() => {
-    openBookmarksRef.current = onOpenBookmarks;
-  }, [onOpenBookmarks]);
-
-  useEffect(() => {
-    openThemeSettingsRef.current = onOpenThemeSettings;
-  }, [onOpenThemeSettings]);
+    optionsRef.current = {
+      onPrev,
+      onNext,
+      onBack,
+      onStopTTS,
+      overlayOpen,
+      shortcutsOpen,
+      onToggleShortcuts,
+      onCloseShortcuts,
+      onOpenSearch,
+      onOpenTOC,
+      onOpenBookmarks,
+      onOpenThemeSettings,
+    };
+  }, [
+    onBack,
+    onCloseShortcuts,
+    onNext,
+    onOpenBookmarks,
+    onOpenSearch,
+    onOpenTOC,
+    onOpenThemeSettings,
+    onPrev,
+    onStopTTS,
+    onToggleShortcuts,
+    overlayOpen,
+    shortcutsOpen,
+  ]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -208,15 +192,29 @@ export function useReaderControls({
       return;
     }
 
+    const {
+      onPrev,
+      onNext,
+      onBack,
+      overlayOpen,
+      shortcutsOpen,
+      onToggleShortcuts,
+      onCloseShortcuts,
+      onOpenSearch,
+      onOpenTOC,
+      onOpenBookmarks,
+      onOpenThemeSettings,
+    } = optionsRef.current;
+
     const isSearchKey =
       (e.metaKey || e.ctrlKey) &&
       !e.altKey &&
       !e.shiftKey &&
       (e.key === 'f' || e.key === 'F');
 
-    if (isSearchKey && openSearchRef.current) {
+    if (isSearchKey && onOpenSearch) {
       e.preventDefault();
-      openSearchRef.current();
+      onOpenSearch();
       return;
     }
 
@@ -226,13 +224,13 @@ export function useReaderControls({
       !e.altKey &&
       (e.key === '?' || (e.key === '/' && e.shiftKey));
 
-    if (shortcutsOpenRef.current) {
+    if (shortcutsOpen) {
       if (isShortcutsToggleKey) {
         e.preventDefault();
-        toggleShortcutsRef.current?.();
+        onToggleShortcuts?.();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        closeShortcutsRef.current?.();
+        onCloseShortcuts?.();
       }
       return;
     }
@@ -240,13 +238,13 @@ export function useReaderControls({
     const parentDoc =
       pageRef.current?.ownerDocument ??
       (typeof document !== 'undefined' ? document : null);
-    if (overlayOpenRef.current || hasActiveOverlay(parentDoc)) {
+    if (overlayOpen || hasActiveOverlay(parentDoc)) {
       return;
     }
 
-    if (isShortcutsToggleKey && toggleShortcutsRef.current) {
+    if (isShortcutsToggleKey && onToggleShortcuts) {
       e.preventDefault();
-      toggleShortcutsRef.current();
+      onToggleShortcuts();
       return;
     }
 
@@ -262,7 +260,7 @@ export function useReaderControls({
       case 'PageUp':
       case 'k':
       case 'K':
-        if (!isPagingControl) prevRef.current();
+        if (!isPagingControl) onPrev();
         break;
       case 'ArrowRight':
       case 'PageDown':
@@ -271,9 +269,9 @@ export function useReaderControls({
       case ' ':
         if (isPagingControl) break;
         if (e.key === ' ' && e.shiftKey) {
-          prevRef.current();
+          onPrev();
         } else {
-          nextRef.current();
+          onNext();
         }
         break;
       case 'Escape':
@@ -281,7 +279,7 @@ export function useReaderControls({
           void document.exitFullscreen()?.catch(() => {});
           break;
         }
-        backRef.current();
+        onBack();
         break;
       case 'f':
       case 'F':
@@ -289,23 +287,23 @@ export function useReaderControls({
         break;
       case 't':
       case 'T':
-        if (!e.shiftKey && !isPagingControl && openTOCRef.current) {
+        if (!e.shiftKey && !isPagingControl && onOpenTOC) {
           e.preventDefault();
-          openTOCRef.current();
+          onOpenTOC();
         }
         break;
       case 'b':
       case 'B':
-        if (!e.shiftKey && !isPagingControl && openBookmarksRef.current) {
+        if (!e.shiftKey && !isPagingControl && onOpenBookmarks) {
           e.preventDefault();
-          openBookmarksRef.current();
+          onOpenBookmarks();
         }
         break;
       case 's':
       case 'S':
-        if (!e.shiftKey && !isPagingControl && openThemeSettingsRef.current) {
+        if (!e.shiftKey && !isPagingControl && onOpenThemeSettings) {
           e.preventDefault();
-          openThemeSettingsRef.current();
+          onOpenThemeSettings();
         }
         break;
     }
@@ -360,9 +358,9 @@ export function useReaderControls({
     // Check if horizontal and exceeds threshold
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
       if (deltaX > 0) {
-        prevRef.current(); // Swipe right -> Prev Page
+        optionsRef.current.onPrev(); // Swipe right -> Prev Page
       } else {
-        nextRef.current(); // Swipe left -> Next Page
+        optionsRef.current.onNext(); // Swipe left -> Next Page
       }
     }
   }, []);
@@ -400,7 +398,7 @@ export function useReaderControls({
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchCancel);
       clearSwipe(window);
-      stopTTSRef.current?.();
+      optionsRef.current.onStopTTS?.();
     };
   }, [keyboardHandler, handleTouchStart, handleTouchEnd, handleTouchCancel, clearSwipe]);
 

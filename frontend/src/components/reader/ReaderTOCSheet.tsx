@@ -5,20 +5,16 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent,
   type RefObject,
 } from "react";
-import { ActionIcon, Button, Drawer } from "@mantine/core";
-import "@/app/styles/mantine-drawer.css";
+import { ActionIcon } from "@mantine/core";
 import { List, LocateFixed, Search, Undo2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
-import {
-  getModernReaderSurface,
-  getReaderPanelThemeVars,
-} from "@/lib/reader-ui";
+import { getModernReaderSurface } from "@/lib/reader-ui";
+import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 import { MemoizedReaderTOCNode } from "@/components/reader/ReaderTOCNode";
 
 const TOC_FILTER_THRESHOLD = 10;
@@ -62,15 +58,12 @@ interface ReaderTOCSheetProps {
   currentChapterHref: string;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
-  triggerClassName: string;
-  triggerStyle: CSSProperties;
   onLocateCurrent: () => void;
   onGoTo: (href: string) => void;
   percentage?: number;
   onGoToFraction?: (fraction: number) => void;
   jumpBackPercentage?: number | null;
   onReturnToPreviousLocation?: () => void;
-  trigger?: React.ReactNode;
 }
 
 export function ReaderTOCSheet({
@@ -84,18 +77,14 @@ export function ReaderTOCSheet({
   currentChapterHref,
   uiScheme,
   overlayContainer,
-  triggerClassName,
-  triggerStyle,
   onLocateCurrent,
   onGoTo,
   percentage = 0,
   onGoToFraction,
   jumpBackPercentage = null,
   onReturnToPreviousLocation,
-  trigger,
 }: ReaderTOCSheetProps) {
   const surface = getModernReaderSurface(uiScheme);
-  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
   const [searchQuery, setSearchQuery] = useState("");
   const [draftPercentage, setDraftPercentage] = useState<number | null>(null);
   const [prevOpen, setPrevOpen] = useState(open);
@@ -128,19 +117,6 @@ export function ReaderTOCSheet({
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleComposingEscape(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape" && event.isComposing) {
-        event.stopPropagation();
-      }
-    }
-
-    window.addEventListener("keydown", handleComposingEscape, true);
-    return () => window.removeEventListener("keydown", handleComposingEscape, true);
-  }, [open]);
 
   const totalCount = useMemo(() => countTOCItems(toc), [toc]);
   const showFilter = totalCount > TOC_FILTER_THRESHOLD;
@@ -273,333 +249,237 @@ export function ReaderTOCSheet({
   }
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="subtle"
-        title="目录"
-        aria-label={trigger ? undefined : "目录"}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        className={triggerClassName}
-        style={triggerStyle}
-        onClick={() => onOpenChange(!open)}
-      >
-        {trigger || <List className="h-4 w-4" aria-hidden="true" />}
-      </Button>
-
-      <Drawer.Root
-        opened={open}
-        onClose={handleClose}
-        position="bottom"
-        size="auto"
-        padding={0}
-        zIndex={90}
-        returnFocus={false}
-        closeOnEscape={!searchQuery}
-        portalProps={{ target: overlayContainer ?? undefined }}
-        classNames={{
-          inner:
-            "items-end justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
-          content:
-            "reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:w-[560px] sm:max-w-[calc(100vw-2rem)]",
-        }}
-        styles={{
-          content: {
-            ...panelThemeVars,
-            flex: "0 1 auto",
-            height: "auto",
-            background: uiScheme.cardBg,
-            borderColor: surface.border,
-            color: surface.fg,
-            boxShadow: "var(--paper-shadow-floating)",
-          },
-        }}
-      >
-        <Drawer.Overlay backgroundOpacity={0.42} blur={3} />
-        <Drawer.Content data-reader-interactive="true">
-          <div
-            className="flex min-h-0 flex-1 flex-col"
-            onKeyDown={(event) => {
-              if (event.key === "Escape" && !event.nativeEvent.isComposing && searchQuery) {
-                event.preventDefault();
-                event.stopPropagation();
-                handleClearSearch();
-              }
-            }}
+    <ReaderSheet
+      open={open}
+      onClose={handleClose}
+      closeOnEscape={!searchQuery}
+      guardComposingEscape
+      widthClassName="sm:w-[560px]"
+      uiScheme={uiScheme}
+      overlayContainer={overlayContainer}
+      closeLabel="关闭目录"
+      title="目录"
+      titleAddon={
+        totalCount > 0 ? (
+          <span
+            className="text-xs font-medium tabular-nums"
+            style={{ color: surface.muted }}
+            aria-live="polite"
           >
-          <div className="reader-panel-header shrink-0 bg-transparent px-4 py-3.5 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <Drawer.Title
-                    className="font-heading text-lg font-medium leading-tight"
-                    style={{ color: surface.fg }}
-                  >
-                    目录
-                  </Drawer.Title>
-                  {totalCount > 0 ? (
-                    <span
-                      className="text-xs font-medium tabular-nums"
-                      style={{ color: surface.muted }}
-                      aria-live="polite"
-                    >
-                      {normalizedQuery
-                        ? `${visibleCount} / ${totalCount}`
-                        : totalCount}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-1 space-y-0.5">
-                  <p
-                    className="truncate text-xs leading-5"
-                    style={{ color: surface.muted }}
-                    title={bookTitle || "当前书籍"}
-                  >
-                    {bookTitle || "当前书籍"}
-                  </p>
-                  {bookAuthor ? (
-                    <p
-                      className="truncate text-[11px]"
-                      style={{ color: surface.muted }}
-                      title={bookAuthor}
-                    >
-                      {bookAuthor}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
+            {normalizedQuery ? `${visibleCount} / ${totalCount}` : totalCount}
+          </span>
+        ) : null
+      }
+      subtitle={
+        <div className="mt-1 space-y-0.5">
+          <p
+            className="truncate text-xs leading-5"
+            style={{ color: surface.muted }}
+            title={bookTitle || "当前书籍"}
+          >
+            {bookTitle || "当前书籍"}
+          </p>
+          {bookAuthor ? (
+            <p
+              className="truncate text-[11px]"
+              style={{ color: surface.muted }}
+              title={bookAuthor}
+            >
+              {bookAuthor}
+            </p>
+          ) : null}
+        </div>
+      }
+      headerActions={
+        <ActionIcon
+          variant="subtle"
+          size={44}
+          radius="md"
+          onClick={handleLocateCurrent}
+          disabled={!hasCurrentChapter}
+          title={locateLabel}
+          aria-label={locateLabel}
+          className="reader-panel-icon"
+        >
+          <LocateFixed className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
+        </ActionIcon>
+      }
+      headerExtra={
+        showFilter ? (
+          <div className="reader-panel-search mt-3">
+            <Search
+              className="h-3.5 w-3.5 shrink-0"
+              style={{ color: surface.muted }}
+              aria-hidden="true"
+            />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowDown" && !event.nativeEvent.isComposing) {
+                  const firstItem =
+                    tocListRef.current?.querySelector<HTMLButtonElement>(
+                      "button:not(:disabled)",
+                    );
+                  if (firstItem) {
+                    event.preventDefault();
+                    firstItem.focus();
+                  }
+                }
+              }}
+              placeholder="搜索章节"
+              aria-label="筛选目录章节"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                aria-label="清空章节搜索"
+                title="清空"
+                className="reader-panel-icon !size-7"
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+        ) : null
+      }
+      onContentKeyDown={(event) => {
+        if (event.key === "Escape" && !event.nativeEvent.isComposing && searchQuery) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleClearSearch();
+        }
+      }}
+    >
+      <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">
+        <div
+          ref={tocListRef}
+          onKeyDown={handleTOCListKeyDown}
+          className="space-y-0.5 pb-2"
+        >
+          {visibleTOC.length > 0 ? (
+            visibleTOC.map((item, idx) => (
+              <MemoizedReaderTOCNode
+                key={`${item.href}-${item.label}-${idx}`}
+                item={item}
+                onGoTo={(href) => {
+                  onGoTo(href);
+                  handleClose();
+                }}
+                currentChapter={currentChapter}
+                currentChapterHref={currentChapterHref}
+                searchQuery={normalizedQuery}
+                uiScheme={uiScheme}
+              />
+            ))
+          ) : normalizedQuery ? (
+            <ReaderEmptyState
+              icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+              iconTone="muted"
+              title="未找到匹配章节"
+              description="试试其他关键词，或清空筛选查看全部目录"
+              uiScheme={uiScheme}
+              action={
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="reader-panel-action mt-4 px-3.5 text-xs"
+                >
+                  清空筛选
+                </button>
+              }
+            />
+          ) : (
+            <ReaderEmptyState
+              icon={<List className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+              paddingClassName="py-16"
+              title="未检测到目录结构"
+              description="该书籍可能没有定义标准目录，仍可通过翻页阅读"
+              uiScheme={uiScheme}
+            />
+          )}
+        </div>
+      </div>
 
-              <div className="flex shrink-0 items-center gap-1">
-                <ActionIcon
-                  variant="subtle"
-                  size={44}
-                  radius="md"
-                  onClick={handleLocateCurrent}
-                  disabled={!hasCurrentChapter}
-                  title={locateLabel}
-                  aria-label={locateLabel}
-                  className="reader-panel-icon"
-                >
-                  <LocateFixed className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
-                </ActionIcon>
-                <ActionIcon
-                  variant="subtle"
-                  size={44}
-                  radius="md"
-                  onClick={handleClose}
-                  title="关闭目录"
-                  aria-label="关闭目录"
-                  className="reader-panel-icon"
-                >
-                  <X className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
-                </ActionIcon>
-              </div>
+      {onGoToFraction ? (
+        <div
+          className="shrink-0 border-t px-4 py-3 sm:px-6"
+          style={{
+            borderColor: surface.hairline,
+            background: uiScheme.cardBg,
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <span
+                className="text-xs font-medium"
+                style={{ color: surface.muted }}
+              >
+                阅读进度
+              </span>
+              <span
+                className="font-mono text-xs font-medium tabular-nums"
+                style={{ color: surface.fg }}
+              >
+                {displayPercentage.toFixed(1)}%
+              </span>
             </div>
 
-            {showFilter ? (
-              <div className="reader-panel-search mt-3">
-                <Search
+            {onReturnToPreviousLocation ? (
+              <button
+                type="button"
+                onClick={handleReturnToPrevious}
+                title={
+                  hasJumpBackPercentage
+                    ? `返回跳转前位置 (${jumpBackPercentage.toFixed(1)}%)`
+                    : "返回跳转前位置"
+                }
+                aria-label={
+                  hasJumpBackPercentage
+                    ? `返回原位（跳转前 ${jumpBackPercentage.toFixed(1)}%）`
+                    : "返回原位"
+                }
+                className="reader-panel-action !h-7 !px-2.5 !text-xs"
+              >
+                <Undo2
                   className="h-3.5 w-3.5 shrink-0"
-                  style={{ color: surface.muted }}
+                  strokeWidth={1.7}
                   aria-hidden="true"
                 />
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "ArrowDown" && !event.nativeEvent.isComposing) {
-                      const firstItem =
-                        tocListRef.current?.querySelector<HTMLButtonElement>(
-                          "button:not(:disabled)",
-                        );
-                      if (firstItem) {
-                        event.preventDefault();
-                        firstItem.focus();
-                      }
-                    }
-                  }}
-                  placeholder="搜索章节"
-                  aria-label="筛选目录章节"
-                />
-                {searchQuery ? (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    aria-label="清空章节搜索"
-                    title="清空"
-                    className="reader-panel-icon !size-7"
-                  >
-                    <X className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
-                  </button>
-                ) : null}
-              </div>
+                <span>返回原位</span>
+              </button>
             ) : null}
           </div>
 
-          <div className="reader-panel-body custom-scrollbar px-3 py-2 sm:px-5">
-            <div
-              ref={tocListRef}
-              onKeyDown={handleTOCListKeyDown}
-              className="space-y-0.5 pb-2"
-            >
-              {visibleTOC.length > 0 ? (
-                visibleTOC.map((item, idx) => (
-                  <MemoizedReaderTOCNode
-                    key={`${item.href}-${item.label}-${idx}`}
-                    item={item}
-                    onGoTo={(href) => {
-                      onGoTo(href);
-                      handleClose();
-                    }}
-                    currentChapter={currentChapter}
-                    currentChapterHref={currentChapterHref}
-                    searchQuery={normalizedQuery}
-                    uiScheme={uiScheme}
-                  />
-                ))
-              ) : normalizedQuery ? (
-                <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                  <div
-                    className="mb-3 flex size-10 items-center justify-center rounded-xl border"
-                    style={{
-                      borderColor: surface.hairline,
-                      background: "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
-                      color: surface.muted,
-                    }}
-                  >
-                    <Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />
-                  </div>
-                  <p
-                    className="text-sm font-medium tracking-tight"
-                    style={{ color: surface.fg }}
-                  >
-                    未找到匹配章节
-                  </p>
-                  <p
-                    className="mt-1 text-xs leading-5"
-                    style={{ color: surface.muted }}
-                  >
-                    试试其他关键词，或清空筛选查看全部目录
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="reader-panel-action mt-4 px-3.5 text-xs"
-                  >
-                    清空筛选
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                  <div
-                    className="mb-3 flex size-10 items-center justify-center rounded-xl border"
-                    style={{
-                      borderColor: surface.hairline,
-                      background: "color-mix(in srgb, var(--reader-panel-hover) 62%, transparent)",
-                      color: surface.fg,
-                    }}
-                  >
-                    <List className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />
-                  </div>
-                  <p
-                    className="text-sm font-medium tracking-tight"
-                    style={{ color: surface.fg }}
-                  >
-                    未检测到目录结构
-                  </p>
-                  <p
-                    className="mt-1.5 max-w-[16rem] text-xs leading-5"
-                    style={{ color: surface.muted }}
-                  >
-                    该书籍可能没有定义标准目录，仍可通过翻页阅读
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {onGoToFraction ? (
-            <div
-              className="shrink-0 border-t px-4 py-3 sm:px-6"
+          <div className="mt-1.5 flex min-h-8 items-center">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={0.5}
+              value={displayPercentage}
+              aria-label="跳转阅读进度"
+              aria-valuetext={`${displayPercentage.toFixed(1)}%`}
+              onPointerDown={handleScrubPointerDown}
+              onChange={(event) =>
+                handleScrubChange(Number(event.currentTarget.value))
+              }
+              onPointerUp={commitScrub}
+              onPointerCancel={commitScrub}
+              onTouchEnd={commitScrub}
+              onBlur={commitScrub}
+              className="h-1.5 w-full cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4"
               style={{
-                borderColor: surface.hairline,
-                background: uiScheme.cardBg,
+                accentColor: uiScheme.link,
+                outlineColor: uiScheme.link,
               }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-baseline gap-2">
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: surface.muted }}
-                  >
-                    阅读进度
-                  </span>
-                  <span
-                    className="font-mono text-xs font-medium tabular-nums"
-                    style={{ color: surface.fg }}
-                  >
-                    {displayPercentage.toFixed(1)}%
-                  </span>
-                </div>
-
-                {onReturnToPreviousLocation ? (
-                  <button
-                    type="button"
-                    onClick={handleReturnToPrevious}
-                    title={
-                      hasJumpBackPercentage
-                        ? `返回跳转前位置 (${jumpBackPercentage.toFixed(1)}%)`
-                        : "返回跳转前位置"
-                    }
-                    aria-label={
-                      hasJumpBackPercentage
-                        ? `返回原位（跳转前 ${jumpBackPercentage.toFixed(1)}%）`
-                        : "返回原位"
-                    }
-                    className="reader-panel-action !h-7 !px-2.5 !text-xs"
-                  >
-                    <Undo2
-                      className="h-3.5 w-3.5 shrink-0"
-                      strokeWidth={1.7}
-                      aria-hidden="true"
-                    />
-                    <span>返回原位</span>
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="mt-1.5 flex min-h-8 items-center">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  value={displayPercentage}
-                  aria-label="跳转阅读进度"
-                  aria-valuetext={`${displayPercentage.toFixed(1)}%`}
-                  onPointerDown={handleScrubPointerDown}
-                  onChange={(event) =>
-                    handleScrubChange(Number(event.currentTarget.value))
-                  }
-                  onPointerUp={commitScrub}
-                  onPointerCancel={commitScrub}
-                  onTouchEnd={commitScrub}
-                  onBlur={commitScrub}
-                  className="h-1.5 w-full cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4"
-                  style={{
-                    accentColor: uiScheme.link,
-                    outlineColor: uiScheme.link,
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
+            />
           </div>
-        </Drawer.Content>
-      </Drawer.Root>
-    </>
+        </div>
+      ) : null}
+    </ReaderSheet>
   );
 }

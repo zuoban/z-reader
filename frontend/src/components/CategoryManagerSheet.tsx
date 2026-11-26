@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActionIcon, Button, Modal, TextInput } from '@mantine/core';
-import '@/app/styles/mantine-modal.css';
+import { ActionIcon, Button, TextInput } from '@mantine/core';
 import { Check, Loader2, Pencil, Tag, Tags, Trash2, X } from 'lucide-react';
+import { AppModal } from '@/components/AppModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 
@@ -150,58 +150,22 @@ export function CategoryManagerSheet({
 
   return (
     <>
-      <Modal.Root
-        opened={open}
+      <AppModal
+        open={open}
         onClose={() => handleOpenChange(false)}
-        centered
-        size={440}
-        radius="lg"
-        padding={0}
-        zIndex={80}
+        title="管理分类"
+        subtitle={
+          normalizedCategories.length > 0
+            ? `共 ${normalizedCategories.length} 个分类 · ${totalCategorizedBooks} 本已归类`
+            : '重命名或移除已有图书分类'
+        }
+        subtitleClassName="tabular-nums"
+        icon={<Tags className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />}
         returnFocus={false}
-        closeOnClickOutside={!isBusy}
+        closeDisabled={isBusy}
         closeOnEscape={!isBusy && !editingCategory && !deleteConfirmCategory}
-        classNames={{
-          inner:
-            'pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
-          content:
-            'app-dialog-shell flex max-h-[min(82svh,34rem)] flex-col overflow-hidden overscroll-contain rounded-2xl border p-0',
-        }}
       >
-        <Modal.Overlay backgroundOpacity={0.42} blur={3} />
-        <Modal.Content>
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
-                <Tags className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <Modal.Title className="font-heading text-[17px] font-medium leading-tight text-foreground">
-                  管理分类
-                </Modal.Title>
-                <p className="mt-0.5 truncate text-xs leading-5 tabular-nums text-muted-foreground">
-                  {normalizedCategories.length > 0
-                    ? `共 ${normalizedCategories.length} 个分类 · ${totalCategorizedBooks} 本已归类`
-                    : '重命名或移除已有图书分类'}
-                </p>
-              </div>
-            </div>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size={36}
-              radius="md"
-              disabled={isBusy}
-              onClick={() => handleOpenChange(false)}
-              className="dialog-close-btn -mr-1 h-9 w-9 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="关闭"
-              title="关闭 (Esc)"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </ActionIcon>
-          </div>
-
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             {normalizedCategories.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
@@ -405,8 +369,7 @@ export function CategoryManagerSheet({
               </Button>
             </div>
           )}
-        </Modal.Content>
-      </Modal.Root>
+      </AppModal>
 
       <ConfirmDialog
         open={!!deleteConfirmCategory}

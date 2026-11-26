@@ -154,12 +154,35 @@ export function TTSControls({
     }
   };
 
+  const headerStatusLabel = isPlaying
+    ? '播放中'
+    : state === 'paused'
+      ? '已暂停'
+      : sleepTimerActive
+        ? '定时中'
+        : null;
+
   return (
     <ReaderSheet
       open={expanded}
       onClose={closePanel}
       closeOnEscape={!isVoiceDropdownOpen}
       title="朗读控制"
+      titleAddon={
+        headerStatusLabel ? (
+          <span
+            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+            style={{
+              background: isPlaying
+                ? 'color-mix(in srgb, var(--reader-panel-accent) 14%, transparent)'
+                : 'color-mix(in srgb, var(--reader-panel-hover) 85%, transparent)',
+              color: isPlaying ? 'var(--reader-panel-accent)' : 'var(--reader-panel-muted)',
+            }}
+          >
+            {headerStatusLabel}
+          </span>
+        ) : undefined
+      }
       srDescription="播放、调整倍速与设置睡眠定时"
       closeLabel="关闭朗读控制"
       uiScheme={uiScheme}

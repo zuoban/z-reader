@@ -48,6 +48,8 @@ interface ReaderToolbarProps {
   bookmarksOpen: boolean;
   onBookmarksOpenChange: (open: boolean) => void;
   showBookmarks?: boolean;
+  bookmarkCount?: number;
+  isCurrentBookmarked?: boolean;
   canCreateBookmark: boolean;
   isSavingBookmark: boolean;
   onCreateBookmark: () => void;
@@ -83,6 +85,8 @@ export function ReaderToolbar({
   bookmarksOpen,
   onBookmarksOpenChange,
   showBookmarks = true,
+  bookmarkCount = 0,
+  isCurrentBookmarked = false,
   canCreateBookmark,
   isSavingBookmark,
   onCreateBookmark,
@@ -229,6 +233,7 @@ export function ReaderToolbar({
     pressed,
     disabled,
     busy,
+    dataBookmarked,
     className,
     labelClassName = "flex items-center justify-center",
     onClick,
@@ -242,6 +247,7 @@ export function ReaderToolbar({
     pressed?: boolean;
     disabled?: boolean;
     busy?: boolean;
+    dataBookmarked?: boolean;
     className?: string;
     labelClassName?: string;
     onClick: () => void;
@@ -259,6 +265,7 @@ export function ReaderToolbar({
         aria-pressed={pressed}
         disabled={disabled}
         aria-busy={busy || undefined}
+        data-bookmarked={dataBookmarked ? "true" : undefined}
         className={cn(chromeBtnClass, className)}
         classNames={{ label: labelClassName }}
         onClick={onClick}
@@ -456,19 +463,43 @@ export function ReaderToolbar({
                   srLabel: "书签",
                   expanded: bookmarksOpen,
                   hasPopup: "dialog",
+                  className: "relative",
                   onClick: () => onBookmarksOpenChange(!bookmarksOpen),
-                  children: <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />,
+                  children: (
+                    <>
+                      <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                      {bookmarkCount > 0 && (
+                        <span
+                          aria-hidden="true"
+                          data-bookmark-count={bookmarkCount}
+                          className="pointer-events-none absolute -right-0.5 top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 font-mono text-[9px] font-semibold leading-none tabular-nums"
+                          style={{
+                            background: "var(--reader-chrome-accent)",
+                            color: "var(--reader-chrome-bg)",
+                          }}
+                        >
+                          {bookmarkCount > 99 ? "99+" : bookmarkCount}
+                        </span>
+                      )}
+                    </>
+                  ),
                 })}
                 {renderDesktopButton({
                   title: canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪",
                   srLabel: isSavingBookmark ? "添加中..." : "添加",
                   disabled: !canCreateBookmark || isSavingBookmark,
                   busy: isSavingBookmark,
+                  dataBookmarked: isCurrentBookmarked,
                   onClick: onCreateBookmark,
                   children: isSavingBookmark ? (
                     <Loader2 className="size-4 animate-spin motion-reduce:animate-none" strokeWidth={1.5} aria-hidden="true" />
                   ) : (
-                    <BookmarkPlus className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                    <BookmarkPlus
+                      className="size-4"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                      style={isCurrentBookmarked ? { color: "var(--reader-chrome-accent)" } : undefined}
+                    />
                   ),
                 })}
               </>

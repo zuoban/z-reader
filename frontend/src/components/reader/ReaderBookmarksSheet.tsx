@@ -504,6 +504,20 @@ export function ReaderBookmarksSheet({
                       />
                       <span>{formatDate(bookmark.created_at)}</span>
                     </div>
+                    <div
+                      aria-hidden="true"
+                      className="mt-2 h-[2px] w-full overflow-hidden rounded-full"
+                      style={{ background: surface.hairline }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(0, Math.min(bookmark.percentage, 100))}%`,
+                          background: uiScheme.link,
+                          opacity: 0.65,
+                        }}
+                      />
+                    </div>
                   </button>
                   <div className="flex shrink-0 items-center gap-0.5">
                     {onUpdateNote ? (

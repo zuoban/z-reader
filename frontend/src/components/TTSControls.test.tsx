@@ -243,4 +243,16 @@ describe('TTSControls', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('displays live playback state badge in the sheet header', () => {
+    const { rerender, props } = renderControls({
+      expanded: true,
+      state: 'playing',
+    });
+
+    expect(screen.getByText('播放中')).toBeInTheDocument();
+
+    rerender(<TTSControls {...props} expanded state="paused" />);
+    expect(screen.getByText('已暂停')).toBeInTheDocument();
+  });
 });

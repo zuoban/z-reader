@@ -384,4 +384,32 @@ describe('ReaderToolbar', () => {
 
     expect(container.querySelectorAll('.reader-tts-live-dot')).toHaveLength(0);
   });
+
+  it('displays bookmark count badge and current-bookmarked state on desktop bookmark buttons', () => {
+    const { container, rerender } = render(
+      <ReaderToolbar
+        {...baseToolbarProps}
+        bookmarkCount={5}
+        isCurrentBookmarked
+      />,
+    );
+
+    const desktop = within(
+      container.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
+    );
+    expect(desktop.getByTitle('书签')).toBeInTheDocument();
+    expect(container.querySelector('[data-bookmark-count="5"]')).toHaveTextContent('5');
+    expect(desktop.getByTitle('添加当前位置为书签')).toHaveAttribute('data-bookmarked', 'true');
+
+    rerender(
+      <ReaderToolbar
+        {...baseToolbarProps}
+        bookmarkCount={120}
+        isCurrentBookmarked={false}
+      />,
+    );
+
+    expect(container.querySelector('[data-bookmark-count="120"]')).toHaveTextContent('99+');
+    expect(desktop.getByTitle('添加当前位置为书签')).not.toHaveAttribute('data-bookmarked');
+  });
 });

@@ -383,6 +383,9 @@ function Reader({ bookId }: { bookId: string }) {
   }
 
   const ttsLoading = tts.ttsOpen && !tts.runtimeReady;
+  const isCurrentBookmarked = Boolean(
+    reader.currentCFI && bookmarks.some((item) => item.cfi === reader.currentCFI),
+  );
 
   return (
     <div
@@ -411,6 +414,8 @@ function Reader({ bookId }: { bookId: string }) {
           bookmarksOpen={sheets.bookmarksOpen}
           onBookmarksOpenChange={sheets.setBookmarksOpen}
           showBookmarks={isAuthenticated}
+          bookmarkCount={bookmarks.length}
+          isCurrentBookmarked={isCurrentBookmarked}
           canCreateBookmark={isAuthenticated && Boolean(reader.currentCFI)}
           isSavingBookmark={isSavingBookmark}
           onCreateBookmark={handleCreateBookmark}

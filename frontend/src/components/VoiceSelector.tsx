@@ -504,10 +504,14 @@ export function VoiceSelector({
         <div
           role="status"
           aria-live="polite"
-          className="reader-tts-status px-3 py-2 text-xs leading-5"
+          className="reader-tts-status flex items-center gap-2 px-3 py-2 text-xs leading-5"
           style={{ color: 'var(--reader-panel-muted)' }}
         >
-          正在加载声音列表…
+          <Loader2
+            aria-hidden="true"
+            className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+          />
+          <span>正在加载声音列表…</span>
         </div>
       )}
 

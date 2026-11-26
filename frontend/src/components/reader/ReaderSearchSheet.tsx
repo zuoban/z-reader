@@ -9,7 +9,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { ChevronDown, ChevronUp, Eraser, Loader2, Search, Square, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Eraser, Loader2, RotateCw, Search, Square, X } from "lucide-react";
 
 import {
   MAX_BOOK_SEARCH_RESULTS,
@@ -39,6 +39,41 @@ export interface ReaderSearchSheetProps {
 interface SearchResultGroup {
   sectionLabel: string;
   items: Array<{ item: BookSearchResultItem; index: number }>;
+}
+
+const RECENT_SEARCHES_KEY = "z-reader-book-recent-searches";
+const MAX_RECENT_SEARCHES = 5;
+
+function readRecentSearches(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.sessionStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set<string>();
+    const items: string[] = [];
+    for (const entry of parsed) {
+      if (typeof entry !== "string") continue;
+      const normalized = entry.trim();
+      if (!normalized || seen.has(normalized)) continue;
+      seen.add(normalized);
+      items.push(normalized);
+      if (items.length >= MAX_RECENT_SEARCHES) break;
+    }
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentSearches(items: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(items));
+  } catch {
+    // Ignore storage failures in restricted contexts.
+  }
 }
 
 function groupResultsBySection(
@@ -81,6 +116,7 @@ export function ReaderSearchSheet({
   const [unsupported, setUnsupported] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [activeCfi, setActiveCfi] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>(readRecentSearches);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -147,6 +183,11 @@ export function ReaderSearchSheet({
     inputRef.current?.focus();
   }, [abortActiveSearch, resetSearchState]);
 
+  const handleClearRecentSearches = useCallback(() => {
+    setRecentSearches([]);
+    writeRecentSearches([]);
+  }, []);
+
   const runSearch = useCallback(
     async (rawQuery: string) => {
       const trimmed = rawQuery.trim();
@@ -156,6 +197,15 @@ export function ReaderSearchSheet({
         resetSearchState();
         return;
       }
+
+      setRecentSearches((prev) => {
+        const next = [trimmed, ...prev.filter((item) => item !== trimmed)].slice(
+          0,
+          MAX_RECENT_SEARCHES,
+        );
+        writeRecentSearches(next);
+        return next;
+      });
 
       const runId = runIdRef.current + 1;
       runIdRef.current = runId;
@@ -584,14 +634,23 @@ export function ReaderSearchSheet({
             uiScheme={uiScheme}
           />
         ) : searchError ? (
-          <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-            <p
-              className="text-sm font-medium tracking-tight"
-              style={{ color: surface.fg }}
-            >
-              {searchError}
-            </p>
-          </div>
+          <ReaderEmptyState
+            icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+            iconTone="muted"
+            title={searchError}
+            description="请检查书籍状态或稍后再试"
+            uiScheme={uiScheme}
+            action={
+              <button
+                type="button"
+                onClick={() => void runSearch(query)}
+                className="reader-panel-action mt-4 px-3.5 text-xs"
+              >
+                <RotateCw className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                <span>重试搜索</span>
+              </button>
+            }
+          />
         ) : hasSearched ? (
           <ReaderEmptyState
             icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
@@ -607,6 +666,49 @@ export function ReaderSearchSheet({
             title="输入关键词在全书范围内搜索"
             description="按回车开始搜索，点击结果即可跳转并高亮正文"
             uiScheme={uiScheme}
+            action={
+              recentSearches.length > 0 ? (
+                <div className="mt-5 w-full max-w-sm space-y-2 text-left">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="inline-flex items-center gap-1 text-xs font-medium"
+                      style={{ color: surface.muted }}
+                    >
+                      <Clock className="h-3 w-3 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                      <span>最近搜索</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleClearRecentSearches}
+                      aria-label="清空最近搜索"
+                      className="cursor-pointer rounded px-1.5 py-0.5 text-[11px] font-medium transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2"
+                      style={{ color: surface.muted, outlineColor: uiScheme.link }}
+                    >
+                      清空记录
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentSearches.map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => {
+                          setQuery(term);
+                          void runSearch(term);
+                        }}
+                        className="reader-settings-option inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-xs"
+                        style={{
+                          borderColor: surface.hairline,
+                          color: surface.fg,
+                        }}
+                      >
+                        <span className="truncate">{term}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : undefined
+            }
           />
         )}
       </div>

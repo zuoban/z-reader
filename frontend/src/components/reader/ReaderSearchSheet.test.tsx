@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ReaderSearchSheet } from "@/components/reader/ReaderSearchSheet";
 import type {
@@ -26,6 +26,10 @@ function makeResult(
 }
 
 describe("ReaderSearchSheet", () => {
+  beforeEach(() => {
+    window.sessionStorage.removeItem("z-reader-book-recent-searches");
+  });
+
   it("shows initial prompt, streams results with highlights, and jumps on click", async () => {
     const searchDeferred = deferred<BookSearchOutcome>();
     let capturedCallbacks: BookSearchCallbacks | undefined;
@@ -294,5 +298,61 @@ describe("ReaderSearchSheet", () => {
     expect(onSelectResult).toHaveBeenNthCalledWith(3, firstResult.cfi);
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("records recent searches, reruns on chip click, clears history, and retries after errors", async () => {
+    const onSearch = vi
+      .fn()
+      .mockResolvedValueOnce({ total: 1, supported: true, truncated: false })
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce({ total: 1, supported: true, truncated: false });
+
+    render(
+      <ReaderSearchSheet
+        open
+        onOpenChange={vi.fn()}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.light}
+        onSearch={onSearch}
+        onClearSearch={vi.fn()}
+        onSelectResult={vi.fn()}
+      />,
+    );
+
+    const searchInput = screen.getByRole("searchbox", { name: "书内全文搜索" });
+    fireEvent.change(searchInput, { target: { value: "月光" } });
+    fireEvent.submit(searchInput.closest("form")!);
+
+    await waitFor(() => {
+      expect(screen.getByText("未找到匹配内容")).toBeInTheDocument();
+    });
+
+    // Clear input -> initial prompt with recent search chip
+    fireEvent.change(searchInput, { target: { value: "" } });
+    fireEvent.submit(searchInput.closest("form")!);
+
+    await waitFor(() => {
+      expect(screen.getByText("最近搜索")).toBeInTheDocument();
+    });
+
+    const recentBtn = screen.getByRole("button", { name: "月光" });
+    fireEvent.click(recentBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("搜索失败，请稍后重试")).toBeInTheDocument();
+    });
+    expect(onSearch).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "重试搜索" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "重试搜索" }));
+    await waitFor(() => {
+      expect(screen.getByText("未找到匹配内容")).toBeInTheDocument();
+    });
+    expect(onSearch).toHaveBeenCalledTimes(3);
+
+    fireEvent.change(searchInput, { target: { value: "" } });
+    fireEvent.submit(searchInput.closest("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "清空最近搜索" }));
+    expect(screen.queryByText("最近搜索")).not.toBeInTheDocument();
   });
 });

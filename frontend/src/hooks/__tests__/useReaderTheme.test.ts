@@ -225,4 +225,15 @@ describe('reader font stylesheets', () => {
     expect(reloaded.result.current.theme.pagePaddingX).toBe(DEFAULT_READER_THEME.pagePaddingX);
     reloaded.unmount();
   });
+
+  it('includes orphan-heading guard, footnote sizing, highlight mark, and striped tables in stylesheet', () => {
+    const { result } = renderHook(() => useReaderTheme());
+    const css = result.current.getStylesheet();
+
+    expect(css).toContain('break-after: avoid;');
+    expect(css).toContain('sup, sub {');
+    expect(css).toContain('line-height: 0;');
+    expect(css).toContain('mark {');
+    expect(css).toContain('tbody tr:nth-child(even)');
+  });
 });

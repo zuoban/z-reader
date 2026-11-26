@@ -322,6 +322,8 @@ export function useReaderTheme() {
         letter-spacing: -0.015em;
         margin: 1.35em 0 0.55em !important;
         text-wrap: balance;
+        break-after: avoid;
+        page-break-after: avoid;
       }
       h1 { font-size: 1.55em !important; }
       h2 { font-size: 1.32em !important; }
@@ -348,6 +350,8 @@ export function useReaderTheme() {
         border-radius: 0 0.65rem 0.65rem 0;
         background: ${withOpacity(preset.link, isDark ? 0.08 : 0.06)};
         color: ${withOpacity(preset.fg, 0.92)} !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       blockquote p {
         margin: 0.45em 0 !important;
@@ -390,12 +394,36 @@ export function useReaderTheme() {
       figure {
         margin: 1.4em auto !important;
         text-align: center;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       figcaption {
         margin-top: 0.6em !important;
         font-size: 0.85em !important;
         line-height: 1.5 !important;
         color: ${withOpacity(preset.fg, 0.7)} !important;
+      }
+      sup, sub {
+        font-size: 0.72em;
+        line-height: 0;
+        position: relative;
+        vertical-align: baseline;
+      }
+      sup {
+        top: -0.45em;
+      }
+      sub {
+        bottom: -0.25em;
+      }
+      ruby rt {
+        font-size: 0.6em;
+        opacity: 0.78;
+      }
+      mark {
+        background: ${withOpacity(preset.link, isDark ? 0.28 : 0.16)};
+        color: inherit;
+        border-radius: 0.2em;
+        padding: 0.05em 0.18em;
       }
       table {
         border-collapse: collapse;
@@ -412,12 +440,16 @@ export function useReaderTheme() {
         background: ${withOpacity(preset.fg, isDark ? 0.08 : 0.05)};
         font-weight: 600;
       }
+      tbody tr:nth-child(even) {
+        background: ${withOpacity(preset.fg, isDark ? 0.035 : 0.02)};
+      }
       ::selection {
         background: ${selectionBg} !important;
         color: ${selectionColor} !important;
       }
       code, kbd, samp {
         background: ${codeBg};
+        border: 1px solid ${withOpacity(preset.fg, isDark ? 0.12 : 0.07)};
         padding: 0.15em 0.4em;
         border-radius: 0.35rem;
         font-size: 0.92em;
@@ -427,12 +459,16 @@ export function useReaderTheme() {
         background: ${codeBg};
         padding: 0.85em 1em !important;
         border-radius: 0.65rem;
+        line-height: 1.6;
         overflow-x: auto;
         margin: 1.1em 0 !important;
         border: 1px solid ${withOpacity(preset.fg, isDark ? 0.1 : 0.06)};
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       pre code {
         background: transparent;
+        border: 0;
         padding: 0;
         border-radius: 0;
         font-size: 0.9em;

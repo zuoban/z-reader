@@ -56,6 +56,30 @@ const TYPOGRAPHY_PRESETS = [
   },
 ] as const;
 
+const MEASURE_PRESETS = [
+  {
+    id: "focused",
+    label: "专注",
+    summary: "720px",
+    pagePaddingX: 36,
+    maxInlineSize: 720,
+  },
+  {
+    id: "balanced",
+    label: "均衡",
+    summary: "960px",
+    pagePaddingX: 28,
+    maxInlineSize: 960,
+  },
+  {
+    id: "wide",
+    label: "宽幅",
+    summary: "1200px",
+    pagePaddingX: 22,
+    maxInlineSize: 1200,
+  },
+] as const;
+
 const PRESETS = [
   {
     key: "light",
@@ -128,6 +152,56 @@ function stepNumericValue(
   const decimals = step.toString().split(".")[1]?.length ?? 0;
   const next = Math.min(max, Math.max(min, current + direction * step));
   return Number(next.toFixed(decimals));
+}
+
+function PresetGridSection({
+  title,
+  items,
+  surface,
+  uiScheme,
+}: {
+  title: string;
+  items: ReadonlyArray<{
+    id: string;
+    label: string;
+    summary: string;
+    isActive: boolean;
+    onSelect: () => void;
+  }>;
+  surface: ReturnType<typeof getModernReaderSurface>;
+  uiScheme: ThemeColors;
+}) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-medium">{title}</h3>
+      <div className="grid grid-cols-3 gap-2">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={item.onSelect}
+            aria-pressed={item.isActive}
+            className="reader-settings-option flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[var(--paper-radius-control)] border px-2 py-2 text-center"
+            style={{
+              borderColor: item.isActive ? uiScheme.link : surface.hairline,
+              background: item.isActive ? withOpacity(uiScheme.link, 0.08) : "transparent",
+              color: item.isActive ? uiScheme.link : surface.fg,
+            }}
+          >
+            <span className={cn("text-sm", item.isActive ? "font-semibold" : "font-medium")}>
+              {item.label}
+            </span>
+            <span
+              className="font-mono text-[11px] tabular-nums"
+              style={{ color: item.isActive ? uiScheme.link : surface.muted }}
+            >
+              {item.summary}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function SettingChoice({
@@ -529,47 +603,26 @@ export function ThemeSettings({
                 className="space-y-5"
               >
                 <span id={layoutPanelLabelId} className="sr-only">排版设置</span>
-                <section className="space-y-2">
-                  <h3 className="text-sm font-medium">快捷版式</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {TYPOGRAPHY_PRESETS.map((preset) => {
-                      const isActive =
-                        Math.abs(theme.fontSize - preset.fontSize) < 0.01 &&
-                        Math.abs(theme.lineHeight - preset.lineHeight) < 0.01 &&
-                        Math.abs(theme.paragraphSpacing - preset.paragraphSpacing) < 0.01;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() =>
-                            setTheme({
-                              fontSize: preset.fontSize,
-                              lineHeight: preset.lineHeight,
-                              paragraphSpacing: preset.paragraphSpacing,
-                            })
-                          }
-                          aria-pressed={isActive}
-                          className="reader-settings-option flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[var(--paper-radius-control)] border px-2 py-2 text-center"
-                          style={{
-                            borderColor: isActive ? uiScheme.link : surface.hairline,
-                            background: isActive ? withOpacity(uiScheme.link, 0.08) : "transparent",
-                            color: isActive ? uiScheme.link : surface.fg,
-                          }}
-                        >
-                          <span className={cn("text-sm", isActive ? "font-semibold" : "font-medium")}>
-                            {preset.label}
-                          </span>
-                          <span
-                            className="font-mono text-[11px] tabular-nums"
-                            style={{ color: isActive ? uiScheme.link : surface.muted }}
-                          >
-                            {preset.summary}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                <PresetGridSection
+                  title="快捷版式"
+                  surface={surface}
+                  uiScheme={uiScheme}
+                  items={TYPOGRAPHY_PRESETS.map((preset) => ({
+                    id: preset.id,
+                    label: preset.label,
+                    summary: preset.summary,
+                    isActive:
+                      Math.abs(theme.fontSize - preset.fontSize) < 0.01 &&
+                      Math.abs(theme.lineHeight - preset.lineHeight) < 0.01 &&
+                      Math.abs(theme.paragraphSpacing - preset.paragraphSpacing) < 0.01,
+                    onSelect: () =>
+                      setTheme({
+                        fontSize: preset.fontSize,
+                        lineHeight: preset.lineHeight,
+                        paragraphSpacing: preset.paragraphSpacing,
+                      }),
+                  }))}
+                />
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-medium">字型选择</h3>
@@ -643,6 +696,25 @@ export function ThemeSettings({
                 className="space-y-5"
               >
                 <span id={advancedPanelLabelId} className="sr-only">高级排版设置</span>
+                <PresetGridSection
+                  title="版心宽度"
+                  surface={surface}
+                  uiScheme={uiScheme}
+                  items={MEASURE_PRESETS.map((preset) => ({
+                    id: preset.id,
+                    label: preset.label,
+                    summary: preset.summary,
+                    isActive:
+                      theme.maxInlineSize === preset.maxInlineSize &&
+                      theme.pagePaddingX === preset.pagePaddingX,
+                    onSelect: () =>
+                      setTheme({
+                        pagePaddingX: preset.pagePaddingX,
+                        maxInlineSize: preset.maxInlineSize,
+                      }),
+                  }))}
+                />
+
                 <SliderField
                   label="左右页边距"
                   valueLabel={`${theme.pagePaddingX}px`}

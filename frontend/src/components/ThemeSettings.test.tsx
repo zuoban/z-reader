@@ -133,4 +133,25 @@ describe('ThemeSettings preview', () => {
     expect(relaxedButton).toHaveAttribute('aria-pressed', 'true');
     expect(standardButton).toHaveAttribute('aria-pressed', 'false');
   });
+
+  it('applies quick page-measure presets in the advanced tab', () => {
+    const { setTheme } = renderSettings({
+      pagePaddingX: 22,
+      maxInlineSize: 1200,
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: '高级' }));
+
+    const wideButton = screen.getByRole('button', { name: /宽幅/ });
+    const focusedButton = screen.getByRole('button', { name: /专注/ });
+
+    expect(wideButton).toHaveAttribute('aria-pressed', 'true');
+    expect(focusedButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(focusedButton);
+    expect(setTheme).toHaveBeenCalledWith({
+      pagePaddingX: 36,
+      maxInlineSize: 720,
+    });
+  });
 });

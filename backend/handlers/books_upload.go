@@ -25,23 +25,8 @@ import (
 )
 
 func (h *BooksHandler) Upload(c *gin.Context) {
-	limitUploadBody(c, h.cfg.MaxUploadBytes)
-	file, err := c.FormFile("file")
-	if err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
-			return
-		}
-		response.BadRequest(c, "请选择文件")
-		return
-	}
-
-	if file.Size <= 0 {
-		response.BadRequest(c, "文件为空")
-		return
-	}
-	if h.cfg.MaxUploadBytes > 0 && file.Size > h.cfg.MaxUploadBytes {
-		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+	file, ok := readUploadedFormFile(c, h.cfg.MaxUploadBytes)
+	if !ok {
 		return
 	}
 
@@ -81,7 +66,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	existing, err := h.findDuplicateBook(storage.PersonalLibrary, contentHash)
+	existing, err := h.findDuplicateBook(contentHash)
 	if err != nil {
 		h.removeUploadFiles(filename)
 		response.InternalError(c, "检查重复图书失败")
@@ -103,16 +88,12 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 		CreatedAt:   time.Now(),
 	}
 	book.Title = fallbackBookTitle(file.Filename)
-	if supportsBookPreviewProcessing(format) {
-		book.ProcessingState = models.BookProcessingPending
-	} else {
-		book.ProcessingState = models.BookProcessingReady
-	}
+	book.ProcessingState = models.BookProcessingPending
 
 	if err := h.db.CreateBook(book); err != nil {
 		h.removeUploadFiles(filename)
 		if err == storage.ErrDuplicateBookContent {
-			existing, findErr := h.findDuplicateBook(storage.PersonalLibrary, contentHash)
+			existing, findErr := h.findDuplicateBook(contentHash)
 			if findErr == nil && existing != nil {
 				respondDuplicateBook(c, existing)
 				return
@@ -125,18 +106,7 @@ func (h *BooksHandler) Upload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, book)
-	if book.ProcessingState == models.BookProcessingPending {
-		h.enqueueBookProcessing(book)
-	}
-}
-
-func supportsBookPreviewProcessing(format string) bool {
-	switch format {
-	case "epub", "mobi", "azw3", "pdf":
-		return true
-	default:
-		return false
-	}
+	h.enqueueBookProcessing(book)
 }
 
 func inferUploadedBookFormat(file *multipart.FileHeader, maxExpandedBytes int64) (string, string, bool) {
@@ -167,7 +137,8 @@ func inferUploadedBookFormat(file *multipart.FileHeader, maxExpandedBytes int64)
 }
 
 func inferBookFormatFromContentType(contentType string) (string, string, bool) {
-	switch strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0])) {
+	mediaType, _, _ := strings.Cut(contentType, ";")
+	switch strings.ToLower(strings.TrimSpace(mediaType)) {
 	case "application/epub+zip":
 		return "epub", ".epub", true
 	case "application/pdf":
@@ -308,17 +279,39 @@ func saveUploadedBookStream(
 	return hex.EncodeToString(hash.Sum(nil)), written.n, nil
 }
 
-func (h *BooksHandler) findDuplicateBook(userID string, contentHash string) (*models.Book, error) {
-	existing, err := h.db.FindBookByContentHash(userID, contentHash)
+func readUploadedFormFile(c *gin.Context, maxBytes int64) (*multipart.FileHeader, bool) {
+	limitUploadBody(c, maxBytes)
+	file, err := c.FormFile("file")
+	if err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+			return nil, false
+		}
+		response.BadRequest(c, "请选择文件")
+		return nil, false
+	}
+	if file.Size <= 0 {
+		response.BadRequest(c, "文件为空")
+		return nil, false
+	}
+	if maxBytes > 0 && file.Size > maxBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+		return nil, false
+	}
+	return file, true
+}
+
+func (h *BooksHandler) findDuplicateBook(contentHash string) (*models.Book, error) {
+	existing, err := h.db.FindBookByContentHash(storage.PersonalLibrary, contentHash)
 	if err != nil || existing != nil {
 		return existing, err
 	}
 	// A legacy backlog must be checked before accepting new content. File I/O
 	// belongs to the bounded worker; indexed libraries require no legacy scan.
-	if err := h.legacyHashes.catchUp(userID); err != nil {
+	if err := h.legacyHashes.catchUp(storage.PersonalLibrary); err != nil {
 		return nil, err
 	}
-	return h.db.FindBookByContentHash(userID, contentHash)
+	return h.db.FindBookByContentHash(storage.PersonalLibrary, contentHash)
 }
 
 func duplicateBookMessage(book *models.Book) string {

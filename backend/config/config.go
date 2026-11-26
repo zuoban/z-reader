@@ -33,27 +33,23 @@ func getLocalIP() string {
 		return "127.0.0.1"
 	}
 
-	// 第一次遍历，寻找私有 IP
+	var fallback string
 	for _, addr := range addrs {
 		ipNet, ok := addr.(*net.IPNet)
 		if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
 			continue
 		}
-
 		if ipNet.IP.IsPrivate() {
 			return ipNet.IP.String()
 		}
-	}
-
-	// 第二次遍历，返回第一个找到的 IPv4 地址
-	for _, addr := range addrs {
-		ipNet, ok := addr.(*net.IPNet)
-		if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
-			continue
+		if fallback == "" {
+			fallback = ipNet.IP.String()
 		}
-		return ipNet.IP.String()
 	}
 
+	if fallback != "" {
+		return fallback
+	}
 	return "127.0.0.1"
 }
 
@@ -177,7 +173,7 @@ func getEnvInt(key string, defaultValue int) int {
 
 func splitCSV(s string) []string {
 	var result []string
-	for _, v := range strings.Split(s, ",") {
+	for v := range strings.SplitSeq(s, ",") {
 		trimmed := strings.TrimSpace(v)
 		if trimmed != "" {
 			result = append(result, trimmed)

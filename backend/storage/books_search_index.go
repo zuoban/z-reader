@@ -192,19 +192,11 @@ func removeBookSearchGrams(tx *bbolt.Tx, book *models.Book, text string, keep ma
 }
 
 func rebuildBookSearchIndex(tx *bbolt.Tx) error {
-	if err := tx.DeleteBucket(BookSearchIndex); err != nil && err != bbolt.ErrBucketNotFound {
+	if _, err := recreateBucket(tx, BookSearchIndex); err != nil {
 		return err
 	}
-	if _, err := tx.CreateBucket(BookSearchIndex); err != nil {
-		return err
-	}
-	booksBucket := tx.Bucket(BooksBucket)
-	return booksBucket.ForEach(func(_, data []byte) error {
-		var book models.Book
-		if err := book.UnmarshalDB(data); err != nil {
-			return err
-		}
-		return addBookToSearchIndex(tx, &book, bookSearchText(&book))
+	return forEachBook(tx, func(book *models.Book) error {
+		return addBookToSearchIndex(tx, book, bookSearchText(book))
 	})
 }
 
@@ -214,11 +206,8 @@ func rebuildBookSearchGramIndex(tx *bbolt.Tx) error {
 	var onInsert func([]byte) error
 	// Older migrations rebuild postings before the counts bucket exists.
 	if tx.Bucket(BookSearchGramCounts) != nil {
-		if err := tx.DeleteBucket(BookSearchGramCounts); err != nil {
-			return err
-		}
 		var err error
-		countBucket, err = tx.CreateBucket(BookSearchGramCounts)
+		countBucket, err = recreateBucket(tx, BookSearchGramCounts)
 		if err != nil {
 			return err
 		}
@@ -228,19 +217,12 @@ func rebuildBookSearchGramIndex(tx *bbolt.Tx) error {
 			return nil
 		}
 	}
-	if err := tx.DeleteBucket(BookSearchGramIndex); err != nil && err != bbolt.ErrBucketNotFound {
-		return err
-	}
-	postingBucket, err := tx.CreateBucket(BookSearchGramIndex)
+	postingBucket, err := recreateBucket(tx, BookSearchGramIndex)
 	if err != nil {
 		return err
 	}
-	if err := tx.Bucket(BooksBucket).ForEach(func(_, data []byte) error {
-		var book models.Book
-		if err := book.UnmarshalDB(data); err != nil {
-			return err
-		}
-		return addBookSearchGramPostings(postingBucket, &book, bookSearchGrams(bookSearchText(&book)), onInsert)
+	if err := forEachBook(tx, func(book *models.Book) error {
+		return addBookSearchGramPostings(postingBucket, book, bookSearchGrams(bookSearchText(book)), onInsert)
 	}); err != nil {
 		return err
 	}

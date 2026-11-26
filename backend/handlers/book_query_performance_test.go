@@ -103,7 +103,7 @@ func TestDuplicateMissDoesNotReadKnownHashLibraryRecords(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	book, err := handler.findDuplicateBook(storage.PersonalLibrary, "new-hash")
+	book, err := handler.findDuplicateBook("new-hash")
 	if err != nil || book != nil {
 		t.Fatalf("duplicate miss = %+v, %v", book, err)
 	}

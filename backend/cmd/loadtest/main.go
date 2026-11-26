@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -120,7 +120,7 @@ func parseConfig(args []string) (config, error) {
 	if cfg.password == "" && cfg.passwordEnv != "" {
 		cfg.password = os.Getenv(cfg.passwordEnv)
 	}
-	for _, name := range strings.Split(scenarioList, ",") {
+	for name := range strings.SplitSeq(scenarioList, ",") {
 		if trimmed := strings.TrimSpace(name); trimmed != "" {
 			cfg.scenarios = append(cfg.scenarios, trimmed)
 		}
@@ -343,7 +343,7 @@ func percentile(values []time.Duration, ratio float64) time.Duration {
 		return 0
 	}
 	sorted := append([]time.Duration(nil), values...)
-	sort.Slice(sorted, func(left, right int) bool { return sorted[left] < sorted[right] })
+	slices.Sort(sorted)
 	index := int(math.Ceil(ratio*float64(len(sorted)))) - 1
 	if index < 0 {
 		index = 0

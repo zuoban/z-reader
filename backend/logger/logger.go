@@ -6,15 +6,12 @@ import (
 	"os"
 )
 
-var log *slog.Logger
-
 type requestIDContextKey struct{}
 
 func Init() {
-	log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(log)
+	})))
 }
 
 func Info(msg string, args ...any) {
@@ -35,11 +32,6 @@ func WithRequestID(ctx context.Context, id string) context.Context {
 
 func RequestID(ctx context.Context) string {
 	if id, ok := ctx.Value(requestIDContextKey{}).(string); ok {
-		return id
-	}
-	// Keep compatibility with contexts created before request IDs used a typed
-	// key. New middleware always uses the branch above.
-	if id, ok := ctx.Value("request_id").(string); ok {
 		return id
 	}
 	return ""

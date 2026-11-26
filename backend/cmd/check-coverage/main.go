@@ -8,7 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -208,7 +208,7 @@ func checkBaseline(expected, current baseline, counts map[string]coverageCount) 
 		}
 	}
 	if len(failures) > 0 {
-		sort.Strings(failures)
+		slices.Sort(failures)
 		return fmt.Errorf("core coverage regression: %s", strings.Join(failures, "; "))
 	}
 	fmt.Println("Backend core coverage meets the committed baseline.")

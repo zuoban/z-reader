@@ -3,7 +3,7 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
-	"sort"
+	"slices"
 	"strings"
 
 	"go.etcd.io/bbolt"
@@ -64,8 +64,8 @@ func (db *DB) ListBookmarks(bookID string, userID string) ([]models.Bookmark, er
 		}
 		return nil
 	})
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].CreatedAt.Before(items[j].CreatedAt)
+	slices.SortFunc(items, func(a, b models.Bookmark) int {
+		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 	return items, err
 }

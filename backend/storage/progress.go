@@ -42,10 +42,7 @@ func removeProgressFromTimeIndex(tx *bbolt.Tx, progress *models.Progress) error 
 }
 
 func rebuildProgressTimeIndex(tx *bbolt.Tx) error {
-	if err := tx.DeleteBucket(ProgressTimeIndex); err != nil && err != bbolt.ErrBucketNotFound {
-		return err
-	}
-	if _, err := tx.CreateBucket(ProgressTimeIndex); err != nil {
+	if _, err := recreateBucket(tx, ProgressTimeIndex); err != nil {
 		return err
 	}
 	progressBucket := tx.Bucket(ProgressBucket)

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -87,21 +88,13 @@ func NewBooksHandler(cfg *config.Config, db *storage.DB) *BooksHandler {
 
 func (h *BooksHandler) List(c *gin.Context) {
 	_, hasCursor := c.GetQuery("cursor")
-	limitValue, hasLimit := c.GetQuery("limit")
+	_, hasLimit := c.GetQuery("limit")
 	sortValue, hasSort := c.GetQuery("sort")
 	category := requestedBookCategory(c)
 	if hasCursor || hasLimit || hasSort || category != nil {
-		limit := 20
-		if hasLimit {
-			parsed, err := strconv.Atoi(limitValue)
-			if err != nil || parsed <= 0 {
-				response.BadRequest(c, "limit 必须是正整数")
-				return
-			}
-			limit = parsed
-		}
-		if limit > 100 {
-			limit = 100
+		limit, ok := parseBookPageLimit(c)
+		if !ok {
+			return
 		}
 
 		books, nextCursor, err := h.db.ListBooksBySortedCursor(storage.PersonalLibrary, c.Query("cursor"), limit, sortValue, category)
@@ -109,9 +102,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 			response.InternalError(c, "获取书籍列表失败")
 			return
 		}
-		for i := range books {
-			books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-		}
+		normalizeBookFormats(books)
 		c.JSON(http.StatusOK, bookCursorPageResponse{Books: books, NextCursor: nextCursor})
 		return
 	}
@@ -139,9 +130,7 @@ func (h *BooksHandler) List(c *gin.Context) {
 		return
 	}
 
-	for i := range books {
-		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-	}
+	normalizeBookFormats(books)
 
 	c.JSON(http.StatusOK, books)
 }
@@ -162,22 +151,14 @@ func (h *BooksHandler) Search(c *gin.Context) {
 		response.BadRequest(c, "搜索关键词不能为空")
 		return
 	}
-	if len([]rune(query)) > maxBookSearchQueryRunes {
+	if utf8.RuneCountInString(query) > maxBookSearchQueryRunes {
 		response.BadRequest(c, "搜索关键词过长")
 		return
 	}
 
-	limit := 20
-	if value, ok := c.GetQuery("limit"); ok {
-		parsed, err := strconv.Atoi(value)
-		if err != nil || parsed <= 0 {
-			response.BadRequest(c, "limit 必须是正整数")
-			return
-		}
-		limit = parsed
-	}
-	if limit > 100 {
-		limit = 100
+	limit, ok := parseBookPageLimit(c)
+	if !ok {
+		return
 	}
 
 	books, nextCursor, err := h.db.SearchBooks(
@@ -192,9 +173,7 @@ func (h *BooksHandler) Search(c *gin.Context) {
 		response.InternalError(c, "搜索图书失败")
 		return
 	}
-	for i := range books {
-		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-	}
+	normalizeBookFormats(books)
 	c.JSON(http.StatusOK, bookCursorPageResponse{Books: books, NextCursor: nextCursor})
 }
 
@@ -225,7 +204,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 
 	if req.Title.Set && req.Title.Value != nil {
 		title := strings.TrimSpace(*req.Title.Value)
-		if len([]rune(title)) > maxBookTitleRunes {
+		if utf8.RuneCountInString(title) > maxBookTitleRunes {
 			response.BadRequest(c, "书名不能超过 500 个字符")
 			return
 		}
@@ -233,7 +212,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	}
 	if req.Author.Set && req.Author.Value != nil {
 		author := strings.TrimSpace(*req.Author.Value)
-		if len([]rune(author)) > maxBookAuthorRunes {
+		if utf8.RuneCountInString(author) > maxBookAuthorRunes {
 			response.BadRequest(c, "作者不能超过 500 个字符")
 			return
 		}
@@ -241,7 +220,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	}
 	if req.Category.Set {
 		category := normalizeBookCategory(req.Category.Value)
-		if category != nil && len([]rune(*category)) > 50 {
+		if category != nil && utf8.RuneCountInString(*category) > 50 {
 			response.BadRequest(c, "分类不能超过 50 个字符")
 			return
 		}
@@ -295,17 +274,12 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
-	req.IDs = normalizeBookIDs(req.IDs)
-	if len(req.IDs) == 0 {
-		response.BadRequest(c, "请选择要删除的图书")
-		return
-	}
-	if len(req.IDs) > maxBatchBookIDs {
-		response.BadRequest(c, "单次最多操作 500 本图书")
+	ids, ok := validateBatchBookIDs(c, req.IDs, "请选择要删除的图书")
+	if !ok {
 		return
 	}
 
-	deletedBooks, err := h.db.DeleteBooksData(req.IDs, storage.PersonalLibrary)
+	deletedBooks, err := h.db.DeleteBooksData(ids, storage.PersonalLibrary)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "部分图书不存在")
@@ -406,6 +380,38 @@ type batchBookIDsRequest struct {
 type batchBookCategoryRequest struct {
 	IDs      []string       `json:"ids"`
 	Category optionalString `json:"category"`
+}
+
+func parseBookPageLimit(c *gin.Context) (int, bool) {
+	limit := 20
+	if value, ok := c.GetQuery("limit"); ok {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed <= 0 {
+			response.BadRequest(c, "limit 必须是正整数")
+			return 0, false
+		}
+		limit = parsed
+	}
+	return min(limit, 100), true
+}
+
+func validateBatchBookIDs(c *gin.Context, rawIDs []string, emptyMessage string) ([]string, bool) {
+	ids := normalizeBookIDs(rawIDs)
+	if len(ids) == 0 {
+		response.BadRequest(c, emptyMessage)
+		return nil, false
+	}
+	if len(ids) > maxBatchBookIDs {
+		response.BadRequest(c, "单次最多操作 500 本图书")
+		return nil, false
+	}
+	return ids, true
+}
+
+func normalizeBookFormats(books []models.Book) {
+	for i := range books {
+		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
+	}
 }
 
 func normalizeBookIDs(ids []string) []string {

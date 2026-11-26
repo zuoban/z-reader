@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -136,18 +137,14 @@ func normalizedEPUBEntryForWrite(name, root string) (string, bool) {
 }
 
 func isValidEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) bool {
-	return validateEPUBFile(file, maxExpandedBytes) == nil
-}
-
-func validateEPUBFile(file *multipart.FileHeader, maxExpandedBytes int64) error {
 	src, err := file.Open()
 	if err != nil {
-		return fmt.Errorf("读取 EPUB 文件失败")
+		return false
 	}
 	defer src.Close()
 
 	_, _, err = openValidatedEPUB(src, file.Size, maxExpandedBytes)
-	return err
+	return err == nil
 }
 
 func openValidatedEPUB(src io.ReaderAt, size int64, maxExpandedBytes int64) (*zip.Reader, string, error) {
@@ -447,12 +444,7 @@ func readEPUBImageEntry(f *zip.File) ([]byte, string, bool) {
 }
 
 func hasXMLProperty(properties, target string) bool {
-	for _, field := range strings.Fields(properties) {
-		if field == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Fields(properties), target)
 }
 
 func metadataFromEPUBPackage(pkg *epubPackage) *epubMetadata {

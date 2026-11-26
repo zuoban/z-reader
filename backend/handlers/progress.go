@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -118,11 +119,11 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 		response.BadRequest(c, "缺少阅读位置")
 		return
 	}
-	if len([]rune(req.CFI)) > maxProgressCFIRunes {
+	if utf8.RuneCountInString(req.CFI) > maxProgressCFIRunes {
 		response.BadRequest(c, "阅读位置过长")
 		return
 	}
-	if len([]rune(req.DeviceID)) > maxProgressDeviceRunes {
+	if utf8.RuneCountInString(req.DeviceID) > maxProgressDeviceRunes {
 		response.BadRequest(c, "设备标识过长")
 		return
 	}

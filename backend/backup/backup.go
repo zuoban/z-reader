@@ -11,7 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -107,7 +107,8 @@ func listBackupDirsDescending(dir string) []string {
 			names = append(names, entry.Name())
 		}
 	}
-	sort.Sort(sort.Reverse(sort.StringSlice(names)))
+	slices.Sort(names)
+	slices.Reverse(names)
 	paths := make([]string, 0, len(names))
 	for _, name := range names {
 		paths = append(paths, filepath.Join(dir, name))
@@ -463,11 +464,11 @@ func copyVerifiedFile(root *os.Root, name, target, expected string, readBuffer [
 		return err
 	}
 	defer input.Close()
-	hash := sha256.New()
-	if err := copyToFile(io.TeeReader(input, hash), target, readBuffer); err != nil {
+	digest, err := writeCopiedFile(nil, input, target, 0600, readBuffer, true)
+	if err != nil {
 		return err
 	}
-	if hex.EncodeToString(hash.Sum(nil)) != expected {
+	if digest != expected {
 		return fmt.Errorf("checksum changed during restore")
 	}
 	return nil
@@ -493,6 +494,7 @@ func buildManifestWithDigests(ctx context.Context, root string, createdAt time.T
 		ctx = context.Background()
 	}
 	manifest := Manifest{CreatedAt: createdAt, Files: make(map[string]string)}
+	hashBuffer := make([]byte, hashBufferSize)
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -515,7 +517,7 @@ func buildManifestWithDigests(ctx context.Context, root string, createdAt time.T
 			manifest.Files[key] = digest
 			return nil
 		}
-		digest, err := fileSHA256(ctx, path)
+		digest, err := fileSHA256WithBuffer(ctx, path, hashBuffer)
 		if err != nil {
 			return err
 		}
@@ -599,6 +601,10 @@ func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destinatio
 }
 
 func fileSHA256(ctx context.Context, path string) (string, error) {
+	return fileSHA256WithBuffer(ctx, path, make([]byte, hashBufferSize))
+}
+
+func fileSHA256WithBuffer(ctx context.Context, path string, buf []byte) (string, error) {
 	root, err := os.OpenRoot(filepath.Dir(path))
 	if err != nil {
 		return "", err
@@ -609,7 +615,7 @@ func fileSHA256(ctx context.Context, path string) (string, error) {
 		return "", err
 	}
 	defer file.Close()
-	return hashBackupReader(ctx, file)
+	return hashBackupReaderWithBuffer(ctx, file, buf)
 }
 
 func validManifestFile(name string) bool {
@@ -704,7 +710,7 @@ func removeExpired(root string, retentionDays int) error {
 			expired = append(expired, dirPath)
 		}
 	}
-	sort.Strings(expired)
+	slices.Sort(expired)
 	var errs []error
 	for _, path := range expired {
 		if err := os.RemoveAll(path); err != nil {

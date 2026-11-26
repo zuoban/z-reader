@@ -114,8 +114,8 @@ func isSecureRequest(c *gin.Context, trustedProxies []string) bool {
 	if c.Request.TLS != nil {
 		return true
 	}
-	proto := strings.TrimSpace(strings.Split(c.GetHeader("X-Forwarded-Proto"), ",")[0])
-	if !strings.EqualFold(proto, "https") {
+	proto, _, _ := strings.Cut(c.GetHeader("X-Forwarded-Proto"), ",")
+	if !strings.EqualFold(strings.TrimSpace(proto), "https") {
 		return false
 	}
 	return isTrustedProxy(c.Request.RemoteAddr, trustedProxies)

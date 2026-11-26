@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -69,15 +70,15 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "缺少书签位置")
 		return
 	}
-	if len([]rune(req.CFI)) > maxBookmarkCFIRunes {
+	if utf8.RuneCountInString(req.CFI) > maxBookmarkCFIRunes {
 		response.BadRequest(c, "书签位置过长")
 		return
 	}
-	if len([]rune(req.Chapter)) > maxBookmarkChapterRunes {
+	if utf8.RuneCountInString(req.Chapter) > maxBookmarkChapterRunes {
 		response.BadRequest(c, "章节名称过长")
 		return
 	}
-	if len([]rune(req.Note)) > maxBookmarkNoteRunes {
+	if utf8.RuneCountInString(req.Note) > maxBookmarkNoteRunes {
 		response.BadRequest(c, "书签备注过长")
 		return
 	}
@@ -120,7 +121,7 @@ func (h *BookmarksHandler) Update(c *gin.Context) {
 	}
 
 	req.Note = strings.TrimSpace(req.Note)
-	if len([]rune(req.Note)) > maxBookmarkNoteRunes {
+	if utf8.RuneCountInString(req.Note) > maxBookmarkNoteRunes {
 		response.BadRequest(c, "书签备注过长")
 		return
 	}

@@ -1,39 +1,6 @@
 package utils
 
-import (
-	"strings"
-	"testing"
-)
-
-func TestGenerateUUIDNoDashReturns32Chars(t *testing.T) {
-	uuid := GenerateUUIDNoDash()
-	if len(uuid) != 32 {
-		t.Fatalf("expected 32 characters, got %d", len(uuid))
-	}
-	if strings.Contains(uuid, "-") {
-		t.Fatalf("expected no dashes, got %s", uuid)
-	}
-}
-
-func TestGenerateUUIDNoDashIsUnique(t *testing.T) {
-	seen := make(map[string]bool)
-	for i := 0; i < 100; i++ {
-		uuid := GenerateUUIDNoDash()
-		if seen[uuid] {
-			t.Fatal("expected unique UUIDs")
-		}
-		seen[uuid] = true
-	}
-}
-
-func TestGenerateUUIDNoDashIsHex(t *testing.T) {
-	uuid := GenerateUUIDNoDash()
-	for _, c := range uuid {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-			t.Fatalf("expected hex characters, got %c in %s", c, uuid)
-		}
-	}
-}
+import "testing"
 
 func TestGenerateUserIDReturns16Chars(t *testing.T) {
 	userID := GenerateUserID()

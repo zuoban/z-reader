@@ -125,28 +125,34 @@ func removeBookFromSortIndex(tx *bbolt.Tx, book *models.Book) error {
 	return nil
 }
 
-func rebuildBookSortIndex(tx *bbolt.Tx) error {
-	if tx.Bucket(BookCategorySortIndex) != nil {
-		if err := tx.DeleteBucket(BookCategorySortIndex); err != nil {
-			return err
-		}
-		if _, err := tx.CreateBucket(BookCategorySortIndex); err != nil {
-			return err
-		}
+func recreateBucket(tx *bbolt.Tx, name []byte) (*bbolt.Bucket, error) {
+	if err := tx.DeleteBucket(name); err != nil && err != bbolt.ErrBucketNotFound {
+		return nil, err
 	}
-	if err := tx.DeleteBucket(BookSortIndex); err != nil && err != bbolt.ErrBucketNotFound {
-		return err
-	}
-	if _, err := tx.CreateBucket(BookSortIndex); err != nil {
-		return err
-	}
-	booksBucket := tx.Bucket(BooksBucket)
-	return booksBucket.ForEach(func(_, data []byte) error {
+	return tx.CreateBucket(name)
+}
+
+func forEachBook(tx *bbolt.Tx, fn func(*models.Book) error) error {
+	return tx.Bucket(BooksBucket).ForEach(func(_, data []byte) error {
 		var book models.Book
 		if err := book.UnmarshalDB(data); err != nil {
 			return err
 		}
-		return addBookToSortIndex(tx, &book)
+		return fn(&book)
+	})
+}
+
+func rebuildBookSortIndex(tx *bbolt.Tx) error {
+	if tx.Bucket(BookCategorySortIndex) != nil {
+		if _, err := recreateBucket(tx, BookCategorySortIndex); err != nil {
+			return err
+		}
+	}
+	if _, err := recreateBucket(tx, BookSortIndex); err != nil {
+		return err
+	}
+	return forEachBook(tx, func(book *models.Book) error {
+		return addBookToSortIndex(tx, book)
 	})
 }
 
@@ -231,23 +237,15 @@ func removeBookFromContentIndex(tx *bbolt.Tx, book *models.Book) error {
 }
 
 func rebuildBookContentIndex(tx *bbolt.Tx) error {
-	if err := tx.DeleteBucket(BookContentIndex); err != nil && err != bbolt.ErrBucketNotFound {
+	if _, err := recreateBucket(tx, BookContentIndex); err != nil {
 		return err
 	}
-	if _, err := tx.CreateBucket(BookContentIndex); err != nil {
-		return err
-	}
-	booksBucket := tx.Bucket(BooksBucket)
-	return booksBucket.ForEach(func(_, data []byte) error {
-		var book models.Book
-		if err := book.UnmarshalDB(data); err != nil {
-			return err
-		}
+	return forEachBook(tx, func(book *models.Book) error {
 		// Older databases can contain duplicates. Preserve the first entry; new
 		// writes enforce uniqueness through this index.
 		if book.ContentHash == "" {
 			return nil
 		}
-		return addBookToContentIndex(tx, &book)
+		return addBookToContentIndex(tx, book)
 	})
 }

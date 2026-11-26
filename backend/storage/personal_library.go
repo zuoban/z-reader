@@ -60,10 +60,7 @@ func mergePersonalLibrary(tx *bbolt.Tx) error {
 	}); err != nil {
 		return err
 	}
-	if err := tx.DeleteBucket(UserBooksIndex); err != nil {
-		return err
-	}
-	if _, err := tx.CreateBucket(UserBooksIndex); err != nil {
+	if _, err := recreateBucket(tx, UserBooksIndex); err != nil {
 		return err
 	}
 	if err := migrateUserBooksIndex(tx); err != nil {
@@ -92,10 +89,7 @@ func rewriteLibraryBucket(tx *bbolt.Tx, name []byte,
 	}); err != nil {
 		return err
 	}
-	if err := tx.DeleteBucket(name); err != nil {
-		return err
-	}
-	dest, err := tx.CreateBucket(name)
+	dest, err := recreateBucket(tx, name)
 	if err != nil {
 		return err
 	}

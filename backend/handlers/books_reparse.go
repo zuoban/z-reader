@@ -39,7 +39,7 @@ func (e *reparseBookError) Error() string {
 func (h *BooksHandler) ReparseMetadata(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
-	book, err := h.reparseBook(ctx, id, storage.PersonalLibrary)
+	book, err := h.reparseBook(ctx, id)
 	if err != nil {
 		if ctx.Err() != nil {
 			return
@@ -66,13 +66,8 @@ func (h *BooksHandler) BatchReparseMetadata(c *gin.Context) {
 		return
 	}
 
-	ids := normalizeBookIDs(req.IDs)
-	if len(ids) == 0 {
-		response.BadRequest(c, "请选择要重新解析的图书")
-		return
-	}
-	if len(ids) > maxBatchBookIDs {
-		response.BadRequest(c, "单次最多操作 500 本图书")
+	ids, ok := validateBatchBookIDs(c, req.IDs, "请选择要重新解析的图书")
+	if !ok {
 		return
 	}
 
@@ -110,7 +105,7 @@ func (h *BooksHandler) BatchReparseMetadata(c *gin.Context) {
 					if !ok || ctx.Err() != nil {
 						return
 					}
-					book, err := h.reparseBook(ctx, ids[idx], storage.PersonalLibrary)
+					book, err := h.reparseBook(ctx, ids[idx])
 					if err != nil {
 						if errors.Is(err.err, context.Canceled) || errors.Is(err.err, context.DeadlineExceeded) || ctx.Err() != nil {
 							return
@@ -150,7 +145,7 @@ func (h *BooksHandler) BatchReparseMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *BooksHandler) reparseBook(ctx context.Context, id, userID string) (*models.Book, *reparseBookError) {
+func (h *BooksHandler) reparseBook(ctx context.Context, id string) (*models.Book, *reparseBookError) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -158,7 +153,7 @@ func (h *BooksHandler) reparseBook(ctx context.Context, id, userID string) (*mod
 		return nil, &reparseBookError{status: http.StatusRequestTimeout, message: "请求已取消", err: err}
 	}
 
-	book, err := h.db.GetBookForUser(id, userID)
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
 	if err != nil {
 		return nil, &reparseBookError{status: http.StatusInternalServerError, message: "获取书籍失败"}
 	}
@@ -215,7 +210,7 @@ func (h *BooksHandler) reparseBook(ctx context.Context, id, userID string) (*mod
 	}
 
 	var previous bookCover
-	updated, updateErr := h.db.UpdateBook(book.ID, userID, func(current *models.Book) bool {
+	updated, updateErr := h.db.UpdateBook(book.ID, storage.PersonalLibrary, func(current *models.Book) bool {
 		if current.Filename != book.Filename {
 			return false
 		}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -34,9 +35,7 @@ func (h *BooksHandler) Status(c *gin.Context) {
 		response.InternalError(c, "获取书籍状态失败")
 		return
 	}
-	for i := range books {
-		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-	}
+	normalizeBookFormats(books)
 	c.JSON(http.StatusOK, gin.H{"books": books})
 }
 
@@ -50,7 +49,7 @@ func (h *BooksHandler) RenameCategory(c *gin.Context) {
 		return
 	}
 	req.From = strings.TrimSpace(req.From)
-	if req.From == "" || len([]rune(req.From)) > 50 {
+	if req.From == "" || utf8.RuneCountInString(req.From) > 50 {
 		response.BadRequest(c, "来源分类必须包含 1 到 50 个字符")
 		return
 	}
@@ -59,7 +58,7 @@ func (h *BooksHandler) RenameCategory(c *gin.Context) {
 		return
 	}
 	category := normalizeBookCategory(req.To.Value)
-	if category != nil && len([]rune(*category)) > 50 {
+	if category != nil && utf8.RuneCountInString(*category) > 50 {
 		response.BadRequest(c, "分类不能超过 50 个字符")
 		return
 	}

@@ -185,11 +185,7 @@ func (db *DB) ListBooksByCursor(userID, cursor string, limit int) ([]models.Book
 		return nil, "", err
 	}
 
-	if len(books) <= limit {
-		return books, "", nil
-	}
-	nextCursor := books[limit-1].ID
-	return books[:limit], nextCursor, nil
+	return bookCursorPage(books, limit)
 }
 
 func (db *DB) ListBooksPaginated(userID string, page int, pageSize int) ([]models.Book, error) {

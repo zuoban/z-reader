@@ -123,9 +123,11 @@ func parseXMPPacket(packet []byte) (string, string) {
 			continue
 		}
 		if isDCName(se.Name, "title") && title == "" {
-			title = sanitizeExtractedMetadataValue(readXMPTitleValue(decoder), maxBookTitleRunes)
+			preferred, _ := readXMPField(decoder)
+			title = sanitizeExtractedMetadataValue(preferred, maxBookTitleRunes)
 		} else if isDCName(se.Name, "creator") {
-			for _, item := range readXMPListValues(decoder) {
+			_, items := readXMPField(decoder)
+			for _, item := range items {
 				addAuthor(item)
 			}
 		}
@@ -141,11 +143,9 @@ func isDCName(name xml.Name, local string) bool {
 	return name.Space == "http://purl.org/dc/elements/1.1/" || strings.EqualFold(name.Space, "dc")
 }
 
-func readXMPTitleValue(decoder *xml.Decoder) string {
+func readXMPField(decoder *xml.Decoder) (preferred string, values []string) {
 	depth := 1
-	var defaultTitle, firstTitle string
-	var directText strings.Builder
-	var liText strings.Builder
+	var directText, liText strings.Builder
 	inLI := false
 	isDefaultLang := false
 
@@ -169,59 +169,11 @@ func readXMPTitleValue(decoder *xml.Decoder) string {
 			}
 		case xml.EndElement:
 			if strings.EqualFold(t.Name.Local, "li") && inLI {
-				val := strings.TrimSpace(liText.String())
-				if val != "" {
-					if firstTitle == "" {
-						firstTitle = val
-					}
-					if isDefaultLang && defaultTitle == "" {
-						defaultTitle = val
-					}
-				}
-				inLI = false
-			}
-			depth--
-		case xml.CharData:
-			if inLI {
-				liText.Write(t)
-			} else if depth == 1 {
-				directText.Write(t)
-			}
-		}
-	}
-
-	if defaultTitle != "" {
-		return defaultTitle
-	}
-	if firstTitle != "" {
-		return firstTitle
-	}
-	return strings.TrimSpace(directText.String())
-}
-
-func readXMPListValues(decoder *xml.Decoder) []string {
-	depth := 1
-	var values []string
-	var directText strings.Builder
-	var liText strings.Builder
-	inLI := false
-
-	for depth > 0 {
-		tok, err := decoder.Token()
-		if err != nil {
-			break
-		}
-		switch t := tok.(type) {
-		case xml.StartElement:
-			depth++
-			if strings.EqualFold(t.Name.Local, "li") {
-				inLI = true
-				liText.Reset()
-			}
-		case xml.EndElement:
-			if strings.EqualFold(t.Name.Local, "li") && inLI {
 				if val := strings.TrimSpace(liText.String()); val != "" {
 					values = append(values, val)
+					if isDefaultLang && preferred == "" {
+						preferred = val
+					}
 				}
 				inLI = false
 			}
@@ -235,11 +187,13 @@ func readXMPListValues(decoder *xml.Decoder) []string {
 		}
 	}
 
-	if len(values) > 0 {
-		return values
+	if len(values) == 0 {
+		if direct := strings.TrimSpace(directText.String()); direct != "" {
+			values = []string{direct}
+		}
 	}
-	if val := strings.TrimSpace(directText.String()); val != "" {
-		return []string{val}
+	if preferred == "" && len(values) > 0 {
+		preferred = values[0]
 	}
-	return nil
+	return preferred, values
 }

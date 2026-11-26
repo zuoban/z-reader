@@ -117,18 +117,11 @@ func (summary *BookLibrarySummary) adjustCount(category string, delta int) {
 }
 
 func rebuildLibrarySummaryIndex(tx *bbolt.Tx) error {
-	if err := tx.DeleteBucket(LibrarySummaryIndex); err != nil && err != bbolt.ErrBucketNotFound {
-		return err
-	}
-	if _, err := tx.CreateBucket(LibrarySummaryIndex); err != nil {
+	if _, err := recreateBucket(tx, LibrarySummaryIndex); err != nil {
 		return err
 	}
 	summaries := make(map[string]*BookLibrarySummary)
-	if err := tx.Bucket(BooksBucket).ForEach(func(_, data []byte) error {
-		var book models.Book
-		if err := book.UnmarshalDB(data); err != nil {
-			return err
-		}
+	if err := forEachBook(tx, func(book *models.Book) error {
 		if book.UserID == "" {
 			return nil
 		}
@@ -137,7 +130,7 @@ func rebuildLibrarySummaryIndex(tx *bbolt.Tx) error {
 			summary = &BookLibrarySummary{Categories: make(map[string]int)}
 			summaries[book.UserID] = summary
 		}
-		summary.adjustCount(categoryForBook(&book), 1)
+		summary.adjustCount(categoryForBook(book), 1)
 		return nil
 	}); err != nil {
 		return err

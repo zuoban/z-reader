@@ -95,18 +95,11 @@ func trackMissingBookHash(tx *bbolt.Tx, book *models.Book) error {
 }
 
 func rebuildMissingBookHashIndex(tx *bbolt.Tx) error {
-	if err := tx.DeleteBucket(BookMissingHashIndex); err != nil && err != bbolt.ErrBucketNotFound {
+	if _, err := recreateBucket(tx, BookMissingHashIndex); err != nil {
 		return err
 	}
-	if _, err := tx.CreateBucket(BookMissingHashIndex); err != nil {
-		return err
-	}
-	return tx.Bucket(BooksBucket).ForEach(func(_, data []byte) error {
-		var book models.Book
-		if err := book.UnmarshalDB(data); err != nil {
-			return err
-		}
-		return trackMissingBookHash(tx, &book)
+	return forEachBook(tx, func(book *models.Book) error {
+		return trackMissingBookHash(tx, book)
 	})
 }
 

@@ -91,6 +91,17 @@ type TTSQueueMetrics struct {
 	ConcurrencyLimit int
 }
 
+func ttsQueueMetrics(runtime *ttsRuntimeState) TTSQueueMetrics {
+	active := len(runtime.semaphore)
+	queued := max(0, len(runtime.queue)-active)
+	return TTSQueueMetrics{
+		Active:           active,
+		Queued:           queued,
+		QueueCapacity:    runtime.config.MaxQueued,
+		ConcurrencyLimit: runtime.config.MaxConcurrent,
+	}
+}
+
 // TTSQueueMetricsSnapshot returns false until TTS has been used for the first
 // time. Reading metrics must not initialize the runtime or create its cache.
 func TTSQueueMetricsSnapshot() (TTSQueueMetrics, bool) {
@@ -98,26 +109,16 @@ func TTSQueueMetricsSnapshot() (TTSQueueMetrics, bool) {
 	if runtime == nil {
 		return TTSQueueMetrics{}, false
 	}
-
-	active := len(runtime.semaphore)
-	queued := len(runtime.queue) - active
-	if queued < 0 {
-		queued = 0
-	}
-	return TTSQueueMetrics{
-		Active:           active,
-		Queued:           queued,
-		QueueCapacity:    runtime.config.MaxQueued,
-		ConcurrencyLimit: runtime.config.MaxConcurrent,
-	}, true
+	return ttsQueueMetrics(runtime), true
 }
 
 // AppendTTSPrometheus adds TTS queue gauges when the TTS runtime is active.
 func AppendTTSPrometheus(output *strings.Builder) {
-	metrics, ok := TTSQueueMetricsSnapshot()
-	if !ok {
+	runtime := ttsRuntime.state.Load()
+	if runtime == nil {
 		return
 	}
+	metrics := ttsQueueMetrics(runtime)
 
 	output.WriteString("# HELP z_reader_tts_active_syntheses Active TTS syntheses.\n")
 	output.WriteString("# TYPE z_reader_tts_active_syntheses gauge\n")
@@ -131,10 +132,6 @@ func AppendTTSPrometheus(output *strings.Builder) {
 	output.WriteString("# HELP z_reader_tts_concurrency_limit Configured concurrent TTS synthesis limit.\n")
 	output.WriteString("# TYPE z_reader_tts_concurrency_limit gauge\n")
 	fmt.Fprintf(output, "z_reader_tts_concurrency_limit %d\n", metrics.ConcurrencyLimit)
-	runtime := ttsRuntime.state.Load()
-	if runtime == nil {
-		return
-	}
 	runtime.metrics.mutex.Lock()
 	cache, results := runtime.metrics.cache, runtime.metrics.results
 	queueWait, synthesis := runtime.metrics.queueWait, runtime.metrics.synthesis

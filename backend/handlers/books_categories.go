@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,13 +17,8 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
-	req.IDs = normalizeBookIDs(req.IDs)
-	if len(req.IDs) == 0 {
-		response.BadRequest(c, "请选择要设置分类的图书")
-		return
-	}
-	if len(req.IDs) > maxBatchBookIDs {
-		response.BadRequest(c, "单次最多操作 500 本图书")
+	ids, ok := validateBatchBookIDs(c, req.IDs, "请选择要设置分类的图书")
+	if !ok {
 		return
 	}
 	if !req.Category.Set {
@@ -31,12 +27,12 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 	}
 
 	category := normalizeBookCategory(req.Category.Value)
-	if category != nil && len([]rune(*category)) > 50 {
+	if category != nil && utf8.RuneCountInString(*category) > 50 {
 		response.BadRequest(c, "分类不能超过 50 个字符")
 		return
 	}
 
-	books, err := h.db.UpdateBooksCategory(req.IDs, storage.PersonalLibrary, category)
+	books, err := h.db.UpdateBooksCategory(ids, storage.PersonalLibrary, category)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			response.NotFound(c, "部分图书不存在")
@@ -46,9 +42,7 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 		return
 	}
 
-	for i := range books {
-		books[i].Format = normalizeBookFormat(books[i].Format, books[i].Filename)
-	}
+	normalizeBookFormats(books)
 
 	c.JSON(http.StatusOK, gin.H{"books": books})
 }

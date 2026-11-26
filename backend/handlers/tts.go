@@ -94,16 +94,7 @@ func (h *TTSHandler) TTS(c *gin.Context) {
 		return
 	}
 
-	contentType, ext := ttsAudioFormatInfo(outputFormat)
-
-	c.Header("Content-Type", contentType)
-
-	if download == "true" {
-		filename := uuid.New().String() + ext
-		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
-	}
-
-	c.Data(http.StatusOK, contentType, audioData)
+	writeTTSAudioResponse(c, outputFormat, download == "true", audioData)
 }
 
 type SSMLRequest struct {
@@ -121,10 +112,6 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		return
 	}
 
-	if req.Ssml == "" {
-		response.BadRequest(c, "参数 'ssml' 不能为空")
-		return
-	}
 	if len(req.Ssml) > maxSSMLBytes {
 		response.BadRequest(c, "SSML 内容过长")
 		return
@@ -166,15 +153,15 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 		return
 	}
 
+	writeTTSAudioResponse(c, outputFormat, req.Download, audioData)
+}
+
+func writeTTSAudioResponse(c *gin.Context, outputFormat string, download bool, audioData []byte) {
 	contentType, ext := ttsAudioFormatInfo(outputFormat)
-
 	c.Header("Content-Type", contentType)
-
-	if req.Download {
-		filename := uuid.New().String() + ext
-		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	if download {
+		c.Header("Content-Disposition", "attachment; filename=\""+uuid.New().String()+ext+"\"")
 	}
-
 	c.Data(http.StatusOK, contentType, audioData)
 }
 

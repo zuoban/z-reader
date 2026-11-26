@@ -544,9 +544,6 @@ func TestBooksCoverUploadAndReparseEdgeCases(t *testing.T) {
 	if format, ext, ok := inferBookFormatFromContentType("application/x-mobipocket-ebook"); !ok || format != "mobi" || ext != ".mobi" {
 		t.Fatalf("unexpected mobi content-type inference: format=%q ext=%q ok=%v", format, ext, ok)
 	}
-	if supportsBookPreviewProcessing("txt") {
-		t.Fatal("expected supportsBookPreviewProcessing(txt) == false")
-	}
 	if msg := duplicateBookMessage(&models.Book{Title: "   "}); msg != "这本书已在书架中，请勿重复上传" {
 		t.Fatalf("unexpected blank-title duplicate message: %q", msg)
 	}

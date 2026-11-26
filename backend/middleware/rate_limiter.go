@@ -14,13 +14,7 @@ import (
 
 const defaultMaxVisitors = 10_000
 
-const (
-	rateLimitScopeClientIP = "client_ip"
-)
-
-var rateLimitRejections struct {
-	clientIP atomic.Uint64
-}
+var rateLimitRejections atomic.Uint64
 
 // RateLimiter 基于固定时间窗口的速率限制器
 type RateLimiter struct {
@@ -118,7 +112,7 @@ func (rl *RateLimiter) allow(ip string) (bool, time.Duration) {
 func RateLimit(rl *RateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if allowed, retryAfter := rl.allow(c.ClientIP()); !allowed {
-			recordRateLimitRejection()
+			rateLimitRejections.Add(1)
 			c.Header("Retry-After", strconv.FormatInt(retryAfterSeconds(retryAfter), 10))
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "请求过于频繁，请稍后再试",
@@ -136,17 +130,12 @@ func retryAfterSeconds(retryAfter time.Duration) int64 {
 	return int64(1 + (retryAfter-time.Nanosecond)/time.Second)
 }
 
-func recordRateLimitRejection() {
-	rateLimitRejections.clientIP.Add(1)
-}
-
 func appendRateLimitPrometheus(output *strings.Builder) {
 	output.WriteString("# HELP z_reader_rate_limit_rejections_total Requests rejected by rate limiters.\n")
 	output.WriteString("# TYPE z_reader_rate_limit_rejections_total counter\n")
 	fmt.Fprintf(
 		output,
-		"z_reader_rate_limit_rejections_total{scope=%q} %d\n",
-		rateLimitScopeClientIP,
-		rateLimitRejections.clientIP.Load(),
+		"z_reader_rate_limit_rejections_total{scope=\"client_ip\"} %d\n",
+		rateLimitRejections.Load(),
 	)
 }

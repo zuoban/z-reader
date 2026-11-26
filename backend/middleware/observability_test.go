@@ -101,13 +101,13 @@ func TestMetricsHandlerDoesNotInitializeTTSRuntime(t *testing.T) {
 }
 
 func TestMetricsHandlerReportsRateLimitRejections(t *testing.T) {
-	previousClientIP := rateLimitRejections.clientIP.Load()
-	rateLimitRejections.clientIP.Store(0)
+	previousClientIP := rateLimitRejections.Load()
+	rateLimitRejections.Store(0)
 	t.Cleanup(func() {
-		rateLimitRejections.clientIP.Store(previousClientIP)
+		rateLimitRejections.Store(previousClientIP)
 	})
 
-	recordRateLimitRejection()
+	rateLimitRejections.Add(1)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/metrics", MetricsHandler)

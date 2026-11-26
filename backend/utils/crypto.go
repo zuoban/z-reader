@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"strings"
+	"encoding/hex"
 
 	"github.com/google/uuid"
 )
@@ -14,19 +14,10 @@ func GenerateUUID() string {
 	return uuid.New().String()
 }
 
-func GenerateUUIDNoDash() string {
-	return strings.ReplaceAll(uuid.New().String(), "-", "")
-}
-
 func GenerateUserID() string {
-	const chars = "abcdef0123456789"
-	result := make([]byte, 16)
-	for i := 0; i < 16; i++ {
-		randomByte := make([]byte, 1)
-		rand.Read(randomByte)
-		result[i] = chars[randomByte[0]%16]
-	}
-	return string(result)
+	var b [8]byte
+	_, _ = rand.Read(b[:])
+	return hex.EncodeToString(b[:])
 }
 
 func HmacSha256(key, data []byte) []byte {

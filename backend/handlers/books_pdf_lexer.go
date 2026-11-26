@@ -227,6 +227,11 @@ func parsePDFLiteralString(data []byte, start int) ([]byte, int, bool) {
 		return nil, start, false
 	}
 	out := make([]byte, 0, 64)
+	appendByte := func(b byte) {
+		if len(out) < pdfMaxStringBytes {
+			out = append(out, b)
+		}
+	}
 	depth := 1
 	p := start + 1
 
@@ -241,34 +246,22 @@ func parsePDFLiteralString(data []byte, start int) ([]byte, int, bool) {
 			esc := data[p]
 			switch esc {
 			case 'n':
-				if len(out) < pdfMaxStringBytes {
-					out = append(out, '\n')
-				}
+				appendByte('\n')
 				p++
 			case 'r':
-				if len(out) < pdfMaxStringBytes {
-					out = append(out, '\r')
-				}
+				appendByte('\r')
 				p++
 			case 't':
-				if len(out) < pdfMaxStringBytes {
-					out = append(out, '\t')
-				}
+				appendByte('\t')
 				p++
 			case 'b':
-				if len(out) < pdfMaxStringBytes {
-					out = append(out, '\b')
-				}
+				appendByte('\b')
 				p++
 			case 'f':
-				if len(out) < pdfMaxStringBytes {
-					out = append(out, '\f')
-				}
+				appendByte('\f')
 				p++
 			case '(', ')', '\\':
-				if len(out) < pdfMaxStringBytes {
-					out = append(out, esc)
-				}
+				appendByte(esc)
 				p++
 			case '\r':
 				p++
@@ -285,40 +278,30 @@ func parsePDFLiteralString(data []byte, start int) ([]byte, int, bool) {
 						val = val*8 + int(data[p]-'0')
 						p++
 					}
-					if len(out) < pdfMaxStringBytes {
-						out = append(out, byte(val&0xFF))
-					}
+					appendByte(byte(val & 0xFF))
 				} else {
-					if len(out) < pdfMaxStringBytes {
-						out = append(out, esc)
-					}
+					appendByte(esc)
 					p++
 				}
 			}
 		case '(':
 			depth++
-			if len(out) < pdfMaxStringBytes {
-				out = append(out, '(')
-			}
+			appendByte('(')
 			p++
 		case ')':
 			depth--
-			if depth > 0 && len(out) < pdfMaxStringBytes {
-				out = append(out, ')')
+			if depth > 0 {
+				appendByte(')')
 			}
 			p++
 		case '\r':
-			if len(out) < pdfMaxStringBytes {
-				out = append(out, '\n')
-			}
+			appendByte('\n')
 			p++
 			if p < len(data) && data[p] == '\n' {
 				p++
 			}
 		default:
-			if len(out) < pdfMaxStringBytes {
-				out = append(out, ch)
-			}
+			appendByte(ch)
 			p++
 		}
 	}

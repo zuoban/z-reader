@@ -120,9 +120,9 @@ func TestRateLimiterEvictsExpiredVisitorsWhenAtCap(t *testing.T) {
 }
 
 func TestRateLimiterMiddlewareReturns429(t *testing.T) {
-	previous := rateLimitRejections.clientIP.Load()
-	rateLimitRejections.clientIP.Store(0)
-	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
+	previous := rateLimitRejections.Load()
+	rateLimitRejections.Store(0)
+	t.Cleanup(func() { rateLimitRejections.Store(previous) })
 
 	rl := NewRateLimiter(1, 5*time.Minute)
 	// First request allowed
@@ -144,14 +144,14 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 	if got := w.Header().Get("Retry-After"); got != "300" {
 		t.Fatalf("expected Retry-After 300, got %q", got)
 	}
-	if got := rateLimitRejections.clientIP.Load(); got != 1 {
+	if got := rateLimitRejections.Load(); got != 1 {
 		t.Fatalf("client IP rejections = %d, want 1", got)
 	}
 }
 
 func TestRateLimiterRetryAfterUsesWindowExpiry(t *testing.T) {
-	previous := rateLimitRejections.clientIP.Load()
-	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
+	previous := rateLimitRejections.Load()
+	t.Cleanup(func() { rateLimitRejections.Store(previous) })
 
 	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
 	now := start
@@ -208,8 +208,8 @@ func TestRateLimiterRetryAfterFloor(t *testing.T) {
 		}
 	}
 
-	previous := rateLimitRejections.clientIP.Load()
-	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
+	previous := rateLimitRejections.Load()
+	t.Cleanup(func() { rateLimitRejections.Store(previous) })
 
 	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
 	rl := NewRateLimiter(1, time.Duration(math.MaxInt64))

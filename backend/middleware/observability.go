@@ -1,11 +1,12 @@
 package middleware
 
 import (
+	"cmp"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"net/http"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -141,18 +142,23 @@ func MetricsHandler(c *gin.Context) {
 	inFlight := httpMetrics.inFlight
 	rows := make([]row, 0, len(httpMetrics.requests))
 	for key, metric := range httpMetrics.requests {
-		parts := strings.Split(key, "\x00")
+		method, rest, _ := strings.Cut(key, "\x00")
+		path, status, _ := strings.Cut(rest, "\x00")
 		rows = append(rows, row{
-			method: parts[0],
-			path:   parts[1],
-			status: parts[2],
+			method: method,
+			path:   path,
+			status: status,
 			metric: *metric,
 		})
 	}
 	httpMetrics.mu.Unlock()
 
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].method+rows[i].path+rows[i].status < rows[j].method+rows[j].path+rows[j].status
+	slices.SortFunc(rows, func(a, b row) int {
+		return cmp.Or(
+			cmp.Compare(a.method, b.method),
+			cmp.Compare(a.path, b.path),
+			cmp.Compare(a.status, b.status),
+		)
 	})
 
 	var output strings.Builder

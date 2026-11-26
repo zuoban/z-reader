@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"time"
 
 	"z-reader/backend/logger"
@@ -162,8 +162,8 @@ func cleanupDiskTTSCache(config ttsCacheConfig) {
 	}
 
 	// 按修改时间升序排序（最旧的在前），使用 O(n log n) 排序
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].modTime.Before(files[j].modTime)
+	slices.SortFunc(files, func(a, b fileInfo) int {
+		return a.modTime.Compare(b.modTime)
 	})
 
 	for _, file := range files {

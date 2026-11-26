@@ -1,6 +1,7 @@
 package services
 
 import (
+	"cmp"
 	"container/list"
 	"context"
 	"crypto/sha256"
@@ -162,7 +163,7 @@ func loadTTSCacheConfig() ttsCacheConfig {
 		MaxBytes:      getEnvInt("TTS_CACHE_MAX_BYTES", defaultTTSAudioCacheMaxBytes),
 		MaxItems:      getEnvInt("TTS_CACHE_MAX_ITEMS", defaultTTSAudioCacheMaxItems),
 		TTL:           getEnvDurationSeconds("TTS_CACHE_TTL_SECONDS", defaultTTSAudioCacheTTL),
-		Dir:           getEnvString("TTS_CACHE_DIR", filepath.Join(".", "data", "tts-cache")),
+		Dir:           cmp.Or(os.Getenv("TTS_CACHE_DIR"), filepath.Join(".", "data", "tts-cache")),
 		MaxConcurrent: getEnvInt("TTS_MAX_CONCURRENCY", defaultTTSMaxConcurrency),
 		MaxQueued:     getEnvInt("TTS_MAX_QUEUED", defaultTTSMaxQueued),
 		QueueWait:     getEnvDurationSeconds("TTS_QUEUE_WAIT_SECONDS", defaultTTSQueueWait),
@@ -184,14 +185,6 @@ func newTTSAudioCache(config ttsCacheConfig) *ttsAudioCache {
 		order:  list.New(),
 		config: config,
 	}
-}
-
-func getEnvString(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-	return value
 }
 
 func getEnvInt(key string, fallback int) int {

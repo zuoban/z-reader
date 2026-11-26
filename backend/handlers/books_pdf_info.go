@@ -92,30 +92,33 @@ func resolvePDFInfoObjectDict(r io.ReaderAt, fileSize int64, ref pdfIndirectRef,
 }
 
 func findIndirectObjectDictInWindow(window []byte, ref pdfIndirectRef) []byte {
+	dict, _ := scanIndirectObjectInWindow(window, ref, func(after int) ([]byte, bool) {
+		dict, _, ok := extractPDFDictionaryAt(window, after)
+		return dict, ok
+	})
+	return dict
+}
+
+func scanIndirectObjectInWindow[T any](window []byte, ref pdfIndirectRef, parse func(after int) (T, bool)) (T, bool) {
+	var zero T
 	marker := []byte(strconv.Itoa(ref.objNum) + " " + strconv.Itoa(ref.genNum) + " obj")
-	pos := 0
-	for pos < len(window) {
+	for pos := 0; pos < len(window); {
 		idx := bytes.Index(window[pos:], marker)
 		if idx < 0 {
-			return nil
+			return zero, false
 		}
 		absIdx := pos + idx
-		// Require token boundary before object number so "12 0 obj" doesn't match "2 0 obj".
-		if absIdx > 0 && !isPDFDelimiterOrSpace(window[absIdx-1]) {
-			pos = absIdx + len(marker)
-			continue
-		}
 		after := absIdx + len(marker)
-		if after < len(window) && !isPDFDelimiterOrSpace(window[after]) {
-			pos = after
-			continue
-		}
-		if dict, _, ok := extractPDFDictionaryAt(window, after); ok {
-			return dict
+		// Require token boundary before object number so "12 0 obj" doesn't match "2 0 obj".
+		if (absIdx == 0 || isPDFDelimiterOrSpace(window[absIdx-1])) &&
+			(after == len(window) || isPDFDelimiterOrSpace(window[after])) {
+			if parsed, ok := parse(after); ok {
+				return parsed, true
+			}
 		}
 		pos = after
 	}
-	return nil
+	return zero, false
 }
 
 func findLastStartXref(tail []byte) (int64, bool) {
@@ -253,23 +256,10 @@ func findIndirectStringInWindows(ref pdfIndirectRef, tail, head []byte) ([]byte,
 		if len(win) == 0 {
 			continue
 		}
-		marker := []byte(strconv.Itoa(ref.objNum) + " " + strconv.Itoa(ref.genNum) + " obj")
-		pos := 0
-		for pos < len(win) {
-			idx := bytes.Index(win[pos:], marker)
-			if idx < 0 {
-				break
-			}
-			absIdx := pos + idx
-			after := absIdx + len(marker)
-			if (absIdx == 0 || isPDFDelimiterOrSpace(win[absIdx-1])) &&
-				(after == len(win) || isPDFDelimiterOrSpace(win[after])) {
-				valStart := skipPDFWhitespaceAndComments(win, after)
-				if raw, ok := parsePDFStringValue(win, valStart); ok {
-					return raw, true
-				}
-			}
-			pos = after
+		if raw, ok := scanIndirectObjectInWindow(win, ref, func(after int) ([]byte, bool) {
+			return parsePDFStringValue(win, skipPDFWhitespaceAndComments(win, after))
+		}); ok {
+			return raw, true
 		}
 	}
 	return nil, false

@@ -3,8 +3,9 @@
 package telemetry
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -118,7 +119,7 @@ func AppendPrometheus(output *strings.Builder) {
 		}})
 	}
 	operations.mu.Unlock()
-	sort.Slice(rows, func(i, j int) bool { return rows[i].name < rows[j].name })
+	slices.SortFunc(rows, func(a, b row) int { return cmp.Compare(a.name, b.name) })
 
 	output.WriteString("# HELP z_reader_operation_duration_seconds Operation execution latency.\n")
 	output.WriteString("# TYPE z_reader_operation_duration_seconds histogram\n")

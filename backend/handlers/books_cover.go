@@ -174,22 +174,8 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	if coverUploadLimit <= 0 || coverUploadLimit > maxCoverUploadBytes {
 		coverUploadLimit = maxCoverUploadBytes
 	}
-	limitUploadBody(c, coverUploadLimit)
-	file, err := c.FormFile("file")
-	if err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
-			return
-		}
-		response.BadRequest(c, "请选择文件")
-		return
-	}
-	if file.Size <= 0 {
-		response.BadRequest(c, "文件为空")
-		return
-	}
-	if file.Size > coverUploadLimit {
-		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "文件超过上传大小限制"})
+	file, ok := readUploadedFormFile(c, coverUploadLimit)
+	if !ok {
 		return
 	}
 

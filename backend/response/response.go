@@ -15,57 +15,28 @@ type SuccessResponse struct {
 	Message string `json:"message"`
 }
 
-var (
-	ErrBadRequest   = &ErrorResponse{Code: "bad_request", Message: "请求无效"}
-	ErrUnauthorized = &ErrorResponse{Code: "unauthorized", Message: "请先登录"}
-	ErrForbidden    = &ErrorResponse{Code: "forbidden", Message: "没有访问权限"}
-	ErrNotFound     = &ErrorResponse{Code: "not_found", Message: "资源不存在"}
-	ErrInternal     = &ErrorResponse{Code: "internal_error", Message: "服务器内部错误"}
-)
-
 func BadRequest(c *gin.Context, message string) {
-	err := &ErrorResponse{Code: "bad_request", Message: message}
-	if message == "" {
-		err = ErrBadRequest
-	}
-	c.JSON(http.StatusBadRequest, err)
+	c.JSON(http.StatusBadRequest, &ErrorResponse{Code: "bad_request", Message: message})
 }
 
 func Unauthorized(c *gin.Context, message string) {
-	err := &ErrorResponse{Code: "unauthorized", Message: message}
-	if message == "" {
-		err = ErrUnauthorized
-	}
-	c.JSON(http.StatusUnauthorized, err)
+	c.JSON(http.StatusUnauthorized, &ErrorResponse{Code: "unauthorized", Message: message})
 }
 
 func Forbidden(c *gin.Context, message string) {
-	err := &ErrorResponse{Code: "forbidden", Message: message}
-	if message == "" {
-		err = ErrForbidden
-	}
-	c.JSON(http.StatusForbidden, err)
+	c.JSON(http.StatusForbidden, &ErrorResponse{Code: "forbidden", Message: message})
 }
 
 func NotFound(c *gin.Context, message string) {
-	err := &ErrorResponse{Code: "not_found", Message: message}
-	if message == "" {
-		err = ErrNotFound
-	}
-	c.JSON(http.StatusNotFound, err)
+	c.JSON(http.StatusNotFound, &ErrorResponse{Code: "not_found", Message: message})
 }
 
 func Conflict(c *gin.Context, message string) {
-	err := &ErrorResponse{Code: "conflict", Message: message}
-	c.JSON(http.StatusConflict, err)
+	c.JSON(http.StatusConflict, &ErrorResponse{Code: "conflict", Message: message})
 }
 
 func InternalError(c *gin.Context, message string) {
-	err := &ErrorResponse{Code: "internal_error", Message: message}
-	if message == "" {
-		err = ErrInternal
-	}
-	c.JSON(http.StatusInternalServerError, err)
+	c.JSON(http.StatusInternalServerError, &ErrorResponse{Code: "internal_error", Message: message})
 }
 
 func Success(c *gin.Context, message string) {

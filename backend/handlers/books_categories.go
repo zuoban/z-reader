@@ -33,12 +33,7 @@ func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 	}
 
 	books, err := h.db.UpdateBooksCategory(ids, storage.PersonalLibrary, category)
-	if err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "部分图书不存在")
-			return
-		}
-		response.InternalError(c, "设置分类失败")
+	if respondStorageError(c, err, "部分图书不存在", "设置分类失败") {
 		return
 	}
 
@@ -55,12 +50,7 @@ func (h *BooksHandler) RemoveCategory(c *gin.Context) {
 		book.Format = normalizeBookFormat(book.Format, book.Filename)
 		return true
 	})
-	if err == storage.ErrNotFound {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-	if err != nil {
-		response.InternalError(c, "保存书籍失败")
+	if respondStorageError(c, err, "书籍不存在", "保存书籍失败") {
 		return
 	}
 

@@ -144,15 +144,12 @@ func copySnapshotUploadsWithDedup(
 		if _, err := input.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		if digest != "" {
-			if err := copyToBackupFile(ctx, input, target, readBuffer); err != nil {
-				return err
-			}
-		} else {
-			digest, err = copyToBackupFileWithDigest(ctx, input, target, readBuffer)
-			if err != nil {
-				return err
-			}
+		writtenDigest, err := writeCopiedFile(ctx, input, target, 0400, readBuffer, digest == "")
+		if err != nil {
+			return err
+		}
+		if digest == "" {
+			digest = writtenDigest
 		}
 		if digests != nil {
 			digests[manifestKey] = digest

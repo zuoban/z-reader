@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -43,22 +42,6 @@ func TestBooksUploadRejectsDamagedEPUBWithoutPersistingData(t *testing.T) {
 	entries, err := os.ReadDir(uploadDir)
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("upload directory after damaged upload = %+v, err = %v", entries, err)
-	}
-}
-
-func TestSaveUploadedBookFileLeavesNoOutputForUnreadableSource(t *testing.T) {
-	root, err := os.OpenRoot(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer root.Close()
-	const name = "interrupted.pdf"
-	_, _, err = saveUploadedBookFile(&multipart.FileHeader{Filename: name}, "pdf", root, name, 0)
-	if err == nil {
-		t.Fatal("expected unreadable upload source to fail")
-	}
-	if _, statErr := root.Stat(name); !os.IsNotExist(statErr) {
-		t.Fatalf("expected no partial upload file, stat error = %v", statErr)
 	}
 }
 

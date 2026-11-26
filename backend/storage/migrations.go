@@ -211,19 +211,3 @@ func migrateBookCategories(tx *bbolt.Tx) error {
 		return booksB.Put(k, data)
 	})
 }
-
-func (db *DB) NormalizeBookCategories() error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		if err := migrateBookCategories(tx); err != nil {
-			return err
-		}
-		for _, rebuild := range []func(*bbolt.Tx) error{
-			rebuildBookSortIndex, rebuildBookSearchIndex, rebuildBookSearchGramIndex, rebuildLibrarySummaryIndex,
-		} {
-			if err := rebuild(tx); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}

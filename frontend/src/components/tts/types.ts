@@ -1,17 +1,6 @@
 export type TTSStatusTone = 'idle' | 'active' | 'warning' | 'error';
 
-export interface TTSStatusInfo {
-  headline: string;
-  detail?: string;
-  tone?: TTSStatusTone;
-}
-
-export interface TTSSleepTimer {
-  mode: 'off' | 'minutes';
-  minutes?: number;
-  endsAt?: number;
-  label: string;
-}
+export type { TTSVisibleStatus as TTSStatusInfo, TTSSleepTimer } from '@/lib/tts-helpers';
 
 export const RATE_OPTIONS = [
   { label: '1倍', value: 0 },

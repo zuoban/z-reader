@@ -49,7 +49,6 @@ export interface PlaybackSource {
 
 export interface PreloadTask {
   ssml: string;
-  marks?: TTSMark[];
   resolve: () => void;
 }
 

@@ -453,28 +453,8 @@ func metadataFromEPUBPackage(pkg *epubPackage) *epubMetadata {
 	}
 	return &epubMetadata{
 		Title:  sanitizeExtractedMetadataValue(pkg.Metadata.Title, maxBookTitleRunes),
-		Author: sanitizeExtractedMetadataValue(joinUniqueMetadataValues(pkg.Metadata.Authors), maxBookAuthorRunes),
+		Author: sanitizeExtractedMetadataValue(strings.Join(normalizeBookIDs(pkg.Metadata.Authors), ", "), maxBookAuthorRunes),
 	}
-}
-
-func joinUniqueMetadataValues(values []string) string {
-	if len(values) == 0 {
-		return ""
-	}
-	seen := make(map[string]struct{}, len(values))
-	unique := make([]string, 0, len(values))
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed == "" {
-			continue
-		}
-		if _, exists := seen[trimmed]; exists {
-			continue
-		}
-		seen[trimmed] = struct{}{}
-		unique = append(unique, trimmed)
-	}
-	return strings.Join(unique, ", ")
 }
 
 func readEPUBPackage(reader *zip.Reader, lookup func(string) *zip.File) (*epubPackage, string) {

@@ -1,7 +1,7 @@
 import type { TTSMark } from './types';
 
 export class LRUCache<T> {
-  private cache: Map<string, { data: T; release?: () => void }> = new Map();
+  private cache: Map<string, T> = new Map();
   private maxSize: number;
 
   constructor(maxSize = 10) {
@@ -9,27 +9,22 @@ export class LRUCache<T> {
   }
 
   get(key: string): T | undefined {
-    const entry = this.cache.get(key);
-    if (entry) {
+    const value = this.cache.get(key);
+    if (value !== undefined) {
       this.cache.delete(key);
-      this.cache.set(key, entry);
-      return entry.data;
+      this.cache.set(key, value);
     }
-    return undefined;
+    return value;
   }
 
-  set(key: string, value: T, release?: () => void): void {
+  set(key: string, value: T): void {
     if (this.cache.has(key)) {
-      const oldEntry = this.cache.get(key);
-      oldEntry?.release?.();
       this.cache.delete(key);
     }
-    this.cache.set(key, { data: value, release });
+    this.cache.set(key, value);
     if (this.cache.size > this.maxSize) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey !== undefined) {
-        const entry = this.cache.get(firstKey);
-        entry?.release?.();
         this.cache.delete(firstKey);
       }
     }
@@ -40,21 +35,13 @@ export class LRUCache<T> {
   }
 
   delete(key: string, expected: T): void {
-    const entry = this.cache.get(key);
-    if (!entry || entry.data !== expected) return;
-    entry.release?.();
-    this.cache.delete(key);
+    if (this.cache.get(key) === expected) {
+      this.cache.delete(key);
+    }
   }
 
   clear(): void {
-    for (const entry of this.cache.values()) {
-      entry?.release?.();
-    }
     this.cache.clear();
-  }
-
-  size(): number {
-    return this.cache.size;
   }
 }
 

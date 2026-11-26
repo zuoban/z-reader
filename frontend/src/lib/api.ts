@@ -184,7 +184,6 @@ async function requestWithFallback(
   options: RequestInit = {},
   timeout: number | null = DEFAULT_TIMEOUT,
   checkAccess = true,
-  isAbortableError = true,
 ): Promise<Response> {
   let lastError: unknown;
   const apiBases = getApiBaseCandidates();
@@ -206,7 +205,7 @@ async function requestWithFallback(
 
       if (checkAccess) {
         assertCurrentAccess(generation);
-        if (isAbortableError || !res.ok) handleAuthResponse(res, generation);
+        handleAuthResponse(res, generation);
       }
       if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
         lastError = new ApiError('请求失败，正在尝试局域网后端', res.status);
@@ -237,18 +236,20 @@ async function fetchApi<T>(
 ): Promise<T> {
   const generation = getAccessGeneration();
   const changesAccess = path === '/api/login' || path === '/api/logout';
+  const headers = options.body instanceof FormData
+    ? options.headers
+    : {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      };
   const res = await requestWithFallback(
     path,
     {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     },
     timeout,
     !changesAccess,
-    false,
   );
 
   if (!res.ok) {
@@ -266,21 +267,13 @@ async function fetchApi<T>(
   return JSON.parse(text) as T;
 }
 
-async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T> {
-  const text = await res.text();
-  if (!text) {
-    throw new ApiError(fallback, res.status);
-  }
-  return JSON.parse(text) as T;
-}
-
 /** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
 async function authedFetch(
   path: string,
   options: RequestInit = {},
   timeout: number | null = DEFAULT_TIMEOUT
 ): Promise<Response> {
-  return requestWithFallback(path, options, timeout, true, true);
+  return requestWithFallback(path, options, timeout, true);
 }
 
 function buildBookQueryParams(
@@ -409,18 +402,12 @@ export const api = {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       assertCurrentAccess(generation);
       try {
-        const res = await authedFetch('/api/books', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) {
-          throw await parseApiError(res, '上传失败');
-        }
-
-        const book = await parseJsonResponse<Book>(res, '上传成功但响应为空');
-        assertCurrentAccess(generation);
-        return book;
+        return await fetchApi<Book>(
+          '/api/books',
+          { method: 'POST', body: formData },
+          DEFAULT_TIMEOUT,
+          { errorFallback: '上传失败', emptyError: '上传成功但响应为空' },
+        );
       } catch (error) {
         if (!(error instanceof ApiError && error.status === 401)) assertCurrentAccess(generation);
         const duplicate = duplicateBookFromError(error);
@@ -489,22 +476,15 @@ export const api = {
   },
 
   uploadCover: async (id: string, file: Blob, filename = 'cover.png'): Promise<Book> => {
-    const generation = getAccessGeneration();
     const formData = new FormData();
     formData.append('file', file, filename);
 
-    const res = await authedFetch(`/api/books/${encodeURIComponent(id)}/cover`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!res.ok) {
-      throw await parseApiError(res, '上传封面失败');
-    }
-
-    const book = await parseJsonResponse<Book>(res, '上传封面成功但响应为空');
-    assertCurrentAccess(generation);
-    return book;
+    return fetchApi<Book>(
+      `/api/books/${encodeURIComponent(id)}/cover`,
+      { method: 'POST', body: formData },
+      DEFAULT_TIMEOUT,
+      { errorFallback: '上传封面失败', emptyError: '上传封面成功但响应为空' },
+    );
   },
 
   deleteBookCover: (id: string): Promise<Book> =>

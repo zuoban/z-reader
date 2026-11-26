@@ -366,8 +366,8 @@ func TestCreateContextAbortsOnCancellationAndCleansUp(t *testing.T) {
 		}
 		dest := filepath.Join(t.TempDir(), "streamed.epub")
 		buf := make([]byte, 1024)
-		if _, err := copyToBackupFileWithDigest(ctx, reader, dest, buf); !errors.Is(err, context.Canceled) {
-			t.Fatalf("copyToBackupFileWithDigest err = %v, want context.Canceled", err)
+		if _, err := writeCopiedFile(ctx, reader, dest, 0400, buf, true); !errors.Is(err, context.Canceled) {
+			t.Fatalf("writeCopiedFile err = %v, want context.Canceled", err)
 		}
 		if reader.calls != 1 {
 			t.Fatalf("expected streaming copy to stop after first chunk on cancellation, got %d reads", reader.calls)
@@ -504,11 +504,11 @@ func TestVerifyErrorBranches(t *testing.T) {
 
 	t.Run("unsafe manifest path", func(t *testing.T) {
 		dir := t.TempDir()
-		dbHash, err := copyToBackupFileWithDigest(context.Background(), strings.NewReader("db"), filepath.Join(dir, "data.db"), make([]byte, 1024))
+		dbHash, err := writeCopiedFile(context.Background(), strings.NewReader("db"), filepath.Join(dir, "data.db"), 0400, make([]byte, 1024), true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		sessHash, err := copyToBackupFileWithDigest(context.Background(), strings.NewReader("sess"), filepath.Join(dir, "data.db.sessions"), make([]byte, 1024))
+		sessHash, err := writeCopiedFile(context.Background(), strings.NewReader("sess"), filepath.Join(dir, "data.db.sessions"), 0400, make([]byte, 1024), true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -745,17 +745,17 @@ func TestCopyVerifiedFileAndManifestHelpers(t *testing.T) {
 		t.Fatal("expected copyToFile error from failing reader")
 	}
 
-	// copyToBackupFileWithDigest: nil ctx, canceled ctx, unwritable destination.
-	digest, err := copyToBackupFileWithDigest(nil, strings.NewReader("payload"), filepath.Join(dstDir, "ro.bin"), buf)
+	// writeCopiedFile with digest: nil ctx, canceled ctx, unwritable destination.
+	digest, err := writeCopiedFile(nil, strings.NewReader("payload"), filepath.Join(dstDir, "ro.bin"), 0400, buf, true)
 	if err != nil || digest == "" {
-		t.Fatalf("copyToBackupFileWithDigest(nil) = %q, %v", digest, err)
+		t.Fatalf("writeCopiedFile(nil) = %q, %v", digest, err)
 	}
 	canceledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := copyToBackupFileWithDigest(canceledCtx, strings.NewReader("x"), filepath.Join(dstDir, "ro2.bin"), buf); !errors.Is(err, context.Canceled) {
+	if _, err := writeCopiedFile(canceledCtx, strings.NewReader("x"), filepath.Join(dstDir, "ro2.bin"), 0400, buf, true); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
-	if _, err := copyToBackupFileWithDigest(context.Background(), strings.NewReader("x"), filepath.Join(dstDir, "missing-dir", "ro3.bin"), buf); err == nil {
+	if _, err := writeCopiedFile(context.Background(), strings.NewReader("x"), filepath.Join(dstDir, "missing-dir", "ro3.bin"), 0400, buf, true); err == nil {
 		t.Fatal("expected error for unwritable destination")
 	}
 
@@ -1065,18 +1065,18 @@ func TestDedupSinglePassAndSameSizeFallbackCopy(t *testing.T) {
 		}
 	}
 
-	// Direct copyToBackupFile edge cases: nil ctx, canceled ctx, unwritable destination.
+	// Direct writeCopiedFile without digest edge cases: nil ctx, canceled ctx, unwritable destination.
 	buf := make([]byte, 1024)
 	dstDir := t.TempDir()
-	if err := copyToBackupFile(nil, strings.NewReader("payload"), filepath.Join(dstDir, "ok.bin"), buf); err != nil {
-		t.Fatalf("copyToBackupFile(nil) error: %v", err)
+	if _, err := writeCopiedFile(nil, strings.NewReader("payload"), filepath.Join(dstDir, "ok.bin"), 0400, buf, false); err != nil {
+		t.Fatalf("writeCopiedFile(nil) error: %v", err)
 	}
 	canceledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if err := copyToBackupFile(canceledCtx, strings.NewReader("x"), filepath.Join(dstDir, "cancel.bin"), buf); !errors.Is(err, context.Canceled) {
+	if _, err := writeCopiedFile(canceledCtx, strings.NewReader("x"), filepath.Join(dstDir, "cancel.bin"), 0400, buf, false); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
-	if err := copyToBackupFile(context.Background(), strings.NewReader("x"), filepath.Join(dstDir, "missing-dir", "fail.bin"), buf); err == nil {
+	if _, err := writeCopiedFile(context.Background(), strings.NewReader("x"), filepath.Join(dstDir, "missing-dir", "fail.bin"), 0400, buf, false); err == nil {
 		t.Fatal("expected error for unwritable destination")
 	}
 }

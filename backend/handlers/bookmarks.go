@@ -43,12 +43,7 @@ func (h *BookmarksHandler) List(c *gin.Context) {
 	bookID := c.Param("id")
 
 	bookmarks, err := h.db.ListBookmarks(bookID, storage.PersonalLibrary)
-	if err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "书籍不存在")
-			return
-		}
-		response.InternalError(c, "获取书签失败")
+	if respondStorageError(c, err, "书籍不存在", "获取书签失败") {
 		return
 	}
 
@@ -99,12 +94,7 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 		CreatedAt:  now,
 	}
 
-	if err := h.db.SaveBookmark(bookmark, storage.PersonalLibrary); err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "书籍不存在")
-			return
-		}
-		response.InternalError(c, "保存书签失败")
+	if respondStorageError(c, h.db.SaveBookmark(bookmark, storage.PersonalLibrary), "书籍不存在", "保存书签失败") {
 		return
 	}
 
@@ -127,12 +117,7 @@ func (h *BookmarksHandler) Update(c *gin.Context) {
 	}
 
 	bookmark, err := h.db.UpdateBookmarkNote(bookID, bookmarkID, storage.PersonalLibrary, req.Note)
-	if err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "书签不存在")
-			return
-		}
-		response.InternalError(c, "更新书签失败")
+	if respondStorageError(c, err, "书签不存在", "更新书签失败") {
 		return
 	}
 
@@ -143,12 +128,7 @@ func (h *BookmarksHandler) Delete(c *gin.Context) {
 	bookID := c.Param("id")
 	bookmarkID := c.Param("bookmarkID")
 
-	if err := h.db.DeleteBookmark(bookID, bookmarkID, storage.PersonalLibrary); err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "书签不存在")
-			return
-		}
-		response.InternalError(c, "删除书签失败")
+	if respondStorageError(c, h.db.DeleteBookmark(bookID, bookmarkID, storage.PersonalLibrary), "书签不存在", "删除书签失败") {
 		return
 	}
 

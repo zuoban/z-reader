@@ -38,15 +38,8 @@ type extractedCoverResult struct {
 }
 
 func (h *BooksHandler) GetCover(c *gin.Context) {
-	id := c.Param("id")
-
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
-		response.NotFound(c, "书籍不存在")
+	book, ok := h.loadBook(c, c.Param("id"))
+	if !ok {
 		return
 	}
 	thumbnailRequested := c.Query("size") == "thumb"
@@ -159,14 +152,8 @@ func (h *BooksHandler) serveCover(c *gin.Context, name string) {
 
 func (h *BooksHandler) UploadCover(c *gin.Context) {
 	id := c.Param("id")
-
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
-		response.NotFound(c, "书籍不存在")
+	book, ok := h.loadBook(c, id)
+	if !ok {
 		return
 	}
 
@@ -216,12 +203,7 @@ func (h *BooksHandler) UploadCover(c *gin.Context) {
 	}
 
 	book, err = h.commitCover(book, cover, true)
-	if err == storage.ErrNotFound {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-	if err != nil {
-		response.InternalError(c, "保存书籍失败")
+	if respondStorageError(c, err, "书籍不存在", "保存书籍失败") {
 		return
 	}
 
@@ -244,12 +226,7 @@ func (h *BooksHandler) DeleteCover(c *gin.Context) {
 		book.Format = normalizeBookFormat(book.Format, book.Filename)
 		return true
 	})
-	if err == storage.ErrNotFound {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-	if err != nil {
-		response.InternalError(c, "保存书籍失败")
+	if respondStorageError(c, err, "书籍不存在", "保存书籍失败") {
 		return
 	}
 
@@ -713,9 +690,4 @@ func (h *BooksHandler) prepareCoverThumbnailChecked(bookID, coverPath string) (s
 		return "", false
 	}
 	return thumbnailPath, true
-}
-
-func (h *BooksHandler) prepareCoverThumbnail(bookID, coverPath string) string {
-	thumbnailPath, _ := h.prepareCoverThumbnailChecked(bookID, coverPath)
-	return thumbnailPath
 }

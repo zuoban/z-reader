@@ -355,9 +355,9 @@ func TestBooksUploadCoverValidationAndReplacement(t *testing.T) {
 	if rec3.Code != http.StatusOK {
 		t.Fatalf("expected 200 replacing with WebP, got %d body=%s", rec3.Code, rec3.Body.String())
 	}
-	// Also test prepareCoverThumbnail helper directly
-	if thumb := h.prepareCoverThumbnail("cov-1", bookAfterPNG.CoverPath); thumb != "" {
-		t.Fatalf("expected empty thumb for already-removed file, got %q", thumb)
+	// Also test prepareCoverThumbnailChecked helper directly
+	if thumb, ok := h.prepareCoverThumbnailChecked("cov-1", bookAfterPNG.CoverPath); ok || thumb != "" {
+		t.Fatalf("expected empty thumb for already-removed file, got %q (ok=%v)", thumb, ok)
 	}
 }
 

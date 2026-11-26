@@ -209,28 +209,8 @@ export class BackendTTS {
     return this.player.needsResume();
   }
 
-  async preload(ssml: string, marks?: TTSMark[]): Promise<void> {
-    return this.preloader.preload(ssml, marks);
-  }
-
   async preloadMultiple(ssmlList: string[]): Promise<void> {
     return this.preloader.preloadMultiple(ssmlList);
-  }
-
-  cleanupIrrelevantPreloads(relevantSSMLs: string[]): void {
-    this.preloader.cleanupIrrelevantPreloads(relevantSSMLs);
-  }
-
-  cancelPreload(ssml: string): void {
-    this.preloader.cancelPreload(ssml);
-  }
-
-  cancelAllPreloads(): void {
-    this.preloader.cancelAllPreloads();
-  }
-
-  clearPreloadQueue(): void {
-    this.preloader.clearPreloadQueue();
   }
 
   clearPreload(): void {
@@ -271,10 +251,6 @@ export class BackendTTS {
     this.fetcher.abortActive();
     this.setState('stopped');
     this.player.stop();
-  }
-
-  isPaused(): boolean {
-    return this.state === 'paused';
   }
 }
 

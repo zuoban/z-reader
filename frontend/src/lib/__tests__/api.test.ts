@@ -5,7 +5,6 @@ import * as config from '@/lib/config';
 import { getAccessGeneration, getOfflineLibrary } from '@/lib/library-access';
 import { offlineProgressKey, offlineProgressQueueKey } from '@/lib/offline-progress-storage';
 import {
-  appendPartialBookDownload,
   createPartialBookDownloadWriter,
   getPartialBookDownload,
   saveOfflineBook,
@@ -417,7 +416,8 @@ describe('api.fetchBook', () => {
 
   it('resumes a partial download using its committed Range offset', async () => {
     installBookCache();
-    await appendPartialBookDownload(PERSONAL_LIBRARY, 'resumed', new Blob(['first ']), 13, 'text/plain');
+    const writer = await createPartialBookDownloadWriter(PERSONAL_LIBRARY, 'resumed', 13, 'text/plain');
+    await writer.append(new Blob(['first ']));
     globalThis.fetch = vi.fn().mockResolvedValue(new Response('chapter', {
       status: 206,
       headers: { 'Content-Range': 'bytes 6-12/13', 'Content-Length': '7' },
@@ -448,7 +448,8 @@ describe('api.fetchBook', () => {
 
   it('uses the fresh response length after retrying a mismatched range', async () => {
     installBookCache();
-    await appendPartialBookDownload(PERSONAL_LIBRARY, 'bad-range', new Blob(['prefix']), 100, 'text/plain');
+    const writer = await createPartialBookDownloadWriter(PERSONAL_LIBRARY, 'bad-range', 100, 'text/plain');
+    await writer.append(new Blob(['prefix']));
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(new Response('invalid', {
         status: 206, headers: { 'Content-Range': 'bytes 2-8/100' },
@@ -461,7 +462,8 @@ describe('api.fetchBook', () => {
 
   it('cancels the rejected range body before restarting without a Range header', async () => {
     installBookCache();
-    await appendPartialBookDownload(PERSONAL_LIBRARY, 'stale-range', new Blob(['prefix']), 13, 'text/plain');
+    const writer = await createPartialBookDownloadWriter(PERSONAL_LIBRARY, 'stale-range', 13, 'text/plain');
+    await writer.append(new Blob(['prefix']));
     const cancel = vi.fn(() => new Promise<void>(() => {}));
     const fetch = vi.fn()
       .mockResolvedValueOnce(new Response(new ReadableStream({ cancel }), {
@@ -482,7 +484,8 @@ describe('api.fetchBook', () => {
 
   it('preserves the existing resumable prefix if cache writes and the network both fail', async () => {
     const { cache } = installBookCache();
-    await appendPartialBookDownload(PERSONAL_LIBRARY, 'quota', new Blob(['prefix']), null, 'text/plain');
+    const writer = await createPartialBookDownloadWriter(PERSONAL_LIBRARY, 'quota', null, 'text/plain');
+    await writer.append(new Blob(['prefix']));
     cache.put.mockRejectedValue(new Error('quota exceeded'));
     const read = vi.fn()
       .mockResolvedValueOnce({ done: false, value: new Uint8Array(1024 * 1024) })

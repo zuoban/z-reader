@@ -150,16 +150,6 @@ func inferBookFormatFromContentType(contentType string) (string, string, bool) {
 	}
 }
 
-func validateUploadedBook(file *multipart.FileHeader, format string, maxExpandedBytes int64) error {
-	src, err := file.Open()
-	if err != nil {
-		return fmt.Errorf("读取上传文件失败")
-	}
-	defer src.Close()
-	_, _, err = validateUploadedBookStream(src, file.Size, format, maxExpandedBytes)
-	return err
-}
-
 func validateUploadedBookStream(
 	src multipart.File, size int64, format string, maxExpandedBytes int64,
 ) (*zip.Reader, string, error) {
@@ -231,27 +221,6 @@ type countingWriter struct {
 func (w *countingWriter) Write(p []byte) (int, error) {
 	w.n += int64(len(p))
 	return len(p), nil
-}
-
-func saveUploadedBookFile(
-	file *multipart.FileHeader, format string, root *os.Root, name string, expandedLimit int64,
-) (string, int64, error) {
-	src, err := file.Open()
-	if err != nil {
-		return "", 0, err
-	}
-	defer src.Close()
-
-	var archive *zip.Reader
-	var packageRoot string
-	if format == "epub" {
-		archive, err = zip.NewReader(src, file.Size)
-		if err != nil {
-			return "", 0, err
-		}
-		packageRoot, _ = epubPackageRoot(archive)
-	}
-	return saveUploadedBookStream(src, archive, packageRoot, root, name, expandedLimit)
 }
 
 func saveUploadedBookStream(

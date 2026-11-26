@@ -548,9 +548,14 @@ func TestValidateUploadedBook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			file := newMultipartFileHeader(t, "book.bin", tt.content)
-			err := validateUploadedBook(file, tt.format, maxEPUBExpandedBytes)
+			src, openErr := file.Open()
+			if openErr != nil {
+				t.Fatalf("file.Open() error = %v", openErr)
+			}
+			defer src.Close()
+			_, _, err := validateUploadedBookStream(src, file.Size, tt.format, maxEPUBExpandedBytes)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("validateUploadedBook() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("validateUploadedBookStream() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

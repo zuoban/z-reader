@@ -9,7 +9,6 @@ import {
   type CachedAudio,
   type PreloadedAudio,
   type PreloadTask,
-  type TTSMark,
   type TTSMetricDetail,
 } from './types';
 
@@ -162,7 +161,7 @@ export class TTSPreloadManager {
     return { progressThreshold, remainingSeconds, reason };
   }
 
-  async preload(ssml: string, marks?: TTSMark[]): Promise<void> {
+  async preload(ssml: string): Promise<void> {
     if (!ssml) return;
     if (isSSMLTooLarge(ssml)) {
       this.logMetric('preload.skipped-too-large', { ssmlBytes: getUTF8ByteLength(ssml) });
@@ -176,7 +175,7 @@ export class TTSPreloadManager {
     if (existing) return existing;
 
     const promise = new Promise<void>((resolve) => {
-      this.pendingPreloadTasks.push({ ssml, marks, resolve });
+      this.pendingPreloadTasks.push({ ssml, resolve });
       this.logMetric('preload.enqueued', { ssmlBytes: ssml.length });
       this.pumpPreloadQueue();
     });
@@ -201,66 +200,6 @@ export class TTSPreloadManager {
     if (toPreload.length === 0) return;
 
     await Promise.allSettled(toPreload.map((ssml) => this.preload(ssml)));
-  }
-
-  cleanupIrrelevantPreloads(relevantSSMLs: string[]): void {
-    const relevantSet = new Set(relevantSSMLs);
-    const toRemove: string[] = [];
-
-    this.preloadedQueue = this.preloadedQueue.filter((p) => {
-      const isRelevant = relevantSet.has(p.ssml);
-      if (!isRelevant) {
-        toRemove.push(p.ssml);
-      }
-      return isRelevant;
-    });
-
-    if (toRemove.length > 0) {
-      this.logMetric('preload.cleanup-ready', { removed: toRemove.length });
-    }
-
-    let cancelledInFlight = 0;
-    for (const ssml of Array.from(this.preloadAbortControllers.keys())) {
-      if (!relevantSet.has(ssml)) {
-        const controller = this.preloadAbortControllers.get(ssml);
-        controller?.abort();
-        this.preloadAbortControllers.delete(ssml);
-        this.preloadPromises.delete(ssml);
-        cancelledInFlight += 1;
-      }
-    }
-    if (cancelledInFlight > 0) {
-      this.logMetric('preload.cleanup-inflight', { removed: cancelledInFlight });
-    }
-
-    let removedPending = 0;
-    this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
-      const isRelevant = relevantSet.has(task.ssml);
-      if (!isRelevant) {
-        this.preloadPromises.delete(task.ssml);
-        task.resolve();
-        removedPending += 1;
-      }
-      return isRelevant;
-    });
-    if (removedPending > 0) {
-      this.logMetric('preload.cleanup-pending', { removed: removedPending });
-    }
-  }
-
-  cancelPreload(ssml: string): void {
-    const controller = this.preloadAbortControllers.get(ssml);
-    if (controller) {
-      controller.abort();
-      this.preloadAbortControllers.delete(ssml);
-    }
-    this.preloadPromises.delete(ssml);
-
-    this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
-      if (task.ssml !== ssml) return true;
-      task.resolve();
-      return false;
-    });
   }
 
   cancelAllPreloads(): void {

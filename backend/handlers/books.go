@@ -178,15 +178,8 @@ func (h *BooksHandler) Search(c *gin.Context) {
 }
 
 func (h *BooksHandler) Get(c *gin.Context) {
-	id := c.Param("id")
-
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
-		response.NotFound(c, "书籍不存在")
+	book, ok := h.loadBook(c, c.Param("id"))
+	if !ok {
 		return
 	}
 
@@ -243,12 +236,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 		book.Format = normalizeBookFormat(book.Format, book.Filename)
 		return true
 	})
-	if err == storage.ErrNotFound {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-	if err != nil {
-		response.InternalError(c, "保存书籍失败")
+	if respondStorageError(c, err, "书籍不存在", "保存书籍失败") {
 		return
 	}
 	c.JSON(http.StatusOK, book)
@@ -256,12 +244,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 
 func (h *BooksHandler) Delete(c *gin.Context) {
 	book, err := h.db.DeleteBook(c.Param("id"), storage.PersonalLibrary)
-	if err == storage.ErrNotFound {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-	if err != nil {
-		response.InternalError(c, "删除书籍失败")
+	if respondStorageError(c, err, "书籍不存在", "删除书籍失败") {
 		return
 	}
 
@@ -280,12 +263,7 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 	}
 
 	deletedBooks, err := h.db.DeleteBooksData(ids, storage.PersonalLibrary)
-	if err != nil {
-		if err == storage.ErrNotFound {
-			response.NotFound(c, "部分图书不存在")
-			return
-		}
-		response.InternalError(c, "删除图书失败")
+	if respondStorageError(c, err, "部分图书不存在", "删除图书失败") {
 		return
 	}
 
@@ -299,15 +277,8 @@ func (h *BooksHandler) BatchDelete(c *gin.Context) {
 }
 
 func (h *BooksHandler) GetFile(c *gin.Context) {
-	id := c.Param("id")
-
-	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
-	if err != nil {
-		response.InternalError(c, "获取书籍失败")
-		return
-	}
-	if book == nil {
-		response.NotFound(c, "书籍不存在")
+	book, ok := h.loadBook(c, c.Param("id"))
+	if !ok {
 		return
 	}
 	book.Format = normalizeBookFormat(book.Format, book.Filename)
@@ -406,6 +377,31 @@ func validateBatchBookIDs(c *gin.Context, rawIDs []string, emptyMessage string) 
 		return nil, false
 	}
 	return ids, true
+}
+
+func respondStorageError(c *gin.Context, err error, notFoundMsg, internalMsg string) bool {
+	if err == nil {
+		return false
+	}
+	if err == storage.ErrNotFound {
+		response.NotFound(c, notFoundMsg)
+	} else {
+		response.InternalError(c, internalMsg)
+	}
+	return true
+}
+
+func (h *BooksHandler) loadBook(c *gin.Context, id string) (*models.Book, bool) {
+	book, err := h.db.GetBookForUser(id, storage.PersonalLibrary)
+	if err != nil {
+		response.InternalError(c, "获取书籍失败")
+		return nil, false
+	}
+	if book == nil {
+		response.NotFound(c, "书籍不存在")
+		return nil, false
+	}
+	return book, true
 }
 
 func normalizeBookFormats(books []models.Book) {

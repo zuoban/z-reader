@@ -83,12 +83,7 @@ func (h *ProgressHandler) Get(c *gin.Context) {
 	id := c.Param("id")
 
 	progress, err := h.db.GetProgressForBook(id, storage.PersonalLibrary)
-	if err == storage.ErrNotFound {
-		response.NotFound(c, "书籍不存在")
-		return
-	}
-	if err != nil {
-		response.InternalError(c, "获取阅读进度失败")
+	if respondStorageError(c, err, "书籍不存在", "获取阅读进度失败") {
 		return
 	}
 

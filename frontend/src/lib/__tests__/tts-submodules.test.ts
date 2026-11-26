@@ -20,7 +20,7 @@ import {
 } from '@/lib/tts/ssml';
 import { DEFAULT_SETTINGS, TTS_SETTINGS_KEY } from '@/lib/tts/types';
 
-vi.mock('@/lib/api', () => ({ getAuthHeaders: () => ({}), handleAuthResponse: () => {} }));
+vi.mock('@/lib/api', () => ({ handleAuthResponse: () => {} }));
 
 describe('TTS extracted submodules', () => {
   beforeEach(() => {
@@ -32,29 +32,24 @@ describe('TTS extracted submodules', () => {
   });
 
   describe('LRUCache and mark boundary helpers', () => {
-    it('evicts least-recently-used entries and runs release callbacks', () => {
-      const released: string[] = [];
+    it('evicts least-recently-used entries', () => {
       const cache = new LRUCache<string>(2);
-      cache.set('a', 'A', () => released.push('a'));
-      cache.set('b', 'B', () => released.push('b'));
+      cache.set('a', 'A');
+      cache.set('b', 'B');
       expect(cache.get('a')).toBe('A'); // promotes 'a', making 'b' LRU
-      cache.set('c', 'C', () => released.push('c'));
+      cache.set('c', 'C');
 
-      expect(released).toEqual(['b']);
       expect(cache.has('a')).toBe(true);
       expect(cache.has('b')).toBe(false);
-      expect(cache.size()).toBe(2);
 
       // delete only removes if value matches expected
       cache.delete('a', 'WRONG');
       expect(cache.has('a')).toBe(true);
       cache.delete('a', 'A');
       expect(cache.has('a')).toBe(false);
-      expect(released).toEqual(['b', 'a']);
 
       cache.clear();
-      expect(cache.size()).toBe(0);
-      expect(released).toEqual(['b', 'a', 'c']);
+      expect(cache.has('c')).toBe(false);
     });
 
     it('computes weighted mark boundaries and locates mark index via binary search', () => {
@@ -125,22 +120,19 @@ describe('TTS extracted submodules', () => {
   });
 
   describe('BackendTTS facade preload and state helpers', () => {
-    it('delegates preload queue controls and reports paused state accurately', () => {
+    it('delegates preload queue controls and reports paused state accurately', async () => {
       const tts = new BackendTTS();
       expect(tts.getPreloadQueueLength()).toBe(0);
-      expect(tts.isPaused()).toBe(false);
+      expect(tts.getState()).toBe('stopped');
+      await expect(tts.speak(`<speak>${'a'.repeat(40_000)}</speak>`)).rejects.toThrow('当前段落过长');
 
-      tts.cleanupIrrelevantPreloads([]);
-      tts.cancelPreload('<speak>noop</speak>');
-      tts.cancelAllPreloads();
-      tts.clearPreloadQueue();
       tts.clearPreloadQueueOnly();
       tts.clearPreload();
 
       tts.pause();
-      expect(tts.isPaused()).toBe(true);
+      expect(tts.getState()).toBe('paused');
       tts.stop();
-      expect(tts.isPaused()).toBe(false);
+      expect(tts.getState()).toBe('stopped');
     });
   });
 });

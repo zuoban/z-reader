@@ -1,7 +1,8 @@
 "use client";
 
-import React, { type ReactNode } from "react";
+import React from "react";
 
+import { HighlightedText } from "@/components/HighlightedText";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -14,38 +15,6 @@ interface ReaderTOCNodeProps {
   currentChapterHref: string;
   searchQuery?: string;
   uiScheme: ThemeColors;
-}
-
-function renderHighlightedLabel(label: string, query?: string): ReactNode {
-  const normalizedQuery = query?.trim().toLowerCase();
-  if (!normalizedQuery) return label;
-
-  const normalizedLabel = label.toLowerCase();
-  const parts: ReactNode[] = [];
-  let cursor = 0;
-  let matchIndex = normalizedLabel.indexOf(normalizedQuery);
-
-  while (matchIndex !== -1) {
-    if (matchIndex > cursor) {
-      parts.push(label.slice(cursor, matchIndex));
-    }
-
-    const matchEnd = matchIndex + normalizedQuery.length;
-    parts.push(
-      <mark key={`${matchIndex}-${matchEnd}`} className="reader-search-mark">
-        {label.slice(matchIndex, matchEnd)}
-      </mark>,
-    );
-
-    cursor = matchEnd;
-    matchIndex = normalizedLabel.indexOf(normalizedQuery, cursor);
-  }
-
-  if (cursor < label.length) {
-    parts.push(label.slice(cursor));
-  }
-
-  return parts;
 }
 
 function ReaderTOCNode({
@@ -75,7 +44,7 @@ function ReaderTOCNode({
         )}
         style={{
           paddingInlineStart: `${14 + indent}px`,
-          color: isCurrentChapter ? uiScheme.fg : uiScheme.buttonText,
+          color: uiScheme.fg,
         }}
       >
         <span
@@ -85,7 +54,11 @@ function ReaderTOCNode({
           )}
           title={item.label}
         >
-          {renderHighlightedLabel(item.label, searchQuery)}
+          <HighlightedText
+            text={item.label}
+            query={searchQuery}
+            markClassName="reader-search-mark"
+          />
         </span>
         {isCurrentChapter && (
           <span
@@ -129,9 +102,7 @@ export const MemoizedReaderTOCNode = React.memo(
       prevProps.currentChapterHref === nextProps.currentChapterHref &&
       prevProps.searchQuery === nextProps.searchQuery &&
       prevProps.uiScheme.fg === nextProps.uiScheme.fg &&
-      prevProps.uiScheme.link === nextProps.uiScheme.link &&
-      prevProps.uiScheme.buttonText === nextProps.uiScheme.buttonText &&
-      prevProps.uiScheme.buttonBg === nextProps.uiScheme.buttonBg
+      prevProps.uiScheme.link === nextProps.uiScheme.link
     );
   },
 );

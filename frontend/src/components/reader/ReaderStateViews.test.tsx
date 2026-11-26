@@ -5,23 +5,9 @@ import {
   ReaderErrorState,
   ReaderLoadingOverlay,
 } from '@/components/reader/ReaderStateViews';
-import type { ThemeColors } from '@/hooks/useReaderTheme';
+import { PRESET_STYLES } from '@/hooks/useReaderTheme';
 
-const darkUiScheme: ThemeColors = {
-  bg: '#161616',
-  fg: '#e6e2da',
-  mutedText: '#9d978c',
-  link: '#d29c64',
-  headerBg: '#161616',
-  headerBorder: '#2c2a26',
-  cardBg: '#1f1e1c',
-  cardBorder: '#33302b',
-  buttonBg: '#2b2926',
-  buttonHoverBg: '#36332e',
-  buttonText: '#e6e2da',
-  muted: '#2b2926',
-  accentText: '#d29c64',
-};
+const darkUiScheme = { ...PRESET_STYLES.dark, cardBg: '#1f1e1c' };
 
 describe('ReaderStateViews', () => {
   it('renders ReaderAuthLoading with paper card theme variables', () => {

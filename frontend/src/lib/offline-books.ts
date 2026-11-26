@@ -158,19 +158,6 @@ export async function getPartialBookDownload(
   }
 }
 
-export async function appendPartialBookDownload(
-  userId: string,
-  bookId: string,
-  chunk: Blob,
-  totalBytes: number | null,
-  contentType: string
-): Promise<void> {
-  if (!userId || !supportsOfflineBooks() || chunk.size === 0) return;
-
-  const writer = await createPartialBookDownloadWriter(userId, bookId, totalBytes, contentType);
-  await writer.append(chunk);
-}
-
 export interface PartialBookDownloadWriter {
   append: (chunk: Blob) => Promise<void>;
 }

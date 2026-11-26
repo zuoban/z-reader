@@ -31,16 +31,6 @@ export interface FoliateView {
     toc?: TOCItem[];
   };
   tts?: {
-    start?: () => string | null | undefined;
-    from?: (range: Range) => string | null | undefined;
-    resume?: () => string | null | undefined;
-    next?: (paused?: boolean) => string | null | undefined;
-    prev?: (paused?: boolean) => string | null | undefined;
-    peekNextMultiple?: (count: number) => string[];
-    clearHighlight?: () => void;
-    setMark?: (name: string) => void;
-    highlightCurrent?: () => void;
-    getWordCount?: () => number;
     doc?: Document;
   };
   renderer?: HTMLElement & {
@@ -56,7 +46,6 @@ export interface FoliateView {
   };
   lastLocation?: LastLocation;
   init?: (options?: { lastLocation?: string | null; showTextStart?: boolean }) => Promise<void>;
-  initTTS?: (granularity?: string, highlight?: (range: Range) => void) => Promise<void>;
   getTTSSentences?: (cfi?: string) => AsyncIterable<TTSSentence>;
   getTTSPreviousCFI?: (cfi: string) => Promise<string | null>;
   resolveCFI?: (cfi: string) => { index: number; anchor: (doc: Document) => Range };

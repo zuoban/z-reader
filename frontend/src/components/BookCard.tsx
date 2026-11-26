@@ -2,11 +2,12 @@
 
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { memo, useState, type CSSProperties, type ReactNode } from 'react';
+import { memo, useState, type CSSProperties } from 'react';
 import { BookOpen, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, type Book } from '@/lib/api';
 import { BookCardDropdown } from '@/components/BookCardDropdown';
+import { HighlightedText } from '@/components/HighlightedText';
 import { cn } from '@/lib/utils';
 import { useCoverUrl } from '@/hooks/useCoverUrl';
 
@@ -33,47 +34,6 @@ interface BookCardProps {
   selectionMode?: boolean;
   selected?: boolean;
   onSelectionToggle?: (bookId: string) => void;
-}
-
-function HighlightedText({
-  text,
-  query,
-}: {
-  text: string;
-  query?: string;
-}) {
-  const normalizedQuery = query?.trim().toLowerCase();
-  if (!normalizedQuery) return <>{text}</>;
-
-  const normalizedText = text.toLowerCase();
-  const parts: ReactNode[] = [];
-  let cursor = 0;
-  let matchIndex = normalizedText.indexOf(normalizedQuery);
-
-  while (matchIndex !== -1) {
-    if (matchIndex > cursor) {
-      parts.push(text.slice(cursor, matchIndex));
-    }
-
-    const matchEnd = matchIndex + normalizedQuery.length;
-    parts.push(
-      <mark
-        key={`${matchIndex}-${matchEnd}`}
-        className="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
-      >
-        {text.slice(matchIndex, matchEnd)}
-      </mark>
-    );
-
-    cursor = matchEnd;
-    matchIndex = normalizedText.indexOf(normalizedQuery, cursor);
-  }
-
-  if (cursor < text.length) {
-    parts.push(text.slice(cursor));
-  }
-
-  return <>{parts}</>;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -335,13 +295,21 @@ export const BookCard = memo(function BookCard({
                 className="line-clamp-2 wrap-anywhere font-sans text-sm font-medium leading-5 text-foreground transition-colors sm:text-[15px]"
                 title={titleLabel}
               >
-                <HighlightedText text={titleLabel} query={searchQuery} />
+                <HighlightedText
+                  text={titleLabel}
+                  query={searchQuery}
+                  markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+                />
               </h2>
               <p
                 className="mt-1 truncate text-xs leading-4 text-muted-foreground"
                 title={authorLabel}
               >
-                <HighlightedText text={authorLabel} query={searchQuery} />
+                <HighlightedText
+                  text={authorLabel}
+                  query={searchQuery}
+                  markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+                />
               </p>
             </div>
 

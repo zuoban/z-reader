@@ -159,10 +159,6 @@ func saveBookInTx(tx *bbolt.Tx, book, oldBook *models.Book) error {
 
 func (db *DB) CreateBook(book *models.Book) error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(BooksBucket)
-		idxB := tx.Bucket(UserBooksIndex)
-
-		book.Category = normalizeCategoryName(book.Category)
 		if book.ContentHash != "" {
 			contentIndex := tx.Bucket(BookContentIndex)
 			if existingID := contentIndex.Get(bookContentIndexKey(book.UserID, book.ContentHash)); existingID != nil && string(existingID) != book.ID {
@@ -170,31 +166,7 @@ func (db *DB) CreateBook(book *models.Book) error {
 			}
 		}
 
-		data, err := book.MarshalDB()
-		if err != nil {
-			return err
-		}
-		if err := b.Put([]byte(book.ID), data); err != nil {
-			return err
-		}
-
-		if err := addBookToUserIndex(idxB, book.ID, book.UserID); err != nil {
-			return err
-		}
-		if err := addBookToSortIndex(tx, book); err != nil {
-			return err
-		}
-		searchText := bookSearchText(book)
-		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
-			return err
-		}
-		if err := addBookToSearchGramIndex(tx, book, bookSearchGrams(searchText)); err != nil {
-			return err
-		}
-		if err := addBookToContentIndex(tx, book); err != nil {
-			return err
-		}
-		return adjustLibrarySummary(tx, book, 1)
+		return saveBookInTx(tx, book, nil)
 	})
 }
 

@@ -55,22 +55,6 @@ func rebuildProgressTimeIndex(tx *bbolt.Tx) error {
 	})
 }
 
-func (db *DB) DeleteProgress(bookID string, userID string) error {
-	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(ProgressBucket)
-		if data := b.Get(progressKey(userID, bookID)); data != nil {
-			var progress models.Progress
-			if err := json.Unmarshal(data, &progress); err != nil {
-				return err
-			}
-			if err := removeProgressFromTimeIndex(tx, &progress); err != nil {
-				return err
-			}
-		}
-		return b.Delete(progressKey(userID, bookID))
-	})
-}
-
 func (db *DB) SaveProgress(progress *models.Progress, userID string) error {
 	return db.SaveProgressIfCurrent(progress, userID, nil)
 }

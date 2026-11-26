@@ -2,25 +2,11 @@ import { act, fireEvent, render, screen } from '@/test/render';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TTSControls } from '@/components/TTSControls';
-import type { ThemeColors } from '@/hooks/useReaderTheme';
+import { PRESET_STYLES } from '@/hooks/useReaderTheme';
 import { FALLBACK_ZH_VOICES, type TTSSettings } from '@/lib/tts';
 import type { TTSControlsProps } from '@/components/TTSControls';
 
-const uiScheme: ThemeColors = {
-  bg: '#ffffff',
-  fg: '#111111',
-  mutedText: '#666666',
-  link: '#0066cc',
-  headerBg: '#ffffff',
-  headerBorder: '#dddddd',
-  cardBg: '#ffffff',
-  cardBorder: '#dddddd',
-  buttonBg: '#f5f5f5',
-  buttonHoverBg: '#eeeeee',
-  buttonText: '#111111',
-  muted: '#f5f5f5',
-  accentText: '#0066cc',
-};
+const uiScheme = PRESET_STYLES.light;
 
 const settings: TTSSettings = {
   voiceName: '',

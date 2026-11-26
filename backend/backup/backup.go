@@ -582,24 +582,6 @@ func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
 	return err
 }
 
-// copyToBackupFile copies input to destination as a read-only (0400) backup file.
-func copyToBackupFile(ctx context.Context, input io.Reader, destination string, readBuffer []byte) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	_, err := writeCopiedFile(ctx, input, destination, 0400, readBuffer, false)
-	return err
-}
-
-// copyToBackupFileWithDigest copies input to destination as a read-only (0400)
-// backup file and returns its SHA-256 hex digest in a single pass.
-func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destination string, readBuffer []byte) (string, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return writeCopiedFile(ctx, input, destination, 0400, readBuffer, true)
-}
-
 func fileSHA256(ctx context.Context, path string) (string, error) {
 	return fileSHA256WithBuffer(ctx, path, make([]byte, hashBufferSize))
 }
@@ -641,10 +623,6 @@ func openRegularBackupFile(root *os.Root, name string) (*os.File, error) {
 		return nil, fmt.Errorf("%s changed while opening backup file", name)
 	}
 	return file, nil
-}
-
-func hashBackupReader(ctx context.Context, file io.Reader) (string, error) {
-	return hashBackupReaderWithBuffer(ctx, file, make([]byte, hashBufferSize))
 }
 
 func hashBackupReaderWithBuffer(ctx context.Context, file io.Reader, buf []byte) (string, error) {

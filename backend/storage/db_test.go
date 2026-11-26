@@ -438,46 +438,6 @@ func TestGetSessionReturnsNilForExpiredSession(t *testing.T) {
 	}
 }
 
-func TestDeleteProgressRemovesSavedProgress(t *testing.T) {
-	db := openTestDB(t)
-	userID := "user-a"
-
-	book := &models.Book{
-		ID:        "book-a",
-		UserID:    userID,
-		Title:     "Alpha",
-		Filename:  "book-a.epub",
-		Format:    "epub",
-		Size:      128,
-		CreatedAt: time.Now().UTC(),
-	}
-	if err := db.SaveBook(book); err != nil {
-		t.Fatalf("failed to save book: %v", err)
-	}
-
-	progress := &models.Progress{
-		BookID:     "book-a",
-		CFI:        "epubcfi(/6/2[chapter1]!/4/2/6)",
-		Percentage: 12.5,
-		UpdatedAt:  time.Now().UTC().Truncate(time.Second),
-	}
-	if err := db.SaveProgress(progress, userID); err != nil {
-		t.Fatalf("failed to save progress: %v", err)
-	}
-
-	if err := db.DeleteProgress(progress.BookID, userID); err != nil {
-		t.Fatalf("DeleteProgress returned error: %v", err)
-	}
-
-	got, err := db.GetProgress(progress.BookID, userID)
-	if err != nil {
-		t.Fatalf("GetProgress returned error: %v", err)
-	}
-	if got != nil {
-		t.Fatalf("expected progress to be deleted, got %+v", got)
-	}
-}
-
 func TestSaveProgressReturnsNotFoundForMissingBook(t *testing.T) {
 	db := openTestDB(t)
 
@@ -992,37 +952,6 @@ func TestUpdateBookRestoresMissingLibrarySummary(t *testing.T) {
 				t.Fatalf("restored summary = %+v, err = %v", summary, err)
 			}
 		})
-	}
-}
-
-func TestNormalizeBookCategoriesTrimsNames(t *testing.T) {
-	db := openTestDB(t)
-	userID := "user-a"
-	category := " 科幻 "
-
-	if err := db.SaveBook(&models.Book{
-		ID:        "book-a",
-		UserID:    userID,
-		Title:     "Alpha",
-		Filename:  "book-a.epub",
-		Format:    "epub",
-		Size:      128,
-		Category:  &category,
-		CreatedAt: time.Now().UTC(),
-	}); err != nil {
-		t.Fatalf("failed to save book: %v", err)
-	}
-
-	if err := db.NormalizeBookCategories(); err != nil {
-		t.Fatalf("NormalizeBookCategories returned error: %v", err)
-	}
-
-	got, err := db.GetBook("book-a")
-	if err != nil {
-		t.Fatalf("GetBook returned error: %v", err)
-	}
-	if got == nil || got.Category == nil || *got.Category != "科幻" {
-		t.Fatalf("expected normalized category 科幻, got %+v", got)
 	}
 }
 

@@ -133,7 +133,7 @@ describe('TTS media playback', () => {
   it('cancels playback promptly while its matching prefetch remains pending', async () => {
     let deliver!: (response: Response) => void;
     vi.mocked(fetch).mockReturnValueOnce(new Promise(resolve => { deliver = resolve; }));
-    const preload = player.preload('<speak>pending</speak>');
+    const preload = player.preloadMultiple(['<speak>pending</speak>']);
     const speech = player.speak('<speak>pending</speak>');
     const observed = speech.then(() => 'playing', error => error.name);
     player.pause();
@@ -151,7 +151,7 @@ describe('TTS media playback', () => {
       ok: false, status: 429, headers: new Headers({ 'Retry-After': '2' }),
       json: async () => ({ code: 'rate_limited' }),
     } as Response);
-    await player.preload('<speak>future</speak>');
+    await player.preloadMultiple(['<speak>future</speak>']);
     const blocked = player.speak('<speak>another chunk</speak>');
     await expect(blocked).rejects.toMatchObject({ status: 429, retryAfterMs: 2000 });
     await expect(player.speak('<speak>future</speak>')).rejects.toBeInstanceOf(TTSRequestError);
@@ -173,6 +173,9 @@ describe('TTS media playback', () => {
     await player.resume();
     expect(secondPreviewStopped).toHaveBeenCalledTimes(1);
     expect(player.getState()).toBe('playing');
+    const thirdRelease = claimTTSAudioFocus({}, vi.fn());
+    expect(player.getState()).toBe('paused');
+    thirdRelease();
     release();
   });
 
@@ -184,38 +187,11 @@ describe('TTS media playback', () => {
     } as Response);
     vi.mocked(fetch).mockResolvedValueOnce(limited(60, 429))
       .mockResolvedValueOnce(limited(1, 503));
-    await Promise.all([player.preload('<speak>a</speak>'), player.preload('<speak>b</speak>')]);
+    await player.preloadMultiple(['<speak>a</speak>', '<speak>b</speak>']);
     await expect(player.speak('<speak>c</speak>')).rejects.toMatchObject({
       status: 429, retryAfterMs: 60_000,
     });
     expect(fetch).toHaveBeenCalledTimes(2);
-  });
-
-  it('settles discarded queued work without fetching it or retaining obsolete ready audio', async () => {
-    const ssml = (name: string) => `<speak>${name}</speak>`;
-    await player.preload(ssml('ready'));
-    const deliveries: Array<(response: Response) => void> = [];
-    vi.mocked(fetch).mockImplementation(() => new Promise(resolve => {
-      deliveries.push(resolve);
-    }));
-    const pending = ['active-one', 'active-two', 'queued', 'obsolete']
-      .map(name => player.preload(ssml(name)));
-    expect(fetch).toHaveBeenCalledTimes(3);
-
-    player.cleanupIrrelevantPreloads(['active-one', 'active-two', 'queued'].map(ssml));
-    player.cancelPreload(ssml('queued'));
-    await Promise.all(pending.slice(2));
-    expect(player.hasAudio(ssml('ready'))).toBe(false);
-    expect(fetch).toHaveBeenCalledTimes(3);
-
-    deliveries.forEach(deliver => deliver(audioResponse()));
-    await Promise.all(pending);
-    expect(player.getPreloadQueueLength()).toBe(2);
-    expect(player.hasAudio(ssml('active-one'))).toBe(true);
-    expect(player.hasAudio(ssml('active-two'))).toBe(true);
-    expect(player.hasAudio(ssml('queued'))).toBe(false);
-    expect(player.hasAudio(ssml('obsolete'))).toBe(false);
-    expect(fetch).toHaveBeenCalledTimes(3);
   });
 
   it('pauses on a decoder error and requires fresh audio for recovery', async () => {
@@ -225,8 +201,7 @@ describe('TTS media playback', () => {
     const buffered = '<speak>buffered audio</speak>';
     const decodeError = vi.fn();
     player.onDecodeErrorCallback(decodeError);
-    await player.preload(broken);
-    await player.preload(buffered);
+    await player.preloadMultiple([broken, buffered]);
     await player.speak(broken);
     const audio = TestAudio.instances[0];
     audio.error = { code: 3 } as MediaError;

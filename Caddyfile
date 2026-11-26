@@ -19,30 +19,10 @@
 		Permissions-Policy "camera=(), geolocation=(), microphone=()"
 	}
 
-	# API routes -> Go backend
-	handle /api/* {
-		reverse_proxy 127.0.0.1:8080 {
-			header_up -Accept-Encoding
-			transport http {
-				dial_timeout 5s
-				response_header_timeout 120s
-			}
-		}
-	}
-
-	# Health endpoints stay reachable through the public proxy so deployment
-	# probes and the documented recovery check do not bypass Caddy.
-	handle /healthz {
-		reverse_proxy 127.0.0.1:8080 {
-			header_up -Accept-Encoding
-			transport http {
-				dial_timeout 5s
-				response_header_timeout 120s
-			}
-		}
-	}
-
-	handle /readyz {
+	# API and health endpoints -> Go backend.
+	# Keep health probes reachable through the public proxy so deployment checks do not bypass Caddy.
+	@backend path /api/* /healthz /readyz
+	handle @backend {
 		reverse_proxy 127.0.0.1:8080 {
 			header_up -Accept-Encoding
 			transport http {

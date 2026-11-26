@@ -2,7 +2,11 @@ package services
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,8 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+
 	"z-reader/backend/internal/singleflight"
-	"z-reader/backend/utils"
 )
 
 const (
@@ -145,9 +150,9 @@ func callEndpointAPIContext(ctx context.Context) (*EndpointResponse, error) {
 
 	req.Header.Set("Accept-Language", "zh-Hans")
 	req.Header.Set("X-ClientVersion", "4.0.530a 5fe1dc6c")
-	req.Header.Set("X-UserId", utils.GenerateUserID())
+	req.Header.Set("X-UserId", generateUserID())
 	req.Header.Set("X-HomeGeographicRegion", "zh-Hans-CN")
-	req.Header.Set("X-ClientTraceId", utils.GenerateUUID())
+	req.Header.Set("X-ClientTraceId", uuid.NewString())
 	req.Header.Set("X-MT-Signature", signature)
 	req.Header.Set("User-Agent", "okhttp/4.5.0")
 	req.Header.Set("Content-Type", "application/json")
@@ -189,20 +194,27 @@ func getSignatureKey() string {
 func buildSignature(urlStr string) (string, error) {
 	urlPart := strings.TrimPrefix(urlStr, "https://")
 	encodedUrl := encodeURIComponent(urlPart)
-	uuidStr := utils.GenerateUUID()
+	uuidStr := uuid.NewString()
 	formattedDate := formatDate()
 
 	bytesToSign := strings.ToLower("MSTranslatorAndroidApp" + encodedUrl + formattedDate + uuidStr)
 
-	key, err := utils.Base64Decode(getSignatureKey())
+	key, err := base64.StdEncoding.DecodeString(getSignatureKey())
 	if err != nil {
 		return "", err
 	}
 
-	signData := utils.HmacSha256(key, []byte(bytesToSign))
-	signBase64 := utils.Base64Encode(signData)
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte(bytesToSign))
+	signBase64 := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
 	return "MSTranslatorAndroidApp::" + signBase64 + "::" + formattedDate + "::" + uuidStr, nil
+}
+
+func generateUserID() string {
+	var b [8]byte
+	_, _ = rand.Read(b[:])
+	return hex.EncodeToString(b[:])
 }
 
 func encodeURIComponent(str string) string {

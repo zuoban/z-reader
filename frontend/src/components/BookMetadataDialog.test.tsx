@@ -404,4 +404,41 @@ describe('BookMetadataDialog', () => {
       revokeObjectURL.mockRestore();
     }
   });
+
+  it('tracks changed fields in the footer and submits on Ctrl/Meta+Enter', async () => {
+    vi.mocked(api.updateBook).mockResolvedValue({} as never);
+    const onUpdate = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <BookMetadataDialog
+        bookId="book-shortcut"
+        currentTitle="红楼梦"
+        currentAuthor="曹雪芹"
+        onUpdate={onUpdate}
+        open
+        onOpenChange={onOpenChange}
+      />
+    );
+
+    expect(screen.getByText('未修改内容')).toBeInTheDocument();
+
+    const titleInput = screen.getByRole('textbox', { name: '书名' });
+    const authorInput = screen.getByRole('textbox', { name: '作者' });
+    fireEvent.change(titleInput, { target: { value: '石头记' } });
+    fireEvent.change(authorInput, { target: { value: '曹雪芹 / 高鹗' } });
+
+    expect(screen.getByText('待保存：书名、作者')).toBeInTheDocument();
+
+    fireEvent.keyDown(authorInput, { key: 'Enter', metaKey: true });
+
+    await waitFor(() => {
+      expect(api.updateBook).toHaveBeenCalledWith('book-shortcut', {
+        title: '石头记',
+        author: '曹雪芹 / 高鹗',
+      });
+    });
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

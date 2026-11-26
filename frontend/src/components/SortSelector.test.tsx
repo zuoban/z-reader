@@ -59,4 +59,13 @@ describe('SortSelector', () => {
       expect(trigger).toHaveAttribute('aria-expanded', 'false');
     });
   });
+
+  it('marks non-default sort values with data-non-default', () => {
+    const { rerender } = render(<SortSelector value="recent_read" onChange={vi.fn()} />);
+    const trigger = screen.getByRole('button', { name: '书籍排序方式' });
+    expect(trigger).not.toHaveAttribute('data-non-default');
+
+    rerender(<SortSelector value="title" onChange={vi.fn()} />);
+    expect(trigger).toHaveAttribute('data-non-default', 'true');
+  });
 });

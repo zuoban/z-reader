@@ -49,7 +49,7 @@ const createShelfDataState = () => ({
   isUpdatingManyCategories: false,
   isReparsingMany: false,
   filteredBooks: [sampleBook],
-  bookCounts: { all: 1, uncategorized: 0, 文学: 1 },
+  bookCounts: { all: 1, uncategorized: 0, 文学: 1 } as Record<string, number>,
   refreshBooks: vi.fn(),
   loadMoreBooks: vi.fn(),
   handleUpload: vi.fn(),
@@ -543,5 +543,26 @@ describe('ShelfPage', () => {
     const listSkeleton = container.querySelector('[data-skeleton-mode="list"]');
     expect(listSkeleton).toBeInTheDocument();
     expect(listSkeleton?.querySelectorAll('.shelf-book-row')).toHaveLength(6);
+  });
+
+  it('displays category book count badges without altering accessible button names', () => {
+    mockShelfData = {
+      ...mockShelfData,
+      categories: ['文学', '科幻'],
+      bookCounts: { all: 5, uncategorized: 1, 文学: 3, 科幻: 1 },
+    };
+
+    render(<ShelfPage />);
+
+    const group = screen.getByRole('group', { name: '书籍分类筛选' });
+    const allBtn = within(group).getByRole('button', { name: /^全部$/ });
+    const uncatBtn = within(group).getByRole('button', { name: /^未分类$/ });
+    const litBtn = within(group).getByRole('button', { name: /^文学$/ });
+    const scifiBtn = within(group).getByRole('button', { name: /^科幻$/ });
+
+    expect(allBtn.querySelector('[data-category-count="5"]')).toHaveTextContent('5');
+    expect(uncatBtn.querySelector('[data-category-count="1"]')).toHaveTextContent('1');
+    expect(litBtn.querySelector('[data-category-count="3"]')).toHaveTextContent('3');
+    expect(scifiBtn.querySelector('[data-category-count="1"]')).toHaveTextContent('1');
   });
 });

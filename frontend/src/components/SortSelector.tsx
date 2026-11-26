@@ -16,6 +16,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
   const [open, setOpen] = useState(false);
 
   const currentOption = SORT_OPTIONS.find((opt) => opt.value === value);
+  const isNonDefault = value !== 'recent_read';
 
   return (
     <Menu
@@ -35,6 +36,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
           fullWidth
           aria-label="书籍排序方式"
           aria-expanded={open}
+          data-non-default={isNonDefault ? 'true' : undefined}
           title={currentOption ? `排序：${currentOption.label}` : '书籍排序方式'}
           className={cn(
             'app-field group min-h-0 w-full cursor-pointer px-0 text-sm font-medium text-foreground shadow-2xs transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 data-[expanded]:border-primary/40 data-[expanded]:bg-secondary/80 sm:pl-3 sm:pr-2.5 sm:text-sm',
@@ -46,13 +48,18 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <ArrowDownWideNarrow
-            className="size-4 sm:hidden"
-            strokeWidth={1.5}
-            aria-hidden="true"
-          />
-          <span className="hidden min-w-0 truncate text-foreground sm:block">
-            {currentOption?.label}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <ArrowDownWideNarrow
+              className={cn(
+                'size-4 shrink-0',
+                isNonDefault ? 'text-primary' : 'text-foreground sm:text-muted-foreground'
+              )}
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
+            <span className="hidden min-w-0 truncate text-foreground sm:block">
+              {currentOption?.label}
+            </span>
           </span>
           <ChevronDown
             className={cn(

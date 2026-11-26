@@ -95,9 +95,22 @@ export function ShelfCategoryBar({
               onClick={() => onSelectCategory(null)}
               aria-pressed={selectedCategoryId === null}
               data-active={selectedCategoryId === null}
-              className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              className="shelf-filter-chip snap-start gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             >
-              全部
+              {typeof bookCounts.all === 'number' && bookCounts.all > 0 ? (
+                <>
+                  <span>全部</span>
+                  <span
+                    aria-hidden="true"
+                    data-category-count={bookCounts.all}
+                    className="shrink-0 font-mono text-[11px] tabular-nums opacity-75"
+                  >
+                    {bookCounts.all}
+                  </span>
+                </>
+              ) : (
+                '全部'
+              )}
             </button>
             {bookCounts[UNCATEGORIZED_FILTER_ID] > 0 && (
               <button
@@ -105,24 +118,43 @@ export function ShelfCategoryBar({
                 onClick={() => onSelectCategory(UNCATEGORIZED_FILTER_ID)}
                 aria-pressed={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
                 data-active={selectedCategoryId === UNCATEGORIZED_FILTER_ID}
-                className="shelf-filter-chip snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                className="shelf-filter-chip snap-start gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
               >
-                未分类
+                <span>未分类</span>
+                <span
+                  aria-hidden="true"
+                  data-category-count={bookCounts[UNCATEGORIZED_FILTER_ID]}
+                  className="shrink-0 font-mono text-[11px] tabular-nums opacity-75"
+                >
+                  {bookCounts[UNCATEGORIZED_FILTER_ID]}
+                </span>
               </button>
             )}
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => onSelectCategory(category)}
-                aria-pressed={selectedCategoryId === category}
-                data-active={selectedCategoryId === category}
-                className="shelf-filter-chip max-w-[9rem] snap-start truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:max-w-[10rem]"
-                title={category}
-              >
-                <span className="truncate">{category}</span>
-              </button>
-            ))}
+            {categories.map((category) => {
+              const count = bookCounts[category] || 0;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => onSelectCategory(category)}
+                  aria-pressed={selectedCategoryId === category}
+                  data-active={selectedCategoryId === category}
+                  className="shelf-filter-chip max-w-[9rem] snap-start gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:max-w-[10rem]"
+                  title={category}
+                >
+                  <span className="truncate">{category}</span>
+                  {count > 0 && (
+                    <span
+                      aria-hidden="true"
+                      data-category-count={count}
+                      className="shrink-0 font-mono text-[11px] tabular-nums opacity-75"
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">

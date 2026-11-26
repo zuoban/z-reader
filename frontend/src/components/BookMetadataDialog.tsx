@@ -181,6 +181,11 @@ export function BookMetadataDialog({
   const titleChanged = trimmedTitle !== normalizedCurrentTitle;
   const authorChanged = trimmedAuthor !== normalizedCurrentAuthor;
   const hasCoverChange = pendingCoverFile !== null || pendingRemoveCover;
+  const changedFields = [
+    titleChanged ? '书名' : null,
+    authorChanged ? '作者' : null,
+    hasCoverChange ? '封面' : null,
+  ].filter((item): item is string => item !== null);
   const isUnchanged = !titleChanged && !authorChanged && !hasCoverChange;
   const isTitleMissing = trimmedTitle.length === 0;
   const isTitleTooLong = countRunes(trimmedTitle) > MAX_METADATA_RUNES;
@@ -376,7 +381,21 @@ export function BookMetadataDialog({
       closeDisabled={saving}
       contentClassName="max-h-[min(86svh,40rem)]"
     >
-      <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
+      <form
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        onSubmit={handleSubmit}
+        onKeyDown={(event) => {
+          if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key === 'Enter' &&
+            !event.nativeEvent.isComposing &&
+            canSubmit
+          ) {
+            event.preventDefault();
+            event.currentTarget.requestSubmit();
+          }
+        }}
+      >
           <div className="custom-scrollbar min-h-0 flex-1 space-y-3.5 overflow-y-auto px-5 py-4 sm:px-6">
             <div
               data-cover-dropzone="true"
@@ -548,34 +567,45 @@ export function BookMetadataDialog({
             />
           </div>
 
-          <div className="app-dialog-footer flex shrink-0 items-center justify-end gap-2 px-5 py-3.5 sm:px-6">
-            <Button
-              type="button"
-              variant="subtle"
-              color="gray"
-              disabled={saving}
-              onClick={handleClose}
-              className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
+          <div className="app-dialog-footer flex shrink-0 items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
+            <p
+              data-metadata-changes={changedFields.length > 0 ? changedFields.join(',') : undefined}
+              className={cn(
+                'min-w-0 truncate text-xs',
+                changedFields.length > 0 ? 'font-medium text-primary' : 'text-muted-foreground'
+              )}
             >
-              取消
-            </Button>
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              aria-busy={saving || undefined}
-              leftSection={
-                saving ? (
-                  <Loader2
-                    className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
-                    strokeWidth={1.75}
-                    aria-hidden="true"
-                  />
-                ) : undefined
-              }
-              className="h-9 rounded-lg px-4 text-sm font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
-            >
-              {saving ? '保存中…' : '保存'}
-            </Button>
+              {changedFields.length > 0 ? `待保存：${changedFields.join('、')}` : '未修改内容'}
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="subtle"
+                color="gray"
+                disabled={saving}
+                onClick={handleClose}
+                className="h-9 rounded-lg px-3.5 text-sm font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={!canSubmit}
+                aria-busy={saving || undefined}
+                leftSection={
+                  saving ? (
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                  ) : undefined
+                }
+                className="h-9 rounded-lg px-4 text-sm font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100"
+              >
+                {saving ? '保存中…' : '保存'}
+              </Button>
+            </div>
           </div>
         </form>
     </AppModal>

@@ -62,6 +62,12 @@ function flattenTOCItems(items: TOCItem[]): TOCItem[] {
   return flat;
 }
 
+function findFirstMatchingTOCItem(items: TOCItem[], query: string): TOCItem | null {
+  const flat = flattenTOCItems(items);
+  if (flat.length === 0) return null;
+  return flat.find((item) => item.label.toLowerCase().includes(query)) ?? flat[0];
+}
+
 interface ReaderTOCSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -316,6 +322,15 @@ export function ReaderTOCSheet({
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.currentTarget.value)}
               onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.nativeEvent.isComposing && normalizedQuery) {
+                  const match = findFirstMatchingTOCItem(visibleTOC, normalizedQuery);
+                  if (match) {
+                    event.preventDefault();
+                    onGoTo(match.href);
+                    handleClose();
+                  }
+                  return;
+                }
                 if (event.key === "ArrowDown" && !event.nativeEvent.isComposing) {
                   const firstItem =
                     tocListRef.current?.querySelector<HTMLButtonElement>(
@@ -499,7 +514,17 @@ export function ReaderTOCSheet({
                       strokeWidth={1.7}
                       aria-hidden="true"
                     />
-                    <span>返回原位</span>
+                    <span>
+                      返回原位
+                      {hasJumpBackPercentage ? (
+                        <>
+                          {" · "}
+                          <span className="font-mono tabular-nums">
+                            {jumpBackPercentage.toFixed(1)}%
+                          </span>
+                        </>
+                      ) : null}
+                    </span>
                   </button>
                 ) : null}
               </div>

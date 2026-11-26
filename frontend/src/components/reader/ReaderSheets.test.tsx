@@ -302,8 +302,46 @@ describe('ReaderTOCSheet', () => {
 
     const returnButton = screen.getByRole('button', { name: /返回原位/ });
     expect(returnButton).toHaveAttribute('title', '返回跳转前位置 (32.5%)');
+    expect(returnButton).toHaveTextContent('32.5%');
     fireEvent.click(returnButton);
     expect(onReturnToPreviousLocation).toHaveBeenCalledTimes(1);
+  });
+
+  it('jumps directly to the first matching chapter on Enter while ignoring IME composition', () => {
+    const onGoTo = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={onOpenChange}
+        toc={createLongTOC()}
+        bookTitle="长篇小说"
+        bookAuthor=""
+        tocListRef={{ current: null }}
+        currentChapter="第一章 初遇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        onLocateCurrent={vi.fn()}
+        onGoTo={onGoTo}
+      />,
+    );
+
+    const searchInput = screen.getByRole('searchbox', { name: '筛选目录章节' });
+    fireEvent.change(searchInput, { target: { value: '暗潮' } });
+
+    const composingEnter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(composingEnter, 'isComposing', { value: true });
+    fireEvent(searchInput, composingEnter);
+    expect(onGoTo).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(onGoTo).toHaveBeenCalledWith('ch-2.xhtml');
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
 
@@ -934,5 +972,84 @@ describe('ReaderBookmarksSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: '清空筛选' }));
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /打开书签：第一章 初遇/ })).toBeInTheDocument();
+  });
+
+  it('jumps to top matched bookmark on Enter and shows contextual note edit titles', () => {
+    const onGoTo = vi.fn();
+    const onOpenChange = vi.fn();
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-1',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/2)',
+        chapter: '第一章 初遇',
+        percentage: 10,
+        note: '已有备注',
+        created_at: '2026-05-01T10:00:00.000Z',
+      },
+      {
+        id: 'bm-2',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/4)',
+        chapter: '第二章 启程',
+        percentage: 30,
+        note: '',
+        created_at: '2026-05-02T10:00:00.000Z',
+      },
+      {
+        id: 'bm-3',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/6)',
+        chapter: '第三章 风起',
+        percentage: 55,
+        note: '关键词摘录',
+        created_at: '2026-05-03T10:00:00.000Z',
+      },
+      {
+        id: 'bm-4',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/8)',
+        chapter: '第四章 归途',
+        percentage: 80,
+        note: '',
+        created_at: '2026-05-04T10:00:00.000Z',
+      },
+    ];
+
+    render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={onOpenChange}
+        bookmarks={bookmarks}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.light}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={onGoTo}
+        onDelete={vi.fn()}
+        onUpdateNote={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: '编辑书签备注：第一章 初遇' })).toHaveAttribute(
+      'title',
+      '编辑备注',
+    );
+    expect(screen.getByRole('button', { name: '编辑书签备注：第二章 启程' })).toHaveAttribute(
+      'title',
+      '添加备注',
+    );
+
+    const searchInput = screen.getByRole('searchbox', { name: '搜索书签' });
+    fireEvent.change(searchInput, { target: { value: '风起' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+    expect(onGoTo).toHaveBeenCalledWith(bookmarks[2]);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

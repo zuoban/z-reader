@@ -328,6 +328,18 @@ export function ReaderBookmarksSheet({
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      !event.nativeEvent.isComposing &&
+                      normalizedQuery &&
+                      sortedBookmarks.length > 0
+                    ) {
+                      event.preventDefault();
+                      onGoTo(sortedBookmarks[0]);
+                      onOpenChange(false);
+                    }
+                  }}
                   placeholder="搜索书签章节或笔记"
                   aria-label="搜索书签"
                 />
@@ -627,7 +639,7 @@ export function ReaderBookmarksSheet({
                               e.stopPropagation();
                               handleStartEdit(bookmark);
                             }}
-                            title="编辑备注"
+                            title={bookmark.note ? "编辑备注" : "添加备注"}
                             aria-label={`编辑书签备注：${bookmark.chapter || "未识别章节"}`}
                             className="reader-panel-icon opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                           >

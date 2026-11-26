@@ -68,7 +68,7 @@ export function ReaderSheet({
         inner:
           'items-end justify-center pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]',
         content: cn(
-          'reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border p-0 sm:max-h-[min(78svh,42rem)] sm:max-w-[calc(100vw-2rem)]',
+          'reader-panel flex max-h-[min(42rem,calc(100svh-1.5rem))] w-full flex-col overflow-hidden rounded-[22px] border p-0 sm:max-h-[min(78svh,42rem)] sm:max-w-[calc(100vw-2rem)]',
           widthClassName,
         ),
       }}
@@ -80,14 +80,17 @@ export function ReaderSheet({
           background: uiScheme.cardBg,
           borderColor: surface.border,
           color: surface.fg,
-          boxShadow: 'var(--paper-shadow-floating)',
+          boxShadow: 'var(--paper-shadow-floating), inset 0 1px 0 var(--paper-highlight-top)',
         },
       }}
     >
       <Drawer.Overlay />
       <Drawer.Content data-reader-interactive="true" {...contentDataAttributes}>
         <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onContentKeyDown}>
-          <div className={cn('shrink-0 bg-transparent px-4 py-3.5 sm:px-6', headerClassName)}>
+          <div aria-hidden="true" className="flex shrink-0 justify-center pt-2.5 pb-0.5">
+            <span className="reader-sheet-handle" />
+          </div>
+          <div className={cn('shrink-0 bg-transparent px-4 pt-2 pb-3.5 sm:px-6', headerClassName)}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">

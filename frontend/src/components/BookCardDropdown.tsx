@@ -135,7 +135,7 @@ export function BookCardDropdown({
         onClick={(e) => e.stopPropagation()}
         className="paper-menu max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl p-0 font-sans"
       >
-        <div className="border-b border-border/70 bg-surface-subtle/75 px-4 py-3">
+        <div className="border-b border-border/70 bg-surface-subtle/80 px-4 py-3.5">
           <div className="flex items-start justify-between gap-2.5">
             <p
               className="line-clamp-2 min-w-0 wrap-anywhere text-sm font-medium leading-snug text-foreground"
@@ -143,7 +143,7 @@ export function BookCardDropdown({
             >
               {bookTitle || '书籍信息'}
             </p>
-            <span className="shrink-0 rounded-[4px] border border-border bg-card px-1.5 py-0.5 font-mono text-[11px] font-normal leading-none text-subtle-foreground">
+            <span className="shrink-0 rounded-md border border-primary/20 bg-accent/70 px-1.5 py-0.5 font-mono text-[11px] font-medium leading-none text-accent-foreground">
               {formatLabel}
             </span>
           </div>

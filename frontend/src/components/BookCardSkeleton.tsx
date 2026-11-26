@@ -21,12 +21,12 @@ export function BookCardSkeleton() {
           <div className="skeleton-shimmer h-4 w-4/5 rounded-xs" aria-hidden="true" />
           <div className="skeleton-shimmer h-3 w-1/2 rounded-xs" aria-hidden="true" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex h-4 items-center justify-between gap-2">
-            <div className="skeleton-shimmer h-3 w-10 rounded-xs" aria-hidden="true" />
+            <div className="skeleton-shimmer h-4 w-12 rounded bg-secondary/70" aria-hidden="true" />
             <div className="skeleton-shimmer h-3 w-8 rounded-xs" aria-hidden="true" />
           </div>
-          <div className="skeleton-shimmer h-0.5 w-full rounded-full" aria-hidden="true" />
+          <div className="skeleton-shimmer h-[3px] w-full rounded-full" aria-hidden="true" />
         </div>
       </div>
       <div className="shelf-book-actions">

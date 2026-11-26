@@ -22,32 +22,32 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <section className="mx-auto w-full max-w-xl px-1 py-8 sm:px-8 sm:py-12">
-      <div className="flex items-start gap-3.5 sm:gap-4">
+    <section className="mx-auto my-6 w-full max-w-lg sm:my-10">
+      <div className="paper-panel flex flex-col items-center rounded-2xl px-6 py-10 text-center sm:px-10 sm:py-12">
         <div
           aria-hidden="true"
           className={cn(
-            'mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border',
+            'flex size-12 items-center justify-center rounded-2xl border',
             tone === 'error'
               ? 'border-destructive/20 bg-destructive/10 text-destructive'
-              : 'border-border/80 bg-accent/80 text-accent-foreground'
+              : 'app-sheet-icon border-primary/15'
           )}
         >
-          <Icon className="size-5" strokeWidth={1.5} />
+          <Icon className="size-5" strokeWidth={1.6} />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="mt-5 min-w-0 max-w-md">
           <div role={tone === 'error' ? 'alert' : undefined}>
             <h2 className="font-heading text-xl font-normal leading-tight text-foreground sm:text-2xl">
               {title}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+            <p className="mt-2.5 text-sm leading-6 text-muted-foreground">{description}</p>
             {detail && (
               <p className="mt-2 [overflow-wrap:anywhere] text-xs leading-5 text-muted-foreground">
                 {detail}
               </p>
             )}
           </div>
-          {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
+          {action && <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">{action}</div>}
         </div>
       </div>
     </section>

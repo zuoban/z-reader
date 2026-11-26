@@ -18,12 +18,12 @@ export function AppToaster() {
       toastOptions={{
         closeButtonAriaLabel: '关闭通知',
         style: {
-          background: 'var(--toast-bg)',
+          background: 'color-mix(in srgb, var(--toast-bg) 92%, transparent)',
           color: 'var(--toast-fg)',
           border: '1px solid var(--toast-border)',
           borderRadius: 'var(--radius-xl)',
           paddingRight: '3.25rem',
-          boxShadow: 'var(--paper-shadow-floating)',
+          boxShadow: 'var(--paper-shadow-floating), inset 0 1px 0 var(--paper-highlight-top)',
         },
       }}
     />

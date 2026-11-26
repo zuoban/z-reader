@@ -62,7 +62,7 @@ export function AppModal({
     >
       <Modal.Overlay />
       <Modal.Content>
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-surface-subtle/60 px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="app-sheet-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15">
               {icon}

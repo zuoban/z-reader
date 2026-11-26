@@ -42,9 +42,9 @@ export function ShelfHeader({
           {isOffline ? (
             <span
               role="status"
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-secondary px-2.5 text-xs font-medium text-muted-foreground"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-3 text-xs font-medium text-muted-foreground"
             >
-              <WifiOff aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
+              <WifiOff aria-hidden="true" className="size-3.5 shrink-0" strokeWidth={1.6} />
               <span>离线模式</span>
             </span>
           ) : (

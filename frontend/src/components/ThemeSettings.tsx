@@ -150,8 +150,11 @@ function SliderField({
           {label}
         </span>
         <span
-          className="text-xs font-medium tabular-nums"
-          style={{ color: uiScheme.link }}
+          className="rounded-md px-2 py-0.5 font-mono text-xs font-medium tabular-nums"
+          style={{
+            background: withOpacity(uiScheme.link, 0.1),
+            color: uiScheme.link,
+          }}
         >
           {valueLabel}
         </span>
@@ -222,17 +225,26 @@ function ReaderPreview({
 
   return (
     <section
-      className="mb-5 rounded-lg border px-4 transition-colors duration-200"
+      className="relative mb-5 overflow-hidden rounded-xl border px-4 py-0.5 transition-colors duration-200"
       aria-label="阅读效果预览"
       style={{
         background: preset.bg,
         color: preset.fg,
-        borderColor: withOpacity(preset.fg, 0.12),
+        borderColor: withOpacity(preset.fg, 0.14),
+        boxShadow: `0 6px 18px -12px ${withOpacity(preset.fg, 0.25)}`,
         "--reader-preview-fg": preset.fg,
         "--reader-preview-accent": preset.link,
       } as CSSProperties}
     >
-      <div className="flex flex-wrap items-center gap-x-2">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3.5 top-0 h-3.5 w-2 opacity-85"
+        style={{
+          background: preset.link,
+          clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%)",
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-x-2 pr-4">
         <span
           className="text-xs font-medium"
           style={{ color: withOpacity(preset.fg, 0.72) }}
@@ -240,8 +252,9 @@ function ReaderPreview({
           阅读预览
         </span>
         <span
-          className="mr-auto text-xs tabular-nums"
+          className="mr-auto rounded-full px-2 py-0.5 font-mono text-[11px] tabular-nums"
           style={{
+            background: withOpacity(preset.fg, 0.06),
             color: withOpacity(preset.fg, 0.78),
           }}
         >
@@ -437,12 +450,12 @@ export function ThemeSettings({
                           type="button"
                           onClick={() => setTheme({ preset: preset.key })}
                           aria-pressed={isActive}
-                          className="reader-settings-option grid min-h-11 min-w-0 justify-items-center gap-1 border p-1 text-xs sm:p-1.5"
+                          className="reader-settings-option grid min-h-11 min-w-0 justify-items-center gap-1.5 rounded-xl border p-1.5 text-xs"
                           style={isActive ? undefined : { borderColor: surface.hairline }}
                         >
                           <span
                             aria-hidden="true"
-                            className="relative grid h-9 w-full place-items-center rounded-sm border font-heading text-lg"
+                            className="relative grid h-10 w-full place-items-center rounded-lg border font-heading text-lg shadow-2xs"
                             style={{
                               background: preset.bg,
                               color: preset.fg,
@@ -450,7 +463,17 @@ export function ThemeSettings({
                             }}
                           >
                             文
-                            {isActive && <Check className="absolute right-0.5 top-0.5 size-3" />}
+                            {isActive && (
+                              <span
+                                className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full"
+                                style={{
+                                  background: uiScheme.link,
+                                  color: uiScheme.cardBg,
+                                }}
+                              >
+                                <Check className="size-2.5" strokeWidth={2.5} />
+                              </span>
+                            )}
                           </span>
                           <span className={isActive ? "font-semibold" : undefined}>{preset.label}</span>
                         </button>

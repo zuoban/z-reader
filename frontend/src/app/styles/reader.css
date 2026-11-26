@@ -145,9 +145,11 @@
   }
 
   .reader-chrome-surface {
-    background: color-mix(in srgb, var(--reader-chrome-bg) 96%, transparent);
-    border-color: color-mix(in srgb, var(--reader-chrome-rule) 48%, transparent);
+    background: color-mix(in srgb, var(--reader-chrome-bg) 88%, transparent);
+    border-color: color-mix(in srgb, var(--reader-chrome-rule) 56%, transparent);
     color: var(--reader-chrome-ink);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
     box-shadow: none;
   }
 
@@ -207,6 +209,14 @@
   .reader-toolbar-menu-divider {
     @apply mx-2 my-1 h-px;
     background: color-mix(in srgb, var(--reader-chrome-rule) 70%, transparent);
+  }
+
+  .reader-sheet-handle {
+    display: block;
+    width: 2.25rem;
+    height: 0.25rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--reader-panel-fg) 18%, transparent);
   }
 
   .reader-panel-header {
@@ -374,10 +384,10 @@
   }
 
   .reader-tts-primary {
-    @apply inline-flex shrink-0 cursor-pointer items-center justify-center border-0 p-0 shadow-none;
-    border-radius: var(--paper-radius-control);
+    @apply inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border-0 p-0 shadow-none;
     background: var(--reader-panel-fg);
     color: var(--reader-panel-bg);
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--reader-panel-fg) 38%, transparent);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       opacity var(--paper-duration-fast) var(--paper-ease-soft),
       transform var(--paper-duration-fast) var(--paper-ease-soft),
@@ -386,6 +396,7 @@
 
   .reader-tts-primary[data-playing="true"] {
     background: var(--reader-panel-accent);
+    box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--reader-panel-accent) 55%, transparent);
   }
 
   .reader-tts-primary:enabled:hover {
@@ -682,9 +693,10 @@
   }
 
   .reader-settings-option[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--reader-panel-accent) 10%, transparent);
-    border-color: color-mix(in srgb, var(--reader-panel-accent) 68%, transparent);
+    background: color-mix(in srgb, var(--reader-panel-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--reader-panel-accent) 72%, transparent);
     color: var(--reader-panel-accent);
+    box-shadow: 0 2px 8px -4px color-mix(in srgb, var(--reader-panel-accent) 30%, transparent);
   }
 
   .reader-settings-option[aria-pressed="true"]:enabled:hover {
@@ -727,15 +739,19 @@
 
   .reader-status-pill {
     @apply relative inline-flex h-7 items-center rounded-full px-1;
-    background: transparent;
+    background: color-mix(in srgb, var(--reader-status-bg) 78%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--reader-status-rule) 36%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
   .reader-status-pill:hover,
   .reader-status-pill:has(:focus-visible) {
-    background: color-mix(in srgb, var(--reader-status-hover) 58%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--reader-status-rule) 48%, transparent);
+    background: color-mix(in srgb, var(--reader-status-hover) 68%, var(--reader-status-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--reader-status-rule) 62%, transparent),
+      0 4px 14px -6px rgb(0 0 0 / 16%);
   }
 
   .reader-status-trigger {
@@ -796,9 +812,11 @@
   }
 
   .reader-status-bar {
-    background: color-mix(in srgb, var(--reader-status-bg) 96%, transparent);
-    border-color: color-mix(in srgb, var(--reader-status-rule) 55%, transparent);
+    background: color-mix(in srgb, var(--reader-status-bg) 88%, transparent);
+    border-color: color-mix(in srgb, var(--reader-status-rule) 58%, transparent);
     color: var(--reader-status-muted);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft);
   }
@@ -816,7 +834,7 @@
   }
 
   .reader-status-progress-fill {
-    background: color-mix(in srgb, var(--reader-status-accent) 52%, transparent);
+    background: color-mix(in srgb, var(--reader-status-accent) 72%, transparent);
     transition: width var(--paper-duration-base) var(--paper-ease-soft);
   }
 

@@ -35,14 +35,14 @@ export function LibraryPreview() {
           </li>
         ))}
       </ul>
-      <div className="mt-5 border-t border-border pt-4">
+      <div className="mt-5 rounded-xl border border-border/80 bg-card/85 p-3.5 shadow-xs">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="truncate text-xs text-subtle-foreground">
+          <p className="truncate text-xs font-medium text-foreground">
             西游记 · 第十四回
           </p>
           <span className="shrink-0 font-mono text-xs font-medium text-primary tabular-nums">54%</span>
         </div>
-        <div aria-hidden="true" className="mt-2 h-[2px] overflow-hidden rounded-full bg-border">
+        <div aria-hidden="true" className="mt-2 h-[3px] overflow-hidden rounded-full bg-border">
           <div className="h-full w-[54%] rounded-full bg-primary" />
         </div>
       </div>

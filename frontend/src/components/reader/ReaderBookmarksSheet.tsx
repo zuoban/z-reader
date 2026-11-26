@@ -397,20 +397,26 @@ export function ReaderBookmarksSheet({
                     </div>
                     {bookmark.note ? (
                       <p
-                        className="mt-1 line-clamp-2 text-xs leading-5"
-                        style={{ color: surface.muted }}
+                        className="mt-1.5 line-clamp-2 border-l-2 pl-2.5 text-xs leading-5"
+                        style={{
+                          borderColor: uiScheme.link,
+                          color: surface.muted,
+                        }}
                         title={bookmark.note}
                       >
                         {bookmark.note}
                       </p>
                     ) : null}
                     <div
-                      className="mt-1 flex flex-wrap items-center gap-2 text-xs leading-5"
+                      className="mt-1.5 flex flex-wrap items-center gap-2 text-xs leading-5"
                       style={{ color: surface.muted }}
                     >
                       <span
-                        className="font-medium tabular-nums"
-                        style={{ color: uiScheme.link }}
+                        className="rounded px-1.5 py-0.5 font-mono text-[11px] font-medium leading-none tabular-nums"
+                        style={{
+                          background: `color-mix(in srgb, ${uiScheme.link} 12%, transparent)`,
+                          color: uiScheme.link,
+                        }}
                       >
                         {formatPercent(bookmark.percentage)}
                       </span>

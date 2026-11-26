@@ -67,7 +67,13 @@ export function TTSPlaybackButtons({
   const iconSizeClass = 'h-4 w-4';
 
   return (
-    <div className="flex items-center justify-center gap-2.5">
+    <div
+      className="flex items-center justify-center gap-2.5 rounded-2xl border p-2.5"
+      style={{
+        borderColor: 'var(--reader-panel-rule)',
+        background: 'color-mix(in srgb, var(--reader-panel-hover) 36%, transparent)',
+      }}
+    >
       <TTSControlButton
         onClick={() => void onPrev()}
         disabled={!isActive || isBusy}

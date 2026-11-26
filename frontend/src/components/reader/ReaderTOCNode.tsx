@@ -62,8 +62,9 @@ function ReaderTOCNode({
         </span>
         {isCurrentChapter && (
           <span
-            className="ml-2 shrink-0 text-xs font-medium"
+            className="ml-2 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
             style={{
+              background: `color-mix(in srgb, ${uiScheme.link} 14%, transparent)`,
               color: uiScheme.link,
             }}
           >

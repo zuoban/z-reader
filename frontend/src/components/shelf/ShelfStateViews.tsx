@@ -39,7 +39,7 @@ export function ShelfOfflineState({
   onOpenOfflineBooks,
 }: ShelfOfflineStateProps) {
   return (
-    <div className="border-t border-border">
+    <div>
       <EmptyState
         icon={WifiOff}
         title="当前处于离线状态"
@@ -88,7 +88,7 @@ export interface ShelfLoadErrorStateProps {
 
 export function ShelfLoadErrorState({ loadError, onRetry }: ShelfLoadErrorStateProps) {
   return (
-    <div className="border-t border-border">
+    <div>
       <EmptyState
         icon={AlertCircle}
         tone="error"
@@ -122,7 +122,7 @@ export function ShelfEmptyLibraryState({
   onUpload,
 }: ShelfEmptyLibraryStateProps) {
   return (
-    <div className="relative border-t border-border">
+    <div className="relative">
       <EmptyState
         icon={BookOpen}
         title="书架还是空的"

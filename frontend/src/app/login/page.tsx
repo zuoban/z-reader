@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button, PasswordInput } from '@mantine/core';
 import '../styles/mantine-controls.css';
 import '@mantine/core/styles/PasswordInput.layer.css';
-import { ArrowLeft, CircleAlert, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
 import { LibraryPreview } from '@/components/LibraryPreview';
@@ -70,9 +70,9 @@ export default function LoginPage() {
   }
 
   return (
-    <AppScreen contentClassName="entry-screen flex flex-col">
+    <AppScreen contentClassName="entry-screen entry-atmosphere flex flex-col">
       <div className="app-container flex flex-1 flex-col items-center lg:justify-center lg:py-8">
-        <header className="flex h-14 w-full max-w-5xl items-center justify-between gap-4 border-b border-border sm:h-16 lg:mb-4 lg:h-auto lg:border-0">
+        <header className="flex h-14 w-full max-w-5xl items-center justify-between gap-4 border-b border-border/80 sm:h-16 lg:mb-5 lg:h-auto lg:border-0">
           <Link href="/" aria-label="Z Reader 首页" className="entry-nav-link inline-flex">
             <BrandLogo compact />
           </Link>
@@ -81,17 +81,17 @@ export default function LoginPage() {
             返回首页
           </Link>
         </header>
-        <main className="auth-layout mt-10 sm:mt-12 lg:mt-0">
+        <main className="auth-layout mt-8 sm:mt-10 lg:mt-0">
           <aside className="auth-editorial">
             <div>
-              <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-accent/65 px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
                 <span
                   aria-hidden="true"
-                  className="inline-block h-3 w-1 rounded-[1px] bg-primary"
+                  className="inline-block size-1.5 rounded-full bg-primary"
                 />
                 <span>私人书库</span>
               </p>
-              <h2 className="entry-title mt-3 text-2xl xl:text-[1.75rem]">
+              <h2 className="entry-title mt-4 text-2xl xl:text-[1.75rem]">
                 私人书库，随时续读
               </h2>
               <p className="mt-3 max-w-[23em] text-pretty text-sm leading-6 text-muted-foreground">
@@ -100,12 +100,18 @@ export default function LoginPage() {
             </div>
             <LibraryPreview />
           </aside>
-          <div className="auth-form-panel">
-            <div className="mb-8">
-              <h1 className="entry-title text-[2rem] lg:text-4xl">
+          <div className="auth-form-panel paper-panel rounded-2xl p-6 sm:p-8 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-12 lg:py-14 lg:shadow-none xl:px-16">
+            <div className="mb-7">
+              <div
+                aria-hidden="true"
+                className="app-sheet-icon mb-4 inline-flex size-10 items-center justify-center rounded-xl border border-primary/15"
+              >
+                <KeyRound size={18} strokeWidth={1.6} />
+              </div>
+              <h1 className="entry-title text-[1.75rem] lg:text-4xl">
                 解锁书库
               </h1>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              <p className="mt-2.5 text-sm leading-6 text-muted-foreground">
                 输入访问密码继续阅读
               </p>
             </div>
@@ -203,7 +209,10 @@ export default function LoginPage() {
                     正在进入...
                   </>
                 ) : (
-                  '进入书架'
+                  <>
+                    进入书架
+                    <ArrowRight size={16} strokeWidth={1.6} aria-hidden="true" />
+                  </>
                 )}
               </Button>
             </form>

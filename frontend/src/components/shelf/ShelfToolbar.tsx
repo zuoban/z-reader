@@ -106,12 +106,12 @@ export function ShelfToolbar({
         </h1>
         {!isOffline && !isLoadingBooks && !loadError && (
           <p
-            className="inline-flex shrink-0 items-baseline gap-2 font-mono text-xs tabular-nums text-muted-foreground"
+            className="inline-flex shrink-0 items-baseline gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground shadow-2xs"
             aria-label={`藏书共 ${totalBookCount} 本`}
           >
             <span>{totalBookCount} 本</span>
             {(selectedCategoryId !== null || hasSearchQuery) && (
-              <span className="text-subtle-foreground">· 显示 {filteredBookCount} 本</span>
+              <span className="text-primary font-medium">· 显示 {filteredBookCount} 本</span>
             )}
           </p>
         )}
@@ -167,9 +167,16 @@ export function ShelfToolbar({
                   >
                     <X className="size-4" strokeWidth={1.5} aria-hidden="true" />
                   </ActionIcon>
-                ) : null
+                ) : (
+                  <kbd
+                    aria-hidden="true"
+                    className="pointer-events-none hidden size-5 items-center justify-center rounded border border-border bg-surface-subtle font-mono text-[11px] font-medium text-muted-foreground sm:inline-flex"
+                  >
+                    /
+                  </kbd>
+                )
               }
-              rightSectionPointerEvents="all"
+              rightSectionPointerEvents={searchQuery ? 'all' : 'none'}
               rightSectionWidth={36}
               classNames={{
                 input: 'shelf-search app-field pl-9 pr-9 sm:h-9 sm:text-sm',

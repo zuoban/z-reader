@@ -15,11 +15,11 @@ export function ShelfDropOverlay({ isUploading }: ShelfDropOverlayProps) {
     >
       <div
         className={cn(
-          'paper-panel w-full max-w-sm rounded-2xl border-2 border-dashed px-8 py-8 text-center',
-          isUploading ? 'border-border' : 'border-primary/45'
+          'paper-panel w-full max-w-sm rounded-3xl border-2 border-dashed px-8 py-9 text-center shadow-[var(--paper-shadow-floating)]',
+          isUploading ? 'border-border' : 'border-primary/50 bg-card/95'
         )}
       >
-        <div className="app-sheet-icon mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-primary/15">
+        <div className="app-sheet-icon mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20">
           {isUploading ? (
             <Loader2
               className="h-5 w-5 animate-spin motion-reduce:animate-none"

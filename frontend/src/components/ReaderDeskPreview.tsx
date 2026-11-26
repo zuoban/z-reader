@@ -86,8 +86,9 @@ export function ReaderDeskPreview() {
       className="reader-desk-shell"
       aria-label="书页排版与书架续读示例"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3.5">
         <figcaption className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
           <span className="font-medium text-foreground">{activeBook.title}</span>
           <span aria-hidden="true">·</span>
           <span className="truncate">{activeBook.author}</span>
@@ -97,7 +98,7 @@ export function ReaderDeskPreview() {
           role="group"
           aria-label="切换书页纸面"
           data-paper-mode={selectedPreset ?? 'auto'}
-          className="flex items-center gap-0.5 rounded-lg bg-surface-subtle p-0.5"
+          className="flex items-center gap-0.5 rounded-full border border-border/70 bg-surface-subtle p-0.5"
         >
           {PAPER_PRESETS.map((preset) => {
             const isSelected = selectedPreset === preset.id;
@@ -117,7 +118,7 @@ export function ReaderDeskPreview() {
               >
                 <span
                   aria-hidden="true"
-                  className="size-3 rounded-full border"
+                  className="size-3 rounded-full border shadow-xs"
                   style={{
                     backgroundColor: preset.swatch,
                     borderColor: preset.border,
@@ -136,29 +137,31 @@ export function ReaderDeskPreview() {
       >
         <span aria-hidden="true" className="reader-desk-bookmark" />
 
-        <div className="reader-desk-page-header">
-          <span className="font-heading text-xs">{activeBook.title}</span>
-          <span className="truncate text-xs">{activeBook.chapter}</span>
-        </div>
-
-        <div className="reader-desk-excerpt">
-          {activeBook.paragraphs.map((paragraph, index) => (
-            <p key={`${activeBook.id}-${index}`}>{paragraph}</p>
-          ))}
-        </div>
-
-        <div className="reader-desk-page-footer">
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="tabular-nums">
-              已读 <strong className="reader-desk-progress-num">{activeBook.progress}%</strong>
-            </span>
-            <span className="tabular-nums">{activeBook.remaining}</span>
+        <div key={activeBook.id} className="paper-fade-content">
+          <div className="reader-desk-page-header">
+            <span className="font-heading text-xs">{activeBook.title}</span>
+            <span className="truncate text-xs">{activeBook.chapter}</span>
           </div>
-          <div aria-hidden="true" className="reader-desk-progress-track">
-            <div
-              className="reader-desk-progress-fill"
-              style={{ width: `${activeBook.progress}%` }}
-            />
+
+          <div className="reader-desk-excerpt">
+            {activeBook.paragraphs.map((paragraph, index) => (
+              <p key={`${activeBook.id}-${index}`}>{paragraph}</p>
+            ))}
+          </div>
+
+          <div className="reader-desk-page-footer">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="tabular-nums">
+                已读 <strong className="reader-desk-progress-num">{activeBook.progress}%</strong>
+              </span>
+              <span className="tabular-nums">{activeBook.remaining}</span>
+            </div>
+            <div aria-hidden="true" className="reader-desk-progress-track">
+              <div
+                className="reader-desk-progress-fill"
+                style={{ width: `${activeBook.progress}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -262,7 +262,7 @@ export const BookCard = memo(function BookCard({
           onFocus={handlePrefetch}
           aria-label={selectionMode ? `${selected ? '取消选择' : '选择'}《${titleLabel}》` : `阅读《${titleLabel}》`}
           aria-pressed={selectionMode ? selected : undefined}
-          className="shelf-book-open flex min-w-0 cursor-pointer flex-col rounded-t-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
+          className="shelf-book-open group/card flex min-w-0 cursor-pointer flex-col rounded-t-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
         >
           <div className="shelf-book-cover book-cover-spine">
             <BookCoverFace
@@ -292,7 +292,7 @@ export const BookCard = memo(function BookCard({
           <div className="shelf-book-details">
             <div className="min-w-0">
               <h2
-                className="line-clamp-2 wrap-anywhere font-sans text-sm font-medium leading-5 text-foreground transition-colors sm:text-[15px]"
+                className="line-clamp-2 wrap-anywhere font-sans text-sm font-medium leading-5 text-foreground transition-colors group-hover/card:text-primary sm:text-[15px]"
                 title={titleLabel}
               >
                 <HighlightedText
@@ -315,8 +315,13 @@ export const BookCard = memo(function BookCard({
 
             <div className="min-w-0 space-y-1.5">
               <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
-                <span className="min-w-0 flex-1 truncate" title={categoryLabel}>
-                  {categoryLabel}
+                <span className="min-w-0 flex-1 truncate">
+                  <span
+                    className="inline-block max-w-full truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"
+                    title={categoryLabel}
+                  >
+                    {categoryLabel}
+                  </span>
                 </span>
                 <p className="flex min-w-0 max-w-[65%] items-baseline gap-1" title={progressMetaLabel}>
                   {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
@@ -328,12 +333,12 @@ export const BookCard = memo(function BookCard({
                 </p>
               </div>
               <div
-                className="h-[2px] overflow-hidden rounded-full bg-border"
+                className="h-[3px] overflow-hidden rounded-full bg-border/80"
                 aria-hidden="true"
                 data-book-progress=""
               >
                 <div
-                  className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 motion-reduce:transition-none"
+                  className="h-full w-full origin-left rounded-full bg-gradient-to-r from-primary to-primary/80 transition-transform duration-300 motion-reduce:transition-none"
                   style={{ transform: `scaleX(${progressValue > 0 ? Math.max(progressValue, 3) / 100 : 0})` }}
                 />
               </div>

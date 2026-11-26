@@ -59,13 +59,13 @@ export function ShelfCategoryBar({
 
   if (showCategoryFilters) {
     return (
-      <div className="flex min-w-0 items-center justify-between gap-2 border-y border-border/80 py-2 sm:gap-3">
+      <div className="flex min-w-0 items-center justify-between gap-2 pb-1 pt-0.5 sm:gap-3">
         <div className="shelf-category-strip relative min-w-0 flex-1">
           <div
             ref={categoryStripRef}
             role="group"
             aria-label="书籍分类筛选"
-            className="scrollbar-none flex min-w-0 snap-x items-center gap-1 overflow-x-auto sm:flex-wrap sm:overflow-visible"
+            className="scrollbar-none flex min-w-0 snap-x items-center gap-1.5 overflow-x-auto sm:flex-wrap sm:overflow-visible"
           >
             <button
               type="button"
@@ -188,14 +188,14 @@ export function ShelfCategoryBar({
   if (showShelfControlsSkeleton) {
     return (
       <div
-        className="flex min-w-0 items-center justify-between gap-2 border-y border-border/80 py-2 sm:gap-3"
+        className="flex min-w-0 items-center justify-between gap-2 pb-1 pt-0.5 sm:gap-3"
         aria-hidden="true"
         data-testid="shelf-category-skeleton"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-          <div className="skeleton-shimmer h-11 w-14 shrink-0 rounded-lg bg-secondary/70 sm:h-8" />
-          <div className="skeleton-shimmer h-11 w-16 shrink-0 rounded-lg bg-secondary/70 sm:h-8" />
-          <div className="skeleton-shimmer h-11 w-20 shrink-0 rounded-lg bg-secondary/70 sm:h-8" />
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+          <div className="skeleton-shimmer h-11 w-14 shrink-0 rounded-full bg-secondary/70 sm:h-8" />
+          <div className="skeleton-shimmer h-11 w-16 shrink-0 rounded-full bg-secondary/70 sm:h-8" />
+          <div className="skeleton-shimmer h-11 w-20 shrink-0 rounded-full bg-secondary/70 sm:h-8" />
         </div>
         <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-2 sm:flex">
           <div className="skeleton-shimmer h-8 w-16 rounded-lg bg-secondary/70" />

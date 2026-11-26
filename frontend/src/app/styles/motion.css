@@ -34,7 +34,7 @@
   @keyframes paperShelfRevealSoft {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(6px);
     }
 
     to {
@@ -45,6 +45,22 @@
 
   .paper-reveal-soft {
     animation: paperShelfRevealSoft var(--paper-duration-base) var(--paper-ease-soft) both;
+  }
+
+  @keyframes paperFadeContent {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .paper-fade-content {
+    animation: paperFadeContent var(--paper-duration-base) var(--paper-ease-soft) both;
   }
 }
 
@@ -59,11 +75,13 @@
   }
 
   .paper-reveal-soft,
+  .paper-fade-content,
   .skeleton-shimmer::after {
     animation: none !important;
   }
 
-  .paper-reveal-soft {
+  .paper-reveal-soft,
+  .paper-fade-content {
     opacity: 1;
     filter: none;
   }

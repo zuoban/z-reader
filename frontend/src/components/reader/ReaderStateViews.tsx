@@ -204,17 +204,17 @@ export function ReaderLoadingOverlay({
     >
       {/* Page skeleton for perceived readiness */}
       <div
-        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl opacity-35 sm:inset-x-16"
+        className="pointer-events-none absolute inset-x-8 top-10 bottom-16 mx-auto max-w-2xl opacity-45 sm:inset-x-16"
         aria-hidden="true"
       >
         <div
-          className="mb-6 h-3 w-1/3 rounded-full"
+          className="skeleton-shimmer mb-6 h-3 w-1/3 rounded-full"
           style={{ background: withOpacity(uiScheme.fg, 0.08) }}
         />
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="mb-3 h-2.5 rounded-full"
+            className="skeleton-shimmer mb-3 h-2.5 rounded-full"
             style={{
               width: `${72 + ((i * 13) % 28)}%`,
               background: withOpacity(uiScheme.fg, 0.06 + (i % 3) * 0.015),

@@ -50,9 +50,9 @@ export function ShelfBatchBar({
             <span className="text-muted-foreground">已选中</span>
             <span
               className={cn(
-                'inline-flex min-w-[3.25rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors',
+                'inline-flex min-w-[3.25rem] items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums transition-colors',
                 selectedCount > 0
-                  ? 'bg-primary/10 text-primary'
+                  ? 'bg-primary text-primary-foreground shadow-2xs'
                   : 'bg-secondary text-muted-foreground'
               )}
               aria-live="polite"

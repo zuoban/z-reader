@@ -423,31 +423,40 @@ export function ReaderBookmarksSheet({
                         backgroundColor: uiScheme.cardBg,
                       }}
                     />
-                    <div className="mt-2 flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        disabled={isUpdatingNote}
-                        className="reader-panel-secondary !h-8 px-3 text-xs"
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span
+                        className="flex items-center gap-2 text-[11px] tabular-nums"
+                        style={{ color: surface.muted }}
                       >
-                        取消
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveNote(bookmark.id)}
-                        disabled={isUpdatingNote}
-                        aria-busy={isUpdatingNote || undefined}
-                        className="reader-panel-action !h-8 px-3 text-xs"
-                      >
-                        {isUpdatingNote ? (
-                          <Loader2
-                            className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
-                            strokeWidth={1.6}
-                            aria-hidden="true"
-                          />
-                        ) : null}
-                        <span>保存</span>
-                      </button>
+                        <span className="hidden sm:inline">⌘/Ctrl + Enter 保存</span>
+                        <span className="font-mono">{draftNote.trim().length} 字</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          disabled={isUpdatingNote}
+                          className="reader-panel-secondary !h-8 px-3 text-xs"
+                        >
+                          取消
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveNote(bookmark.id)}
+                          disabled={isUpdatingNote}
+                          aria-busy={isUpdatingNote || undefined}
+                          className="reader-panel-action !h-8 px-3 text-xs"
+                        >
+                          {isUpdatingNote ? (
+                            <Loader2
+                              className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                              strokeWidth={1.6}
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                          <span>保存</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

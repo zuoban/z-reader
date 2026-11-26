@@ -23,7 +23,12 @@ function getReaderShortcutGroups(
 ): ShortcutGroup[] {
   const overlayItems: ShortcutItem[] = [
     { label: "目录", keys: ["T"] },
-    ...(showBookmarksShortcut ? [{ label: "书签", keys: ["B"] }] : []),
+    ...(showBookmarksShortcut
+      ? [
+          { label: "书签", keys: ["B"] },
+          { label: "快速添加书签", keys: ["M"] },
+        ]
+      : []),
     { label: "排版与外观", keys: ["S"] },
     { label: "切换纸面主题", keys: ["P"] },
     { label: "调节字号", keys: ["[", "]"] },

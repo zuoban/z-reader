@@ -62,6 +62,7 @@ interface UseReaderControlsOptions {
   onOpenSearch?: () => void;
   onOpenTOC?: () => void;
   onOpenBookmarks?: () => void;
+  onCreateBookmark?: () => void;
   onOpenThemeSettings?: () => void;
   onCyclePreset?: () => void;
   onStepFontSize?: (delta: -1 | 1) => void;
@@ -81,6 +82,7 @@ export function useReaderControls({
   onOpenSearch,
   onOpenTOC,
   onOpenBookmarks,
+  onCreateBookmark,
   onOpenThemeSettings,
   onCyclePreset,
   onStepFontSize,
@@ -114,6 +116,7 @@ export function useReaderControls({
     onOpenSearch,
     onOpenTOC,
     onOpenBookmarks,
+    onCreateBookmark,
     onOpenThemeSettings,
     onCyclePreset,
     onStepFontSize,
@@ -133,6 +136,7 @@ export function useReaderControls({
       onOpenSearch,
       onOpenTOC,
       onOpenBookmarks,
+      onCreateBookmark,
       onOpenThemeSettings,
       onCyclePreset,
       onStepFontSize,
@@ -144,6 +148,7 @@ export function useReaderControls({
     onCyclePreset,
     onNext,
     onOpenBookmarks,
+    onCreateBookmark,
     onOpenSearch,
     onOpenTOC,
     onOpenThemeSettings,
@@ -218,6 +223,7 @@ export function useReaderControls({
       onOpenSearch,
       onOpenTOC,
       onOpenBookmarks,
+      onCreateBookmark,
       onOpenThemeSettings,
       onCyclePreset,
       onStepFontSize,
@@ -315,6 +321,13 @@ export function useReaderControls({
         if (!e.shiftKey && !isPagingControl && onOpenBookmarks) {
           e.preventDefault();
           onOpenBookmarks();
+        }
+        break;
+      case 'm':
+      case 'M':
+        if (!e.shiftKey && !isPagingControl && onCreateBookmark) {
+          e.preventDefault();
+          onCreateBookmark();
         }
         break;
       case 's':

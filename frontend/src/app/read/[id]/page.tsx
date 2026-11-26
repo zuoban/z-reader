@@ -183,6 +183,7 @@ function Reader({ bookId }: { bookId: string }) {
 
   const [hudMessage, setHudMessage] = useState<string | null>(null);
   const hudTimerRef = useRef<number | null>(null);
+  const createBookmarkRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     return () => {
@@ -234,6 +235,7 @@ function Reader({ bookId }: { bookId: string }) {
     onOpenSearch: sheets.openSearch,
     onOpenTOC: () => sheets.setTocOpen(true),
     onOpenBookmarks: isAuthenticated ? () => sheets.setBookmarksOpen(true) : undefined,
+    onCreateBookmark: isAuthenticated ? () => createBookmarkRef.current?.() : undefined,
     onOpenThemeSettings: () => sheets.setThemeSettingsOpen(true),
     onCyclePreset: handleCyclePreset,
     onStepFontSize: handleStepFontSize,
@@ -333,6 +335,15 @@ function Reader({ bookId }: { bookId: string }) {
   useEffect(() => {
     cleanupReaderRef.current = reader.cleanupReader;
   }, [reader.cleanupReader]);
+
+  useEffect(() => {
+    createBookmarkRef.current =
+      isAuthenticated && Boolean(reader.currentCFI) && !isSavingBookmark
+        ? () => {
+            void handleCreateBookmark();
+          }
+        : null;
+  }, [handleCreateBookmark, isAuthenticated, isSavingBookmark, reader.currentCFI]);
 
   const { syncChromeState } = chrome;
   const keepHeaderVisible = sheets.hasSheetOpen && !sheets.ttsOpen;

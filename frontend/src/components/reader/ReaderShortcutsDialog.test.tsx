@@ -36,6 +36,8 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByText('T')).toBeInTheDocument();
     expect(screen.getByText('书签')).toBeInTheDocument();
     expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.getByText('快速添加书签')).toBeInTheDocument();
+    expect(screen.getByText('M')).toBeInTheDocument();
     expect(screen.getByText('排版与外观')).toBeInTheDocument();
     expect(screen.getByText('S')).toBeInTheDocument();
     expect(screen.getByText('切换纸面主题')).toBeInTheDocument();
@@ -74,6 +76,8 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.queryByText('F')).not.toBeInTheDocument();
     expect(screen.queryByText('书签')).not.toBeInTheDocument();
     expect(screen.queryByText('B')).not.toBeInTheDocument();
+    expect(screen.queryByText('快速添加书签')).not.toBeInTheDocument();
+    expect(screen.queryByText('M')).not.toBeInTheDocument();
     expect(screen.queryByText('退出全屏 / 关闭浮层 / 返回书库')).not.toBeInTheDocument();
     expect(screen.getByText('关闭浮层 / 返回书库')).toBeInTheDocument();
   });

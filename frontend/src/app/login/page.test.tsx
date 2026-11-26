@@ -102,6 +102,7 @@ describe('LoginPage', () => {
 
     expect(screen.getByRole('heading', { name: '解锁书库' })).toBeInTheDocument();
     expect(screen.getByLabelText('访问密码')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '切换明暗外观' })).toBeInTheDocument();
   });
 
   it('shows loading state and redirects to shelf when already authenticated', () => {

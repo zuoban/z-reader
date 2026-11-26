@@ -485,6 +485,7 @@ describe('reader controls', () => {
     const onCyclePreset = vi.fn();
     const onStepFontSize = vi.fn();
     const onToggleChrome = vi.fn();
+    const onCreateBookmark = vi.fn();
 
     const { rerender, unmount } = renderHook(
       ({ overlayOpen }) =>
@@ -497,6 +498,7 @@ describe('reader controls', () => {
           onCyclePreset,
           onStepFontSize,
           onToggleChrome,
+          onCreateBookmark,
         }),
       { initialProps: { overlayOpen: false } },
     );
@@ -512,6 +514,11 @@ describe('reader controls', () => {
       expect(hEvent.defaultPrevented).toBe(true);
       expect(onToggleChrome).toHaveBeenCalledTimes(1);
 
+      const mEvent = new KeyboardEvent('keydown', { key: 'm', bubbles: true, cancelable: true });
+      localPage.dispatchEvent(mEvent);
+      expect(mEvent.defaultPrevented).toBe(true);
+      expect(onCreateBookmark).toHaveBeenCalledTimes(1);
+
       const decEvent = new KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true });
       localPage.dispatchEvent(decEvent);
       expect(decEvent.defaultPrevented).toBe(true);
@@ -525,18 +532,22 @@ describe('reader controls', () => {
       // Modifier keys do not trigger single-key shortcuts
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true, cancelable: true }));
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', metaKey: true, bubbles: true, cancelable: true }));
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', ctrlKey: true, bubbles: true, cancelable: true }));
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: '[', metaKey: true, bubbles: true, cancelable: true }));
       expect(onCyclePreset).toHaveBeenCalledTimes(1);
       expect(onToggleChrome).toHaveBeenCalledTimes(1);
+      expect(onCreateBookmark).toHaveBeenCalledTimes(1);
       expect(onStepFontSize).toHaveBeenCalledTimes(2);
 
       // Blocked when overlay is open
       rerender({ overlayOpen: true });
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', bubbles: true, cancelable: true }));
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'H', bubbles: true, cancelable: true }));
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'M', bubbles: true, cancelable: true }));
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true, cancelable: true }));
       expect(onCyclePreset).toHaveBeenCalledTimes(1);
       expect(onToggleChrome).toHaveBeenCalledTimes(1);
+      expect(onCreateBookmark).toHaveBeenCalledTimes(1);
       expect(onStepFontSize).toHaveBeenCalledTimes(2);
     } finally {
       unmount();

@@ -9,6 +9,7 @@ import '@mantine/core/styles/PasswordInput.layer.css';
 import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppScreen, BrandLogo, LoadingSpinner, LoadingState } from '@/components/AppShell';
+import { LandingThemeToggle } from '@/components/LandingThemeToggle';
 import { LibraryPreview } from '@/components/LibraryPreview';
 import '../styles/entry.css';
 
@@ -76,10 +77,13 @@ export default function LoginPage() {
           <Link href="/" aria-label="Z Reader 首页" className="entry-nav-link inline-flex">
             <BrandLogo compact />
           </Link>
-          <Link href="/" className="entry-nav-link inline-flex">
-            <ArrowLeft size={16} strokeWidth={1.5} aria-hidden="true" />
-            返回首页
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <LandingThemeToggle />
+            <Link href="/" className="entry-nav-link inline-flex">
+              <ArrowLeft size={16} strokeWidth={1.5} aria-hidden="true" />
+              返回首页
+            </Link>
+          </div>
         </header>
         <main className="auth-layout mt-8 sm:mt-10 lg:mt-0">
           <aside className="auth-editorial">

@@ -467,6 +467,15 @@ export function ReaderTOCSheet({
                   >
                     {displayPercentage.toFixed(1)}%
                   </span>
+                  {currentChapterIndex >= 0 && flatTOC.length > 0 ? (
+                    <span
+                      data-toc-chapter-position={`${currentChapterIndex + 1}/${flatTOC.length}`}
+                      className="font-mono text-[11px] tabular-nums"
+                      style={{ color: surface.muted }}
+                    >
+                      第 {currentChapterIndex + 1} / {flatTOC.length} 章
+                    </span>
+                  ) : null}
                 </div>
 
                 {onReturnToPreviousLocation ? (

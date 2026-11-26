@@ -821,4 +821,118 @@ describe('ReaderBookmarksSheet', () => {
     fireEvent.click(prevBtn);
     expect(onGoTo).toHaveBeenLastCalledWith('vol-1.xhtml');
   });
+
+  it('shows chapter sequence position in the TOC footer when current chapter matches', () => {
+    const toc = [
+      { id: '1', href: 'ch-1.xhtml', label: '第一章' },
+      { id: '2', href: 'ch-2.xhtml', label: '第二章' },
+      { id: '3', href: 'ch-3.xhtml', label: '第三章' },
+    ];
+
+    const { container } = render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={vi.fn()}
+        toc={toc}
+        bookTitle="测试书籍"
+        bookAuthor="作者"
+        tocListRef={{ current: null }}
+        currentChapter="第二章"
+        currentChapterHref="ch-2.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        onLocateCurrent={vi.fn()}
+        onGoTo={vi.fn()}
+        percentage={45}
+        onGoToFraction={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('[data-toc-chapter-position="2/3"]')).toHaveTextContent(
+      '第 2 / 3 章',
+    );
+  });
+
+  it('filters bookmarks by keyword, handles Escape clear/reset, and marks active CFI', () => {
+    const onOpenChange = vi.fn();
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-1',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/2)',
+        chapter: '第一章 初遇',
+        percentage: 10,
+        note: '重要伏笔',
+        created_at: '2026-05-01T10:00:00.000Z',
+      },
+      {
+        id: 'bm-2',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/4)',
+        chapter: '第二章 启程',
+        percentage: 30,
+        note: '',
+        created_at: '2026-05-02T10:00:00.000Z',
+      },
+      {
+        id: 'bm-3',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/6)',
+        chapter: '第三章 风起',
+        percentage: 55,
+        note: '关键词摘录',
+        created_at: '2026-05-03T10:00:00.000Z',
+      },
+      {
+        id: 'bm-4',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/8)',
+        chapter: '第四章 归途',
+        percentage: 80,
+        note: '',
+        created_at: '2026-05-04T10:00:00.000Z',
+      },
+    ];
+
+    const { container } = render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={onOpenChange}
+        bookmarks={bookmarks}
+        currentCFI="epubcfi(/6/4)"
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.light}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const activeBadge = container.querySelector('[data-current-bookmark="true"]');
+    expect(activeBadge).toHaveTextContent('当前位置');
+
+    const searchInput = screen.getByRole('searchbox', { name: '搜索书签' });
+    fireEvent.change(searchInput, { target: { value: '风起' } });
+    expect(screen.getByText('1 / 4')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /打开书签：第三章 风起/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /打开书签：第一章 初遇/ })).not.toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: '不存在的关键词' } });
+    expect(screen.getByText('0 / 4')).toBeInTheDocument();
+    expect(screen.getByText('未找到匹配书签')).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByText('4')).toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: '不存在的关键词' } });
+    fireEvent.click(screen.getByRole('button', { name: '清空筛选' }));
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /打开书签：第一章 初遇/ })).toBeInTheDocument();
+  });
 });

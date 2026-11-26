@@ -505,6 +505,7 @@ function Reader({ bookId }: { bookId: string }) {
             open={sheets.bookmarksOpen}
             onOpenChange={sheets.setBookmarksOpen}
             bookmarks={bookmarks}
+            currentCFI={reader.currentCFI}
             bookTitle={reader.bookTitle}
             bookAuthor={reader.bookAuthor}
             uiScheme={uiScheme}

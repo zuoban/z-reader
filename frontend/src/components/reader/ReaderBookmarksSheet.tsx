@@ -9,10 +9,13 @@ import {
   Download,
   Loader2,
   Pencil,
+  Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { HighlightedText } from "@/components/HighlightedText";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { Bookmark as ReaderBookmark } from "@/lib/api";
 import {
@@ -23,10 +26,13 @@ import {
 import { getModernReaderSurface, withOpacity } from "@/lib/reader-ui";
 import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 
+const BOOKMARK_SEARCH_THRESHOLD = 4;
+
 interface ReaderBookmarksSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bookmarks: ReaderBookmark[];
+  currentCFI?: string;
   bookTitle?: string;
   bookAuthor?: string | null;
   uiScheme: ThemeColors;
@@ -89,6 +95,7 @@ export function ReaderBookmarksSheet({
   open,
   onOpenChange,
   bookmarks,
+  currentCFI,
   bookTitle = "",
   bookAuthor,
   uiScheme,
@@ -103,11 +110,13 @@ export function ReaderBookmarksSheet({
   const surface = getModernReaderSurface(uiScheme);
   const [sortBy, setSortBy] = useState<"recent" | "position">("recent");
   const [notesOnly, setNotesOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftNote, setDraftNote] = useState("");
   const [isUpdatingNote, setIsUpdatingNote] = useState(false);
   const [prevOpen, setPrevOpen] = useState(open);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const editSessionRef = useRef(0);
 
   if (open !== prevOpen) {
@@ -120,6 +129,9 @@ export function ReaderBookmarksSheet({
       }
       if (notesOnly) {
         setNotesOnly(false);
+      }
+      if (searchQuery) {
+        setSearchQuery("");
       }
     }
   }
@@ -146,11 +158,19 @@ export function ReaderBookmarksSheet({
     [bookmarks],
   );
   const effectiveNotesOnly = notesOnly && notedCount > 0;
+  const showSearch = bookmarks.length >= BOOKMARK_SEARCH_THRESHOLD;
+  const normalizedQuery = showSearch ? searchQuery.trim().toLowerCase() : "";
+  const isFiltering = Boolean(normalizedQuery || effectiveNotesOnly);
 
   const sortedBookmarks = useMemo(() => {
-    const filtered = effectiveNotesOnly
-      ? bookmarks.filter((item) => Boolean(item.note?.trim()))
-      : bookmarks;
+    const filtered = bookmarks.filter((item) => {
+      if (effectiveNotesOnly && !item.note?.trim()) return false;
+      if (!normalizedQuery) return true;
+      return (
+        (item.chapter || "").toLowerCase().includes(normalizedQuery) ||
+        (item.note || "").toLowerCase().includes(normalizedQuery)
+      );
+    });
 
     return [...filtered].sort((left, right) => {
       if (sortBy === "position" && left.percentage !== right.percentage) {
@@ -162,7 +182,7 @@ export function ReaderBookmarksSheet({
       if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
       return rightTime - leftTime;
     });
-  }, [bookmarks, effectiveNotesOnly, sortBy]);
+  }, [bookmarks, effectiveNotesOnly, normalizedQuery, sortBy]);
 
   function handleStartEdit(bookmark: ReaderBookmark) {
     editSessionRef.current += 1;
@@ -229,7 +249,8 @@ export function ReaderBookmarksSheet({
     <ReaderSheet
       open={open}
       onClose={() => onOpenChange(false)}
-      closeOnEscape={editingId === null}
+      closeOnEscape={editingId === null && !searchQuery}
+      guardComposingEscape
       widthClassName="sm:w-[460px]"
       uiScheme={uiScheme}
       overlayContainer={overlayContainer}
@@ -242,10 +263,23 @@ export function ReaderBookmarksSheet({
             style={{ color: surface.muted }}
             aria-live="polite"
           >
-            {bookmarks.length}
+            {isFiltering ? `${sortedBookmarks.length} / ${bookmarks.length}` : bookmarks.length}
           </span>
         ) : null
       }
+      onContentKeyDown={(event) => {
+        if (
+          event.key === "Escape" &&
+          !event.nativeEvent.isComposing &&
+          editingId === null &&
+          searchQuery
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          setSearchQuery("");
+          searchInputRef.current?.focus();
+        }
+      }}
       subtitle={
         <div className="mt-1 space-y-0.5">
           <p
@@ -282,6 +316,37 @@ export function ReaderBookmarksSheet({
       headerExtra={
         bookmarks.length > 0 ? (
           <div className="mt-2.5 space-y-2">
+            {showSearch ? (
+              <div className="reader-panel-search">
+                <Search
+                  className="h-3.5 w-3.5 shrink-0"
+                  style={{ color: surface.muted }}
+                  aria-hidden="true"
+                />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.currentTarget.value)}
+                  placeholder="搜索书签章节或笔记"
+                  aria-label="搜索书签"
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      searchInputRef.current?.focus();
+                    }}
+                    aria-label="清空书签搜索"
+                    title="清空"
+                    className="reader-panel-icon !size-7"
+                  >
+                    <X className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -461,110 +526,156 @@ export function ReaderBookmarksSheet({
                   </div>
                 </div>
               ) : (
-                <div
-                  key={bookmark.id}
-                  className="group flex items-center gap-2 py-1.5 sm:gap-3"
-                  style={{ borderColor: surface.hairline }}
-                >
-                  <button
-                    type="button"
-                    aria-label={`打开书签：${bookmark.chapter || "未识别章节"}，${formatPercent(bookmark.percentage)}`}
-                    className="reader-panel-item min-w-0 flex-1 flex-col items-stretch px-2.5 py-2"
-                    onClick={() => {
-                      onGoTo(bookmark);
-                      onOpenChange(false);
-                    }}
-                  >
+                (() => {
+                  const isCurrentLocation = Boolean(currentCFI && bookmark.cfi === currentCFI);
+                  return (
                     <div
-                      className="truncate text-sm font-medium leading-6"
-                      style={{ color: surface.fg }}
-                      title={bookmark.chapter || "未识别章节"}
+                      key={bookmark.id}
+                      className="group flex items-center gap-2 py-1.5 sm:gap-3"
+                      style={{ borderColor: surface.hairline }}
                     >
-                      {bookmark.chapter || "未识别章节"}
-                    </div>
-                    {bookmark.note ? (
-                      <p
-                        className="mt-1.5 line-clamp-2 border-l-2 pl-2.5 text-xs leading-5"
-                        style={{
-                          borderColor: uiScheme.link,
-                          color: surface.muted,
-                        }}
-                        title={bookmark.note}
-                      >
-                        {bookmark.note}
-                      </p>
-                    ) : null}
-                    <div
-                      className="mt-1.5 flex flex-wrap items-center gap-2 text-xs leading-5"
-                      style={{ color: surface.muted }}
-                    >
-                      <span
-                        className="rounded px-1.5 py-0.5 font-mono text-[11px] font-medium leading-none tabular-nums"
-                        style={{
-                          background: `color-mix(in srgb, ${uiScheme.link} 12%, transparent)`,
-                          color: uiScheme.link,
-                        }}
-                      >
-                        {formatPercent(bookmark.percentage)}
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className="h-1 w-1 rounded-full bg-current opacity-30"
-                      />
-                      <span>{formatDate(bookmark.created_at)}</span>
-                    </div>
-                    <div
-                      aria-hidden="true"
-                      className="mt-2 h-[2px] w-full overflow-hidden rounded-full"
-                      style={{ background: surface.hairline }}
-                    >
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.max(0, Math.min(bookmark.percentage, 100))}%`,
-                          background: uiScheme.link,
-                          opacity: 0.65,
-                        }}
-                      />
-                    </div>
-                  </button>
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    {onUpdateNote ? (
-                      <ActionIcon
-                        variant="subtle"
-                        size={44}
-                        radius="md"
+                      <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartEdit(bookmark);
+                        aria-label={`打开书签：${bookmark.chapter || "未识别章节"}，${formatPercent(bookmark.percentage)}`}
+                        className="reader-panel-item min-w-0 flex-1 flex-col items-stretch px-2.5 py-2"
+                        onClick={() => {
+                          onGoTo(bookmark);
+                          onOpenChange(false);
                         }}
-                        title="编辑备注"
-                        aria-label={`编辑书签备注：${bookmark.chapter || "未识别章节"}`}
-                        className="reader-panel-icon opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       >
-                        <Pencil className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
-                      </ActionIcon>
-                    ) : null}
-                    <ActionIcon
-                      variant="subtle"
-                      size={44}
-                      radius="md"
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(bookmark.id);
-                      }}
-                      title="删除书签"
-                      aria-label={`删除书签：${bookmark.chapter || "未识别章节"}`}
-                      className="reader-panel-danger opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
-                    </ActionIcon>
-                  </div>
-                </div>
+                        <div
+                          className="truncate text-sm font-medium leading-6"
+                          style={{ color: surface.fg }}
+                          title={bookmark.chapter || "未识别章节"}
+                        >
+                          <HighlightedText
+                            text={bookmark.chapter || "未识别章节"}
+                            query={normalizedQuery}
+                            markClassName="reader-search-mark"
+                          />
+                        </div>
+                        {bookmark.note ? (
+                          <p
+                            className="mt-1.5 line-clamp-2 border-l-2 pl-2.5 text-xs leading-5"
+                            style={{
+                              borderColor: uiScheme.link,
+                              color: surface.muted,
+                            }}
+                            title={bookmark.note}
+                          >
+                            <HighlightedText
+                              text={bookmark.note}
+                              query={normalizedQuery}
+                              markClassName="reader-search-mark"
+                            />
+                          </p>
+                        ) : null}
+                        <div
+                          className="mt-1.5 flex flex-wrap items-center gap-2 text-xs leading-5"
+                          style={{ color: surface.muted }}
+                        >
+                          <span
+                            className="rounded px-1.5 py-0.5 font-mono text-[11px] font-medium leading-none tabular-nums"
+                            style={{
+                              background: `color-mix(in srgb, ${uiScheme.link} 12%, transparent)`,
+                              color: uiScheme.link,
+                            }}
+                          >
+                            {formatPercent(bookmark.percentage)}
+                          </span>
+                          {isCurrentLocation && (
+                            <span
+                              data-current-bookmark="true"
+                              className="rounded px-1.5 py-0.5 text-[11px] font-medium leading-none"
+                              style={{
+                                background: `color-mix(in srgb, ${uiScheme.link} 16%, transparent)`,
+                                color: uiScheme.link,
+                              }}
+                            >
+                              当前位置
+                            </span>
+                          )}
+                          <span
+                            aria-hidden="true"
+                            className="h-1 w-1 rounded-full bg-current opacity-30"
+                          />
+                          <span>{formatDate(bookmark.created_at)}</span>
+                        </div>
+                        <div
+                          aria-hidden="true"
+                          className="mt-2 h-[2px] w-full overflow-hidden rounded-full"
+                          style={{ background: surface.hairline }}
+                        >
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(0, Math.min(bookmark.percentage, 100))}%`,
+                              background: uiScheme.link,
+                              opacity: 0.65,
+                            }}
+                          />
+                        </div>
+                      </button>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        {onUpdateNote ? (
+                          <ActionIcon
+                            variant="subtle"
+                            size={44}
+                            radius="md"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(bookmark);
+                            }}
+                            title="编辑备注"
+                            aria-label={`编辑书签备注：${bookmark.chapter || "未识别章节"}`}
+                            className="reader-panel-icon opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                          >
+                            <Pencil className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
+                          </ActionIcon>
+                        ) : null}
+                        <ActionIcon
+                          variant="subtle"
+                          size={44}
+                          radius="md"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(bookmark.id);
+                          }}
+                          title="删除书签"
+                          aria-label={`删除书签：${bookmark.chapter || "未识别章节"}`}
+                          className="reader-panel-danger opacity-80 focus-visible:opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        >
+                          <Trash2 className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
+                        </ActionIcon>
+                      </div>
+                    </div>
+                  );
+                })()
               ),
             )
+          ) : bookmarks.length > 0 ? (
+            <ReaderEmptyState
+              icon={<Search className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}
+              iconTone="muted"
+              title="未找到匹配书签"
+              description="试试其他关键词，或清空筛选查看全部书签"
+              uiScheme={uiScheme}
+              action={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setNotesOnly(false);
+                    searchInputRef.current?.focus();
+                  }}
+                  className="reader-panel-action mt-4 px-3.5 text-xs"
+                >
+                  清空筛选
+                </button>
+              }
+            />
           ) : (
             <ReaderEmptyState
               icon={<Bookmark className="h-4.5 w-4.5" strokeWidth={1.6} aria-hidden="true" />}

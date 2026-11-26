@@ -62,7 +62,7 @@ export function ShelfBatchBar({
               {selectedCount} 本
             </span>
             {typeof totalVisibleCount === 'number' && totalVisibleCount > 0 && (
-              <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
+              <span className="text-xs tabular-nums text-muted-foreground">
                 / 共 {totalVisibleCount} 本
               </span>
             )}

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@mantine/core';
-import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Trash2 } from 'lucide-react';
+import { ActionIcon, Button, TextInput } from '@mantine/core';
+import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppModal } from '@/components/AppModal';
 import { LoadingSpinner } from '@/components/AppShell';
@@ -33,6 +33,7 @@ export function OfflineBooksDialog({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [filterQuery, setFilterQuery] = useState('');
   const clearAllButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusFrameRef = useRef<number | null>(null);
 
@@ -66,6 +67,7 @@ export function OfflineBooksDialog({
       setIsLoading(true);
       setLoadError(false);
       setConfirmingClear(false);
+      setFilterQuery('');
       void listOfflineBooks(library)
         .then((items) => {
           if (!cancelled && library === getOfflineLibrary()) {
@@ -109,9 +111,26 @@ export function OfflineBooksDialog({
     [books]
   );
 
+  const showFilter = books.length >= 5;
+  const trimmedFilter = filterQuery.trim().toLowerCase();
+  const visibleBooks = useMemo(() => {
+    if (!showFilter || !trimmedFilter) return books;
+    return books.filter((item) => {
+      const title = (item.title || '').toLowerCase();
+      const author = (item.author || '').toLowerCase();
+      const filename = (item.filename || '').toLowerCase();
+      return (
+        title.includes(trimmedFilter) ||
+        author.includes(trimmedFilter) ||
+        filename.includes(trimmedFilter)
+      );
+    });
+  }, [books, showFilter, trimmedFilter]);
+
   function handleClose() {
     if (isBusy) return;
     setConfirmingClear(false);
+    setFilterQuery('');
     onOpenChange(false);
   }
 
@@ -136,6 +155,7 @@ export function OfflineBooksDialog({
     try {
       await clearOfflineBooks(library);
       setBooks([]);
+      setFilterQuery('');
       toast.success('已清空全部离线缓存');
     } catch {
       toast.error('清空离线缓存失败，请重试');
@@ -161,7 +181,7 @@ export function OfflineBooksDialog({
       icon={<HardDrive className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />}
       size={512}
       closeDisabled={isBusy}
-      closeOnEscape={!isBusy && !confirmingClear}
+      closeOnEscape={!isBusy && !confirmingClear && !(showFilter && Boolean(filterQuery))}
       closeLabel="关闭离线图书管理"
       contentClassName="max-h-[min(82svh,36rem)] text-sm text-popover-foreground outline-none"
     >
@@ -214,8 +234,76 @@ export function OfflineBooksDialog({
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
-              {books.map((book) => {
+            <>
+              {showFilter && (
+                <TextInput
+                  type="search"
+                  value={filterQuery}
+                  onChange={(event) => setFilterQuery(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === 'Escape' &&
+                      !event.nativeEvent.isComposing &&
+                      filterQuery
+                    ) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setFilterQuery('');
+                    }
+                  }}
+                  placeholder="按书名或作者筛选离线图书…"
+                  aria-label="筛选离线图书"
+                  leftSection={
+                    <Search
+                      className="h-4 w-4 text-muted-foreground"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                  }
+                  leftSectionPointerEvents="none"
+                  leftSectionWidth={36}
+                  rightSection={
+                    filterQuery ? (
+                      <ActionIcon
+                        type="button"
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                        aria-label="清除离线筛选"
+                        title="清除离线筛选"
+                        onClick={() => setFilterQuery('')}
+                        className="size-7 cursor-pointer rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      >
+                        <X className="size-3.5" strokeWidth={1.6} aria-hidden="true" />
+                      </ActionIcon>
+                    ) : null
+                  }
+                  rightSectionPointerEvents={filterQuery ? 'all' : 'none'}
+                  rightSectionWidth={34}
+                  className="mb-3"
+                  classNames={{
+                    input: 'app-field h-10 pl-9 pr-9 text-sm sm:h-9',
+                  }}
+                />
+              )}
+              {visibleBooks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-8 text-center">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    未找到匹配的离线图书
+                  </p>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="xs"
+                    onClick={() => setFilterQuery('')}
+                    className="mt-3 h-9 cursor-pointer rounded-lg px-3.5 text-xs font-medium sm:h-8"
+                  >
+                    清除筛选
+                  </Button>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
+                  {visibleBooks.map((book) => {
                 const bookLabel = book.title || book.filename;
                 const isRemovingThis = removingId === book.bookId;
                 const sharePercent =
@@ -310,7 +398,9 @@ export function OfflineBooksDialog({
                   </li>
                 );
               })}
-            </ul>
+                </ul>
+              )}
+            </>
           )}
         </div>
 

@@ -21,6 +21,7 @@ describe('ReaderStatusBar', () => {
 
     const expandButton = screen.getByRole('button', { name: '展开操作栏' });
     expect(expandButton).toHaveAttribute('aria-pressed', 'false');
+    expect(expandButton).toHaveAttribute('title', '展开操作栏 · 第一章 开篇');
     expect(expandButton).toHaveTextContent('12.3%');
     expect(screen.queryByText('第一章 开篇')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '朗读控制' })).toBeInTheDocument();

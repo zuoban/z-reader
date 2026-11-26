@@ -213,4 +213,54 @@ describe('OfflineBooksDialog', () => {
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it('filters cached books when 5 or more exist and clears filter on Escape before closing', async () => {
+    const onOpenChange = vi.fn();
+    const fiveBooks: OfflineBookSummary[] = [
+      ...SAMPLE_BOOKS,
+      {
+        bookId: 'book-3',
+        filename: 'dune.epub',
+        title: '沙丘',
+        author: '弗兰克·赫伯特',
+        size: 3 * 1024 * 1024,
+        savedAt: '2026-05-03T10:00:00.000Z',
+      },
+      {
+        bookId: 'book-4',
+        filename: 'go.pdf',
+        title: 'Go 语言精进之路',
+        author: '白明',
+        size: 4 * 1024 * 1024,
+        savedAt: '2026-05-04T10:00:00.000Z',
+      },
+      {
+        bookId: 'book-5',
+        filename: 'history.epub',
+        title: '中国近代史',
+        author: '徐中约',
+        size: 5 * 1024 * 1024,
+        savedAt: '2026-05-05T10:00:00.000Z',
+      },
+    ];
+    vi.mocked(listOfflineBooks).mockResolvedValue(fiveBooks);
+
+    render(<OfflineBooksDialog open onOpenChange={onOpenChange} />);
+
+    const searchInput = await screen.findByRole('searchbox', { name: '筛选离线图书' });
+    fireEvent.change(searchInput, { target: { value: '白明' } });
+
+    expect(screen.getByText('Go 语言精进之路')).toBeInTheDocument();
+    expect(screen.queryByText('三体')).not.toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: '不存在的书' } });
+    expect(screen.getByText('未找到匹配的离线图书')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '清除筛选' }));
+    expect(screen.getByText('三体')).toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: '沙丘' } });
+    fireEvent.keyDown(searchInput, { key: 'Escape', code: 'Escape' });
+    expect(searchInput).toHaveValue('');
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });

@@ -63,7 +63,7 @@ export function ReaderStatusBar({
             type="button"
             data-reader-interactive="true"
             onClick={onToggleToolbar}
-            title="展开操作栏"
+            title={currentChapter ? `展开操作栏 · ${currentChapter}` : "展开操作栏"}
             aria-label="展开操作栏"
             aria-pressed={false}
             className="reader-status-trigger"

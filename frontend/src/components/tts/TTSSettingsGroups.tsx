@@ -8,10 +8,11 @@ import { HIGHLIGHT_MODE_OPTIONS, SLEEP_TIMER_MINUTES, type TTSSleepTimer } from 
 export interface TTSSectionProps {
   title: string;
   description?: string;
+  badge?: ReactNode;
   children: ReactNode;
 }
 
-export function TTSSection({ title, description, children }: TTSSectionProps) {
+export function TTSSection({ title, description, badge, children }: TTSSectionProps) {
   return (
     <section
       className="space-y-3 border-t pt-4 first:border-t-0 first:pt-0"
@@ -31,6 +32,7 @@ export function TTSSection({ title, description, children }: TTSSectionProps) {
             </p>
           ) : null}
         </div>
+        {badge ? <div className="shrink-0">{badge}</div> : null}
       </div>
       {children}
     </section>

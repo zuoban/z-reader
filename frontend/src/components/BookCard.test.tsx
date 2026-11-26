@@ -441,6 +441,7 @@ describe('BookCard', () => {
       />,
     );
     expect(container.querySelector('.shelf-book-ribbon')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-finished-badge="true"]')).toBeInTheDocument();
   });
 
   it('renders horizontal list layout with read action and selection toggle', () => {

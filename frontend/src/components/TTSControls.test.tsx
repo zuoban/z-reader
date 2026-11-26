@@ -255,4 +255,27 @@ describe('TTSControls', () => {
     rerender(<TTSControls {...props} expanded state="paused" />);
     expect(screen.getByText('已暂停')).toBeInTheDocument();
   });
+
+  it('shows live speed multiplier and active sleep timer section badges', () => {
+    const { container, rerender, props } = renderControls({
+      expanded: true,
+      settings: { ...settings, rate: 50 },
+      sleepTimer: { mode: 'minutes', minutes: 30, label: '30分钟后停止' },
+    });
+
+    expect(container.querySelector('[data-tts-rate-badge="true"]')).toHaveTextContent('1.5×');
+    expect(container.querySelector('[data-tts-timer-badge="true"]')).toHaveTextContent('已开启');
+
+    rerender(
+      <TTSControls
+        {...props}
+        expanded
+        settings={{ ...settings, rate: 0 }}
+        sleepTimer={undefined}
+      />,
+    );
+
+    expect(container.querySelector('[data-tts-rate-badge="true"]')).toHaveTextContent('1×');
+    expect(container.querySelector('[data-tts-timer-badge="true"]')).not.toBeInTheDocument();
+  });
 });

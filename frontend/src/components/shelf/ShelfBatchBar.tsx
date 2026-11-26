@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 
 export interface ShelfBatchBarProps {
   selectedCount: number;
+  totalVisibleCount?: number;
   allVisibleSelected: boolean;
   hasMoreBooks: boolean;
   isBatchBusy: boolean;
@@ -21,6 +22,7 @@ export interface ShelfBatchBarProps {
 
 export function ShelfBatchBar({
   selectedCount,
+  totalVisibleCount,
   allVisibleSelected,
   hasMoreBooks,
   isBatchBusy,
@@ -59,6 +61,11 @@ export function ShelfBatchBar({
             >
               {selectedCount} 本
             </span>
+            {typeof totalVisibleCount === 'number' && totalVisibleCount > 0 && (
+              <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
+                / 共 {totalVisibleCount} 本
+              </span>
+            )}
           </div>
           <ActionIcon
             type="button"

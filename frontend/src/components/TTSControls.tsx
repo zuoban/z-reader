@@ -161,6 +161,7 @@ export function TTSControls({
       : sleepTimerActive
         ? '定时中'
         : null;
+  const formattedRate = `${Number((1 + settings.rate / 100).toFixed(2))}×`;
 
   return (
     <ReaderSheet
@@ -171,7 +172,7 @@ export function TTSControls({
       titleAddon={
         headerStatusLabel ? (
           <span
-            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
             style={{
               background: isPlaying
                 ? 'color-mix(in srgb, var(--reader-panel-accent) 14%, transparent)'
@@ -179,7 +180,14 @@ export function TTSControls({
               color: isPlaying ? 'var(--reader-panel-accent)' : 'var(--reader-panel-muted)',
             }}
           >
-            {headerStatusLabel}
+            {isPlaying && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: 'var(--reader-panel-accent)' }}
+              />
+            )}
+            <span>{headerStatusLabel}</span>
           </span>
         ) : undefined
       }
@@ -204,6 +212,19 @@ export function TTSControls({
         <TTSSection
           title="播放控制"
           description="从当前位置开始、暂停或切换到相邻句子。"
+          badge={
+            <span
+              data-tts-rate-badge="true"
+              className="rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums"
+              style={{
+                borderColor: 'var(--reader-panel-rule)',
+                background: 'color-mix(in srgb, var(--reader-panel-hover) 65%, transparent)',
+                color: 'var(--reader-panel-fg)',
+              }}
+            >
+              {formattedRate}
+            </span>
+          }
         >
           <div className="space-y-3">
             <TTSPlaybackButtons
@@ -233,6 +254,20 @@ export function TTSControls({
         <TTSSection
           title="睡眠定时"
           description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
+          badge={
+            sleepTimerActive ? (
+              <span
+                data-tts-timer-badge="true"
+                className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                style={{
+                  background: 'color-mix(in srgb, var(--reader-panel-accent) 14%, transparent)',
+                  color: 'var(--reader-panel-accent)',
+                }}
+              >
+                已开启
+              </span>
+            ) : undefined
+          }
         >
           <TTSSleepTimerGroup
             sleepTimer={sleepTimer}

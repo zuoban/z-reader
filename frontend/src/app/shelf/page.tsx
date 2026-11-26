@@ -499,6 +499,7 @@ export default function ShelfPage() {
             {selectionMode && !isLoadingBooks && !isSearching && visibleBooks.length > 0 && (
               <ShelfBatchBar
                 selectedCount={selectedCount}
+                totalVisibleCount={visibleBooks.length}
                 allVisibleSelected={allVisibleSelected}
                 hasMoreBooks={hasMoreBooks}
                 isBatchBusy={isBatchBusy}

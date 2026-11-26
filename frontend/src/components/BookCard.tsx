@@ -401,6 +401,15 @@ export const BookCard = memo(function BookCard({
               {!selectionMode && progressValue > 0 && progressValue < 100 && (
                 <span aria-hidden="true" className="shelf-book-ribbon" />
               )}
+              {!selectionMode && progressValue === 100 && book.processing_state !== 'pending' && (
+                <span
+                  aria-hidden="true"
+                  data-finished-badge="true"
+                  className="absolute left-1.5 top-1.5 z-10 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs"
+                >
+                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                </span>
+              )}
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -490,6 +499,15 @@ export const BookCard = memo(function BookCard({
               )}
               {!selectionMode && progressValue > 0 && progressValue < 100 && (
                 <span aria-hidden="true" className="shelf-book-ribbon" />
+              )}
+              {!selectionMode && progressValue === 100 && book.processing_state !== 'pending' && (
+                <span
+                  aria-hidden="true"
+                  data-finished-badge="true"
+                  className="absolute left-2 top-2 z-10 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs"
+                >
+                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                </span>
               )}
               {!selectionMode && book.processing_state !== 'pending' && (
                 <span aria-hidden="true" className="shelf-book-format-badge">

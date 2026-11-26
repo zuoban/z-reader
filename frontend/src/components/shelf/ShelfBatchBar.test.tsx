@@ -92,4 +92,10 @@ describe('ShelfBatchBar', () => {
     expect(reparseButton).toHaveTextContent('解析中…');
     expect(reparseButton.querySelector('svg')).toHaveClass('animate-spin');
   });
+
+  it('displays optional total visible book count context beside selected pill', () => {
+    render(<ShelfBatchBar {...baseProps} selectedCount={3} totalVisibleCount={12} />);
+    expect(screen.getByText('3 本')).toBeInTheDocument();
+    expect(screen.getByText('/ 共 12 本')).toBeInTheDocument();
+  });
 });

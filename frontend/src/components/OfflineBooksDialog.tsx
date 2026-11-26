@@ -7,6 +7,7 @@ import { BookOpen, CircleAlert, HardDrive, Loader2, RotateCw, Search, Trash2, X 
 import { toast } from 'sonner';
 import { AppModal } from '@/components/AppModal';
 import { LoadingSpinner } from '@/components/AppShell';
+import { HighlightedText } from '@/components/HighlightedText';
 import { getOfflineLibrary } from '@/lib/library-access';
 import {
   clearOfflineBooks,
@@ -325,12 +326,24 @@ export function OfflineBooksDialog({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground" title={bookLabel}>
-                          {bookLabel}
+                          <HighlightedText
+                            text={bookLabel}
+                            query={trimmedFilter}
+                            markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+                          />
                         </p>
                         <p className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                          {[book.author, formatByteSize(book.size)]
-                            .filter(Boolean)
-                            .join(' · ')}
+                          {book.author ? (
+                            <>
+                              <HighlightedText
+                                text={book.author}
+                                query={trimmedFilter}
+                                markClassName="rounded-[4px] bg-primary/14 px-0.5 text-inherit"
+                              />
+                              {' · '}
+                            </>
+                          ) : null}
+                          {formatByteSize(book.size)}
                         </p>
                         {books.length > 1 && totalBytes > 0 && (
                           <div

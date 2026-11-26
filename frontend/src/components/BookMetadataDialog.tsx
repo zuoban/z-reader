@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChangeEvent, DragEvent, FormEvent, RefObject } from 'react';
+import type { ChangeEvent, ClipboardEvent, DragEvent, FormEvent, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Button, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
@@ -303,6 +303,29 @@ export function BookMetadataDialog({
     stageCoverFile(file);
   }
 
+  function handleFormPaste(event: ClipboardEvent<HTMLFormElement>) {
+    if (saving) return;
+    const items = Array.from(event.clipboardData?.items ?? []);
+    const imageItem = items.find((item) => {
+      if (item.kind !== 'file') return false;
+      const candidate = item.getAsFile();
+      return (
+        item.type.startsWith('image/') ||
+        ACCEPTED_COVER_EXTENSIONS.test(candidate?.name ?? '')
+      );
+    });
+    const imageFile =
+      imageItem?.getAsFile() ??
+      Array.from(event.clipboardData?.files ?? []).find(
+        (file) =>
+          file.type.startsWith('image/') || ACCEPTED_COVER_EXTENSIONS.test(file.name)
+      );
+    if (!imageFile) return;
+
+    event.preventDefault();
+    stageCoverFile(imageFile);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving || isUnchanged) return;
@@ -384,6 +407,7 @@ export function BookMetadataDialog({
       <form
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
         onSubmit={handleSubmit}
+        onPaste={handleFormPaste}
         onKeyDown={(event) => {
           if (
             (event.metaKey || event.ctrlKey) &&
@@ -452,7 +476,7 @@ export function BookMetadataDialog({
                         ? '保存后将移除当前封面'
                         : isDraggingCover
                           ? '松开以替换封面图片'
-                          : '支持 JPG、PNG、WebP，可拖拽上传，不超过 10 MB'}
+                          : '支持 JPG、PNG、WebP，可拖拽或粘贴图片，不超过 10 MB'}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <input

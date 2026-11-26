@@ -167,7 +167,9 @@ export function CategoryManagerSheet({
         title="管理分类"
         subtitle={
           normalizedCategories.length > 0
-            ? `共 ${normalizedCategories.length} 个分类 · ${totalCategorizedBooks} 本已归类`
+            ? trimmedFilter
+              ? `匹配 ${visibleCategories.length} / ${normalizedCategories.length} 个分类`
+              : `共 ${normalizedCategories.length} 个分类 · ${totalCategorizedBooks} 本已归类`
             : '重命名或移除已有图书分类'
         }
         subtitleClassName="tabular-nums"

@@ -186,6 +186,7 @@ describe('CategoryManagerSheet', () => {
 
     const filterInput = screen.getByRole('textbox', { name: '筛选分类' });
     fireEvent.change(filterInput, { target: { value: 'sci' } });
+    expect(screen.getByText('匹配 1 / 6 个分类')).toBeInTheDocument();
     expect(screen.getByText('Sci-Fi')).toBeInTheDocument();
     expect(screen.queryByText('散文')).not.toBeInTheDocument();
 

@@ -251,6 +251,7 @@ describe('OfflineBooksDialog', () => {
     fireEvent.change(searchInput, { target: { value: '白明' } });
 
     expect(screen.getByText('Go 语言精进之路')).toBeInTheDocument();
+    expect(screen.getByText('白明').tagName).toBe('MARK');
     expect(screen.queryByText('三体')).not.toBeInTheDocument();
 
     fireEvent.change(searchInput, { target: { value: '不存在的书' } });

@@ -441,4 +441,57 @@ describe('BookMetadataDialog', () => {
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it('stages a pasted clipboard image as pending cover while ignoring text-only paste', () => {
+    const createObjectURL = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:pasted-cover');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    try {
+      const { unmount } = render(
+        <BookMetadataDialog
+          bookId="book-paste"
+          currentTitle="测试书籍"
+          currentAuthor="作者"
+          onUpdate={vi.fn()}
+          open
+          onOpenChange={vi.fn()}
+        />
+      );
+
+      const titleInput = screen.getByRole('textbox', { name: '书名' });
+
+      // Text-only paste does not stage a cover
+      fireEvent.paste(titleInput, {
+        clipboardData: { items: [], files: [] },
+      });
+      expect(screen.queryByText('待保存：封面')).not.toBeInTheDocument();
+
+      // Pasting an image file stages it as pending cover
+      const pastedFile = new File(['png-bytes'], 'clipboard-cover.png', { type: 'image/png' });
+      fireEvent.paste(titleInput, {
+        clipboardData: {
+          items: [
+            {
+              kind: 'file',
+              type: 'image/png',
+              getAsFile: () => pastedFile,
+            },
+          ],
+          files: [pastedFile],
+        },
+      });
+
+      expect(screen.getByText('待保存：封面')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: '测试书籍 封面预览' })).toHaveAttribute(
+        'src',
+        'blob:pasted-cover'
+      );
+      unmount();
+    } finally {
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
+    }
+  });
 });

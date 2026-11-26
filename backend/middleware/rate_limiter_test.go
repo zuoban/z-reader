@@ -150,8 +150,8 @@ func TestRateLimiterMiddlewareReturns429(t *testing.T) {
 }
 
 func TestRateLimiterRetryAfterUsesWindowExpiry(t *testing.T) {
-	previous := rateLimitRejections.custom.Load()
-	t.Cleanup(func() { rateLimitRejections.custom.Store(previous) })
+	previous := rateLimitRejections.clientIP.Load()
+	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
 
 	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
 	now := start
@@ -159,68 +159,34 @@ func TestRateLimiterRetryAfterUsesWindowExpiry(t *testing.T) {
 	rl.now = func() time.Time { return now }
 	rl.maxVisitors = 2
 	gin.SetMode(gin.TestMode)
-	handler := RateLimitByKey(rl, func(c *gin.Context) string {
-		return c.GetHeader("X-Quota-Key")
-	})
+	handler := RateLimit(rl)
 
 	for _, step := range []struct {
 		elapsed    time.Duration
-		key        string
+		ip         string
 		status     int
 		retryAfter string
 	}{
-		{0, "a", http.StatusOK, ""},
-		{2250 * time.Millisecond, "b", http.StatusOK, ""},
-		{7750 * time.Millisecond, "b", http.StatusTooManyRequests, "5"},
-		{7750 * time.Millisecond, "a", http.StatusTooManyRequests, "3"},
-		{7750 * time.Millisecond, "c", http.StatusTooManyRequests, "3"},
-		{9900 * time.Millisecond, "c", http.StatusTooManyRequests, "1"},
-		{10 * time.Second, "a", http.StatusOK, ""},
-		{10 * time.Second, "c", http.StatusTooManyRequests, "3"},
-		{12250 * time.Millisecond, "c", http.StatusOK, ""},
+		{0, "10.0.0.1", http.StatusOK, ""},
+		{2250 * time.Millisecond, "10.0.0.2", http.StatusOK, ""},
+		{7750 * time.Millisecond, "10.0.0.2", http.StatusTooManyRequests, "5"},
+		{7750 * time.Millisecond, "10.0.0.1", http.StatusTooManyRequests, "3"},
+		{7750 * time.Millisecond, "10.0.0.3", http.StatusTooManyRequests, "3"},
+		{9900 * time.Millisecond, "10.0.0.3", http.StatusTooManyRequests, "1"},
+		{10 * time.Second, "10.0.0.1", http.StatusOK, ""},
+		{10 * time.Second, "10.0.0.3", http.StatusTooManyRequests, "3"},
+		{12250 * time.Millisecond, "10.0.0.3", http.StatusOK, ""},
 	} {
 		now = start.Add(step.elapsed)
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/limited", nil)
-		c.Request.Header.Set("X-Quota-Key", step.key)
+		c.Request.RemoteAddr = step.ip + ":12345"
 		handler(c)
 		if got := w.Header().Get("Retry-After"); w.Code != step.status || got != step.retryAfter {
-			t.Fatalf("key %q at %v: got status %d, Retry-After %q; want %d, %q",
-				step.key, step.elapsed, w.Code, got, step.status, step.retryAfter)
+			t.Fatalf("ip %q at %v: got status %d, Retry-After %q; want %d, %q",
+				step.ip, step.elapsed, w.Code, got, step.status, step.retryAfter)
 		}
-	}
-}
-
-func TestRateLimitByKeyRecordsCustomScope(t *testing.T) {
-	previous := rateLimitRejections.custom.Load()
-	rateLimitRejections.custom.Store(0)
-	t.Cleanup(func() { rateLimitRejections.custom.Store(previous) })
-
-	rl := NewRateLimiter(1, time.Minute)
-	handler := RateLimitByKey(rl, func(c *gin.Context) string {
-		return c.GetHeader("X-Quota-Key")
-	})
-
-	request := func(key string) int {
-		gin.SetMode(gin.TestMode)
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/limited", nil)
-		c.Request.Header.Set("X-Quota-Key", key)
-		c.Request.RemoteAddr = "10.0.0.77:12345"
-		handler(c)
-		return w.Code
-	}
-
-	if status := request("quota-a"); status != http.StatusOK {
-		t.Fatalf("expected first custom-key request to pass, got %d", status)
-	}
-	if status := request("quota-a"); status != http.StatusTooManyRequests {
-		t.Fatalf("expected repeated custom-key request to be limited, got %d", status)
-	}
-	if got := rateLimitRejections.custom.Load(); got != 1 {
-		t.Fatalf("custom rejections = %d, want 1", got)
 	}
 }
 
@@ -242,23 +208,24 @@ func TestRateLimiterRetryAfterFloor(t *testing.T) {
 		}
 	}
 
-	previous := rateLimitRejections.custom.Load()
-	t.Cleanup(func() { rateLimitRejections.custom.Store(previous) })
+	previous := rateLimitRejections.clientIP.Load()
+	t.Cleanup(func() { rateLimitRejections.clientIP.Store(previous) })
 
 	start := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
 	rl := NewRateLimiter(1, time.Duration(math.MaxInt64))
 	rl.now = func() time.Time { return start }
-	rl.visitors["key"] = &visitor{count: 1, windowStart: start.Add(time.Second)}
+	rl.visitors["10.0.0.1"] = &visitor{count: 1, windowStart: start.Add(time.Second)}
 
-	if allowed, retryAfter := rl.allow("key"); allowed || retryAfter > 0 {
+	if allowed, retryAfter := rl.allow("10.0.0.1"); allowed || retryAfter > 0 {
 		t.Fatalf("expected setup to produce non-positive retryAfter, got allowed=%v retryAfter=%v", allowed, retryAfter)
 	}
 
 	gin.SetMode(gin.TestMode)
-	handler := RateLimitByKey(rl, func(*gin.Context) string { return "key" })
+	handler := RateLimit(rl)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/limited", nil)
+	c.Request.RemoteAddr = "10.0.0.1:12345"
 	handler(c)
 
 	if w.Code != http.StatusTooManyRequests {

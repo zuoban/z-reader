@@ -59,7 +59,6 @@ func RequestLogger() gin.HandlerFunc {
 			"latency_ms", time.Since(startedAt).Milliseconds(),
 			"bytes", c.Writer.Size(),
 			"client_ip", c.ClientIP(),
-			"user_id", c.GetString("userID"),
 		)
 	}
 }

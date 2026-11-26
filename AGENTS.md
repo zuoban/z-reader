@@ -4,9 +4,12 @@ This document provides essential information for AI coding agents working on the
 
 ## Project Overview
 
-Z Reader is an online EPUB reader application with:
-- **Backend**: Go 1.26+ with Gin framework and bbolt embedded database
-- **Frontend**: Next.js 16 with React 19, Tailwind CSS 4, and Mantine (`@mantine/core`)
+Z Reader is an online e-book reader application for personal library management, supporting EPUB, MOBI, AZW3, and PDF formats. It features book management, reading progress sync across devices, category management, TTS narration, and a responsive reading experience.
+
+- **Backend**: Go 1.26+ with Gin framework and bbolt (embedded KV database)
+- **Frontend**: Next.js 16, React 19, Tailwind CSS 4, and Mantine (`@mantine/core`)
+- **Reading Engine**: foliate-js (vendored in `frontend/public/foliate/`)
+- **Reverse Proxy**: Caddy
 
 ## Build Commands
 
@@ -225,9 +228,25 @@ This project uses Next.js 16 which has breaking changes. Check `node_modules/nex
    - Backend: Use `.env` file, accessed via `os.Getenv()`
    - Frontend: Prefix with `NEXT_PUBLIC_` for client-side access
 
-### API Base URL
+### API Base URL & Key Environment Variables
 
 Frontend connects to backend at `http://localhost:8080` by default. Override with `NEXT_PUBLIC_API_URL` environment variable.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `ACCESS_PASSWORD` | Optional library access password | Empty |
+| `APP_PORT` | Backend port | `8080` |
+| `UPLOAD_DIR` | Book storage directory | `./uploads` |
+| `DB_PATH` | Database path | `./data.db` |
+| `NEXT_SERVER_API_URL` | Next.js SSR proxy to backend | `http://127.0.0.1:8080` |
+| `NEXT_PUBLIC_API_URL` | Browser-side direct URL to backend | empty (uses `/api/*` same-origin) |
+
+### Backend API Routes & Patterns
+
+- Database layer is `storage.DB` wrapping bbolt (`storage.PersonalLibrary` single-library model) with an isolated `SessionDB`.
+- `middleware.AuthRequired` enforces optional `ACCESS_PASSWORD` using a session cookie; session cleanup runs hourly (`startSessionCleaner`) and verified backups run via `startBackupWorker`.
+- **Public routes**: `POST /api/login`, `POST /api/logout`, `GET /healthz`, `GET /readyz`, `GET /metrics`
+- **Authenticated routes**: `GET /api/auth/verify`, `/api/books/*`, `/api/progress/*`, `GET /api/tts`, `POST /api/ssml`, `GET /api/voices`, `POST /api/client-errors`
 
 ### TTS Endpoint Default Signature Key
 

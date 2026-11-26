@@ -40,17 +40,14 @@ export function TTSSection({ title, description, children }: TTSSectionProps) {
 export interface TTSHighlightModeGroupProps {
   value: TTSHighlightMode;
   onChange: (mode: TTSHighlightMode) => void;
-  variant: 'drawer' | 'floating';
 }
 
-export function TTSHighlightModeGroup({ value, onChange, variant }: TTSHighlightModeGroupProps) {
-  const isDrawer = variant === 'drawer';
-
+export function TTSHighlightModeGroup({ value, onChange }: TTSHighlightModeGroupProps) {
   return (
     <div
       role="group"
       aria-label="高亮方式"
-      className={cn('grid grid-cols-2', isDrawer ? 'gap-2' : 'gap-1.5')}
+      className="grid grid-cols-2 gap-2"
     >
       {HIGHLIGHT_MODE_OPTIONS.map(([mode, label]) => {
         const active = value === mode;
@@ -61,8 +58,7 @@ export function TTSHighlightModeGroup({ value, onChange, variant }: TTSHighlight
             aria-pressed={active}
             onClick={() => onChange(mode)}
             className={cn(
-              'reader-settings-option min-h-11 border py-2 text-xs lg:min-h-9',
-              isDrawer ? 'px-3' : 'touch-control',
+              'reader-settings-option min-h-11 border px-3 py-2 text-xs lg:min-h-9',
               active && 'font-medium'
             )}
             style={active ? undefined : { borderColor: 'var(--reader-panel-rule)' }}
@@ -80,7 +76,6 @@ export interface TTSSleepTimerGroupProps {
   sleepTimerActive: boolean;
   onSleepTimerMinutes?: (minutes: number) => void;
   onClearSleepTimer?: () => void;
-  variant: 'drawer' | 'floating';
 }
 
 export function TTSSleepTimerGroup({
@@ -88,15 +83,12 @@ export function TTSSleepTimerGroup({
   sleepTimerActive,
   onSleepTimerMinutes,
   onClearSleepTimer,
-  variant,
 }: TTSSleepTimerGroupProps) {
-  const isDrawer = variant === 'drawer';
-
   return (
     <div
       role="group"
       aria-label="睡眠定时"
-      className={cn('grid grid-cols-4', isDrawer ? 'gap-2' : 'gap-1.5')}
+      className="grid grid-cols-4 gap-2"
     >
       {SLEEP_TIMER_MINUTES.map((minutes) => {
         const active = sleepTimer?.mode === 'minutes' && sleepTimer.minutes === minutes;

@@ -12,9 +12,7 @@ var (
 	BooksBucket         = []byte("books")
 	ProgressBucket      = []byte("progress")
 	BookmarksBucket     = []byte("bookmarks")
-	UsersBucket         = []byte("users")
 	UserBooksIndex      = []byte("user_books_index")       // userId:bookId -> Empty
-	UsernameIndex       = []byte("username_index")         // normalizedUsername -> userId
 	BookSortIndex       = []byte("book_sort_index")        // sort:user:sortValue:bookId -> bookId
 	BookSearchIndex     = []byte("book_search_index")      // user\x00bookId -> normalized searchable fields
 	BookSearchGramIndex = []byte("book_search_gram_index") // user\x00gram\x00bookId -> Empty

@@ -893,52 +893,5 @@ describe('book-download', () => {
 
       await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
     });
-
-    it('falls back to Blob and polyfills arrayBuffer/slice if File constructor or Blob methods are unavailable', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      vi.mocked(getOfflineBookEntry).mockRejectedValueOnce(new Error('cache unavailable'));
-      vi.stubGlobal('File', class BrokenFile {
-        constructor() {
-          throw new TypeError('File unsupported');
-        }
-      });
-
-      const baseBlob = new NodeBlob(['hello-polyfill'], { type: 'application/epub+zip' });
-      const strippedBlob = Object.assign(
-        Object.create(null),
-        {
-          type: 'application/epub+zip',
-          size: baseBlob.size,
-          arrayBuffer: undefined,
-          slice: undefined,
-        }
-      ) as unknown as Blob;
-
-      // Provide a mock FileReader so the arrayBuffer polyfill can execute
-      class MockFileReader {
-        result: ArrayBuffer | null = null;
-        error: DOMException | null = null;
-        onload: (() => void) | null = null;
-        onerror: (() => void) | null = null;
-        readAsArrayBuffer() {
-          this.result = encode('hello-polyfill').buffer as ArrayBuffer;
-          this.onload?.();
-        }
-      }
-      vi.stubGlobal('FileReader', MockFileReader);
-
-      const context = makeContext({
-        getBook: vi.fn(async () => makeBook({ created_at: 'invalid-date' })),
-        fetchBook: vi.fn(async () => strippedBlob),
-      });
-
-      const result = await createBookFile('polyfill-book', {}, context);
-      expect(result).toBe(strippedBlob);
-      expect(warnSpy).toHaveBeenCalled();
-
-      const buffer = await result.arrayBuffer();
-      expect(new TextDecoder().decode(buffer)).toBe('hello-polyfill');
-      expect(typeof result.slice).toBe('function');
-    });
   });
 });

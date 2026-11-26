@@ -24,9 +24,7 @@ func (db *DB) runMigrations() error {
 					BooksBucket,
 					ProgressBucket,
 					BookmarksBucket,
-					UsersBucket,
 					UserBooksIndex,
-					UsernameIndex,
 					BookSortIndex,
 				} {
 					if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -40,9 +38,6 @@ func (db *DB) runMigrations() error {
 			version: 2,
 			name:    "MigrateIndexes",
 			run: func(tx *bbolt.Tx) error {
-				if err := migrateUsernameIndex(tx); err != nil {
-					return err
-				}
 				return migrateUserBooksIndex(tx)
 			},
 		},
@@ -161,35 +156,6 @@ func (db *DB) runMigrations() error {
 					return err
 				}
 				currentVersion = m.version
-			}
-		}
-		return nil
-	})
-}
-
-func normalizeUsername(username string) string {
-	return strings.ToLower(strings.TrimSpace(username))
-}
-
-func migrateUsernameIndex(tx *bbolt.Tx) error {
-	idxB := tx.Bucket(UsernameIndex)
-	usersB := tx.Bucket(UsersBucket)
-	if idxB == nil || usersB == nil {
-		return nil
-	}
-
-	return usersB.ForEach(func(k, v []byte) error {
-		var user models.User
-		if err := user.UnmarshalDB(v); err != nil {
-			return err
-		}
-		norm := normalizeUsername(user.Username)
-		if norm != "" {
-			existing := idxB.Get([]byte(norm))
-			if existing == nil {
-				if err := idxB.Put([]byte(norm), k); err != nil {
-					return err
-				}
 			}
 		}
 		return nil

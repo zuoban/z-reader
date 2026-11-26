@@ -253,9 +253,6 @@ func TestDBCheckAndBackups(t *testing.T) {
 	}
 	session := &models.Session{
 		Token:     "backup-session-token",
-		UserID:    owner,
-		Username:  "alice",
-		Role:      "admin",
 		CreatedAt: time.Now().UTC(),
 		ExpiresAt: time.Now().UTC().Add(time.Hour),
 	}
@@ -308,8 +305,8 @@ func TestDBCheckAndBackups(t *testing.T) {
 	}
 	gotSession, err := restoredSessions.GetSession(session.Token)
 	restoredSessions.Close()
-	if err != nil || gotSession == nil || gotSession.UserID != owner {
-		t.Fatalf("expected restored session for %s, got %+v, err=%v", owner, gotSession, err)
+	if err != nil || gotSession == nil || !gotSession.ExpiresAt.Equal(session.ExpiresAt) {
+		t.Fatalf("expected restored session, got %+v, err=%v", gotSession, err)
 	}
 
 	// Check & SessionBackupTo when sessionDB is nil
@@ -433,41 +430,26 @@ func TestDBSessionManagementAndCleanExpired(t *testing.T) {
 
 	active1 := &models.Session{
 		Token:     "tok-active-1",
-		UserID:    "u1",
-		Username:  "user1",
-		Role:      "user",
 		CreatedAt: now,
 		ExpiresAt: now.Add(time.Hour),
 	}
 	active2 := &models.Session{
 		Token:     "tok-active-2",
-		UserID:    "u1",
-		Username:  "user1",
-		Role:      "user",
 		CreatedAt: now,
 		ExpiresAt: now.Add(time.Hour),
 	}
 	active3 := &models.Session{
 		Token:     "tok-active-3",
-		UserID:    "u1",
-		Username:  "user1",
-		Role:      "user",
 		CreatedAt: now,
 		ExpiresAt: now.Add(time.Hour),
 	}
 	activeKeep := &models.Session{
 		Token:     "tok-keep",
-		UserID:    "u1",
-		Username:  "user1",
-		Role:      "user",
 		CreatedAt: now,
 		ExpiresAt: now.Add(time.Hour),
 	}
 	expired := &models.Session{
 		Token:     "tok-expired",
-		UserID:    "u1",
-		Username:  "user1",
-		Role:      "user",
 		CreatedAt: now.Add(-2 * time.Hour),
 		ExpiresAt: now.Add(-time.Minute),
 	}

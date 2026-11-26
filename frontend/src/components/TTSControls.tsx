@@ -6,19 +6,14 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type MouseEvent,
-  type PointerEvent,
   type ReactNode,
-  type SyntheticEvent,
 } from 'react';
 import '@/app/styles/mantine-drawer.css';
 import { getModernReaderSurface, getReaderPanelThemeVars } from '@/lib/reader-ui';
 import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
-import { TTSFloatingPanel } from '@/components/tts/TTSFloatingPanel';
 import { TTSToolbarDrawer } from '@/components/tts/TTSToolbarDrawer';
 import type { TTSSleepTimer, TTSStatusInfo } from '@/components/tts/types';
-import { useFloatingPosition } from '@/components/tts/useFloatingPosition';
 
 export interface TTSControlsProps {
   state: TTSState;
@@ -35,7 +30,6 @@ export interface TTSControlsProps {
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   onPreviewStart?: () => void;
   uiScheme: ThemeColors;
-  variant?: 'floating' | 'toolbar';
   triggerContent?: ReactNode;
   triggerClassName?: string;
   triggerStyle?: CSSProperties;
@@ -68,7 +62,6 @@ export function TTSControls({
   onUpdateSettings,
   onPreviewStart,
   uiScheme,
-  variant = 'floating',
   triggerContent,
   triggerClassName,
   triggerStyle,
@@ -88,7 +81,6 @@ export function TTSControls({
   const isControlled = controlledExpanded !== undefined;
   const [uncontrolledExpanded, setUncontrolledExpanded] = useState(initialExpanded);
   const expanded = isControlled ? controlledExpanded : uncontrolledExpanded;
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
@@ -99,7 +91,6 @@ export function TTSControls({
   const mountedRef = useRef(true);
   const expandedRef = useRef(expanded);
   const onExpandedChangeRef = useRef(onExpandedChange);
-  const rootRef = useRef<HTMLDivElement>(null);
 
   const isBusy = isPending || preparing;
   const surface = getModernReaderSurface(uiScheme);
@@ -107,22 +98,8 @@ export function TTSControls({
   const isPlaying = state === 'playing';
   const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
-  const isToolbar = variant === 'toolbar';
   const isVoiceDropdownOpen = expanded && voiceDropdownOpen;
   const sleepTimerActive = Boolean(sleepTimer?.mode && sleepTimer.mode !== 'off');
-
-  const {
-    position,
-    isDragging,
-    floatingPopupStyle,
-    floatingPanelBodyMaxHeight,
-    clearAutoDockTimer,
-    scheduleAutoDock,
-    consumeSuppressedClick,
-    handleDragHandlePointerDown,
-    handleDragHandlePointerUp,
-    handleDragHandlePointerCancel,
-  } = useFloatingPosition({ expanded, isToolbar });
 
   useEffect(() => {
     expandedRef.current = expanded;
@@ -160,34 +137,6 @@ export function TTSControls({
       onExpandedChangeRef.current?.(false);
     };
   }, [expanded]);
-
-  useEffect(() => {
-    if (!expanded) {
-      queueMicrotask(() => {
-        setDetailsExpanded(false);
-      });
-    }
-  }, [expanded]);
-
-  useEffect(() => {
-    if (!expanded || isToolbar) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key !== 'Escape' ||
-        event.defaultPrevented ||
-        event.isComposing ||
-        isVoiceDropdownOpen
-      ) {
-        return;
-      }
-      event.preventDefault();
-      setExpanded(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded, isToolbar, isVoiceDropdownOpen, setExpanded]);
 
   const handleStartClick = async () => {
     if (pendingRef.current || preparing) return;
@@ -229,23 +178,6 @@ export function TTSControls({
     }
   };
 
-  const handleFloatingButtonClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    if (consumeSuppressedClick()) {
-      return;
-    }
-    if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-      return;
-    }
-    clearAutoDockTimer();
-    setExpanded((value) => !value);
-  };
-
-  const stopInteractivePropagation = (e: SyntheticEvent) => {
-    e.stopPropagation();
-    scheduleAutoDock();
-  };
-
   const handleRateChange = (value: number) => {
     onUpdateSettings({ rate: value });
   };
@@ -262,81 +194,16 @@ export function TTSControls({
     setExpanded((value) => !value);
   }, [setExpanded]);
 
-  const toggleDetails = useCallback(() => {
-    setDetailsExpanded((value) => !value);
-  }, []);
-
-  const preserveReaderSelection = (event: PointerEvent) => {
-    event.preventDefault();
-  };
-
-  if (isToolbar) {
-    return (
-      <TTSToolbarDrawer
-        expanded={expanded}
-        onToggleExpanded={toggleExpanded}
-        onClose={closePanel}
-        isActive={isActive}
-        isPlaying={isPlaying}
-        isPaused={isPaused}
-        isBusy={isBusy}
-        isVoiceDropdownOpen={isVoiceDropdownOpen}
-        onVoiceDropdownOpenChange={setVoiceDropdownOpen}
-        settings={settings}
-        voices={voices}
-        voicesLoading={voicesLoading}
-        voicesError={voicesError}
-        onReloadVoices={onReloadVoices}
-        onStartClick={handleStartClick}
-        onStopClick={handleStopClick}
-        onNext={onNext}
-        onPrev={onPrev}
-        onUpdateSettings={onUpdateSettings}
-        onRateChange={handleRateChange}
-        onHighlightModeChange={handleHighlightModeChange}
-        onPreviewStart={onPreviewStart}
-        uiScheme={uiScheme}
-        surface={surface}
-        panelThemeVars={panelThemeVars}
-        triggerContent={triggerContent}
-        triggerClassName={triggerClassName}
-        triggerStyle={triggerStyle}
-        showSettingsPanel={showSettingsPanel}
-        resumePromptVisible={resumePromptVisible}
-        resumePromptMessage={resumePromptMessage}
-        isResuming={isResuming}
-        onResumeClick={handleResumeClick}
-        overlayContainer={overlayContainer}
-        ttsStatus={ttsStatus}
-        sleepTimer={sleepTimer}
-        sleepTimerActive={sleepTimerActive}
-        onSleepTimerMinutes={onSleepTimerMinutes}
-        onClearSleepTimer={onClearSleepTimer}
-      />
-    );
-  }
-
   return (
-    <TTSFloatingPanel
-      rootRef={rootRef}
+    <TTSToolbarDrawer
       expanded={expanded}
-      detailsExpanded={detailsExpanded}
-      onToggleDetails={toggleDetails}
+      onToggleExpanded={toggleExpanded}
       onClose={closePanel}
-      onFloatingButtonClick={handleFloatingButtonClick}
-      onStopInteractivePropagation={stopInteractivePropagation}
-      onPreserveReaderSelection={preserveReaderSelection}
       isActive={isActive}
       isPlaying={isPlaying}
       isPaused={isPaused}
       isBusy={isBusy}
-      isDragging={isDragging}
-      position={position}
-      floatingPopupStyle={floatingPopupStyle}
-      panelBodyMaxHeight={floatingPanelBodyMaxHeight}
-      onDragHandlePointerDown={handleDragHandlePointerDown}
-      onDragHandlePointerUp={handleDragHandlePointerUp}
-      onDragHandlePointerCancel={handleDragHandlePointerCancel}
+      isVoiceDropdownOpen={isVoiceDropdownOpen}
       onVoiceDropdownOpenChange={setVoiceDropdownOpen}
       settings={settings}
       voices={voices}
@@ -354,6 +221,9 @@ export function TTSControls({
       uiScheme={uiScheme}
       surface={surface}
       panelThemeVars={panelThemeVars}
+      triggerContent={triggerContent}
+      triggerClassName={triggerClassName}
+      triggerStyle={triggerStyle}
       showSettingsPanel={showSettingsPanel}
       resumePromptVisible={resumePromptVisible}
       resumePromptMessage={resumePromptMessage}

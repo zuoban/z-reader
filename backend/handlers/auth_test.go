@@ -64,7 +64,7 @@ func TestPersonalLibraryAccess(t *testing.T) {
 	request(protected, "GET", "/verify", "", cookie, 401)
 
 	for _, session := range []models.Session{
-		{Token: cookie.Value, UserID: "old-account", ExpiresAt: time.Now().Add(time.Hour)},
+		{Token: cookie.Value, ExpiresAt: time.Now().Add(time.Hour)},
 		{Token: middleware.SessionKey("test access", cookie.Value), ExpiresAt: time.Now().Add(-time.Hour)},
 	} {
 		if err := db.SaveSession(&session); err != nil {

@@ -312,17 +312,6 @@
     --cover-bg: var(--cover-color-dark, #2d473d);
   }
 
-  /* Compact shelf preview (login) and shared book covers */
-  .library-preview {
-    @apply rounded-2xl border border-border bg-card p-5 sm:p-6;
-    box-shadow: var(--paper-shadow-panel);
-  }
-
-  .library-preview-compact {
-    @apply rounded-none border-0 bg-transparent p-0;
-    box-shadow: none;
-  }
-
   .preview-caption {
     @apply flex items-baseline justify-between gap-3 border-b border-border pb-3 text-sm font-medium text-foreground;
   }
@@ -346,44 +335,6 @@
     --cover-bg: var(--cover-color-dark, var(--cover-color-light, #2d473d));
     --cover-frame: color-mix(in srgb, var(--cover-paper) 22%, transparent);
     box-shadow: 0 2px 10px -3px rgb(0 0 0 / 50%), inset 0 0 0 1px rgb(255 255 255 / 8%);
-  }
-
-  .preview-cover-interactive {
-    @apply aspect-[4/5] cursor-pointer border-0;
-    transition: transform var(--paper-duration-fast) var(--paper-ease-soft),
-      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
-      opacity var(--paper-duration-fast) var(--paper-ease-soft);
-  }
-
-  .preview-cover-interactive:not(.preview-cover-active) {
-    opacity: 0.84;
-  }
-
-  .preview-cover-interactive:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-
-  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    .preview-cover-interactive:hover {
-      opacity: 1;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px -6px rgb(15 20 17 / 28%), inset 0 0 0 1px rgb(255 255 255 / 14%);
-    }
-
-    .dark .preview-cover-interactive:hover {
-      box-shadow: 0 10px 18px -6px rgb(0 0 0 / 62%), inset 0 0 0 1px rgb(255 255 255 / 12%);
-    }
-  }
-
-  .preview-cover-active {
-    opacity: 1;
-    transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--primary), 0 10px 20px -8px rgb(15 20 17 / 28%);
-  }
-
-  .dark .preview-cover-active {
-    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--primary), 0 12px 22px -8px rgb(0 0 0 / 62%);
   }
 
   .preview-cover::after {

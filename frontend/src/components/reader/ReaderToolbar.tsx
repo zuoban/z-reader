@@ -484,7 +484,7 @@ export function ReaderToolbar({
 
             <div
               data-reader-toolbar-actions="desktop"
-              className="reader-toolbar-actions hidden items-center gap-0.5 lg:flex"
+              className="hidden items-center gap-0.5 lg:flex"
             >
               {tocRequested || tocOpen ? (
                 <ReaderTOCSheet

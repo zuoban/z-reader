@@ -51,7 +51,6 @@ export interface TTSPlaybackButtonsProps {
   onStartClick: () => void | Promise<void>;
   onNext: () => void | Promise<void>;
   onStopClick: () => void;
-  variant: 'drawer' | 'floating';
 }
 
 export function TTSPlaybackButtons({
@@ -63,14 +62,12 @@ export function TTSPlaybackButtons({
   onStartClick,
   onNext,
   onStopClick,
-  variant,
 }: TTSPlaybackButtonsProps) {
-  const isDrawer = variant === 'drawer';
   const primaryLabel = isPlaying ? '暂停' : isPaused ? '继续' : '开始';
-  const iconSizeClass = isDrawer ? 'h-4 w-4' : 'h-5 w-5';
+  const iconSizeClass = 'h-4 w-4';
 
   return (
-    <div className={cn('flex items-center justify-center', isDrawer ? 'gap-2.5' : 'gap-2')}>
+    <div className="flex items-center justify-center gap-2.5">
       <TTSControlButton
         onClick={() => void onPrev()}
         disabled={!isActive || isBusy}
@@ -89,7 +86,7 @@ export function TTSPlaybackButtons({
           data-playing={isPlaying ? 'true' : undefined}
           title={primaryLabel}
           aria-label={primaryLabel}
-          className={cn('reader-tts-primary', isDrawer ? 'size-12' : 'size-11')}
+          className="reader-tts-primary size-12"
         >
           {isBusy ? (
             <Loader2

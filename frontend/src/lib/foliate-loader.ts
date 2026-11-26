@@ -51,8 +51,6 @@ export function ensureFoliateScript(): Promise<void> {
       preload.crossOrigin = "anonymous";
       document.head.appendChild(preload);
     }
-    const { injectFoliatePolyfills } = await import("@/lib/foliate-polyfills");
-    injectFoliatePolyfills();
 
     const existing = document.querySelector(
       'script[data-foliate-entry]',

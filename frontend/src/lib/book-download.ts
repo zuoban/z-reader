@@ -342,43 +342,8 @@ export async function createBookFile(
     options.signal?.removeEventListener('abort', cancelDownload);
   }
 
-  // Try using File constructor first, fallback to Blob for compatibility
-  let file: File | Blob;
-  try {
-    file = new File([blob], book.filename, {
-      type: blob.type,
-      lastModified: Date.parse(book.created_at) || Date.now(),
-    });
-  } catch (error) {
-    console.warn('File constructor not supported, using Blob fallback:', error);
-    // Fallback: just return the blob - foliate can work with Blob objects
-    file = blob;
-  }
-
-  // Ensure arrayBuffer method exists (some older browsers don't have it on Blob)
-  if (!file.arrayBuffer || typeof file.arrayBuffer !== 'function') {
-    console.warn('Blob.arrayBuffer not supported, adding polyfill');
-    (file as Blob & { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer = async function() {
-      const reader = new FileReader();
-      return new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as ArrayBuffer);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsArrayBuffer(this);
-      });
-    };
-  }
-
-  // Ensure slice method exists
-  if (!file.slice || typeof file.slice !== 'function') {
-    console.warn('Blob.slice not supported, adding polyfill');
-    (file as Blob & { slice: (start?: number, end?: number) => Blob }).slice = function(
-      this: Blob,
-      start?: number,
-      end?: number
-    ) {
-      return blob.slice.call(this, start, end);
-    };
-  }
-
-  return file;
+  return new File([blob], book.filename, {
+    type: blob.type,
+    lastModified: Date.parse(book.created_at) || Date.now(),
+  });
 }

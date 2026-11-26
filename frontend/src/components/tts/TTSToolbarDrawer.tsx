@@ -213,7 +213,6 @@ export function TTSToolbarDrawer({
                 isResuming={isResuming}
                 onResume={onResumeClick}
                 uiScheme={uiScheme}
-                variant="drawer"
               />
             )}
 
@@ -233,7 +232,6 @@ export function TTSToolbarDrawer({
                   onStartClick={onStartClick}
                   onNext={onNext}
                   onStopClick={onStopClick}
-                  variant="drawer"
                 />
                 <TTSRateButtons value={settings.rate} onChange={onRateChange} />
               </div>
@@ -243,7 +241,6 @@ export function TTSToolbarDrawer({
               <TTSHighlightModeGroup
                 value={settings.highlightMode}
                 onChange={onHighlightModeChange}
-                variant="drawer"
               />
             </TTSSection>
 
@@ -256,7 +253,6 @@ export function TTSToolbarDrawer({
                 sleepTimerActive={sleepTimerActive}
                 onSleepTimerMinutes={onSleepTimerMinutes}
                 onClearSleepTimer={onClearSleepTimer}
-                variant="drawer"
               />
             </TTSSection>
 

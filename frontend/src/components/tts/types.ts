@@ -15,17 +15,6 @@ export interface TTSSleepTimer {
   label: string;
 }
 
-export interface TTSPosition {
-  x: number;
-  y: number;
-}
-
-export const FAB_SIZE = 52;
-export const FLOATING_IDLE_DOCK_DELAY_MS = 3600;
-export const FLOATING_DOCK_RIGHT = 0;
-export const FLOATING_VIEWPORT_MARGIN = 12;
-export const FLOATING_PANEL_FOOTER_PADDING = 12;
-
 export const RATE_OPTIONS = [
   { label: '1倍', value: 0 },
   { label: '1.25倍', value: 25 },

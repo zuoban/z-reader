@@ -70,8 +70,8 @@ HTTP 指标以请求方法、路由模板和状态码聚合，不包含用户、
   已校验备份的完成时间与耗时；启动时若磁盘上已有周期内的已校验备份，会先以该备份时间初始化
   `z_reader_backup_last_success_timestamp_seconds`。
 
-限流拒绝会输出 `z_reader_rate_limit_rejections_total`，其中 `scope` 只可能是 `client_ip`、`user`
-或 `custom`。它不包含真实 IP 或用户标识；如需定位具体接口，请结合 HTTP 指标中的 429 路由聚合。
+限流拒绝会输出 `z_reader_rate_limit_rejections_total`，其中 `scope` 为 `client_ip`。
+它不包含真实 IP 或用户标识；如需定位具体接口，请结合 HTTP 指标中的 429 路由聚合。
 
 以下 PromQL 可直接用于排障：
 

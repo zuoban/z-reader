@@ -24,7 +24,7 @@ import {
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderTTSControlTrigger } from "@/components/reader/ReaderTTSControlTrigger";
 import { ReaderViewport } from "@/components/reader/ReaderViewport";
-import "../../styles/mantine-reader.css";
+import "../../styles/mantine-buttons.css";
 import "../../styles/reader.css";
 import type { Bookmark } from "@/lib/api";
 import { getOfflineLibrary } from "@/lib/library-access";

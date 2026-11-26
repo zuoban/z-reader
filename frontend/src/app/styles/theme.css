@@ -9,11 +9,6 @@
   --font-serif: var(--font-crimson), var(--font-noto-serif-sc), "Songti SC", "STSong", "Noto Serif CJK SC", ui-serif, Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-playfair), var(--font-noto-serif-sc), "Songti SC", "STSong", "Noto Serif CJK SC", ui-serif, Georgia, serif;
-  --color-shelf-surface: var(--shelf-surface);
-  --color-shelf-surface-raised: var(--shelf-surface-raised);
-  --color-shelf-surface-soft: var(--shelf-surface-soft);
-  --color-shelf-surface-hover: var(--shelf-surface-hover);
-  --color-shelf-surface-selected: var(--shelf-surface-selected);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -24,7 +19,6 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-subtle-foreground: var(--subtle-foreground);
   --color-surface-subtle: var(--surface-subtle);
-  --color-surface-raised: var(--surface-raised);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
@@ -32,7 +26,6 @@
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -55,7 +48,6 @@
   --background: #f7f5f0;
   --foreground: #1c1a17;
   --card: #fcfbf8;
-  --card-foreground: var(--foreground);
   --popover: #fcfbf8;
   --popover-foreground: var(--foreground);
   --primary: #8e4934;
@@ -73,7 +65,6 @@
   --border: #e5e1d8;
   --input: #d6d1c6;
   --ring: var(--primary);
-  --radius: 0.5rem;
   --control-touch-size: 2.75rem;
   --paper-duration-base: 200ms;
   --paper-duration-fast: 150ms;
@@ -84,12 +75,8 @@
   --paper-shadow-control: 0 1px 2px var(--paper-shadow-soft);
   --paper-shadow-floating: 0 12px 32px -10px rgb(28 26 23 / 12%), 0 2px 6px -2px rgb(28 26 23 / 5%);
   --paper-radius-control: var(--radius-lg);
-  --shelf-surface: #efece4;
   --shelf-surface-raised: var(--card);
-  --shelf-surface-soft: #f3f0e9;
   --surface-subtle: #f2efe8;
-  --surface-raised: var(--card);
-  --shelf-surface-hover: #e9e5dc;
   --shelf-surface-selected: #f1e0d7;
   --shelf-app-bg: var(--background);
   --shelf-card-media: #edeae2;
@@ -99,7 +86,6 @@
   --background: #141312;
   --foreground: #edeae3;
   --card: #1b1a18;
-  --card-foreground: var(--foreground);
   --popover: #21201d;
   --popover-foreground: var(--foreground);
   --primary: #e4a186;
@@ -122,12 +108,8 @@
   --paper-shadow-panel: inset 0 1px 0 rgb(255 255 255 / 3%);
   --paper-shadow-control: inset 0 1px 0 rgb(255 255 255 / 4%);
   --paper-shadow-floating: 0 14px 32px -12px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 4%);
-  --shelf-surface: #1e1d1b;
   --shelf-surface-raised: var(--card);
-  --shelf-surface-soft: #181715;
   --surface-subtle: #181715;
-  --surface-raised: var(--card);
-  --shelf-surface-hover: #262522;
   --shelf-surface-selected: #36251e;
   --shelf-card-media: #1f1e1b;
 }

@@ -16,14 +16,10 @@ const defaultMaxVisitors = 10_000
 
 const (
 	rateLimitScopeClientIP = "client_ip"
-	rateLimitScopeUser     = "user"
-	rateLimitScopeCustom   = "custom"
 )
 
 var rateLimitRejections struct {
 	clientIP atomic.Uint64
-	user     atomic.Uint64
-	custom   atomic.Uint64
 }
 
 // RateLimiter 基于固定时间窗口的速率限制器
@@ -120,26 +116,9 @@ func (rl *RateLimiter) allow(ip string) (bool, time.Duration) {
 
 // RateLimit 返回速率限制中间件
 func RateLimit(rl *RateLimiter) gin.HandlerFunc {
-	return rateLimitByKey(rl, rateLimitScopeClientIP, func(c *gin.Context) string {
-		return c.ClientIP()
-	})
-}
-
-// RateLimitByKey applies a rate limit using a caller-provided stable key.
-func RateLimitByKey(rl *RateLimiter, keyFunc func(*gin.Context) string) gin.HandlerFunc {
-	return rateLimitByKey(rl, rateLimitScopeCustom, keyFunc)
-}
-
-func rateLimitByKey(
-	rl *RateLimiter, scope string, keyFunc func(*gin.Context) string,
-) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := keyFunc(c)
-		if key == "" {
-			key = c.ClientIP()
-		}
-		if allowed, retryAfter := rl.allow(key); !allowed {
-			recordRateLimitRejection(scope)
+		if allowed, retryAfter := rl.allow(c.ClientIP()); !allowed {
+			recordRateLimitRejection()
 			c.Header("Retry-After", strconv.FormatInt(retryAfterSeconds(retryAfter), 10))
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "请求过于频繁，请稍后再试",
@@ -157,15 +136,8 @@ func retryAfterSeconds(retryAfter time.Duration) int64 {
 	return int64(1 + (retryAfter-time.Nanosecond)/time.Second)
 }
 
-func recordRateLimitRejection(scope string) {
-	switch scope {
-	case rateLimitScopeClientIP:
-		rateLimitRejections.clientIP.Add(1)
-	case rateLimitScopeUser:
-		rateLimitRejections.user.Add(1)
-	default:
-		rateLimitRejections.custom.Add(1)
-	}
+func recordRateLimitRejection() {
+	rateLimitRejections.clientIP.Add(1)
 }
 
 func appendRateLimitPrometheus(output *strings.Builder) {
@@ -176,17 +148,5 @@ func appendRateLimitPrometheus(output *strings.Builder) {
 		"z_reader_rate_limit_rejections_total{scope=%q} %d\n",
 		rateLimitScopeClientIP,
 		rateLimitRejections.clientIP.Load(),
-	)
-	fmt.Fprintf(
-		output,
-		"z_reader_rate_limit_rejections_total{scope=%q} %d\n",
-		rateLimitScopeUser,
-		rateLimitRejections.user.Load(),
-	)
-	fmt.Fprintf(
-		output,
-		"z_reader_rate_limit_rejections_total{scope=%q} %d\n",
-		rateLimitScopeCustom,
-		rateLimitRejections.custom.Load(),
 	)
 }

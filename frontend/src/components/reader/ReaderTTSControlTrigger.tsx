@@ -42,7 +42,6 @@ export function ReaderTTSControlTrigger({
     return (
       <DeferredTTSControls
         {...slotProps}
-        variant="toolbar"
         triggerClassName="reader-chrome-btn"
         triggerStyle={{}}
         loadingContent={
@@ -69,7 +68,6 @@ export function ReaderTTSControlTrigger({
     return (
       <DeferredTTSControls
         {...slotProps}
-        variant="toolbar"
         triggerClassName="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
         triggerStyle={{}}
         triggerContent={
@@ -85,7 +83,6 @@ export function ReaderTTSControlTrigger({
   return (
     <DeferredTTSControls
       {...slotProps}
-      variant="toolbar"
       triggerClassName="reader-status-action [&_svg]:size-3.5"
       triggerStyle={
         slotProps.state !== "stopped"

@@ -18,7 +18,7 @@ describe('TTS extracted subcomponents', () => {
 
   it('switches highlight mode between word and sentence', () => {
     const onChange = vi.fn();
-    render(<TTSHighlightModeGroup value="sentence" onChange={onChange} variant="drawer" />);
+    render(<TTSHighlightModeGroup value="sentence" onChange={onChange} />);
 
     expect(screen.getByRole('button', { name: '句子' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '词语' })).toHaveAttribute('aria-pressed', 'false');
@@ -36,7 +36,6 @@ describe('TTS extracted subcomponents', () => {
         sleepTimerActive={false}
         onSleepTimerMinutes={onMinutes}
         onClearSleepTimer={onClear}
-        variant="floating"
       />
     );
 
@@ -50,7 +49,6 @@ describe('TTS extracted subcomponents', () => {
         sleepTimerActive
         onSleepTimerMinutes={onMinutes}
         onClearSleepTimer={onClear}
-        variant="floating"
       />
     );
 
@@ -61,14 +59,11 @@ describe('TTS extracted subcomponents', () => {
     expect(onClear).toHaveBeenCalledOnce();
   });
 
-  it('renders TTSStatusBanner with alert role for errors and optional drag handle', () => {
-    const onPointerDown = vi.fn();
+  it('renders TTSStatusBanner with alert role for errors', () => {
     render(
       <TTSStatusBanner
         ttsStatus={{ headline: '网络中断', detail: '等待恢复', tone: 'error' }}
         isActive={false}
-        withDragHandle
-        onDragHandlePointerDown={onPointerDown}
       />
     );
 
@@ -76,9 +71,5 @@ describe('TTS extracted subcomponents', () => {
     expect(alert).toHaveAttribute('aria-live', 'assertive');
     expect(alert).toHaveTextContent('网络中断');
     expect(alert).toHaveTextContent('等待恢复');
-
-    const dragHandle = screen.getByRole('button', { name: '拖动控制面板' });
-    fireEvent.pointerDown(dragHandle);
-    expect(onPointerDown).toHaveBeenCalledOnce();
   });
 });

@@ -98,7 +98,7 @@ export default function LoginPage() {
                 书籍、书签和阅读进度都保存在同一处
               </p>
             </div>
-            <LibraryPreview compact />
+            <LibraryPreview />
           </aside>
           <div className="auth-form-panel">
             <div className="mb-8">

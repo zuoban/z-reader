@@ -159,12 +159,6 @@
     color: var(--reader-chrome-muted);
   }
 
-  .reader-toolbar-actions {
-    background: transparent;
-    border: 0;
-    padding: 0;
-  }
-
   .reader-toolbar-divider {
     background: color-mix(in srgb, var(--reader-chrome-rule) 75%, transparent);
   }
@@ -419,28 +413,6 @@
     border: 1px solid color-mix(in srgb, var(--reader-panel-danger) 28%, transparent);
     background: color-mix(in srgb, var(--reader-panel-danger) 9%, transparent);
     color: var(--reader-panel-danger);
-  }
-
-  .reader-tts-fab {
-    @apply relative flex h-11 w-11 items-center justify-center rounded-full border;
-    background: var(--reader-panel-bg);
-    border-color: var(--reader-panel-border);
-    color: var(--reader-panel-fg);
-    box-shadow: var(--paper-shadow-control);
-    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
-      transform var(--paper-duration-fast) var(--paper-ease-soft),
-      opacity var(--paper-duration-fast) var(--paper-ease-soft);
-  }
-
-  .reader-tts-fab:hover {
-    background: color-mix(in srgb, var(--reader-panel-hover) 56%, var(--reader-panel-bg));
-  }
-
-  .reader-tts-fab[data-active="true"] {
-    border-color: var(--reader-panel-accent);
-    color: var(--reader-panel-accent);
   }
 
   .reader-select-trigger {
@@ -751,12 +723,6 @@
   .reader-settings-row:focus-visible {
     outline: 2px solid var(--reader-panel-accent);
     outline-offset: -2px;
-  }
-
-  .reading-status-panel {
-    background: color-mix(in srgb, var(--card) 96%, var(--background));
-    border: 1px solid var(--border);
-    box-shadow: var(--paper-shadow-floating);
   }
 
   .reader-status-pill {

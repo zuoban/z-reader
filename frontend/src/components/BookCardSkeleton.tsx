@@ -1,7 +1,6 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Skeleton } from '@mantine/core';
 import { SHELF_GRID_GAP_PX, SHELF_GRID_MIN_COL_PX } from '@/lib/shelf-grid';
 
 const skeletonGridStyle = {
@@ -19,20 +18,20 @@ export function BookCardSkeleton() {
       </div>
       <div className="shelf-book-details">
         <div className="space-y-1.5">
-          <Skeleton height={16} width="80%" radius="xs" aria-hidden="true" />
-          <Skeleton height={12} width="50%" radius="xs" aria-hidden="true" />
+          <div className="skeleton-shimmer h-4 w-4/5 rounded-xs" aria-hidden="true" />
+          <div className="skeleton-shimmer h-3 w-1/2 rounded-xs" aria-hidden="true" />
         </div>
         <div className="space-y-1">
           <div className="flex h-4 items-center justify-between gap-2">
-            <Skeleton height={12} width={40} radius="xs" aria-hidden="true" />
-            <Skeleton height={12} width={32} radius="xs" aria-hidden="true" />
+            <div className="skeleton-shimmer h-3 w-10 rounded-xs" aria-hidden="true" />
+            <div className="skeleton-shimmer h-3 w-8 rounded-xs" aria-hidden="true" />
           </div>
-          <Skeleton height={2} width="100%" radius="xl" aria-hidden="true" />
+          <div className="skeleton-shimmer h-0.5 w-full rounded-full" aria-hidden="true" />
         </div>
       </div>
       <div className="shelf-book-actions">
-        <Skeleton height={14} width={64} radius="xs" aria-hidden="true" />
-        <Skeleton height={14} width={14} radius="xs" aria-hidden="true" />
+        <div className="skeleton-shimmer h-3.5 w-16 rounded-xs" aria-hidden="true" />
+        <div className="skeleton-shimmer h-3.5 w-3.5 rounded-xs" aria-hidden="true" />
       </div>
     </div>
   );

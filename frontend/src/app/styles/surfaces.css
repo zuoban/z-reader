@@ -99,13 +99,6 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
   }
 
-  .text-meta {
-    color: var(--subtle-foreground);
-    font-size: 0.75rem;
-    font-weight: 500;
-    line-height: 1.4;
-  }
-
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -124,24 +117,6 @@
       opacity var(--paper-duration-base) var(--paper-ease-soft);
   }
 
-  .paper-stack {
-    box-shadow: none;
-  }
-
-  .paper-control {
-    @apply border border-border bg-card;
-    transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
-      background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
-      opacity var(--paper-duration-fast) var(--paper-ease-soft);
-  }
-
-  .paper-control:hover {
-    background: var(--secondary);
-    border-color: var(--input);
-  }
-
-  .app-sheet-shell,
   .app-dialog-shell {
     background: var(--popover);
     border-color: var(--border);
@@ -175,20 +150,9 @@
     }
   }
 
-  .app-sheet-header {
-    background: var(--popover);
-    border-bottom: 1px solid var(--border);
-  }
-
   .app-sheet-icon {
     background: var(--accent);
     color: var(--accent-foreground);
-  }
-
-  .app-sheet-body {
-    max-height: min(58svh, 30rem);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .app-surface-panel {
@@ -196,7 +160,6 @@
     border: 1px solid var(--border);
   }
 
-  .app-sheet-footer,
   .app-dialog-footer {
     background: var(--popover);
     border-top: 1px solid var(--border);
@@ -208,14 +171,6 @@
     box-shadow: var(--paper-shadow-floating);
     transition: border-color var(--paper-duration-fast) var(--paper-ease-soft),
       background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      opacity var(--paper-duration-fast) var(--paper-ease-soft);
-  }
-
-  .paper-chip {
-    background: var(--secondary);
-    border: 1px solid var(--border);
-    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
-      color var(--paper-duration-fast) var(--paper-ease-soft),
       opacity var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
@@ -319,7 +274,6 @@
 @media (prefers-contrast: more) {
   .shelf-book-card,
   .paper-panel,
-  .app-sheet-shell,
   .app-dialog-shell,
   .upload-action-surface {
     border-width: 1.5px;

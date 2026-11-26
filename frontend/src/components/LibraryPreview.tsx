@@ -6,9 +6,9 @@ const books = [
   { title: '三国演义', author: '罗贯中', colorLight: '#465c6a', colorDark: '#384a56' },
 ];
 
-export function LibraryPreview({ compact = false }: { compact?: boolean }) {
+export function LibraryPreview() {
   return (
-    <figure className={compact ? 'library-preview library-preview-compact' : 'library-preview'}>
+    <figure>
       <figcaption className="preview-caption">
         <span>藏书示例</span>
         <span className="font-mono text-xs tabular-nums">{books.length} 卷</span>

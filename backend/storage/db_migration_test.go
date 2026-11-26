@@ -48,9 +48,6 @@ func TestDBMigrationsAndHashedSessions(t *testing.T) {
 	token := "my-secret-session-token-12345"
 	session := &models.Session{
 		Token:     token,
-		UserID:    "user-1",
-		Username:  "testuser",
-		Role:      "user",
 		CreatedAt: time.Now().UTC(),
 		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
 	}
@@ -100,7 +97,7 @@ func TestDBMigrationsAndHashedSessions(t *testing.T) {
 	if retrieved == nil {
 		t.Fatal("GetSession returned nil for valid active session")
 	}
-	if retrieved.UserID != session.UserID || retrieved.Username != session.Username {
+	if !retrieved.ExpiresAt.Equal(session.ExpiresAt) || !retrieved.CreatedAt.Equal(session.CreatedAt) {
 		t.Fatalf("mismatched session details: %+v", retrieved)
 	}
 
@@ -299,9 +296,9 @@ func TestOpenMigratesLegacyV4Indexes(t *testing.T) {
 			BooksBucket,
 			ProgressBucket,
 			BookmarksBucket,
-			UsersBucket,
+			[]byte("users"),
 			UserBooksIndex,
-			UsernameIndex,
+			[]byte("username_index"),
 			BookSortIndex,
 			SystemMetaBucket,
 		} {

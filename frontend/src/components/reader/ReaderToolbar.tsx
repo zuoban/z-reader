@@ -54,6 +54,7 @@ interface ReaderToolbarProps {
   isSavingBookmark: boolean;
   onCreateBookmark: () => void;
   isSavingOffline?: boolean;
+  isOfflineSaved?: boolean;
   offlineDownloadLabel?: string;
   onSaveOffline?: () => void;
   ttsControls?: ReactNode;
@@ -91,6 +92,7 @@ export function ReaderToolbar({
   isSavingBookmark,
   onCreateBookmark,
   isSavingOffline = false,
+  isOfflineSaved = false,
   offlineDownloadLabel,
   onSaveOffline,
   ttsControls,
@@ -234,6 +236,7 @@ export function ReaderToolbar({
     disabled,
     busy,
     dataBookmarked,
+    dataOfflineSaved,
     className,
     labelClassName = "flex items-center justify-center",
     onClick,
@@ -248,6 +251,7 @@ export function ReaderToolbar({
     disabled?: boolean;
     busy?: boolean;
     dataBookmarked?: boolean;
+    dataOfflineSaved?: boolean;
     className?: string;
     labelClassName?: string;
     onClick: () => void;
@@ -266,6 +270,7 @@ export function ReaderToolbar({
         disabled={disabled}
         aria-busy={busy || undefined}
         data-bookmarked={dataBookmarked ? "true" : undefined}
+        data-offline-saved={dataOfflineSaved ? "true" : undefined}
         className={cn(chromeBtnClass, className)}
         classNames={{ label: labelClassName }}
         onClick={onClick}
@@ -398,14 +403,22 @@ export function ReaderToolbar({
                 </>
               )}
               {onSaveOffline && renderMobileMenuItem({
-                label: isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本",
+                label: isSavingOffline
+                  ? offlineDownloadLabel ?? "保存中..."
+                  : isOfflineSaved
+                    ? "更新离线副本"
+                    : "保存离线副本",
                 labelClassName: "tabular-nums",
                 disabled: isSavingOffline,
                 busy: isSavingOffline,
                 icon: isSavingOffline ? (
                   <Loader2 className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none" aria-hidden="true" />
                 ) : (
-                  <Download className="h-4 w-4 opacity-80" aria-hidden="true" />
+                  <Download
+                    className="h-4 w-4 opacity-80"
+                    style={isOfflineSaved ? { color: "var(--reader-chrome-accent)" } : undefined}
+                    aria-hidden="true"
+                  />
                 ),
                 onAction: onSaveOffline,
               })}
@@ -506,10 +519,13 @@ export function ReaderToolbar({
             )}
 
             {onSaveOffline && renderDesktopButton({
-              title: "保存到此设备，退出登录后会自动清除",
+              title: isOfflineSaved
+                ? "已缓存到此设备，点击更新离线副本"
+                : "保存到此设备，退出登录后会自动清除",
               disabled: isSavingOffline,
               busy: isSavingOffline,
-              className: isSavingOffline ? "reader-chrome-btn-expanded" : undefined,
+              dataOfflineSaved: isOfflineSaved && !isSavingOffline,
+              className: isSavingOffline ? "reader-chrome-btn-expanded" : "relative",
               labelClassName: "flex items-center justify-center gap-1.5",
               onClick: onSaveOffline,
               children: (
@@ -517,7 +533,21 @@ export function ReaderToolbar({
                   {isSavingOffline ? (
                     <Loader2 className="size-4 animate-spin motion-reduce:animate-none" strokeWidth={1.5} aria-hidden="true" />
                   ) : (
-                    <Download className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                    <>
+                      <Download
+                        className="size-4"
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                        style={isOfflineSaved ? { color: "var(--reader-chrome-accent)" } : undefined}
+                      />
+                      {isOfflineSaved && (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                          style={{ background: "var(--reader-chrome-accent)" }}
+                        />
+                      )}
+                    </>
                   )}
                   <span className={isSavingOffline ? "text-[11px]" : "sr-only"}>
                     {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}

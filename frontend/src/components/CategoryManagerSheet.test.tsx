@@ -162,4 +162,42 @@ describe('CategoryManagerSheet', () => {
     expect(screen.queryByRole('textbox', { name: '新分类名称' })).not.toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+
+  it('shows quick category filter only when at least 6 categories exist and handles Escape/empty match', () => {
+    const onOpenChange = vi.fn();
+    const smallProps = {
+      open: true,
+      onOpenChange,
+      categories: ['科幻', '历史', '文学', '传记', '哲学'],
+      bookCounts: { 科幻: 2, 历史: 1, 文学: 3, 传记: 1, 哲学: 1 },
+      onRenameCategory: vi.fn(),
+    };
+
+    const { rerender } = render(<CategoryManagerSheet {...smallProps} />);
+    expect(screen.queryByRole('textbox', { name: '筛选分类' })).not.toBeInTheDocument();
+
+    rerender(
+      <CategoryManagerSheet
+        {...smallProps}
+        categories={['Sci-Fi', '历史', '文学', '传记', '哲学', '散文']}
+        bookCounts={{ 'Sci-Fi': 2, 历史: 1, 文学: 3, 传记: 1, 哲学: 1, 散文: 4 }}
+      />
+    );
+
+    const filterInput = screen.getByRole('textbox', { name: '筛选分类' });
+    fireEvent.change(filterInput, { target: { value: 'sci' } });
+    expect(screen.getByText('Sci-Fi')).toBeInTheDocument();
+    expect(screen.queryByText('散文')).not.toBeInTheDocument();
+
+    fireEvent.change(filterInput, { target: { value: '不存在' } });
+    expect(screen.getByText('未找到匹配「不存在」的分类')).toBeInTheDocument();
+
+    fireEvent.keyDown(filterInput, { key: 'Escape' });
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByText('散文')).toBeInTheDocument();
+
+    fireEvent.change(filterInput, { target: { value: '不存在' } });
+    fireEvent.click(screen.getByRole('button', { name: '清空筛选' }));
+    expect(screen.getByText('历史')).toBeInTheDocument();
+  });
 });

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActionIcon, Button, TextInput } from '@mantine/core';
-import { Check, Loader2, Pencil, Tag, Tags, Trash2, X } from 'lucide-react';
+import { Check, Loader2, Pencil, Search, Tag, Tags, Trash2, X } from 'lucide-react';
 import { AppModal } from '@/components/AppModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
@@ -26,12 +26,21 @@ export function CategoryManagerSheet({
 }: CategoryManagerSheetProps) {
   const [editingCategory, setEditingCategory] = useState('');
   const [editValue, setEditValue] = useState('');
+  const [filterQuery, setFilterQuery] = useState('');
   const [deleteConfirmCategory, setDeleteConfirmCategory] = useState('');
   const [pendingAction, setPendingAction] = useState<'rename' | 'delete' | null>(null);
   const renameButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const restoreFocusFrameRef = useRef<number | null>(null);
   const isBusy = loading || pendingAction !== null;
   const normalizedCategories = categories.map((category) => category.trim()).filter(Boolean);
+  const showFilter = normalizedCategories.length >= 6;
+  const trimmedFilter = showFilter ? filterQuery.trim().toLowerCase() : '';
+  const visibleCategories = trimmedFilter
+    ? normalizedCategories.filter(
+        (category) =>
+          category.toLowerCase().includes(trimmedFilter) || category === editingCategory
+      )
+    : normalizedCategories;
   const totalCategorizedBooks = normalizedCategories.reduce(
     (sum, category) => sum + (bookCounts[category] || 0),
     0
@@ -60,6 +69,7 @@ export function CategoryManagerSheet({
   function reset() {
     setEditingCategory('');
     setEditValue('');
+    setFilterQuery('');
     setDeleteConfirmCategory('');
   }
 
@@ -70,6 +80,7 @@ export function CategoryManagerSheet({
       if (cancelled) return;
       setEditingCategory('');
       setEditValue('');
+      setFilterQuery('');
       setDeleteConfirmCategory('');
     });
     return () => {
@@ -163,7 +174,7 @@ export function CategoryManagerSheet({
         icon={<Tags className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />}
         returnFocus={false}
         closeDisabled={isBusy}
-        closeOnEscape={!isBusy && !editingCategory && !deleteConfirmCategory}
+        closeOnEscape={!isBusy && !editingCategory && !deleteConfirmCategory && !(showFilter && filterQuery)}
       >
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             {normalizedCategories.length === 0 ? (
@@ -177,8 +188,64 @@ export function CategoryManagerSheet({
                 </p>
               </div>
             ) : (
-              <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
-                {normalizedCategories.map((category) => {
+              <>
+                {showFilter && (
+                  <TextInput
+                    value={filterQuery}
+                    onChange={(e) => setFilterQuery(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape' && filterQuery && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setFilterQuery('');
+                      }
+                    }}
+                    disabled={isBusy}
+                    placeholder="筛选分类…"
+                    aria-label="筛选分类"
+                    leftSection={
+                      <Search className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                    }
+                    rightSection={
+                      filterQuery ? (
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          size={24}
+                          radius="md"
+                          onClick={() => setFilterQuery('')}
+                          disabled={isBusy}
+                          aria-label="清空分类筛选"
+                          title="清空筛选"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </ActionIcon>
+                      ) : undefined
+                    }
+                    className="mb-3"
+                    classNames={{
+                      input: 'category-input h-9 rounded-lg text-sm text-foreground shadow-none',
+                    }}
+                  />
+                )}
+                {visibleCategories.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/25 px-5 py-7 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      未找到匹配「{filterQuery.trim()}」的分类
+                    </p>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="xs"
+                      onClick={() => setFilterQuery('')}
+                      className="mt-3 h-8 cursor-pointer rounded-lg px-3 text-xs font-medium"
+                    >
+                      清空筛选
+                    </Button>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
+                    {visibleCategories.map((category) => {
                   const count = bookCounts[category] || 0;
                   const isEditing = editingCategory === category;
                   const isRenaming = pendingAction === 'rename' && isEditing;
@@ -348,7 +415,9 @@ export function CategoryManagerSheet({
                     </li>
                   );
                 })}
-              </ul>
+                  </ul>
+                )}
+              </>
             )}
           </div>
 

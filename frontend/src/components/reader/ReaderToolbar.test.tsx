@@ -412,4 +412,37 @@ describe('ReaderToolbar', () => {
     expect(container.querySelector('[data-bookmark-count="120"]')).toHaveTextContent('99+');
     expect(desktop.getByTitle('添加当前位置为书签')).not.toHaveAttribute('data-bookmarked');
   });
+
+  it('shows offline-saved status on desktop and mobile offline actions without changing accessible label', () => {
+    const props = {
+      ...baseToolbarProps,
+      onSaveOffline: vi.fn(),
+      isOfflineSaved: true,
+    };
+
+    const { container, rerender } = render(<ReaderToolbar {...props} />);
+    const desktop = within(
+      container.querySelector('[data-reader-toolbar-actions="desktop"]') as HTMLElement,
+    );
+
+    const desktopOfflineBtn = desktop.getByRole('button', { name: '离线' });
+    expect(desktopOfflineBtn).toHaveAttribute('data-offline-saved', 'true');
+    expect(desktopOfflineBtn).toHaveAttribute('title', '已缓存到此设备，点击更新离线副本');
+
+    fireEvent.click(screen.getByTitle('更多阅读操作'));
+    const mobileActions = screen.getByRole('dialog', { name: '阅读操作' });
+    expect(within(mobileActions).getByRole('button', { name: '更新离线副本' })).toBeInTheDocument();
+
+    rerender(
+      <ReaderToolbar
+        {...props}
+        isSavingOffline
+        offlineDownloadLabel="58%"
+      />,
+    );
+
+    const savingBtn = desktop.getByRole('button', { name: '58%' });
+    expect(savingBtn).not.toHaveAttribute('data-offline-saved');
+    expect(savingBtn).toHaveAttribute('aria-busy', 'true');
+  });
 });

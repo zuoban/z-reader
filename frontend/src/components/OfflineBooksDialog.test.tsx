@@ -76,6 +76,11 @@ describe('OfflineBooksDialog', () => {
     expect(screen.getByText('1.5 KB')).toBeInTheDocument();
     expect(screen.getByText('已缓存 2 本 · 共 2.0 MB')).toBeInTheDocument();
 
+    const shareBars = document.querySelectorAll('[data-storage-share]');
+    expect(shareBars).toHaveLength(2);
+    expect(shareBars[0]).toHaveAttribute('data-storage-share', '100');
+    expect(shareBars[1]).toHaveAttribute('data-storage-share', '4');
+
     const readLinks = screen.getAllByRole('link', { name: '阅读' });
     expect(readLinks[0]).toHaveAttribute('href', '/read/book-1');
 
@@ -89,6 +94,7 @@ describe('OfflineBooksDialog', () => {
     });
     expect(toast.success).toHaveBeenCalledWith('已移除《三体》的离线缓存');
     expect(screen.getByText('已缓存 1 本 · 共 1.5 KB')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-storage-share]')).toHaveLength(0);
 
     // Clear all remaining books requires inline confirmation
     fireEvent.click(screen.getByRole('button', { name: '清空全部离线缓存' }));

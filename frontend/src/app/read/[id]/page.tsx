@@ -432,6 +432,7 @@ function Reader({ bookId }: { bookId: string }) {
           isSavingBookmark={isSavingBookmark}
           onCreateBookmark={handleCreateBookmark}
           isSavingOffline={offline.isSavingOffline}
+          isOfflineSaved={offline.hasLocalOfflineCopy}
           offlineDownloadLabel={offline.offlineDownloadLabel}
           onSaveOffline={isAuthenticated ? handleSaveOffline : undefined}
           onBack={handleBack}

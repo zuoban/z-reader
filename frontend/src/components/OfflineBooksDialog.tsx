@@ -218,6 +218,10 @@ export function OfflineBooksDialog({
               {books.map((book) => {
                 const bookLabel = book.title || book.filename;
                 const isRemovingThis = removingId === book.bookId;
+                const sharePercent =
+                  totalBytes > 0
+                    ? Math.max(4, Math.min(100, Math.round((book.size / totalBytes) * 100)))
+                    : 0;
 
                 return (
                   <li
@@ -240,6 +244,18 @@ export function OfflineBooksDialog({
                             .filter(Boolean)
                             .join(' · ')}
                         </p>
+                        {books.length > 1 && totalBytes > 0 && (
+                          <div
+                            aria-hidden="true"
+                            data-storage-share={sharePercent}
+                            className="mt-1.5 h-0.5 w-full overflow-hidden rounded-full bg-border/60"
+                          >
+                            <div
+                              className="h-full rounded-full bg-primary/65 transition-[width] duration-300 ease-out"
+                              style={{ width: `${sharePercent}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">

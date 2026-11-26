@@ -62,4 +62,51 @@ describe('ShelfHeader', () => {
     expect(screen.getByRole('menuitem', { name: '亮色模式' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: '退出登录' })).not.toBeInTheDocument();
   });
+
+  it('renders quick-resume pill when online with in-progress book and hides it offline', () => {
+    const onResumeBook = vi.fn();
+    const onPrefetchResumeBook = vi.fn();
+    const resumeBook = { id: 'book-42', title: '人类简史', progress: 38 };
+
+    const { rerender } = render(
+      <ShelfHeader
+        uploadAccept=".epub,.pdf"
+        isOffline={false}
+        isUploading={false}
+        isDark={false}
+        resumeBook={resumeBook}
+        onResumeBook={onResumeBook}
+        onPrefetchResumeBook={onPrefetchResumeBook}
+        onUpload={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onManageOfflineBooks={vi.fn()}
+      />,
+    );
+
+    const resumeBtn = screen.getByRole('button', { name: '续读：人类简史（38%）' });
+    expect(resumeBtn).toBeInTheDocument();
+
+    fireEvent.pointerEnter(resumeBtn);
+    expect(onPrefetchResumeBook).toHaveBeenCalledWith('book-42');
+
+    fireEvent.click(resumeBtn);
+    expect(onResumeBook).toHaveBeenCalledWith('book-42');
+
+    rerender(
+      <ShelfHeader
+        uploadAccept=".epub,.pdf"
+        isOffline
+        isUploading={false}
+        isDark={false}
+        resumeBook={resumeBook}
+        onResumeBook={onResumeBook}
+        onPrefetchResumeBook={onPrefetchResumeBook}
+        onUpload={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onManageOfflineBooks={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /续读/ })).not.toBeInTheDocument();
+  });
 });

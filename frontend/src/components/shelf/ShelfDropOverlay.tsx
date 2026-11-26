@@ -2,6 +2,7 @@
 
 import { Loader2, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SUPPORTED_FORMAT_LABELS } from './constants';
 
 export interface ShelfDropOverlayProps {
   isUploading: boolean;
@@ -36,8 +37,17 @@ export function ShelfDropOverlay({ isUploading }: ShelfDropOverlayProps) {
         <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
           {isUploading
             ? '请等待当前上传完成后再拖入新文件'
-            : '支持 EPUB、MOBI、AZW3、PDF'}
+            : '支持批量导入常见电子书格式'}
         </p>
+        {!isUploading && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+            {SUPPORTED_FORMAT_LABELS.map((format) => (
+              <span key={format} className="shelf-format-pill">
+                {format}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

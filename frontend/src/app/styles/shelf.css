@@ -139,6 +139,45 @@
     background: color-mix(in srgb, var(--card) 72%, transparent);
   }
 
+  .shelf-resume-pill {
+    border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+    background: color-mix(in srgb, var(--primary) 7%, var(--card));
+    box-shadow: var(--paper-shadow-control);
+    transition:
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .shelf-resume-pill:hover {
+      border-color: color-mix(in srgb, var(--primary) 46%, var(--border));
+      background: color-mix(in srgb, var(--primary) 12%, var(--card));
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .shelf-resume-pill:hover {
+      transform: translateY(-1px);
+    }
+
+    .shelf-resume-pill:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .shelf-resume-pill:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .shelf-format-pill {
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[11px] font-medium tracking-wide text-muted-foreground;
+    border-color: color-mix(in srgb, var(--border) 82%, transparent);
+    background: color-mix(in srgb, var(--secondary) 75%, transparent);
+  }
+
   .shelf-view-toggle {
     display: inline-flex;
     align-items: center;
@@ -457,7 +496,9 @@
   }
 
   .book-cover-fallback {
-    background: var(--cover-color);
+    background:
+      linear-gradient(155deg, rgb(255 255 255 / 12%) 0%, transparent 42%, rgb(0 0 0 / 16%) 100%),
+      var(--cover-color);
     color: #fff9ec;
   }
 

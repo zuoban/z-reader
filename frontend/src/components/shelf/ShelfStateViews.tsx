@@ -6,7 +6,7 @@ import { AlertCircle, BookOpen, HardDrive, Loader2, WifiOff } from 'lucide-react
 import { AppScreen, LoadingSpinner } from '@/components/AppShell';
 import { EmptyState } from '@/components/EmptyState';
 import { FileUploadAction } from '@/components/FileUploadAction';
-import { SUPPORTED_FORMATS_ACCEPT } from './constants';
+import { SUPPORTED_FORMATS_ACCEPT, SUPPORTED_FORMAT_LABELS } from './constants';
 
 export function ShelfAuthLoadingView() {
   return (
@@ -127,7 +127,20 @@ export function ShelfEmptyLibraryState({
         icon={BookOpen}
         title="书架还是空的"
         description="上传 EPUB、MOBI、AZW3 或 PDF 开始阅读。"
-        detail={<span className="hidden sm:inline">也可以将文件拖放到书库批量导入。</span>}
+        detail={
+          <div className="flex flex-col items-center gap-2.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {SUPPORTED_FORMAT_LABELS.map((format) => (
+                <span key={format} className="shelf-format-pill">
+                  {format}
+                </span>
+              ))}
+            </div>
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              也可以将文件拖放到书库批量导入。
+            </span>
+          </div>
+        }
         action={
           <FileUploadAction
             accept={SUPPORTED_FORMATS_ACCEPT}

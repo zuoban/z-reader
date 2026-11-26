@@ -2,9 +2,15 @@
 
 import type { ChangeEvent } from 'react';
 import { ActionIcon, Menu } from '@mantine/core';
-import { HardDrive, LogOut, Moon, MoreHorizontal, Sun, WifiOff } from 'lucide-react';
+import { BookOpen, HardDrive, LogOut, Moon, MoreHorizontal, Sun, WifiOff } from 'lucide-react';
 import { BrandLogo } from '@/components/AppShell';
 import { FileUploadAction } from '@/components/FileUploadAction';
+
+export interface ShelfResumeBook {
+  id: string;
+  title: string;
+  progress: number;
+}
 
 interface ShelfHeaderProps {
   uploadAccept: string;
@@ -13,6 +19,9 @@ interface ShelfHeaderProps {
   uploadStatusLabel?: string;
   isQuietUpload?: boolean;
   isDark: boolean;
+  resumeBook?: ShelfResumeBook | null;
+  onResumeBook?: (bookId: string) => void;
+  onPrefetchResumeBook?: (bookId: string) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onToggleTheme: () => void;
   onManageOfflineBooks: () => void;
@@ -26,6 +35,9 @@ export function ShelfHeader({
   uploadStatusLabel,
   isQuietUpload = false,
   isDark,
+  resumeBook = null,
+  onResumeBook,
+  onPrefetchResumeBook,
   onUpload,
   onToggleTheme,
   onManageOfflineBooks,
@@ -37,6 +49,31 @@ export function ShelfHeader({
     <header className="shelf-header sticky top-0 z-50 w-full border-b border-border pt-[env(safe-area-inset-top,0px)]">
       <div className="app-container flex h-14 items-center justify-between gap-2 sm:gap-3">
         <BrandLogo compact className="shrink-0 whitespace-nowrap" />
+
+        {!isOffline && resumeBook && onResumeBook && (
+          <button
+            type="button"
+            onClick={() => onResumeBook(resumeBook.id)}
+            onPointerEnter={() => onPrefetchResumeBook?.(resumeBook.id)}
+            onFocus={() => onPrefetchResumeBook?.(resumeBook.id)}
+            aria-label={`续读：${resumeBook.title}（${resumeBook.progress}%）`}
+            title={`续读：${resumeBook.title}（${resumeBook.progress}%）`}
+            className="shelf-resume-pill group hidden min-w-0 max-w-[18rem] cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-xs md:inline-flex lg:max-w-[24rem]"
+          >
+            <BookOpen
+              aria-hidden="true"
+              className="size-3.5 shrink-0 text-primary"
+              strokeWidth={1.75}
+            />
+            <span className="shrink-0 font-medium text-muted-foreground">续读</span>
+            <span className="min-w-0 flex-1 truncate font-medium text-foreground transition-colors group-hover:text-primary">
+              {resumeBook.title}
+            </span>
+            <span className="shrink-0 rounded-full bg-primary/12 px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums text-primary">
+              {resumeBook.progress}%
+            </span>
+          </button>
+        )}
 
         <div className="flex min-w-0 items-center gap-2">
           {isOffline ? (

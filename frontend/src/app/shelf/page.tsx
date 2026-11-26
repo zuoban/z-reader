@@ -31,6 +31,7 @@ import {
 } from '@/components/shelf/constants';
 import { useShelfFileDrop } from '@/components/shelf/useShelfFileDrop';
 import { useShelfSelection } from '@/components/shelf/useShelfSelection';
+import type { Book } from '@/lib/api';
 import { prefetchFoliateEngine } from '@/lib/foliate-loader';
 
 type ShelfViewMode = 'grid' | 'list';
@@ -74,6 +75,23 @@ function persistShelfViewMode(mode: ShelfViewMode) {
     // Ignore storage quota / privacy mode failures and still notify listeners if needed.
   }
   window.dispatchEvent(new Event(SHELF_VIEW_MODE_EVENT));
+}
+
+function findResumeBook(
+  books: Book[],
+  progressByBookId: Record<string, number>
+): { id: string; title: string; progress: number } | null {
+  for (const book of books) {
+    const pct = Math.min(Math.max(Math.round(progressByBookId[book.id] ?? 0), 0), 100);
+    if (pct > 0 && pct < 100) {
+      return {
+        id: book.id,
+        title: book.title || book.filename,
+        progress: pct,
+      };
+    }
+  }
+  return null;
 }
 
 export default function ShelfPage() {
@@ -186,6 +204,7 @@ export default function ShelfPage() {
   const showCategoryFilters = !isOffline && !loadError && !isLoadingBooks && !isLibraryEmpty;
   const showShelfControlsSkeleton = !isOffline && !loadError && isLoadingBooks;
   const isBatchBusy = isDeletingMany || isUpdatingManyCategories || isReparsingMany;
+  const resumeBook = showCategoryFilters ? findResumeBook(books, progressByBookId) : null;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isOffline) {
@@ -377,6 +396,9 @@ export default function ShelfPage() {
         uploadStatusLabel={uploadStatusLabel}
         isQuietUpload={!isLoadingBooks && !loadError && isLibraryEmpty}
         isDark={isDark}
+        resumeBook={resumeBook}
+        onResumeBook={handleReadBook}
+        onPrefetchResumeBook={handlePrefetchBook}
         onUpload={handleUpload}
         onToggleTheme={toggleTheme}
         onManageOfflineBooks={() => setOfflineBooksOpen(true)}

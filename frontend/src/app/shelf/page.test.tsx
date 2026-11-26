@@ -511,4 +511,21 @@ describe('ShelfPage', () => {
     expect(screen.getByTestId('mock-book-card-book-2')).toBeInTheDocument();
     expect(screen.getByTestId('mock-book-card-book-3')).toBeInTheDocument();
   });
+
+  it('displays header quick-resume pill for an in-progress book and navigates on click', () => {
+    mockShelfData = {
+      ...mockShelfData,
+      books: [sampleBook],
+      filteredBooks: [sampleBook],
+      progressByBookId: { 'book-1': 57 },
+    };
+
+    render(<ShelfPage />);
+
+    const resumeBtn = screen.getByRole('button', { name: `续读：${sampleBook.title}（57%）` });
+    expect(resumeBtn).toBeInTheDocument();
+
+    fireEvent.click(resumeBtn);
+    expect(mockPush).toHaveBeenCalledWith(`/read/${sampleBook.id}`);
+  });
 });

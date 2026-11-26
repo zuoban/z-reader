@@ -562,7 +562,7 @@ export function ReaderSearchSheet({
               >
                 {group.sectionLabel ? (
                   <h3
-                    className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm"
+                    className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium backdrop-blur-md"
                     style={{
                       color: surface.muted,
                       background:

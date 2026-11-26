@@ -117,4 +117,20 @@ describe('LoginPage', () => {
     expect(screen.queryByRole('heading', { name: '解锁书库' })).not.toBeInTheDocument();
     expect(mockReplace).toHaveBeenCalledWith('/shelf');
   });
+
+  it('switches the interactive editorial library showcase card when clicking another book', () => {
+    render(<LoginPage />);
+
+    expect(screen.getByText('西游记 · 第十四回')).toBeInTheDocument();
+    expect(screen.getByText('54%')).toBeInTheDocument();
+
+    const shuihuBtn = screen.getByRole('button', { name: /水浒传/ });
+    expect(shuihuBtn).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(shuihuBtn);
+
+    expect(shuihuBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('水浒传 · 第十回')).toBeInTheDocument();
+    expect(screen.getByText('28%')).toBeInTheDocument();
+  });
 });

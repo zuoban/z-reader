@@ -433,12 +433,26 @@ export function VoiceSelector({
   return (
     <div className="flex flex-col gap-2.5" style={panelThemeVars}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3
-          className="text-xs font-medium"
-          style={{ color: 'var(--reader-panel-muted)' }}
-        >
-          声音设置
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3
+            className="text-xs font-medium"
+            style={{ color: 'var(--reader-panel-muted)' }}
+          >
+            声音设置
+          </h3>
+          {!voicesLoading && zhVoices.length > 0 && (
+            <span
+              data-voice-count={zhVoices.length}
+              className="rounded-full px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums"
+              style={{
+                background: 'color-mix(in srgb, var(--reader-panel-hover) 72%, transparent)',
+                color: 'var(--reader-panel-muted)',
+              }}
+            >
+              {zhVoices.length} 个可用
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           {onReloadVoices && (
             <button

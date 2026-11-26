@@ -335,4 +335,31 @@ describe('VoiceSelector preview lifecycle', () => {
     expect(customCombos[customCombos.length - 1]).toHaveTextContent('自定义音色');
     expect(customCombos[customCombos.length - 1]).not.toHaveTextContent('()');
   });
+
+  it('shows available Chinese voice count badge only after loading finishes', () => {
+    const { container, rerender } = render(
+      <VoiceSelector
+        settings={{ voiceName: FALLBACK_ZH_VOICES[0].ShortName, rate: 0, highlightMode: 'word' }}
+        voices={FALLBACK_ZH_VOICES}
+        voicesLoading={false}
+        onUpdateSettings={vi.fn()}
+        uiScheme={PRESET_STYLES.light}
+      />,
+    );
+
+    const badge = container.querySelector(`[data-voice-count="${FALLBACK_ZH_VOICES.length}"]`);
+    expect(badge).toHaveTextContent(`${FALLBACK_ZH_VOICES.length} 个可用`);
+
+    rerender(
+      <VoiceSelector
+        settings={{ voiceName: FALLBACK_ZH_VOICES[0].ShortName, rate: 0, highlightMode: 'word' }}
+        voices={FALLBACK_ZH_VOICES}
+        voicesLoading
+        onUpdateSettings={vi.fn()}
+        uiScheme={PRESET_STYLES.light}
+      />,
+    );
+
+    expect(container.querySelector('[data-voice-count]')).not.toBeInTheDocument();
+  });
 });

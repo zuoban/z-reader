@@ -6,7 +6,7 @@ import { PRESET_STYLES } from '@/hooks/useReaderTheme';
 describe('ReaderStatusBar', () => {
   it('renders a minimal immersive footer trigger when toolbar is hidden', () => {
     const onToggleToolbar = vi.fn();
-    render(
+    const { container } = render(
       <ReaderStatusBar
         percentage={12.34}
         currentChapter="第一章 开篇"
@@ -24,6 +24,9 @@ describe('ReaderStatusBar', () => {
     expect(expandButton).toHaveTextContent('12.3%');
     expect(screen.queryByText('第一章 开篇')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '朗读控制' })).toBeInTheDocument();
+    expect(container.querySelector('.reader-immersive-progress-fill')).toHaveStyle({
+      width: '12.34%',
+    });
 
     fireEvent.click(expandButton);
     expect(onToggleToolbar).toHaveBeenCalledTimes(1);

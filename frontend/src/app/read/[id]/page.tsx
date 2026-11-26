@@ -370,6 +370,8 @@ function Reader({ bookId }: { bookId: string }) {
           uiScheme={uiScheme}
           activePreset={theme.preset}
           onPresetChange={(preset) => setTheme({ preset })}
+          fontSize={theme.fontSize}
+          onFontSizeChange={(fontSize) => setTheme({ fontSize })}
           headerSafeAreaPaddingTop={HEADER_SAFE_AREA_PADDING_TOP}
           themeSettingsOpen={sheets.themeSettingsOpen}
           onThemeSettingsOpenChange={sheets.setThemeSettingsOpen}

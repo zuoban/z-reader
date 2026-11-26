@@ -49,6 +49,15 @@ export function ReaderStatusBar({
           paddingBottom: safeAreaPaddingBottom,
         }}
       >
+        <span
+          aria-hidden="true"
+          className="reader-immersive-progress-track pointer-events-none fixed inset-x-0 bottom-0 h-[2px] overflow-hidden"
+        >
+          <span
+            className="reader-immersive-progress-fill block h-full"
+            style={{ width: `${clampedPercentage}%` }}
+          />
+        </span>
         <div className="reader-status-pill pointer-events-auto">
           <button
             type="button"
@@ -91,7 +100,7 @@ export function ReaderStatusBar({
         />
       </span>
       <div className="grid min-h-[calc(2.75rem-1px)] w-full max-w-6xl grid-cols-[minmax(4.25rem,1fr)_minmax(0,3fr)_minmax(4.25rem,1fr)] items-center gap-3 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]">
-        <span className="font-mono text-xs font-normal tracking-normal tabular-nums">
+        <span className="reader-status-pct-badge justify-self-start font-mono text-xs font-medium tracking-normal tabular-nums">
           {formattedPercentage}
         </span>
         <span

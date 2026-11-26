@@ -61,6 +61,8 @@ interface ReaderToolbarProps {
   uiScheme: ThemeColors;
   activePreset?: ReaderThemePreset;
   onPresetChange?: (preset: ReaderThemePreset) => void;
+  fontSize?: number;
+  onFontSizeChange?: (fontSize: number) => void;
   headerSafeAreaPaddingTop: string;
   themeSettingsOpen: boolean;
   onThemeSettingsOpenChange: (open: boolean) => void;
@@ -94,6 +96,8 @@ export function ReaderToolbar({
   uiScheme,
   activePreset,
   onPresetChange,
+  fontSize,
+  onFontSizeChange,
   headerSafeAreaPaddingTop,
   themeSettingsOpen,
   onThemeSettingsOpenChange,
@@ -502,7 +506,7 @@ export function ReaderToolbar({
               <div
                 role="group"
                 aria-label="快捷切换纸面"
-                className="reader-preset-dock mx-0.5 hidden xl:inline-flex"
+                className="reader-preset-dock mx-0.5 inline-flex"
               >
                 {QUICK_PRESETS.map((preset) => {
                   const style = PRESET_STYLES[preset.key];
@@ -523,6 +527,42 @@ export function ReaderToolbar({
                     />
                   );
                 })}
+              </div>
+            )}
+
+            {typeof fontSize === "number" && onFontSizeChange && (
+              <div
+                role="group"
+                aria-label="快捷调节字号"
+                className="reader-font-stepper mx-0.5 hidden xl:inline-flex"
+              >
+                <button
+                  type="button"
+                  disabled={fontSize <= 12}
+                  onClick={() => onFontSizeChange(Math.max(12, fontSize - 1))}
+                  aria-label="减小字号"
+                  title="减小字号"
+                  className="reader-font-stepper-btn text-[11px] font-semibold"
+                >
+                  A-
+                </button>
+                <span
+                  aria-live="off"
+                  className="min-w-6 text-center font-mono text-[11px] tabular-nums"
+                  style={{ color: "var(--reader-chrome-ink)" }}
+                >
+                  {fontSize}
+                </span>
+                <button
+                  type="button"
+                  disabled={fontSize >= 32}
+                  onClick={() => onFontSizeChange(Math.min(32, fontSize + 1))}
+                  aria-label="增大字号"
+                  title="增大字号"
+                  className="reader-font-stepper-btn text-[11px] font-semibold"
+                >
+                  A+
+                </button>
               </div>
             )}
 

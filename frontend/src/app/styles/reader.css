@@ -191,8 +191,53 @@
     outline-offset: 2px;
   }
 
+  .reader-font-stepper {
+    @apply inline-flex items-center gap-0.5 rounded-full border px-1 py-0.5;
+    border-color: color-mix(in srgb, var(--reader-chrome-rule) 70%, transparent);
+    background: color-mix(in srgb, var(--reader-chrome-hover) 45%, transparent);
+  }
+
+  .reader-font-stepper-btn {
+    @apply inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 leading-none;
+    color: var(--reader-chrome-muted);
+    transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft),
+      transform var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  .reader-font-stepper-btn:enabled:hover {
+    background: color-mix(in srgb, var(--reader-chrome-hover) 85%, transparent);
+    color: var(--reader-chrome-ink);
+  }
+
+  .reader-font-stepper-btn:focus-visible {
+    outline: 2px solid var(--reader-chrome-accent);
+    outline-offset: -1px;
+  }
+
+  .reader-font-stepper-btn:disabled {
+    @apply cursor-not-allowed opacity-35;
+  }
+
   .reader-edge-nav-zone {
     @apply pointer-events-auto absolute inset-y-12 z-10 w-14 items-center justify-center;
+    transition: background var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .reader-edge-nav-zone.left-0:hover {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--reader-chrome-ink) 4%, transparent),
+      transparent
+    );
+  }
+
+  .reader-edge-nav-zone.right-0:hover {
+    background: linear-gradient(
+      270deg,
+      color-mix(in srgb, var(--reader-chrome-ink) 4%, transparent),
+      transparent
+    );
   }
 
   .reader-edge-nav-btn {
@@ -976,13 +1021,71 @@
     color: color-mix(in srgb, var(--reader-status-fg) 80%, var(--reader-status-muted));
   }
 
+  .reader-status-pct-badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5;
+    background: color-mix(in srgb, var(--reader-status-hover) 56%, transparent);
+    color: var(--reader-status-fg);
+  }
+
+  .reader-immersive-progress-track {
+    background: color-mix(in srgb, var(--reader-status-rule) 22%, transparent);
+  }
+
+  .reader-immersive-progress-fill {
+    background: color-mix(in srgb, var(--reader-status-accent) 55%, transparent);
+    transition: width var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
   .reader-status-progress-track {
     background: color-mix(in srgb, var(--reader-status-rule) 32%, transparent);
   }
 
   .reader-status-progress-fill {
-    background: color-mix(in srgb, var(--reader-status-accent) 72%, transparent);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--reader-status-accent) 58%, transparent),
+      var(--reader-status-accent)
+    );
     transition: width var(--paper-duration-base) var(--paper-ease-soft);
+  }
+
+  .reader-tts-live-dot {
+    position: absolute;
+    top: 0.3125rem;
+    right: 0.3125rem;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 999px;
+    background: var(--reader-chrome-accent, var(--reader-status-accent));
+    box-shadow: 0 0 0 1.5px var(--reader-chrome-bg, var(--reader-status-bg));
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reader-font-stepper-btn:enabled:active {
+      transform: scale(0.92);
+    }
+
+    .reader-tts-live-dot {
+      animation: reader-tts-dot-pulse 1.8s ease-in-out infinite;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reader-immersive-progress-fill {
+      transition: none;
+    }
+  }
+
+  @keyframes reader-tts-dot-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.55;
+      transform: scale(0.82);
+    }
   }
 
   .reader-jump-back-pill {

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@/test/render';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ReaderToolbar } from '@/components/reader/ReaderToolbar';
+import { ReaderTTSControlTrigger } from '@/components/reader/ReaderTTSControlTrigger';
 import { PRESET_STYLES } from '@/hooks/useReaderTheme';
 
 const uiScheme = PRESET_STYLES.light;
@@ -297,5 +298,90 @@ describe('ReaderToolbar', () => {
 
     fireEvent.click(sepiaBtn);
     expect(onPresetChange).toHaveBeenCalledWith('sepia');
+  });
+
+  it('steps font size from the desktop quick stepper and enforces bounds', () => {
+    const onFontSizeChange = vi.fn();
+    const { rerender } = render(
+      <ReaderToolbar
+        {...baseToolbarProps}
+        fontSize={17}
+        onFontSizeChange={onFontSizeChange}
+      />,
+    );
+
+    const group = screen.getByRole('group', { name: '快捷调节字号' });
+    const decBtn = within(group).getByRole('button', { name: '减小字号' });
+    const incBtn = within(group).getByRole('button', { name: '增大字号' });
+    expect(within(group).getByText('17')).toBeInTheDocument();
+
+    fireEvent.click(decBtn);
+    expect(onFontSizeChange).toHaveBeenCalledWith(16);
+
+    fireEvent.click(incBtn);
+    expect(onFontSizeChange).toHaveBeenCalledWith(18);
+
+    rerender(
+      <ReaderToolbar
+        {...baseToolbarProps}
+        fontSize={12}
+        onFontSizeChange={onFontSizeChange}
+      />,
+    );
+    expect(within(group).getByRole('button', { name: '减小字号' })).toBeDisabled();
+
+    rerender(
+      <ReaderToolbar
+        {...baseToolbarProps}
+        fontSize={32}
+        onFontSizeChange={onFontSizeChange}
+      />,
+    );
+    expect(within(group).getByRole('button', { name: '增大字号' })).toBeDisabled();
+  });
+
+  it('renders a live TTS dot on desktop-toolbar and status-bar triggers only while playing and ready', () => {
+    const { container, rerender } = render(
+      <>
+        <ReaderTTSControlTrigger
+          slot="desktop-toolbar"
+          expanded={false}
+          state="playing"
+          uiScheme={uiScheme}
+          onClick={vi.fn()}
+        />
+        <ReaderTTSControlTrigger
+          slot="status-bar"
+          expanded={false}
+          state="playing"
+          uiScheme={uiScheme}
+          onClick={vi.fn()}
+        />
+      </>,
+    );
+
+    expect(container.querySelectorAll('.reader-tts-live-dot')).toHaveLength(2);
+
+    rerender(
+      <>
+        <ReaderTTSControlTrigger
+          slot="desktop-toolbar"
+          expanded={false}
+          state="stopped"
+          uiScheme={uiScheme}
+          onClick={vi.fn()}
+        />
+        <ReaderTTSControlTrigger
+          slot="status-bar"
+          expanded={false}
+          state="playing"
+          isLoading
+          uiScheme={uiScheme}
+          onClick={vi.fn()}
+        />
+      </>,
+    );
+
+    expect(container.querySelectorAll('.reader-tts-live-dot')).toHaveLength(0);
   });
 });

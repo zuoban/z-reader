@@ -52,7 +52,7 @@ export function ReaderTTSControlTrigger({
         variant="subtle"
         size={44}
         radius="md"
-        className="min-h-0 min-w-0 reader-status-action [&_svg]:size-3.5"
+        className="relative min-h-0 min-w-0 reader-status-action [&_svg]:size-3.5"
         style={isActive ? { color: uiScheme.link } : {}}
       >
         {isLoading ? (
@@ -62,6 +62,9 @@ export function ReaderTTSControlTrigger({
           />
         ) : (
           <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
+        )}
+        {state === "playing" && !isLoading && (
+          <span aria-hidden="true" className="reader-tts-live-dot" />
         )}
       </ActionIcon>
     );
@@ -75,7 +78,7 @@ export function ReaderTTSControlTrigger({
       className={
         isMobileMenu
           ? "reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
-          : "reader-chrome-btn"
+          : "reader-chrome-btn relative"
       }
     >
       {isLoading ? (
@@ -100,6 +103,9 @@ export function ReaderTTSControlTrigger({
             strokeWidth={isMobileMenu ? undefined : 1.6}
             aria-hidden="true"
           />
+          {!isMobileMenu && state === "playing" && (
+            <span aria-hidden="true" className="reader-tts-live-dot" />
+          )}
           <span className={isMobileMenu ? undefined : "sr-only"}>朗读</span>
         </>
       )}

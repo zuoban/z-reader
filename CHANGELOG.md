@@ -8,6 +8,62 @@ use annotated Git tags in the form `vMAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
+### Added
+
+- Support pure-Go PDF, MOBI, and AZW3 metadata and cover extraction on upload and
+  reparse.
+- Redesign the landing page with an interactive reader desk preview, add an
+  interactive clothbound book showcase on `/login`, provide a light/dark theme
+  toggle across landing, `/login`, and `/404`, and introduce a branded 404 page.
+- Add shelf productivity upgrades: persistent grid/list view toggle, reading
+  status quick filters (`在读`/`未读`/`已读完`) with live category counts, a book
+  metadata editor dialog supporting drag-and-drop and clipboard (`Ctrl/⌘+V`)
+  cover replacement, header quick-resume pill and mobile menu entry, circular
+  scroll-progress back-to-top button, finished-book cover seal, and end-of-shelf
+  colophon.
+- Add reader navigation and annotation upgrades: universal jump-back pill and TOC
+  jump-back percentage, desktop edge page-turn buttons, quick paper preset
+  switcher and font size stepper, keyboard shortcuts (`P`, `[`, `]`, `H`, `M`,
+  `F3`/`Shift+F3`) with transient HUD feedback, TOC hierarchy guides, chapter
+  steppers, progress milestones, and Enter jump, in-book search match stepping,
+  sticky section headers, and recent history, plus bookmark keyword search,
+  sorting, notes filter, inline note editing, and Enter jump.
+- Add TTS and offline polish: live playback state indicators, clickable `1×`
+  speed reset badge, available Chinese voice count badge, reader offline-saved
+  indicator, proportional offline storage share bars, and quick search filter for
+  cached offline books.
+
+### Changed
+
+- Elevate site-wide Modern Study surfaces with frosted-glass modals/drawers,
+  paper-blended reader chrome, refined EPUB typography, typography and
+  page-measure presets, and responsive mobile shelf/reader layouts.
+- Overhaul frontend performance: enforce route-scoped CSS and first-screen
+  JS/CSS budgets, lazy-load font packs, TTS runtime, and non-offline dialogs,
+  speed up reader startup with auth caching and foliate preloading, and memoize
+  virtual shelf rows.
+- Overhaul backend storage and asset pipelines: modularize book storage and TTS
+  cache, perform incremental search gram updates and single-pass summary
+  rebuilds, add cover ETag caching, move TTS disk caching off the hot path, and
+  reuse buffers across EPUB and backup workflows.
+
+### Fixed
+
+- Harden backend security headers, CORS/gzip/`sendfile` handling, session cache
+  revocation, graceful shutdown draining, and Docker/Caddy proxy setup.
+- Stabilize cover blob LRU lifecycles, virtual grid paging, service worker
+  offline fallback guards, multi-touch swipe filtering, image zoom gestures,
+  Mantine flex/menu truncation, and bundled offline reader sheets.
+- Suppress benign `ResizeObserver loop completed with undelivered notifications.`
+  browser noise and fix invalid `<p><div>` nesting in empty states.
+
+### Upgrade notes
+
+- Refresh open browser tabs after upgrading so the updated `z-reader-v0.3.0`
+  service worker and static assets take effect.
+
 ## [0.2.0] - 2026-11-24
 
 ### Breaking Changes
@@ -303,7 +359,8 @@ observability assets, and CI gates.
 - Production Web Vitals baselines are documented for manual capture; CI uses a
   catastrophic LCP ceiling on the dev server plus hard first-screen JS budgets.
 
-[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/zuoban/z-reader/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/zuoban/z-reader/releases/tag/v0.3.0
 [0.2.0]: https://github.com/zuoban/z-reader/releases/tag/v0.2.0
 [0.1.5]: https://github.com/zuoban/z-reader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/zuoban/z-reader/releases/tag/v0.1.4

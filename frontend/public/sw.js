@@ -1,4 +1,4 @@
-const CACHE_NAME = 'z-reader-v0.2.0';
+const CACHE_NAME = 'z-reader-v0.3.0';
 const STATIC_ASSETS = [
   '/',
   '/login',

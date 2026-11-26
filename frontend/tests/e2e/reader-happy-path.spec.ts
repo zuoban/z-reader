@@ -460,7 +460,7 @@ test.describe('reader happy path', () => {
     const shortcutsDialog = page.getByRole('dialog', { name: '键盘快捷键' });
     await expect(shortcutsDialog).toBeVisible({ timeout: 10_000 });
     await expect(shortcutsDialog.getByText('目录')).toBeVisible();
-    await expect(shortcutsDialog.getByText('书签')).toBeVisible();
+    await expect(shortcutsDialog.getByText('书签', { exact: true })).toBeVisible();
     await expect(shortcutsDialog.getByText('排版与外观')).toBeVisible();
   });
 

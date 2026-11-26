@@ -153,7 +153,7 @@ test.describe('background TTS', () => {
     if (!(await retry.isVisible())) {
       const expand = page.getByRole('button', { name: '展开操作栏' });
       if (await expand.isVisible()) await expand.click();
-      await page.getByRole('button', { name: /^朗读控制(?:（正在播放）)?$/ }).first().click();
+      await page.getByRole('button', { name: /^朗读控制(?:（(?:正在播放|已暂停)）)?$/ }).first().click();
     }
     await expect(retry).toBeVisible();
     expect(requests).toHaveLength(1);

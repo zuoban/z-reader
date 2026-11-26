@@ -16,14 +16,17 @@ import { useReaderSheets } from "@/hooks/useReaderSheets";
 import { useReaderTTSBridge } from "@/hooks/useReaderTTSBridge";
 import { useFoliateView } from "@/hooks/useFoliateView";
 import { ReaderJumpBackPill } from "@/components/reader/ReaderJumpBackPill";
+import { ReaderSearchSheet } from "@/components/reader/ReaderSearchSheet";
 import { ReaderStatusBar } from "@/components/reader/ReaderStatusBar";
 import {
   ReaderAuthLoading,
   ReaderErrorState,
 } from "@/components/reader/ReaderStateViews";
+import { ReaderTOCSheet } from "@/components/reader/ReaderTOCSheet";
 import { ReaderToolbar } from "@/components/reader/ReaderToolbar";
 import { ReaderTTSControlTrigger } from "@/components/reader/ReaderTTSControlTrigger";
 import { ReaderViewport } from "@/components/reader/ReaderViewport";
+import { ThemeSettings } from "@/components/ThemeSettings";
 import "../../styles/mantine-buttons.css";
 import "../../styles/reader.css";
 import type { Bookmark } from "@/lib/api";
@@ -39,25 +42,11 @@ const PRESET_CYCLE: ReadonlyArray<{ key: ReaderThemePreset; label: string }> = [
   { key: "dark", label: "夜读纸面" },
 ];
 
-const ReaderTOCSheet = dynamic(
-  () =>
-    import("@/components/reader/ReaderTOCSheet").then(
-      (module) => module.ReaderTOCSheet,
-    ),
-  { ssr: false },
-);
-
 const ReaderBookmarksSheet = dynamic(
   () =>
     import("@/components/reader/ReaderBookmarksSheet").then(
       (module) => module.ReaderBookmarksSheet,
     ),
-  { ssr: false },
-);
-
-const ThemeSettings = dynamic(
-  () =>
-    import("@/components/ThemeSettings").then((module) => module.ThemeSettings),
   { ssr: false },
 );
 
@@ -70,14 +59,6 @@ const ReaderTTSRuntime = dynamic(
   () =>
     import("@/components/reader/ReaderTTSRuntime").then(
       (module) => module.ReaderTTSRuntime,
-    ),
-  { ssr: false },
-);
-
-const ReaderSearchSheet = dynamic(
-  () =>
-    import("@/components/reader/ReaderSearchSheet").then(
-      (module) => module.ReaderSearchSheet,
     ),
   { ssr: false },
 );

@@ -207,10 +207,11 @@ test.describe('shelf virtual grid', () => {
     await expect
       .poll(
         async () => {
-          const label = page.getByText(/已载入 \d+ \/ 110 本/);
+          const label = page.getByText(/已载入 \d+ \/ 110 本|已显示全部 \d+ 本藏书/);
           if ((await label.count()) === 0) return 0;
-          const text = await label.textContent();
-          return Number(text?.match(/已载入 (\d+)/)?.[1] ?? 0);
+          const text = await label.first().textContent();
+          const match = text?.match(/已载入 (\d+)|已显示全部 (\d+)/);
+          return Number(match?.[1] ?? match?.[2] ?? 0);
         },
         { timeout: 15_000 }
       )

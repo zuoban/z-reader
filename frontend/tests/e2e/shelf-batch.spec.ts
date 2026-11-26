@@ -306,7 +306,7 @@ test.describe('shelf batch operations', () => {
       mimeType: 'image/png',
       buffer: tinyPng,
     });
-    await expect(dialog.getByText('待保存')).toBeVisible();
+    await expect(dialog.getByText('待保存', { exact: true })).toBeVisible();
     await dialog.getByRole('textbox', { name: '书名' }).fill('夜航西飞（典藏版）');
 
     await dialog.getByRole('button', { name: '保存' }).click();

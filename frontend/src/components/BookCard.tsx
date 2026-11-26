@@ -550,8 +550,8 @@ export const BookCard = memo(function BookCard({
                 </p>
               </div>
 
-              <div className="min-w-0 space-y-1.5">
-                <div className="flex items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
+              <div className="min-w-0 space-y-1">
+                <div className="flex h-4 items-center justify-between gap-2 text-xs leading-4 text-muted-foreground">
                   <span className="min-w-0 flex-1 truncate">
                     <span
                       className="inline-block max-w-full truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"

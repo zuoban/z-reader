@@ -445,4 +445,51 @@ describe('ReaderToolbar', () => {
     expect(savingBtn).not.toHaveAttribute('data-offline-saved');
     expect(savingBtn).toHaveAttribute('aria-busy', 'true');
   });
+
+  it('distinguishes playing, paused, and stopped TTS trigger labels and accent state', () => {
+    const { container, rerender } = render(
+      <ReaderTTSControlTrigger
+        slot="desktop-toolbar"
+        expanded={false}
+        state="playing"
+        uiScheme={uiScheme}
+        onClick={vi.fn()}
+      />,
+    );
+
+    const playingBtn = screen.getByRole('button', { name: '朗读控制（正在播放）' });
+    expect(playingBtn).toHaveAttribute('title', '朗读控制（正在播放）');
+    expect(playingBtn).toHaveAttribute('data-reader-tts-active', 'true');
+    expect(container.querySelectorAll('.reader-tts-live-dot')).toHaveLength(1);
+
+    rerender(
+      <ReaderTTSControlTrigger
+        slot="desktop-toolbar"
+        expanded={false}
+        state="paused"
+        uiScheme={uiScheme}
+        onClick={vi.fn()}
+      />,
+    );
+
+    const pausedBtn = screen.getByRole('button', { name: '朗读控制（已暂停）' });
+    expect(pausedBtn).toHaveAttribute('title', '朗读控制（已暂停）');
+    expect(pausedBtn).toHaveAttribute('data-reader-tts-active', 'true');
+    expect(container.querySelectorAll('.reader-tts-live-dot')).toHaveLength(0);
+
+    rerender(
+      <ReaderTTSControlTrigger
+        slot="desktop-toolbar"
+        expanded={false}
+        state="stopped"
+        uiScheme={uiScheme}
+        onClick={vi.fn()}
+      />,
+    );
+
+    const stoppedBtn = screen.getByRole('button', { name: '朗读控制' });
+    expect(stoppedBtn).toHaveAttribute('title', '朗读控制');
+    expect(stoppedBtn).not.toHaveAttribute('data-reader-tts-active');
+    expect(container.querySelectorAll('.reader-tts-live-dot')).toHaveLength(0);
+  });
 });

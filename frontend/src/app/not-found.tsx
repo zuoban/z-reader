@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, Home } from 'lucide-react';
 import { AppScreen, BrandLogo } from '@/components/AppShell';
+import { LandingThemeToggle } from '@/components/LandingThemeToggle';
 
 export default function NotFound() {
   return (
@@ -13,9 +14,12 @@ export default function NotFound() {
           >
             <BrandLogo compact />
           </Link>
-          <Link href="/shelf" className="app-secondary-link !min-h-9 rounded-full px-4">
-            进入书架
-          </Link>
+          <div className="flex items-center gap-2">
+            <LandingThemeToggle />
+            <Link href="/shelf" className="app-secondary-link !min-h-9 rounded-full px-4">
+              进入书架
+            </Link>
+          </div>
         </div>
       </header>
 

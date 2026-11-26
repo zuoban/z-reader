@@ -27,9 +27,11 @@ export function ReaderTTSControlTrigger({
   const isActive = state !== "stopped";
   const label = isLoading
     ? "正在加载朗读控制"
-    : isActive
+    : state === "playing"
       ? "朗读控制（正在播放）"
-      : "朗读控制";
+      : state === "paused"
+        ? "朗读控制（已暂停）"
+        : "朗读控制";
 
   const sharedProps = {
     type: "button" as const,
@@ -101,6 +103,7 @@ export function ReaderTTSControlTrigger({
           <Volume2
             className={isMobileMenu ? "size-4 opacity-80" : "size-4"}
             strokeWidth={isMobileMenu ? undefined : 1.6}
+            style={isActive ? { color: uiScheme.link } : undefined}
             aria-hidden="true"
           />
           {!isMobileMenu && state === "playing" && (

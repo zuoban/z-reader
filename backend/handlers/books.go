@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"net/http"
@@ -13,10 +15,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"z-reader/backend/config"
+	"z-reader/backend/internal/singleflight"
 	"z-reader/backend/logger"
 	"z-reader/backend/models"
 	"z-reader/backend/response"
@@ -53,8 +57,8 @@ type BooksHandler struct {
 	db                   *storage.DB
 	processor            *bookProcessor
 	legacyHashes         *legacyHashBackfill
-	coverThumbFlights    coverFlightGroup[*models.Book]
-	coverExtractFlights  coverFlightGroup[extractedCoverResult]
+	coverThumbFlights    singleflight.Group[*models.Book]
+	coverExtractFlights  singleflight.Group[extractedCoverResult]
 	coverCacheMu         sync.Mutex
 	coverCacheClosed     bool
 	coverCacheSem        chan struct{}
@@ -215,12 +219,7 @@ func (h *BooksHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 
 	var req bookUpdateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求内容无效")
+	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
 
@@ -293,12 +292,7 @@ func (h *BooksHandler) Delete(c *gin.Context) {
 
 func (h *BooksHandler) BatchDelete(c *gin.Context) {
 	var req batchBookIDsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求内容无效")
+	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
 	req.IDs = normalizeBookIDs(req.IDs)
@@ -357,12 +351,9 @@ func (h *BooksHandler) GetFile(c *gin.Context) {
 	h.setBookCache(c, bookFileCacheMaxAge)
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
-	if book.ContentHash != "" && writeNotModifiedIfETagMatches(c, book.ContentHash) {
-		return
-	}
 	c.Header("Content-Type", bookFormatContentType(book.Format))
 	c.Header("Accept-Ranges", "bytes")
-	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
+	serveContentWithETag(c, info.Name(), info.ModTime(), book.ContentHash, file)
 }
 
 func bookFormatContentType(format string) string {
@@ -470,7 +461,24 @@ func limitUploadBody(c *gin.Context, maxBytes int64) {
 }
 
 func isRequestBodyTooLarge(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "request body too large")
+	var maxBytesErr *http.MaxBytesError
+	return errors.As(err, &maxBytesErr)
+}
+
+func bindRequest(c *gin.Context, binder func() error, invalidMsg string) bool {
+	if err := binder(); err != nil {
+		if isRequestBodyTooLarge(err) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
+			return false
+		}
+		response.BadRequest(c, invalidMsg)
+		return false
+	}
+	return true
+}
+
+func bindJSON(c *gin.Context, dst any, invalidMsg string) bool {
+	return bindRequest(c, func() error { return c.ShouldBindJSON(dst) }, invalidMsg)
 }
 
 func (h *BooksHandler) setBookCache(c *gin.Context, maxAgeSeconds int) {
@@ -481,79 +489,22 @@ func (h *BooksHandler) setBookCache(c *gin.Context, maxAgeSeconds int) {
 	c.Header("Cache-Control", fmt.Sprintf("private, max-age=%d", maxAgeSeconds))
 }
 
-func writeNotModifiedIfETagMatches(c *gin.Context, rawETag string) bool {
-	etag := `"` + rawETag + `"`
-	c.Header("ETag", etag)
-	if c.Request == nil || !ifNoneMatchMatches(c.Request.Header.Values("If-None-Match"), etag) {
-		return false
+func serveContentWithETag(c *gin.Context, name string, modTime time.Time, rawETag string, content io.ReadSeeker) {
+	if rawETag != "" {
+		c.Header("ETag", `"`+rawETag+`"`)
 	}
-	c.Status(http.StatusNotModified)
-	c.Writer.WriteHeaderNow()
-	return true
-}
-
-func ifNoneMatchMatches(headers []string, etag string) bool {
-	if etag == "" {
-		return false
-	}
-	for _, raw := range headers {
-		buf := strings.Trim(raw, " \t")
-		if buf == "" {
-			continue
-		}
-		if buf == "*" {
-			return true
-		}
-		for len(buf) > 0 {
-			buf = strings.TrimLeft(buf, " \t")
-			if len(buf) == 0 {
-				break
-			}
-			if buf[0] == ',' {
-				buf = buf[1:]
-				continue
-			}
-			candidate, remain := scanETag(buf)
-			if candidate == "" {
-				break
-			}
-			remain = strings.TrimLeft(remain, " \t")
-			if len(remain) > 0 && remain[0] != ',' {
-				break
-			}
-			if etagWeakMatch(candidate, etag) {
-				return true
-			}
-			buf = remain
+	req := c.Request
+	if req != nil {
+		if values := req.Header.Values("If-None-Match"); len(values) > 1 {
+			cloned := req.Clone(req.Context())
+			cloned.Header.Set("If-None-Match", strings.Join(values, ", "))
+			req = cloned
 		}
 	}
-	return false
-}
-
-func scanETag(s string) (etag string, remain string) {
-	s = strings.TrimLeft(s, " \t")
-	start := 0
-	if strings.HasPrefix(s, "W/") {
-		start = 2
+	http.ServeContent(c.Writer, req, name, modTime, content)
+	if c.Writer.Status() == http.StatusNotModified {
+		c.Writer.WriteHeaderNow()
 	}
-	if len(s[start:]) < 2 || s[start] != '"' {
-		return "", ""
-	}
-	for i := start + 1; i < len(s); i++ {
-		c := s[i]
-		switch {
-		case c == 0x21 || (c >= 0x23 && c <= 0x7E) || c >= 0x80:
-		case c == '"':
-			return s[:i+1], s[i+1:]
-		default:
-			return "", ""
-		}
-	}
-	return "", ""
-}
-
-func etagWeakMatch(a, b string) bool {
-	return strings.TrimPrefix(a, "W/") == strings.TrimPrefix(b, "W/")
 }
 
 func hashBytes(data []byte) string {

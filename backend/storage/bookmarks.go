@@ -46,17 +46,8 @@ func deleteBookBookmarks(tx *bbolt.Tx, userID, bookID string) error {
 func (db *DB) ListBookmarks(bookID string, userID string) ([]models.Bookmark, error) {
 	items := []models.Bookmark{}
 	err := db.View(func(tx *bbolt.Tx) error {
-		booksBucket := tx.Bucket(BooksBucket)
-		bookData := booksBucket.Get([]byte(bookID))
-		if bookData == nil {
-			return ErrNotFound
-		}
-		var book models.Book
-		if err := book.UnmarshalDB(bookData); err != nil {
+		if _, err := getOwnedBookInTx(tx, bookID, userID); err != nil {
 			return err
-		}
-		if book.UserID != userID {
-			return ErrNotFound
 		}
 
 		b := tx.Bucket(BookmarksBucket)
@@ -82,18 +73,8 @@ func (db *DB) ListBookmarks(bookID string, userID string) ([]models.Bookmark, er
 func (db *DB) SaveBookmark(bookmark *models.Bookmark, userID string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		bookmark.UserID = userID
-
-		booksBucket := tx.Bucket(BooksBucket)
-		bookData := booksBucket.Get([]byte(bookmark.BookID))
-		if bookData == nil {
-			return ErrNotFound
-		}
-		var book models.Book
-		if err := book.UnmarshalDB(bookData); err != nil {
+		if _, err := getOwnedBookInTx(tx, bookmark.BookID, userID); err != nil {
 			return err
-		}
-		if book.UserID != userID {
-			return ErrNotFound
 		}
 
 		data, err := json.Marshal(bookmark)
@@ -108,17 +89,8 @@ func (db *DB) SaveBookmark(bookmark *models.Bookmark, userID string) error {
 func (db *DB) UpdateBookmarkNote(bookID, bookmarkID, userID, note string) (*models.Bookmark, error) {
 	var updated models.Bookmark
 	err := db.Update(func(tx *bbolt.Tx) error {
-		booksBucket := tx.Bucket(BooksBucket)
-		bookData := booksBucket.Get([]byte(bookID))
-		if bookData == nil {
-			return ErrNotFound
-		}
-		var book models.Book
-		if err := book.UnmarshalDB(bookData); err != nil {
+		if _, err := getOwnedBookInTx(tx, bookID, userID); err != nil {
 			return err
-		}
-		if book.UserID != userID {
-			return ErrNotFound
 		}
 
 		b := tx.Bucket(BookmarksBucket)
@@ -145,17 +117,8 @@ func (db *DB) UpdateBookmarkNote(bookID, bookmarkID, userID, note string) (*mode
 
 func (db *DB) DeleteBookmark(bookID string, bookmarkID string, userID string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		booksBucket := tx.Bucket(BooksBucket)
-		bookData := booksBucket.Get([]byte(bookID))
-		if bookData == nil {
-			return ErrNotFound
-		}
-		var book models.Book
-		if err := book.UnmarshalDB(bookData); err != nil {
+		if _, err := getOwnedBookInTx(tx, bookID, userID); err != nil {
 			return err
-		}
-		if book.UserID != userID {
-			return ErrNotFound
 		}
 
 		b := tx.Bucket(BookmarksBucket)

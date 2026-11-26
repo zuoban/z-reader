@@ -108,12 +108,7 @@ func (h *ProgressHandler) Save(c *gin.Context) {
 
 	var req ProgressRequest
 	// 支持 JSON 和 form-urlencoded 格式（sendBeacon 使用 form 格式）
-	if err := c.ShouldBind(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求内容无效")
+	if !bindRequest(c, func() error { return c.ShouldBind(&req) }, "请求内容无效") {
 		return
 	}
 

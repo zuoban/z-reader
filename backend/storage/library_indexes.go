@@ -314,16 +314,9 @@ func updateBooksCategoryInTx(
 	normalizedCategory := normalizeCategoryName(category)
 	var summary *BookLibrarySummary
 	for _, id := range uniqueNonEmptyStrings(ids) {
-		bookData := booksBucket.Get([]byte(id))
-		if bookData == nil {
-			return nil, ErrNotFound
-		}
-		var book models.Book
-		if err := book.UnmarshalDB(bookData); err != nil {
+		book, err := getOwnedBookInTx(tx, id, userID)
+		if err != nil {
 			return nil, err
-		}
-		if book.UserID != userID {
-			return nil, ErrNotFound
 		}
 		if summary == nil && userID != "" {
 			current, err := loadLibrarySummary(tx, userID)
@@ -332,11 +325,11 @@ func updateBooksCategoryInTx(
 			}
 			summary = &current
 		}
-		oldCategory := categoryForBook(&book)
+		oldCategory := categoryForBook(book)
 		if summary != nil {
 			summary.adjustCount(oldCategory, -1)
 		}
-		oldSearchText := bookSearchText(&book)
+		oldSearchText := bookSearchText(book)
 		book.Category = normalizedCategory
 		data, err := book.MarshalDB()
 		if err != nil {
@@ -345,22 +338,22 @@ func updateBooksCategoryInTx(
 		if err := booksBucket.Put([]byte(book.ID), data); err != nil {
 			return nil, err
 		}
-		searchText := bookSearchText(&book)
-		if err := addBookToSearchIndex(tx, &book, searchText); err != nil {
+		searchText := bookSearchText(book)
+		if err := addBookToSearchIndex(tx, book, searchText); err != nil {
 			return nil, err
 		}
-		newCategory := categoryForBook(&book)
-		if err := updateBookCategorySortKeys(tx, &book, oldCategory, newCategory); err != nil {
+		newCategory := categoryForBook(book)
+		if err := updateBookCategorySortKeys(tx, book, oldCategory, newCategory); err != nil {
 			return nil, err
 		}
-		if err := replaceBookSearchGrams(tx, &book, oldSearchText, searchText); err != nil {
+		if err := replaceBookSearchGrams(tx, book, oldSearchText, searchText); err != nil {
 			return nil, err
 		}
 		if summary != nil {
 			summary.adjustCount(newCategory, 1)
 		}
 		if includeBooks {
-			updatedBooks = append(updatedBooks, book)
+			updatedBooks = append(updatedBooks, *book)
 		}
 	}
 	if summary != nil {

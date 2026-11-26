@@ -3,29 +3,15 @@ package services
 import (
 	"context"
 	"errors"
-	"sync"
-	"sync/atomic"
 	"time"
 
+	"z-reader/backend/internal/singleflight"
 	"z-reader/backend/logger"
 )
 
 var ErrTTSBusy = errors.New("tts service is busy")
 
-type ttsInflightCall struct {
-	data    []byte
-	err     error
-	done    chan struct{}
-	cancel  context.CancelFunc
-	waiters atomic.Int64
-	key     string
-	ctx     context.Context
-}
-
-var ttsInflight struct {
-	mutex sync.Mutex
-	calls map[string]*ttsInflightCall
-}
+var ttsInflight singleflight.Group[[]byte]
 
 func callTTSAPIWithCacheContext(ctx context.Context, ssml, outputFormat string) ([]byte, error) {
 	return synthesizeTTSAudio(ctx, ssml, outputFormat, false)
@@ -59,88 +45,40 @@ func synthesizeTTSAudio(ctx context.Context, ssml, outputFormat string, refresh 
 		}
 		runtime.metrics.recordCache(1, false)
 	}
-	ttsInflight.mutex.Lock()
-	if ttsInflight.calls == nil {
-		ttsInflight.calls = make(map[string]*ttsInflightCall)
-	}
-	if call, ok := ttsInflight.calls[key]; ok && call.ctx.Err() == nil {
-		call.waiters.Add(1)
-		ttsInflight.mutex.Unlock()
-		return waitForTTSCall(ctx, call)
-	}
-
-	workCtx, cancel := context.WithTimeout(context.Background(), defaultTTSSynthesisTimeout)
-	call := &ttsInflightCall{done: make(chan struct{}), cancel: cancel, key: key, ctx: workCtx}
-	call.waiters.Store(1)
-	ttsInflight.calls[key] = call
-	ttsInflight.mutex.Unlock()
-
-	go func() {
-		defer cancel()
-		var persistData []byte
-		persisting := false
-		func() {
-			defer func() {
-				ttsInflight.mutex.Lock()
-				if ttsInflight.calls[key] == call {
-					delete(ttsInflight.calls, key)
-				}
-				ttsInflight.mutex.Unlock()
-				close(call.done)
-			}()
-
-			logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml))
-			call.data, call.err = callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
-			// A browser decode failure can be local to that client. Recovery leaves
-			// the shared cache alone and runs under the same synthesis limits.
-			if call.err == nil && !refresh {
-				runtime.cache.set(key, call.data)
-				if shouldPersistDiskTTSCache(runtime.config, call.data) && runtime.tryStartDiskWrite() {
-					persisting = true
-					persistData = call.data
-				}
-			}
-
-			logger.Info(
-				"TTS request completed",
-				"key", key,
-				"bytes", len(call.data),
-				"waiters", call.waiters.Load(),
-				"error", ttsFailureKind(call.err),
-			)
-		}()
-
-		if persisting {
-			defer runtime.diskWG.Done()
-			if err := writeDiskTTSCacheFile(runtime.config, key, persistData); err != nil {
-				logger.Warn("Failed to write TTS disk cache", "key", key, "error", err)
-				return
-			}
-			runtime.maybeCleanupDiskTTSCache()
-		}
-	}()
-
-	return waitForTTSCall(ctx, call)
-}
-
-func waitForTTSCall(ctx context.Context, call *ttsInflightCall) ([]byte, error) {
-	select {
-	case <-call.done:
-		if call.err != nil {
-			return nil, call.err
-		}
-		return append([]byte(nil), call.data...), nil
-	case <-ctx.Done():
-		ttsInflight.mutex.Lock()
-		if call.waiters.Add(-1) == 0 {
-			call.cancel()
-			if ttsInflight.calls[call.key] == call {
-				delete(ttsInflight.calls, call.key)
+	var audio []byte
+	audio, _, _, err = ttsInflight.DoContext(ctx, key, defaultTTSSynthesisTimeout, func(workCtx context.Context) ([]byte, error) {
+		logger.Info("TTS cache miss", "key", key, "ssml_bytes", len(ssml))
+		result, synthErr := callTTSAPIThrottled(workCtx, provider, ssml, outputFormat)
+		// A browser decode failure can be local to that client. Recovery leaves
+		// the shared cache alone and runs under the same synthesis limits.
+		if synthErr == nil && !refresh {
+			runtime.cache.set(key, result)
+			if shouldPersistDiskTTSCache(runtime.config, result) && runtime.tryStartDiskWrite() {
+				persisted := result
+				go func() {
+					defer runtime.diskWG.Done()
+					if writeErr := writeDiskTTSCacheFile(runtime.config, key, persisted); writeErr != nil {
+						logger.Warn("Failed to write TTS disk cache", "key", key, "error", writeErr)
+						return
+					}
+					runtime.maybeCleanupDiskTTSCache()
+				}()
 			}
 		}
-		ttsInflight.mutex.Unlock()
-		return nil, ctx.Err()
+
+		logger.Info(
+			"TTS request completed",
+			"key", key,
+			"bytes", len(result),
+			"waiters", ttsInflight.Waiters(key),
+			"error", ttsFailureKind(synthErr),
+		)
+		return result, synthErr
+	})
+	if err != nil {
+		return nil, err
 	}
+	return append([]byte(nil), audio...), nil
 }
 
 func callTTSAPIThrottled(ctx context.Context, provider TTSProvider, ssml, outputFormat string) ([]byte, error) {

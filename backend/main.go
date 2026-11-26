@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -17,7 +18,6 @@ import (
 
 	"z-reader/backend/backup"
 	"z-reader/backend/config"
-	"z-reader/backend/diagnostics"
 	"z-reader/backend/handlers"
 	"z-reader/backend/logger"
 	"z-reader/backend/middleware"
@@ -144,7 +144,6 @@ func newRouter(cfg *config.Config, db *storage.DB, booksHandler *handlers.BooksH
 			AllowCredentials: true,
 			MaxAge:           12 * time.Hour,
 		}),
-		middleware.Gzip(),
 		middleware.RequestBodyLimit(cfg.MaxRequestBodyBytes, "/api/books", "/api/books/:id/cover"),
 	)
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
@@ -167,7 +166,7 @@ func newRouter(cfg *config.Config, db *storage.DB, booksHandler *handlers.BooksH
 		r.GET("/metrics", middleware.MetricsHandler)
 	}
 	if cfg.PprofEnabled {
-		diagnostics.RegisterPprofRoutes(r)
+		registerPprofRoutes(r)
 	}
 
 	api := r.Group("/api")
@@ -310,4 +309,26 @@ func startBackupWorker(ctx context.Context, db *storage.DB, cfg *config.Config) 
 			createBackup()
 		}
 	}
+}
+
+// registerPprofRoutes adds the standard Go pprof handlers. Callers must keep
+// the routes on a trusted network; they intentionally have no application auth
+// so Go tooling can retrieve profiles directly.
+func registerPprofRoutes(router *gin.Engine) {
+	router.GET("/debug/pprof/", gin.WrapF(pprof.Index))
+	router.GET("/debug/pprof/:profile", func(c *gin.Context) {
+		switch c.Param("profile") {
+		case "cmdline":
+			pprof.Cmdline(c.Writer, c.Request)
+		case "profile":
+			pprof.Profile(c.Writer, c.Request)
+		case "symbol":
+			pprof.Symbol(c.Writer, c.Request)
+		case "trace":
+			pprof.Trace(c.Writer, c.Request)
+		default:
+			pprof.Handler(c.Param("profile")).ServeHTTP(c.Writer, c.Request)
+		}
+	})
+	router.POST("/debug/pprof/symbol", gin.WrapF(pprof.Symbol))
 }

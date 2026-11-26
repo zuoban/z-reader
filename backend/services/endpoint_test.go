@@ -15,11 +15,7 @@ func waitForEndpointWaiters(t *testing.T, count int) {
 	t.Helper()
 	deadline := time.After(time.Second)
 	for {
-		endpointRefresh.mutex.Lock()
-		call := endpointRefresh.call
-		joined := call != nil && call.waiters == count
-		endpointRefresh.mutex.Unlock()
-		if joined {
+		if endpointFlights.Waiters("endpoint") == int64(count) {
 			return
 		}
 		select {

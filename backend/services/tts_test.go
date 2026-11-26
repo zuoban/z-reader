@@ -182,10 +182,7 @@ func TestTTSOneCancelledWaiterDoesNotCancelOthers(t *testing.T) {
 	key := ttsCacheKey(ActiveTTSProvider().Name(), "shared", "mp3")
 	timeout := time.After(time.Second)
 	for {
-		ttsInflight.mutex.Lock()
-		waiters := ttsInflight.calls[key].waiters.Load()
-		ttsInflight.mutex.Unlock()
-		if waiters == 2 {
+		if ttsInflight.Waiters(key) == 2 {
 			break
 		}
 		select {

@@ -537,64 +537,29 @@ func (cr contextReader) Read(p []byte) (int, error) {
 	return cr.r.Read(p)
 }
 
-func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
-	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+func writeCopiedFile(ctx context.Context, input io.Reader, destination string, perm os.FileMode, readBuffer []byte, withDigest bool) (string, error) {
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		// Wrap input in contextReader so a file's WriteTo cannot bypass readBuffer
+		// and cancellation is checked before each chunk read.
+		input = contextReader{ctx: ctx, r: input}
+	}
+	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
 	if err != nil {
-		return err
+		return "", err
 	}
 	// Hide ReadFrom so the destination file uses the supplied buffer.
-	_, copyErr := io.CopyBuffer(struct{ io.Writer }{output}, input, readBuffer)
-	closeErr := output.Close()
-	if copyErr != nil {
-		return copyErr
+	dst := io.Writer(struct{ io.Writer }{output})
+	var hasher interface{ Sum([]byte) []byte }
+	if withDigest {
+		h := sha256.New()
+		hasher = h
+		dst = io.MultiWriter(dst, h)
 	}
-	return closeErr
-}
-
-// copyToBackupFile copies input to destination as a read-only (0400) backup file.
-func copyToBackupFile(ctx context.Context, input io.Reader, destination string, readBuffer []byte) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
-	if err != nil {
-		return err
-	}
-	// Wrap input in contextReader so a file's WriteTo cannot bypass readBuffer
-	// and cancellation is checked before each chunk read. Hide ReadFrom so the
-	// destination file uses the supplied buffer.
-	_, copyErr := io.CopyBuffer(struct{ io.Writer }{output}, contextReader{ctx: ctx, r: input}, readBuffer)
-	if copyErr == nil {
-		copyErr = ctx.Err()
-	}
-	closeErr := output.Close()
-	if copyErr != nil {
-		return copyErr
-	}
-	return closeErr
-}
-
-// copyToBackupFileWithDigest copies input to destination as a read-only (0400)
-// backup file and returns its SHA-256 hex digest in a single pass.
-func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destination string, readBuffer []byte) (string, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	output, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
-	if err != nil {
-		return "", err
-	}
-	hash := sha256.New()
-	// Wrap input in contextReader so a file's WriteTo cannot bypass readBuffer
-	// and cancellation is checked before each chunk read.
-	_, copyErr := io.CopyBuffer(io.MultiWriter(output, hash), contextReader{ctx: ctx, r: input}, readBuffer)
-	if copyErr == nil {
+	_, copyErr := io.CopyBuffer(dst, input, readBuffer)
+	if copyErr == nil && ctx != nil {
 		copyErr = ctx.Err()
 	}
 	closeErr := output.Close()
@@ -604,7 +569,33 @@ func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destinatio
 	if closeErr != nil {
 		return "", closeErr
 	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	if hasher == nil {
+		return "", nil
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func copyToFile(input io.Reader, destination string, readBuffer []byte) error {
+	_, err := writeCopiedFile(nil, input, destination, 0600, readBuffer, false)
+	return err
+}
+
+// copyToBackupFile copies input to destination as a read-only (0400) backup file.
+func copyToBackupFile(ctx context.Context, input io.Reader, destination string, readBuffer []byte) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_, err := writeCopiedFile(ctx, input, destination, 0400, readBuffer, false)
+	return err
+}
+
+// copyToBackupFileWithDigest copies input to destination as a read-only (0400)
+// backup file and returns its SHA-256 hex digest in a single pass.
+func copyToBackupFileWithDigest(ctx context.Context, input io.Reader, destination string, readBuffer []byte) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return writeCopiedFile(ctx, input, destination, 0400, readBuffer, true)
 }
 
 func fileSHA256(ctx context.Context, path string) (string, error) {
@@ -651,33 +642,21 @@ func hashBackupReader(ctx context.Context, file io.Reader) (string, error) {
 }
 
 func hashBackupReaderWithBuffer(ctx context.Context, file io.Reader, buf []byte) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	hash := sha256.New()
-	for {
-		if err := ctx.Err(); err != nil {
-			return "", err
-		}
-		n, readErr := file.Read(buf)
-		if n > 0 {
-			if _, err := hash.Write(buf[:n]); err != nil {
-				return "", err
-			}
-		}
-		if readErr == io.EOF {
-			break
-		}
-		if readErr != nil {
-			return "", readErr
-		}
+	if _, err := io.CopyBuffer(hash, contextReader{ctx: ctx, r: file}, buf); err != nil {
+		return "", err
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func safeRelativePath(path string) bool {
-	if path == "" || filepath.IsAbs(path) {
-		return false
-	}
-	clean := filepath.Clean(path)
-	return clean != "." && clean != ".." && !strings.HasPrefix(clean, ".."+string(filepath.Separator))
+	return path != "" && !strings.Contains(path, "\\") && filepath.IsLocal(path) && filepath.Clean(path) != "."
 }
 
 func backupCreatedAt(dirPath string, entry fs.DirEntry) (time.Time, bool) {

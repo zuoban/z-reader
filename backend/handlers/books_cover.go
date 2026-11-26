@@ -30,109 +30,6 @@ import (
 	"z-reader/backend/telemetry"
 )
 
-type coverFlightCall[T any] struct {
-	done    chan struct{}
-	cancel  context.CancelFunc
-	waiters int
-	value   T
-	err     error
-}
-
-type coverFlightGroup[T any] struct {
-	mu    sync.Mutex
-	calls map[string]*coverFlightCall[T]
-}
-
-func (g *coverFlightGroup[T]) Do(key string, fn func() (T, error)) (T, error) {
-	g.mu.Lock()
-	if g.calls == nil {
-		g.calls = make(map[string]*coverFlightCall[T])
-	}
-	if call, ok := g.calls[key]; ok {
-		g.mu.Unlock()
-		<-call.done
-		return call.value, call.err
-	}
-	call := &coverFlightCall[T]{done: make(chan struct{})}
-	g.calls[key] = call
-	g.mu.Unlock()
-
-	defer func() {
-		g.mu.Lock()
-		if g.calls[key] == call {
-			delete(g.calls, key)
-		}
-		g.mu.Unlock()
-		close(call.done)
-	}()
-
-	call.value, call.err = fn()
-	return call.value, call.err
-}
-
-func (g *coverFlightGroup[T]) DoContext(
-	ctx context.Context,
-	key string,
-	fn func(context.Context) (T, error),
-) (T, error, bool) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if ctx.Err() != nil {
-		var zero T
-		return zero, ctx.Err(), false
-	}
-
-	g.mu.Lock()
-	if g.calls == nil {
-		g.calls = make(map[string]*coverFlightCall[T])
-	}
-	call, ok := g.calls[key]
-	if ok {
-		call.waiters++
-		g.mu.Unlock()
-	} else {
-		flightCtx, cancel := context.WithCancel(context.Background())
-		call = &coverFlightCall[T]{
-			done:    make(chan struct{}),
-			cancel:  cancel,
-			waiters: 1,
-		}
-		g.calls[key] = call
-		g.mu.Unlock()
-
-		go func() {
-			defer func() {
-				g.mu.Lock()
-				if g.calls[key] == call {
-					delete(g.calls, key)
-				}
-				g.mu.Unlock()
-				cancel()
-				close(call.done)
-			}()
-			call.value, call.err = fn(flightCtx)
-		}()
-	}
-
-	select {
-	case <-call.done:
-		return call.value, call.err, true
-	case <-ctx.Done():
-		g.mu.Lock()
-		call.waiters--
-		if call.waiters == 0 {
-			if g.calls[key] == call {
-				delete(g.calls, key)
-			}
-			call.cancel()
-		}
-		g.mu.Unlock()
-		var zero T
-		return zero, ctx.Err(), false
-	}
-}
-
 type extractedCoverResult struct {
 	data        []byte
 	contentType string
@@ -220,11 +117,8 @@ func (h *BooksHandler) GetCover(c *gin.Context) {
 	}
 
 	h.setBookCache(c, bookCoverCacheMaxAge)
-	if writeNotModifiedIfETagMatches(c, hashBytes(extracted.data)) {
-		return
-	}
 	c.Header("Content-Type", extracted.contentType)
-	c.Data(http.StatusOK, extracted.contentType, extracted.data)
+	serveContentWithETag(c, "", time.Time{}, hashBytes(extracted.data), bytes.NewReader(extracted.data))
 }
 
 func supportsExtractedCoverFormat(format string) bool {
@@ -260,10 +154,7 @@ func (h *BooksHandler) serveCover(c *gin.Context, name string) {
 	defer file.Close()
 	h.setBookCache(c, bookCoverCacheMaxAge)
 	etag := hashBytes([]byte(fmt.Sprintf("%s:%d:%d", name, info.Size(), info.ModTime().UnixNano())))
-	if writeNotModifiedIfETagMatches(c, etag) {
-		return
-	}
-	http.ServeContent(c.Writer, c.Request, info.Name(), info.ModTime(), file)
+	serveContentWithETag(c, info.Name(), info.ModTime(), etag, file)
 }
 
 func (h *BooksHandler) UploadCover(c *gin.Context) {
@@ -605,7 +496,7 @@ func (h *BooksHandler) cacheCoverThumbnail(ctx context.Context, snapshot *models
 	if ctx.Err() != nil || h.isCoverCacheClosed() {
 		return snapshot, nil
 	}
-	book, err, completed := h.coverThumbFlights.DoContext(ctx, snapshot.ID+":"+snapshot.CoverPath, func(flightCtx context.Context) (*models.Book, error) {
+	book, _, completed, err := h.coverThumbFlights.DoContext(ctx, snapshot.ID+":"+snapshot.CoverPath, 0, func(flightCtx context.Context) (*models.Book, error) {
 		release, ok := h.acquireCoverCacheSlot(flightCtx)
 		if !ok {
 			return snapshot, nil
@@ -724,6 +615,46 @@ func (h *BooksHandler) createCoverThumbnail(bookID, coverFilename string) (strin
 	})
 }
 
+func sampleAxis(dstSize, srcSize, offset int) (p0, p1, w []int) {
+	p0 = make([]int, dstSize)
+	p1 = make([]int, dstSize)
+	w = make([]int, dstSize)
+	maxPos := (srcSize - 1) * 256
+	for i := 0; i < dstSize; i++ {
+		// Fixed-point 8-bit fractional coordinates mapping destination centers to source centers.
+		pos := max(0, min(maxPos, ((2*i+1)*srcSize*256)/(2*dstSize)-128))
+		ix := pos >> 8
+		p0[i] = offset + ix
+		p1[i] = offset + min(ix+1, srcSize-1)
+		w[i] = pos & 0xff
+	}
+	return p0, p1, w
+}
+
+func blendChannel(c00, c10, c01, c11, fx, fy int) uint8 {
+	invX, invY := 256-fx, 256-fy
+	top := c00*invX + c10*fx
+	bot := c01*invX + c11*fx
+	return uint8((top*invY + bot*fy + 32768) >> 16)
+}
+
+func resizeCoverRGBA4(dst *image.RGBA, pix []uint8, stride int, minX, minY int, x0, x1, wx, y0, y1, wy []int) {
+	for y, sy0 := range y0 {
+		sy1, fy := y1[y], wy[y]
+		row0 := (sy0 - minY) * stride
+		row1 := (sy1 - minY) * stride
+		dstRow := dst.Pix[y*dst.Stride:]
+		for x, sx0 := range x0 {
+			cx0, cx1, fx := (sx0-minX)*4, (x1[x]-minX)*4, wx[x]
+			o00, o10, o01, o11 := row0+cx0, row0+cx1, row1+cx0, row1+cx1
+			off := x * 4
+			for c := range 4 {
+				dstRow[off+c] = blendChannel(int(pix[o00+c]), int(pix[o10+c]), int(pix[o01+c]), int(pix[o11+c]), fx, fy)
+			}
+		}
+	}
+}
+
 func resizeCoverThumbnail(src image.Image, dstWidth, dstHeight int) *image.RGBA {
 	bounds := src.Bounds()
 	srcWidth := bounds.Dx()
@@ -733,57 +664,16 @@ func resizeCoverThumbnail(src image.Image, dstWidth, dstHeight int) *image.RGBA 
 		return dst
 	}
 
-	x0 := make([]int, dstWidth)
-	x1 := make([]int, dstWidth)
-	wx := make([]int, dstWidth)
-	for x := 0; x < dstWidth; x++ {
-		// Fixed-point 8-bit fractional coordinates mapping destination centers to source centers.
-		pos := ((2*x+1)*srcWidth*256)/(2*dstWidth) - 128
-		if pos < 0 {
-			pos = 0
-		}
-		maxPos := (srcWidth - 1) * 256
-		if pos > maxPos {
-			pos = maxPos
-		}
-		ix := pos >> 8
-		x0[x] = bounds.Min.X + ix
-		if ix+1 < srcWidth {
-			x1[x] = bounds.Min.X + ix + 1
-		} else {
-			x1[x] = bounds.Min.X + ix
-		}
-		wx[x] = pos & 0xff
-	}
-
-	blendChannel := func(c00, c10, c01, c11, fx, fy int) uint8 {
-		invX := 256 - fx
-		invY := 256 - fy
-		top := c00*invX + c10*fx
-		bot := c01*invX + c11*fx
-		return uint8((top*invY + bot*fy + 32768) >> 16)
-	}
+	x0, x1, wx := sampleAxis(dstWidth, srcWidth, bounds.Min.X)
+	y0, y1, wy := sampleAxis(dstHeight, srcHeight, bounds.Min.Y)
 
 	switch img := src.(type) {
 	case *image.YCbCr:
-		for y := 0; y < dstHeight; y++ {
-			posY := ((2*y+1)*srcHeight*256)/(2*dstHeight) - 128
-			if posY < 0 {
-				posY = 0
-			}
-			if maxPosY := (srcHeight - 1) * 256; posY > maxPosY {
-				posY = maxPosY
-			}
-			iy := posY >> 8
-			sy0 := bounds.Min.Y + iy
-			sy1 := sy0
-			if iy+1 < srcHeight {
-				sy1 = sy0 + 1
-			}
-			fy := posY & 0xff
+		for y, sy0 := range y0 {
+			sy1, fy := y1[y], wy[y]
 			dstRow := dst.Pix[y*dst.Stride:]
-			for x := 0; x < dstWidth; x++ {
-				sx0, sx1, fx := x0[x], x1[x], wx[x]
+			for x, sx0 := range x0 {
+				sx1, fx := x1[x], wx[x]
 				r00, g00, b00 := ycbcrPixel(img, sx0, sy0)
 				r10, g10, b10 := ycbcrPixel(img, sx1, sy0)
 				r01, g01, b01 := ycbcrPixel(img, sx0, sy1)
@@ -796,65 +686,9 @@ func resizeCoverThumbnail(src image.Image, dstWidth, dstHeight int) *image.RGBA 
 			}
 		}
 	case *image.RGBA:
-		for y := 0; y < dstHeight; y++ {
-			posY := ((2*y+1)*srcHeight*256)/(2*dstHeight) - 128
-			if posY < 0 {
-				posY = 0
-			}
-			if maxPosY := (srcHeight - 1) * 256; posY > maxPosY {
-				posY = maxPosY
-			}
-			iy := posY >> 8
-			sy0 := bounds.Min.Y + iy
-			sy1 := sy0
-			if iy+1 < srcHeight {
-				sy1 = sy0 + 1
-			}
-			fy := posY & 0xff
-			dstRow := dst.Pix[y*dst.Stride:]
-			for x := 0; x < dstWidth; x++ {
-				o00 := img.PixOffset(x0[x], sy0)
-				o10 := img.PixOffset(x1[x], sy0)
-				o01 := img.PixOffset(x0[x], sy1)
-				o11 := img.PixOffset(x1[x], sy1)
-				fx := wx[x]
-				off := x * 4
-				dstRow[off] = blendChannel(int(img.Pix[o00]), int(img.Pix[o10]), int(img.Pix[o01]), int(img.Pix[o11]), fx, fy)
-				dstRow[off+1] = blendChannel(int(img.Pix[o00+1]), int(img.Pix[o10+1]), int(img.Pix[o01+1]), int(img.Pix[o11+1]), fx, fy)
-				dstRow[off+2] = blendChannel(int(img.Pix[o00+2]), int(img.Pix[o10+2]), int(img.Pix[o01+2]), int(img.Pix[o11+2]), fx, fy)
-				dstRow[off+3] = blendChannel(int(img.Pix[o00+3]), int(img.Pix[o10+3]), int(img.Pix[o01+3]), int(img.Pix[o11+3]), fx, fy)
-			}
-		}
+		resizeCoverRGBA4(dst, img.Pix, img.Stride, img.Rect.Min.X, img.Rect.Min.Y, x0, x1, wx, y0, y1, wy)
 	case *image.NRGBA:
-		for y := 0; y < dstHeight; y++ {
-			posY := ((2*y+1)*srcHeight*256)/(2*dstHeight) - 128
-			if posY < 0 {
-				posY = 0
-			}
-			if maxPosY := (srcHeight - 1) * 256; posY > maxPosY {
-				posY = maxPosY
-			}
-			iy := posY >> 8
-			sy0 := bounds.Min.Y + iy
-			sy1 := sy0
-			if iy+1 < srcHeight {
-				sy1 = sy0 + 1
-			}
-			fy := posY & 0xff
-			dstRow := dst.Pix[y*dst.Stride:]
-			for x := 0; x < dstWidth; x++ {
-				o00 := img.PixOffset(x0[x], sy0)
-				o10 := img.PixOffset(x1[x], sy0)
-				o01 := img.PixOffset(x0[x], sy1)
-				o11 := img.PixOffset(x1[x], sy1)
-				fx := wx[x]
-				off := x * 4
-				dstRow[off] = blendChannel(int(img.Pix[o00]), int(img.Pix[o10]), int(img.Pix[o01]), int(img.Pix[o11]), fx, fy)
-				dstRow[off+1] = blendChannel(int(img.Pix[o00+1]), int(img.Pix[o10+1]), int(img.Pix[o01+1]), int(img.Pix[o11+1]), fx, fy)
-				dstRow[off+2] = blendChannel(int(img.Pix[o00+2]), int(img.Pix[o10+2]), int(img.Pix[o01+2]), int(img.Pix[o11+2]), fx, fy)
-				dstRow[off+3] = blendChannel(int(img.Pix[o00+3]), int(img.Pix[o10+3]), int(img.Pix[o01+3]), int(img.Pix[o11+3]), fx, fy)
-			}
-		}
+		resizeCoverRGBA4(dst, img.Pix, img.Stride, img.Rect.Min.X, img.Rect.Min.Y, x0, x1, wx, y0, y1, wy)
 	default:
 		for y := 0; y < dstHeight; y++ {
 			sourceY := bounds.Min.Y + y*srcHeight/dstHeight

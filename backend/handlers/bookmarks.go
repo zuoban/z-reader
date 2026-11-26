@@ -58,12 +58,7 @@ func (h *BookmarksHandler) Create(c *gin.Context) {
 	bookID := c.Param("id")
 
 	var req BookmarkRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求内容无效")
+	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
 
@@ -120,12 +115,7 @@ func (h *BookmarksHandler) Update(c *gin.Context) {
 	bookmarkID := c.Param("bookmarkID")
 
 	var req BookmarkUpdateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求内容无效")
+	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
 

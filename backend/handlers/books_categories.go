@@ -13,12 +13,7 @@ import (
 
 func (h *BooksHandler) BatchUpdateCategory(c *gin.Context) {
 	var req batchBookCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求内容无效")
+	if !bindJSON(c, &req, "请求内容无效") {
 		return
 	}
 	req.IDs = normalizeBookIDs(req.IDs)

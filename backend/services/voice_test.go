@@ -12,13 +12,10 @@ import (
 
 func waitForVoiceWaiters(t *testing.T, count int) {
 	t.Helper()
+	providerName := ActiveTTSProvider().Name()
 	deadline := time.After(time.Second)
 	for {
-		voiceRefresh.mutex.Lock()
-		call := voiceRefresh.call
-		joined := call != nil && call.waiters == count
-		voiceRefresh.mutex.Unlock()
-		if joined {
+		if voiceFlights.Waiters(providerName) == int64(count) {
 			return
 		}
 		select {

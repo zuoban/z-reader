@@ -1,9 +1,7 @@
 package main
 
 import (
-	"compress/gzip"
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -113,18 +111,14 @@ func TestRouterCORSMiddlewareOrdering(t *testing.T) {
 		t.Fatalf("SaveBook failed: %v", err)
 	}
 
-	t.Run("cross-origin gzipped response preserves Vary Origin and Accept-Encoding", func(t *testing.T) {
+	t.Run("cross-origin response preserves CORS headers and Vary Origin", func(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/books", nil)
 		req.Header.Set("Origin", "http://localhost:3000")
-		req.Header.Set("Accept-Encoding", "gzip")
 		router.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200 (body=%s)", rec.Code, rec.Body.String())
-		}
-		if got := rec.Header().Get("Content-Encoding"); got != "gzip" {
-			t.Fatalf("Content-Encoding = %q, want gzip", got)
 		}
 		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:3000" {
 			t.Fatalf("Access-Control-Allow-Origin = %q, want http://localhost:3000", got)
@@ -133,21 +127,8 @@ func TestRouterCORSMiddlewareOrdering(t *testing.T) {
 		if !headerContainsToken(vary, "Origin") {
 			t.Fatalf("Vary headers %v missing Origin", vary)
 		}
-		if !headerContainsToken(vary, "Accept-Encoding") {
-			t.Fatalf("Vary headers %v missing Accept-Encoding", vary)
-		}
-
-		gz, err := gzip.NewReader(rec.Body)
-		if err != nil {
-			t.Fatalf("gzip.NewReader failed: %v", err)
-		}
-		defer gz.Close()
-		decoded, err := io.ReadAll(gz)
-		if err != nil {
-			t.Fatalf("io.ReadAll failed: %v", err)
-		}
-		if !strings.Contains(string(decoded), longTitle) {
-			t.Fatal("expected decoded gzipped response to contain seeded book title")
+		if !strings.Contains(rec.Body.String(), longTitle) {
+			t.Fatal("expected response to contain seeded book title")
 		}
 	})
 
@@ -169,4 +150,20 @@ func TestRouterCORSMiddlewareOrdering(t *testing.T) {
 			t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
 		}
 	})
+}
+
+func TestRegisterPprofRoutesServesGoroutineProfile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	registerPprofRoutes(router)
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(
+		recorder,
+		httptest.NewRequest(http.MethodGet, "/debug/pprof/goroutine?debug=1", nil),
+	)
+
+	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), "goroutine profile") {
+		t.Fatalf("expected goroutine profile, got status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
 }

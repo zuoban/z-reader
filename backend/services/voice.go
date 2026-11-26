@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"z-reader/backend/internal/singleflight"
 	"z-reader/backend/logger"
 )
 
@@ -34,20 +35,7 @@ var voiceCache struct {
 	mutex     sync.RWMutex
 }
 
-type voiceInflightCall struct {
-	done     chan struct{}
-	ctx      context.Context
-	cancel   context.CancelFunc
-	provider string
-	waiters  int
-	data     []Voice
-	err      error
-}
-
-var voiceRefresh struct {
-	mutex sync.Mutex
-	call  *voiceInflightCall
-}
+var voiceFlights singleflight.Group[[]Voice]
 
 var fallbackVoices = []Voice{
 	{
@@ -126,49 +114,13 @@ func GetVoiceListContext(ctx context.Context) ([]Voice, error) {
 		voiceCache.mutex.RUnlock()
 	}
 
-	voiceRefresh.mutex.Lock()
-	call := voiceRefresh.call
-	if call == nil || call.ctx.Err() != nil || call.provider != providerName {
-		workCtx, cancel := context.WithTimeout(context.Background(), voiceFetchTimeout)
-		call = &voiceInflightCall{
-			done:     make(chan struct{}),
-			ctx:      workCtx,
-			cancel:   cancel,
-			provider: providerName,
-		}
-		voiceRefresh.call = call
-		go func() {
-			defer cancel()
-			call.data, call.err = refreshVoiceCacheContext(workCtx, provider)
-			voiceRefresh.mutex.Lock()
-			if voiceRefresh.call == call {
-				voiceRefresh.call = nil
-			}
-			close(call.done)
-			voiceRefresh.mutex.Unlock()
-		}()
+	voices, _, _, err := voiceFlights.DoContext(ctx, providerName, voiceFetchTimeout, func(workCtx context.Context) ([]Voice, error) {
+		return refreshVoiceCacheContext(workCtx, provider)
+	})
+	if err != nil {
+		return nil, err
 	}
-	call.waiters++
-	voiceRefresh.mutex.Unlock()
-
-	select {
-	case <-call.done:
-		if call.err != nil {
-			return nil, call.err
-		}
-		return cloneVoices(call.data), nil
-	case <-ctx.Done():
-		voiceRefresh.mutex.Lock()
-		call.waiters--
-		if call.waiters == 0 {
-			call.cancel()
-			if voiceRefresh.call == call {
-				voiceRefresh.call = nil
-			}
-		}
-		voiceRefresh.mutex.Unlock()
-		return nil, ctx.Err()
-	}
+	return cloneVoices(voices), nil
 }
 
 func refreshVoiceCacheContext(ctx context.Context, provider TTSProvider) ([]Voice, error) {

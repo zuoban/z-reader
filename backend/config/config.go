@@ -40,9 +40,8 @@ func getLocalIP() string {
 			continue
 		}
 
-		ip := ipNet.IP.String()
-		if isPrivateIP(ip) {
-			return ip
+		if ipNet.IP.IsPrivate() {
+			return ipNet.IP.String()
 		}
 	}
 
@@ -56,29 +55,6 @@ func getLocalIP() string {
 	}
 
 	return "127.0.0.1"
-}
-
-// isPrivateIP 判断是否为私有 IP 地址
-func isPrivateIP(ip string) bool {
-	return strings.HasPrefix(ip, "192.168.") ||
-		strings.HasPrefix(ip, "10.") ||
-		isPrivate172(ip)
-}
-
-// isPrivate172 判断是否为 172.16-31.x.x
-func isPrivate172(ip string) bool {
-	if !strings.HasPrefix(ip, "172.") {
-		return false
-	}
-	parts := strings.Split(ip, ".")
-	if len(parts) < 2 {
-		return false
-	}
-	second, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return false
-	}
-	return second >= 16 && second <= 31
 }
 
 // getAllowedOrigins 获取允许的 CORS 来源

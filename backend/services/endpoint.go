@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"z-reader/backend/internal/singleflight"
 	"z-reader/backend/utils"
 )
 
@@ -28,7 +29,6 @@ type EndpointCache struct {
 	Endpoint  string
 	Token     string
 	ExpiredAt int64
-	ClientID  string
 }
 
 type EndpointResponse struct {
@@ -41,19 +41,7 @@ var endpointCache struct {
 	mutex sync.RWMutex
 }
 
-type endpointInflightCall struct {
-	done    chan struct{}
-	ctx     context.Context
-	cancel  context.CancelFunc
-	waiters int
-	data    *EndpointCache
-	err     error
-}
-
-var endpointRefresh struct {
-	mutex sync.Mutex
-	call  *endpointInflightCall
-}
+var endpointFlights singleflight.Group[*EndpointCache]
 
 func GetEndpoint() (*EndpointCache, error) { return GetEndpointContext(context.Background()) }
 
@@ -68,40 +56,8 @@ func GetEndpointContext(ctx context.Context) (*EndpointCache, error) {
 		return cache, nil
 	}
 
-	endpointRefresh.mutex.Lock()
-	call := endpointRefresh.call
-	if call == nil || call.ctx.Err() != nil {
-		workCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		call = &endpointInflightCall{done: make(chan struct{}), ctx: workCtx, cancel: cancel}
-		endpointRefresh.call = call
-		go func() {
-			defer cancel()
-			call.data, call.err = refreshEndpointCacheContext(workCtx)
-			endpointRefresh.mutex.Lock()
-			if endpointRefresh.call == call {
-				endpointRefresh.call = nil
-			}
-			close(call.done)
-			endpointRefresh.mutex.Unlock()
-		}()
-	}
-	call.waiters++
-	endpointRefresh.mutex.Unlock()
-	select {
-	case <-call.done:
-		return call.data, call.err
-	case <-ctx.Done():
-		endpointRefresh.mutex.Lock()
-		call.waiters--
-		if call.waiters == 0 {
-			call.cancel()
-			if endpointRefresh.call == call {
-				endpointRefresh.call = nil
-			}
-		}
-		endpointRefresh.mutex.Unlock()
-		return nil, ctx.Err()
-	}
+	cache, _, _, err := endpointFlights.DoContext(ctx, "endpoint", 10*time.Second, refreshEndpointCacheContext)
+	return cache, err
 }
 
 func refreshEndpointCacheContext(ctx context.Context) (*EndpointCache, error) {
@@ -130,7 +86,7 @@ func refreshEndpointCacheContext(ctx context.Context) (*EndpointCache, error) {
 		}
 		return nil, TTSHTTPError(err)
 	}
-	cache := &EndpointCache{Endpoint: resp.R, Token: resp.T, ExpiredAt: exp, ClientID: utils.GenerateUUID()}
+	cache := &EndpointCache{Endpoint: resp.R, Token: resp.T, ExpiredAt: exp}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -251,10 +207,7 @@ func buildSignature(urlStr string) (string, error) {
 
 func encodeURIComponent(str string) string {
 	result := url.QueryEscape(str)
-	result = strings.ReplaceAll(result, "+", "%20")
-	result = strings.ReplaceAll(result, "%2F", "/")
-	result = strings.ReplaceAll(result, "/", "%2F")
-	return result
+	return strings.ReplaceAll(result, "+", "%20")
 }
 
 func formatDate() string {

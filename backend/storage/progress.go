@@ -95,17 +95,11 @@ func (db *DB) saveProgress(progress *models.Progress, userID string, expectedUpd
 	assignTimestamp := progress.UpdatedAt.IsZero()
 	return db.Update(func(tx *bbolt.Tx) error {
 		booksBucket, progressBucket := tx.Bucket(BooksBucket), tx.Bucket(ProgressBucket)
-		bookData := booksBucket.Get([]byte(progress.BookID))
-		if bookData == nil {
-			return ErrNotFound
-		}
-		var book models.Book
-		if err := book.UnmarshalDB(bookData); err != nil {
+		ownedBook, err := getOwnedBookInTx(tx, progress.BookID, userID)
+		if err != nil {
 			return err
 		}
-		if book.UserID != userID {
-			return ErrNotFound
-		}
+		book := *ownedBook
 
 		var previous *models.Progress
 		if previousData := progressBucket.Get(key); previousData != nil {

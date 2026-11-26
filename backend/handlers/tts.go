@@ -117,12 +117,7 @@ func (h *TTSHandler) SSML(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSSMLRequestBody)
 
 	var req SSMLRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请求体必须是有效 JSON")
+	if !bindJSON(c, &req, "请求体必须是有效 JSON") {
 		return
 	}
 

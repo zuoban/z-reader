@@ -37,12 +37,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {
 		Password string `json:"password" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if isRequestBodyTooLarge(err) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "请求体过大"})
-			return
-		}
-		response.BadRequest(c, "请输入访问密码")
+	if !bindJSON(c, &req, "请输入访问密码") {
 		return
 	}
 	expected := sha256.Sum256([]byte(h.cfg.AccessPassword))

@@ -153,3 +153,24 @@ func TestHTTPMetricsDecrementsInFlightOnUncaughtPanic(t *testing.T) {
 		t.Fatalf("inFlight = %d after panic, want 0", inFlight)
 	}
 }
+
+func TestRequestLoggerLogsMatchedAndUnmatchedRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(RequestID(), RequestLogger())
+	router.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
+	})
+
+	recMatched := httptest.NewRecorder()
+	router.ServeHTTP(recMatched, httptest.NewRequest(http.MethodGet, "/ping", nil))
+	if recMatched.Code != http.StatusOK || recMatched.Body.String() != "pong" {
+		t.Fatalf("matched route got status=%d body=%q", recMatched.Code, recMatched.Body.String())
+	}
+
+	recUnmatched := httptest.NewRecorder()
+	router.ServeHTTP(recUnmatched, httptest.NewRequest(http.MethodGet, "/missing", nil))
+	if recUnmatched.Code != http.StatusNotFound {
+		t.Fatalf("unmatched route got status=%d, want 404", recUnmatched.Code)
+	}
+}

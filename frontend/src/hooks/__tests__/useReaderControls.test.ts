@@ -479,11 +479,12 @@ describe('reader controls', () => {
     }
   });
 
-  it('cycles preset (P) and steps font size ([ and ]) unless blocked by overlay or modifiers', () => {
+  it('cycles preset (P), toggles chrome (H), and steps font size ([ and ]) unless blocked by overlay or modifiers', () => {
     const localPage = document.createElement('div');
     document.body.append(localPage);
     const onCyclePreset = vi.fn();
     const onStepFontSize = vi.fn();
+    const onToggleChrome = vi.fn();
 
     const { rerender, unmount } = renderHook(
       ({ overlayOpen }) =>
@@ -495,6 +496,7 @@ describe('reader controls', () => {
           overlayOpen,
           onCyclePreset,
           onStepFontSize,
+          onToggleChrome,
         }),
       { initialProps: { overlayOpen: false } },
     );
@@ -504,6 +506,11 @@ describe('reader controls', () => {
       localPage.dispatchEvent(pEvent);
       expect(pEvent.defaultPrevented).toBe(true);
       expect(onCyclePreset).toHaveBeenCalledTimes(1);
+
+      const hEvent = new KeyboardEvent('keydown', { key: 'h', bubbles: true, cancelable: true });
+      localPage.dispatchEvent(hEvent);
+      expect(hEvent.defaultPrevented).toBe(true);
+      expect(onToggleChrome).toHaveBeenCalledTimes(1);
 
       const decEvent = new KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true });
       localPage.dispatchEvent(decEvent);
@@ -517,15 +524,19 @@ describe('reader controls', () => {
 
       // Modifier keys do not trigger single-key shortcuts
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true, cancelable: true }));
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', metaKey: true, bubbles: true, cancelable: true }));
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: '[', metaKey: true, bubbles: true, cancelable: true }));
       expect(onCyclePreset).toHaveBeenCalledTimes(1);
+      expect(onToggleChrome).toHaveBeenCalledTimes(1);
       expect(onStepFontSize).toHaveBeenCalledTimes(2);
 
       // Blocked when overlay is open
       rerender({ overlayOpen: true });
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', bubbles: true, cancelable: true }));
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'H', bubbles: true, cancelable: true }));
       localPage.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true, cancelable: true }));
       expect(onCyclePreset).toHaveBeenCalledTimes(1);
+      expect(onToggleChrome).toHaveBeenCalledTimes(1);
       expect(onStepFontSize).toHaveBeenCalledTimes(2);
     } finally {
       unmount();

@@ -237,6 +237,7 @@ function Reader({ bookId }: { bookId: string }) {
     onOpenThemeSettings: () => sheets.setThemeSettingsOpen(true),
     onCyclePreset: handleCyclePreset,
     onStepFontSize: handleStepFontSize,
+    onToggleChrome: () => (chrome.isHeaderVisible ? chrome.hideHeader() : chrome.showHeader()),
   });
 
   const reader = useFoliateView({

@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { ActionIcon } from "@mantine/core";
-import { List, LocateFixed, Search, Undo2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, List, LocateFixed, Search, Undo2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
@@ -47,6 +47,19 @@ function filterTOCItems(items: TOCItem[], query: string): TOCItem[] {
     }
   }
   return result;
+}
+
+function flattenTOCItems(items: TOCItem[]): TOCItem[] {
+  const flat: TOCItem[] = [];
+  for (const item of items) {
+    if (item.href) {
+      flat.push(item);
+    }
+    if (item.subitems && item.subitems.length > 0) {
+      flat.push(...flattenTOCItems(item.subitems));
+    }
+  }
+  return flat;
 }
 
 interface ReaderTOCSheetProps {
@@ -131,6 +144,22 @@ export function ReaderTOCSheet({
     () => (normalizedQuery ? countTOCItems(visibleTOC) : totalCount),
     [normalizedQuery, visibleTOC, totalCount],
   );
+  const flatTOC = useMemo(() => flattenTOCItems(toc), [toc]);
+  const currentChapterIndex = useMemo(() => {
+    if (currentChapterHref) {
+      return flatTOC.findIndex((item) => item.href === currentChapterHref);
+    }
+    if (currentChapter) {
+      return flatTOC.findIndex((item) => item.label === currentChapter);
+    }
+    return -1;
+  }, [currentChapter, currentChapterHref, flatTOC]);
+  const prevChapter =
+    currentChapterIndex > 0 ? flatTOC[currentChapterIndex - 1] : null;
+  const nextChapter =
+    currentChapterIndex >= 0 && currentChapterIndex < flatTOC.length - 1
+      ? flatTOC[currentChapterIndex + 1]
+      : null;
   const hasCurrentChapter = Boolean(currentChapter || currentChapterHref);
   const locateLabel = currentChapter
     ? `定位到当前章节：${currentChapter}`
@@ -373,7 +402,7 @@ export function ReaderTOCSheet({
         </div>
       </div>
 
-      {onGoToFraction ? (
+      {(prevChapter || nextChapter || onGoToFraction) ? (
         <div
           className="shrink-0 border-t px-4 py-3 sm:px-6"
           style={{
@@ -381,103 +410,148 @@ export function ReaderTOCSheet({
             background: uiScheme.cardBg,
           }}
         >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-baseline gap-2">
-              <span
-                className="text-xs font-medium"
-                style={{ color: surface.muted }}
-              >
-                阅读进度
-              </span>
-              <span
-                className="font-mono text-xs font-medium tabular-nums"
-                style={{ color: surface.fg }}
-              >
-                {displayPercentage.toFixed(1)}%
-              </span>
-            </div>
-
-            {onReturnToPreviousLocation ? (
+          {(prevChapter || nextChapter) ? (
+            <div
+              className={onGoToFraction ? "mb-3 grid grid-cols-2 gap-2" : "grid grid-cols-2 gap-2"}
+            >
               <button
                 type="button"
-                onClick={handleReturnToPrevious}
-                title={
-                  hasJumpBackPercentage
-                    ? `返回跳转前位置 (${jumpBackPercentage.toFixed(1)}%)`
-                    : "返回跳转前位置"
-                }
-                aria-label={
-                  hasJumpBackPercentage
-                    ? `返回原位（跳转前 ${jumpBackPercentage.toFixed(1)}%）`
-                    : "返回原位"
-                }
-                className="reader-panel-action !h-7 !px-2.5 !text-xs"
+                disabled={!prevChapter}
+                onClick={() => {
+                  if (!prevChapter) return;
+                  onGoTo(prevChapter.href);
+                  handleClose();
+                }}
+                aria-label={prevChapter ? `上一章：${prevChapter.label}` : "已是第一章"}
+                title={prevChapter ? `上一章：${prevChapter.label}` : "已是第一章"}
+                className="reader-panel-secondary !h-9 min-w-0 justify-start gap-1.5 px-2.5 text-xs"
               >
-                <Undo2
-                  className="h-3.5 w-3.5 shrink-0"
-                  strokeWidth={1.7}
-                  aria-hidden="true"
-                />
-                <span>返回原位</span>
+                <ChevronLeft className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} aria-hidden="true" />
+                <span className="min-w-0 truncate">
+                  {prevChapter ? prevChapter.label : "已是第一章"}
+                </span>
               </button>
-            ) : null}
-          </div>
+              <button
+                type="button"
+                disabled={!nextChapter}
+                onClick={() => {
+                  if (!nextChapter) return;
+                  onGoTo(nextChapter.href);
+                  handleClose();
+                }}
+                aria-label={nextChapter ? `下一章：${nextChapter.label}` : "已是最后一章"}
+                title={nextChapter ? `下一章：${nextChapter.label}` : "已是最后一章"}
+                className="reader-panel-secondary !h-9 min-w-0 justify-end gap-1.5 px-2.5 text-xs"
+              >
+                <span className="min-w-0 truncate">
+                  {nextChapter ? nextChapter.label : "已是最后一章"}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
 
-          <div className="mt-1.5 flex min-h-8 items-center">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={0.5}
-              value={displayPercentage}
-              aria-label="跳转阅读进度"
-              aria-valuetext={`${displayPercentage.toFixed(1)}%`}
-              onPointerDown={handleScrubPointerDown}
-              onChange={(event) =>
-                handleScrubChange(Number(event.currentTarget.value))
-              }
-              onPointerUp={commitScrub}
-              onPointerCancel={commitScrub}
-              onTouchEnd={commitScrub}
-              onBlur={commitScrub}
-              className="reader-range-scrubber w-full cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4"
-              style={
-                {
-                  "--scrub-progress": `${displayPercentage}%`,
-                  outlineColor: uiScheme.link,
-                } as CSSProperties
-              }
-            />
-          </div>
+          {onGoToFraction ? (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: surface.muted }}
+                  >
+                    阅读进度
+                  </span>
+                  <span
+                    className="font-mono text-xs font-medium tabular-nums"
+                    style={{ color: surface.fg }}
+                  >
+                    {displayPercentage.toFixed(1)}%
+                  </span>
+                </div>
 
-          <div
-            role="group"
-            aria-label="快捷进度跳转"
-            className="mt-1 flex items-center justify-between gap-1"
-          >
-            {PROGRESS_MILESTONES.map((mark) => {
-              const isNear = Math.abs(displayPercentage - mark) < 1.5;
-              return (
-                <button
-                  key={mark}
-                  type="button"
-                  onClick={() => {
-                    setDraftPercentage(null);
-                    onGoToFraction(mark / 100);
-                  }}
-                  aria-label={`跳转到 ${mark}%`}
-                  className="cursor-pointer rounded px-1.5 py-0.5 font-mono text-[11px] tabular-nums transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2"
-                  style={{
-                    color: isNear ? uiScheme.link : surface.muted,
-                    fontWeight: isNear ? 600 : 400,
-                    outlineColor: uiScheme.link,
-                  }}
-                >
-                  {mark}%
-                </button>
-              );
-            })}
-          </div>
+                {onReturnToPreviousLocation ? (
+                  <button
+                    type="button"
+                    onClick={handleReturnToPrevious}
+                    title={
+                      hasJumpBackPercentage
+                        ? `返回跳转前位置 (${jumpBackPercentage.toFixed(1)}%)`
+                        : "返回跳转前位置"
+                    }
+                    aria-label={
+                      hasJumpBackPercentage
+                        ? `返回原位（跳转前 ${jumpBackPercentage.toFixed(1)}%）`
+                        : "返回原位"
+                    }
+                    className="reader-panel-action !h-7 !px-2.5 !text-xs"
+                  >
+                    <Undo2
+                      className="h-3.5 w-3.5 shrink-0"
+                      strokeWidth={1.7}
+                      aria-hidden="true"
+                    />
+                    <span>返回原位</span>
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mt-1.5 flex min-h-8 items-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={displayPercentage}
+                  aria-label="跳转阅读进度"
+                  aria-valuetext={`${displayPercentage.toFixed(1)}%`}
+                  onPointerDown={handleScrubPointerDown}
+                  onChange={(event) =>
+                    handleScrubChange(Number(event.currentTarget.value))
+                  }
+                  onPointerUp={commitScrub}
+                  onPointerCancel={commitScrub}
+                  onTouchEnd={commitScrub}
+                  onBlur={commitScrub}
+                  className="reader-range-scrubber w-full cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4"
+                  style={
+                    {
+                      "--scrub-progress": `${displayPercentage}%`,
+                      outlineColor: uiScheme.link,
+                    } as CSSProperties
+                  }
+                />
+              </div>
+
+              <div
+                role="group"
+                aria-label="快捷进度跳转"
+                className="mt-1 flex items-center justify-between gap-1"
+              >
+                {PROGRESS_MILESTONES.map((mark) => {
+                  const isNear = Math.abs(displayPercentage - mark) < 1.5;
+                  return (
+                    <button
+                      key={mark}
+                      type="button"
+                      onClick={() => {
+                        setDraftPercentage(null);
+                        onGoToFraction(mark / 100);
+                      }}
+                      aria-label={`跳转到 ${mark}%`}
+                      className="cursor-pointer rounded px-1.5 py-0.5 font-mono text-[11px] tabular-nums transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2"
+                      style={{
+                        color: isNear ? uiScheme.link : surface.muted,
+                        fontWeight: isNear ? 600 : 400,
+                        outlineColor: uiScheme.link,
+                      }}
+                    >
+                      {mark}%
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
         </div>
       ) : null}
     </ReaderSheet>

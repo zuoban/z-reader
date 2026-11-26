@@ -65,6 +65,7 @@ interface UseReaderControlsOptions {
   onOpenThemeSettings?: () => void;
   onCyclePreset?: () => void;
   onStepFontSize?: (delta: -1 | 1) => void;
+  onToggleChrome?: () => void;
 }
 
 export function useReaderControls({
@@ -83,6 +84,7 @@ export function useReaderControls({
   onOpenThemeSettings,
   onCyclePreset,
   onStepFontSize,
+  onToggleChrome,
 }: UseReaderControlsOptions) {
   const [isTouchReader] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -115,6 +117,7 @@ export function useReaderControls({
     onOpenThemeSettings,
     onCyclePreset,
     onStepFontSize,
+    onToggleChrome,
   });
 
   useEffect(() => {
@@ -133,6 +136,7 @@ export function useReaderControls({
       onOpenThemeSettings,
       onCyclePreset,
       onStepFontSize,
+      onToggleChrome,
     };
   }, [
     onBack,
@@ -146,6 +150,7 @@ export function useReaderControls({
     onPrev,
     onStepFontSize,
     onStopTTS,
+    onToggleChrome,
     onToggleShortcuts,
     overlayOpen,
     shortcutsOpen,
@@ -216,6 +221,7 @@ export function useReaderControls({
       onOpenThemeSettings,
       onCyclePreset,
       onStepFontSize,
+      onToggleChrome,
     } = optionsRef.current;
 
     const isSearchKey =
@@ -323,6 +329,13 @@ export function useReaderControls({
         if (!e.shiftKey && !isPagingControl && onCyclePreset) {
           e.preventDefault();
           onCyclePreset();
+        }
+        break;
+      case 'h':
+      case 'H':
+        if (!e.shiftKey && !isPagingControl && onToggleChrome) {
+          e.preventDefault();
+          onToggleChrome();
         }
         break;
       case '[':

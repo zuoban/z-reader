@@ -770,4 +770,55 @@ describe('ReaderBookmarksSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: '跳转到 50%' }));
     expect(onGoToFraction).toHaveBeenCalledWith(0.5);
   });
+
+  it('navigates to previous and next chapters from the TOC footer and enforces boundary disabled states', () => {
+    const toc = createLongTOC();
+    const onGoTo = vi.fn();
+    const onOpenChange = vi.fn();
+
+    const { rerender } = render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={onOpenChange}
+        toc={toc}
+        bookTitle="测试书籍"
+        bookAuthor="作者"
+        tocListRef={{ current: null }}
+        currentChapter="第一卷 启程"
+        currentChapterHref="vol-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        onLocateCurrent={vi.fn()}
+        onGoTo={onGoTo}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: '已是第一章' })).toBeDisabled();
+    const nextBtn = screen.getByRole('button', { name: '下一章：第一章 初遇' });
+    expect(nextBtn).toBeEnabled();
+
+    fireEvent.click(nextBtn);
+    expect(onGoTo).toHaveBeenCalledWith('ch-1.xhtml');
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+
+    rerender(
+      <ReaderTOCSheet
+        open
+        onOpenChange={onOpenChange}
+        toc={toc}
+        bookTitle="测试书籍"
+        bookAuthor="作者"
+        tocListRef={{ current: null }}
+        currentChapter="第一章 初遇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        onLocateCurrent={vi.fn()}
+        onGoTo={onGoTo}
+      />,
+    );
+
+    const prevBtn = screen.getByRole('button', { name: '上一章：第一卷 启程' });
+    expect(prevBtn).toBeEnabled();
+    fireEvent.click(prevBtn);
+    expect(onGoTo).toHaveBeenLastCalledWith('vol-1.xhtml');
+  });
 });

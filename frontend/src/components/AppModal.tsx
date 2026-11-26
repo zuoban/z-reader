@@ -60,7 +60,7 @@ export function AppModal({
         ),
       }}
     >
-      <Modal.Overlay />
+      <Modal.Overlay backgroundOpacity={0.38} blur={3} />
       <Modal.Content>
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-surface-subtle/60 px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">

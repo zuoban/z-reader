@@ -43,6 +43,8 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByText('调节字号')).toBeInTheDocument();
     expect(screen.getByText('[')).toBeInTheDocument();
     expect(screen.getByText(']')).toBeInTheDocument();
+    expect(screen.getByText('切换沉浸模式')).toBeInTheDocument();
+    expect(screen.getByText('H')).toBeInTheDocument();
     expect(screen.getByText('书内搜索')).toBeInTheDocument();
     expect(screen.getByText('⌘/Ctrl + F')).toBeInTheDocument();
     expect(screen.getByText('切换全屏')).toBeInTheDocument();

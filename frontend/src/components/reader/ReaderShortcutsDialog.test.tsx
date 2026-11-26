@@ -38,6 +38,11 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.getByText('排版与外观')).toBeInTheDocument();
     expect(screen.getByText('S')).toBeInTheDocument();
+    expect(screen.getByText('切换纸面主题')).toBeInTheDocument();
+    expect(screen.getByText('P')).toBeInTheDocument();
+    expect(screen.getByText('调节字号')).toBeInTheDocument();
+    expect(screen.getByText('[')).toBeInTheDocument();
+    expect(screen.getByText(']')).toBeInTheDocument();
     expect(screen.getByText('书内搜索')).toBeInTheDocument();
     expect(screen.getByText('⌘/Ctrl + F')).toBeInTheDocument();
     expect(screen.getByText('切换全屏')).toBeInTheDocument();

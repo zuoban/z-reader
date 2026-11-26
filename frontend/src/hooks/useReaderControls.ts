@@ -63,6 +63,8 @@ interface UseReaderControlsOptions {
   onOpenTOC?: () => void;
   onOpenBookmarks?: () => void;
   onOpenThemeSettings?: () => void;
+  onCyclePreset?: () => void;
+  onStepFontSize?: (delta: -1 | 1) => void;
 }
 
 export function useReaderControls({
@@ -79,6 +81,8 @@ export function useReaderControls({
   onOpenTOC,
   onOpenBookmarks,
   onOpenThemeSettings,
+  onCyclePreset,
+  onStepFontSize,
 }: UseReaderControlsOptions) {
   const [isTouchReader] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -109,6 +113,8 @@ export function useReaderControls({
     onOpenTOC,
     onOpenBookmarks,
     onOpenThemeSettings,
+    onCyclePreset,
+    onStepFontSize,
   });
 
   useEffect(() => {
@@ -125,16 +131,20 @@ export function useReaderControls({
       onOpenTOC,
       onOpenBookmarks,
       onOpenThemeSettings,
+      onCyclePreset,
+      onStepFontSize,
     };
   }, [
     onBack,
     onCloseShortcuts,
+    onCyclePreset,
     onNext,
     onOpenBookmarks,
     onOpenSearch,
     onOpenTOC,
     onOpenThemeSettings,
     onPrev,
+    onStepFontSize,
     onStopTTS,
     onToggleShortcuts,
     overlayOpen,
@@ -204,6 +214,8 @@ export function useReaderControls({
       onOpenTOC,
       onOpenBookmarks,
       onOpenThemeSettings,
+      onCyclePreset,
+      onStepFontSize,
     } = optionsRef.current;
 
     const isSearchKey =
@@ -304,6 +316,25 @@ export function useReaderControls({
         if (!e.shiftKey && !isPagingControl && onOpenThemeSettings) {
           e.preventDefault();
           onOpenThemeSettings();
+        }
+        break;
+      case 'p':
+      case 'P':
+        if (!e.shiftKey && !isPagingControl && onCyclePreset) {
+          e.preventDefault();
+          onCyclePreset();
+        }
+        break;
+      case '[':
+        if (!isPagingControl && onStepFontSize) {
+          e.preventDefault();
+          onStepFontSize(-1);
+        }
+        break;
+      case ']':
+        if (!isPagingControl && onStepFontSize) {
+          e.preventDefault();
+          onStepFontSize(1);
         }
         break;
     }

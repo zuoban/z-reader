@@ -28,7 +28,16 @@ import "../../styles/mantine-buttons.css";
 import "../../styles/reader.css";
 import type { Bookmark } from "@/lib/api";
 import { getOfflineLibrary } from "@/lib/library-access";
+import type { ReaderThemePreset } from "@/lib/reader-theme-presets";
+import { getReaderPanelThemeVars } from "@/lib/reader-ui";
 import type { FoliateView } from "@/lib/types";
+
+const PRESET_CYCLE: ReadonlyArray<{ key: ReaderThemePreset; label: string }> = [
+  { key: "light", label: "净白纸面" },
+  { key: "sepia", label: "旧书纸面" },
+  { key: "green", label: "苔纸纸面" },
+  { key: "dark", label: "夜读纸面" },
+];
 
 const ReaderTOCSheet = dynamic(
   () =>
@@ -172,6 +181,46 @@ function Reader({ bookId }: { bookId: string }) {
     router.push("/shelf");
   }, [saveNow, router]);
 
+  const [hudMessage, setHudMessage] = useState<string | null>(null);
+  const hudTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (hudTimerRef.current !== null) {
+        window.clearTimeout(hudTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showReaderHud = useCallback((message: string) => {
+    setHudMessage(message);
+    if (hudTimerRef.current !== null) {
+      window.clearTimeout(hudTimerRef.current);
+    }
+    hudTimerRef.current = window.setTimeout(() => {
+      setHudMessage(null);
+      hudTimerRef.current = null;
+    }, 1100);
+  }, []);
+
+  const handleCyclePreset = useCallback(() => {
+    const currentIdx = PRESET_CYCLE.findIndex((item) => item.key === theme.preset);
+    const next = PRESET_CYCLE[(currentIdx + 1) % PRESET_CYCLE.length];
+    setTheme({ preset: next.key });
+    showReaderHud(next.label);
+  }, [setTheme, showReaderHud, theme.preset]);
+
+  const handleStepFontSize = useCallback(
+    (delta: -1 | 1) => {
+      const nextSize = Math.min(32, Math.max(12, theme.fontSize + delta));
+      if (nextSize !== theme.fontSize) {
+        setTheme({ fontSize: nextSize });
+      }
+      showReaderHud(`字号 ${nextSize}px`);
+    },
+    [setTheme, showReaderHud, theme.fontSize],
+  );
+
   const controls = useReaderControls({
     pageRef,
     onPrev: handlePrev,
@@ -186,6 +235,8 @@ function Reader({ bookId }: { bookId: string }) {
     onOpenTOC: () => sheets.setTocOpen(true),
     onOpenBookmarks: isAuthenticated ? () => sheets.setBookmarksOpen(true) : undefined,
     onOpenThemeSettings: () => sheets.setThemeSettingsOpen(true),
+    onCyclePreset: handleCyclePreset,
+    onStepFontSize: handleStepFontSize,
   });
 
   const reader = useFoliateView({
@@ -475,6 +526,22 @@ function Reader({ bookId }: { bookId: string }) {
 
         {isAuthenticated && tts.ttsRequested && tts.drawerProps && (
           <TTSControls {...tts.drawerProps} />
+        )}
+
+        {hudMessage && (
+          <div
+            className="pointer-events-none fixed inset-x-0 z-50 flex justify-center"
+            style={{ top: "calc(var(--reader-toolbar-height) + 0.75rem)" }}
+          >
+            <div
+              role="status"
+              aria-live="polite"
+              className="reader-jump-back-pill paper-reveal-soft rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide"
+              style={getReaderPanelThemeVars(uiScheme)}
+            >
+              {hudMessage}
+            </div>
+          </div>
         )}
 
         <div className="flex min-h-0 flex-1 flex-col">

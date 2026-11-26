@@ -478,4 +478,58 @@ describe('reader controls', () => {
       });
     }
   });
+
+  it('cycles preset (P) and steps font size ([ and ]) unless blocked by overlay or modifiers', () => {
+    const localPage = document.createElement('div');
+    document.body.append(localPage);
+    const onCyclePreset = vi.fn();
+    const onStepFontSize = vi.fn();
+
+    const { rerender, unmount } = renderHook(
+      ({ overlayOpen }) =>
+        useReaderControls({
+          pageRef: { current: localPage },
+          onPrev: vi.fn(),
+          onNext: vi.fn(),
+          onBack: vi.fn(),
+          overlayOpen,
+          onCyclePreset,
+          onStepFontSize,
+        }),
+      { initialProps: { overlayOpen: false } },
+    );
+
+    try {
+      const pEvent = new KeyboardEvent('keydown', { key: 'p', bubbles: true, cancelable: true });
+      localPage.dispatchEvent(pEvent);
+      expect(pEvent.defaultPrevented).toBe(true);
+      expect(onCyclePreset).toHaveBeenCalledTimes(1);
+
+      const decEvent = new KeyboardEvent('keydown', { key: '[', bubbles: true, cancelable: true });
+      localPage.dispatchEvent(decEvent);
+      expect(decEvent.defaultPrevented).toBe(true);
+      expect(onStepFontSize).toHaveBeenNthCalledWith(1, -1);
+
+      const incEvent = new KeyboardEvent('keydown', { key: ']', bubbles: true, cancelable: true });
+      localPage.dispatchEvent(incEvent);
+      expect(incEvent.defaultPrevented).toBe(true);
+      expect(onStepFontSize).toHaveBeenNthCalledWith(2, 1);
+
+      // Modifier keys do not trigger single-key shortcuts
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true, cancelable: true }));
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: '[', metaKey: true, bubbles: true, cancelable: true }));
+      expect(onCyclePreset).toHaveBeenCalledTimes(1);
+      expect(onStepFontSize).toHaveBeenCalledTimes(2);
+
+      // Blocked when overlay is open
+      rerender({ overlayOpen: true });
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', bubbles: true, cancelable: true }));
+      localPage.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true, cancelable: true }));
+      expect(onCyclePreset).toHaveBeenCalledTimes(1);
+      expect(onStepFontSize).toHaveBeenCalledTimes(2);
+    } finally {
+      unmount();
+      localPage.remove();
+    }
+  });
 });

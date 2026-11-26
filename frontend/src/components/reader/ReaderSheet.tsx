@@ -84,7 +84,7 @@ export function ReaderSheet({
         },
       }}
     >
-      <Drawer.Overlay />
+      <Drawer.Overlay backgroundOpacity={0.36} blur={3} />
       <Drawer.Content data-reader-interactive="true" {...contentDataAttributes}>
         <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onContentKeyDown}>
           <div aria-hidden="true" className="flex shrink-0 justify-center pt-2.5 pb-0.5">

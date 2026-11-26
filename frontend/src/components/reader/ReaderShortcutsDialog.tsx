@@ -25,6 +25,8 @@ function getReaderShortcutGroups(
     { label: "目录", keys: ["T"] },
     ...(showBookmarksShortcut ? [{ label: "书签", keys: ["B"] }] : []),
     { label: "排版与外观", keys: ["S"] },
+    { label: "切换纸面主题", keys: ["P"] },
+    { label: "调节字号", keys: ["[", "]"] },
     { label: "书内搜索", keys: ["⌘/Ctrl + F"] },
     ...(isFullscreenSupported ? [{ label: "切换全屏", keys: ["F"] }] : []),
     { label: "图片预览缩放", keys: ["+", "-", "0"] },

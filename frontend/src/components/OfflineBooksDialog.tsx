@@ -14,19 +14,11 @@ import {
   removeOfflineBook,
   type OfflineBookSummary,
 } from '@/lib/offline-books';
-import { cn } from '@/lib/utils';
+import { cn, formatByteSize } from '@/lib/utils';
 
 interface OfflineBooksDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-function formatStorageSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 export function OfflineBooksDialog({
@@ -157,7 +149,7 @@ export function OfflineBooksDialog({
     ? '正在读取离线缓存…'
     : loadError
       ? '读取离线缓存失败'
-      : `已缓存 ${books.length} 本 · 共 ${formatStorageSize(totalBytes)}`;
+      : `已缓存 ${books.length} 本 · 共 ${formatByteSize(totalBytes)}`;
 
   return (
     <AppModal
@@ -244,7 +236,7 @@ export function OfflineBooksDialog({
                           {bookLabel}
                         </p>
                         <p className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                          {[book.author, formatStorageSize(book.size)]
+                          {[book.author, formatByteSize(book.size)]
                             .filter(Boolean)
                             .join(' · ')}
                         </p>

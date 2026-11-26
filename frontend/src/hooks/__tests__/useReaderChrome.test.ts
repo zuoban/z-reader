@@ -5,10 +5,7 @@ import { useReaderChrome } from '@/hooks/useReaderChrome';
 const baseState = {
   loading: false,
   tocOpen: false,
-  bookmarksOpen: false,
-  shortcutsOpen: false,
-  themeSettingsOpen: false,
-  searchOpen: false,
+  keepHeaderVisible: false,
   currentChapter: '',
   currentChapterHref: '',
 };
@@ -65,14 +62,10 @@ describe('useReaderChrome', () => {
     });
     expect(result.current.isHeaderVisible).toBe(true);
 
-    // Each overlay flag (including searchOpen) blocks hideHeader and schedules showing header
     const blockingFlags = [
       'loading',
       'tocOpen',
-      'bookmarksOpen',
-      'shortcutsOpen',
-      'themeSettingsOpen',
-      'searchOpen',
+      'keepHeaderVisible',
     ] as const;
 
     for (const flag of blockingFlags) {
@@ -101,7 +94,7 @@ describe('useReaderChrome', () => {
     const { result } = renderHook(() => useReaderChrome());
 
     act(() => {
-      result.current.syncChromeState({ ...baseState, searchOpen: true });
+      result.current.syncChromeState({ ...baseState, keepHeaderVisible: true });
       result.current.syncChromeState({ ...baseState, tocOpen: true });
     });
 

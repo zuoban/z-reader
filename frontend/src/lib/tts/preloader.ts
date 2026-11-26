@@ -2,7 +2,7 @@ import { createAbortController } from '@/lib/config';
 import { classifyTTSError } from '@/lib/tts-request';
 import { LRUCache } from './audio-cache';
 import type { TTSAudioFetcher } from './fetcher';
-import { getUTF8ByteLength, isSSMLTooLarge, stripSSML } from './ssml';
+import { getUTF8ByteLength, isSSMLTooLarge } from './ssml';
 import {
   TTS_REQUEST_TIMEOUT_MS,
   type AdaptivePreloadConfig,
@@ -25,7 +25,6 @@ export class TTSPreloadManager {
   private maxPreloadConcurrency = 2;
   private activePreloadCount = 0;
   private pendingPreloadTasks: PreloadTask[] = [];
-  private queuedPreloadKeys: Set<string> = new Set();
   private preloadAbortControllers: Map<string, AbortController> = new Map();
   private preloadPromises = new Map<string, Promise<void>>();
   private audioCache: LRUCache<CachedAudio> = new LRUCache(10);
@@ -177,7 +176,6 @@ export class TTSPreloadManager {
     if (existing) return existing;
 
     const promise = new Promise<void>((resolve) => {
-      this.queuedPreloadKeys.add(ssml);
       this.pendingPreloadTasks.push({ ssml, marks, resolve });
       this.logMetric('preload.enqueued', { ssmlBytes: ssml.length });
       this.pumpPreloadQueue();
@@ -239,7 +237,6 @@ export class TTSPreloadManager {
     this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
       const isRelevant = relevantSet.has(task.ssml);
       if (!isRelevant) {
-        this.queuedPreloadKeys.delete(task.ssml);
         this.preloadPromises.delete(task.ssml);
         task.resolve();
         removedPending += 1;
@@ -261,7 +258,6 @@ export class TTSPreloadManager {
 
     this.pendingPreloadTasks = this.pendingPreloadTasks.filter((task) => {
       if (task.ssml !== ssml) return true;
-      this.queuedPreloadKeys.delete(task.ssml);
       task.resolve();
       return false;
     });
@@ -274,7 +270,6 @@ export class TTSPreloadManager {
     this.preloadAbortControllers.clear();
     this.preloadPromises.clear();
     this.pendingPreloadTasks.forEach((task) => {
-      this.queuedPreloadKeys.delete(task.ssml);
       task.resolve();
     });
     this.pendingPreloadTasks = [];
@@ -304,7 +299,6 @@ export class TTSPreloadManager {
       const task = this.pendingPreloadTasks.shift();
       if (!task) return;
 
-      this.queuedPreloadKeys.delete(task.ssml);
       this.activePreloadCount += 1;
       this.logMetric('preload.started', { ssmlBytes: task.ssml.length });
       void this.runPreloadTask(task).finally(() => {
@@ -316,7 +310,7 @@ export class TTSPreloadManager {
   }
 
   private async runPreloadTask(task: PreloadTask): Promise<void> {
-    const { ssml, marks } = task;
+    const { ssml } = task;
 
     if (this.audioCache.has(ssml)) return;
     if (this.preloadedQueue.some((p) => p.ssml === ssml)) return;
@@ -326,21 +320,10 @@ export class TTSPreloadManager {
     const start = performance.now();
 
     try {
-      const marksArray = marks && marks.length > 0
-        ? marks
-        : [{ name: '0', text: stripSSML(ssml) }];
-
       const blob = await this.fetcher.fetchWithController(ssml, controller);
       if (controller.signal.aborted) return;
 
-      const preloaded: PreloadedAudio = {
-        blob,
-        ssml,
-        marks: marksArray,
-        timestamp: Date.now(),
-      };
-
-      this.preloadedQueue.push(preloaded);
+      this.preloadedQueue.push({ blob, ssml });
       this.trimPreloadQueue();
       const latencyMs = Math.round(performance.now() - start);
       this.recordSynthesisLatency(latencyMs);

@@ -28,7 +28,6 @@ function renderSelector(settings: Partial<TTSSettings> = {}) {
     voices: FALLBACK_ZH_VOICES,
     onUpdateSettings: vi.fn(),
     onPreviewStart: vi.fn(),
-    onPreviewEnd: vi.fn(),
     uiScheme: PRESET_STYLES.light,
   };
   return { ...render(<VoiceSelector {...props} />), props };
@@ -48,7 +47,7 @@ describe('VoiceSelector preview lifecycle', () => {
     vi.unstubAllGlobals();
   });
 
-  it('releases the active object URL and narrating callback when manually stopped', async () => {
+  it('releases the active object URL when manually stopped', async () => {
     const { props } = renderSelector();
     fireEvent.click(screen.getByRole('button', { name: '试听当前语音' }));
     expect(props.onPreviewStart).toHaveBeenCalledOnce();
@@ -59,7 +58,6 @@ describe('VoiceSelector preview lifecycle', () => {
     fireEvent.click(screen.getByRole('button', { name: '停止语音试听' }));
     expect(audio.paused).toBe(true);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:tts-test-1');
-    expect(props.onPreviewEnd).toHaveBeenCalledOnce();
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -80,13 +78,12 @@ describe('VoiceSelector preview lifecycle', () => {
     expect(TestAudio.instances).toHaveLength(1);
     expect(TestAudio.instances[0].paused).toBe(false);
     expect(props.onPreviewStart).toHaveBeenCalledTimes(2);
-    expect(props.onPreviewEnd).toHaveBeenCalledOnce();
   });
 
   it('ignores a blob completing after unmount and clears the request timeout', async () => {
     const blob = deferred<Blob>();
     vi.mocked(fetch).mockResolvedValue({ ...audioResponse(), blob: () => blob.promise });
-    const { unmount, props } = renderSelector();
+    const { unmount } = renderSelector();
     fireEvent.click(screen.getByRole('button', { name: '试听当前语音' }));
     await flush();
     unmount();
@@ -95,16 +92,14 @@ describe('VoiceSelector preview lifecycle', () => {
     expect(TestAudio.instances).toHaveLength(0);
     expect(URL.createObjectURL).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
-    expect(props.onPreviewEnd).toHaveBeenCalledOnce();
   });
 
   it('releases resources when playback rejects and exposes a useful error', async () => {
     vi.spyOn(TestAudio.prototype, 'play').mockRejectedValueOnce(new Error('Blocked'));
-    const { props } = renderSelector();
+    renderSelector();
     fireEvent.click(screen.getByRole('button', { name: '试听当前语音' }));
     await flush();
     expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
-    expect(props.onPreviewEnd).toHaveBeenCalledOnce();
     expect(screen.getByRole('alert')).toHaveTextContent('试听');
     expect(screen.getByRole('button', { name: '试听当前语音' })).toBeVisible();
   });
@@ -139,7 +134,6 @@ describe('VoiceSelector preview lifecycle', () => {
     }} />);
     expect(TestAudio.instances[0].paused).toBe(true);
     expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
-    expect(props.onPreviewEnd).toHaveBeenCalledOnce();
   });
 
   it('clears a style unsupported by a newly selected voice', async () => {
@@ -213,7 +207,7 @@ describe('VoiceSelector preview lifecycle', () => {
 
   it('stops an active preview when narration claims focus without preview callbacks', async () => {
     const { props, rerender } = renderSelector();
-    rerender(<VoiceSelector {...props} onPreviewStart={undefined} onPreviewEnd={undefined} />);
+    rerender(<VoiceSelector {...props} onPreviewStart={undefined} />);
     fireEvent.click(screen.getByRole('button', { name: '试听当前语音' }));
     await flush();
     const audio = TestAudio.instances[0];
@@ -236,14 +230,13 @@ describe('VoiceSelector preview lifecycle', () => {
   it('cannot play a late response after focus has transferred to narration', async () => {
     const request = deferred<Response>();
     vi.mocked(fetch).mockReturnValueOnce(request.promise);
-    const { props } = renderSelector();
+    renderSelector();
     fireEvent.click(screen.getByRole('button', { name: '试听当前语音' }));
     const signal = vi.mocked(fetch).mock.calls[0][1]?.signal;
     let release!: () => void;
     act(() => { release = claimTTSAudioFocus({}, vi.fn()); });
     try {
       expect(signal?.aborted).toBe(true);
-      expect(props.onPreviewEnd).toHaveBeenCalledOnce();
       request.resolve(audioResponse());
       await flush();
       expect(TestAudio.instances).toHaveLength(0);

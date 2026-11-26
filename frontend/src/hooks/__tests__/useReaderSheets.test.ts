@@ -20,16 +20,20 @@ describe('useReaderSheets', () => {
 
     act(() => result.current.setTocOpen(true));
     expect(result.current.tocOpen).toBe(true);
+    expect(result.current.tocMounted).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
 
     act(() => result.current.setBookmarksOpen(true));
     expect(result.current.tocOpen).toBe(false);
+    expect(result.current.tocMounted).toBe(true);
     expect(result.current.bookmarksOpen).toBe(true);
+    expect(result.current.bookmarksMounted).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
 
     act(() => result.current.setThemeSettingsOpen(true));
     expect(result.current.bookmarksOpen).toBe(false);
     expect(result.current.themeSettingsOpen).toBe(true);
+    expect(result.current.themeSettingsMounted).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
 
     act(() => result.current.setShortcutsOpen(true));
@@ -37,8 +41,16 @@ describe('useReaderSheets', () => {
     expect(result.current.shortcutsOpen).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
 
-    act(() => result.current.openSearch());
+    act(() => result.current.setSearchOpen(true));
     expect(result.current.shortcutsOpen).toBe(false);
+    expect(result.current.showSearch).toBe(true);
+    expect(result.current.searchMounted).toBe(true);
+    expect(result.current.hasSheetOpen).toBe(true);
+    act(() => result.current.setSearchOpen(false));
+    expect(result.current.showSearch).toBe(false);
+    expect(result.current.searchMounted).toBe(true);
+
+    act(() => result.current.openSearch());
     expect(result.current.showSearch).toBe(true);
     expect(result.current.hasSheetOpen).toBe(true);
 

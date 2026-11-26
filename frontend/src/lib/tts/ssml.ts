@@ -16,16 +16,7 @@ export function isSSMLTooLarge(ssml: string): boolean {
 
 export function stripSSML(ssml: string): string {
   return ssml
-    .replace(/<\/?speak[^>]*>/gi, '')
-    .replace(/<\/?mark[^>]*>/gi, '')
-    .replace(/<\/?emphasis[^>]*>/gi, '')
     .replace(/<\/?break[^>]*>/gi, ' ')
-    .replace(/<\/?phoneme[^>]*>/gi, '')
-    .replace(/<\/?lang[^>]*>/gi, '')
-    .replace(/<\/?voice[^>]*>/gi, '')
-    .replace(/<\/?prosody[^>]*>/gi, '')
-    .replace(/<\/?mstts:[^>]*>/gi, '')
-    .replace(/<\/?bookmark[^>]*>/gi, '')
     .replace(/<[^>]+>/g, '')
     .trim();
 }

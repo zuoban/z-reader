@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
+import { handleRovingListKeyDown } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
 
 interface ReaderToolbarProps {
@@ -157,53 +158,97 @@ export function ReaderToolbar({
   }, [mobileActionsOpen]);
 
   function handleMobileActionsKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
-      if (event.nativeEvent.isComposing) return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeMobileActions();
-      return;
-    }
-
-    if (
-      event.key !== "ArrowDown" &&
-      event.key !== "ArrowUp" &&
-      event.key !== "Home" &&
-      event.key !== "End"
-    ) {
-      return;
-    }
-
-    const items = Array.from(
-      mobileActionsMenuRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []
-    );
-    if (items.length === 0) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (event.key === "Home") {
-      items[0]?.focus();
-      return;
-    }
-    if (event.key === "End") {
-      items[items.length - 1]?.focus();
-      return;
-    }
-
-    const activeIndex = items.findIndex((item) => item === document.activeElement);
-    const delta = event.key === "ArrowDown" ? 1 : -1;
-    const nextIndex =
-      activeIndex === -1
-        ? delta > 0
-          ? 0
-          : items.length - 1
-        : (activeIndex + delta + items.length) % items.length;
-    items[nextIndex]?.focus();
+    handleRovingListKeyDown(event, mobileActionsMenuRef.current, {
+      stopPropagation: true,
+    });
   }
 
   const chromeBtnClass = "reader-chrome-btn";
   const author = bookAuthor.trim();
+
+  function renderMobileMenuItem({
+    label,
+    icon,
+    onAction,
+    disabled,
+    busy,
+    pressed,
+    labelClassName,
+  }: {
+    label: string;
+    icon: ReactNode;
+    onAction: () => void;
+    disabled?: boolean;
+    busy?: boolean;
+    pressed?: boolean;
+    labelClassName?: string;
+  }) {
+    return (
+      <button
+        className="reader-mobile-menu-item"
+        disabled={disabled}
+        aria-busy={busy || undefined}
+        aria-pressed={pressed}
+        onClick={() => {
+          closeMobileActions(false);
+          onAction();
+        }}
+        type="button"
+      >
+        {icon}
+        <span className={labelClassName}>{label}</span>
+      </button>
+    );
+  }
+
+  function renderDesktopButton({
+    title,
+    ariaLabel,
+    srLabel,
+    expanded,
+    hasPopup,
+    pressed,
+    disabled,
+    busy,
+    className,
+    labelClassName = "flex items-center justify-center",
+    onClick,
+    children,
+  }: {
+    title: string;
+    ariaLabel?: string;
+    srLabel?: string;
+    expanded?: boolean;
+    hasPopup?: "dialog";
+    pressed?: boolean;
+    disabled?: boolean;
+    busy?: boolean;
+    className?: string;
+    labelClassName?: string;
+    onClick: () => void;
+    children: ReactNode;
+  }) {
+    return (
+      <Button
+        type="button"
+        variant="subtle"
+        size="sm"
+        title={title}
+        aria-label={ariaLabel}
+        aria-expanded={expanded}
+        aria-haspopup={hasPopup}
+        aria-pressed={pressed}
+        disabled={disabled}
+        aria-busy={busy || undefined}
+        className={cn(chromeBtnClass, className)}
+        classNames={{ label: labelClassName }}
+        onClick={onClick}
+      >
+        {children}
+        {srLabel && <span className="sr-only">{srLabel}</span>}
+      </Button>
+    );
+  }
 
   return (
     <header
@@ -296,133 +341,70 @@ export function ReaderToolbar({
               <div id={mobileActionsTitleId} className="reader-toolbar-menu-title">
                 阅读操作
               </div>
-              <button
-                className="reader-mobile-menu-item"
-                onClick={() => {
-                  closeMobileActions(false);
-                  onTocOpenChange(true);
-                }}
-                type="button"
-              >
-                <List className="h-4 w-4 opacity-80" aria-hidden="true" />
-                <span>目录</span>
-              </button>
-              {onOpenSearch && (
-                <button
-                  className="reader-mobile-menu-item"
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onOpenSearch();
-                  }}
-                  type="button"
-                >
-                  <Search className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  <span>书内搜索</span>
-                </button>
-              )}
+              {renderMobileMenuItem({
+                label: "目录",
+                icon: <List className="h-4 w-4 opacity-80" aria-hidden="true" />,
+                onAction: () => onTocOpenChange(true),
+              })}
+              {onOpenSearch && renderMobileMenuItem({
+                label: "书内搜索",
+                icon: <Search className="h-4 w-4 opacity-80" aria-hidden="true" />,
+                onAction: onOpenSearch,
+              })}
               {showBookmarks && (
                 <>
-                  <button
-                    className="reader-mobile-menu-item"
-                    onClick={() => {
-                      closeMobileActions(false);
-                      onBookmarksOpenChange(true);
-                    }}
-                    type="button"
-                  >
-                    <BookmarkIcon className="h-4 w-4 opacity-80" aria-hidden="true" />
-                    <span>书签</span>
-                  </button>
-                  <button
-                    className="reader-mobile-menu-item"
-                    disabled={!canCreateBookmark || isSavingBookmark}
-                    aria-busy={isSavingBookmark || undefined}
-                    onClick={() => {
-                      closeMobileActions(false);
-                      onCreateBookmark();
-                    }}
-                    type="button"
-                  >
-                    {isSavingBookmark ? (
-                      <Loader2
-                        className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none"
-                        aria-hidden="true"
-                      />
+                  {renderMobileMenuItem({
+                    label: "书签",
+                    icon: <BookmarkIcon className="h-4 w-4 opacity-80" aria-hidden="true" />,
+                    onAction: () => onBookmarksOpenChange(true),
+                  })}
+                  {renderMobileMenuItem({
+                    label: isSavingBookmark ? "添加中..." : "添加书签",
+                    disabled: !canCreateBookmark || isSavingBookmark,
+                    busy: isSavingBookmark,
+                    icon: isSavingBookmark ? (
+                      <Loader2 className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none" aria-hidden="true" />
                     ) : (
                       <BookmarkPlus className="h-4 w-4 opacity-80" aria-hidden="true" />
-                    )}
-                    <span>{isSavingBookmark ? "添加中..." : "添加书签"}</span>
-                  </button>
+                    ),
+                    onAction: onCreateBookmark,
+                  })}
                 </>
               )}
-              {onSaveOffline && (
-                <button
-                  className="reader-mobile-menu-item"
-                  disabled={isSavingOffline}
-                  aria-busy={isSavingOffline || undefined}
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onSaveOffline();
-                  }}
-                  type="button"
-                >
-                  {isSavingOffline ? (
-                    <Loader2
-                      className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <Download className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  )}
-                  <span className="tabular-nums">
-                    {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本"}
-                  </span>
-                </button>
-              )}
+              {onSaveOffline && renderMobileMenuItem({
+                label: isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "保存离线副本",
+                labelClassName: "tabular-nums",
+                disabled: isSavingOffline,
+                busy: isSavingOffline,
+                icon: isSavingOffline ? (
+                  <Loader2 className="h-4 w-4 animate-spin opacity-80 motion-reduce:animate-none" aria-hidden="true" />
+                ) : (
+                  <Download className="h-4 w-4 opacity-80" aria-hidden="true" />
+                ),
+                onAction: onSaveOffline,
+              })}
               {mobileTtsControls}
               <div className="reader-toolbar-menu-divider" role="separator" />
-              <button
-                className="reader-mobile-menu-item"
-                onClick={() => {
-                  closeMobileActions(false);
-                  onThemeSettingsOpenChange(true);
-                }}
-                type="button"
-              >
-                <Settings className="h-4 w-4 opacity-80" aria-hidden="true" />
-                <span>设置</span>
-              </button>
-              {isFullscreenSupported && (
-                <button
-                  className="reader-mobile-menu-item"
-                  aria-pressed={isFullscreen}
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onToggleFullscreen();
-                  }}
-                  type="button"
-                >
-                  {isFullscreen ? (
-                    <Minimize className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  ) : (
-                    <Maximize className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  )}
-                  <span>{isFullscreen ? "退出全屏" : "全屏"}</span>
-                </button>
-              )}
-              {onOpenShortcuts && (
-                <button
-                  className="reader-mobile-menu-item"
-                  onClick={() => {
-                    closeMobileActions(false);
-                    onOpenShortcuts();
-                  }}
-                  type="button"
-                >
-                  <KeyboardIcon className="h-4 w-4 opacity-80" aria-hidden="true" />
-                  <span>快捷键</span>
-                </button>
-              )}
+              {renderMobileMenuItem({
+                label: "设置",
+                icon: <Settings className="h-4 w-4 opacity-80" aria-hidden="true" />,
+                onAction: () => onThemeSettingsOpenChange(true),
+              })}
+              {isFullscreenSupported && renderMobileMenuItem({
+                label: isFullscreen ? "退出全屏" : "全屏",
+                pressed: isFullscreen,
+                icon: isFullscreen ? (
+                  <Minimize className="h-4 w-4 opacity-80" aria-hidden="true" />
+                ) : (
+                  <Maximize className="h-4 w-4 opacity-80" aria-hidden="true" />
+                ),
+                onAction: onToggleFullscreen,
+              })}
+              {onOpenShortcuts && renderMobileMenuItem({
+                label: "快捷键",
+                icon: <KeyboardIcon className="h-4 w-4 opacity-80" aria-hidden="true" />,
+                onAction: onOpenShortcuts,
+              })}
             </div>
           </div>
 
@@ -430,111 +412,69 @@ export function ReaderToolbar({
             data-reader-toolbar-actions="desktop"
             className="hidden items-center gap-0.5 lg:flex"
           >
-            <Button
-              type="button"
-              variant="subtle"
-              size="sm"
-              title="目录"
-              aria-expanded={tocOpen}
-              aria-haspopup="dialog"
-              className={chromeBtnClass}
-              classNames={{ label: "flex items-center justify-center" }}
-              onClick={() => onTocOpenChange(!tocOpen)}
-            >
-              <List className="size-4" strokeWidth={1.5} aria-hidden="true" />
-              <span className="sr-only">目录</span>
-            </Button>
+            {renderDesktopButton({
+              title: "目录",
+              srLabel: "目录",
+              expanded: tocOpen,
+              hasPopup: "dialog",
+              onClick: () => onTocOpenChange(!tocOpen),
+              children: <List className="size-4" strokeWidth={1.5} aria-hidden="true" />,
+            })}
 
-            {onOpenSearch && (
-              <ActionIcon
-                type="button"
-                variant="subtle"
-                size={32}
-                radius="md"
-                onClick={onOpenSearch}
-                aria-label="书内搜索"
-                aria-expanded={searchOpen}
-                aria-haspopup="dialog"
-                title="书内搜索 (Ctrl/⌘+F)"
-                className={chromeBtnClass}
-              >
-                <Search className="size-4" strokeWidth={1.5} aria-hidden="true" />
-              </ActionIcon>
-            )}
+            {onOpenSearch && renderDesktopButton({
+              title: "书内搜索 (Ctrl/⌘+F)",
+              ariaLabel: "书内搜索",
+              expanded: searchOpen,
+              hasPopup: "dialog",
+              onClick: onOpenSearch,
+              children: <Search className="size-4" strokeWidth={1.5} aria-hidden="true" />,
+            })}
 
             {showBookmarks && (
               <>
-                <Button
-                  type="button"
-                  variant="subtle"
-                  size="sm"
-                  title="书签"
-                  aria-expanded={bookmarksOpen}
-                  aria-haspopup="dialog"
-                  className={chromeBtnClass}
-                  classNames={{ label: "flex items-center justify-center" }}
-                  onClick={() => onBookmarksOpenChange(!bookmarksOpen)}
-                >
-                  <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
-                  <span className="sr-only">书签</span>
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="subtle"
-                  size="sm"
-                  disabled={!canCreateBookmark || isSavingBookmark}
-                  aria-busy={isSavingBookmark || undefined}
-                  onClick={onCreateBookmark}
-                  title={canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪"}
-                  className={chromeBtnClass}
-                  classNames={{ label: "flex items-center justify-center" }}
-                >
-                  {isSavingBookmark ? (
-                    <Loader2
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                      strokeWidth={1.5}
-                      aria-hidden="true"
-                    />
+                {renderDesktopButton({
+                  title: "书签",
+                  srLabel: "书签",
+                  expanded: bookmarksOpen,
+                  hasPopup: "dialog",
+                  onClick: () => onBookmarksOpenChange(!bookmarksOpen),
+                  children: <BookmarkIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />,
+                })}
+                {renderDesktopButton({
+                  title: canCreateBookmark ? "添加当前位置为书签" : "当前位置尚未就绪",
+                  srLabel: isSavingBookmark ? "添加中..." : "添加",
+                  disabled: !canCreateBookmark || isSavingBookmark,
+                  busy: isSavingBookmark,
+                  onClick: onCreateBookmark,
+                  children: isSavingBookmark ? (
+                    <Loader2 className="size-4 animate-spin motion-reduce:animate-none" strokeWidth={1.5} aria-hidden="true" />
                   ) : (
                     <BookmarkPlus className="size-4" strokeWidth={1.5} aria-hidden="true" />
-                  )}
-                  <span className="sr-only">
-                    {isSavingBookmark ? "添加中..." : "添加"}
-                  </span>
-                </Button>
+                  ),
+                })}
               </>
             )}
 
-            {onSaveOffline && (
-              <Button
-                type="button"
-                variant="subtle"
-                size="sm"
-                disabled={isSavingOffline}
-                aria-busy={isSavingOffline || undefined}
-                onClick={onSaveOffline}
-                title="保存到此设备，退出登录后会自动清除"
-                className={cn(
-                  chromeBtnClass,
-                  isSavingOffline && "reader-chrome-btn-expanded"
-                )}
-                classNames={{ label: "flex items-center justify-center gap-1.5" }}
-              >
-                {isSavingOffline ? (
-                  <Loader2
-                    className="size-4 animate-spin motion-reduce:animate-none"
-                    strokeWidth={1.5}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Download className="size-4" strokeWidth={1.5} aria-hidden="true" />
-                )}
-                <span className={isSavingOffline ? "text-[11px]" : "sr-only"}>
-                  {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}
-                </span>
-              </Button>
-            )}
+            {onSaveOffline && renderDesktopButton({
+              title: "保存到此设备，退出登录后会自动清除",
+              disabled: isSavingOffline,
+              busy: isSavingOffline,
+              className: isSavingOffline ? "reader-chrome-btn-expanded" : undefined,
+              labelClassName: "flex items-center justify-center gap-1.5",
+              onClick: onSaveOffline,
+              children: (
+                <>
+                  {isSavingOffline ? (
+                    <Loader2 className="size-4 animate-spin motion-reduce:animate-none" strokeWidth={1.5} aria-hidden="true" />
+                  ) : (
+                    <Download className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                  )}
+                  <span className={isSavingOffline ? "text-[11px]" : "sr-only"}>
+                    {isSavingOffline ? offlineDownloadLabel ?? "保存中..." : "离线"}
+                  </span>
+                </>
+              ),
+            })}
 
             {ttsControls}
 
@@ -543,55 +483,33 @@ export function ReaderToolbar({
               className="reader-toolbar-divider mx-1 h-3.5 w-px shrink-0"
             />
 
-            {isFullscreenSupported && (
-              <Button
-                type="button"
-                variant="subtle"
-                size="sm"
-                aria-pressed={isFullscreen}
-                onClick={onToggleFullscreen}
-                title={isFullscreen ? "退出全屏" : "全屏阅读"}
-                className={chromeBtnClass}
-                classNames={{ label: "flex items-center justify-center" }}
-              >
-                {isFullscreen ? (
-                  <Minimize className="size-4" strokeWidth={1.5} aria-hidden="true" />
-                ) : (
-                  <Maximize className="size-4" strokeWidth={1.5} aria-hidden="true" />
-                )}
-                <span className="sr-only">{isFullscreen ? "退出全屏" : "全屏"}</span>
-              </Button>
-            )}
+            {isFullscreenSupported && renderDesktopButton({
+              title: isFullscreen ? "退出全屏" : "全屏阅读",
+              srLabel: isFullscreen ? "退出全屏" : "全屏",
+              pressed: isFullscreen,
+              onClick: onToggleFullscreen,
+              children: isFullscreen ? (
+                <Minimize className="size-4" strokeWidth={1.5} aria-hidden="true" />
+              ) : (
+                <Maximize className="size-4" strokeWidth={1.5} aria-hidden="true" />
+              ),
+            })}
 
-            <Button
-              type="button"
-              variant="subtle"
-              size="sm"
-              title="阅读设置"
-              aria-expanded={themeSettingsOpen}
-              aria-haspopup="dialog"
-              className={chromeBtnClass}
-              classNames={{ label: "flex items-center justify-center" }}
-              onClick={() => onThemeSettingsOpenChange(!themeSettingsOpen)}
-            >
-              <Settings className="size-4" strokeWidth={1.5} aria-hidden="true" />
-              <span className="sr-only">设置</span>
-            </Button>
+            {renderDesktopButton({
+              title: "阅读设置",
+              srLabel: "设置",
+              expanded: themeSettingsOpen,
+              hasPopup: "dialog",
+              onClick: () => onThemeSettingsOpenChange(!themeSettingsOpen),
+              children: <Settings className="size-4" strokeWidth={1.5} aria-hidden="true" />,
+            })}
 
-            {onOpenShortcuts && (
-              <ActionIcon
-                type="button"
-                variant="subtle"
-                size={32}
-                radius="md"
-                onClick={onOpenShortcuts}
-                title="快捷键 (?)"
-                aria-label="快捷键"
-                className={chromeBtnClass}
-              >
-                <KeyboardIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
-              </ActionIcon>
-            )}
+            {onOpenShortcuts && renderDesktopButton({
+              title: "快捷键 (?)",
+              ariaLabel: "快捷键",
+              onClick: onOpenShortcuts,
+              children: <KeyboardIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />,
+            })}
           </div>
         </div>
       </div>

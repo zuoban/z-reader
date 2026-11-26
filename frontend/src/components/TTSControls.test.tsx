@@ -45,7 +45,7 @@ describe('TTSControls', () => {
     const props = {
       state: 'stopped' as const, settings, voices: [],
       onStart: vi.fn(), onStop: vi.fn(), onNext: vi.fn(), onPrev: vi.fn(),
-      onUpdateSettings: vi.fn(), uiScheme, initialExpanded: true, ...overrides,
+      onUpdateSettings: vi.fn(), uiScheme, expanded: true, ...overrides,
     };
     return { ...render(<TTSControls {...props} />), props };
   }
@@ -190,7 +190,7 @@ describe('TTSControls', () => {
         onPrev={vi.fn()}
         onUpdateSettings={vi.fn()}
         uiScheme={uiScheme}
-        initialExpanded
+        expanded
         ttsStatus={{ headline: '朗读连接异常', detail: '正在重试', tone: 'error' }}
       />,
     );
@@ -210,7 +210,7 @@ describe('TTSControls', () => {
         onPrev={vi.fn()}
         onUpdateSettings={vi.fn()}
         uiScheme={uiScheme}
-        initialExpanded
+        expanded
         ttsStatus={{ headline: '正在朗读', tone: 'active' }}
       />,
     );
@@ -223,7 +223,7 @@ describe('TTSControls', () => {
   it('calls onExpandedChange(false) when an expanded TTSControls instance unmounts', () => {
     const onExpandedChange = vi.fn();
     const { unmount } = renderControls({
-      initialExpanded: true,
+      expanded: true,
       onExpandedChange,
     });
 
@@ -239,7 +239,6 @@ describe('TTSControls', () => {
     const onExpandedChange = vi.fn();
     const { rerender, props } = renderControls({
       expanded: true,
-      initialExpanded: false,
       onExpandedChange,
     });
 
@@ -252,7 +251,6 @@ describe('TTSControls', () => {
       <TTSControls
         {...props}
         expanded={false}
-        initialExpanded={false}
         onExpandedChange={onExpandedChange}
       />,
     );

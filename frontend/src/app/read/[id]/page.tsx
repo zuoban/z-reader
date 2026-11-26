@@ -117,59 +117,6 @@ function Reader({ bookId }: { bookId: string }) {
   }, []);
 
   const sheets = useReaderSheets();
-  const {
-    openSearch,
-    closeSearch,
-    setTocOpen,
-    setBookmarksOpen,
-    setThemeSettingsOpen,
-    setTtsOpen,
-  } = sheets;
-  const [tocMounted, setTocMounted] = useState(false);
-  const [bookmarksMounted, setBookmarksMounted] = useState(false);
-  const [themeSettingsMounted, setThemeSettingsMounted] = useState(false);
-  const [searchMounted, setSearchMounted] = useState(false);
-
-  const handleTocOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) setTocMounted(true);
-      setTocOpen(open);
-    },
-    [setTocOpen],
-  );
-
-  const handleBookmarksOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) setBookmarksMounted(true);
-      setBookmarksOpen(open);
-    },
-    [setBookmarksOpen],
-  );
-
-  const handleThemeSettingsOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) setThemeSettingsMounted(true);
-      setThemeSettingsOpen(open);
-    },
-    [setThemeSettingsOpen],
-  );
-
-  const handleOpenSearch = useCallback(() => {
-    setSearchMounted(true);
-    openSearch();
-  }, [openSearch]);
-
-  const handleSearchOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        setSearchMounted(true);
-        openSearch();
-      } else {
-        closeSearch();
-      }
-    },
-    [closeSearch, openSearch],
-  );
 
   const chrome = useReaderChrome();
   const tts = useReaderTTSBridge({
@@ -177,7 +124,7 @@ function Reader({ bookId }: { bookId: string }) {
     overlayContainer,
     hideHeader: chrome.hideHeader,
     ttsOpen: sheets.ttsOpen,
-    onTtsOpenChange: setTtsOpen,
+    onTtsOpenChange: sheets.setTtsOpen,
   });
   const offline = useReaderOffline({
     bookId,
@@ -225,18 +172,6 @@ function Reader({ bookId }: { bookId: string }) {
     router.push("/shelf");
   }, [saveNow, router]);
 
-  const handleOpenTOC = useCallback(() => {
-    handleTocOpenChange(true);
-  }, [handleTocOpenChange]);
-
-  const handleOpenBookmarks = useCallback(() => {
-    handleBookmarksOpenChange(true);
-  }, [handleBookmarksOpenChange]);
-
-  const handleOpenThemeSettings = useCallback(() => {
-    handleThemeSettingsOpenChange(true);
-  }, [handleThemeSettingsOpenChange]);
-
   const controls = useReaderControls({
     pageRef,
     onPrev: handlePrev,
@@ -247,10 +182,10 @@ function Reader({ bookId }: { bookId: string }) {
     shortcutsOpen: sheets.shortcutsOpen,
     onToggleShortcuts: sheets.handleToggleShortcuts,
     onCloseShortcuts: sheets.handleCloseShortcuts,
-    onOpenSearch: handleOpenSearch,
-    onOpenTOC: handleOpenTOC,
-    onOpenBookmarks: isAuthenticated ? handleOpenBookmarks : undefined,
-    onOpenThemeSettings: handleOpenThemeSettings,
+    onOpenSearch: sheets.openSearch,
+    onOpenTOC: () => sheets.setTocOpen(true),
+    onOpenBookmarks: isAuthenticated ? () => sheets.setBookmarksOpen(true) : undefined,
+    onOpenThemeSettings: () => sheets.setThemeSettingsOpen(true),
   });
 
   const reader = useFoliateView({
@@ -283,7 +218,7 @@ function Reader({ bookId }: { bookId: string }) {
     percentage: reader.percentage,
     currentChapter: reader.currentChapter,
     viewRef,
-    onBookmarksOpenChange: handleBookmarksOpenChange,
+    onBookmarksOpenChange: sheets.setBookmarksOpen,
   });
 
   const { saveBookOffline } = offline;
@@ -348,25 +283,20 @@ function Reader({ bookId }: { bookId: string }) {
   }, [reader.cleanupReader]);
 
   const { syncChromeState } = chrome;
+  const keepHeaderVisible = sheets.hasSheetOpen && !sheets.ttsOpen;
   useEffect(() => {
     syncChromeState({
       loading: reader.loading,
       tocOpen: sheets.tocOpen,
-      bookmarksOpen: sheets.bookmarksOpen,
-      shortcutsOpen: sheets.shortcutsOpen,
-      themeSettingsOpen: sheets.themeSettingsOpen,
-      searchOpen: sheets.showSearch,
+      keepHeaderVisible,
       currentChapter: reader.currentChapter,
       currentChapterHref: reader.currentChapterHref,
     });
   }, [
+    keepHeaderVisible,
     reader.currentChapter,
     reader.currentChapterHref,
     reader.loading,
-    sheets.bookmarksOpen,
-    sheets.shortcutsOpen,
-    sheets.showSearch,
-    sheets.themeSettingsOpen,
     sheets.tocOpen,
     syncChromeState,
   ]);
@@ -426,9 +356,9 @@ function Reader({ bookId }: { bookId: string }) {
           bookTitle={reader.bookTitle}
           bookAuthor={reader.bookAuthor}
           tocOpen={sheets.tocOpen}
-          onTocOpenChange={handleTocOpenChange}
+          onTocOpenChange={sheets.setTocOpen}
           bookmarksOpen={sheets.bookmarksOpen}
-          onBookmarksOpenChange={handleBookmarksOpenChange}
+          onBookmarksOpenChange={sheets.setBookmarksOpen}
           showBookmarks={isAuthenticated}
           canCreateBookmark={isAuthenticated && Boolean(reader.currentCFI)}
           isSavingBookmark={isSavingBookmark}
@@ -440,13 +370,13 @@ function Reader({ bookId }: { bookId: string }) {
           uiScheme={uiScheme}
           headerSafeAreaPaddingTop={HEADER_SAFE_AREA_PADDING_TOP}
           themeSettingsOpen={sheets.themeSettingsOpen}
-          onThemeSettingsOpenChange={handleThemeSettingsOpenChange}
+          onThemeSettingsOpenChange={sheets.setThemeSettingsOpen}
           isFullscreenSupported={controls.isFullscreenSupported}
           isFullscreen={controls.isFullscreen}
           onToggleFullscreen={controls.toggleFullscreen}
           onOpenShortcuts={sheets.handleOpenShortcuts}
           searchOpen={sheets.showSearch}
-          onOpenSearch={handleOpenSearch}
+          onOpenSearch={sheets.openSearch}
           ttsOpen={tts.ttsOpen}
           ttsControls={
             isAuthenticated ? (
@@ -474,10 +404,10 @@ function Reader({ bookId }: { bookId: string }) {
           }
         />
 
-        {(tocMounted || sheets.tocOpen) && (
+        {sheets.tocMounted && (
           <ReaderTOCSheet
             open={sheets.tocOpen}
-            onOpenChange={handleTocOpenChange}
+            onOpenChange={sheets.setTocOpen}
             toc={reader.toc}
             bookTitle={reader.bookTitle}
             bookAuthor={reader.bookAuthor}
@@ -497,10 +427,10 @@ function Reader({ bookId }: { bookId: string }) {
           />
         )}
 
-        {isAuthenticated && (bookmarksMounted || sheets.bookmarksOpen) && (
+        {isAuthenticated && sheets.bookmarksMounted && (
           <ReaderBookmarksSheet
             open={sheets.bookmarksOpen}
-            onOpenChange={handleBookmarksOpenChange}
+            onOpenChange={sheets.setBookmarksOpen}
             bookmarks={bookmarks}
             bookTitle={reader.bookTitle}
             bookAuthor={reader.bookAuthor}
@@ -515,21 +445,21 @@ function Reader({ bookId }: { bookId: string }) {
           />
         )}
 
-        {(themeSettingsMounted || sheets.themeSettingsOpen) && (
+        {sheets.themeSettingsMounted && (
           <ThemeSettings
             theme={theme}
             setTheme={setTheme}
             uiScheme={uiScheme}
             open={sheets.themeSettingsOpen}
-            onOpenChange={handleThemeSettingsOpenChange}
+            onOpenChange={sheets.setThemeSettingsOpen}
             overlayContainer={overlayContainer}
           />
         )}
 
-        {(searchMounted || sheets.showSearch) && (
+        {sheets.searchMounted && (
           <ReaderSearchSheet
             open={sheets.showSearch}
-            onOpenChange={handleSearchOpenChange}
+            onOpenChange={sheets.setSearchOpen}
             bookTitle={reader.bookTitle}
             uiScheme={uiScheme}
             overlayContainer={overlayContainer}
@@ -539,7 +469,7 @@ function Reader({ bookId }: { bookId: string }) {
           />
         )}
 
-        {isAuthenticated && tts.ttsRequested && tts.runtimeReady && (
+        {isAuthenticated && tts.ttsRequested && tts.drawerProps && (
           <TTSControls {...tts.drawerProps} />
         )}
 

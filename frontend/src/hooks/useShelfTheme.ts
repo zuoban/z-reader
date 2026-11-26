@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReaderThemePreset } from '@/lib/reader-theme-presets';
 
-const PRESETS: ReaderThemePreset[] = ['light', 'sepia', 'green', 'dark'];
-
 interface ShelfTheme {
   preset: ReaderThemePreset;
   isDark: boolean;
@@ -37,7 +35,6 @@ function writeShelfThemePreset(preset: ReaderThemePreset) {
     const raw = localStorage.getItem(STORAGE_KEY);
     const current = raw ? JSON.parse(raw) : {};
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, preset }));
-    window.dispatchEvent(new StorageEvent('storage'));
     window.dispatchEvent(new Event('z-reader-theme-change'));
   } catch {
     // ignore
@@ -46,8 +43,6 @@ function writeShelfThemePreset(preset: ReaderThemePreset) {
 
 export function useShelfTheme(): ShelfTheme & {
   toggleTheme: () => void;
-  cyclePreset: () => void;
-  setPreset: (preset: ReaderThemePreset) => void;
 } {
   const [theme, setTheme] = useState<ShelfTheme>(readShelfTheme);
 
@@ -70,17 +65,5 @@ export function useShelfTheme(): ShelfTheme & {
     setTheme({ preset, isDark: preset === 'dark' });
   }, [theme.isDark]);
 
-  const cyclePreset = useCallback(() => {
-    const currentIdx = PRESETS.indexOf(theme.preset);
-    const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length];
-    writeShelfThemePreset(nextPreset);
-    setTheme({ preset: nextPreset, isDark: nextPreset === 'dark' });
-  }, [theme.preset]);
-
-  const setPreset = useCallback((preset: ReaderThemePreset) => {
-    writeShelfThemePreset(preset);
-    setTheme({ preset, isDark: preset === 'dark' });
-  }, []);
-
-  return { ...theme, toggleTheme, cyclePreset, setPreset };
+  return { ...theme, toggleTheme };
 }

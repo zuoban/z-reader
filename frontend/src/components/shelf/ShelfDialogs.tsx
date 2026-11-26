@@ -2,8 +2,8 @@
 
 import dynamic from 'next/dynamic';
 
-const BatchCategorySheet = dynamic(
-  () => import('@/components/BatchCategorySheet').then((module) => module.BatchCategorySheet),
+const CategoryPickerModal = dynamic(
+  () => import('@/components/CategoryPickerModal').then((module) => module.CategoryPickerModal),
   { ssr: false }
 );
 const CategoryManagerSheet = dynamic(
@@ -71,13 +71,21 @@ export function ShelfDialogs({
         />
       )}
       {batchCategoryOpen && (
-        <BatchCategorySheet
+        <CategoryPickerModal
           open
           onOpenChange={onBatchCategoryOpenChange}
-          selectedCount={selectedCount}
+          title="批量设置分类"
+          subtitle={`将对已选择的 ${selectedCount} 本图书生效`}
           categories={categories}
           bookCounts={bookCounts}
+          listVariant="chips"
           loading={isUpdatingManyCategories}
+          zIndex={90}
+          returnFocus={false}
+          showClearButton
+          clearLabel="清空分类"
+          clearingLabel="清空中…"
+          isSaveDisabled={(selectedCategory) => !selectedCategory}
           onSave={onSaveBatchCategory}
         />
       )}

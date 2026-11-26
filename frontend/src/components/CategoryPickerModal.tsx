@@ -24,7 +24,7 @@ export interface CategoryPickerModalProps {
   clearingLabel: string;
   willClearMessage?: (trimmedCategoryName: string, selectedCategory: string | null) => string | null;
   isSaveDisabled: (selectedCategory: string | null) => boolean;
-  onSave: (category: string | null, action: 'save' | 'clear') => Promise<boolean | void> | boolean | void;
+  onSave: (category: string | null) => Promise<boolean | void> | boolean | void;
 }
 
 export function CategoryPickerModal({
@@ -79,7 +79,7 @@ export function CategoryPickerModal({
     if (isBusy) return;
     setPendingAction(action);
     try {
-      await onSave(nextCategory, action);
+      await onSave(nextCategory);
     } finally {
       setPendingAction(null);
     }

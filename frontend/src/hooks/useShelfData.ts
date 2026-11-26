@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { UNCATEGORIZED_FILTER_ID } from '@/components/shelf/constants';
 import { api } from '@/lib/api';
 import type { Book, BookLibrarySummary } from '@/lib/api';
 
-const UNCATEGORIZED_FILTER_ID = 'uncategorized';
 const STORAGE_KEY = 'z-reader-shelf-sort';
 const BOOK_PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -129,6 +129,42 @@ export function useShelfData(isAuthenticated: boolean) {
     }
   }, []);
 
+  const hydrateBooksProgress = useCallback(
+    (items: Book[] | undefined, signal: AbortSignal, isCurrent: () => boolean) => {
+      const ids = (items ?? []).map((book) => book.id);
+      if (ids.length === 0) return;
+      void api.listProgress({ bookIds: ids, signal }).then((progressData) => {
+        if (!isCurrent()) return;
+        setProgressByBookId((current) => ({
+          ...current,
+          ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
+        }));
+      }).catch(() => {});
+    },
+    [],
+  );
+
+  const updateBookLists = useCallback((transform: (items: Book[]) => Book[]) => {
+    setBooks(transform);
+    setSearchResults((prev) => (prev === null ? null : transform(prev)));
+  }, []);
+
+  const omitProgressIds = useCallback((ids: Iterable<string>) => {
+    const removedSet = new Set(ids);
+    if (removedSet.size === 0) return;
+    setProgressByBookId((current) => {
+      let changed = false;
+      const next = { ...current };
+      removedSet.forEach((id) => {
+        if (id in next) {
+          delete next[id];
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+  }, []);
+
   const loadBooks = useCallback(async () => {
     loadAbortRef.current?.abort();
     moreAbortRef.current?.abort();
@@ -157,16 +193,11 @@ export function useShelfData(isAuthenticated: boolean) {
       setBooks(firstPage.books || []);
       setNextCursor(firstPage.next_cursor);
       setIsLoadingBooks(false);
-      const ids = (firstPage.books ?? []).map((book) => book.id);
-      if (ids.length > 0) {
-        void api.listProgress({ bookIds: ids, signal: controller.signal }).then((progressData) => {
-          if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted) return;
-          setProgressByBookId((current) => ({
-            ...current,
-            ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
-          }));
-        }).catch(() => {});
-      }
+      hydrateBooksProgress(
+        firstPage.books,
+        controller.signal,
+        () => loadGeneration === loadGenerationRef.current && !controller.signal.aborted,
+      );
     } catch (err) {
       if (loadGeneration !== loadGenerationRef.current || controller.signal.aborted) return;
       setBooks([]);
@@ -178,7 +209,7 @@ export function useShelfData(isAuthenticated: boolean) {
         setIsLoadingBooks(false);
       }
     }
-  }, [categoryOptions, sortBy]);
+  }, [categoryOptions, hydrateBooksProgress, sortBy]);
 
   const refreshBooks = useCallback(() => {
     setQueryRevision((revision) => revision + 1);
@@ -229,16 +260,7 @@ export function useShelfData(isAuthenticated: boolean) {
         setBooks(mergeBooks);
         setNextCursor(page.next_cursor);
       }
-      const ids = (page.books ?? []).map((book) => book.id);
-      if (ids.length > 0) {
-        void api.listProgress({ bookIds: ids, signal: controller.signal }).then((progressData) => {
-          if (!isCurrent()) return;
-          setProgressByBookId((current) => ({
-            ...current,
-            ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
-          }));
-        }).catch(() => {});
-      }
+      hydrateBooksProgress(page.books, controller.signal, isCurrent);
     } catch (err) {
       if (!controller.signal.aborted && loadGeneration === loadGenerationRef.current) {
         toast.error(err instanceof Error ? err.message : '加载更多图书失败');
@@ -249,7 +271,7 @@ export function useShelfData(isAuthenticated: boolean) {
         setIsLoadingMoreBooks(false);
       }
     }
-  }, [categoryOptions, isSearching, nextCursor, searchNextCursor, searchQuery, sortBy]);
+  }, [categoryOptions, hydrateBooksProgress, isSearching, nextCursor, searchNextCursor, searchQuery, sortBy]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -305,16 +327,11 @@ export function useShelfData(isAuthenticated: boolean) {
           if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
           setSearchResults(page.books ?? []);
           setSearchNextCursor(page.next_cursor);
-          const ids = (page.books ?? []).map((book) => book.id);
-          if (ids.length > 0) {
-            void api.listProgress({ bookIds: ids, signal: controller.signal }).then((progressData) => {
-              if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
-              setProgressByBookId((current) => ({
-                ...current,
-                ...Object.fromEntries(progressData.map((item) => [item.book_id, item.percentage])),
-              }));
-            }).catch(() => {});
-          }
+          hydrateBooksProgress(
+            page.books,
+            controller.signal,
+            () => generation === searchGenerationRef.current && !controller.signal.aborted,
+          );
         })
         .catch((err) => {
           if (generation !== searchGenerationRef.current || controller.signal.aborted) return;
@@ -332,7 +349,7 @@ export function useShelfData(isAuthenticated: boolean) {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [categoryOptions, isAuthenticated, queryRevision, searchQuery, searchRetryRevision, sortBy]);
+  }, [categoryOptions, hydrateBooksProgress, isAuthenticated, queryRevision, searchQuery, searchRetryRevision, sortBy]);
 
   const pendingBookIDs = useMemo(
     () => [...new Map([...books, ...(searchResults ?? [])].map((book) => [book.id, book])).values()]
@@ -381,21 +398,9 @@ export function useShelfData(isAuthenticated: boolean) {
           return changed ? next : current;
         };
 
-        setBooks(applyStatusUpdate);
-        setSearchResults((current) => (current ? applyStatusUpdate(current) : null));
+        updateBookLists(applyStatusUpdate);
         if (missingIDs.length > 0) {
-          const missingIDSet = new Set(missingIDs);
-          setProgressByBookId((current) => {
-            let changed = false;
-            const next = { ...current };
-            missingIDSet.forEach((id) => {
-              if (id in next) {
-                delete next[id];
-                changed = true;
-              }
-            });
-            return changed ? next : current;
-          });
+          omitProgressIds(missingIDs);
           void loadLibrarySummary();
         }
         shouldContinuePolling = updatedBooks.some((book) => book.processing_state === 'pending');
@@ -442,7 +447,7 @@ export function useShelfData(isAuthenticated: boolean) {
       cancelScheduledPoll();
       controller.abort();
     };
-  }, [isAuthenticated, loadLibrarySummary, pendingBookIDs]);
+  }, [isAuthenticated, loadLibrarySummary, omitProgressIds, pendingBookIDs, updateBookLists]);
 
   const categories = useMemo(() => {
     if (!librarySummary) return deriveCategories(books);
@@ -569,12 +574,6 @@ export function useShelfData(isAuthenticated: boolean) {
     setIsUploading(false);
   }, [refreshBooks]);
 
-  const uploadFile = useCallback(async (file: File | null | undefined) => {
-    if (!file) return;
-
-    await uploadFiles([file]);
-  }, [uploadFiles]);
-
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     await uploadFiles(e.target.files);
     e.target.value = '';
@@ -584,13 +583,8 @@ export function useShelfData(isAuthenticated: boolean) {
     setDeletingId(id);
     try {
       await api.deleteBook(id);
-      setBooks((prev) => prev.filter((book) => book.id !== id));
-      setSearchResults((prev) => prev?.filter((book) => book.id !== id) ?? null);
-      setProgressByBookId((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
+      updateBookLists((prev) => prev.filter((book) => book.id !== id));
+      omitProgressIds([id]);
       void loadLibrarySummary();
       toast.success('图书已删除');
     } catch (err) {
@@ -598,7 +592,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setDeletingId(null);
     }
-  }, [loadLibrarySummary]);
+  }, [loadLibrarySummary, omitProgressIds, updateBookLists]);
 
   const handleDeleteMany = useCallback(async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
@@ -609,15 +603,8 @@ export function useShelfData(isAuthenticated: boolean) {
       const result = await api.deleteBooks(uniqueIds);
       const deletedIds = result.deleted_ids ?? uniqueIds;
       const deletedSet = new Set(deletedIds);
-      setBooks((prev) => prev.filter((book) => !deletedSet.has(book.id)));
-      setSearchResults((prev) => prev?.filter((book) => !deletedSet.has(book.id)) ?? null);
-      setProgressByBookId((prev) => {
-        const next = { ...prev };
-        deletedSet.forEach((id) => {
-          delete next[id];
-        });
-        return next;
-      });
+      updateBookLists((prev) => prev.filter((book) => !deletedSet.has(book.id)));
+      omitProgressIds(deletedSet);
       void loadLibrarySummary();
       toast.success(`已删除 ${deletedIds.length} 本图书`);
       return { successCount: deletedIds.length, failedCount: 0 };
@@ -627,7 +614,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsDeletingMany(false);
     }
-  }, [loadLibrarySummary]);
+  }, [loadLibrarySummary, omitProgressIds, updateBookLists]);
 
   const handleUpdateCategoryMany = useCallback(async (ids: string[], category: string | null) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
@@ -644,10 +631,7 @@ export function useShelfData(isAuthenticated: boolean) {
       const result = await api.updateBooksCategory(uniqueIds, nextCategory);
       const updatedBooks = result.books ?? [];
       const updatedById = new Map(updatedBooks.map((book) => [book.id, book]));
-      setBooks((prev) => prev.map((book) => updatedById.get(book.id) ?? book));
-      setSearchResults((prev) => prev === null
-        ? null
-        : prev.map((book) => updatedById.get(book.id) ?? book));
+      updateBookLists((prev) => prev.map((book) => updatedById.get(book.id) ?? book));
       void loadLibrarySummary();
       toast.success(nextCategory ? `已设置为「${nextCategory}」` : '已清空所选分类');
       return { successCount: updatedBooks.length, failedCount: 0 };
@@ -657,7 +641,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsUpdatingManyCategories(false);
     }
-  }, [loadLibrarySummary]);
+  }, [loadLibrarySummary, updateBookLists]);
 
   const handleRenameCategory = useCallback(async (category: string, nextCategory: string | null) => {
     const currentCategory = category.trim();
@@ -673,10 +657,9 @@ export function useShelfData(isAuthenticated: boolean) {
       loadAbortRef.current?.abort();
       moreAbortRef.current?.abort();
       const ids = new Set(result.updated_ids);
-      const update = (items: Book[]) => items.map(book => ids.has(book.id)
-        ? { ...book, category: normalized ?? undefined } : book);
-      setBooks(update);
-      setSearchResults(items => items ? update(items) : null);
+      updateBookLists((items) => items.map((book) => (ids.has(book.id)
+        ? { ...book, category: normalized ?? undefined }
+        : book)));
       setLibrarySummary(summary => {
         if (!summary) return summary;
         const categories = { ...summary.categories };
@@ -696,7 +679,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsUpdatingManyCategories(false);
     }
-  }, [refreshBooks, selectedCategoryId]);
+  }, [refreshBooks, selectedCategoryId, updateBookLists]);
 
   const handleReparseMany = useCallback(async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
@@ -713,10 +696,7 @@ export function useShelfData(isAuthenticated: boolean) {
       const updatedById = new Map(updatedBooks.map((book) => [book.id, book]));
 
       if (updatedById.size > 0) {
-        setBooks((prev) => prev.map((book) => updatedById.get(book.id) ?? book));
-        setSearchResults((prev) =>
-          prev === null ? null : prev.map((book) => updatedById.get(book.id) ?? book)
-        );
+        updateBookLists((prev) => prev.map((book) => updatedById.get(book.id) ?? book));
       }
 
       const successCount = updatedIds.length;
@@ -741,7 +721,7 @@ export function useShelfData(isAuthenticated: boolean) {
     } finally {
       setIsReparsingMany(false);
     }
-  }, [refreshBooks]);
+  }, [refreshBooks, updateBookLists]);
 
   return {
     books,
@@ -768,7 +748,6 @@ export function useShelfData(isAuthenticated: boolean) {
     loadMoreBooks,
     searchQuery,
     setSearchQuery,
-    uploadFile,
     uploadFiles,
     handleUpload,
     handleDelete,

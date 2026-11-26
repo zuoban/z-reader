@@ -723,7 +723,7 @@ describe('useShelfData', () => {
     await waitFor(() => expect(result.current.books).toEqual([oldBook]));
     const fakeFile = new File(['test'], 'test.epub', { type: 'application/epub+zip' });
     let uploadPromise!: Promise<void>;
-    act(() => { uploadPromise = result.current.uploadFile(fakeFile); });
+    act(() => { uploadPromise = result.current.uploadFiles([fakeFile]); });
 
     act(() => {
       result.current.setSelectedCategoryId('科幻');
@@ -844,7 +844,7 @@ describe('useShelfData', () => {
     const fakeFile = new File(['test'], 'notes.txt', { type: 'text/plain' });
 
     await act(async () => {
-      await result.current.uploadFile(fakeFile);
+      await result.current.uploadFiles([fakeFile]);
     });
 
     expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);
@@ -866,7 +866,7 @@ describe('useShelfData', () => {
     const fakeFile = new File(['book'], 'download', { type: 'application/epub+zip' });
 
     await act(async () => {
-      await result.current.uploadFile(fakeFile);
+      await result.current.uploadFiles([fakeFile]);
     });
 
     expect(api.uploadBook).toHaveBeenCalledWith(fakeFile);

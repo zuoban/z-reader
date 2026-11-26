@@ -1,13 +1,13 @@
 'use client';
 
-import type { ChangeEvent, DragEvent, FormEvent } from 'react';
+import type { ChangeEvent, DragEvent, FormEvent, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Button, TextInput } from '@mantine/core';
 import { toast } from 'sonner';
 import { ImagePlus, Loader2, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
 import { AppModal } from '@/components/AppModal';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, formatByteSize } from '@/lib/utils';
 
 const MAX_METADATA_RUNES = 500;
 const WARN_METADATA_RUNES = 450;
@@ -30,16 +30,6 @@ function countRunes(value: string): number {
   return Array.from(value).length;
 }
 
-function formatCoverSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-  if (bytes >= 1024) {
-    return `${Math.round(bytes / 1024)} KB`;
-  }
-  return `${bytes} B`;
-}
-
 function validateCoverFile(file: File): string | null {
   if (file.size <= 0) {
     return '所选封面文件为空';
@@ -54,6 +44,104 @@ function validateCoverFile(file: File): string | null {
     return '仅支持 JPG、PNG 或 WebP 格式的封面图片';
   }
   return null;
+}
+
+function MetadataTextField({
+  id,
+  inputRef,
+  label,
+  value,
+  runes,
+  placeholder,
+  clearLabel,
+  disabled,
+  invalid,
+  describedBy,
+  errorMessage,
+  errorId,
+  onChange,
+}: {
+  id: string;
+  inputRef: RefObject<HTMLInputElement | null>;
+  label: string;
+  value: string;
+  runes: number;
+  placeholder: string;
+  clearLabel: string;
+  disabled: boolean;
+  invalid: boolean;
+  describedBy?: string;
+  errorMessage?: string;
+  errorId?: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <div className="app-surface-panel rounded-xl px-4 py-3.5">
+      <div className="mb-2 flex items-center justify-between">
+        <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+        <span
+          className={cn(
+            'font-mono text-[11px] tabular-nums transition-colors',
+            runes > MAX_METADATA_RUNES
+              ? 'font-medium text-destructive'
+              : runes >= WARN_METADATA_RUNES
+                ? 'font-medium text-primary'
+                : 'text-muted-foreground'
+          )}
+        >
+          {runes}/{MAX_METADATA_RUNES}
+        </span>
+      </div>
+      <TextInput
+        id={id}
+        ref={inputRef}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing && event.key === 'Enter') {
+            event.preventDefault();
+          }
+        }}
+        maxLength={MAX_METADATA_RUNES}
+        placeholder={placeholder}
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        disabled={disabled}
+        rightSection={
+          value ? (
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size={32}
+              radius="sm"
+              disabled={disabled}
+              onClick={() => {
+                onChange('');
+                inputRef.current?.focus();
+              }}
+              className="cursor-pointer text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
+              title={clearLabel}
+              aria-label={clearLabel}
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </ActionIcon>
+          ) : null
+        }
+        rightSectionWidth={40}
+        classNames={{
+          input: 'category-input h-10 rounded-lg px-3 text-base shadow-none sm:text-sm',
+        }}
+      />
+      {errorMessage && errorId && (
+        <p id={errorId} role="alert" className="mt-2 text-xs font-medium text-destructive">
+          {errorMessage}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function BookMetadataDialog({
@@ -340,7 +428,7 @@ export function BookMetadataDialog({
                 <div className="min-w-0 flex-1 space-y-2">
                   <p className="truncate text-xs text-muted-foreground" title={pendingCoverFile?.name}>
                     {pendingCoverFile
-                      ? `${pendingCoverFile.name}（${formatCoverSize(pendingCoverFile.size)}）`
+                      ? `${pendingCoverFile.name}（${formatByteSize(pendingCoverFile.size)}）`
                       : pendingRemoveCover
                         ? '保存后将移除当前封面'
                         : isDraggingCover
@@ -430,131 +518,34 @@ export function BookMetadataDialog({
               )}
             </div>
 
-            <div className="app-surface-panel rounded-xl px-4 py-3.5">
-              <div className="mb-2 flex items-center justify-between">
-                <label htmlFor={`${titleErrorId}-input`} className="text-xs font-medium text-muted-foreground">
-                  书名
-                </label>
-                <span
-                  className={cn(
-                    'font-mono text-[11px] tabular-nums transition-colors',
-                    titleRunes > MAX_METADATA_RUNES
-                      ? 'font-medium text-destructive'
-                      : titleRunes >= WARN_METADATA_RUNES
-                        ? 'font-medium text-primary'
-                        : 'text-muted-foreground'
-                  )}
-                >
-                  {titleRunes}/{MAX_METADATA_RUNES}
-                </span>
-              </div>
-              <TextInput
-                id={`${titleErrorId}-input`}
-                ref={titleInputRef}
-                value={title}
-                onChange={(event) => setTitle(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.nativeEvent.isComposing && event.key === 'Enter') {
-                    event.preventDefault();
-                  }
-                }}
-                maxLength={MAX_METADATA_RUNES}
-                placeholder="输入书名"
-                aria-label="书名"
-                aria-invalid={isTitleMissing || isTitleTooLong || undefined}
-                aria-describedby={isTitleMissing ? titleErrorId : undefined}
-                disabled={saving}
-                rightSection={
-                  title ? (
-                    <ActionIcon
-                      variant="subtle"
-                      color="gray"
-                      size={32}
-                      radius="sm"
-                      disabled={saving}
-                      onClick={() => {
-                        setTitle('');
-                        titleInputRef.current?.focus();
-                      }}
-                      className="cursor-pointer text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-                      title="清空书名"
-                      aria-label="清空书名"
-                    >
-                      <X className="h-3.5 w-3.5" aria-hidden="true" />
-                    </ActionIcon>
-                  ) : null
-                }
-                rightSectionWidth={40}
-                classNames={{
-                  input: 'category-input h-10 rounded-lg px-3 text-base shadow-none sm:text-sm',
-                }}
-              />
-              {isTitleMissing && (
-                <p id={titleErrorId} role="alert" className="mt-2 text-xs font-medium text-destructive">
-                  书名不能为空
-                </p>
-              )}
-            </div>
+            <MetadataTextField
+              id={`${titleErrorId}-input`}
+              inputRef={titleInputRef}
+              label="书名"
+              value={title}
+              runes={titleRunes}
+              placeholder="输入书名"
+              clearLabel="清空书名"
+              disabled={saving}
+              invalid={isTitleMissing || isTitleTooLong}
+              describedBy={isTitleMissing ? titleErrorId : undefined}
+              errorMessage={isTitleMissing ? '书名不能为空' : undefined}
+              errorId={titleErrorId}
+              onChange={setTitle}
+            />
 
-            <div className="app-surface-panel rounded-xl px-4 py-3.5">
-              <div className="mb-2 flex items-center justify-between">
-                <label htmlFor={`${titleErrorId}-author`} className="text-xs font-medium text-muted-foreground">
-                  作者
-                </label>
-                <span
-                  className={cn(
-                    'font-mono text-[11px] tabular-nums transition-colors',
-                    authorRunes > MAX_METADATA_RUNES
-                      ? 'font-medium text-destructive'
-                      : authorRunes >= WARN_METADATA_RUNES
-                        ? 'font-medium text-primary'
-                        : 'text-muted-foreground'
-                  )}
-                >
-                  {authorRunes}/{MAX_METADATA_RUNES}
-                </span>
-              </div>
-              <TextInput
-                id={`${titleErrorId}-author`}
-                ref={authorInputRef}
-                value={author}
-                onChange={(event) => setAuthor(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.nativeEvent.isComposing && event.key === 'Enter') {
-                    event.preventDefault();
-                  }
-                }}
-                maxLength={MAX_METADATA_RUNES}
-                placeholder="输入作者（留空将显示未知作者）"
-                aria-label="作者"
-                aria-invalid={isAuthorTooLong || undefined}
-                disabled={saving}
-                rightSection={
-                  author ? (
-                    <ActionIcon
-                      variant="subtle"
-                      color="gray"
-                      size={32}
-                      radius="sm"
-                      disabled={saving}
-                      onClick={() => {
-                        setAuthor('');
-                        authorInputRef.current?.focus();
-                      }}
-                      className="cursor-pointer text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-                      title="清空作者"
-                      aria-label="清空作者"
-                    >
-                      <X className="h-3.5 w-3.5" aria-hidden="true" />
-                    </ActionIcon>
-                  ) : null
-                }
-                rightSectionWidth={40}
-                classNames={{
-                  input: 'category-input h-10 rounded-lg px-3 text-base shadow-none sm:text-sm',
-                }}
-              />
-            </div>
+            <MetadataTextField
+              id={`${titleErrorId}-author`}
+              inputRef={authorInputRef}
+              label="作者"
+              value={author}
+              runes={authorRunes}
+              placeholder="输入作者（留空将显示未知作者）"
+              clearLabel="清空作者"
+              disabled={saving}
+              invalid={isAuthorTooLong}
+              onChange={setAuthor}
+            />
           </div>
 
           <div className="app-dialog-footer flex shrink-0 items-center justify-end gap-2 px-5 py-3.5 sm:px-6">

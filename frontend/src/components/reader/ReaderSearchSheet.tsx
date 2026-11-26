@@ -18,7 +18,7 @@ import {
   type BookSearchResultItem,
 } from "@/hooks/useFoliateView";
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import { getModernReaderSurface } from "@/lib/reader-ui";
+import { getModernReaderSurface, handleRovingListKeyDown } from "@/lib/reader-ui";
 import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 
 export interface ReaderSearchSheetProps {
@@ -128,9 +128,8 @@ export function ReaderSearchSheet({
     inputRef.current?.focus();
   }, []);
 
-  const handleClearHighlights = useCallback(() => {
+  const resetSearchState = useCallback(() => {
     runIdRef.current += 1;
-    abortActiveSearch();
     onClearSearch();
     setIsSearching(false);
     setResults([]);
@@ -140,8 +139,13 @@ export function ReaderSearchSheet({
     setUnsupported(false);
     setSearchError(null);
     setActiveCfi(null);
+  }, [onClearSearch]);
+
+  const handleClearHighlights = useCallback(() => {
+    abortActiveSearch();
+    resetSearchState();
     inputRef.current?.focus();
-  }, [abortActiveSearch, onClearSearch]);
+  }, [abortActiveSearch, resetSearchState]);
 
   const runSearch = useCallback(
     async (rawQuery: string) => {
@@ -149,16 +153,7 @@ export function ReaderSearchSheet({
       abortActiveSearch();
 
       if (!trimmed) {
-        runIdRef.current += 1;
-        onClearSearch();
-        setIsSearching(false);
-        setResults([]);
-        setProgress(0);
-        setHasSearched(false);
-        setTruncated(false);
-        setUnsupported(false);
-        setSearchError(null);
-        setActiveCfi(null);
+        resetSearchState();
         return;
       }
 
@@ -219,7 +214,7 @@ export function ReaderSearchSheet({
         }
       }
     },
-    [abortActiveSearch, onClearSearch, onSearch],
+    [abortActiveSearch, onSearch, resetSearchState],
   );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -228,46 +223,11 @@ export function ReaderSearchSheet({
   }
 
   function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (
-      results.length === 0 ||
-      (event.key !== "ArrowDown" &&
-        event.key !== "ArrowUp" &&
-        event.key !== "Home" &&
-        event.key !== "End")
-    ) {
-      return;
-    }
-
-    const items = Array.from(
-      listRef.current?.querySelectorAll<HTMLButtonElement>(
-        "button:not(:disabled)",
-      ) ?? [],
-    );
-    if (items.length === 0) return;
-
-    const activeIndex = items.findIndex(
-      (item) => item === document.activeElement,
-    );
-    if (activeIndex === -1) return;
-
-    event.preventDefault();
-
-    if (event.key === "Home") {
-      items[0]?.focus();
-      return;
-    }
-    if (event.key === "End") {
-      items[items.length - 1]?.focus();
-      return;
-    }
-    if (event.key === "ArrowUp" && activeIndex === 0) {
-      inputRef.current?.focus();
-      return;
-    }
-
-    const delta = event.key === "ArrowDown" ? 1 : -1;
-    const nextIndex = (activeIndex + delta + items.length) % items.length;
-    items[nextIndex]?.focus();
+    if (results.length === 0) return;
+    handleRovingListKeyDown(event, listRef.current, {
+      requireActiveItem: true,
+      onArrowUpFromFirst: () => inputRef.current?.focus(),
+    });
   }
 
   const progressPercent = Math.round(Math.max(0, Math.min(progress, 1)) * 100);

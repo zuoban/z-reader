@@ -5,10 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface ReaderChromeState {
   loading: boolean;
   tocOpen: boolean;
-  bookmarksOpen: boolean;
-  shortcutsOpen: boolean;
-  themeSettingsOpen: boolean;
-  searchOpen: boolean;
+  keepHeaderVisible: boolean;
   currentChapter: string;
   currentChapterHref: string;
 }
@@ -18,10 +15,7 @@ export function useReaderChrome() {
   const stateRef = useRef<ReaderChromeState>({
     loading: true,
     tocOpen: false,
-    bookmarksOpen: false,
-    shortcutsOpen: false,
-    themeSettingsOpen: false,
-    searchOpen: false,
+    keepHeaderVisible: false,
     currentChapter: "",
     currentChapterHref: "",
   });
@@ -92,14 +86,7 @@ export function useReaderChrome() {
         scheduleCurrentChapterScroll();
       }
 
-      if (
-        nextState.loading ||
-        nextState.tocOpen ||
-        nextState.bookmarksOpen ||
-        nextState.shortcutsOpen ||
-        nextState.themeSettingsOpen ||
-        nextState.searchOpen
-      ) {
+      if (nextState.loading || nextState.tocOpen || nextState.keepHeaderVisible) {
         scheduleHeaderShow();
       }
     },
@@ -112,14 +99,7 @@ export function useReaderChrome() {
 
   const hideHeader = useCallback(() => {
     const state = stateRef.current;
-    if (
-      state.loading ||
-      state.tocOpen ||
-      state.bookmarksOpen ||
-      state.shortcutsOpen ||
-      state.themeSettingsOpen ||
-      state.searchOpen
-    ) return;
+    if (state.loading || state.tocOpen || state.keepHeaderVisible) return;
 
     setIsHeaderVisible(false);
   }, []);

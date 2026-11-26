@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clearOfflineBooks,
   createPartialBookDownloadWriter,
-  getOfflineBook,
   getOfflineBookEntry,
   getPartialBookDownload,
   hasOfflineBook,
@@ -76,8 +75,8 @@ describe('offline book validation and metadata', () => {
     const book = { id: 'book', filename: 'book.epub', content_hash: 'original' } as Book;
     await saveOfflineBook('reader', book, new Blob(['cached book']));
 
-    expect(await getOfflineBook('reader', 'book', 'changed')).toBeNull();
-    expect(await (await getOfflineBook('reader', 'book', 'original'))?.text()).toBe('cached book');
+    expect(await getOfflineBookEntry('reader', 'book', 'changed')).toBeNull();
+    expect(await (await getOfflineBookEntry('reader', 'book', 'original'))?.file.text()).toBe('cached book');
   });
 
   it('writes encoded metadata headers on saveOfflineBook and exposes them via getOfflineBookEntry', async () => {

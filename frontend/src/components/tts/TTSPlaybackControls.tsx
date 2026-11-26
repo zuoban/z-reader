@@ -12,7 +12,7 @@ export interface TTSControlButtonProps {
   title: string;
   children: ReactNode;
   active?: boolean;
-  variant?: 'default' | 'danger' | 'accent';
+  variant?: 'default' | 'danger';
 }
 
 export function TTSControlButton({
@@ -93,8 +93,6 @@ export function TTSPlaybackButtons({
               aria-hidden="true"
               className={cn(iconSizeClass, 'animate-spin motion-reduce:animate-none')}
             />
-          ) : isPaused ? (
-            <Play aria-hidden="true" className={cn('ml-0.5 fill-current', iconSizeClass)} />
           ) : isPlaying ? (
             <Pause aria-hidden="true" className={cn('fill-current', iconSizeClass)} />
           ) : (

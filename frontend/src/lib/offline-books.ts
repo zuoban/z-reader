@@ -269,6 +269,19 @@ export async function hasOfflineBook(userId: string, bookId: string): Promise<bo
   }
 }
 
+async function readOfflineBookMetadata(
+  response: Response,
+  bookId: string,
+  fallbackSize?: number,
+): Promise<OfflineBookSummary> {
+  const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
+  const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
+  const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
+  const size = parseHeaderSize(response.headers.get('X-Z-Reader-Size')) ?? fallbackSize ?? (await response.blob()).size;
+  const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
+  return { bookId, filename, title, author, size, savedAt };
+}
+
 export async function listOfflineBooks(userId: string): Promise<OfflineBookSummary[]> {
   if (!userId || !supportsOfflineBooks()) return [];
   try {
@@ -301,16 +314,8 @@ export async function listOfflineBooks(userId: string): Promise<OfflineBookSumma
       const matches = await Promise.all(requests.slice(offset, offset + lookupBatchSize).map(matchBook));
       for (const match of matches) {
         if (!match) continue;
-        const { bookId, response } = match;
-        const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
-        const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
-        const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
-        const headerSize = parseHeaderSize(response.headers.get('X-Z-Reader-Size'));
         // Read legacy file bodies one at a time when the size header is missing.
-        const size = headerSize ?? (await response.blob()).size;
-        const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
-
-        entries.push({ bookId, filename, title, author, size, savedAt });
+        entries.push(await readOfflineBookMetadata(match.response, match.bookId));
       }
     }
 
@@ -344,11 +349,7 @@ export async function getOfflineBookEntry(
   )) return null;
 
   const blob = await response.blob();
-  const filename = safeDecodeHeader(response.headers.get('X-Z-Reader-Filename')) || `${bookId}.epub`;
-  const title = safeDecodeHeader(response.headers.get('X-Z-Reader-Title')) || titleFromFilename(filename);
-  const author = safeDecodeHeader(response.headers.get('X-Z-Reader-Author'));
-  const size = parseHeaderSize(response.headers.get('X-Z-Reader-Size')) ?? blob.size;
-  const savedAt = response.headers.get('X-Z-Reader-Saved-At') ?? '';
+  const { filename, title, author, size, savedAt } = await readOfflineBookMetadata(response, bookId, blob.size);
   const metadata = { contentHash, filename, title, author, size, savedAt };
   try {
     return {
@@ -358,14 +359,6 @@ export async function getOfflineBookEntry(
   } catch {
     return { file: blob, ...metadata };
   }
-}
-
-export async function getOfflineBook(
-  userId: string,
-  bookId: string,
-  expectedContentHash?: string
-): Promise<File | Blob | null> {
-  return (await getOfflineBookEntry(userId, bookId, expectedContentHash))?.file ?? null;
 }
 
 export async function removeOfflineBook(userId: string, bookId: string) {

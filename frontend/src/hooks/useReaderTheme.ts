@@ -9,6 +9,8 @@ import {
   subscribeReaderFontPacks,
 } from "@/lib/reader-font-packs";
 import { getReaderFontFaces } from "@/lib/reader-fonts";
+import { clamp } from "@/lib/reader-page";
+import { withOpacity } from "@/lib/reader-ui";
 import {
   PRESET_STYLES,
   type ReaderThemePreset,
@@ -84,25 +86,13 @@ export const DEFAULT_READER_THEME: ReaderTheme = {
 
 const STORAGE_KEY = "z-reader-theme";
 
-function readPresetFromStorage(): ReaderTheme["preset"] | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const p = parsed?.preset;
-      if (p === "light" || p === "sepia" || p === "green" || p === "dark") return p;
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
 let cachedTheme: ReaderTheme | null = null;
 let cachedThemeRaw: string | null = null;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+function normalizePreset(value: unknown): ReaderTheme["preset"] | null {
+  return value === "light" || value === "sepia" || value === "green" || value === "dark"
+    ? value
+    : null;
 }
 
 function clampNumeric(value: unknown, fallback: number, min: number, max: number) {
@@ -162,16 +152,14 @@ function getSnapshot(): ReaderTheme {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (cachedTheme && cachedThemeRaw === saved) return cachedTheme;
 
-    const storagePreset = readPresetFromStorage();
-
-    // Build base theme from shared storage
     const baseTheme = { ...DEFAULT_READER_THEME };
-    if (storagePreset) baseTheme.preset = storagePreset;
 
-    // Merge reader-specific overrides if they exist in storage
+    // Merge stored preset and reader-specific overrides in a single parse.
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const preset = normalizePreset(parsed?.preset);
+        if (preset) baseTheme.preset = preset;
         if (parsed?.fontFamily) baseTheme.fontFamily = parsed.fontFamily;
         if (parsed?.fontSize !== undefined) baseTheme.fontSize = parsed.fontSize;
         if (parsed?.lineHeight !== undefined) baseTheme.lineHeight = parsed.lineHeight;
@@ -227,21 +215,7 @@ export function useReaderTheme() {
       localStorage.setItem(STORAGE_KEY, raw);
       cachedTheme = updated;
       cachedThemeRaw = raw;
-      window.dispatchEvent(new StorageEvent("storage"));
-      window.dispatchEvent(new CustomEvent("z-reader-theme-change"));
-    },
-    [theme],
-  );
-
-  const setPreset = useCallback(
-    (preset: ReaderTheme["preset"]) => {
-      const updated = { ...theme, preset };
-      const raw = JSON.stringify(updated);
-      localStorage.setItem(STORAGE_KEY, raw);
-      cachedTheme = updated;
-      cachedThemeRaw = raw;
-      window.dispatchEvent(new StorageEvent("storage"));
-      window.dispatchEvent(new CustomEvent("z-reader-theme-change"));
+      window.dispatchEvent(new Event("z-reader-theme-change"));
     },
     [theme],
   );
@@ -457,14 +431,6 @@ export function useReaderTheme() {
     `;
   }, [theme, fontPackVersion]);
 
-  const getContainerStyle = useCallback(() => {
-    const preset = PRESET_STYLES[theme.preset];
-    return {
-      background: preset.bg,
-      color: preset.fg,
-    };
-  }, [theme]);
-
   const getUIScheme = useCallback(() => {
     return PRESET_STYLES[theme.preset];
   }, [theme]);
@@ -472,25 +438,7 @@ export function useReaderTheme() {
   return {
     theme,
     setTheme,
-    setPreset,
     getStylesheet,
-    getContainerStyle,
     getUIScheme,
-    presets: PRESET_STYLES,
   };
-}
-
-function withOpacity(color: string, opacity: number) {
-  if (!color.startsWith("#")) return color;
-
-  const normalized =
-    color.length === 4
-      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-      : color;
-
-  const hexOpacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255)
-    .toString(16)
-    .padStart(2, "0");
-
-  return `${normalized}${hexOpacity}`;
 }

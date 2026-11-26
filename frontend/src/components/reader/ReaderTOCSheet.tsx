@@ -13,7 +13,7 @@ import { List, LocateFixed, Search, Undo2, X } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
 import type { TOCItem } from "@/lib/types";
-import { getModernReaderSurface } from "@/lib/reader-ui";
+import { getModernReaderSurface, handleRovingListKeyDown } from "@/lib/reader-ui";
 import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 import { MemoizedReaderTOCNode } from "@/components/reader/ReaderTOCNode";
 
@@ -193,44 +193,11 @@ export function ReaderTOCSheet({
   }
 
   function handleTOCListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (
-      visibleTOC.length === 0 ||
-      (event.key !== "ArrowDown" &&
-        event.key !== "ArrowUp" &&
-        event.key !== "Home" &&
-        event.key !== "End")
-    ) {
-      return;
-    }
-
-    const items = Array.from(
-      tocListRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [],
-    );
-    if (items.length === 0) return;
-
-    const activeIndex = items.findIndex((item) => item === document.activeElement);
-    if (activeIndex === -1) return;
-
-    event.preventDefault();
-
-    if (event.key === "Home") {
-      items[0]?.focus();
-      return;
-    }
-
-    if (event.key === "End") {
-      items[items.length - 1]?.focus();
-      return;
-    }
-
-    if (event.key === "ArrowUp" && activeIndex === 0 && showFilter && searchInputRef.current) {
-      searchInputRef.current.focus();
-      return;
-    }
-
-    const delta = event.key === "ArrowDown" ? 1 : -1;
-    const nextIndex = (activeIndex + delta + items.length) % items.length;
-    items[nextIndex]?.focus();
+    if (visibleTOC.length === 0) return;
+    handleRovingListKeyDown(event, tocListRef.current, {
+      requireActiveItem: true,
+      onArrowUpFromFirst: showFilter ? () => searchInputRef.current?.focus() : undefined,
+    });
   }
 
   function handleLocateCurrent() {

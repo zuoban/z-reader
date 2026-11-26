@@ -1,23 +1,41 @@
 import { fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BatchCategorySheet } from '@/components/BatchCategorySheet';
+import { CategoryPickerModal } from '@/components/CategoryPickerModal';
+import type { CategoryPickerModalProps } from '@/components/CategoryPickerModal';
 
-describe('BatchCategorySheet', () => {
+function renderBatchPicker(overrides: Partial<CategoryPickerModalProps> = {}) {
+  return render(
+    <CategoryPickerModal
+      open
+      onOpenChange={vi.fn()}
+      title="批量设置分类"
+      subtitle="将对已选择的 2 本图书生效"
+      categories={['科幻']}
+      bookCounts={{ 科幻: 2 }}
+      listVariant="chips"
+      zIndex={90}
+      returnFocus={false}
+      showClearButton
+      clearLabel="清空分类"
+      clearingLabel="清空中…"
+      isSaveDisabled={(selectedCategory) => !selectedCategory}
+      onSave={vi.fn()}
+      {...overrides}
+    />
+  );
+}
+
+describe('CategoryPickerModal (batch mode)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders as a centered paper modal with transparent outer wrapper and hides empty category list', () => {
-    render(
-      <BatchCategorySheet
-        open
-        onOpenChange={vi.fn()}
-        selectedCount={3}
-        categories={[]}
-        bookCounts={{}}
-        onSave={vi.fn()}
-      />
-    );
+    renderBatchPicker({
+      subtitle: '将对已选择的 3 本图书生效',
+      categories: [],
+      bookCounts: {},
+    });
 
     const dialog = screen.getByRole('dialog', { name: '批量设置分类' });
     expect(dialog).toHaveClass('app-dialog-shell');
@@ -30,16 +48,11 @@ describe('BatchCategorySheet', () => {
   it('toggles existing category chips and submits the selected category', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <BatchCategorySheet
-        open
-        onOpenChange={vi.fn()}
-        selectedCount={2}
-        categories={['古典', '科幻']}
-        bookCounts={{ 古典: 4, 科幻: 2 }}
-        onSave={onSave}
-      />
-    );
+    renderBatchPicker({
+      categories: ['古典', '科幻'],
+      bookCounts: { 古典: 4, 科幻: 2 },
+      onSave,
+    });
 
     const scifiChip = screen.getByRole('button', { name: /科幻/ });
     const saveButton = screen.getByRole('button', { name: '保存' });
@@ -67,16 +80,7 @@ describe('BatchCategorySheet', () => {
   it('clears categories explicitly via the clear action and shows new-category preview on input', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <BatchCategorySheet
-        open
-        onOpenChange={vi.fn()}
-        selectedCount={2}
-        categories={['科幻']}
-        bookCounts={{ 科幻: 2 }}
-        onSave={onSave}
-      />
-    );
+    renderBatchPicker({ onSave });
 
     const input = screen.getByRole('textbox', { name: '分类名称' });
     fireEvent.change(input, { target: { value: '技术读物' } });
@@ -90,16 +94,7 @@ describe('BatchCategorySheet', () => {
 
   it('clears stale input when reopened externally and returns focus on clear-input click', async () => {
     const onOpenChange = vi.fn();
-    const { rerender } = render(
-      <BatchCategorySheet
-        open
-        onOpenChange={onOpenChange}
-        selectedCount={2}
-        categories={['科幻']}
-        bookCounts={{ 科幻: 2 }}
-        onSave={vi.fn()}
-      />
-    );
+    const { rerender } = renderBatchPicker({ onOpenChange });
 
     const input = screen.getByRole('textbox', { name: '分类名称' });
     fireEvent.change(input, { target: { value: '临时分类' } });
@@ -113,22 +108,38 @@ describe('BatchCategorySheet', () => {
     // Type again, then simulate parent closing and reopening the sheet
     fireEvent.change(input, { target: { value: '历史随笔' } });
     rerender(
-      <BatchCategorySheet
+      <CategoryPickerModal
         open={false}
         onOpenChange={onOpenChange}
-        selectedCount={2}
+        title="批量设置分类"
+        subtitle="将对已选择的 2 本图书生效"
         categories={['科幻']}
         bookCounts={{ 科幻: 2 }}
+        listVariant="chips"
+        zIndex={90}
+        returnFocus={false}
+        showClearButton
+        clearLabel="清空分类"
+        clearingLabel="清空中…"
+        isSaveDisabled={(selectedCategory) => !selectedCategory}
         onSave={vi.fn()}
       />
     );
     rerender(
-      <BatchCategorySheet
+      <CategoryPickerModal
         open
         onOpenChange={onOpenChange}
-        selectedCount={2}
+        title="批量设置分类"
+        subtitle="将对已选择的 2 本图书生效"
         categories={['科幻']}
         bookCounts={{ 科幻: 2 }}
+        listVariant="chips"
+        zIndex={90}
+        returnFocus={false}
+        showClearButton
+        clearLabel="清空分类"
+        clearingLabel="清空中…"
+        isSaveDisabled={(selectedCategory) => !selectedCategory}
         onSave={vi.fn()}
       />
     );
@@ -141,16 +152,7 @@ describe('BatchCategorySheet', () => {
   it('ignores Escape during IME composition and closes on normal Escape', () => {
     const onOpenChange = vi.fn();
 
-    render(
-      <BatchCategorySheet
-        open
-        onOpenChange={onOpenChange}
-        selectedCount={2}
-        categories={['科幻']}
-        bookCounts={{ 科幻: 2 }}
-        onSave={vi.fn()}
-      />
-    );
+    renderBatchPicker({ onOpenChange });
 
     const input = screen.getByRole('textbox', { name: '分类名称' });
     const composingEscape = new KeyboardEvent('keydown', {

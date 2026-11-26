@@ -30,104 +30,79 @@ export function ReaderTTSControlTrigger({
     : isActive
       ? "朗读控制（正在播放）"
       : "朗读控制";
-  const title = isLoading ? "正在加载朗读控制…" : label;
 
-  if (slot === "desktop-toolbar") {
+  const sharedProps = {
+    type: "button" as const,
+    disabled: isLoading,
+    "data-reader-interactive": "true",
+    "data-reader-tts-trigger": "true",
+    "data-reader-tts-active": isActive ? "true" : undefined,
+    title: isLoading ? "正在加载朗读控制…" : label,
+    "aria-label": label,
+    "aria-busy": isLoading || undefined,
+    "aria-expanded": expanded,
+    "aria-haspopup": "dialog" as const,
+    onClick,
+  };
+
+  if (slot === "status-bar") {
     return (
-      <UnstyledButton
-        type="button"
-        disabled={isLoading}
-        data-reader-interactive="true"
-        data-reader-tts-trigger="true"
-        data-reader-tts-active={isActive ? "true" : undefined}
-        title={title}
-        aria-label={label}
-        aria-busy={isLoading || undefined}
-        aria-expanded={expanded}
-        aria-haspopup="dialog"
-        onClick={onClick}
-        className="reader-chrome-btn"
+      <ActionIcon
+        {...sharedProps}
+        variant="subtle"
+        size={44}
+        radius="md"
+        className="min-h-0 min-w-0 reader-status-action [&_svg]:size-3.5"
+        style={isActive ? { color: uiScheme.link } : {}}
       >
         {isLoading ? (
-          <>
-            <Loader2
-              className="size-4 animate-spin motion-reduce:animate-none"
-              strokeWidth={1.6}
-              aria-hidden="true"
-            />
-            <span className="sr-only">正在加载朗读控制</span>
-          </>
+          <Loader2
+            className="relative z-10 h-4 w-4 animate-spin motion-reduce:animate-none"
+            aria-hidden="true"
+          />
         ) : (
-          <>
-            <Volume2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
-            <span className="sr-only">朗读</span>
-          </>
+          <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
         )}
-      </UnstyledButton>
+      </ActionIcon>
     );
   }
 
-  if (slot === "mobile-menu") {
-    return (
-      <UnstyledButton
-        type="button"
-        disabled={isLoading}
-        data-reader-interactive="true"
-        data-reader-tts-trigger="true"
-        data-reader-tts-active={isActive ? "true" : undefined}
-        title={title}
-        aria-label={label}
-        aria-busy={isLoading || undefined}
-        aria-expanded={expanded}
-        aria-haspopup="dialog"
-        onClick={onClick}
-        className="reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
-      >
-        {isLoading ? (
-          <>
-            <Loader2
-              className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
-              aria-hidden="true"
-            />
-            <span>加载中…</span>
-          </>
-        ) : (
-          <>
-            <Volume2 className="size-4 opacity-80" aria-hidden="true" />
-            <span>朗读</span>
-          </>
-        )}
-      </UnstyledButton>
-    );
-  }
+  const isMobileMenu = slot === "mobile-menu";
 
   return (
-    <ActionIcon
-      type="button"
-      variant="subtle"
-      size={44}
-      radius="md"
-      disabled={isLoading}
-      data-reader-interactive="true"
-      data-reader-tts-trigger="true"
-      data-reader-tts-active={isActive ? "true" : undefined}
-      title={title}
-      aria-label={label}
-      aria-busy={isLoading || undefined}
-      aria-expanded={expanded}
-      aria-haspopup="dialog"
-      onClick={onClick}
-      className="min-h-0 min-w-0 reader-status-action [&_svg]:size-3.5"
-      style={isActive ? { color: uiScheme.link } : {}}
+    <UnstyledButton
+      {...sharedProps}
+      className={
+        isMobileMenu
+          ? "reader-mobile-menu-item h-auto justify-start gap-3 border-0 px-3 py-2.5 text-sm font-medium"
+          : "reader-chrome-btn"
+      }
     >
       {isLoading ? (
-        <Loader2
-          className="relative z-10 h-4 w-4 animate-spin motion-reduce:animate-none"
-          aria-hidden="true"
-        />
+        <>
+          <Loader2
+            className={
+              isMobileMenu
+                ? "h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+                : "size-4 animate-spin motion-reduce:animate-none"
+            }
+            strokeWidth={isMobileMenu ? undefined : 1.6}
+            aria-hidden="true"
+          />
+          <span className={isMobileMenu ? undefined : "sr-only"}>
+            {isMobileMenu ? "加载中…" : "正在加载朗读控制"}
+          </span>
+        </>
       ) : (
-        <Volume2 className="relative z-10 h-4 w-4" aria-hidden="true" />
+        <>
+          <Volume2
+            className={isMobileMenu ? "size-4 opacity-80" : "size-4"}
+            strokeWidth={isMobileMenu ? undefined : 1.6}
+            aria-hidden="true"
+          />
+          <span className={isMobileMenu ? undefined : "sr-only"}>朗读</span>
+        </>
       )}
-    </ActionIcon>
+    </UnstyledButton>
   );
 }

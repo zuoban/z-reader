@@ -32,8 +32,6 @@ export interface Voice {
 export interface PreloadedAudio {
   blob: Blob;
   ssml: string;
-  marks: TTSMark[];
-  timestamp: number;
 }
 
 export interface CachedAudio {

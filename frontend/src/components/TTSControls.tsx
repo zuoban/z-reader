@@ -6,10 +6,18 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { TTSHighlightMode, TTSState, TTSSettings, Voice } from '@/lib/tts';
-import type { ThemeColors } from '@/hooks/useReaderTheme';
-import { TTSToolbarDrawer } from '@/components/tts/TTSToolbarDrawer';
+import { ReaderSheet } from '@/components/reader/ReaderSheet';
+import { TTSPlaybackButtons, TTSRateButtons } from '@/components/tts/TTSPlaybackControls';
+import {
+  TTSHighlightModeGroup,
+  TTSSection,
+  TTSSleepTimerGroup,
+} from '@/components/tts/TTSSettingsGroups';
+import { TTSResumePrompt, TTSStatusBanner } from '@/components/tts/TTSStatusBanner';
 import type { TTSSleepTimer, TTSStatusInfo } from '@/components/tts/types';
+import { VoiceSelector } from '@/components/VoiceSelector';
+import type { ThemeColors } from '@/hooks/useReaderTheme';
+import type { TTSSettings, TTSState, Voice } from '@/lib/tts';
 
 export interface TTSControlsProps {
   state: TTSState;
@@ -27,7 +35,6 @@ export interface TTSControlsProps {
   onPreviewStart?: () => void;
   uiScheme: ThemeColors;
   onExpandedChange?: (expanded: boolean) => void;
-  showSettingsPanel?: boolean;
   resumePromptVisible?: boolean;
   resumePromptMessage?: string;
   onResume?: () => void | Promise<void>;
@@ -37,7 +44,6 @@ export interface TTSControlsProps {
   onSleepTimerMinutes?: (minutes: number) => void;
   onClearSleepTimer?: () => void;
   expanded?: boolean;
-  initialExpanded?: boolean;
 }
 
 export function TTSControls({
@@ -56,7 +62,6 @@ export function TTSControls({
   onPreviewStart,
   uiScheme,
   onExpandedChange,
-  showSettingsPanel = true,
   resumePromptVisible = false,
   resumePromptMessage = '朗读被系统中断，轻触即可继续。',
   onResume,
@@ -65,12 +70,8 @@ export function TTSControls({
   sleepTimer,
   onSleepTimerMinutes,
   onClearSleepTimer,
-  expanded: controlledExpanded,
-  initialExpanded = false,
+  expanded = false,
 }: TTSControlsProps) {
-  const isControlled = controlledExpanded !== undefined;
-  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(initialExpanded);
-  const expanded = isControlled ? controlledExpanded : uncontrolledExpanded;
   const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
@@ -79,36 +80,17 @@ export function TTSControls({
   const pendingRef = useRef(false);
   const resumingRef = useRef(false);
   const mountedRef = useRef(true);
-  const expandedRef = useRef(expanded);
   const onExpandedChangeRef = useRef(onExpandedChange);
 
   const isBusy = isPending || preparing;
   const isPlaying = state === 'playing';
-  const isPaused = state === 'paused';
   const isActive = state !== 'stopped';
   const isVoiceDropdownOpen = expanded && voiceDropdownOpen;
   const sleepTimerActive = Boolean(sleepTimer?.mode && sleepTimer.mode !== 'off');
 
   useEffect(() => {
-    expandedRef.current = expanded;
     onExpandedChangeRef.current = onExpandedChange;
-  }, [expanded, onExpandedChange]);
-
-  const setExpanded = useCallback(
-    (next: boolean | ((prev: boolean) => boolean)) => {
-      if (isControlled) {
-        const nextExpanded =
-          typeof next === 'function' ? next(expandedRef.current) : next;
-        if (nextExpanded !== expandedRef.current) {
-          onExpandedChangeRef.current?.(nextExpanded);
-        }
-        return;
-      }
-
-      setUncontrolledExpanded(next);
-    },
-    [isControlled],
-  );
+  }, [onExpandedChange]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -126,6 +108,12 @@ export function TTSControls({
     };
   }, [expanded]);
 
+  const closePanel = useCallback(() => {
+    if (expanded) {
+      onExpandedChangeRef.current?.(false);
+    }
+  }, [expanded]);
+
   const handleStartClick = async () => {
     if (pendingRef.current || preparing) return;
     const operation = ++operationRef.current;
@@ -135,7 +123,7 @@ export function TTSControls({
     try {
       await onStart();
       if (operation === operationRef.current && shouldCloseAfterStart) {
-        setExpanded(false);
+        closePanel();
       }
     } finally {
       if (operation === operationRef.current) {
@@ -166,53 +154,86 @@ export function TTSControls({
     }
   };
 
-  const handleRateChange = (value: number) => {
-    onUpdateSettings({ rate: value });
-  };
-
-  const handleHighlightModeChange = (highlightMode: TTSHighlightMode) => {
-    onUpdateSettings({ highlightMode });
-  };
-
-  const closePanel = useCallback(() => {
-    setExpanded(false);
-  }, [setExpanded]);
-
   return (
-    <TTSToolbarDrawer
-      expanded={expanded}
+    <ReaderSheet
+      open={expanded}
       onClose={closePanel}
-      isActive={isActive}
-      isPlaying={isPlaying}
-      isPaused={isPaused}
-      isBusy={isBusy}
-      isVoiceDropdownOpen={isVoiceDropdownOpen}
-      onVoiceDropdownOpenChange={setVoiceDropdownOpen}
-      settings={settings}
-      voices={voices}
-      voicesLoading={voicesLoading}
-      voicesError={voicesError}
-      onReloadVoices={onReloadVoices}
-      onStartClick={handleStartClick}
-      onStopClick={handleStopClick}
-      onNext={onNext}
-      onPrev={onPrev}
-      onUpdateSettings={onUpdateSettings}
-      onRateChange={handleRateChange}
-      onHighlightModeChange={handleHighlightModeChange}
-      onPreviewStart={onPreviewStart}
+      closeOnEscape={!isVoiceDropdownOpen}
+      title="朗读控制"
+      srDescription="播放、调整倍速与设置睡眠定时"
+      closeLabel="关闭朗读控制"
       uiScheme={uiScheme}
-      showSettingsPanel={showSettingsPanel}
-      resumePromptVisible={resumePromptVisible}
-      resumePromptMessage={resumePromptMessage}
-      isResuming={isResuming}
-      onResumeClick={handleResumeClick}
       overlayContainer={overlayContainer}
-      ttsStatus={ttsStatus}
-      sleepTimer={sleepTimer}
-      sleepTimerActive={sleepTimerActive}
-      onSleepTimerMinutes={onSleepTimerMinutes}
-      onClearSleepTimer={onClearSleepTimer}
-    />
+      contentDataAttributes={{ 'data-reader-tts-popup': 'true' }}
+    >
+      <div className="reader-panel-body custom-scrollbar space-y-4 px-4 py-4 sm:px-6">
+        {resumePromptVisible && (
+          <TTSResumePrompt
+            message={resumePromptMessage}
+            isResuming={isResuming}
+            onResume={handleResumeClick}
+            uiScheme={uiScheme}
+          />
+        )}
+
+        {ttsStatus ? <TTSStatusBanner ttsStatus={ttsStatus} isActive={isActive} /> : null}
+
+        <TTSSection
+          title="播放控制"
+          description="从当前位置开始、暂停或切换到相邻句子。"
+        >
+          <div className="space-y-3">
+            <TTSPlaybackButtons
+              isActive={isActive}
+              isPlaying={isPlaying}
+              isPaused={state === 'paused'}
+              isBusy={isBusy}
+              onPrev={onPrev}
+              onStartClick={handleStartClick}
+              onNext={onNext}
+              onStopClick={handleStopClick}
+            />
+            <TTSRateButtons
+              value={settings.rate}
+              onChange={(rate) => onUpdateSettings({ rate })}
+            />
+          </div>
+        </TTSSection>
+
+        <TTSSection title="高亮方式" description="选择朗读时跟随词语或整句。">
+          <TTSHighlightModeGroup
+            value={settings.highlightMode}
+            onChange={(highlightMode) => onUpdateSettings({ highlightMode })}
+          />
+        </TTSSection>
+
+        <TTSSection
+          title="睡眠定时"
+          description={sleepTimerActive ? sleepTimer?.label : '到点自动停止，适合睡前阅读。'}
+        >
+          <TTSSleepTimerGroup
+            sleepTimer={sleepTimer}
+            sleepTimerActive={sleepTimerActive}
+            onSleepTimerMinutes={onSleepTimerMinutes}
+            onClearSleepTimer={onClearSleepTimer}
+          />
+        </TTSSection>
+
+        <TTSSection title="语音偏好" description="选择发音人、情绪风格与输出声音。">
+          <VoiceSelector
+            settings={settings}
+            voices={voices}
+            voicesLoading={voicesLoading}
+            voicesError={voicesError}
+            onReloadVoices={onReloadVoices}
+            onUpdateSettings={onUpdateSettings}
+            onPreviewStart={onPreviewStart}
+            onDropdownOpenChange={setVoiceDropdownOpen}
+            uiScheme={uiScheme}
+            overlayContainer={overlayContainer}
+          />
+        </TTSSection>
+      </div>
+    </ReaderSheet>
   );
 }

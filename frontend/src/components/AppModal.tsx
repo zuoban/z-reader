@@ -18,11 +18,9 @@ export interface AppModalProps {
   zIndex?: number;
   returnFocus?: boolean;
   closeDisabled?: boolean;
-  closeOnClickOutside?: boolean;
   closeOnEscape?: boolean;
   closeLabel?: string;
   contentClassName?: string;
-  guardComposingEscape?: boolean;
   children: ReactNode;
 }
 
@@ -37,14 +35,12 @@ export function AppModal({
   zIndex,
   returnFocus,
   closeDisabled = false,
-  closeOnClickOutside = !closeDisabled,
   closeOnEscape = !closeDisabled,
   closeLabel = '关闭',
   contentClassName,
-  guardComposingEscape = true,
   children,
 }: AppModalProps) {
-  useComposingEscapeGuard(open && guardComposingEscape);
+  useComposingEscapeGuard(open);
 
   return (
     <Modal.Root
@@ -53,7 +49,7 @@ export function AppModal({
       size={size}
       zIndex={zIndex}
       returnFocus={returnFocus}
-      closeOnClickOutside={closeOnClickOutside}
+      closeOnClickOutside={!closeDisabled}
       closeOnEscape={closeOnEscape}
       classNames={{
         inner:

@@ -6,16 +6,13 @@ import '@/app/styles/mantine-modal.css';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ConfirmVariant = 'destructive' | 'default' | 'outline' | 'secondary' | 'ghost';
-
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
   confirmLabel: string;
-  cancelLabel?: string;
-  confirmVariant?: ConfirmVariant;
+  confirmVariant?: 'destructive' | 'default';
   confirmDisabled?: boolean;
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
@@ -27,7 +24,6 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
-  cancelLabel = '取消',
   confirmVariant = 'destructive',
   confirmDisabled = false,
   loading = false,
@@ -90,15 +86,6 @@ export function ConfirmDialog({
     }
   }, [confirmDisabled, isBusy, onConfirm]);
 
-  const mantineVariant =
-    confirmVariant === 'outline'
-      ? 'default'
-      : confirmVariant === 'secondary'
-        ? 'light'
-        : confirmVariant === 'ghost'
-          ? 'subtle'
-          : 'filled';
-
   return (
     <Modal.Root
       opened={open}
@@ -152,11 +139,11 @@ export function ConfirmDialog({
             onClick={handleClose}
             disabled={isBusy}
           >
-            {cancelLabel}
+            取消
           </Button>
           <Button
             type="button"
-            variant={mantineVariant}
+            variant="filled"
             color={isDestructive ? 'red' : undefined}
             leftSection={
               isBusy ? (

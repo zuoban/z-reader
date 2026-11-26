@@ -212,7 +212,6 @@ interface VoiceSelectorProps {
   onReloadVoices?: () => void | Promise<void>;
   onUpdateSettings: (settings: Partial<TTSSettings>) => void;
   onPreviewStart?: () => void;
-  onPreviewEnd?: () => void;
   onDropdownOpenChange?: (open: boolean) => void;
   uiScheme: ThemeColors;
   overlayContainer?: HTMLElement | null;
@@ -225,7 +224,6 @@ interface PreviewSession {
   url: string | null;
   disposed: boolean;
   releaseFocus?: () => void;
-  onEnd?: () => void;
 }
 
 export function VoiceSelector({
@@ -236,7 +234,6 @@ export function VoiceSelector({
   onReloadVoices,
   onUpdateSettings,
   onPreviewStart,
-  onPreviewEnd,
   onDropdownOpenChange,
   uiScheme,
   overlayContainer,
@@ -319,7 +316,6 @@ export function VoiceSelector({
       previewRef.current = null;
       if (mountedRef.current) setPreviewPhase('idle');
     }
-    session.onEnd?.();
   }, []);
 
   const stopPreview = useCallback(() => {
@@ -346,7 +342,7 @@ export function VoiceSelector({
 
     const { controller, timeoutId } = createAbortController(30000);
     const session: PreviewSession = {
-      controller, timeoutId, audio: null, url: null, disposed: false, onEnd: onPreviewEnd,
+      controller, timeoutId, audio: null, url: null, disposed: false,
     };
     previewRef.current = session;
     setPreviewPhase('loading');
@@ -416,7 +412,7 @@ export function VoiceSelector({
         finishPreview(session);
       }
     }
-  }, [buildSSML, finishPreview, onPreviewStart, onPreviewEnd, stopPreview]);
+  }, [buildSSML, finishPreview, onPreviewStart, stopPreview]);
 
   const voiceOptions: ReaderSelectOption[] = zhVoices.map((voice) => {
     const genderLabel = GENDER_LABELS[voice.Gender];

@@ -10,13 +10,28 @@ type ReaderSheetKey =
   | "search"
   | "tts";
 
-/** Manages mutually coordinated open state for reader drawers, settings, search, shortcuts, and TTS overlays. */
+type MountedSheets = Partial<Record<ReaderSheetKey, true>>;
+
+/** Manages mutually coordinated open state and sticky mount tracking for reader overlays. */
 export function useReaderSheets() {
   const [activeSheet, setActiveSheet] = useState<ReaderSheetKey | null>(null);
+  const [mountedSheets, setMountedSheets] = useState<MountedSheets>({});
 
-  const setSheetOpen = useCallback((sheet: ReaderSheetKey, open: boolean) => {
-    setActiveSheet((current) => (open ? sheet : current === sheet ? null : current));
+  const markMounted = useCallback((sheet: ReaderSheetKey) => {
+    setMountedSheets((prev) => (prev[sheet] ? prev : { ...prev, [sheet]: true }));
   }, []);
+
+  const setSheetOpen = useCallback(
+    (sheet: ReaderSheetKey, open: boolean) => {
+      if (open) {
+        markMounted(sheet);
+        setActiveSheet(sheet);
+        return;
+      }
+      setActiveSheet((current) => (current === sheet ? null : current));
+    },
+    [markMounted],
+  );
 
   const setTocOpen = useCallback(
     (open: boolean) => setSheetOpen("toc", open),
@@ -39,44 +54,45 @@ export function useReaderSheets() {
     [setSheetOpen],
   );
 
-  const openSearch = useCallback(() => setActiveSheet("search"), []);
-  const closeSearch = useCallback(
-    () => setActiveSheet((current) => (current === "search" ? null : current)),
-    [],
+  const openSearch = useCallback(() => setSheetOpen("search", true), [setSheetOpen]);
+  const closeSearch = useCallback(() => setSheetOpen("search", false), [setSheetOpen]);
+  const setSearchOpen = useCallback(
+    (open: boolean) => setSheetOpen("search", open),
+    [setSheetOpen],
   );
-  const handleOpenShortcuts = useCallback(() => setActiveSheet("shortcuts"), []);
+  const handleOpenShortcuts = useCallback(
+    () => setSheetOpen("shortcuts", true),
+    [setSheetOpen],
+  );
   const handleCloseShortcuts = useCallback(
-    () => setActiveSheet((current) => (current === "shortcuts" ? null : current)),
-    [],
+    () => setSheetOpen("shortcuts", false),
+    [setSheetOpen],
   );
   const handleToggleShortcuts = useCallback(
     () => setActiveSheet((current) => (current === "shortcuts" ? null : "shortcuts")),
     [],
   );
 
-  const tocOpen = activeSheet === "toc";
-  const bookmarksOpen = activeSheet === "bookmarks";
-  const shortcutsOpen = activeSheet === "shortcuts";
-  const themeSettingsOpen = activeSheet === "theme";
-  const showSearch = activeSheet === "search";
-  const ttsOpen = activeSheet === "tts";
-  const hasSheetOpen = activeSheet !== null;
-
   return {
-    tocOpen,
+    tocOpen: activeSheet === "toc",
+    tocMounted: Boolean(mountedSheets.toc || activeSheet === "toc"),
     setTocOpen,
-    bookmarksOpen,
+    bookmarksOpen: activeSheet === "bookmarks",
+    bookmarksMounted: Boolean(mountedSheets.bookmarks || activeSheet === "bookmarks"),
     setBookmarksOpen,
-    shortcutsOpen,
+    shortcutsOpen: activeSheet === "shortcuts",
     setShortcutsOpen,
-    themeSettingsOpen,
+    themeSettingsOpen: activeSheet === "theme",
+    themeSettingsMounted: Boolean(mountedSheets.theme || activeSheet === "theme"),
     setThemeSettingsOpen,
-    showSearch,
+    showSearch: activeSheet === "search",
+    searchMounted: Boolean(mountedSheets.search || activeSheet === "search"),
     openSearch,
     closeSearch,
-    ttsOpen,
+    setSearchOpen,
+    ttsOpen: activeSheet === "tts",
     setTtsOpen,
-    hasSheetOpen,
+    hasSheetOpen: activeSheet !== null,
     handleToggleShortcuts,
     handleOpenShortcuts,
     handleCloseShortcuts,

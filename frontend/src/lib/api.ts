@@ -179,85 +179,19 @@ function duplicateBookFromError(error: unknown): Book | null {
   return book as Book;
 }
 
-async function fetchApi<T>(path: string, options: RequestInit = {}, timeout?: number): Promise<T> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  let lastError: unknown;
-  const apiBases = getApiBaseCandidates();
-  const generation = getAccessGeneration();
-  const changesAccess = path === '/api/login' || path === '/api/logout';
-
-  for (const base of apiBases) {
-    if (!changesAccess) assertCurrentAccess(generation);
-    const { controller, timeoutId } = createAbortController(timeout);
-    const abort = () => controller.abort(options.signal?.reason);
-    if (options.signal?.aborted) abort();
-    else options.signal?.addEventListener('abort', abort, { once: true });
-    try {
-      const res = await fetch(`${base}${path}`, {
-        ...options,
-        credentials: options.credentials ?? 'include',
-        cache: 'no-store',
-        headers,
-        signal: controller.signal,
-      });
-
-      if (!changesAccess) assertCurrentAccess(generation);
-      if (!res.ok) {
-        if (!changesAccess) handleAuthResponse(res, generation);
-        if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
-          lastError = new ApiError('请求失败，正在尝试局域网后端', res.status);
-          continue;
-        }
-        const error = await parseApiError(res, '请求失败');
-        if (!changesAccess && res.status !== 401) assertCurrentAccess(generation);
-        throw error;
-      }
-
-      const text = await res.text();
-      if (!changesAccess) assertCurrentAccess(generation);
-      return text ? JSON.parse(text) : (null as T);
-    } catch (error) {
-      lastError = error;
-      if (options.signal?.aborted || !shouldRetryWithNextApiBase(error, apiBases, base)) {
-        throw normalizeRequestError(error);
-      }
-    } finally {
-      clearTimeout(timeoutId);
-      options.signal?.removeEventListener('abort', abort);
-    }
-  }
-
-  throw normalizeRequestError(lastError);
-}
-
-async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T> {
-  const text = await res.text();
-  if (!text) {
-    throw new ApiError(fallback, res.status);
-  }
-  return JSON.parse(text) as T;
-}
-
-/** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
-async function authedFetch(
+async function requestWithFallback(
   path: string,
   options: RequestInit = {},
-  timeout: number | null = DEFAULT_TIMEOUT
+  timeout: number | null = DEFAULT_TIMEOUT,
+  checkAccess = true,
+  isAbortableError = true,
 ): Promise<Response> {
-  const headers: HeadersInit = {
-    ...options.headers,
-  };
-
   let lastError: unknown;
   const apiBases = getApiBaseCandidates();
   const generation = getAccessGeneration();
 
   for (const base of apiBases) {
-    assertCurrentAccess(generation);
+    if (checkAccess) assertCurrentAccess(generation);
     const abortRequest = timeout === null ? null : createAbortController(timeout);
     const cancel = () => abortRequest?.controller.abort(options.signal?.reason);
     if (options.signal?.aborted) cancel();
@@ -267,11 +201,13 @@ async function authedFetch(
         ...options,
         credentials: options.credentials ?? 'include',
         cache: 'no-store',
-        headers,
         signal: abortRequest?.controller.signal ?? options.signal,
       });
-      assertCurrentAccess(generation);
-      handleAuthResponse(res, generation);
+
+      if (checkAccess) {
+        assertCurrentAccess(generation);
+        if (isAbortableError || !res.ok) handleAuthResponse(res, generation);
+      }
       if (shouldRetryResponseWithNextApiBase(res, apiBases, base)) {
         lastError = new ApiError('请求失败，正在尝试局域网后端', res.status);
         continue;
@@ -293,13 +229,98 @@ async function authedFetch(
   throw normalizeRequestError(lastError);
 }
 
+async function fetchApi<T>(
+  path: string,
+  options: RequestInit = {},
+  timeout?: number,
+  config: { errorFallback?: string; emptyError?: string } = {},
+): Promise<T> {
+  const generation = getAccessGeneration();
+  const changesAccess = path === '/api/login' || path === '/api/logout';
+  const res = await requestWithFallback(
+    path,
+    {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    },
+    timeout,
+    !changesAccess,
+    false,
+  );
+
+  if (!res.ok) {
+    const error = await parseApiError(res, config.errorFallback ?? '请求失败');
+    if (!changesAccess && res.status !== 401) assertCurrentAccess(generation);
+    throw error;
+  }
+
+  const text = await res.text();
+  if (!changesAccess) assertCurrentAccess(generation);
+  if (!text) {
+    if (config.emptyError) throw new ApiError(config.emptyError, res.status);
+    return null as T;
+  }
+  return JSON.parse(text) as T;
+}
+
+async function parseJsonResponse<T>(res: Response, fallback: string): Promise<T> {
+  const text = await res.text();
+  if (!text) {
+    throw new ApiError(fallback, res.status);
+  }
+  return JSON.parse(text) as T;
+}
+
+/** 统一的带认证请求，供 fetchApi 之外的 blob/form 请求使用 */
+async function authedFetch(
+  path: string,
+  options: RequestInit = {},
+  timeout: number | null = DEFAULT_TIMEOUT
+): Promise<Response> {
+  return requestWithFallback(path, options, timeout, true, true);
+}
+
+function buildBookQueryParams(
+  base: Record<string, string>,
+  cursor?: string,
+  sort = 'recent_read',
+  options: BookQueryOptions = {},
+): string {
+  const params = new URLSearchParams(base);
+  if (cursor) params.set('cursor', cursor);
+  if (sort) params.set('sort', sort);
+  if (options.category) params.set('category', options.category);
+  else if (options.uncategorized) params.set('uncategorized', 'true');
+  return params.toString();
+}
+
+function buildProgressPayload(
+  cfi: string,
+  percentage: number,
+  options: { expectedUpdatedAt?: string; createOnly?: boolean; deviceId?: string } = {},
+) {
+  const body: {
+    cfi: string;
+    percentage: number;
+    expected_updated_at?: string;
+    create_only?: boolean;
+    device_id?: string;
+  } = { cfi, percentage };
+  if (options.expectedUpdatedAt) body.expected_updated_at = options.expectedUpdatedAt;
+  if (options.createOnly) body.create_only = true;
+  if (options.deviceId) body.device_id = options.deviceId;
+  return JSON.stringify(body);
+}
+
 function shouldRetryWithNextApiBase(
   error: unknown,
   apiBases: string[],
   currentBase: string
 ): boolean {
   if (apiBases[apiBases.length - 1] === currentBase) return false;
-  if (error instanceof ApiError) return false;
   if (isAbortLikeError(error)) return true;
   return error instanceof TypeError;
 }
@@ -332,12 +353,8 @@ export const api = {
   listBooksPage: async (
     cursor?: string, limit = 20, sort = 'recent_read', options: BookQueryOptions = {}
   ): Promise<BookPage> => {
-    const params = new URLSearchParams({ limit: String(limit) });
-    if (cursor) params.set('cursor', cursor);
-    if (sort) params.set('sort', sort);
-    if (options.category) params.set('category', options.category);
-    else if (options.uncategorized) params.set('uncategorized', 'true');
-    return fetchApi<BookPage>(`/api/books?${params.toString()}`, { signal: options.signal });
+    const queryString = buildBookQueryParams({ limit: String(limit) }, cursor, sort, options);
+    return fetchApi<BookPage>(`/api/books?${queryString}`, { signal: options.signal });
   },
 
   searchBooks: async (
@@ -347,12 +364,8 @@ export const api = {
     sort = 'recent_read',
     options: BookQueryOptions = {}
   ): Promise<BookPage> => {
-    const params = new URLSearchParams({ q: query, limit: String(limit) });
-    if (cursor) params.set('cursor', cursor);
-    if (sort) params.set('sort', sort);
-    if (options.category) params.set('category', options.category);
-    else if (options.uncategorized) params.set('uncategorized', 'true');
-    return fetchApi<BookPage>(`/api/books/search?${params.toString()}`, { signal: options.signal });
+    const queryString = buildBookQueryParams({ q: query, limit: String(limit) }, cursor, sort, options);
+    return fetchApi<BookPage>(`/api/books/search?${queryString}`, { signal: options.signal });
   },
 
   getBooksStatus: async (bookIds: string[], signal?: AbortSignal): Promise<Book[]> => {
@@ -494,21 +507,13 @@ export const api = {
     return book;
   },
 
-  deleteBookCover: async (id: string): Promise<Book> => {
-    const generation = getAccessGeneration();
-    const res = await authedFetch(`/api/books/${encodeURIComponent(id)}/cover`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-
-    if (!res.ok) {
-      throw await parseApiError(res, '移除封面失败');
-    }
-
-    const book = await parseJsonResponse<Book>(res, '移除封面成功但响应为空');
-    assertCurrentAccess(generation);
-    return book;
-  },
+  deleteBookCover: (id: string): Promise<Book> =>
+    fetchApi<Book>(
+      `/api/books/${encodeURIComponent(id)}/cover`,
+      { method: 'DELETE' },
+      DEFAULT_TIMEOUT,
+      { errorFallback: '移除封面失败', emptyError: '移除封面成功但响应为空' },
+    ),
 
   fetchCover: async (
     id: string,
@@ -565,26 +570,9 @@ export const api = {
     percentage: number,
     options: { expectedUpdatedAt?: string; createOnly?: boolean; deviceId?: string } = {},
   ): Promise<Progress> => {
-    const body: {
-      cfi: string;
-      percentage: number;
-      expected_updated_at?: string;
-      create_only?: boolean;
-      device_id?: string;
-    } = { cfi, percentage };
-    if (options.expectedUpdatedAt) {
-      body.expected_updated_at = options.expectedUpdatedAt;
-    }
-    if (options.createOnly) {
-      body.create_only = true;
-    }
-    if (options.deviceId) {
-      body.device_id = options.deviceId;
-    }
-
     return fetchApi<Progress>(`/api/progress/${encodeURIComponent(bookId)}`, {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: buildProgressPayload(cfi, percentage, options),
     });
   },
 
@@ -594,30 +582,13 @@ export const api = {
     percentage: number,
     options: { expectedUpdatedAt?: string; createOnly?: boolean; deviceId?: string } = {},
   ): void => {
-    const body: {
-      cfi: string;
-      percentage: number;
-      expected_updated_at?: string;
-      create_only?: boolean;
-      device_id?: string;
-    } = { cfi, percentage };
-    if (options.expectedUpdatedAt) {
-      body.expected_updated_at = options.expectedUpdatedAt;
-    }
-    if (options.createOnly) {
-      body.create_only = true;
-    }
-    if (options.deviceId) {
-      body.device_id = options.deviceId;
-    }
-
     void fetch(`${API_BASE}/api/progress/${encodeURIComponent(bookId)}`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: buildProgressPayload(cfi, percentage, options),
       keepalive: true,
       cache: 'no-store',
     }).catch(() => {

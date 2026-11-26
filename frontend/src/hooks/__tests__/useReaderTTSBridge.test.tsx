@@ -147,7 +147,7 @@ function ReaderTTSIntegrationHarness({
         </div>
       )}
 
-      {tts.ttsRequested && tts.runtimeReady && (
+      {tts.ttsRequested && tts.drawerProps && (
         <TTSControls {...tts.drawerProps} />
       )}
     </div>

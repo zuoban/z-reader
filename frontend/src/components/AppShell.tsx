@@ -27,19 +27,6 @@ export function AppScreen({
   );
 }
 
-interface BrandMarkProps {
-  size?: 'sm' | 'md' | 'lg';
-  framed?: boolean;
-  className?: string;
-  priority?: boolean;
-}
-
-const brandSizes = {
-  sm: 'scale-[0.82]',
-  md: 'scale-100',
-  lg: 'scale-[1.12]',
-};
-
 export function BrandLogo({
   className,
   compact = false,
@@ -96,37 +83,6 @@ export function BrandLogo({
   );
 }
 
-export function BrandMark({
-  size = 'md',
-  framed = false,
-  className,
-}: BrandMarkProps) {
-  const logo = <BrandLogo className={cn('origin-center', brandSizes[size])} />;
-
-  if (!framed) {
-    return <div className={cn('flex items-center justify-center', className)}>{logo}</div>;
-  }
-
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border border-border bg-card p-6',
-        className
-      )}
-    >
-      {logo}
-    </div>
-  );
-}
-
-interface LoadingStateProps {
-  title?: string;
-  description?: string;
-  showLogo?: boolean;
-  card?: boolean;
-  className?: string;
-}
-
 export function LoadingSpinner({
   className,
 }: {
@@ -143,42 +99,18 @@ export function LoadingSpinner({
   );
 }
 
-export function LoadingState({
-  title = '加载中...',
-  description,
-  showLogo = false,
-  card = false,
-  className,
-}: LoadingStateProps) {
-  const content = (
-    <>
-      {showLogo && <BrandMark size="md" priority className="mb-4" />}
-      <LoadingSpinner />
-      <div className="mt-4 text-center">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        {description && (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-        )}
-      </div>
-    </>
-  );
-
+export function LoadingState({ title = '加载中...' }: { title?: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className={cn(
-        'flex min-h-dvh items-center justify-center pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(3rem,env(safe-area-inset-bottom,0px))]',
-        className
-      )}
+      className="flex min-h-dvh items-center justify-center pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(3rem,env(safe-area-inset-bottom,0px))]"
     >
-      <div
-        className={cn(
-          'flex flex-col items-center',
-          card && 'paper-panel rounded-2xl p-8 sm:p-10'
-        )}
-      >
-        {content}
+      <div className="flex flex-col items-center">
+        <LoadingSpinner />
+        <div className="mt-4 text-center">
+          <p className="text-sm font-medium text-foreground">{title}</p>
+        </div>
       </div>
     </div>
   );

@@ -8,14 +8,54 @@ import {
   withOpacity,
 } from "@/lib/reader-ui";
 
+interface LoadingCardProps {
+  title: string;
+  detail: string;
+  uiScheme: ThemeColors;
+  className?: string;
+}
+
+function ReaderLoadingCard({ title, detail, uiScheme, className }: LoadingCardProps) {
+  const surface = getModernReaderSurface(uiScheme);
+  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
+
+  return (
+    <div
+      className={`reader-state-card paper-reveal-soft flex min-w-[min(100%,260px)] max-w-sm flex-col items-center gap-4 rounded-2xl px-7 py-7 ${className ?? ""}`}
+      style={panelThemeVars}
+    >
+      <div
+        className="flex h-12 w-12 items-center justify-center rounded-xl border"
+        style={{
+          background: "color-mix(in srgb, var(--reader-panel-hover) 68%, transparent)",
+          borderColor: "var(--reader-panel-rule)",
+        }}
+      >
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2 motion-reduce:animate-none"
+          style={{
+            borderColor: withOpacity(uiScheme.link, 0.18),
+            borderTopColor: uiScheme.link,
+          }}
+        />
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium" style={{ color: surface.fg }}>
+          {title}
+        </p>
+        <p className="mt-1 text-xs leading-5" style={{ color: surface.muted }}>
+          {detail}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 interface ReaderAuthLoadingProps {
   uiScheme: ThemeColors;
 }
 
 export function ReaderAuthLoading({ uiScheme }: ReaderAuthLoadingProps) {
-  const surface = getModernReaderSurface(uiScheme);
-  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
-
   return (
     <div
       className="flex h-dvh items-center justify-center pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))] pt-[max(1.5rem,env(safe-area-inset-top,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
@@ -25,40 +65,11 @@ export function ReaderAuthLoading({ uiScheme }: ReaderAuthLoadingProps) {
       aria-busy="true"
       aria-label="正在验证登录"
     >
-      <div
-        className="reader-state-card paper-reveal-soft flex min-w-[min(100%,260px)] max-w-sm flex-col items-center gap-4 rounded-2xl px-7 py-7"
-        style={panelThemeVars}
-      >
-        <div
-          className="flex h-12 w-12 items-center justify-center rounded-xl border"
-          style={{
-            background: "color-mix(in srgb, var(--reader-panel-hover) 68%, transparent)",
-            borderColor: "var(--reader-panel-rule)",
-          }}
-        >
-          <div
-            className="h-6 w-6 animate-spin rounded-full border-2 motion-reduce:animate-none"
-            style={{
-              borderColor: withOpacity(uiScheme.link, 0.18),
-              borderTopColor: uiScheme.link,
-            }}
-          />
-        </div>
-        <div className="text-center">
-          <p
-            className="text-sm font-medium"
-            style={{ color: surface.fg }}
-          >
-            验证登录…
-          </p>
-          <p
-            className="mt-1 text-xs leading-5"
-            style={{ color: surface.muted }}
-          >
-            登录通过后将立即并行加载书籍
-          </p>
-        </div>
-      </div>
+      <ReaderLoadingCard
+        title="验证登录…"
+        detail="登录通过后将立即并行加载书籍"
+        uiScheme={uiScheme}
+      />
     </div>
   );
 }
@@ -176,9 +187,6 @@ export function ReaderLoadingOverlay({
   statusBarReservedSpace,
   uiScheme,
 }: ReaderLoadingOverlayProps) {
-  const surface = getModernReaderSurface(uiScheme);
-  const panelThemeVars = getReaderPanelThemeVars(uiScheme);
-
   return (
     <div
       className="absolute z-20 flex flex-col items-center justify-center overflow-hidden pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]"
@@ -215,37 +223,12 @@ export function ReaderLoadingOverlay({
         ))}
       </div>
 
-      <div
-        className="reader-state-card paper-reveal-soft relative z-10 flex min-w-[min(100%,260px)] max-w-sm flex-col items-center gap-4 rounded-2xl px-7 py-7"
-        style={panelThemeVars}
-      >
-        <div
-          className="flex h-12 w-12 items-center justify-center rounded-xl border"
-          style={{
-            background: "color-mix(in srgb, var(--reader-panel-hover) 68%, transparent)",
-            borderColor: "var(--reader-panel-rule)",
-          }}
-        >
-          <div
-            className="h-6 w-6 animate-spin rounded-full border-2 motion-reduce:animate-none"
-            style={{
-              borderColor: withOpacity(uiScheme.link, 0.18),
-              borderTopColor: uiScheme.link,
-            }}
-          />
-        </div>
-        <div className="text-center">
-          <p
-            className="text-sm font-medium"
-            style={{ color: surface.fg }}
-          >
-            {loadingMsg}
-          </p>
-          <p className="mt-1 text-xs leading-5" style={{ color: surface.muted }}>
-            {loadingDetail}
-          </p>
-        </div>
-      </div>
+      <ReaderLoadingCard
+        title={loadingMsg}
+        detail={loadingDetail}
+        uiScheme={uiScheme}
+        className="relative z-10"
+      />
     </div>
   );
 }

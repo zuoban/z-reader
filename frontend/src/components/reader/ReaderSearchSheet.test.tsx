@@ -297,6 +297,14 @@ describe("ReaderSearchSheet", () => {
     fireEvent.click(prevBtn);
     expect(onSelectResult).toHaveBeenNthCalledWith(3, firstResult.cfi);
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "F3" });
+    expect(onSelectResult).toHaveBeenNthCalledWith(4, secondResult.cfi);
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "F3", shiftKey: true });
+    expect(onSelectResult).toHaveBeenNthCalledWith(5, firstResult.cfi);
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 

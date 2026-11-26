@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@/test/render';
+import { act, fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CategoryPickerModal } from '@/components/CategoryPickerModal';
 import type { CategoryPickerModalProps } from '@/components/CategoryPickerModal';
@@ -168,10 +168,14 @@ describe('CategoryPickerModal (batch mode)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('filters existing categories while typing partial names and restores full list on exact match', () => {
+  it('filters existing categories while typing partial names and restores full list on exact match', async () => {
     renderBatchPicker({
       categories: ['Sci-Fi', '历史随笔', '散文精选'],
       bookCounts: { 'Sci-Fi': 2, 历史随笔: 3, 散文精选: 1 },
+    });
+
+    await act(async () => {
+      await Promise.resolve();
     });
 
     expect(screen.getByText('3 个')).toBeInTheDocument();

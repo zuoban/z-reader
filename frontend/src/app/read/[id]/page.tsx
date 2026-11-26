@@ -239,7 +239,15 @@ function Reader({ bookId }: { bookId: string }) {
     onOpenThemeSettings: () => sheets.setThemeSettingsOpen(true),
     onCyclePreset: handleCyclePreset,
     onStepFontSize: handleStepFontSize,
-    onToggleChrome: () => (chrome.isHeaderVisible ? chrome.hideHeader() : chrome.showHeader()),
+    onToggleChrome: () => {
+      if (chrome.isHeaderVisible) {
+        chrome.hideHeader();
+        showReaderHud("沉浸模式 · 按 H 恢复");
+      } else {
+        chrome.showHeader();
+        showReaderHud("已显示操作栏");
+      }
+    },
   });
 
   const reader = useFoliateView({

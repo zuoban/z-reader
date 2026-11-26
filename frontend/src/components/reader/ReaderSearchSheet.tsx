@@ -492,7 +492,7 @@ export function ReaderSearchSheet({
                       type="button"
                       onClick={() => handleStepResult(-1)}
                       aria-label="上一处匹配"
-                      title="上一处匹配"
+                      title="上一处匹配 (Shift+F3)"
                       className="reader-panel-icon !size-7"
                     >
                       <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
@@ -501,7 +501,7 @@ export function ReaderSearchSheet({
                       type="button"
                       onClick={() => handleStepResult(1)}
                       aria-label="下一处匹配"
-                      title="下一处匹配"
+                      title="下一处匹配 (F3)"
                       className="reader-panel-icon !size-7"
                     >
                       <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
@@ -527,6 +527,17 @@ export function ReaderSearchSheet({
       }
       onContentKeyDown={(event) => {
         if (
+          event.key === "F3" &&
+          !event.nativeEvent.isComposing &&
+          !isSearching &&
+          results.length > 0
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleStepResult(event.shiftKey ? -1 : 1);
+          return;
+        }
+        if (
           event.key === "Escape" &&
           !event.nativeEvent.isComposing &&
           query
@@ -551,8 +562,12 @@ export function ReaderSearchSheet({
               >
                 {group.sectionLabel ? (
                   <h3
-                    className="flex items-center justify-between gap-2 px-2.5 pt-1 text-xs font-medium"
-                    style={{ color: surface.muted }}
+                    className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm"
+                    style={{
+                      color: surface.muted,
+                      background:
+                        "color-mix(in srgb, var(--reader-panel-bg) 90%, transparent)",
+                    }}
                     title={group.sectionLabel}
                   >
                     <span className="min-w-0 truncate">{group.sectionLabel}</span>

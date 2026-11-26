@@ -20,7 +20,7 @@ import {
   downloadMarkdownFile,
   formatBookmarksAsMarkdown,
 } from "@/lib/bookmarks-export";
-import { getModernReaderSurface } from "@/lib/reader-ui";
+import { getModernReaderSurface, withOpacity } from "@/lib/reader-ui";
 import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 
 interface ReaderBookmarksSheetProps {
@@ -101,6 +101,8 @@ export function ReaderBookmarksSheet({
   onUpdateNote,
 }: ReaderBookmarksSheetProps) {
   const surface = getModernReaderSurface(uiScheme);
+  const [sortBy, setSortBy] = useState<"recent" | "position">("recent");
+  const [notesOnly, setNotesOnly] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftNote, setDraftNote] = useState("");
   const [isUpdatingNote, setIsUpdatingNote] = useState(false);
@@ -110,10 +112,15 @@ export function ReaderBookmarksSheet({
 
   if (open !== prevOpen) {
     setPrevOpen(open);
-    if (!open && editingId !== null) {
-      setEditingId(null);
-      setDraftNote("");
-      setIsUpdatingNote(false);
+    if (!open) {
+      if (editingId !== null) {
+        setEditingId(null);
+        setDraftNote("");
+        setIsUpdatingNote(false);
+      }
+      if (notesOnly) {
+        setNotesOnly(false);
+      }
     }
   }
 
@@ -134,17 +141,28 @@ export function ReaderBookmarksSheet({
     el.setSelectionRange(el.value.length, el.value.length);
   }, [open, editingId]);
 
-  const sortedBookmarks = useMemo(
-    () =>
-      [...bookmarks].sort((left, right) => {
-        const leftTime = new Date(left.created_at).getTime();
-        const rightTime = new Date(right.created_at).getTime();
-
-        if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
-        return rightTime - leftTime;
-      }),
+  const notedCount = useMemo(
+    () => bookmarks.filter((item) => Boolean(item.note?.trim())).length,
     [bookmarks],
   );
+  const effectiveNotesOnly = notesOnly && notedCount > 0;
+
+  const sortedBookmarks = useMemo(() => {
+    const filtered = effectiveNotesOnly
+      ? bookmarks.filter((item) => Boolean(item.note?.trim()))
+      : bookmarks;
+
+    return [...filtered].sort((left, right) => {
+      if (sortBy === "position" && left.percentage !== right.percentage) {
+        return left.percentage - right.percentage;
+      }
+      const leftTime = new Date(left.created_at).getTime();
+      const rightTime = new Date(right.created_at).getTime();
+
+      if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
+      return rightTime - leftTime;
+    });
+  }, [bookmarks, effectiveNotesOnly, sortBy]);
 
   function handleStartEdit(bookmark: ReaderBookmark) {
     editSessionRef.current += 1;
@@ -263,23 +281,83 @@ export function ReaderBookmarksSheet({
       }
       headerExtra={
         bookmarks.length > 0 ? (
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportMarkdown}
-              className="reader-panel-secondary !h-8 px-2.5 text-xs"
-            >
-              <Download className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
-              <span>导出 Markdown</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleCopyMarkdown()}
-              className="reader-panel-secondary !h-8 px-2.5 text-xs"
-            >
-              <Copy className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
-              <span>复制 Markdown</span>
-            </button>
+          <div className="mt-2.5 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportMarkdown}
+                className="reader-panel-secondary !h-8 px-2.5 text-xs"
+              >
+                <Download className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                <span>导出 Markdown</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCopyMarkdown()}
+                className="reader-panel-secondary !h-8 px-2.5 text-xs"
+              >
+                <Copy className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+                <span>复制 Markdown</span>
+              </button>
+            </div>
+            {(bookmarks.length > 1 || notedCount > 0) && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                {bookmarks.length > 1 ? (
+                  <div
+                    role="group"
+                    aria-label="书签排序"
+                    className="inline-flex items-center gap-1"
+                  >
+                    {(
+                      [
+                        { id: "recent", label: "按时间" },
+                        { id: "position", label: "按进度" },
+                      ] as const
+                    ).map((option) => {
+                      const isActive = sortBy === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setSortBy(option.id)}
+                          aria-pressed={isActive}
+                          className="reader-settings-option inline-flex h-7 items-center rounded-full border px-2.5 text-xs font-medium"
+                          style={{
+                            borderColor: isActive ? uiScheme.link : surface.hairline,
+                            background: isActive ? withOpacity(uiScheme.link, 0.08) : "transparent",
+                            color: isActive ? uiScheme.link : surface.fg,
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span />
+                )}
+                {notedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setNotesOnly((prev) => !prev)}
+                    aria-pressed={effectiveNotesOnly}
+                    className="reader-settings-option inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-medium"
+                    style={{
+                      borderColor: effectiveNotesOnly ? uiScheme.link : surface.hairline,
+                      background: effectiveNotesOnly
+                        ? withOpacity(uiScheme.link, 0.08)
+                        : "transparent",
+                      color: effectiveNotesOnly ? uiScheme.link : surface.fg,
+                    }}
+                  >
+                    <span>有笔记</span>
+                    <span className="font-mono text-[11px] tabular-nums opacity-80">
+                      {notedCount}
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : null
       }

@@ -685,4 +685,89 @@ describe('ReaderBookmarksSheet', () => {
     rerender(<ReaderBookmarksSheet {...baseProps} open bookmarks={bookmarks} />);
     expect(screen.queryByRole('textbox', { name: '书签备注' })).not.toBeInTheDocument();
   });
+
+  it('sorts bookmarks by reading position and filters to entries with notes', () => {
+    const bookmarks: Bookmark[] = [
+      {
+        id: 'bm-late-early-time',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/8!/4/2)',
+        chapter: '第八章 尾声',
+        percentage: 80,
+        note: '结尾心得',
+        created_at: '2026-05-03T10:00:00.000Z',
+      },
+      {
+        id: 'bm-early-pos',
+        book_id: 'book-1',
+        user_id: 'reader',
+        cfi: 'epubcfi(/6/2!/4/2)',
+        chapter: '第一章 序曲',
+        percentage: 12,
+        note: '',
+        created_at: '2026-05-02T10:00:00.000Z',
+      },
+    ];
+
+    render(
+      <ReaderBookmarksSheet
+        open
+        onOpenChange={vi.fn()}
+        bookmarks={bookmarks}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.light}
+        canCreate
+        isSaving={false}
+        onCreate={vi.fn()}
+        onGoTo={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const getRenderedOrder = () =>
+      screen
+        .getAllByRole('button', { name: /^打开书签：/ })
+        .map((button) => button.getAttribute('aria-label'));
+
+    // Default sort: newest created_at first
+    expect(getRenderedOrder()).toEqual([
+      '打开书签：第八章 尾声，80.0%',
+      '打开书签：第一章 序曲，12.0%',
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: '按进度' }));
+    expect(getRenderedOrder()).toEqual([
+      '打开书签：第一章 序曲，12.0%',
+      '打开书签：第八章 尾声，80.0%',
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: /有笔记/ }));
+    expect(getRenderedOrder()).toEqual(['打开书签：第八章 尾声，80.0%']);
+  });
+
+  it('jumps to quick progress milestone fractions from the TOC footer', () => {
+    const onGoToFraction = vi.fn();
+
+    render(
+      <ReaderTOCSheet
+        open
+        onOpenChange={vi.fn()}
+        toc={createLongTOC()}
+        bookTitle="测试书籍"
+        bookAuthor="作者"
+        tocListRef={{ current: null }}
+        currentChapter="第一章 初遇"
+        currentChapterHref="ch-1.xhtml"
+        uiScheme={PRESET_STYLES.light}
+        onLocateCurrent={vi.fn()}
+        onGoTo={vi.fn()}
+        percentage={24}
+        onGoToFraction={onGoToFraction}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '跳转到 50%' }));
+    expect(onGoToFraction).toHaveBeenCalledWith(0.5);
+  });
 });

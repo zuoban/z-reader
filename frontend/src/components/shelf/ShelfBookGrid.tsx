@@ -95,7 +95,7 @@ export function ShelfBookGrid({
 
       {isLoadingBooks || isSearching ? (
         <div>
-          <BookCardSkeletonGrid count={6} />
+          <BookCardSkeletonGrid count={6} viewMode={viewMode} />
         </div>
       ) : searchError ? (
         <EmptyState

@@ -19,6 +19,7 @@ import { ReaderEmptyState, ReaderSheet } from "@/components/reader/ReaderSheet";
 import { MemoizedReaderTOCNode } from "@/components/reader/ReaderTOCNode";
 
 const TOC_FILTER_THRESHOLD = 10;
+const PROGRESS_MILESTONES = [0, 25, 50, 75, 100] as const;
 
 function countTOCItems(items: TOCItem[]): number {
   let count = 0;
@@ -447,6 +448,35 @@ export function ReaderTOCSheet({
                 } as CSSProperties
               }
             />
+          </div>
+
+          <div
+            role="group"
+            aria-label="快捷进度跳转"
+            className="mt-1 flex items-center justify-between gap-1"
+          >
+            {PROGRESS_MILESTONES.map((mark) => {
+              const isNear = Math.abs(displayPercentage - mark) < 1.5;
+              return (
+                <button
+                  key={mark}
+                  type="button"
+                  onClick={() => {
+                    setDraftPercentage(null);
+                    onGoToFraction(mark / 100);
+                  }}
+                  aria-label={`跳转到 ${mark}%`}
+                  className="cursor-pointer rounded px-1.5 py-0.5 font-mono text-[11px] tabular-nums transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{
+                    color: isNear ? uiScheme.link : surface.muted,
+                    fontWeight: isNear ? 600 : 400,
+                    outlineColor: uiScheme.link,
+                  }}
+                >
+                  {mark}%
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : null}

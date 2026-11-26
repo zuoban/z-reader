@@ -528,4 +528,20 @@ describe('ShelfPage', () => {
     fireEvent.click(resumeBtn);
     expect(mockPush).toHaveBeenCalledWith(`/read/${sampleBook.id}`);
   });
+
+  it('renders list-mode skeletons while loading in list view mode', () => {
+    window.localStorage.setItem('z-reader-shelf-view-mode', 'list');
+    mockShelfData = {
+      ...mockShelfData,
+      books: [],
+      filteredBooks: [],
+      isLoadingBooks: true,
+    };
+
+    const { container } = render(<ShelfPage />);
+
+    const listSkeleton = container.querySelector('[data-skeleton-mode="list"]');
+    expect(listSkeleton).toBeInTheDocument();
+    expect(listSkeleton?.querySelectorAll('.shelf-book-row')).toHaveLength(6);
+  });
 });

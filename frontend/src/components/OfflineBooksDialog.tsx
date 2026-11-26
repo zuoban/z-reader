@@ -202,9 +202,9 @@ export function OfflineBooksDialog({
               </Button>
             </div>
           ) : books.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
-                <BookOpen className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
+              <div className="app-sheet-icon flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/15">
+                <BookOpen className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
               </div>
               <p className="mt-3 text-sm font-medium text-foreground">
                 暂无已保存的离线图书
@@ -228,7 +228,7 @@ export function OfflineBooksDialog({
                     )}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/75 bg-card text-muted-foreground">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-accent/60 text-accent-foreground">
                         <BookOpen className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
                       </div>
                       <div className="min-w-0 flex-1">

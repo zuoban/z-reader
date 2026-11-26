@@ -102,15 +102,15 @@ export function ConfirmDialog({
         inner:
           'pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1rem,env(safe-area-inset-bottom,0px))]',
         content:
-          'app-dialog-shell overscroll-contain rounded-2xl border p-5 text-sm text-popover-foreground outline-none',
+          'app-dialog-shell overscroll-contain rounded-2xl border p-5 sm:p-6 text-sm text-popover-foreground outline-none',
       }}
     >
       <Modal.Overlay backgroundOpacity={0.42} blur={3} />
       <Modal.Content ref={handleContentRef}>
-        <div className="flex gap-3">
+        <div className="flex gap-3.5">
           <div
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border',
               isDestructive
                 ? 'border-destructive/20 bg-destructive/10 text-destructive'
                 : 'app-sheet-icon border-primary/15'

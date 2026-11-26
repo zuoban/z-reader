@@ -167,9 +167,9 @@ export function CategoryManagerSheet({
       >
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             {normalizedCategories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
-                  <Tags className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/35 px-5 py-9 text-center">
+                <div className="app-sheet-icon flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/15">
+                  <Tags className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-foreground">暂无图书分类</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -292,7 +292,7 @@ export function CategoryManagerSheet({
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/75 bg-card text-muted-foreground transition-colors group-hover:border-primary/25 group-hover:text-primary">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-accent/60 text-accent-foreground transition-colors group-hover:border-primary/30 group-hover:bg-accent">
                             <Tag className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
                           </div>
 

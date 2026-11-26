@@ -392,11 +392,11 @@ export function BookMetadataDialog({
               <div className="mb-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-muted-foreground">封面</span>
                 {pendingCoverFile ? (
-                  <span className="rounded-md bg-primary/12 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                  <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[11px] font-medium text-primary">
                     待保存
                   </span>
                 ) : pendingRemoveCover ? (
-                  <span className="rounded-md border border-destructive/30 bg-card px-1.5 py-0.5 text-[11px] font-medium text-destructive">
+                  <span className="rounded-full border border-destructive/30 bg-card px-2 py-0.5 text-[11px] font-medium text-destructive">
                     待移除
                   </span>
                 ) : null}
@@ -405,8 +405,8 @@ export function BookMetadataDialog({
                 <div
                   data-cover-preview="true"
                   className={cn(
-                    'relative flex h-[4.5rem] w-[3rem] shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/80 bg-secondary/50 transition-colors',
-                    isDraggingCover && 'border-primary bg-primary/10'
+                    'book-cover-spine relative flex aspect-[5/7] w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/80 bg-secondary/50 shadow-xs transition-colors',
+                    isDraggingCover && 'border-primary bg-primary/10 ring-2 ring-primary/20'
                   )}
                 >
                   {previewCoverUrl ? (

@@ -70,11 +70,12 @@
   }
 
   .reader-image-close {
-    @apply inline-flex size-11 cursor-pointer items-center justify-center rounded-xl border text-white/90 sm:size-10;
-    background: rgba(24, 23, 20, 0.62);
-    border-color: rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    @apply inline-flex size-11 cursor-pointer items-center justify-center rounded-full border text-white/90 sm:size-10;
+    background: rgba(24, 23, 20, 0.68);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
       color var(--paper-duration-fast) var(--paper-ease-soft),
@@ -82,8 +83,8 @@
   }
 
   .reader-image-close:hover {
-    background: rgba(38, 36, 32, 0.82);
-    border-color: rgba(255, 255, 255, 0.24);
+    background: rgba(38, 36, 32, 0.86);
+    border-color: rgba(255, 255, 255, 0.28);
     color: #fff;
   }
 
@@ -95,11 +96,11 @@
 
   .reader-image-dock {
     @apply inline-flex items-center gap-0.5 rounded-full border p-1;
-    background: rgba(24, 23, 20, 0.72);
-    border-color: rgba(255, 255, 255, 0.14);
-    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(24, 23, 20, 0.76);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 14px 36px -12px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
   }
 
   .reader-image-control {
@@ -644,10 +645,11 @@
   }
 
   .reader-search-mark {
-    border-radius: 0.3rem;
-    background: color-mix(in srgb, var(--reader-panel-accent) 18%, transparent);
-    padding-inline: 0.125rem;
-    color: inherit;
+    border-radius: 0.35rem;
+    background: color-mix(in srgb, var(--reader-panel-accent) 20%, transparent);
+    padding-inline: 0.2rem;
+    font-weight: 500;
+    color: var(--reader-panel-fg);
   }
 
   @media (prefers-reduced-motion: no-preference) {

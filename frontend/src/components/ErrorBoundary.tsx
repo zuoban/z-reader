@@ -46,15 +46,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="flex min-h-[60dvh] flex-col items-center justify-center pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(1.5rem,env(safe-area-inset-top,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] text-center">
           <div
             role="alert"
-            className="paper-panel w-full max-w-md rounded-2xl px-6 py-10 sm:px-8"
+            className="paper-panel w-full max-w-md rounded-3xl px-6 py-10 sm:px-8"
           >
-            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+            <div className="mx-auto mb-5 flex h-13 w-13 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 text-destructive">
               <AlertTriangle className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
             </div>
-            <h2 className="font-heading text-xl font-medium text-foreground">
+            <h2 className="font-heading text-xl font-medium text-foreground sm:text-2xl">
               页面出现了问题
             </h2>
-            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+            <p className="mx-auto mt-2.5 max-w-sm text-sm leading-6 text-muted-foreground">
               页面遇到意外错误，请重试或刷新。如果问题持续，请联系管理员。
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">

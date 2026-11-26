@@ -437,11 +437,20 @@ export function ReaderSearchSheet({
               >
                 {group.sectionLabel ? (
                   <h3
-                    className="truncate px-2.5 pt-1 text-xs font-medium"
+                    className="flex items-center justify-between gap-2 px-2.5 pt-1 text-xs font-medium"
                     style={{ color: surface.muted }}
                     title={group.sectionLabel}
                   >
-                    {group.sectionLabel}
+                    <span className="min-w-0 truncate">{group.sectionLabel}</span>
+                    <span
+                      className="shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--reader-panel-hover) 72%, transparent)",
+                      }}
+                    >
+                      {group.items.length}
+                    </span>
                   </h3>
                 ) : null}
                 <div className="space-y-0.5">

@@ -384,7 +384,18 @@ export function useReaderTheme() {
         height: auto !important;
       }
       img {
-        border-radius: 0.35rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 6px 20px -10px ${withOpacity(preset.fg, isDark ? 0.5 : 0.16)};
+      }
+      figure {
+        margin: 1.4em auto !important;
+        text-align: center;
+      }
+      figcaption {
+        margin-top: 0.6em !important;
+        font-size: 0.85em !important;
+        line-height: 1.5 !important;
+        color: ${withOpacity(preset.fg, 0.7)} !important;
       }
       table {
         border-collapse: collapse;

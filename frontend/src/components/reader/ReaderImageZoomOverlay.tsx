@@ -197,6 +197,8 @@ export function ReaderImageZoomOverlay({
                 <Minus className="h-4 w-4" aria-hidden="true" />
               </button>
 
+              <span aria-hidden="true" className="h-4 w-px bg-white/12" />
+
               <button
                 aria-label={isZoomed ? `重置缩放（当前 ${zoomPercent}%）` : '当前 100%'}
                 className="reader-image-control min-w-[3.75rem] gap-1 px-2.5 tabular-nums"
@@ -210,6 +212,8 @@ export function ReaderImageZoomOverlay({
                 ) : null}
                 <span>{zoomPercent}%</span>
               </button>
+
+              <span aria-hidden="true" className="h-4 w-px bg-white/12" />
 
               <button
                 aria-label="放大图片"

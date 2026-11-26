@@ -139,8 +139,11 @@ function ReaderSelect({
         >
           <div className="flex items-center gap-2 overflow-hidden">
             <span
-              className="shrink-0 text-xs font-medium"
-              style={{ color: 'var(--reader-panel-muted)' }}
+              className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-none"
+              style={{
+                background: 'color-mix(in srgb, var(--reader-panel-hover) 72%, transparent)',
+                color: 'var(--reader-panel-muted)',
+              }}
             >
               {prefixLabel}
             </span>

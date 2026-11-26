@@ -3,13 +3,15 @@
 
 @layer components {
   .category-chip-pill {
-    @apply inline-flex min-h-10 max-w-full cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-[13px] font-medium sm:min-h-9;
+    @apply inline-flex min-h-10 max-w-full cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-left text-[13px] font-medium sm:min-h-9;
     border-color: var(--border);
     background: var(--card);
     color: var(--muted-foreground);
+    box-shadow: var(--paper-shadow-control);
     transition: background-color var(--paper-duration-fast) var(--paper-ease-soft),
       border-color var(--paper-duration-fast) var(--paper-ease-soft),
       color var(--paper-duration-fast) var(--paper-ease-soft),
+      box-shadow var(--paper-duration-fast) var(--paper-ease-soft),
       transform var(--paper-duration-fast) var(--paper-ease-soft);
   }
 
@@ -20,16 +22,17 @@
   }
 
   .category-chip-pill:enabled:hover {
-    border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+    border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
     color: var(--foreground);
     background: var(--secondary);
   }
 
   .category-chip-pill[data-active="true"],
   .category-chip-pill-active {
-    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
-    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
     color: var(--primary);
+    box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
   .category-chip-pill[data-active="true"]:enabled:hover,

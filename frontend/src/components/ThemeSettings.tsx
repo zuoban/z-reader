@@ -120,6 +120,19 @@ const SETTINGS_SECTIONS = [
 
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]["id"];
 
+const SECTION_THEME_KEYS: Record<SettingsSection, ReadonlyArray<keyof ReaderTheme>> = {
+  appearance: ["preset", "flow"],
+  layout: ["fontFamily", "fontSize", "lineHeight"],
+  advanced: [
+    "pagePaddingX",
+    "pagePaddingY",
+    "paragraphSpacing",
+    "maxInlineSize",
+    "chineseIndent",
+    "punctuationSqueeze",
+  ],
+};
+
 interface ThemeSettingsProps {
   theme: ReaderTheme;
   setTheme: (theme: Partial<ReaderTheme>) => void;
@@ -320,7 +333,9 @@ function ReaderPreview({
   theme: ReaderTheme;
 }) {
   const preset = PRESET_STYLES[theme.preset];
-  const fontStack = FONT_FAMILY_OPTIONS[theme.fontFamily].stack;
+  const presetLabel = PRESETS.find((item) => item.key === theme.preset)?.label ?? theme.preset;
+  const fontOption = FONT_FAMILY_OPTIONS[theme.fontFamily];
+  const fontStack = fontOption.stack;
   const passageId = useId();
   const [expanded, setExpanded] = useState(true);
 
@@ -353,13 +368,14 @@ function ReaderPreview({
           阅读预览
         </span>
         <span
-          className="mr-auto rounded-full px-2 py-0.5 font-mono text-[11px] tabular-nums"
+          data-preview-summary="true"
+          className="mr-auto truncate rounded-full px-2 py-0.5 font-mono text-[11px] tabular-nums"
           style={{
             background: withOpacity(preset.fg, 0.06),
             color: withOpacity(preset.fg, 0.78),
           }}
         >
-          {theme.fontSize}px · {theme.lineHeight.toFixed(2)}
+          {presetLabel} · {fontOption.label} · {theme.fontSize}px / {theme.lineHeight.toFixed(2)}
         </span>
         <button
           type="button"
@@ -468,6 +484,17 @@ export function ThemeSettings({
           >
             已恢复默认
           </span>
+        ) : !isDefaultTheme ? (
+          <span
+            data-theme-customized="true"
+            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+            style={{
+              background: withOpacity(uiScheme.link, 0.12),
+              color: uiScheme.link,
+            }}
+          >
+            已自定义
+          </span>
         ) : null
       }
       subtitle={
@@ -518,15 +545,30 @@ export function ThemeSettings({
               aria-label="阅读设置分类"
               className="reader-segmented-list mx-4 mt-3 grid shrink-0 grid-cols-3 gap-1 p-1 sm:mx-6"
             >
-              {SETTINGS_SECTIONS.map((section) => (
-                <Tabs.Tab
-                  key={section.id}
-                  value={section.id}
-                  className="reader-segmented-tab"
-                >
-                  {section.label}
-                </Tabs.Tab>
-              ))}
+              {SETTINGS_SECTIONS.map((section) => {
+                const isSectionCustomized = SECTION_THEME_KEYS[section.id].some(
+                  (key) => theme[key] !== DEFAULT_READER_THEME[key],
+                );
+                return (
+                  <Tabs.Tab
+                    key={section.id}
+                    value={section.id}
+                    className="reader-segmented-tab"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <span>{section.label}</span>
+                      {isSectionCustomized && (
+                        <span
+                          aria-hidden="true"
+                          data-tab-customized={section.id}
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ background: uiScheme.link }}
+                        />
+                      )}
+                    </span>
+                  </Tabs.Tab>
+                );
+              })}
             </Tabs.List>
 
             <div className="reader-panel-body custom-scrollbar px-4 pb-5 pt-4 sm:px-6">

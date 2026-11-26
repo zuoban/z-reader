@@ -154,4 +154,45 @@ describe('ThemeSettings preview', () => {
       maxInlineSize: 720,
     });
   });
+
+  it('displays live preview summary and per-tab customization indicators only when modified', () => {
+    const { container, rerender } = render(
+      <ThemeSettings
+        theme={DEFAULT_READER_THEME}
+        setTheme={vi.fn()}
+        uiScheme={PRESET_STYLES.light}
+        open
+      />,
+    );
+
+    expect(container.querySelector('[data-theme-customized="true"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-tab-customized]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-preview-summary="true"]')).toHaveTextContent(
+      `净白 · ${FONT_FAMILY_OPTIONS[DEFAULT_READER_THEME.fontFamily].label} · 17px / 1.70`,
+    );
+
+    rerender(
+      <ThemeSettings
+        theme={{
+          ...DEFAULT_READER_THEME,
+          preset: 'sepia',
+          fontFamily: 'classic',
+          fontSize: 19,
+          lineHeight: 1.85,
+          maxInlineSize: 720,
+        }}
+        setTheme={vi.fn()}
+        uiScheme={PRESET_STYLES.sepia}
+        open
+      />,
+    );
+
+    expect(container.querySelector('[data-theme-customized="true"]')).toHaveTextContent('已自定义');
+    expect(container.querySelector('[data-tab-customized="appearance"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-tab-customized="layout"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-tab-customized="advanced"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-preview-summary="true"]')).toHaveTextContent(
+      `旧书 · ${FONT_FAMILY_OPTIONS.classic.label} · 19px / 1.85`,
+    );
+  });
 });

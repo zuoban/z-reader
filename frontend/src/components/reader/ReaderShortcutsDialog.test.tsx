@@ -30,6 +30,7 @@ describe('ReaderShortcutsDialog', () => {
     expect(screen.getByRole('dialog', { name: '键盘快捷键' })).toBeInTheDocument();
     expect(screen.getByText('翻页导航')).toBeInTheDocument();
     expect(screen.getByText('视图与浮层')).toBeInTheDocument();
+    expect(screen.getByText('外观与调节')).toBeInTheDocument();
     expect(screen.getByText('上一页')).toBeInTheDocument();
     expect(screen.getByText('下一页')).toBeInTheDocument();
     expect(screen.getByText('目录')).toBeInTheDocument();

@@ -30,12 +30,8 @@ function getReaderShortcutGroups(
         ]
       : []),
     { label: "排版与外观", keys: ["S"] },
-    { label: "切换纸面主题", keys: ["P"] },
-    { label: "调节字号", keys: ["[", "]"] },
-    { label: "切换沉浸模式", keys: ["H"] },
     { label: "书内搜索", keys: ["⌘/Ctrl + F"] },
     ...(isFullscreenSupported ? [{ label: "切换全屏", keys: ["F"] }] : []),
-    { label: "图片预览缩放", keys: ["+", "-", "0"] },
     { label: "快捷键帮助", keys: ["?"] },
     {
       label: isFullscreenSupported
@@ -56,6 +52,15 @@ function getReaderShortcutGroups(
     {
       title: "视图与浮层",
       items: overlayItems,
+    },
+    {
+      title: "外观与调节",
+      items: [
+        { label: "切换纸面主题", keys: ["P"] },
+        { label: "调节字号", keys: ["[", "]"] },
+        { label: "切换沉浸模式", keys: ["H"] },
+        { label: "图片预览缩放", keys: ["+", "-", "0"] },
+      ],
     },
   ];
 }

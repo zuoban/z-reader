@@ -100,10 +100,13 @@ export function ShelfToolbar({
 
   return (
     <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="font-heading text-2xl font-normal leading-tight tracking-[-0.02em] text-foreground sm:text-[28px]">
-          我的书库
-        </h1>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="flex items-center gap-2.5">
+          <span aria-hidden="true" className="inline-block h-5 w-1 rounded-full bg-primary" />
+          <h1 className="font-heading text-2xl font-normal leading-tight tracking-[-0.02em] text-foreground sm:text-[28px]">
+            我的书库
+          </h1>
+        </div>
         {!isOffline && !isLoadingBooks && !loadError && (
           <p
             className="inline-flex shrink-0 items-baseline gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground shadow-2xs"
@@ -179,7 +182,7 @@ export function ShelfToolbar({
               rightSectionPointerEvents={searchQuery ? 'all' : 'none'}
               rightSectionWidth={36}
               classNames={{
-                input: 'shelf-search app-field pl-9 pr-9 sm:h-9 sm:text-sm',
+                input: 'shelf-search app-field pl-9 pr-9 shadow-2xs sm:h-9 sm:text-sm',
               }}
             />
           </div>

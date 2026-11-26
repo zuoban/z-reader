@@ -249,7 +249,7 @@ export const BookCard = memo(function BookCard({
   return (
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
       <article
-        className="shelf-book-card flex min-w-0 flex-1 flex-col"
+        className="shelf-book-card group/article flex min-w-0 flex-1 flex-col"
         data-selected={selected}
         data-deleting={isDeleting || undefined}
         aria-busy={isDeleting || isReparsing || undefined}
@@ -276,6 +276,14 @@ export const BookCard = memo(function BookCard({
               <div className="shelf-book-selection" aria-hidden="true">
                 {selected && <Check className="h-4 w-4" strokeWidth={1.75} />}
               </div>
+            )}
+            {!selectionMode && progressValue > 0 && progressValue < 100 && (
+              <span aria-hidden="true" className="shelf-book-ribbon" />
+            )}
+            {!selectionMode && book.processing_state !== 'pending' && (
+              <span aria-hidden="true" className="shelf-book-format-badge">
+                {formatLabel}
+              </span>
             )}
             {book.processing_state === 'pending' && (
               <span className="absolute left-2 top-2 z-10 inline-flex max-w-[calc(100%-3rem)] items-center gap-1 rounded-md border border-border/80 bg-card/92 px-2 py-1 text-[11px] font-medium text-foreground shadow-xs backdrop-blur-xs">

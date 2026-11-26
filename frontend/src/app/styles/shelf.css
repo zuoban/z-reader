@@ -245,6 +245,35 @@
     color: var(--primary-foreground);
   }
 
+  .shelf-book-ribbon {
+    position: absolute;
+    top: 0;
+    right: 0.75rem;
+    z-index: 4;
+    width: 10px;
+    height: 22px;
+    background: var(--primary);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
+    filter: drop-shadow(0 2px 4px rgb(0 0 0 / 28%));
+    pointer-events: none;
+  }
+
+  .shelf-book-format-badge {
+    @apply pointer-events-none absolute left-2.5 top-2.5 z-[4] rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none opacity-0;
+    border-color: rgb(255 255 255 / 18%);
+    background: rgb(20 19 18 / 68%);
+    color: #fcfbf8;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) {
+    .shelf-book-card:hover .shelf-book-format-badge {
+      opacity: 1;
+    }
+  }
+
   /* Details (100px) + actions (44px) match SHELF_CARD_BODY_HEIGHT_PX. */
   .shelf-book-details {
     @apply flex h-25 w-full flex-col justify-between px-3 pt-2.5 pb-1.5;
@@ -264,7 +293,7 @@
 
   .shelf-book-action:enabled:hover,
   .shelf-book-action:focus-visible {
-    background: var(--secondary);
+    background: color-mix(in srgb, var(--accent) 72%, transparent);
     color: var(--primary);
   }
 

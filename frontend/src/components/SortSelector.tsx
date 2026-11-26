@@ -37,7 +37,7 @@ export function SortSelector({ value, onChange, className }: SortSelectorProps) 
           aria-expanded={open}
           title={currentOption ? `排序：${currentOption.label}` : '书籍排序方式'}
           className={cn(
-            'app-field group min-h-0 w-full cursor-pointer px-0 text-sm font-medium text-foreground transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 data-[expanded]:border-primary/40 data-[expanded]:bg-secondary/80 sm:pl-3 sm:pr-2.5 sm:text-sm',
+            'app-field group min-h-0 w-full cursor-pointer px-0 text-sm font-medium text-foreground shadow-2xs transition-[background-color,border-color,color,transform] duration-150 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100 data-[expanded]:border-primary/40 data-[expanded]:bg-secondary/80 sm:pl-3 sm:pr-2.5 sm:text-sm',
             className
           )}
           classNames={{

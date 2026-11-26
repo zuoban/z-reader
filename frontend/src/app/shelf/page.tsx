@@ -16,6 +16,7 @@ import { ShelfBookGrid } from '@/components/shelf/ShelfBookGrid';
 import { ShelfCategoryBar } from '@/components/shelf/ShelfCategoryBar';
 import { ShelfDialogs } from '@/components/shelf/ShelfDialogs';
 import { ShelfDropOverlay } from '@/components/shelf/ShelfDropOverlay';
+import { ShelfScrollToTop } from '@/components/shelf/ShelfScrollToTop';
 import {
   ShelfAuthLoadingView,
   ShelfEmptyLibraryState,
@@ -404,6 +405,10 @@ export default function ShelfPage() {
           onRenameCategory={saveManagedCategory}
           offlineBooksOpen={offlineBooksOpen}
           onOfflineBooksOpenChange={setOfflineBooksOpen}
+        />
+
+        <ShelfScrollToTop
+          hasBatchBar={selectionMode && !isLoadingBooks && !isSearching && filteredBooks.length > 0}
         />
       </main>
     </AppScreen>

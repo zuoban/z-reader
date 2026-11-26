@@ -60,7 +60,7 @@ export function ShelfBookGrid({
   return (
     <section
       className={cn(
-        'relative border-t border-border pt-4 sm:pt-5',
+        'relative border-t border-border/65 pt-4 sm:pt-5',
         selectionMode && filteredBooks.length > 0 && 'mb-44 sm:mb-28'
       )}
     >
@@ -168,7 +168,7 @@ export function ShelfBookGrid({
             <Button
               type="button"
               variant="default"
-              className="min-h-11 cursor-pointer rounded-lg px-5"
+              className="min-h-11 cursor-pointer rounded-full px-6 shadow-[var(--paper-shadow-control)]"
               onClick={() => void onLoadMore()}
             >
               加载更多图书

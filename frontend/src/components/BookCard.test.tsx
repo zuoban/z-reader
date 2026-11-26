@@ -404,4 +404,42 @@ describe('BookCard', () => {
     expect(coverImgV2).toHaveAttribute('src', 'blob:cover-v2');
     expect(screen.getByRole('textbox', { name: '书名' })).toHaveValue('红楼梦（精校版）');
   });
+
+  it('renders a reading ribbon only for in-progress books outside selection mode', () => {
+    const { container, rerender } = renderCard();
+    expect(container.querySelector('.shelf-book-ribbon')).toBeInTheDocument();
+
+    rerender(
+      <BookCard
+        book={book}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={vi.fn()}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+        progressPercentage={42}
+        selectionMode
+      />,
+    );
+    expect(container.querySelector('.shelf-book-ribbon')).not.toBeInTheDocument();
+
+    rerender(
+      <BookCard
+        book={book}
+        index={0}
+        categories={[]}
+        bookCounts={{}}
+        onRead={vi.fn()}
+        onDelete={vi.fn()}
+        onUpdate={vi.fn()}
+        isDeleting={false}
+        formatSize={() => '100 B'}
+        progressPercentage={100}
+      />,
+    );
+    expect(container.querySelector('.shelf-book-ribbon')).not.toBeInTheDocument();
+  });
 });

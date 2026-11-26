@@ -110,7 +110,7 @@ export function ShelfCategoryBar({
             size="xs"
             disabled={isBatchBusy}
             leftSection={<Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />}
-            className="min-h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-[0.98] motion-reduce:active:scale-100"
+            className="min-h-8 shrink-0 cursor-pointer rounded-full px-3 text-[13px] font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground active:scale-[0.98] motion-reduce:active:scale-100"
             onClick={onOpenCategoryManager}
           >
             管理
@@ -123,9 +123,9 @@ export function ShelfCategoryBar({
             disabled={isBatchBusy}
             leftSection={<CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />}
             className={cn(
-              'min-h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100',
+              'min-h-8 shrink-0 cursor-pointer rounded-full px-3 text-[13px] font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100',
               selectionMode
-                ? 'bg-primary text-primary-foreground hover:bg-primary/92'
+                ? 'bg-primary text-primary-foreground shadow-[var(--paper-shadow-primary)] hover:bg-primary/92'
                 : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
             )}
             onClick={onToggleSelectionMode}

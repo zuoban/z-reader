@@ -36,6 +36,7 @@ export function CategorySelector({
 
     try {
       await api.updateBook(bookId, { category: nextCategory });
+      toast.success(nextCategory ? `已归入「${nextCategory}」` : '已移除分类');
       onUpdate();
       onOpenChange(false);
     } catch (err) {

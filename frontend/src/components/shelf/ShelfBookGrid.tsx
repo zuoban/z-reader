@@ -192,6 +192,23 @@ export function ShelfBookGrid({
           )}
         </div>
       )}
+
+      {!hasMoreBooks &&
+        !isLoadingMoreBooks &&
+        !isLoadingBooks &&
+        !isSearching &&
+        !searchError &&
+        !isFiltered &&
+        filteredBooks.length >= 4 && (
+          <div
+            data-shelf-colophon="true"
+            className="flex items-center justify-center gap-3 py-8 text-xs tabular-nums text-muted-foreground"
+          >
+            <span aria-hidden="true" className="h-px w-8 bg-border" />
+            <span>已显示全部 {books.length} 本藏书</span>
+            <span aria-hidden="true" className="h-px w-8 bg-border" />
+          </div>
+        )}
     </section>
   );
 }

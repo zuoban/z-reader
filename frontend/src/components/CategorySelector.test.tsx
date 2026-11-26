@@ -81,6 +81,7 @@ describe('CategorySelector', () => {
     await waitFor(() => {
       expect(api.updateBook).toHaveBeenCalledWith('book-1', { category: '科幻' });
     });
+    expect(toast.success).toHaveBeenCalledWith('已归入「科幻」');
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -143,6 +144,7 @@ describe('CategorySelector', () => {
     await waitFor(() => {
       expect(api.updateBook).toHaveBeenLastCalledWith('book-1', { category: null });
     });
+    expect(toast.success).toHaveBeenCalledWith('已移除分类');
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

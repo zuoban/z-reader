@@ -1,13 +1,17 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@/test/render';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { TTSControls } from '@/components/TTSControls';
 import { ReaderTTSControlTrigger } from '@/components/reader/ReaderTTSControlTrigger';
-import type { ReaderTTSRuntimeState } from '@/components/reader/ReaderTTSRuntime';
+import {
+  ReaderTTSRuntime,
+  type ReaderTTSRuntimeState,
+} from '@/components/reader/ReaderTTSRuntime';
 import { useReaderControls } from '@/hooks/useReaderControls';
 import { useReaderSheets } from '@/hooks/useReaderSheets';
 import { useReaderTTSBridge } from '@/hooks/useReaderTTSBridge';
 import { PRESET_STYLES } from '@/hooks/useReaderTheme';
+import type { FoliateView } from '@/lib/types';
 
 const uiScheme = PRESET_STYLES.light;
 
@@ -264,5 +268,70 @@ describe('useReaderTTSBridge + useReaderSheets coordination', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('mounts the real ReaderTTSRuntime without entering an infinite sync loop', async () => {
+    const syncSpy = vi.fn();
+    const hideHeader = vi.fn();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('[]', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    function RealRuntimeHarness() {
+      const [overlayContainer, setOverlayContainer] = useState<HTMLDivElement | null>(null);
+      const viewRef = useRef<FoliateView | null>(null);
+      const [ttsOpen, setTtsOpen] = useState(false);
+      const bridge = useReaderTTSBridge({
+        uiScheme,
+        overlayContainer,
+        hideHeader,
+        ttsOpen,
+        onTtsOpenChange: setTtsOpen,
+      });
+      const { handleSyncTTSRuntime } = bridge;
+      const handleSync = useCallback(
+        (runtime: ReaderTTSRuntimeState | null) => {
+          syncSpy(runtime);
+          handleSyncTTSRuntime(runtime);
+        },
+        [handleSyncTTSRuntime],
+      );
+
+      return (
+        <div ref={setOverlayContainer}>
+          {bridge.ttsRequested && (
+            <ReaderTTSRuntime
+              viewRef={viewRef}
+              bookId="book-1"
+              onSync={handleSync}
+            />
+          )}
+          <button type="button" onClick={bridge.requestTTS}>
+            open-real-tts
+          </button>
+          <span data-testid="runtime-ready">{String(bridge.runtimeReady)}</span>
+        </div>
+      );
+    }
+
+    try {
+      render(<RealRuntimeHarness />);
+      expect(screen.getByTestId('runtime-ready')).toHaveTextContent('false');
+
+      fireEvent.click(screen.getByRole('button', { name: 'open-real-tts' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('runtime-ready')).toHaveTextContent('true');
+      });
+      expect(syncSpy.mock.calls.length).toBeLessThanOrEqual(5);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

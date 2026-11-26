@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type TTSSleepTimer,
   type TTSVisibleStatus,
@@ -22,6 +22,11 @@ export function useTTSSleepTimer({
   });
   const sleepTimerRef = useRef<TTSSleepTimer>({ mode: 'off', label: '未设置' });
   const sleepTimerTimeoutRef = useRef<number | null>(null);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   const clearSleepTimerTimeout = useCallback(() => {
     if (sleepTimerTimeoutRef.current !== null) {
@@ -56,7 +61,7 @@ export function useTTSSleepTimer({
           tone: 'idle',
         });
         clearSleepTimer();
-        onExpire();
+        onExpireRef.current();
       }, Math.max(0, endsAt - Date.now()));
       updateVisibleStatus({
         headline: '已设置睡眠定时',
@@ -64,7 +69,7 @@ export function useTTSSleepTimer({
         tone: 'active',
       });
     },
-    [clearSleepTimer, clearSleepTimerTimeout, onExpire, updateVisibleStatus]
+    [clearSleepTimer, clearSleepTimerTimeout, updateVisibleStatus]
   );
 
   return {

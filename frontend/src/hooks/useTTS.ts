@@ -86,9 +86,10 @@ export function useTTS({ viewRef, bookId, voicesEnabled = false }: UseTTSOptions
   const { loadTTSSession, saveTTSSession, flushTTSSession, clearTTSSession } = useTTSSession({
     bookId, viewRef, currentMarkRef, getSettings,
   });
+  const handleSleepExpire = useCallback(() => stopRef.current(), []);
   const {
     sleepTimer, sleepTimerRef, setSleepTimerForMinutes, clearSleepTimer, clearSleepTimerTimeout,
-  } = useTTSSleepTimer({ onExpire: () => stopRef.current(), updateVisibleStatus: setTTSStatus });
+  } = useTTSSleepTimer({ onExpire: handleSleepExpire, updateVisibleStatus: setTTSStatus });
   const logTTS = useCallback((event: string, detail?: Record<string, unknown>) => {
     recordTTSDiagnostic(event, detail as Record<string, string | number | boolean | null>);
     if (process.env.NODE_ENV === 'development') console.info(`[tts] ${event}`, detail ?? {});

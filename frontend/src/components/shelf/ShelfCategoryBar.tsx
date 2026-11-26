@@ -4,7 +4,19 @@ import { useEffect, useRef } from 'react';
 import { ActionIcon, Button, Menu } from '@mantine/core';
 import { CheckSquare, MoreHorizontal, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UNCATEGORIZED_FILTER_ID } from './constants';
+import { UNCATEGORIZED_FILTER_ID, type ShelfReadingStatus } from './constants';
+
+export type { ShelfReadingStatus };
+
+const READING_STATUS_OPTIONS: ReadonlyArray<{
+  id: ShelfReadingStatus;
+  label: string;
+}> = [
+  { id: 'all', label: '全部状态' },
+  { id: 'reading', label: '在读' },
+  { id: 'unread', label: '未读' },
+  { id: 'finished', label: '已读完' },
+];
 
 export interface ShelfCategoryBarProps {
   showCategoryFilters: boolean;
@@ -13,6 +25,9 @@ export interface ShelfCategoryBarProps {
   bookCounts: Record<string, number>;
   selectedCategoryId: string | null;
   onSelectCategory: (categoryId: string | null) => void;
+  readingStatus?: ShelfReadingStatus;
+  onSelectReadingStatus?: (status: ShelfReadingStatus) => void;
+  readingCounts?: { reading: number; unread: number; finished: number };
   selectionMode: boolean;
   isBatchBusy: boolean;
   onOpenCategoryManager: () => void;
@@ -26,6 +41,9 @@ export function ShelfCategoryBar({
   bookCounts,
   selectedCategoryId,
   onSelectCategory,
+  readingStatus = 'all',
+  onSelectReadingStatus,
+  readingCounts,
   selectionMode,
   isBatchBusy,
   onOpenCategoryManager,
@@ -57,9 +75,14 @@ export function ShelfCategoryBar({
     };
   }, [showCategoryFilters, categories, bookCounts]);
 
+  const showStatusFilters =
+    Boolean(onSelectReadingStatus) &&
+    Boolean(readingCounts && (readingCounts.reading > 0 || readingCounts.finished > 0));
+
   if (showCategoryFilters) {
     return (
-      <div className="shelf-command-bar flex min-w-0 items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-3.5">
+      <div className="shelf-command-bar flex min-w-0 flex-col gap-2 px-3 py-2 sm:px-3.5">
+        <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
         <div className="shelf-category-strip relative min-w-0 flex-1">
           <div
             ref={categoryStripRef}
@@ -181,6 +204,39 @@ export function ShelfCategoryBar({
             </Menu.Dropdown>
           </Menu>
         </div>
+        </div>
+        {showStatusFilters && onSelectReadingStatus && readingCounts && (
+          <div className="border-t border-border/55 pt-2">
+            <div
+              role="group"
+              aria-label="阅读状态筛选"
+              className="scrollbar-none flex min-w-0 items-center gap-1.5 overflow-x-auto"
+            >
+              {READING_STATUS_OPTIONS.map((option) => {
+                const isActive = readingStatus === option.id;
+                const count =
+                  option.id === 'all' ? null : readingCounts[option.id];
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => onSelectReadingStatus(option.id)}
+                    aria-pressed={isActive}
+                    data-active={isActive}
+                    className="shelf-status-pill"
+                  >
+                    <span>{option.label}</span>
+                    {count !== null && (
+                      <span className="font-mono text-[11px] tabular-nums opacity-75">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

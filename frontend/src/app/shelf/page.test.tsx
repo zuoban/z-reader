@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { fireEvent, render, screen, waitFor } from '@/test/render';
+import { fireEvent, render, screen, waitFor, within } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Book } from '@/lib/api';
 import ShelfPage from '@/app/shelf/page';
@@ -461,5 +461,54 @@ describe('ShelfPage', () => {
     fireEvent.click(remounted.getByRole('button', { name: '网格视图' }));
     expect(window.localStorage.getItem('z-reader-shelf-view-mode')).toBe('grid');
     expect(remounted.getByTestId('mock-virtual-grid')).toBeInTheDocument();
+  });
+
+  it('filters visible books by reading status pills and resets via clear filters', () => {
+    const unreadBook: Book = { ...sampleBook, id: 'book-2', title: '未读之书' };
+    const finishedBook: Book = { ...sampleBook, id: 'book-3', title: '已完结之书' };
+    mockShelfData = {
+      ...mockShelfData,
+      books: [sampleBook, unreadBook, finishedBook],
+      filteredBooks: [sampleBook, unreadBook, finishedBook],
+      bookCounts: { all: 3, uncategorized: 0, 文学: 3 },
+      progressByBookId: {
+        'book-1': 42,
+        'book-2': 0,
+        'book-3': 100,
+      },
+    };
+
+    render(<ShelfPage />);
+
+    const statusGroup = screen.getByRole('group', { name: '阅读状态筛选' });
+    expect(within(statusGroup).getByRole('button', { name: /全部状态/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(within(statusGroup).getByRole('button', { name: /在读/ })).toBeInTheDocument();
+    expect(within(statusGroup).getByRole('button', { name: /未读/ })).toBeInTheDocument();
+    expect(within(statusGroup).getByRole('button', { name: /已读完/ })).toBeInTheDocument();
+
+    fireEvent.click(within(statusGroup).getByRole('button', { name: /在读/ }));
+    expect(screen.getByTestId('mock-book-card-book-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-book-card-book-2')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-book-card-book-3')).not.toBeInTheDocument();
+
+    const clearBtn = screen.getByRole('button', { name: '清除筛选' });
+    expect(clearBtn).toBeInTheDocument();
+
+    fireEvent.click(within(statusGroup).getByRole('button', { name: /已读完/ }));
+    expect(screen.queryByTestId('mock-book-card-book-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-book-card-book-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mock-book-card-book-3')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '清除筛选' }));
+    expect(within(statusGroup).getByRole('button', { name: /全部状态/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByTestId('mock-book-card-book-1')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-book-card-book-2')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-book-card-book-3')).toBeInTheDocument();
   });
 });

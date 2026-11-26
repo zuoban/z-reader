@@ -9,3 +9,5 @@ export const SUPPORTED_FORMATS_ACCEPT = [
 ].join(',');
 
 export const UNCATEGORIZED_FILTER_ID = 'uncategorized';
+
+export type ShelfReadingStatus = 'all' | 'reading' | 'unread' | 'finished';

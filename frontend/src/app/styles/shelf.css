@@ -107,6 +107,38 @@
     -webkit-backdrop-filter: blur(12px) saturate(125%);
   }
 
+  .shelf-status-pill {
+    @apply inline-flex min-h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1 text-xs font-medium text-muted-foreground;
+    transition:
+      background-color var(--paper-duration-fast) var(--paper-ease-soft),
+      border-color var(--paper-duration-fast) var(--paper-ease-soft),
+      color var(--paper-duration-fast) var(--paper-ease-soft);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .shelf-status-pill:hover {
+      background: color-mix(in srgb, var(--secondary) 85%, transparent);
+      color: var(--foreground);
+    }
+  }
+
+  .shelf-status-pill[data-active='true'] {
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
+    color: var(--primary);
+  }
+
+  .shelf-status-pill:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .shelf-filtered-bar {
+    border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    border-radius: var(--radius-xl);
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+  }
+
   .shelf-view-toggle {
     display: inline-flex;
     align-items: center;
@@ -159,6 +191,12 @@
     .shelf-book-row:not([data-deleting="true"]):hover {
       --book-card-edge: color-mix(in srgb, var(--primary) 26%, var(--border));
       box-shadow: inset 0 0 0 1px var(--book-card-edge), var(--paper-shadow-card-hover);
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .shelf-book-row:not([data-deleting="true"]):hover {
+      transform: translateY(-1px);
     }
   }
 

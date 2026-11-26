@@ -30,6 +30,7 @@ export interface ShelfToolbarProps {
   filteredBookCount: number;
   selectedCategoryId: string | null;
   hasSearchQuery: boolean;
+  hasStatusFilter?: boolean;
   showCategoryFilters: boolean;
   showShelfControlsSkeleton: boolean;
   searchQuery: string;
@@ -49,6 +50,7 @@ export function ShelfToolbar({
   filteredBookCount,
   selectedCategoryId,
   hasSearchQuery,
+  hasStatusFilter = false,
   showCategoryFilters,
   showShelfControlsSkeleton,
   searchQuery,
@@ -117,7 +119,7 @@ export function ShelfToolbar({
             aria-label={`藏书共 ${totalBookCount} 本`}
           >
             <span>{totalBookCount} 本</span>
-            {(selectedCategoryId !== null || hasSearchQuery) && (
+            {(selectedCategoryId !== null || hasSearchQuery || hasStatusFilter) && (
               <span className="text-primary font-medium">· 显示 {filteredBookCount} 本</span>
             )}
           </p>

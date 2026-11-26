@@ -24,7 +24,11 @@ import {
   ShelfOfflineState,
 } from '@/components/shelf/ShelfStateViews';
 import { ShelfToolbar } from '@/components/shelf/ShelfToolbar';
-import { SUPPORTED_FORMATS_ACCEPT, UNCATEGORIZED_FILTER_ID } from '@/components/shelf/constants';
+import {
+  SUPPORTED_FORMATS_ACCEPT,
+  UNCATEGORIZED_FILTER_ID,
+  type ShelfReadingStatus,
+} from '@/components/shelf/constants';
 import { useShelfFileDrop } from '@/components/shelf/useShelfFileDrop';
 import { useShelfSelection } from '@/components/shelf/useShelfSelection';
 import { prefetchFoliateEngine } from '@/lib/foliate-loader';
@@ -80,6 +84,7 @@ export default function ShelfPage() {
     getShelfViewModeSnapshot,
     getServerShelfViewModeSnapshot
   );
+  const [readingStatus, setReadingStatus] = useState<ShelfReadingStatus>('all');
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const [offlineBooksOpen, setOfflineBooksOpen] = useState(false);
   const [isRetryingAuth, setIsRetryingAuth] = useState(false);
@@ -129,12 +134,50 @@ export default function ShelfPage() {
     bookCounts.all === 0 &&
     selectedCategoryId === null &&
     !hasSearchQuery;
-  const resultsLabel = hasSearchQuery
+  const readingCounts = useMemo(() => {
+    let reading = 0;
+    let unread = 0;
+    let finished = 0;
+    for (const book of filteredBooks) {
+      const pct = Math.min(Math.max(Math.round(progressByBookId[book.id] ?? 0), 0), 100);
+      if (pct >= 100) {
+        finished += 1;
+      } else if (pct > 0) {
+        reading += 1;
+      } else {
+        unread += 1;
+      }
+    }
+    return { reading, unread, finished };
+  }, [filteredBooks, progressByBookId]);
+
+  const visibleBooks = useMemo(() => {
+    if (readingStatus === 'all') return filteredBooks;
+    return filteredBooks.filter((book) => {
+      const pct = Math.min(Math.max(Math.round(progressByBookId[book.id] ?? 0), 0), 100);
+      if (readingStatus === 'finished') return pct >= 100;
+      if (readingStatus === 'reading') return pct > 0 && pct < 100;
+      return pct <= 0;
+    });
+  }, [filteredBooks, progressByBookId, readingStatus]);
+
+  const baseResultsLabel = hasSearchQuery
     ? '搜索结果'
     : selectedCategoryId === UNCATEGORIZED_FILTER_ID
       ? '未分类书籍'
       : selectedCategoryId ?? '全部书籍';
-  const isFiltered = hasSearchQuery || selectedCategoryId !== null;
+  const statusResultsLabel =
+    readingStatus === 'reading'
+      ? '在读'
+      : readingStatus === 'unread'
+        ? '未读'
+        : readingStatus === 'finished'
+          ? '已读完'
+          : null;
+  const resultsLabel = statusResultsLabel
+    ? `${baseResultsLabel} · ${statusResultsLabel}`
+    : baseResultsLabel;
+  const isFiltered = Boolean(hasSearchQuery || selectedCategoryId !== null || readingStatus !== 'all');
   const uploadStatusLabel = uploadProgress
     ? `上传 ${uploadProgress.current}/${uploadProgress.total}`
     : isUploading
@@ -150,7 +193,7 @@ export default function ShelfPage() {
     }
   }, [isLoading, isAuthenticated, isOffline, router]);
 
-  const filteredBookIds = useMemo(() => filteredBooks.map((book) => book.id), [filteredBooks]);
+  const filteredBookIds = useMemo(() => visibleBooks.map((book) => book.id), [visibleBooks]);
 
   const {
     selectionMode,
@@ -284,9 +327,15 @@ export default function ShelfPage() {
     clearSelectionWhenFiltering();
   }
 
+  function changeReadingStatus(nextStatus: ShelfReadingStatus) {
+    setReadingStatus(nextStatus);
+    clearSelectionWhenFiltering();
+  }
+
   function clearShelfFilters() {
     changeSearchQuery('');
     changeSelectedCategory(null);
+    setReadingStatus('all');
   }
 
   async function saveManagedCategory(category: string, nextCategory: string | null) {
@@ -348,9 +397,10 @@ export default function ShelfPage() {
           isLoadingBooks={isLoadingBooks}
           loadError={loadError}
           totalBookCount={bookCounts.all}
-          filteredBookCount={filteredBooks.length}
+          filteredBookCount={visibleBooks.length}
           selectedCategoryId={selectedCategoryId}
           hasSearchQuery={hasSearchQuery}
+          hasStatusFilter={readingStatus !== 'all'}
           showCategoryFilters={showCategoryFilters}
           showShelfControlsSkeleton={showShelfControlsSkeleton}
           searchQuery={searchQuery}
@@ -385,6 +435,9 @@ export default function ShelfPage() {
               bookCounts={bookCounts}
               selectedCategoryId={selectedCategoryId}
               onSelectCategory={changeSelectedCategory}
+              readingStatus={readingStatus}
+              onSelectReadingStatus={changeReadingStatus}
+              readingCounts={readingCounts}
               selectionMode={selectionMode}
               isBatchBusy={isBatchBusy}
               onOpenCategoryManager={() => setCategoryManagerOpen(true)}
@@ -393,7 +446,7 @@ export default function ShelfPage() {
 
             <ShelfBookGrid
               books={books}
-              filteredBooks={filteredBooks}
+              filteredBooks={visibleBooks}
               totalBookCount={bookCounts.all}
               selectedCategoryId={selectedCategoryId}
               searchQuery={searchQuery}
@@ -416,7 +469,7 @@ export default function ShelfPage() {
               renderBookCard={renderBookCard}
             />
 
-            {selectionMode && !isLoadingBooks && !isSearching && filteredBooks.length > 0 && (
+            {selectionMode && !isLoadingBooks && !isSearching && visibleBooks.length > 0 && (
               <ShelfBatchBar
                 selectedCount={selectedCount}
                 allVisibleSelected={allVisibleSelected}

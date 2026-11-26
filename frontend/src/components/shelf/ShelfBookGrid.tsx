@@ -67,7 +67,7 @@ export function ShelfBookGrid({
       )}
     >
       {!isLoadingBooks && isFiltered && (
-        <div className="mb-3 flex items-center justify-between gap-3 text-sm">
+        <div className="shelf-filtered-bar mb-3.5 flex items-center justify-between gap-3 px-3.5 py-2 text-sm">
           <p className="min-w-0 truncate font-medium text-foreground" title={resultsLabel}>
             {resultsLabel}
           </p>
@@ -129,7 +129,7 @@ export function ShelfBookGrid({
         <EmptyState
           icon={Search}
           title="未找到相关书籍"
-          description={hasSearchQuery ? '换个关键词试试，或重置当前筛选。' : '当前分类没有书籍。'}
+          description={hasSearchQuery ? '换个关键词试试，或重置当前筛选。' : '当前筛选条件下没有书籍。'}
           action={
             <Button
               type="button"
@@ -153,7 +153,7 @@ export function ShelfBookGrid({
         <div className="relative z-0">
           <VirtualBookGrid
             items={filteredBooks}
-            resetKey={`${selectedCategoryId ?? 'all'}:${searchQuery}:${sortBy}`}
+            resetKey={`${selectedCategoryId ?? 'all'}:${searchQuery}:${sortBy}:${resultsLabel}`}
             canLoadMore={hasMoreBooks}
             isLoadingMore={isLoadingMoreBooks}
             onEndReached={onEndReached}

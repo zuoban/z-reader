@@ -55,6 +55,14 @@ export function CategoryPickerModal({
   const normalizedCategories = Array.from(
     new Set(categories.map((category) => category.trim()).filter(Boolean))
   );
+  const normalizedQuery = trimmedCategoryName.toLowerCase();
+  const isExactCategoryMatch = Boolean(
+    trimmedCategoryName && normalizedCategories.includes(trimmedCategoryName)
+  );
+  const isFilteringExisting = Boolean(trimmedCategoryName) && !isExactCategoryMatch;
+  const displayedCategories = isFilteringExisting
+    ? normalizedCategories.filter((cat) => cat.toLowerCase().includes(normalizedQuery))
+    : normalizedCategories;
   const isNewCategory = Boolean(
     trimmedCategoryName && !normalizedCategories.includes(trimmedCategoryName)
   );
@@ -184,12 +192,18 @@ export function CategoryPickerModal({
               <div className="mb-2.5 flex items-center justify-between px-0.5">
                 <p className="text-xs font-medium text-muted-foreground">已有分类</p>
                 <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                  {normalizedCategories.length} 个
+                  {isFilteringExisting
+                    ? `匹配 ${displayedCategories.length} / ${normalizedCategories.length} 个`
+                    : `${normalizedCategories.length} 个`}
                 </span>
               </div>
-              {listVariant === 'chips' ? (
+              {displayedCategories.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border bg-secondary/25 px-4 py-4 text-center text-xs text-muted-foreground">
+                  无匹配已有分类，按回车或点击保存即可新建
+                </p>
+              ) : listVariant === 'chips' ? (
                 <div className="flex flex-wrap gap-2">
-                  {normalizedCategories.map((cat) => {
+                  {displayedCategories.map((cat) => {
                     const isSelected = selectedCategory === cat;
                     return (
                       <button
@@ -220,7 +234,7 @@ export function CategoryPickerModal({
                 </div>
               ) : (
                 <ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-surface-subtle/55">
-                  {normalizedCategories.map((cat) => {
+                  {displayedCategories.map((cat) => {
                     const isSelected = selectedCategory === cat;
                     return (
                       <li key={cat}>

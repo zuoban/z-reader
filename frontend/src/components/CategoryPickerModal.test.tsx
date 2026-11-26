@@ -167,4 +167,28 @@ describe('CategoryPickerModal (batch mode)', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it('filters existing categories while typing partial names and restores full list on exact match', () => {
+    renderBatchPicker({
+      categories: ['Sci-Fi', '历史随笔', '散文精选'],
+      bookCounts: { 'Sci-Fi': 2, 历史随笔: 3, 散文精选: 1 },
+    });
+
+    expect(screen.getByText('3 个')).toBeInTheDocument();
+
+    const input = screen.getByRole('textbox', { name: '分类名称' });
+    fireEvent.change(input, { target: { value: 'sci' } });
+
+    expect(screen.getByText('匹配 1 / 3 个')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sci-Fi/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /历史随笔/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Sci-Fi/ }));
+    expect(screen.getByText('3 个')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /历史随笔/ })).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: '未知分类' } });
+    expect(screen.getByText('匹配 0 / 3 个')).toBeInTheDocument();
+    expect(screen.getByText('无匹配已有分类，按回车或点击保存即可新建')).toBeInTheDocument();
+  });
 });

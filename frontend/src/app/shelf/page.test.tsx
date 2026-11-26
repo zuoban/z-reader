@@ -565,4 +565,18 @@ describe('ShelfPage', () => {
     expect(litBtn.querySelector('[data-category-count="3"]')).toHaveTextContent('3');
     expect(scifiBtn.querySelector('[data-category-count="1"]')).toHaveTextContent('1');
   });
+
+  it('combines search query, category, and reading status in the filtered bar summary', () => {
+    mockShelfData = {
+      ...mockShelfData,
+      searchQuery: '百年',
+      selectedCategoryId: '文学',
+      progressByBookId: { 'book-1': 35 },
+    };
+
+    render(<ShelfPage />);
+
+    fireEvent.click(within(screen.getByRole('group', { name: '阅读状态筛选' })).getByRole('button', { name: /在读/ }));
+    expect(screen.getByText('搜索「百年」 · 文学 · 在读')).toBeInTheDocument();
+  });
 });

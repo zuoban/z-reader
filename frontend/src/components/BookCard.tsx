@@ -441,9 +441,11 @@ export const BookCard = memo(function BookCard({
                 >
                   {categoryLabel}
                 </span>
-                <span className="hidden text-[11px] text-muted-foreground/80 sm:inline">
-                  {sizeLabel}
-                </span>
+                {sizeLabel && (
+                  <span className="hidden font-mono text-[11px] tabular-nums text-muted-foreground/80 sm:inline">
+                    {sizeLabel}
+                  </span>
+                )}
                 {progressMeta}
               </div>
 

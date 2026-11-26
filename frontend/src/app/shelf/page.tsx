@@ -179,11 +179,13 @@ export default function ShelfPage() {
     });
   }, [filteredBooks, progressByBookId, readingStatus]);
 
-  const baseResultsLabel = hasSearchQuery
-    ? '搜索结果'
-    : selectedCategoryId === UNCATEGORIZED_FILTER_ID
-      ? '未分类书籍'
-      : selectedCategoryId ?? '全部书籍';
+  const trimmedSearchQuery = searchQuery.trim();
+  const categoryResultsLabel =
+    selectedCategoryId === UNCATEGORIZED_FILTER_ID
+      ? hasSearchQuery
+        ? '未分类'
+        : '未分类书籍'
+      : selectedCategoryId;
   const statusResultsLabel =
     readingStatus === 'reading'
       ? '在读'
@@ -192,9 +194,12 @@ export default function ShelfPage() {
         : readingStatus === 'finished'
           ? '已读完'
           : null;
-  const resultsLabel = statusResultsLabel
-    ? `${baseResultsLabel} · ${statusResultsLabel}`
-    : baseResultsLabel;
+  const resultParts = [
+    hasSearchQuery ? `搜索「${trimmedSearchQuery}」` : null,
+    categoryResultsLabel,
+    statusResultsLabel,
+  ].filter((part): part is string => Boolean(part));
+  const resultsLabel = resultParts.length > 0 ? resultParts.join(' · ') : '全部书籍';
   const isFiltered = Boolean(hasSearchQuery || selectedCategoryId !== null || readingStatus !== 'all');
   const uploadStatusLabel = uploadProgress
     ? `上传 ${uploadProgress.current}/${uploadProgress.total}`

@@ -141,6 +141,7 @@ export function ShelfToolbar({
                 }
               }}
               placeholder="搜索书名或作者"
+              title="搜索书名或作者（/ 或 Ctrl/⌘+K）"
               aria-label="搜索书库"
               leftSection={
                 isSearching ? (

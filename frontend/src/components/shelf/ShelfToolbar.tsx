@@ -135,9 +135,12 @@ export function ShelfToolbar({
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Escape' && !event.nativeEvent.isComposing && searchQuery) {
-                  event.preventDefault();
+                if (event.key !== 'Escape' || event.nativeEvent.isComposing) return;
+                event.preventDefault();
+                if (searchQuery) {
                   onSearchQueryChange('');
+                } else {
+                  event.currentTarget.blur();
                 }
               }}
               placeholder="搜索书名或作者"

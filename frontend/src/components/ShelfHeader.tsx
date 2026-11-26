@@ -45,10 +45,29 @@ export function ShelfHeader({
 }: ShelfHeaderProps) {
   const ThemeIcon = isDark ? Sun : Moon;
 
+  function handleScrollToTop() {
+    if (typeof window === 'undefined') return;
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({
+      top: 0,
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    });
+  }
+
   return (
     <header className="shelf-header sticky top-0 z-50 w-full border-b border-border pt-[env(safe-area-inset-top,0px)]">
       <div className="app-container flex h-14 items-center justify-between gap-2 sm:gap-3">
-        <BrandLogo compact className="shrink-0 whitespace-nowrap" />
+        <button
+          type="button"
+          onClick={handleScrollToTop}
+          aria-label="Z Reader，回到顶部"
+          title="回到顶部"
+          className="shrink-0 cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <BrandLogo compact className="whitespace-nowrap" />
+        </button>
 
         {!isOffline && resumeBook && onResumeBook && (
           <button
@@ -116,12 +135,16 @@ export function ShelfHeader({
           <Menu
             position="bottom-end"
             offset={8}
-            width={200}
+            width={232}
             radius="lg"
             shadow="md"
             zIndex={60}
             withinPortal
-            classNames={{ item: 'shelf-settings-item' }}
+            classNames={{
+              item: 'shelf-settings-item overflow-hidden',
+              itemLabel: 'min-w-0 flex-1 overflow-hidden',
+              itemSection: 'shrink-0',
+            }}
           >
             <Menu.Target>
               <ActionIcon
@@ -135,10 +158,32 @@ export function ShelfHeader({
                 <MoreHorizontal aria-hidden="true" className="size-[18px]" strokeWidth={1.5} />
               </ActionIcon>
             </Menu.Target>
-            <Menu.Dropdown className="paper-menu max-w-[calc(100vw-1.5rem)] rounded-xl p-1.5">
+            <Menu.Dropdown className="paper-menu max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl p-1.5">
               <Menu.Label className="px-2.5 pb-1.5 pt-1 text-xs font-normal text-muted-foreground">
                 书架设置
               </Menu.Label>
+              {!isOffline && resumeBook && onResumeBook && (
+                <>
+                  <Menu.Item
+                    leftSection={
+                      <BookOpen aria-hidden="true" className="text-primary" strokeWidth={1.6} />
+                    }
+                    rightSection={
+                      <span className="shrink-0 font-mono text-[11px] font-medium tabular-nums text-primary">
+                        {resumeBook.progress}%
+                      </span>
+                    }
+                    onPointerEnter={() => onPrefetchResumeBook?.(resumeBook.id)}
+                    onFocus={() => onPrefetchResumeBook?.(resumeBook.id)}
+                    onClick={() => onResumeBook(resumeBook.id)}
+                  >
+                    <span className="block truncate" title={`续读：${resumeBook.title}`}>
+                      续读：{resumeBook.title}
+                    </span>
+                  </Menu.Item>
+                  <Menu.Divider role="separator" className="mx-1.5 my-1 border-border/70" />
+                </>
+              )}
               <Menu.Item
                 leftSection={<HardDrive aria-hidden="true" strokeWidth={1.5} />}
                 onClick={onManageOfflineBooks}

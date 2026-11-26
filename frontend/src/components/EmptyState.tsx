@@ -42,9 +42,9 @@ export function EmptyState({
             </h2>
             <p className="mt-2.5 text-sm leading-6 text-muted-foreground">{description}</p>
             {detail && (
-              <p className="mt-2 [overflow-wrap:anywhere] text-xs leading-5 text-muted-foreground">
+              <div className="mt-2 [overflow-wrap:anywhere] text-xs leading-5 text-muted-foreground">
                 {detail}
-              </p>
+              </div>
             )}
           </div>
           {action && <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">{action}</div>}

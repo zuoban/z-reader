@@ -82,4 +82,17 @@ describe('ShelfToolbar', () => {
     expect(onSearchQueryChange).toHaveBeenCalledWith('');
     expect(document.activeElement).toBe(searchInput);
   });
+
+  it('blurs search input when pressing Escape with an empty query', () => {
+    const onSearchQueryChange = vi.fn();
+    renderToolbar({ searchQuery: '', hasSearchQuery: false, onSearchQueryChange });
+    const searchInput = screen.getByRole('searchbox', { name: '搜索书库' });
+
+    searchInput.focus();
+    expect(document.activeElement).toBe(searchInput);
+
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+    expect(onSearchQueryChange).not.toHaveBeenCalled();
+    expect(document.activeElement).not.toBe(searchInput);
+  });
 });

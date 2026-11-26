@@ -1,8 +1,11 @@
 import { fireEvent, render, screen } from '@/test/render';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShelfHeader } from '@/components/ShelfHeader';
 
 describe('ShelfHeader', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
   it('renders upload action and settings menu items when online', () => {
     const onToggleTheme = vi.fn();
     const onManageOfflineBooks = vi.fn();
@@ -92,6 +95,17 @@ describe('ShelfHeader', () => {
     fireEvent.click(resumeBtn);
     expect(onResumeBook).toHaveBeenCalledWith('book-42');
 
+    // Quick resume is also reachable in settings dropdown for mobile screens
+    fireEvent.click(screen.getByRole('button', { name: '书架设置' }));
+    const resumeMenuItem = screen.getByRole('menuitem', { name: /续读：人类简史/ });
+    expect(resumeMenuItem).toHaveTextContent('38%');
+    expect(screen.getByTitle('续读：人类简史').parentElement).toHaveClass(
+      'min-w-0',
+      'overflow-hidden',
+    );
+    fireEvent.click(resumeMenuItem);
+    expect(onResumeBook).toHaveBeenCalledTimes(2);
+
     rerender(
       <ShelfHeader
         uploadAccept=".epub,.pdf"
@@ -108,5 +122,29 @@ describe('ShelfHeader', () => {
     );
 
     expect(screen.queryByRole('button', { name: /续读/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '书架设置' }));
+    expect(screen.queryByRole('menuitem', { name: /续读/ })).not.toBeInTheDocument();
+  });
+
+  it('scrolls to top when clicking the brand logo button', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+    render(
+      <ShelfHeader
+        uploadAccept=".epub,.pdf"
+        isOffline={false}
+        isUploading={false}
+        isDark={false}
+        onUpload={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onManageOfflineBooks={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Z Reader，回到顶部' }));
+    expect(scrollToSpy).toHaveBeenCalledWith({
+      top: 0,
+      behavior: expect.stringMatching(/auto|smooth/),
+    });
   });
 });

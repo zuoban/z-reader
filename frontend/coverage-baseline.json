@@ -2,16 +2,16 @@
   "schema": 1,
   "files": {
     "src/hooks/useCoverUrl.ts": {
-      "statements": 93.33,
-      "branches": 86.25,
-      "functions": 100,
-      "lines": 97.56
+      "statements": 90.64,
+      "branches": 82.47,
+      "functions": 93.1,
+      "lines": 94.23
     },
     "src/hooks/useProgress.ts": {
-      "statements": 89.01,
-      "branches": 80.63,
+      "statements": 89.81,
+      "branches": 81.11,
       "functions": 100,
-      "lines": 94.96
+      "lines": 95.42
     },
     "src/hooks/useReaderChrome.ts": {
       "statements": 100,
@@ -38,10 +38,10 @@
       "lines": 100
     },
     "src/hooks/useShelfData.ts": {
-      "statements": 93.31,
-      "branches": 73.31,
-      "functions": 91.81,
-      "lines": 95.49
+      "statements": 94.12,
+      "branches": 76.2,
+      "functions": 96.8,
+      "lines": 95.85
     },
     "src/hooks/foliate/search.ts": {
       "statements": 100,
@@ -62,16 +62,16 @@
       "lines": 100
     },
     "src/lib/api.ts": {
-      "statements": 99.27,
-      "branches": 95.93,
-      "functions": 98.36,
-      "lines": 99.14
+      "statements": 99.54,
+      "branches": 96.64,
+      "functions": 98.38,
+      "lines": 99.46
     },
     "src/lib/book-download.ts": {
-      "statements": 94.87,
-      "branches": 93.37,
+      "statements": 94.9,
+      "branches": 92.4,
       "functions": 80,
-      "lines": 98.51
+      "lines": 98.92
     },
     "src/lib/offline-progress-storage.ts": {
       "statements": 100,
@@ -104,16 +104,16 @@
       "lines": 94.44
     },
     "src/hooks/useTTS.ts": {
-      "statements": 94.38,
-      "branches": 85.16,
+      "statements": 94.35,
+      "branches": 85.03,
       "functions": 85.93,
-      "lines": 98.98
+      "lines": 98.97
     },
     "src/hooks/useTTSSession.ts": {
-      "statements": 88.88,
-      "branches": 85.36,
+      "statements": 93.65,
+      "branches": 87.8,
       "functions": 100,
-      "lines": 94.11
+      "lines": 100
     },
     "src/hooks/useTTSMediaSession.ts": {
       "statements": 100,
@@ -122,10 +122,10 @@
       "lines": 100
     },
     "src/lib/tts.ts": {
-      "statements": 95.12,
-      "branches": 90,
-      "functions": 97.72,
-      "lines": 96.52
+      "statements": 96.58,
+      "branches": 92.5,
+      "functions": 100,
+      "lines": 96.33
     },
     "src/lib/tts-batch.ts": {
       "statements": 95.28,

@@ -137,6 +137,18 @@
     -webkit-backdrop-filter: blur(16px) saturate(145%);
   }
 
+  .shelf-atmosphere {
+    background-image:
+      radial-gradient(60rem 26rem at 18% -4%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 64%),
+      radial-gradient(44rem 22rem at 86% 2%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 66%);
+  }
+
+  .dark .shelf-atmosphere {
+    background-image:
+      radial-gradient(60rem 26rem at 18% -4%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 64%),
+      radial-gradient(44rem 22rem at 86% 2%, color-mix(in srgb, var(--primary) 5%, transparent), transparent 66%);
+  }
+
   .shelf-book-card {
     --book-card-edge: var(--border);
     border-radius: var(--radius-2xl);

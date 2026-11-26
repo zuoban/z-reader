@@ -368,6 +368,8 @@ function Reader({ bookId }: { bookId: string }) {
           onSaveOffline={isAuthenticated ? handleSaveOffline : undefined}
           onBack={handleBack}
           uiScheme={uiScheme}
+          activePreset={theme.preset}
+          onPresetChange={(preset) => setTheme({ preset })}
           headerSafeAreaPaddingTop={HEADER_SAFE_AREA_PADDING_TOP}
           themeSettingsOpen={sheets.themeSettingsOpen}
           onThemeSettingsOpenChange={sheets.setThemeSettingsOpen}
@@ -492,6 +494,9 @@ function Reader({ bookId }: { bookId: string }) {
             overlayContainer={overlayContainer}
             isFullscreenSupported={controls.isFullscreenSupported}
             showBookmarksShortcut={isAuthenticated}
+            flow={theme.flow}
+            onPrev={handlePrev}
+            onNext={handleNext}
           />
 
           {!reader.loading && !reader.error && !sheets.hasSheetOpen && (

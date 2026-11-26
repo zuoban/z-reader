@@ -1,7 +1,8 @@
 "use client";
 
-import type { RefObject } from "react";
+import type { CSSProperties, RefObject } from "react";
 import dynamic from "next/dynamic";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReaderResumePrompt } from "@/components/reader/ReaderResumePrompt";
 import { ReaderLoadingOverlay } from "@/components/reader/ReaderStateViews";
 import type { useReaderImageZoom } from "@/hooks/useReaderImageZoom";
@@ -41,6 +42,9 @@ interface ReaderViewportProps {
   overlayContainer: HTMLDivElement | null;
   isFullscreenSupported: boolean;
   showBookmarksShortcut?: boolean;
+  flow?: "paginated" | "scrolled";
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 export function ReaderViewport({
@@ -61,7 +65,20 @@ export function ReaderViewport({
   overlayContainer,
   isFullscreenSupported,
   showBookmarksShortcut = true,
+  flow = "paginated",
+  onPrev,
+  onNext,
 }: ReaderViewportProps) {
+  const showDesktopEdgeNav =
+    !loading && !isTouchReader && flow === "paginated" && Boolean(onPrev) && Boolean(onNext);
+  const edgeNavThemeVars = {
+    "--reader-chrome-bg": uiScheme.bg,
+    "--reader-chrome-rule": uiScheme.cardBorder,
+    "--reader-chrome-ink": uiScheme.fg,
+    "--reader-chrome-hover": uiScheme.buttonBg,
+    "--reader-chrome-accent": uiScheme.link,
+  } as CSSProperties;
+
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
       {loading && (
@@ -93,6 +110,34 @@ export function ReaderViewport({
             }}
           />
         </div>
+        {showDesktopEdgeNav && (
+          <div style={edgeNavThemeVars}>
+            <div className="reader-edge-nav-zone left-0 hidden lg:flex">
+              <button
+                type="button"
+                data-reader-interactive="true"
+                onClick={onPrev}
+                aria-label="上一页"
+                title="上一页 (←)"
+                className="reader-edge-nav-btn"
+              >
+                <ChevronLeft className="size-5" strokeWidth={1.6} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="reader-edge-nav-zone right-0 hidden lg:flex">
+              <button
+                type="button"
+                data-reader-interactive="true"
+                onClick={onNext}
+                aria-label="下一页"
+                title="下一页 (→)"
+                className="reader-edge-nav-btn"
+              >
+                <ChevronRight className="size-5" strokeWidth={1.6} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isTouchReader && resumePromptVisible && (

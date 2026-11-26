@@ -415,14 +415,13 @@ export function ThemeSettings({
             <Tabs.List
               grow
               aria-label="阅读设置分类"
-              className="grid shrink-0 grid-cols-3 border-b px-4 sm:px-6"
-              style={{ borderColor: surface.hairline }}
+              className="reader-segmented-list mx-4 mt-3 grid shrink-0 grid-cols-3 gap-1 p-1 sm:mx-6"
             >
               {SETTINGS_SECTIONS.map((section) => (
                 <Tabs.Tab
                   key={section.id}
                   value={section.id}
-                  className="reader-panel-tab"
+                  className="reader-segmented-tab"
                 >
                   {section.label}
                 </Tabs.Tab>

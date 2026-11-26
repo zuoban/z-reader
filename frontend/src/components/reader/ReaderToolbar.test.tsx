@@ -278,4 +278,24 @@ describe('ReaderToolbar', () => {
     rerender(<ReaderToolbar {...props} searchOpen />);
     expect(screen.queryByRole('dialog', { name: '阅读操作' })).not.toBeInTheDocument();
   });
+
+  it('renders quick preset switcher dots on desktop when onPresetChange is provided', () => {
+    const onPresetChange = vi.fn();
+    render(
+      <ReaderToolbar
+        {...baseToolbarProps}
+        activePreset="light"
+        onPresetChange={onPresetChange}
+      />,
+    );
+
+    const group = screen.getByRole('group', { name: '快捷切换纸面' });
+    const lightBtn = within(group).getByRole('button', { name: '切换为净白纸面' });
+    const sepiaBtn = within(group).getByRole('button', { name: '切换为旧书纸面' });
+    expect(lightBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(sepiaBtn).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(sepiaBtn);
+    expect(onPresetChange).toHaveBeenCalledWith('sepia');
+  });
 });

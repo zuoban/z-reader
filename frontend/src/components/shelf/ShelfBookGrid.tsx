@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Button } from '@mantine/core';
-import { AlertCircle, Search } from 'lucide-react';
+import { AlertCircle, Search, X } from 'lucide-react';
 import { LoadingSpinner } from '@/components/AppShell';
 import { BookCardSkeletonGrid } from '@/components/BookCardSkeleton';
 import { EmptyState } from '@/components/EmptyState';
@@ -65,16 +65,28 @@ export function ShelfBookGrid({
       )}
     >
       {!isLoadingBooks && isFiltered && (
-        <div className="mb-3 flex items-baseline justify-between gap-3 text-sm">
+        <div className="mb-3 flex items-center justify-between gap-3 text-sm">
           <p className="min-w-0 truncate font-medium text-foreground" title={resultsLabel}>
             {resultsLabel}
           </p>
           {!searchError && (
-            <p className="shrink-0 text-xs tabular-nums text-muted-foreground" role="status">
-              {isSearching
-                ? '正在搜索…'
-                : `${hasMoreBooks ? '已显示 ' : '共 '}${filteredBooks.length} 本`}
-            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <p className="text-xs tabular-nums text-muted-foreground" role="status">
+                {isSearching
+                  ? '正在搜索…'
+                  : `${hasMoreBooks ? '已显示 ' : '共 '}${filteredBooks.length} 本`}
+              </p>
+              {!isSearching && filteredBooks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onClearFilters}
+                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-input hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  <X className="size-3" strokeWidth={1.75} aria-hidden="true" />
+                  <span>清除筛选</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

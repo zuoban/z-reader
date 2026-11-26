@@ -83,7 +83,7 @@ export function ReaderStatusBar({
     >
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[2px] overflow-hidden"
+        className="reader-status-progress-track pointer-events-none absolute inset-x-0 top-0 h-[2.5px] overflow-hidden"
       >
         <span
           className="reader-status-progress-fill block h-full"

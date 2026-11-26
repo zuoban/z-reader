@@ -25,8 +25,19 @@ import {
 } from "lucide-react";
 
 import type { ThemeColors } from "@/hooks/useReaderTheme";
-import { handleRovingListKeyDown } from "@/lib/reader-ui";
+import {
+  PRESET_STYLES,
+  type ReaderThemePreset,
+} from "@/lib/reader-theme-presets";
+import { handleRovingListKeyDown, withOpacity } from "@/lib/reader-ui";
 import { cn } from "@/lib/utils";
+
+const QUICK_PRESETS: ReadonlyArray<{ key: ReaderThemePreset; label: string }> = [
+  { key: "light", label: "净白" },
+  { key: "sepia", label: "旧书" },
+  { key: "green", label: "苔纸" },
+  { key: "dark", label: "夜读" },
+];
 
 interface ReaderToolbarProps {
   visible: boolean;
@@ -48,6 +59,8 @@ interface ReaderToolbarProps {
   ttsOpen?: boolean;
   onBack: () => void;
   uiScheme: ThemeColors;
+  activePreset?: ReaderThemePreset;
+  onPresetChange?: (preset: ReaderThemePreset) => void;
   headerSafeAreaPaddingTop: string;
   themeSettingsOpen: boolean;
   onThemeSettingsOpenChange: (open: boolean) => void;
@@ -79,6 +92,8 @@ export function ReaderToolbar({
   ttsOpen = false,
   onBack,
   uiScheme,
+  activePreset,
+  onPresetChange,
   headerSafeAreaPaddingTop,
   themeSettingsOpen,
   onThemeSettingsOpenChange,
@@ -291,7 +306,7 @@ export function ReaderToolbar({
           </ActionIcon>
           <div className="flex min-w-0 items-baseline gap-2">
             <h1
-              className="reader-toolbar-title min-w-0 truncate text-[13px] leading-5 font-medium sm:text-sm"
+              className="reader-toolbar-title font-heading min-w-0 truncate text-[14px] leading-5 font-medium sm:text-[15px]"
               title={bookTitle || undefined}
             >
               {bookTitle || "阅读中"}
@@ -482,6 +497,34 @@ export function ReaderToolbar({
               aria-hidden="true"
               className="reader-toolbar-divider mx-1 h-3.5 w-px shrink-0"
             />
+
+            {onPresetChange && (
+              <div
+                role="group"
+                aria-label="快捷切换纸面"
+                className="reader-preset-dock mx-0.5 hidden xl:inline-flex"
+              >
+                {QUICK_PRESETS.map((preset) => {
+                  const style = PRESET_STYLES[preset.key];
+                  const isActive = activePreset === preset.key;
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => onPresetChange(preset.key)}
+                      aria-pressed={isActive}
+                      aria-label={`切换为${preset.label}纸面`}
+                      title={`${preset.label}纸面`}
+                      className="reader-preset-dot"
+                      style={{
+                        backgroundColor: style.bg,
+                        borderColor: withOpacity(style.fg, 0.28),
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
 
             {isFullscreenSupported && renderDesktopButton({
               title: isFullscreen ? "退出全屏" : "全屏阅读",

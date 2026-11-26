@@ -30,9 +30,12 @@ describe('ShelfHeader', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '离线图书管理' }));
     expect(onManageOfflineBooks).toHaveBeenCalledOnce();
 
+    fireEvent.click(screen.getByRole('button', { name: '切换明暗外观' }));
+    expect(onToggleTheme).toHaveBeenCalledTimes(1);
+
     fireEvent.click(screen.getByRole('button', { name: '书架设置' }));
     fireEvent.click(screen.getByRole('menuitem', { name: '暗色模式' }));
-    expect(onToggleTheme).toHaveBeenCalledOnce();
+    expect(onToggleTheme).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByRole('button', { name: '书架设置' }));
     fireEvent.click(screen.getByRole('menuitem', { name: '退出登录' }));

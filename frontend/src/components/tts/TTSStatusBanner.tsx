@@ -2,6 +2,7 @@
 
 import { AlertCircle, Loader2, Play } from 'lucide-react';
 import { withOpacity } from '@/lib/reader-ui';
+import { cn } from '@/lib/utils';
 import type { ThemeColors } from '@/hooks/useReaderTheme';
 import { getStatusColor, type TTSStatusInfo, type TTSStatusTone } from './types';
 
@@ -27,7 +28,10 @@ export function TTSStatusBanner({
       >
         <span
           aria-hidden="true"
-          className="size-2 shrink-0 rounded-full"
+          className={cn(
+            'size-2 shrink-0 rounded-full',
+            statusTone === 'active' && 'animate-pulse motion-reduce:animate-none'
+          )}
           style={{ background: statusColor }}
         />
         <p className="min-w-0 flex-1 text-xs font-medium leading-5 [overflow-wrap:anywhere]">

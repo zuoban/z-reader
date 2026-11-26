@@ -323,7 +323,14 @@ export const BookCard = memo(function BookCard({
                     {categoryLabel}
                   </span>
                 </span>
-                <p className="flex min-w-0 max-w-[65%] items-baseline gap-1" title={progressMetaLabel}>
+                <p className="flex min-w-0 max-w-[65%] items-center gap-1" title={progressMetaLabel}>
+                  {progressValue === 100 && (
+                    <Check
+                      aria-hidden="true"
+                      className="size-3 shrink-0 text-primary"
+                      strokeWidth={2.2}
+                    />
+                  )}
                   {progressStatus && <span className="min-w-0 truncate">{progressStatus}</span>}
                   {progressValue > 0 && (
                     <span className="shrink-0 font-mono text-xs font-medium tabular-nums text-primary">

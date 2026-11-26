@@ -268,7 +268,7 @@ export default function ShelfPage() {
   return (
     <AppScreen
       className="overflow-clip bg-[var(--shelf-app-bg)] font-sans"
-      contentClassName="flex min-h-dvh w-full flex-col"
+      contentClassName="shelf-atmosphere flex min-h-dvh w-full flex-col"
     >
       <ShelfHeader
         uploadAccept={SUPPORTED_FORMATS_ACCEPT}

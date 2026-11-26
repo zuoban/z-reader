@@ -192,8 +192,11 @@ export function ReaderShortcutsDialog({
                 {group.title}
               </h3>
               <ul
-                className="divide-y"
-                style={{ borderColor: surface.hairline }}
+                className="divide-y rounded-xl border px-3.5"
+                style={{
+                  borderColor: surface.hairline,
+                  background: "color-mix(in srgb, var(--reader-panel-hover) 32%, transparent)",
+                }}
               >
                 {group.items.map((item) => (
                   <li

@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type RefObject,
 } from "react";
@@ -438,11 +439,13 @@ export function ReaderTOCSheet({
               onPointerCancel={commitScrub}
               onTouchEnd={commitScrub}
               onBlur={commitScrub}
-              className="h-1.5 w-full cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4"
-              style={{
-                accentColor: uiScheme.link,
-                outlineColor: uiScheme.link,
-              }}
+              className="reader-range-scrubber w-full cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4"
+              style={
+                {
+                  "--scrub-progress": `${displayPercentage}%`,
+                  outlineColor: uiScheme.link,
+                } as CSSProperties
+              }
             />
           </div>
         </div>

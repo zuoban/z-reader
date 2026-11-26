@@ -64,6 +64,18 @@ export function ShelfHeader({
             </>
           )}
 
+          <ActionIcon
+            type="button"
+            variant="subtle"
+            size="md"
+            onClick={onToggleTheme}
+            className="size-11 shrink-0 cursor-pointer rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring active:scale-95 motion-reduce:active:scale-100 sm:size-9"
+            aria-label="切换明暗外观"
+            title={isDark ? '切换为亮色模式' : '切换为暗色模式'}
+          >
+            <ThemeIcon aria-hidden="true" className="size-[18px]" strokeWidth={1.5} />
+          </ActionIcon>
+
           <Menu
             position="bottom-end"
             offset={8}

@@ -39,9 +39,9 @@ export function BookCardSkeleton() {
 
 export function BookRowSkeleton() {
   return (
-    <div className="shelf-book-row flex min-w-0 items-center gap-3.5 p-3 sm:gap-4 sm:p-3.5">
+    <div className="shelf-book-row flex min-w-0 items-center gap-3 p-3 sm:gap-4 sm:p-3.5">
       <div
-        className="skeleton-shimmer h-[76px] w-[54px] shrink-0 rounded-lg sm:h-[84px] sm:w-[60px]"
+        className="skeleton-shimmer h-[84px] w-[60px] shrink-0 rounded-lg"
         aria-hidden="true"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -49,11 +49,11 @@ export function BookRowSkeleton() {
           <div className="skeleton-shimmer h-4 w-2/5 max-w-xs rounded-xs" aria-hidden="true" />
           <div className="skeleton-shimmer h-3 w-24 rounded-xs" aria-hidden="true" />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-3">
           <div className="skeleton-shimmer h-4 w-12 rounded bg-secondary/70" aria-hidden="true" />
           <div className="skeleton-shimmer h-3 w-10 rounded-xs" aria-hidden="true" />
         </div>
-        <div className="skeleton-shimmer h-[3px] max-w-xs rounded-full" aria-hidden="true" />
+        <div className="skeleton-shimmer h-[3px] w-full rounded-full sm:max-w-xs" aria-hidden="true" />
       </div>
       <div
         className="skeleton-shimmer hidden h-9 w-24 shrink-0 rounded-full sm:block"

@@ -272,7 +272,10 @@ export const BookCard = memo(function BookCard({
 
   const progressMeta = (
     <p
-      className={cn('flex min-w-0 items-center gap-1', !isListLayout && 'max-w-[65%]')}
+      className={cn(
+        'flex min-w-0 items-center gap-1',
+        isListLayout ? 'shrink-0' : 'max-w-[65%]'
+      )}
       title={progressMetaLabel}
     >
       {progressValue === 100 && (
@@ -293,7 +296,10 @@ export const BookCard = memo(function BookCard({
 
   const progressBar = (
     <div
-      className={cn('h-[3px] overflow-hidden rounded-full bg-border/80', isListLayout && 'max-w-xs')}
+      className={cn(
+        'h-[3px] overflow-hidden rounded-full bg-border/80',
+        isListLayout && 'w-full sm:max-w-xs'
+      )}
       aria-hidden="true"
       data-book-progress=""
     >
@@ -305,7 +311,7 @@ export const BookCard = memo(function BookCard({
   );
 
   const listActionClass =
-    'inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-secondary/75 px-3.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed sm:h-9';
+    'hidden h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-secondary/75 px-3.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed sm:inline-flex';
 
   const actionButton = selectionMode ? (
     <button
@@ -370,7 +376,7 @@ export const BookCard = memo(function BookCard({
     <div className="flex h-full w-full items-stretch" ref={coverRef}>
       {isListLayout ? (
         <article
-          className="shelf-book-row group/article flex min-w-0 flex-1 items-center gap-3.5 p-3 sm:gap-4 sm:p-3.5"
+          className="shelf-book-row group/article flex min-w-0 flex-1 items-center gap-2 p-3 sm:gap-4 sm:p-3.5"
           data-selected={selected}
           data-deleting={isDeleting || undefined}
           aria-busy={isDeleting || isReparsing || undefined}
@@ -383,9 +389,9 @@ export const BookCard = memo(function BookCard({
             onFocus={handlePrefetch}
             aria-label={cardAriaLabel}
             aria-pressed={selectionMode ? selected : undefined}
-            className="group/card flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed sm:gap-4"
+            className="group/card flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed sm:gap-4"
           >
-            <div className="shelf-book-row-cover book-cover-spine h-[76px] w-[54px] shrink-0 sm:h-[84px] sm:w-[60px]">
+            <div className="shelf-book-row-cover book-cover-spine h-[84px] w-[60px] shrink-0">
               <BookCoverFace
                 coverUrl={coverUrl}
                 titleLabel={titleLabel}
@@ -415,7 +421,7 @@ export const BookCard = memo(function BookCard({
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <div className="flex min-w-0 items-baseline gap-2">
                 <h2
-                  className="min-w-0 flex-1 truncate font-sans text-sm font-medium leading-5 text-foreground transition-colors group-hover/card:text-primary sm:text-[15px]"
+                  className="min-w-0 flex-1 truncate font-sans text-[15px] font-medium leading-5 text-foreground transition-colors group-hover/card:text-primary"
                   title={titleLabel}
                 >
                   {highlightedTitle}
@@ -443,18 +449,20 @@ export const BookCard = memo(function BookCard({
                 {highlightedAuthor}
               </p>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-4 text-muted-foreground">
-                <span
-                  className="inline-block max-w-[140px] truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"
-                  title={categoryLabel}
-                >
-                  {categoryLabel}
-                </span>
-                {sizeLabel && (
-                  <span className="hidden font-mono text-[11px] tabular-nums text-muted-foreground/80 sm:inline">
-                    {sizeLabel}
+              <div className="flex min-w-0 items-center justify-between gap-2 text-xs leading-4 text-muted-foreground sm:justify-start sm:gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="inline-block max-w-[140px] truncate rounded bg-secondary/90 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-subtle-foreground"
+                    title={categoryLabel}
+                  >
+                    {categoryLabel}
                   </span>
-                )}
+                  {sizeLabel && (
+                    <span className="hidden font-mono text-[11px] tabular-nums text-muted-foreground/80 sm:inline">
+                      {sizeLabel}
+                    </span>
+                  )}
+                </div>
                 {progressMeta}
               </div>
 

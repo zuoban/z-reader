@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { ActionIcon, Button, Menu } from '@mantine/core';
-import { CheckSquare, MoreHorizontal, Settings2 } from 'lucide-react';
+import { CheckSquare, LayoutGrid, List, MoreHorizontal, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UNCATEGORIZED_FILTER_ID, type ShelfReadingStatus } from './constants';
 
@@ -30,6 +30,8 @@ export interface ShelfCategoryBarProps {
   readingCounts?: { reading: number; unread: number; finished: number };
   selectionMode: boolean;
   isBatchBusy: boolean;
+  viewMode?: 'grid' | 'list';
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
   onOpenCategoryManager: () => void;
   onToggleSelectionMode: () => void;
 }
@@ -46,6 +48,8 @@ export function ShelfCategoryBar({
   readingCounts,
   selectionMode,
   isBatchBusy,
+  viewMode = 'grid',
+  onViewModeChange,
   onOpenCategoryManager,
   onToggleSelectionMode,
 }: ShelfCategoryBarProps) {
@@ -55,6 +59,7 @@ export function ShelfCategoryBar({
     const strip = categoryStripRef.current;
     if (!showCategoryFilters || !strip) return;
 
+    let rafId: number | null = null;
     const updateOverflowHint = () => {
       strip.parentElement?.toggleAttribute('data-prev-categories', strip.scrollLeft > 1);
       strip.parentElement?.toggleAttribute(
@@ -63,13 +68,24 @@ export function ShelfCategoryBar({
       );
     };
 
-    const resizeObserver = new ResizeObserver(updateOverflowHint);
+    const scheduleOverflowHint = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        updateOverflowHint();
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(scheduleOverflowHint);
     resizeObserver.observe(strip);
     for (const chip of strip.children) resizeObserver.observe(chip);
     strip.addEventListener('scroll', updateOverflowHint, { passive: true });
     updateOverflowHint();
 
     return () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
       resizeObserver.disconnect();
       strip.removeEventListener('scroll', updateOverflowHint);
     };
@@ -233,6 +249,21 @@ export function ShelfCategoryBar({
               >
                 {selectionMode ? '取消选择' : '批量操作'}
               </Menu.Item>
+              {onViewModeChange && (
+                <Menu.Item
+                  disabled={isBatchBusy}
+                  leftSection={
+                    viewMode === 'list' ? (
+                      <LayoutGrid strokeWidth={1.5} aria-hidden="true" />
+                    ) : (
+                      <List strokeWidth={1.5} aria-hidden="true" />
+                    )
+                  }
+                  onClick={() => onViewModeChange(viewMode === 'list' ? 'grid' : 'list')}
+                >
+                  {viewMode === 'list' ? '切换为网格视图' : '切换为列表视图'}
+                </Menu.Item>
+              )}
             </Menu.Dropdown>
           </Menu>
         </div>

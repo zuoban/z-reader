@@ -468,7 +468,9 @@ describe('BookCard', () => {
     expect(container.querySelector('.shelf-book-card')).not.toBeInTheDocument();
     expect(screen.getByText('2.4 MB')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '继续阅读：红楼梦' }));
+    const desktopListReadBtn = screen.getByRole('button', { name: '继续阅读：红楼梦' });
+    expect(desktopListReadBtn).toHaveClass('hidden', 'sm:inline-flex');
+    fireEvent.click(desktopListReadBtn);
     expect(onRead).toHaveBeenCalledWith(book.id);
 
     rerender(

@@ -579,4 +579,20 @@ describe('ShelfPage', () => {
     fireEvent.click(within(screen.getByRole('group', { name: '阅读状态筛选' })).getByRole('button', { name: /在读/ }));
     expect(screen.getByText('搜索「百年」 · 文学 · 在读')).toBeInTheDocument();
   });
+
+  it('allows switching between list and grid views from the mobile shelf actions menu', () => {
+    const { container } = render(<ShelfPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: '更多书库操作' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '切换为列表视图' }));
+
+    expect(window.localStorage.getItem('z-reader-shelf-view-mode')).toBe('list');
+    expect(container.querySelector('[data-shelf-grid="list"]')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '更多书库操作' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '切换为网格视图' }));
+
+    expect(window.localStorage.getItem('z-reader-shelf-view-mode')).toBe('grid');
+    expect(screen.getByTestId('mock-virtual-grid')).toBeInTheDocument();
+  });
 });

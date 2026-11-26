@@ -3,14 +3,30 @@
 import { useEffect } from 'react';
 import { reportClientError } from '@/lib/error-reporting';
 
+const IGNORED_ERROR_PATTERNS = [
+  'documentElement',
+  'this.document',
+  'ResizeObserver loop completed with undelivered notifications',
+  'ResizeObserver loop limit exceeded',
+];
+
+function isIgnoredClientError(message: unknown, error?: unknown): boolean {
+  const candidates = [
+    typeof message === 'string' ? message : '',
+    error instanceof Error ? error.message : typeof error === 'string' ? error : '',
+  ];
+  return candidates.some((text) =>
+    IGNORED_ERROR_PATTERNS.some((pattern) => text.includes(pattern))
+  );
+}
+
 export function ErrorSuppressor() {
   useEffect(() => {
     const originalError = window.onerror;
-    
+
     window.onerror = (message, source, lineno, colno, error) => {
-      // 忽略 foliate 相关的 documentElement 错误和 this.document is null 错误
-      if (typeof message === 'string' && 
-          (message.includes('documentElement') || message.includes('this.document'))) {
+      // 忽略 foliate 相关的 documentElement / this.document 错误及浏览器良性 ResizeObserver 循环提示
+      if (isIgnoredClientError(message, error)) {
         return true;
       }
       reportClientError(error ?? message, 'window.onerror');
@@ -18,9 +34,7 @@ export function ErrorSuppressor() {
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
-      const message = event.reason?.message;
-      if (typeof message === 'string' &&
-          (message.includes('documentElement') || message.includes('this.document'))) {
+      if (isIgnoredClientError(event.reason?.message, event.reason)) {
         event.preventDefault();
         return;
       }

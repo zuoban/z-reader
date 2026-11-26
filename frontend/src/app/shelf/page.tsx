@@ -467,6 +467,8 @@ export default function ShelfPage() {
               readingCounts={readingCounts}
               selectionMode={selectionMode}
               isBatchBusy={isBatchBusy}
+              viewMode={viewMode}
+              onViewModeChange={persistShelfViewMode}
               onOpenCategoryManager={() => setCategoryManagerOpen(true)}
               onToggleSelectionMode={toggleSelectionMode}
             />

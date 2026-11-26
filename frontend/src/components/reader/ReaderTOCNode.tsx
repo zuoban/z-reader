@@ -74,7 +74,15 @@ function ReaderTOCNode({
       </button>
 
       {item.subitems && item.subitems.length > 0 && (
-        <div className="mt-0.5 space-y-0.5">
+        <div className="relative mt-0.5 space-y-0.5">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-1.5 w-px"
+            style={{
+              insetInlineStart: `${14 + indent}px`,
+              background: `color-mix(in srgb, ${uiScheme.fg} 12%, transparent)`,
+            }}
+          />
           {item.subitems.map((sub, idx) => (
             <MemoizedReaderTOCNode
               key={`${sub.href}-${sub.label}-${idx}`}

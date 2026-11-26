@@ -9,7 +9,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { Eraser, Loader2, Search, Square, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Eraser, Loader2, Search, Square, X } from "lucide-react";
 
 import {
   MAX_BOOK_SEARCH_RESULTS,
@@ -234,6 +234,29 @@ export function ReaderSearchSheet({
   const summaryText = truncated
     ? `已显示前 ${results.length || MAX_BOOK_SEARCH_RESULTS} 处匹配`
     : `找到 ${results.length} 处匹配`;
+  const activeIndex = activeCfi
+    ? results.findIndex((item) => item.cfi === activeCfi)
+    : -1;
+
+  const handleStepResult = useCallback(
+    (delta: -1 | 1) => {
+      if (results.length === 0) return;
+      const nextIndex =
+        activeIndex === -1
+          ? delta > 0
+            ? 0
+            : results.length - 1
+          : (activeIndex + delta + results.length) % results.length;
+      const target = results[nextIndex];
+      if (!target) return;
+      setActiveCfi(target.cfi);
+      onSelectResult(target.cfi);
+      listRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-search-index="${nextIndex}"]`)
+        ?.scrollIntoView?.({ block: "nearest" });
+    },
+    [activeIndex, onSelectResult, results],
+  );
 
   return (
     <ReaderSheet
@@ -388,25 +411,66 @@ export function ReaderSearchSheet({
 
           {!isSearching && results.length > 0 && (
             <div className="mt-2.5 flex items-center justify-between gap-2">
-              <span
-                className="text-xs font-medium tabular-nums"
-                style={{ color: surface.muted }}
-                aria-live="polite"
-              >
-                {summaryText}
-              </span>
-              <button
-                type="button"
-                onClick={handleClearHighlights}
-                className="reader-panel-secondary !h-7 px-2.5 text-xs"
-              >
-                <Eraser
-                  className="h-3.5 w-3.5 shrink-0"
-                  strokeWidth={1.6}
-                  aria-hidden="true"
-                />
-                <span>清除高亮</span>
-              </button>
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="truncate text-xs font-medium tabular-nums"
+                  style={{ color: surface.muted }}
+                  aria-live="polite"
+                >
+                  {summaryText}
+                </span>
+                {activeIndex >= 0 && (
+                  <span
+                    className="shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[11px] leading-none tabular-nums"
+                    style={{
+                      background: "color-mix(in srgb, var(--reader-panel-accent) 12%, transparent)",
+                      color: uiScheme.link,
+                    }}
+                  >
+                    {activeIndex + 1} / {results.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {results.length > 1 && (
+                  <div
+                    role="group"
+                    aria-label="切换匹配结果"
+                    className="inline-flex items-center gap-0.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleStepResult(-1)}
+                      aria-label="上一处匹配"
+                      title="上一处匹配"
+                      className="reader-panel-icon !size-7"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStepResult(1)}
+                      aria-label="下一处匹配"
+                      title="下一处匹配"
+                      className="reader-panel-icon !size-7"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleClearHighlights}
+                  className="reader-panel-secondary !h-7 px-2.5 text-xs"
+                >
+                  <Eraser
+                    className="h-3.5 w-3.5 shrink-0"
+                    strokeWidth={1.6}
+                    aria-hidden="true"
+                  />
+                  <span>清除高亮</span>
+                </button>
+              </div>
             </div>
           )}
         </>
@@ -465,6 +529,7 @@ export function ReaderSearchSheet({
                       <button
                         key={`${item.cfi}-${index}`}
                         type="button"
+                        data-search-index={index}
                         aria-label={ariaLabel}
                         aria-current={isActive ? "true" : undefined}
                         data-current-chapter={isActive ? "true" : undefined}

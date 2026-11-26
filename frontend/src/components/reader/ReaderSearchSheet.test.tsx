@@ -245,4 +245,54 @@ describe("ReaderSearchSheet", () => {
     expect(searchInput).toHaveValue("");
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+
+  it("steps between search matches cleanly without closing the search drawer", async () => {
+    const firstResult = makeResult({ cfi: "epubcfi(/6/4!/4/2)", sectionLabel: "第一章" });
+    const secondResult = makeResult({ cfi: "epubcfi(/6/6!/4/8)", sectionLabel: "第二章" });
+    const onOpenChange = vi.fn();
+    const onSelectResult = vi.fn();
+    const onSearch = vi.fn(
+      async (_query: string, callbacks?: BookSearchCallbacks): Promise<BookSearchOutcome> => {
+        callbacks?.onResults?.([firstResult, secondResult]);
+        return { total: 2, supported: true, truncated: false };
+      },
+    );
+
+    render(
+      <ReaderSearchSheet
+        open
+        onOpenChange={onOpenChange}
+        bookTitle="测试书籍"
+        uiScheme={PRESET_STYLES.light}
+        onSearch={onSearch}
+        onClearSearch={vi.fn()}
+        onSelectResult={onSelectResult}
+      />,
+    );
+
+    const searchInput = screen.getByRole("searchbox", { name: "书内全文搜索" });
+    fireEvent.change(searchInput, { target: { value: "书页" } });
+    fireEvent.submit(searchInput.closest("form")!);
+
+    await waitFor(() => {
+      expect(screen.getByText("找到 2 处匹配")).toBeInTheDocument();
+    });
+
+    const nextBtn = screen.getByRole("button", { name: "下一处匹配" });
+    const prevBtn = screen.getByRole("button", { name: "上一处匹配" });
+
+    fireEvent.click(nextBtn);
+    expect(onSelectResult).toHaveBeenNthCalledWith(1, firstResult.cfi);
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(nextBtn);
+    expect(onSelectResult).toHaveBeenNthCalledWith(2, secondResult.cfi);
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+
+    fireEvent.click(prevBtn);
+    expect(onSelectResult).toHaveBeenNthCalledWith(3, firstResult.cfi);
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });
